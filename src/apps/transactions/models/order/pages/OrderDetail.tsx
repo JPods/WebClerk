@@ -4,7 +4,7 @@
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState, useEffect } from "react";
-import { FaTruck, FaCheck, FaTasks, FaMoneyBillWave } from "react-icons/fa";
+import { FaTruck, FaCheck } from "react-icons/fa";
 
 // Import base component and shared types
 import TransactionDetailBase, {
@@ -58,18 +58,8 @@ interface Order extends Transaction {
 const SALES_ORDER_TABS_BEFORE: TransactionTab[] = [];
 
 // Dynamic tabs generator with badges based on data
-const getOrderTabsAfter = (data: Transaction): TransactionTab[] => {
-  const orderData = data as Order;
-  const pendingActions =
-    orderData.actions?.items?.filter((a) => a.status === "pending").length ?? 0;
-
+const getOrderTabsAfter = (_data: Transaction): TransactionTab[] => {
   return [
-    {
-      id: "actions",
-      label: "Actions",
-      icon: <FaTasks size={14} />,
-      badge: pendingActions || undefined,
-    },
     { id: "shipping", label: "Shipping", icon: <FaTruck size={14} /> },
   ];
 };
@@ -117,18 +107,9 @@ const OrderHeader: React.FC<{
         customerInfo={customerInfo}
         billingContact={billingContact}
         shippingContact={shippingContact}
+        showPayments={true}
+        onAddPayment={() => setShowAddPaymentModal(true)}
       />
-      
-      {/* Quick Actions */}
-      <div className="flex gap-2">
-        <button 
-          onClick={() => setShowAddPaymentModal(true)}
-          className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <FaMoneyBillWave size={14} />
-          Add Payment
-        </button>
-      </div>
 
       {/* Add Payment Modal */}
       <AddPaymentModal

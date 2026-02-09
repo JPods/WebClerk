@@ -159,21 +159,6 @@ export default function CustomerDetail({
     { id: 'gl_accounts', label: 'GL Accounts', icon: <FaCreditCard size={14} /> },
   ];
 
-  // Count badges for tabs
-  const getCommentCount = () => {
-    if (!data?.comments) return 0;
-    const c = data.comments;
-    return (c.public?.length || 0) + (c.process?.length || 0) + (c.partner?.length || 0) + (c.notes?.length || 0);
-  };
-  const getActionCount = () => data?.actions?.items?.filter((a: any) => a.status === 'pending').length || 0;
-  const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
-
-  const tabBadges = {
-    comments: getCommentCount(),
-    actions: getActionCount(),
-    documents: getDocumentCount(),
-  };
-
   const {
     register,
     setValue,
@@ -198,6 +183,21 @@ export default function CustomerDetail({
   // Allow local edit override when in view mode
   const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
   const data = dataProp || routeState.data || null;
+
+  // Count badges for tabs (must be after data declaration)
+  const getCommentCount = () => {
+    if (!data?.comments) return 0;
+    const c = data.comments;
+    return (c.public?.length || 0) + (c.process?.length || 0) + (c.partner?.length || 0) + (c.notes?.length || 0);
+  };
+  const getActionCount = () => data?.actions?.items?.filter((a: any) => a.status === 'pending').length || 0;
+  const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
+
+  const tabBadges = {
+    comments: getCommentCount(),
+    actions: getActionCount(),
+    documents: getDocumentCount(),
+  };
 
   useEffect(() => {
     if (mode === "add") {

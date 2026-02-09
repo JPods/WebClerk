@@ -597,7 +597,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   // Filter and search logic
   const filteredData = useMemo(() => {
-    let result = [...data];
+    let result = [...(Array.isArray(data) ? data : [])];
 
     // Apply search
     if (effectiveSearchTerm) {

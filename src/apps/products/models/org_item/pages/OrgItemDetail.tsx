@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,10 +9,12 @@ import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../..
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createOrgItem, updateOrgItem } from "../services/orgItemApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { orgItemSchema } from "../utils/orgItemSchema";
 import { OrgItemAddProps } from "../types/orgItemType";
 import { Building2, Package, Hash, FileText } from "lucide-react";
@@ -28,7 +30,17 @@ export default function OrgItemDetail({
   onCancelInline,
 }: OrgItemAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
   const {
     register,
@@ -40,13 +52,8 @@ export default function OrgItemDetail({
     resolver: zodResolver(orgItemSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
-
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -57,29 +64,57 @@ export default function OrgItemDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof orgItemSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createOrgItem(formData)
           : await updateOrgItem({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Org item ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -88,21 +123,44 @@ export default function OrgItemDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Org Item"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Org Item"
               : "Org Item Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Org Item"
+          recordId={data?.id}
+          recordName={data?.org_id}
+          mode={currentMode}
+          backUrl="/products/org-items"
+        />
+      )}
+
+      {/* Toolbar with action buttons */}
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Org Item"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Org Item"
                 : "Add New Org Item"}
             </h3>
@@ -139,7 +197,7 @@ export default function OrgItemDetail({
                 id="org_id"
                 placeholder="Org ID"
                 {...register("org_id")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
 
@@ -155,7 +213,7 @@ export default function OrgItemDetail({
                 id="item_id"
                 placeholder="Item ID"
                 {...register("item_id")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
 
@@ -170,7 +228,7 @@ export default function OrgItemDetail({
                 id="quantity"
                 placeholder="Quantity"
                 {...register("quantity", { valueAsNumber: true })}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
           </div>
@@ -186,19 +244,20 @@ export default function OrgItemDetail({
               id="description"
               placeholder="Description"
               {...register("description")}
-              disabled={mode === "view"}
+                disabled={currentMode === "view"}
             />
           </HorizontalField>
 
-          {mode !== "view" && (
+          {/* Inline mode buttons */}
+          {inline && currentMode !== "view" && (
             <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
-              {inline && onCancelInline && (
+              {onCancelInline && (
                 <button
                   type="button"
                   onClick={onCancelInline}

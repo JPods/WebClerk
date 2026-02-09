@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createInvoiceLine, updateInvoiceLine } from "../services/invoiceLineApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -46,11 +48,22 @@ export default function InvoiceLineDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
 
+  const handleEdit = () => setCurrentMode("edit");
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else {
+      setCurrentMode("view");
+    }
+  };
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -65,7 +78,7 @@ export default function InvoiceLineDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const preparePayload = (formValues: z.infer<typeof invoiceLineSchema>): Record<string, unknown> => {
     const numericPrice =
@@ -83,17 +96,18 @@ export default function InvoiceLineDetail({
   };
 
   const onSubmit = async (formData: z.infer<typeof invoiceLineSchema>) => {
+    setIsSaving(true);
     try {
       const payload = preparePayload(formData);
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createInvoiceLine(payload)
           : await updateInvoiceLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({
             message: `Invoice line ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -104,6 +118,8 @@ export default function InvoiceLineDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -112,35 +128,33 @@ export default function InvoiceLineDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Invoice Line"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Invoice Line"
               : "Invoice Line Detail"
           }
         />
       )}
+
+      <SimpleDetailHeader
+        entityName="Invoice Line"
+        recordId={data?.id}
+        recordName={data?.description || `Line ${data?.line_number || ''}`}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/transactions/invoice-lines"}
+        onClose={inline ? onCancelInline : undefined}
+      />
+
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Invoice Line"
-                : mode === "view"
-                ? "View Invoice Line"
-                : "Add New Invoice Line"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <Label htmlFor="parent">Invoice ID</Label>
@@ -151,7 +165,7 @@ export default function InvoiceLineDetail({
               {...register("parent", { valueAsNumber: true })}
               error={errors.parent && errors.parent.message ? true : false}
               hint={errors.parent && errors.parent.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -163,7 +177,7 @@ export default function InvoiceLineDetail({
               {...register("item_id", { valueAsNumber: true })}
               error={errors.item_id && errors.item_id.message ? true : false}
               hint={errors.item_id && errors.item_id.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -175,7 +189,7 @@ export default function InvoiceLineDetail({
               {...register("description")}
               error={errors.description && errors.description.message ? true : false}
               hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -187,7 +201,7 @@ export default function InvoiceLineDetail({
               {...register("quantity", { valueAsNumber: true })}
               error={errors.quantity && errors.quantity.message ? true : false}
               hint={errors.quantity && errors.quantity.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -200,7 +214,7 @@ export default function InvoiceLineDetail({
               {...register("unit_price", { valueAsNumber: true })}
               error={errors.unit_price && errors.unit_price.message ? true : false}
               hint={errors.unit_price && errors.unit_price.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -213,16 +227,16 @@ export default function InvoiceLineDetail({
               {...register("discount_amount", { valueAsNumber: true })}
               error={errors.discount_amount && errors.discount_amount.message ? true : false}
               hint={errors.discount_amount && errors.discount_amount.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
-          {mode !== "view" && (
+          {currentMode !== "view" && (
             <div className="flex items-center gap-2">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

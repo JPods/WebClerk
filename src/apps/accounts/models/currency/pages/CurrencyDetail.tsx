@@ -1,19 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Hash, Type, DollarSign, TrendingUp } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import { createCurrency, updateCurrency } from "../services/currencyApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { currencySchema } from "../utils/currencySchema";
 import { CurrencyAddProps } from "../types/currencyType";
+
+const STORAGE_KEY = "currencyDetail_columnCount";
 
 export default function CurrencyDetail({
   modeProp,
@@ -24,6 +33,8 @@ export default function CurrencyDetail({
   onCancelInline,
 }: CurrencyAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
   const {
     register,
@@ -37,10 +48,15 @@ export default function CurrencyDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to comments
+  const { activeTab, setActiveTab } = useDetailTabs("currency", "comments");
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,29 +67,96 @@ export default function CurrencyDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
+
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
+  // Tab content renderer
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="currency"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="currency"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+      default:
+        return null;
+    }
+  };
 
   const onSubmit = async (formData: z.infer<typeof currencySchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createCurrency(formData)
           : await updateCurrency({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Currency ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,21 +165,42 @@ export default function CurrencyDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Currency"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Currency"
               : "Currency Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Currency"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/accounts/currencies"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Currency"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Currency"
                 : "Add New Currency"}
             </h3>
@@ -112,9 +216,11 @@ export default function CurrencyDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="code">code</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Code" htmlFor="code" error={errors.code?.message} icon={<Hash size={14} />}>
               <Input
                 type="text"
                 id="code"
@@ -122,11 +228,10 @@ export default function CurrencyDetail({
                 {...register("code")}
                 error={errors.code && errors.code.message ? true : false}
                 hint={errors.code && errors.code.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="name">name</Label>
+            </HorizontalField>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={<Type size={14} />}>
               <Input
                 type="text"
                 id="name"
@@ -134,13 +239,10 @@ export default function CurrencyDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="symbol">symbol</Label>
+            </HorizontalField>
+            <HorizontalField label="Symbol" htmlFor="symbol" error={errors.symbol?.message} icon={<DollarSign size={14} />}>
               <Input
                 type="text"
                 id="symbol"
@@ -148,11 +250,10 @@ export default function CurrencyDetail({
                 {...register("symbol")}
                 error={errors.symbol && errors.symbol.message ? true : false}
                 hint={errors.symbol && errors.symbol.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="rate">rate</Label>
+            </HorizontalField>
+            <HorizontalField label="Rate" htmlFor="rate" error={errors.rate?.message} icon={<TrendingUp size={14} />}>
               <Input
                 type="number"
                 id="rate"
@@ -160,17 +261,17 @@ export default function CurrencyDetail({
                 {...register("rate", { valueAsNumber: true })}
                 error={errors.rate && errors.rate.message ? true : false}
                 hint={errors.rate && errors.rate.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button
@@ -184,6 +285,19 @@ export default function CurrencyDetail({
             </div>
           )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs
+        entityType="currency"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["comments", "actions", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );

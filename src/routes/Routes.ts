@@ -27,6 +27,7 @@
 
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
+  static readonly detailReview: string = "/detail-review";
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";

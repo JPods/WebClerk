@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../components/common/ComponentCard";
+import SimpleDetailHeader from "../../../../components/common/SimpleDetailHeader";
+import SimpleDetailToolbar from "../../../../components/common/SimpleDetailToolbar";
 import Label from "../../../../components/form/Label";
 import { Input } from "../../../../components/wrapper";
 
@@ -37,10 +39,26 @@ export default function ConnectionDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEdit = () => setCurrentMode("edit");
+  const handleCancel = () => {
+    setCurrentMode("view");
+    if (data) {
+      Object.keys(data).forEach((key: any) => {
+        if (data[key] !== undefined) {
+          setValue(key, data[key]);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,19 +69,20 @@ export default function ConnectionDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof connectionSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createConnection(formData)
           : await updateConnection({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Connection ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -74,6 +93,8 @@ export default function ConnectionDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -82,21 +103,33 @@ export default function ConnectionDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Connection"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Connection"
               : "Connection Detail"
           }
         />
       )}
+      <SimpleDetailHeader
+        entityName="Connection"
+        id={data?.id}
+        mode={currentMode}
+      />
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onEdit={handleEdit}
+        onCancel={handleCancel}
+        onSave={handleSubmit(onSubmit)}
+      />
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Connection"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Connection"
                 : "Add New Connection"}
             </h3>
@@ -122,7 +155,7 @@ export default function ConnectionDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
             <div>
@@ -134,7 +167,7 @@ export default function ConnectionDetail({
                 {...register("type")}
                 error={errors.type && errors.type.message ? true : false}
                 hint={errors.type && errors.type.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
@@ -148,7 +181,7 @@ export default function ConnectionDetail({
                 {...register("host")}
                 error={errors.host && errors.host.message ? true : false}
                 hint={errors.host && errors.host.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
             <div>
@@ -160,7 +193,7 @@ export default function ConnectionDetail({
                 {...register("port", { valueAsNumber: true })}
                 error={errors.port && errors.port.message ? true : false}
                 hint={errors.port && errors.port.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
@@ -174,7 +207,7 @@ export default function ConnectionDetail({
                 {...register("username")}
                 error={errors.username && errors.username.message ? true : false}
                 hint={errors.username && errors.username.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
             <div>
@@ -186,7 +219,7 @@ export default function ConnectionDetail({
                 {...register("password")}
                 error={errors.password && errors.password.message ? true : false}
                 hint={errors.password && errors.password.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
@@ -199,16 +232,16 @@ export default function ConnectionDetail({
               {...register("database")}
               error={errors.database && errors.database.message ? true : false}
               hint={errors.database && errors.database.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
-          {mode !== "view" && (
+          {currentMode !== "view" && (
             <div className="flex items-center gap-2">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

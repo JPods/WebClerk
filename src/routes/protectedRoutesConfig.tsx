@@ -57,6 +57,7 @@ import {
   TagList,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import DetailReview from "../pages/admin/DetailReview";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
 import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
@@ -133,6 +134,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.actionList, element: <ActionListPage /> },
   { path: PageRoutes.actionDetail, element: <ActionDetail /> },
   { path: PageRoutes.adminWorkbench, element: <AdminWorkbench /> },
+  { path: PageRoutes.detailReview, element: <DetailReview /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.docs, element: <DocumentIndex /> },

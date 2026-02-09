@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Target, Type, Database } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createTemplate, updateTemplate } from "../services/templateApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { templateSchema } from "../utils/templateSchema";
 import { TemplateAddProps } from "../types/templateType";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+
+const STORAGE_KEY = "templateDetail_columnCount";
 
 export default function TemplateDetail({
   modeProp,
@@ -36,11 +42,14 @@ export default function TemplateDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (initialMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,12 +60,15 @@ export default function TemplateDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, initialMode]);
+
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const onSubmit = async (formData: z.infer<typeof templateSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createTemplate(formData)
           : await updateTemplate({
               id: data.id,
@@ -68,7 +80,7 @@ export default function TemplateDetail({
         dispatch(
           showToast({
             message: `Template ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -79,6 +91,29 @@ export default function TemplateDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -87,21 +122,42 @@ export default function TemplateDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Template"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Template"
               : "Template Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Template"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/core/templates"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Template"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Template"
                 : "Add New Template"}
             </h3>
@@ -117,9 +173,11 @@ export default function TemplateDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="purpose">purpose</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Purpose" htmlFor="purpose" error={errors.purpose?.message} icon={Target}>
               <Input
                 type="text"
                 id="purpose"
@@ -127,11 +185,10 @@ export default function TemplateDetail({
                 {...register("purpose")}
                 error={errors.purpose && errors.purpose.message ? true : false}
                 hint={errors.purpose && typeof errors.purpose.message === 'string' ? errors.purpose.message : undefined}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="name">name</Label>
+            </HorizontalField>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={Type}>
               <Input
                 type="text"
                 id="name"
@@ -139,13 +196,10 @@ export default function TemplateDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && typeof errors.name.message === 'string' ? errors.name.message : undefined}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="data">data</Label>
+            </HorizontalField>
+            <HorizontalField label="Data" htmlFor="data" error={errors.data?.message} icon={Database}>
               <Input
                 type="text"
                 id="data"
@@ -153,17 +207,17 @@ export default function TemplateDetail({
                 {...register("data")}
                 error={errors.data && errors.data.message ? true : false}
                 hint={errors.data && typeof errors.data.message === 'string' ? errors.data.message : undefined}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

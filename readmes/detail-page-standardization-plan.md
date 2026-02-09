@@ -10,15 +10,22 @@ This document outlines the plan to standardize all `*Detail.tsx` pages with cons
 |-----|-------|--------|
 | **orgs/** | 4 | ✅ Complete (CustomerDisplay, VendorDetail, ContactDetail, EmployeeDetail) |
 | **transactions/** | 14 | ✅ Complete (6 use TransactionDetailBase, Project/Requisition rewritten, 5 lines are simple forms) |
-| **products/** | 13 | ✅ Assessed (ItemDetail has full panels, 12 others are simple forms) |
-| **accounts/** | 6 | ✅ Assessed (All lookup tables - GLAccount, Currency, etc.) |
-| **core/** | 6 | ✅ Assessed (ContactDetail done, others are admin config forms) |
-| **communications/** | 4 | ✅ Assessed (Address, Email, Phone, Domain - contact info forms) |
-| **sync/** | 3 | ✅ Assessed (Bundle, Connection - integration config) |
-| **docs/** | 1 | ✅ Assessed (DocumentDetail - file viewer) |
-| **support/** | 1 | ⬜ Future (CampaignDetail - candidate for DetailTabs) |
+| **products/** | 13 | ✅ Complete (ItemDetail has full panels, 12 use SimpleDetailHeader/Toolbar) |
+| **accounts/** | 6 | ✅ Complete (4 use SimpleDetailHeader/Toolbar, GLAccount enterprise, Audit read-only) |
+| **core/** | 6 | ✅ Complete (4 use SimpleDetailHeader/Toolbar, ContactDetail sections, APILog read-only) |
+| **communications/** | 4 | ✅ Complete (All use SimpleDetailHeader/Toolbar) |
+| **sync/** | 3 | ✅ Complete (2 use SimpleDetailHeader/Toolbar) |
+| **docs/** | 1 | ✅ Complete (Uses SimpleDetailHeader/Toolbar) |
+| **support/** | 1 | ✅ Complete (Uses SimpleDetailHeader/Toolbar) |
 
-**Total: 52 Detail files assessed/standardized**
+**Total: 52 Detail files standardized**
+
+### Components Added
+
+- **SimpleDetailHeader** - Entity name, ID, mode indicator, back navigation
+- **SimpleDetailToolbar** - Edit/Save/Cancel/Delete actions with loading state
+- **HorizontalField** - Label-left field layout with icon support
+- **useColumnCount** - 2/3 column selector with localStorage persistence
 
 ---
 
@@ -168,20 +175,20 @@ interface EntityRefs {
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
 | Item | `ItemDetail.tsx` | ✅ | ✅ | ✅ | ✅ Accordion+Panels (1411 lines) |
-| Service | `ServiceDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Serial | `SerialDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Catalog | `CatalogDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Warehouse | `WarehouseDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| BillOfMaterial | `BillOfMaterialDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Variant | `VariantDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| OrgItem | `OrgItemDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| ItemXref | `ItemXrefDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Specification | `SpecificationDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Matrics | `MatricsDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Flow | `FlowDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Usage | `UsageDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
+| Service | `ServiceDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Serial | `SerialDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Catalog | `CatalogDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Warehouse | `WarehouseDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| BillOfMaterial | `BillOfMaterialDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Variant | `VariantDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| OrgItem | `OrgItemDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| ItemXref | `ItemXrefDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Specification | `SpecificationDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Matrics | `MatricsDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Flow | `FlowDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Usage | `UsageDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Only `ItemDetail.tsx` has full panel support. Supporting product entities are edited inline and link to parent Item for comments/actions/documents.
+> **Note:** Only `ItemDetail.tsx` has full panel support. Supporting product entities use SimpleDetailHeader + SimpleDetailToolbar + HorizontalField layout.
 
 ---
 
@@ -189,12 +196,12 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
-| Email | `EmailDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Phone | `PhoneDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Address | `AddressDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Domain | `DomainDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
+| Email | `EmailDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Phone | `PhoneDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Address | `AddressDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Domain | `DomainDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Communication records are viewed/edited via `CommunicationsPanel` on parent entities.
+> **Note:** Communication records use SimpleDetailHeader + SimpleDetailToolbar. Typically viewed/edited via `CommunicationsPanel` on parent entities.
 
 ---
 
@@ -203,13 +210,13 @@ interface EntityRefs {
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
 | GLAccount | `GLAccountDetail.tsx` | ➖ | ➖ | ➖ | ✅ Enterprise form layout |
-| GLJournal | `GLJournalDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| Currency | `CurrencyDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| ExchangeRate | `ExchangeRateDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
-| ExchangeTransaction | `ExchangeTransactionDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
+| GLJournal | `GLJournalDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Currency | `CurrencyDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| ExchangeRate | `ExchangeRateDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| ExchangeTransaction | `ExchangeTransactionDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 | Audit | `AuditDetail.tsx` | ❌ | ❌ | ❌ | ✅ Read-only system log |
 
-> **Note:** Account models are lookup tables - no comments/actions/documents needed.
+> **Note:** Account models are lookup tables. Simple forms now use SimpleDetailHeader + SimpleDetailToolbar.
 
 ---
 
@@ -217,13 +224,13 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
-| Report | `ReportDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple inline form |
+| Report | `ReportDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 | APILog | `APILogDetail.tsx` | ❌ | ❌ | ❌ | ✅ Read-only system log |
-| Setting | `SettingDetail.tsx` | ➖ | ➖ | ➖ | ✅ Admin config form |
-| Action | `ActionDetail.tsx` | ➖ | ❌ | ➖ | ✅ Simple form |
-| Template | `TemplateDetail.tsx` | ➖ | ➖ | ➖ | ✅ Code editor form |
+| Setting | `SettingDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Action | `ActionDetail.tsx` | ➖ | ❌ | ➖ | ✅ Simple form + Header/Toolbar |
+| Template | `TemplateDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Core/system models are admin-only configuration pages - no user-facing comments/actions/documents.
+> **Note:** Core/system models are admin-only. Simple forms now use SimpleDetailHeader + SimpleDetailToolbar.
 
 ---
 
@@ -231,10 +238,10 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
-| Bundle | `BundleDetail.tsx` | ➖ | ➖ | ➖ | ✅ Data mapping form |
-| Connection | `ConnectionDetail.tsx` | ➖ | ➖ | ➖ | ✅ API config form |
+| Bundle | `BundleDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Connection | `ConnectionDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Sync models are integration configuration pages - technical admin tools.
+> **Note:** Sync models are integration configuration pages. Now use SimpleDetailHeader + SimpleDetailToolbar.
 
 ---
 
@@ -242,9 +249,9 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Q&A | Status |
 |-------|------|:--------:|:-------:|:---------:|:---:|--------|
-| Campaign | `CampaignDetail.tsx` | ✅ | ✅ | ✅ | ✅ | ⬜ Future enhancement |
+| Campaign | `CampaignDetail.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Campaign is a candidate for DetailTabs pattern in future iterations.
+> **Note:** Campaign now uses SimpleDetailHeader + SimpleDetailToolbar. Full DetailTabs pattern is a future enhancement.
 
 ---
 
@@ -252,9 +259,9 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
-| Document | `DocumentDetail.tsx` | ➖ | ➖ | ❌ | ✅ Document viewer |
+| Document | `DocumentDetail.tsx` | ➖ | ➖ | ❌ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Document model is the document itself - metadata viewer with file preview.
+> **Note:** Document model is the document itself. Now uses SimpleDetailHeader + SimpleDetailToolbar for metadata editing.
 
 ---
 
@@ -290,7 +297,7 @@ All transaction detail pages use `TransactionDetailBase` which provides comprehe
 - [x] `PurchaseLineDetail.tsx` - Inline form, no tabs needed
 - [x] `WorkOrderLineDetail.tsx` - Inline form, no tabs needed
 
-### Phase 3: Product Models ✅ ASSESSED
+### Phase 3: Product Models ✅ COMPLETE
 
 - [x] `ItemDetail.tsx` (1411 lines) - **ALREADY STANDARDIZED** - Uses enterprise accordion layout with all panels:
   - CommentsPanel, ActionsPanel, MetadataPanel, RefsPanel, PrefsPanel, RawDataPanel, LinkagesPanel
@@ -298,50 +305,54 @@ All transaction detail pages use `TransactionDetailBase` which provides comprehe
   - ImagePanel, InventoryGrid, BOMSection
   - Admin-only panels for Metadata, Refs, RawData
 
-**Simple Form Components (no tabs needed - inline editing):**
-- [x] `ServiceDetail.tsx` - Simple inline form
-- [x] `SerialDetail.tsx` - Simple inline form  
-- [x] `CatalogDetail.tsx` - Simple inline form
-- [x] `WarehouseDetail.tsx` - Simple inline form
-- [x] `BillOfMaterialDetail.tsx` - Simple inline form
-- [x] `VariantDetail.tsx` - Simple inline form
-- [x] `OrgItemDetail.tsx` - Simple inline form
-- [x] `ItemXrefDetail.tsx` - Simple inline form
-- [x] `SpecificationDetail.tsx` - Simple inline form
-- [x] `MatricsDetail.tsx` - Simple inline form
-- [x] `FlowDetail.tsx` - Simple inline form
-- [x] `UsageDetail.tsx` - Simple inline form
+**Simple Form Components (Header/Toolbar added):**
+- [x] `ServiceDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `SerialDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `CatalogDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `WarehouseDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `BillOfMaterialDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `VariantDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `OrgItemDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `ItemXrefDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `SpecificationDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `MatricsDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `FlowDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `UsageDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
 
-> **Note:** Product supporting entities are primarily used in List views with inline editing. They don't require full tab navigation - their comments/actions/documents (if any) should link to parent Item records.
+> **Note:** Product supporting entities now use the standard layout pattern with SimpleDetailHeader/Toolbar. Their comments/actions/documents (if any) should link to parent Item records.
 
-### Phase 4: Supporting Models ✅ ASSESSED
+### Phase 4: Supporting Models ✅ COMPLETE
 
-**Account Models (simple lookup tables):**
+**Account Models (lookup tables + Header/Toolbar):**
 - [x] `GLAccountDetail.tsx` - Enterprise form layout with column selector
-- [x] `GLJournalDetail.tsx` - Simple inline form
-- [x] `CurrencyDetail.tsx` - Simple inline form
-- [x] `ExchangeRateDetail.tsx` - Simple inline form
-- [x] `ExchangeTransactionDetail.tsx` - Simple inline form
+- [x] `GLJournalDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `CurrencyDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `ExchangeRateDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `ExchangeTransactionDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
 - [x] `AuditDetail.tsx` - Read-only system log view
 
-**Core Models (admin configuration):**
-- [x] `ReportDetail.tsx` - Simple inline form
-- [x] `TemplateDetail.tsx` - Simple inline form
-- [x] `SettingDetail.tsx` - Simple inline form
-- [x] `ActionDetail.tsx` - Simple inline form
+**Core Models (admin configuration + Header/Toolbar):**
+- [x] `ReportDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `TemplateDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `SettingDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `ActionDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
 - [x] `APILogDetail.tsx` - Read-only system log view
 
-**Sync Models:**
-- [x] `BundleDetail.tsx` - Simple inline form
-- [x] `ConnectionDetail.tsx` - Simple inline form
+**Sync Models + Header/Toolbar:**
+- [x] `BundleDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `ConnectionDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
 
-**Communication Models (contact info):**
-- [x] `EmailDetail.tsx` - Simple inline form
-- [x] `PhoneDetail.tsx` - Simple inline form
-- [x] `AddressDetail.tsx` - Simple inline form
-- [x] `DomainDetail.tsx` - Simple inline form
+**Communication Models + Header/Toolbar:**
+- [x] `EmailDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `PhoneDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `AddressDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `DomainDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
 
-> **Note:** Supporting models are configuration/lookup entities that don't have their own comments, actions, or documents. They're typically edited inline in List views or as part of a parent entity.
+**Support/Docs Models + Header/Toolbar:**
+- [x] `CampaignDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+- [x] `DocumentDetail.tsx` - SimpleDetailHeader + SimpleDetailToolbar
+
+> **Note:** All simple forms now use the standard layout: SimpleDetailHeader → SimpleDetailToolbar → ComponentCard with HorizontalField grid.
 
 ### Phase 5: Minimal Detail Pages ✅ COMPLETE
 
@@ -377,6 +388,64 @@ All minimal detail pages confirmed as simple inline forms - appropriate for thei
 |-------|--------|----------|
 | CampaignDetail | Rich entity with Q&A | Low |
 | DocumentDetail | Could use metadata tabs | Low |
+
+---
+
+## Simple Form Components
+
+For simple forms (lookup tables, configuration forms), two lightweight components provide consistent header and toolbar functionality:
+
+### SimpleDetailHeader
+
+Location: `src/components/common/SimpleDetailHeader.tsx`
+
+Displays entity name, record ID, record name, and mode indicator (Add/Edit/View) with back navigation.
+
+```tsx
+<SimpleDetailHeader
+  entityName="Currency"
+  recordId={data?.id}
+  recordName={data?.name}
+  mode={currentMode}
+  backUrl="/accounts/currencies"
+/>
+```
+
+### SimpleDetailToolbar
+
+Location: `src/components/common/SimpleDetailToolbar.tsx`
+
+Provides Edit/Save/Cancel/Delete buttons with proper state management.
+
+```tsx
+<SimpleDetailToolbar
+  mode={currentMode}
+  isSaving={isSaving}
+  onSave={handleSubmit(onSubmit)}
+  onCancel={handleCancel}
+  onEdit={handleEdit}
+  canDelete={true}
+  onDelete={handleDelete}
+/>
+```
+
+### Simple Form Layout Pattern
+
+All simple forms now follow this structure:
+
+```
+┌────────────────────────────────────────┐
+│  PageBreadcrumb                        │
+├────────────────────────────────────────┤
+│  SimpleDetailHeader                    │  ← Entity name, ID, mode
+├────────────────────────────────────────┤
+│  SimpleDetailToolbar                   │  ← Edit/Save/Cancel/Delete
+├────────────────────────────────────────┤
+│  ComponentCard                         │
+│    ColumnSelector (top-right)          │
+│    HorizontalField grid (2-3 cols)     │
+└────────────────────────────────────────┘
+```
 
 ---
 

@@ -18,6 +18,7 @@ import {
   FaHistory,
   FaCode,
   FaColumns,
+  FaUsers,
 } from 'react-icons/fa';
 import { useAppSelector } from '@/store/hooks';
 
@@ -46,7 +47,7 @@ export interface DetailTabsProps {
   /** Tab change handler */
   onTabChange: (tabId: string) => void;
   /** Standard tabs to include (default: all standard) */
-  standardTabs?: ('overview' | 'comments' | 'actions' | 'documents' | 'history' | 'raw')[];
+  standardTabs?: ('overview' | 'contacts' | 'comments' | 'actions' | 'documents' | 'history' | 'raw')[];
   /** Additional model-specific tabs (inserted before admin tabs) */
   additionalTabs?: TabConfig[];
   /** Badges for standard tabs (e.g., { comments: 5, actions: 2 }) */
@@ -70,6 +71,11 @@ const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
     id: 'overview',
     label: 'Overview',
     icon: <FaInfoCircle size={14} />,
+  },
+  contacts: {
+    id: 'contacts',
+    label: 'Contacts',
+    icon: <FaUsers size={14} />,
   },
   comments: {
     id: 'comments',

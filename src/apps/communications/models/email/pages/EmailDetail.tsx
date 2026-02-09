@@ -1,23 +1,32 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
+import { Mail, Type, User, BellOff, Star, CheckCircle } from "lucide-react";
+
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import {
-  Input,
-  CustTextArea,
-  DropDown,
-} from "../../../../../components/wrapper";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
+import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import ContactLinksPanel from "../../../../common/components/panels/ContactLinksPanel";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import { createEmail, updateEmail } from "../services/emailApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
+
+const STORAGE_KEY = "emailDetail_columnCount";
+
 export default function EmailDetail({
   modeProp,
   dataProp,
@@ -42,11 +51,21 @@ export default function EmailDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to contacts since overview is persistent
+  const { activeTab, setActiveTab } = useDetailTabs("email", "contacts");
+  
+  // Column count for responsive layout
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -57,19 +76,20 @@ export default function EmailDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof emailSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createEmail({ ...formData, id: "" })
           : await updateEmail({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Email ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -80,6 +100,29 @@ export default function EmailDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -103,26 +146,110 @@ export default function EmailDetail({
     );
   };
 
+  // Render tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "contacts":
+        return (
+          <ContactLinksPanel
+            entityType="email"
+            entityId={data?.id}
+            data={data?.refs?.links?.contact}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="email"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="email"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "documents":
+        return (
+          <DocumentsPanel
+            parentType="email"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
-      {!hideBreadcrumb && !inline && (
+      {/* Breadcrumb */}
+      {!hideBreadcrumb && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Email"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Email"
               : "Email Detail"
           }
         />
       )}
+
+      {/* Header */}
+      <SimpleDetailHeader
+        entityName="Email"
+        recordId={data?.id}
+        recordName={data?.email || data?.name}
+        mode={currentMode}
+        backUrl="/communications/emails"
+      />
+
+      {/* Toolbar */}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
+      {/* Persistent Overview Form */}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Email"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Email"
                 : "Add New Email"}
             </h3>
@@ -138,47 +265,44 @@ export default function EmailDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="email">email</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Email" htmlFor="email" error={errors.email?.message} icon={<Mail size={14} />}>
               <Input
                 type="email"
                 id="email"
-                placeholder="Email Address"
+                placeholder="user@example.com"
                 {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
-                disabled={mode === "view"}
+                error={errors.email?.message ? true : false}
+                hint={errors.email?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="name">name</Label>
+            </HorizontalField>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={<Type size={14} />}>
               <Input
-                type="name"
+                type="text"
                 id="name"
-                placeholder="Name"
+                placeholder="Display Name"
                 {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                error={errors.name?.message ? true : false}
+                hint={errors.name?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="attention">attention</Label>
+            </HorizontalField>
+            <HorizontalField label="Attention" htmlFor="attention" error={errors.attention?.message} icon={<User size={14} />}>
               <Input
-                type="attention"
+                type="text"
                 id="attention"
                 placeholder="Attention"
                 {...register("attention")}
-                error={
-                  errors.attention && errors.attention.message ? true : false
-                }
-                hint={errors.attention && errors.attention.message}
-                disabled={mode === "view"}
+                error={errors.attention?.message ? true : false}
+                hint={errors.attention?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="opt_out">opt_out</Label>
+            </HorizontalField>
+            <HorizontalField label="Status" htmlFor="opt_out" icon={<BellOff size={14} />}>
               <DropDown
                 id="opt_out"
                 options={statusOptions}
@@ -186,12 +310,10 @@ export default function EmailDetail({
                 value={watch("opt_out")}
                 onChange={handleStatusChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
+            </HorizontalField>
+            <HorizontalField label="Primary" htmlFor="is_primary" icon={<Star size={14} />}>
               <Controller
                 name="is_primary"
                 control={control}
@@ -200,14 +322,12 @@ export default function EmailDetail({
                     id="is_primary"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Primary"
+                    label=""
                   />
                 )}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
+            </HorizontalField>
+            <HorizontalField label="Verified" htmlFor="is_verified" icon={<CheckCircle size={14} />}>
               <Controller
                 name="is_verified"
                 control={control}
@@ -216,32 +336,26 @@ export default function EmailDetail({
                     id="is_verified"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Verified"
+                    label=""
                   />
                 )}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation (below persistent overview) */}
+      <DetailTabs
+        entityType="email"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["contacts", "comments", "actions", "documents", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );

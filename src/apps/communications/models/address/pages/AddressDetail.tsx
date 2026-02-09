@@ -1,19 +1,30 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { MapPin, Home, Building2, Map, Navigation, Hash, Globe, Compass } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
+import { Input, CustTextArea } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import ContactLinksPanel from "../../../../common/components/panels/ContactLinksPanel";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import { createAddress, updateAddress } from "../services/addressApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
+
+const STORAGE_KEY = "addressDetail_columnCount";
 
 export default function AddressDetail({
   modeProp,
@@ -36,11 +47,21 @@ export default function AddressDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to contacts since overview is persistent
+  const { activeTab, setActiveTab } = useDetailTabs("address", "contacts");
+  
+  // Column count for responsive layout
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,20 +72,20 @@ export default function AddressDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
-  console.log("errors", errors);
+  }, [data, reset, setValue, currentMode]);
+
   const onSubmit = async (formData: z.infer<typeof addressSchema>) => {
-    console.log("formData", formData);
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createAddress(formData)
           : await updateAddress({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Address ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -75,29 +96,136 @@ export default function AddressDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
+    }
+  };
+
+  // Render tab content (no overview - it's persistent above)
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "contacts":
+        return (
+          <ContactLinksPanel
+            entityType="address"
+            entityId={data?.id}
+            data={data?.refs?.links?.contact}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="address"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="address"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "documents":
+        return (
+          <DocumentsPanel
+            parentType="address"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+
+      default:
+        return null;
     }
   };
 
   return (
     <>
-      {!hideBreadcrumb && !inline && (
+      {/* Breadcrumb */}
+      {!hideBreadcrumb && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Address"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Address"
               : "Address Detail"
           }
         />
       )}
+
+      {/* Header */}
+      <SimpleDetailHeader
+        entityName="Address"
+        recordId={data?.id}
+        recordName={data?.name || data?.address1 || data?.full}
+        mode={currentMode}
+        backUrl="/communications/addresses"
+      />
+
+      {/* Toolbar */}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
+      {/* Persistent Overview Form */}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Address"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Address"
                 : "Add New Address"}
             </h3>
@@ -113,156 +241,136 @@ export default function AddressDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="address1">Address Line 1</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Address 1" htmlFor="address1" error={errors.address1?.message} icon={<Home size={14} />}>
               <Input
                 type="text"
                 id="address1"
-                placeholder="Address Line 1"
+                placeholder="Street address"
                 {...register("address1")}
-                error={
-                  errors.address1 && errors.address1.message ? true : false
-                }
-                hint={errors.address1 && errors.address1.message}
-                disabled={mode === "view"}
+                error={errors.address1?.message ? true : false}
+                hint={errors.address1?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="address2">Address Line 2</Label>
+            </HorizontalField>
+            <HorizontalField label="Address 2" htmlFor="address2" error={errors.address2?.message} icon={<Building2 size={14} />}>
               <Input
                 type="text"
                 id="address2"
-                placeholder="Address Line 2"
+                placeholder="Apt, suite, unit"
                 {...register("address2")}
-                error={
-                  errors.address2 && errors.address2.message ? true : false
-                }
-                hint={errors.address2 && errors.address2.message}
-                disabled={mode === "view"}
+                error={errors.address2?.message ? true : false}
+                hint={errors.address2?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="address_type">Address Type</Label>
+            </HorizontalField>
+            <HorizontalField label="Type" htmlFor="address_type" error={errors.address_type?.message} icon={<Hash size={14} />}>
               <Input
                 type="text"
                 id="address_type"
-                placeholder="Address Type"
+                placeholder="Billing, Shipping, etc."
                 {...register("address_type")}
-                error={
-                  errors.address_type && errors.address_type.message
-                    ? true
-                    : false
-                }
-                hint={errors.address_type && errors.address_type.message}
-                disabled={mode === "view"}
+                error={errors.address_type?.message ? true : false}
+                hint={errors.address_type?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="full">Full Address</Label>
-              <Input
-                type="text"
-                id="full"
-                placeholder="Full Address"
-                {...register("full")}
-                error={errors.full && errors.full.message ? true : false}
-                hint={errors.full && errors.full.message}
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="city">City</Label>
+            </HorizontalField>
+            <HorizontalField label="City" htmlFor="city" error={errors.city?.message} icon={<MapPin size={14} />}>
               <Input
                 type="text"
                 id="city"
                 placeholder="City"
                 {...register("city")}
-                error={errors.city && errors.city.message ? true : false}
-                hint={errors.city && errors.city.message}
-                disabled={mode === "view"}
+                error={errors.city?.message ? true : false}
+                hint={errors.city?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="country">Country</Label>
+            </HorizontalField>
+            <HorizontalField label="State" htmlFor="state" error={errors.state?.message} icon={<Map size={14} />}>
+              <Input
+                type="text"
+                id="state"
+                placeholder="State / Province"
+                {...register("state")}
+                error={errors.state?.message ? true : false}
+                hint={errors.state?.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="ZIP" htmlFor="zip" error={errors.zip?.message} icon={<Navigation size={14} />}>
+              <Input
+                type="text"
+                id="zip"
+                placeholder="ZIP / Postal Code"
+                {...register("zip")}
+                error={errors.zip?.message ? true : false}
+                hint={errors.zip?.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Country" htmlFor="country" error={errors.country?.message} icon={<Globe size={14} />}>
               <Input
                 type="text"
                 id="country"
                 placeholder="Country"
                 {...register("country")}
-                error={errors.country && errors.country.message ? true : false}
-                hint={errors.country && errors.country.message}
-                disabled={mode === "view"}
+                error={errors.country?.message ? true : false}
+                hint={errors.country?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="state">State</Label>
-              <Input
-                type="text"
-                id="state"
-                placeholder="State"
-                {...register("state")}
-                error={errors.state && errors.state.message ? true : false}
-                hint={errors.state && errors.state.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="zip">ZIP Code</Label>
-              <Input
-                type="text"
-                id="zip"
-                placeholder="ZIP Code"
-                {...register("zip")}
-                error={errors.zip && errors.zip.message ? true : false}
-                hint={errors.zip && errors.zip.message}
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="latitude">Latitude</Label>
+            </HorizontalField>
+            <HorizontalField label="Latitude" htmlFor="latitude" error={errors.latitude?.message} icon={<Compass size={14} />}>
               <Input
                 type="text"
                 id="latitude"
-                placeholder="Latitude"
+                placeholder="e.g. 40.7128"
                 {...register("latitude")}
-                error={
-                  errors.latitude && errors.latitude.message ? true : false
-                }
-                hint={errors.latitude && errors.latitude.message}
-                disabled={mode === "view"}
+                error={errors.latitude?.message ? true : false}
+                hint={errors.latitude?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="longitude">Longitude</Label>
+            </HorizontalField>
+            <HorizontalField label="Longitude" htmlFor="longitude" error={errors.longitude?.message} icon={<Compass size={14} />}>
               <Input
                 type="text"
                 id="longitude"
-                placeholder="Longitude"
+                placeholder="e.g. -74.0060"
                 {...register("longitude")}
-                error={
-                  errors.longitude && errors.longitude.message ? true : false
-                }
-                hint={errors.longitude && errors.longitude.message}
-                disabled={mode === "view"}
+                error={errors.longitude?.message ? true : false}
+                hint={errors.longitude?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+
+          {/* Full Address - spans full width */}
+          <div className="mt-4">
+            <HorizontalField label="Full Address" htmlFor="full" error={errors.full?.message} icon={<MapPin size={14} />}>
+              <CustTextArea
+                id="full"
+                placeholder="Complete formatted address"
+                {...register("full")}
+                error={errors.full?.message ? true : false}
+                hint={errors.full?.message}
+                disabled={currentMode === "view"}
+                rows={2}
+              />
+            </HorizontalField>
+          </div>
+
+          {/* Inline mode buttons */}
+          {currentMode !== "view" && inline && (
+            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
-              {inline && onCancelInline && (
+              {onCancelInline && (
                 <button
                   type="button"
                   onClick={onCancelInline}
@@ -274,6 +382,19 @@ export default function AddressDetail({
             </div>
           )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation (below persistent overview) */}
+      <DetailTabs
+        entityType="address"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["contacts", "comments", "actions", "documents", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );
