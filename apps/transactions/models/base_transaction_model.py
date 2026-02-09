@@ -138,7 +138,7 @@ class TransactionBaseModel(BaseModel):
     finance = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
-    action = models.JSONField(default=dict, blank=True, null=True)
+    actions = models.JSONField(default=dict, blank=True, null=True)
     
     
     class Meta:

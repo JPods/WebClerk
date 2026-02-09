@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('display_name', models.CharField(db_index=True, max_length=255)),
                 ('status', models.CharField(blank=True, db_index=True, max_length=30)),
                 ('contacts', models.JSONField(default=apps.orgs.models.constants.default_contacts)),
-                ('locations', models.JSONField(default=apps.orgs.models.constants.default_locations)),
+                ('locations', models.JSONField(default=apps.orgs.models.constants.default_addresses)),
                 ('domains', models.JSONField(default=apps.orgs.models.constants.default_domains)),
                 ('phones', models.JSONField(default=apps.orgs.models.constants.default_phones)),
                 ('emails', models.JSONField(default=apps.orgs.models.constants.default_emails)),

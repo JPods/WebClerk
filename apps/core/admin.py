@@ -20,6 +20,8 @@ from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedge
 class ContactAdmin(BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
     scalar_fields = (
+        'id',
+        'ida',
         'attention',
         'role',
         'email',
@@ -37,8 +39,6 @@ class ContactAdmin(BaseUserAdmin):
         'security_level',
         'title',
         'department',
-        'id',
-        'ida',
     )
     list_display = scalar_fields
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
