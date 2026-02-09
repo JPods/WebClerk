@@ -115,6 +115,8 @@ const COLUMN_OPTIONS = [
 ];
 
 const STORAGE_KEY = "customerDetail_columnCount";
+const TAB_STORAGE_KEY = "customerDetail_activeTab";
+const VALID_TABS = ["communication", "financial", "relations", "documents", "connections", "data", "metrics", "gl_accounts"];
 
 export default function CustomerDetail({
   modeProp,
@@ -130,8 +132,17 @@ export default function CustomerDetail({
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("communication");
+  const [activeTab, setActiveTab] = useState(() => {
+    const stored = localStorage.getItem(TAB_STORAGE_KEY);
+    return stored && VALID_TABS.includes(stored) ? stored : "communication";
+  });
   const [isEditing, setIsEditing] = useState(false);
+
+  // Persist activeTab to localStorage when it changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    localStorage.setItem(TAB_STORAGE_KEY, tabId);
+  };
   const [columnCount, setColumnCount] = useState<2 | 3>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === "2" ? 2 : 3; // Default to 3 columns
@@ -708,7 +719,7 @@ export default function CustomerDetail({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
