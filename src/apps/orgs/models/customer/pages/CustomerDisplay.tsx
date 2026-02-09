@@ -17,6 +17,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+import { CustomerFinancialPanel } from "@/apps/common/components/panels";
 
 
 // Professional customer display component for right-side column
@@ -29,6 +30,13 @@ interface Customer {
   org_type?: string;
   version?: number;
   is_active?: boolean;
+  // New scalar fields from wc3
+  attention?: string | null;
+  contact_id?: number | null;
+  email?: string | null;
+  phone?: string | null;
+  price_level?: string | null;
+  // JSON aspect fields
   contacts?: any;
   addresses?: any;
   domains?: any;
@@ -233,6 +241,12 @@ export default function CustomerDetail({
         org_type: formData.org_type,
         version: formData.version,
         is_active: formData.is_active,
+        // New scalar fields from wc3
+        attention: formData.attention || null,
+        contact_id: formData.contact_id || null,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        price_level: formData.price_level || null,
         ...jsonPayload,
       };
       const res =
@@ -362,15 +376,33 @@ export default function CustomerDetail({
   ];
 
   const formData = watch();
-  const customerData: Customer = {
-    ...formData,
-    id: data?.id,
-    display_name: formData.display_name,
-    status: formData.status,
-    org_type: formData.org_type,
-    version: formData.version,
-    is_active: formData.is_active,
-  };
+  
+  // In view mode, prefer direct data from props; in edit/add mode, use form values
+  const customerData: Customer = mode === "view" && data
+    ? {
+        ...data,
+        id: data.id,
+        display_name: data.display_name,
+        status: data.status,
+        org_type: data.org_type,
+        version: data.version,
+        is_active: data.is_active,
+        attention: data.attention,
+        contact_id: data.contact_id,
+        email: data.email,
+        phone: data.phone,
+        price_level: data.price_level,
+        financial: data.financial,
+      }
+    : {
+        ...formData,
+        id: data?.id,
+        display_name: formData.display_name,
+        status: formData.status,
+        org_type: formData.org_type,
+        version: formData.version,
+        is_active: formData.is_active,
+      };
 
   // Function to get data for specific tab
   const getTabData = (tabId: string) => {
@@ -417,7 +449,8 @@ export default function CustomerDetail({
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-              {watch("display_name") || data?.display_name || "New Customer"}
+              {customerData.display_name || "New Customer"}
+              {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
             </h2>
             <div className="flex items-center gap-3 mt-1">
               <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
@@ -515,6 +548,22 @@ export default function CustomerDetail({
                           <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.display_name || "—"}</dd>
                         </div>
                         <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Attention</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.attention || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Email</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.email || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Phone</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.phone || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Price Level</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.price_level || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
                           <dt className="text-slate-500 dark:text-slate-400">Status</dt>
                           <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.status || "—"}</dd>
                         </div>
@@ -540,6 +589,21 @@ export default function CustomerDetail({
                         </div>
                       </dl>
                     </div>
+                    
+                    {/* Financial Summary Panel */}
+                    {customerData.financial && (
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                          <FaDollarSign size={16} />
+                          Financial Summary
+                        </h3>
+                        <CustomerFinancialPanel
+                          customer={customerData.financial?.customer}
+                          common={customerData.financial?.common}
+                          currency="USD"
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -554,6 +618,54 @@ export default function CustomerDetail({
                         hint={errors.display_name && errors.display_name.message}
                         className="mt-1"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="attention">Attention</Label>
+                        <Input
+                          type="text"
+                          id="attention"
+                          placeholder="Attn: line for mailing"
+                          {...register("attention")}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="price_level">Price Level</Label>
+                        <Input
+                          type="text"
+                          id="price_level"
+                          placeholder="e.g. retail, wholesale"
+                          {...register("price_level")}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          type="email"
+                          id="email"
+                          placeholder="Primary email"
+                          {...register("email")}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          type="tel"
+                          id="phone"
+                          placeholder="Primary phone"
+                          {...register("phone")}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

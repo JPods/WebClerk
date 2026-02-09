@@ -55,6 +55,30 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
           />
         </div>
+        {/* attention */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Attention</label>
+          <input
+            type="text"
+            value={org.attention || ''}
+            onChange={(e) => onChange({ attention: e.target.value })}
+            disabled={!editing}
+            placeholder="Attn: line for mailing"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+          />
+        </div>
+        {/* contact_id */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Contact ID</label>
+          <input
+            type="number"
+            value={org.contact_id ?? ''}
+            onChange={(e) => onChange({ contact_id: e.target.value ? parseInt(e.target.value, 10) : null })}
+            disabled={!editing}
+            placeholder="Primary contact ID"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+          />
+        </div>
         {/* display_id */}
         <div>
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Display ID</label>
@@ -74,6 +98,18 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             value={org.display_name || ''}
             onChange={(e) => onChange({ display_name: e.target.value })}
             disabled={!editing}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+          />
+        </div>
+        {/* email (primary) */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Email</label>
+          <input
+            type="email"
+            value={org.email || ''}
+            onChange={(e) => onChange({ email: e.target.value || null })}
+            disabled={!editing}
+            placeholder="Primary email"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
           />
         </div>
@@ -116,6 +152,30 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             <option value="manufacturer">Manufacturer</option>
             <option value="other">Other</option>
           </select>
+        </div>
+        {/* phone (primary) */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Phone</label>
+          <input
+            type="tel"
+            value={org.phone || ''}
+            onChange={(e) => onChange({ phone: e.target.value || null })}
+            disabled={!editing}
+            placeholder="Primary phone"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+          />
+        </div>
+        {/* price_level */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Price Level</label>
+          <input
+            type="text"
+            value={org.price_level || ''}
+            onChange={(e) => onChange({ price_level: e.target.value || null })}
+            disabled={!editing}
+            placeholder="e.g. retail, wholesale"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+          />
         </div>
         {/* status */}
         <div>
@@ -809,7 +869,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         showInlineHeader={false}
         card={false}
       >
-        <ComponentCard title={org.id ? `${title} #${org.id}` : `New ${title}`}>
+        <ComponentCard title={org.id ? `${title} #${org.id} - ${org.display_name || 'Unnamed'}` : `New ${title}`}>
           {/* Header */}
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -880,7 +940,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
       breadcrumbTitle={org.display_name || 'New'}
       card={false}
     >
-      <ComponentCard title={org.id ? `${title} Details` : `New ${title}`}>
+      <ComponentCard title={org.id ? `${title} #${org.id} - ${org.display_name || 'Unnamed'}` : `New ${title}`}>
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <button

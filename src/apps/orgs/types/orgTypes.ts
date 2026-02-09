@@ -332,6 +332,11 @@ export interface Organization {
   display_name: string;
   display_id?: string; // Optional secondary identifier
   company?: string; // alias for display_name
+  contact_id?: number | null; // optional pointer to primary contact
+  attention?: string | null; // optional attention line for mailing
+  email?: string | null; // optional primary email (denormalized from emails aspect)
+  phone?: string | null; // optional primary phone (denormalized from phones aspect)
+  price_level?: string | null; // e.g. retail, wholesale
   status: OrgStatus;
   is_active: boolean;
   notes?: string; // Optional notes field
@@ -386,8 +391,16 @@ export interface OrgListResponse {
 export interface OrgCreateRequest {
   org_type: OrgType;
   display_name: string;
+  display_id?: string;
+  company?: string;
+  contact_id?: number | null;
+  attention?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  price_level?: string | null;
   status?: OrgStatus;
   is_active?: boolean;
+  notes?: string;
   contacts?: OrgContact[];
   addresses?: OrgLocation[];
   domains?: OrgDomain[];
