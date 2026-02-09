@@ -22,6 +22,8 @@ interface CustomerFinancialPanelProps {
   className?: string;
   /** Show all sections (default: true shows only populated) */
   showAll?: boolean;
+  /** Number of columns (default: 3) */
+  columns?: 2 | 3;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +93,7 @@ const CustomerFinancialPanel: React.FC<CustomerFinancialPanelProps> = ({
   currency = 'USD',
   className = '',
   showAll = false,
+  columns = 3,
 }) => {
   if (!customer && !common) {
     return <div className={`text-xs text-slate-400 ${className}`}>No financial data</div>;
@@ -109,119 +112,122 @@ const CustomerFinancialPanel: React.FC<CustomerFinancialPanelProps> = ({
   const hasMinimums = c?.minimums && (c.minimums.order || c.minimums.payment);
   const hasCommon = common && (common.account?.hold || common.settings?.discount_pct || common.settings?.tax_exempt);
 
+  // Grid class based on column count
+  const gridClass = `grid grid-cols-1 ${columns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-0`;
+
   return (
-    <div className={`space-y-1 ${className}`}>
+    <div className={`${gridClass} ${className}`}>
       {/* Credit */}
       {(showAll || hasCredit) && (
-        <>
+        <div>
           <SectionHeader title="Credit" />
           <Row label="Limit" value={fmt.currency(c?.credit?.limit, currency)} />
           <Row label="Available" value={fmt.currency(c?.credit?.available, currency)} />
           <Row label="High" value={fmt.currency(c?.credit?.high, currency)} />
-        </>
+        </div>
       )}
 
       {/* Balances */}
       {(showAll || hasBalances) && (
-        <>
+        <div>
           <SectionHeader title="Balances" />
           <Row label="Due" value={fmt.currency(c?.balances?.due, currency)} warn={!!c?.balances?.due} />
           <Row label="Current" value={fmt.currency(c?.balances?.current, currency)} />
           <Row label="Open Orders" value={fmt.currency(c?.balances?.open_orders, currency)} />
           <Row label="Exposure" value={fmt.currency(c?.balances?.total_exposure, currency)} />
-        </>
+        </div>
       )}
 
       {/* Aging */}
       {(showAll || hasAging) && (
-        <>
+        <div>
           <SectionHeader title="Aging" />
           <Row label="Future" value={fmt.currency(c?.aging?.future, currency)} />
           <Row label="1-30" value={fmt.currency(c?.aging?.period_1, currency)} />
           <Row label="31-60" value={fmt.currency(c?.aging?.period_2, currency)} warn={!!c?.aging?.period_2} />
           <Row label="61-90+" value={fmt.currency(c?.aging?.period_3, currency)} warn={!!c?.aging?.period_3} />
-        </>
+        </div>
       )}
 
       {/* Sales */}
       {(showAll || hasSales) && (
-        <>
+        <div>
           <SectionHeader title="Sales" />
           <Row label="MTD" value={fmt.currency(c?.sales?.mtd, currency)} />
           <Row label="YTD" value={fmt.currency(c?.sales?.ytd, currency)} />
           <Row label="Lifetime" value={fmt.currency(c?.sales?.lifetime, currency)} />
           <Row label="Last Sale" value={fmt.date(c?.sales?.dt_last_sale)} />
           <Row label="Last Amt" value={fmt.currency(c?.sales?.last_sale_amount, currency)} />
-        </>
+        </div>
       )}
 
       {/* Margin */}
       {(showAll || hasMargin) && (
-        <>
+        <div>
           <SectionHeader title="Margin" />
           <Row label="MTD" value={fmt.currency(c?.margin?.mtd, currency)} />
           <Row label="YTD" value={fmt.currency(c?.margin?.ytd, currency)} />
           <Row label="Pct" value={fmt.pct(c?.margin?.pct)} />
-        </>
+        </div>
       )}
 
       {/* Payment */}
       {(showAll || hasPayment) && (
-        <>
+        <div>
           <SectionHeader title="Payment" />
           <Row label="Avg Days" value={fmt.days(c?.payment?.days_avg_paid)} />
           <Row label="Terms" value={fmt.days(c?.payment?.days_pay)} />
           <Row label="Last Pmt" value={fmt.date(c?.payment?.dt_last_payment)} />
           <Row label="Last Amt" value={fmt.currency(c?.payment?.last_payment_amount, currency)} />
-        </>
+        </div>
       )}
 
       {/* Returns */}
       {(showAll || hasReturns) && (
-        <>
+        <div>
           <SectionHeader title="Returns" />
           <Row label="MTD" value={fmt.currency(c?.returns?.mtd, currency)} neg />
           <Row label="YTD" value={fmt.currency(c?.returns?.ytd, currency)} neg />
           <Row label="Count" value={fmt.num(c?.returns?.count)} />
-        </>
+        </div>
       )}
 
       {/* Deposits */}
       {(showAll || hasDeposits) && (
-        <>
+        <div>
           <SectionHeader title="Deposits" />
           <Row label="Unapplied" value={fmt.currency(c?.deposits?.unapplied, currency)} />
-        </>
+        </div>
       )}
 
       {/* Collection */}
       {(showAll || hasCollection) && (
-        <>
+        <div>
           <SectionHeader title="Collection" />
           <Row label="Cost MTD" value={fmt.currency(c?.collection?.cost_mtd, currency)} neg />
           <Row label="Cost YTD" value={fmt.currency(c?.collection?.cost_ytd, currency)} neg />
           <Row label="All-time" value={fmt.currency(c?.collection?.cost_alltime, currency)} neg />
-        </>
+        </div>
       )}
 
       {/* Minimums */}
       {(showAll || hasMinimums) && (
-        <>
+        <div>
           <SectionHeader title="Minimums" />
           <Row label="Order" value={fmt.currency(c?.minimums?.order, currency)} />
           <Row label="Payment" value={fmt.currency(c?.minimums?.payment, currency)} />
-        </>
+        </div>
       )}
 
       {/* Common Settings */}
       {(showAll || hasCommon) && (
-        <>
+        <div>
           <SectionHeader title="Settings" />
           {common?.account?.hold && <Row label="Hold" value="YES" warn />}
           {common?.account?.cod_only && <Row label="COD Only" value="YES" warn />}
           <Row label="Discount" value={fmt.pct(common?.settings?.discount_pct)} />
           <Row label="Tax Exempt" value={common?.settings?.tax_exempt ? 'Yes' : 'No'} />
-        </>
+        </div>
       )}
     </div>
   );

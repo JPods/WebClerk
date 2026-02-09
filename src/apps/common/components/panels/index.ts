@@ -60,6 +60,7 @@ export { default as DocumentsPanel } from './DocumentsPanel';
 export { default as QAPanel } from './QAPanel';
 export { default as ContactLinksPanel } from './ContactLinksPanel';
 export { default as FinancialsPanel } from './FinancialsPanel';
+export { default as FinancialSummaryPanel } from './FinancialSummaryPanel';
 export { default as CustomerFinancialPanel } from './CustomerFinancialPanel';
 export { default as CommunicationsPanel } from './CommunicationsPanel';
 export { default as LinkagesPanel } from './LinkagesPanel';
