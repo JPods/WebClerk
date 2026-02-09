@@ -55,6 +55,7 @@ export { default as RawDataPanel } from './RawDataPanel';
 
 // Panel Components - Entity Features
 export { default as ActionsPanel } from './ActionsPanel';
+export { default as BasicInformationPanel } from './BasicInformationPanel';
 export { default as DocumentsPanel } from './DocumentsPanel';
 export { default as QAPanel } from './QAPanel';
 export { default as ContactLinksPanel } from './ContactLinksPanel';
@@ -120,3 +121,5 @@ export type {
 // Linkages types (exported from component file)
 export type { LinkageData, LinkedRecord, LinkagesPanelProps } from './LinkagesPanel';
 
+// BasicInformation types
+export type { BasicInformationData } from './BasicInformationPanel';
