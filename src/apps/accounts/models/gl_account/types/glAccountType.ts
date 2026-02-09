@@ -11,14 +11,27 @@ export interface CreateGLAccountRequest {
   code: string;
   name: string;
   type: string;
-  balance: number;
+  balance?: number;
+  category?: string;
+  division?: string;
+  used_for?: string;
+  account_debit?: number;
+  account_credit?: number;
+  comment?: string;
 }
 
 export interface GLAccountApiTask {
+  id?: number;
   code: string;
   name: string;
   type: string;
-  balance: number;
+  balance?: number;
+  category?: string;
+  division?: string;
+  used_for?: string;
+  account_debit?: number;
+  account_credit?: number;
+  comment?: string;
 }
 
 export interface UpdateGLAccountRequest {
@@ -26,5 +39,11 @@ export interface UpdateGLAccountRequest {
   code: string;
   name: string;
   type: string;
-  balance: number;
+  balance?: number;
+  category?: string;
+  division?: string;
+  used_for?: string;
+  account_debit?: number;
+  account_credit?: number;
+  comment?: string;
 }
