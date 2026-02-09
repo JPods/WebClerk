@@ -226,7 +226,15 @@ export interface EntityPrefs {
 // Comment Types
 // ---------------------------------------------------------------------------
 
-/** Single comment entry */
+/** Single comment message (aligned with transactions pattern) */
+export interface CommentMessage {
+  user: string;
+  mgs: string;
+  time: string;
+  user_id?: number | string;
+}
+
+/** Legacy comment entry (deprecated - use CommentMessage) */
 export interface CommentEntry {
   id?: number | string;
   text: string;
@@ -237,10 +245,18 @@ export interface CommentEntry {
 
 /** Comments structure with tabs */
 export interface EntityComments {
-  public?: CommentEntry[];
-  process?: CommentEntry[];
-  partner?: CommentEntry[];
-  notes?: CommentEntry[];
+  public?: CommentMessage[];
+  process?: CommentMessage[];
+  partner?: CommentMessage[];
+  notes?: CommentMessage[];
+}
+
+/** Raw comments from API - may have strings instead of arrays */
+export interface RawEntityComments {
+  public?: CommentMessage[] | string;
+  process?: CommentMessage[] | string;
+  partner?: CommentMessage[] | string;
+  notes?: CommentMessage[] | string;
 }
 
 // ---------------------------------------------------------------------------

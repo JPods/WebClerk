@@ -115,6 +115,8 @@ export interface CreateContactRequest {
 }
 
 export interface UpdateContactRequest extends CreateContactRequest {
-  id: string;
-  refs: RefsApi;
+  id: number | string;
+  refs?: RefsApi;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
 }
