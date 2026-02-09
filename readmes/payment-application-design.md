@@ -294,25 +294,34 @@ PAYMENT_TYPE_CHOICES = [
     ('ar_credit', 'AR Credit'),
     ('late_charge', 'Late Charge'),
 ]
-
-def create_ar_credit(org, amount, reference):
-    """Create AR Credit (reduces customer balance)."""
-    return Payment.objects.create(
-        org=org,
-        amount=amount,
-        payment_type='ar_credit',
-        reference_number=reference,
-        status='completed',
-    )
-
-def create_late_charge(org, amount):
-    """Create late/finance charge (increases customer balance)."""
-    # Late charges in WC2 used negative docType (-28)
-    # In WC3, handle via separate Invoice or special payment type
-    pass
 ```
 
-#### 3. Paid Days Calculation
+#### 3. Database Changes (Completed ✅)
+
+**Migration:** `apps/transactions/migrations/0030_payment_nullable_invoice.py`
+
+Made `Payment.invoice_id` nullable to support order-level deposits:
+
+```python
+# Before: invoice_id was required
+invoice_id = models.ForeignKey('transactions.Invoice', on_delete=models.CASCADE, ...)
+
+# After: invoice_id is optional
+invoice_id = models.ForeignKey('transactions.Invoice', on_delete=models.CASCADE, 
+                                null=True, blank=True, ...)
+```
+
+**PaymentSerializer** updated to accept `invoice_id` as optional:
+```python
+invoice_id = serializers.IntegerField(required=False, allow_null=True)
+```
+
+**PaymentMethod** table seeded with default values:
+```python
+['Cash', 'Check', 'Credit Card', 'ACH', 'Wire Transfer', 'PayPal']
+```
+
+#### 4. Paid Days Calculation
 
 WC2's `PaidDaysCalc` records days to payment when invoice fully paid:
 
