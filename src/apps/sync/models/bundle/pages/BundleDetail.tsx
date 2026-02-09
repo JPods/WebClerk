@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Package, Tag, AlignLeft, Database } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createBundle, updateBundle } from "../services/bundleApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { bundleSchema } from "../utils/bundleSchema";
 import { BundleAddProps } from "../types/bundleType";
+
+const STORAGE_KEY = "bundleDetail_columnCount";
 
 export default function BundleDetail({
   modeProp,
@@ -24,6 +30,7 @@ export default function BundleDetail({
   onCancelInline,
 }: BundleAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -37,10 +44,12 @@ export default function BundleDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       const formKeys = Object.keys(bundleSchema.shape) as (keyof z.infer<typeof bundleSchema>)[];
@@ -52,19 +61,22 @@ export default function BundleDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
+
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const onSubmit = async (formData: z.infer<typeof bundleSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createBundle(formData)
           : await updateBundle({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Bundle ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -72,9 +84,37 @@ export default function BundleDetail({
         if (onSaved) {
           onSaved();
         }
+        if (currentMode === "add") {
+          navigate(-1);
+        } else {
+          setCurrentMode("view");
+        }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -83,21 +123,42 @@ export default function BundleDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Bundle"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Bundle"
               : "Bundle Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Bundle"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/sync/bundles"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Bundle"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Bundle"
                 : "Add New Bundle"}
             </h3>
@@ -113,9 +174,11 @@ export default function BundleDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">name</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={Package}>
               <Input
                 type="text"
                 id="name"
@@ -123,11 +186,10 @@ export default function BundleDetail({
                 {...register("name")}
                 error={!!errors.name}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="version">version</Label>
+            </HorizontalField>
+            <HorizontalField label="Version" htmlFor="version" error={errors.version?.message} icon={Tag}>
               <Input
                 type="text"
                 id="version"
@@ -135,41 +197,39 @@ export default function BundleDetail({
                 {...register("version")}
                 error={!!errors.version}
                 hint={errors.version && errors.version.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
+            <HorizontalField label="Description" htmlFor="description" error={errors.description?.message} icon={AlignLeft}>
+              <Input
+                type="text"
+                id="description"
+                placeholder="Description"
+                {...register("description")}
+                error={!!errors.description}
+                hint={errors.description && errors.description.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Data" htmlFor="data" error={errors.data?.message} icon={Database}>
+              <Input
+                type="text"
+                id="data"
+                placeholder="Data"
+                {...register("data")}
+                error={!!errors.data}
+                hint={errors.data && errors.data.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="description">description</Label>
-            <Input
-              type="text"
-              id="description"
-              placeholder="Description"
-              {...register("description")}
-              error={!!errors.description}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="data">data</Label>
-            <Input
-              type="text"
-              id="data"
-              placeholder="Data"
-              {...register("data")}
-              error={!!errors.data}
-              hint={errors.data && errors.data.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && inline && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

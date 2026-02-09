@@ -1,20 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { FileText, List, AlignLeft, Settings, CheckSquare } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createReport, updateReport } from "../services/reportApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { reportSchema } from "../utils/reportSchema";
 import { ReportAddProps } from "../types/reportType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+
+const STORAGE_KEY = "reportDetail_columnCount";
 
 export default function ReportDetail({
   modeProp,
@@ -39,11 +45,14 @@ export default function ReportDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (initialMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -54,19 +63,20 @@ export default function ReportDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, initialMode]);
 
   const onSubmit = async (formData: z.infer<typeof reportSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createReport(formData)
           : await updateReport({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Report ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -77,6 +87,29 @@ export default function ReportDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -91,26 +124,49 @@ export default function ReportDetail({
     setValue("type", value);
   };
 
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Report"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Report"
               : "Report Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Report"
+          recordId={data?.id}
+          recordName={data?.title}
+          mode={currentMode}
+          backUrl="/core/reports"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Report"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Report"
                 : "Add New Report"}
             </h3>
@@ -126,9 +182,11 @@ export default function ReportDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="title">title</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Title" htmlFor="title" error={errors.title?.message} icon={FileText}>
               <Input
                 type="text"
                 id="title"
@@ -136,13 +194,10 @@ export default function ReportDetail({
                 {...register("title")}
                 error={errors.title && errors.title.message ? true : false}
                 hint={errors.title && errors.title.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="type">type</Label>
+            </HorizontalField>
+            <HorizontalField label="Type" htmlFor="type" icon={List}>
               <DropDown
                 id="type"
                 options={reportTypes}
@@ -150,13 +205,10 @@ export default function ReportDetail({
                 value={watch("type")}
                 onChange={handleTypeChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="description">description</Label>
+            </HorizontalField>
+            <HorizontalField label="Description" htmlFor="description" error={errors.description?.message} icon={AlignLeft}>
               <Input
                 type="text"
                 id="description"
@@ -166,13 +218,10 @@ export default function ReportDetail({
                   errors.description && errors.description.message ? true : false
                 }
                 hint={errors.description && errors.description.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="parameters">parameters</Label>
+            </HorizontalField>
+            <HorizontalField label="Parameters" htmlFor="parameters" error={errors.parameters?.message} icon={Settings}>
               <Input
                 type="text"
                 id="parameters"
@@ -182,27 +231,25 @@ export default function ReportDetail({
                   errors.parameters && errors.parameters.message ? true : false
                 }
                 hint={errors.parameters && errors.parameters.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
+            </HorizontalField>
+            <HorizontalField label="Active" htmlFor="is_active" icon={CheckSquare}>
               <Checkbox
                 id="is_active"
                 checked={watch("is_active")}
                 onChange={(checked) => setValue("is_active", checked)}
-                label="is_active"
+                label=""
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

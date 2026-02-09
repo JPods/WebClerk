@@ -44,6 +44,7 @@ export type EntityType =
   // Core
   | "contact"
   | "setting"
+  | "action"
   // Orgs
   | "customer"
   | "vendor"

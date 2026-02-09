@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createFlow, updateFlow } from "../services/flowApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { flowSchema } from "../utils/flowSchema";
 import { FlowAddProps } from "../types/flowType";
+import { GitBranch, FileText, ListOrdered } from "lucide-react";
+
+const STORAGE_KEY = "flowDetail_columnCount";
 
 export default function FlowDetail({
   modeProp,
@@ -24,6 +30,17 @@ export default function FlowDetail({
   onCancelInline,
 }: FlowAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
   const {
     register,
@@ -35,12 +52,8 @@ export default function FlowDetail({
     resolver: zodResolver(flowSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,29 +64,57 @@ export default function FlowDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof flowSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createFlow(formData)
           : await updateFlow({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Flow ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,81 +123,125 @@ export default function FlowDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Flow"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Flow"
               : "Flow Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Flow"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/products/flows"
+        />
+      )}
+
+      {/* Toolbar with action buttons */}
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Flow"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Flow"
                 : "Add New Flow"}
             </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+              {onCancelInline && (
+                <button
+                  type="button"
+                  onClick={onCancelInline}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <Label htmlFor="name">Name</Label>
-            <Input
-              type="text"
-              id="name"
-              placeholder="Flow Name"
-              {...register("name")}
-              error={errors.name && errors.name.message ? true : false}
-              hint={errors.name && errors.name.message}
-              disabled={mode === "view"}
-            />
+        {!inline && (
+          <div className="flex justify-end mb-4">
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Name"
+              htmlFor="name"
+              required
+              icon={<GitBranch size={14} />}
+              error={errors.name?.message}
+            >
+              <Input
+                type="text"
+                id="name"
+                placeholder="Flow Name"
+                {...register("name")}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+
+            <HorizontalField
+              label="Steps"
+              htmlFor="steps"
+              icon={<ListOrdered size={14} />}
+              error={errors.steps?.message}
+            >
+              <Input
+                type="text"
+                id="steps"
+                placeholder="Steps (JSON)"
+                {...register("steps")}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+          </div>
+
+          <HorizontalField
+            label="Description"
+            htmlFor="description"
+            icon={<FileText size={14} />}
+            error={errors.description?.message}
+          >
             <Input
               type="text"
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
+                disabled={currentMode === "view"}
             />
-          </div>
-          <div>
-            <Label htmlFor="steps">Steps (JSON)</Label>
-            <Input
-              type="text"
-              id="steps"
-              placeholder="Steps"
-              {...register("steps")}
-              error={errors.steps && errors.steps.message ? true : false}
-              hint={errors.steps && errors.steps.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          </HorizontalField>
+
+          {/* Inline mode buttons */}
+          {inline && currentMode !== "view" && (
+            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
-              {inline && onCancelInline && (
+              {onCancelInline && (
                 <button
                   type="button"
                   onClick={onCancelInline}

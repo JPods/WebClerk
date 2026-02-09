@@ -20,6 +20,7 @@ import {
   FaCog,
   FaHistory,
   FaEllipsisH,
+  FaTasks,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
 
@@ -365,6 +366,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     return publicLen + processLen + partnerLen + notesLen;
   }, [data?.comments]);
 
+  // Count pending actions
+  const actionCount = useMemo(() => {
+    const actions = data?.actions?.items as Array<{ status?: string }> | undefined;
+    if (!Array.isArray(actions)) return 0;
+    return actions.filter((a) => a.status === "pending").length;
+  }, [data?.actions]);
+
   // Get dynamic custom tabs if function provided
   const dynamicCustomTabsAfter = useMemo(() => {
     if (getCustomTabsAfter && data) {
@@ -376,10 +384,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const tabs = useMemo(() => {
     const defaultTabs: TransactionTab[] = [
       {
-        id: "contacts",
-        label: "Contacts",
-        icon: <FaAddressCard size={14} />,
-        badge: contactCount || undefined,
+        id: "actions",
+        label: "Actions",
+        icon: <FaTasks size={14} />,
+        badge: actionCount || undefined,
       },
       {
         id: "comments",
@@ -388,12 +396,23 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         badge: commentCount || undefined,
       },
       {
+        id: "contacts",
+        label: "Contacts",
+        icon: <FaAddressCard size={14} />,
+        badge: contactCount || undefined,
+      },
+      { id: "documents", label: "Documents", icon: <FaLink size={14} /> },
+      {
         id: "financials",
         label: "Financials",
         icon: <FaDollarSign size={14} />,
       },
-      { id: "documents", label: "Documents", icon: <FaLink size={14} /> },
       { id: "qa", label: "QA", icon: <FaComments size={14} /> },
+      {
+        id: "raw",
+        label: "Raw",
+        icon: <FaEllipsisH size={14} />,
+      },
       // { id: "flow", label: "Flow", icon: <FaLink size={14} /> },
     ];
 
@@ -411,12 +430,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           icon: <FaHistory size={14} />,
           adminOnly: true,
         },
-        {
-          id: "raw",
-          label: "Raw JSON",
-          icon: <FaEllipsisH size={14} />,
-          adminOnly: true,
-        },
       );
     }
 
@@ -427,6 +440,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     contactCount,
     lineCount,
     commentCount,
+    actionCount,
     isAdmin,
   ]);
 
@@ -710,6 +724,52 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     }
 
     switch (activeTab) {
+      case "actions": {
+        const actions = (currentData.actions?.items ?? []) as Array<{
+          id?: number;
+          status?: string;
+          action?: string | { en?: string };
+          what?: string;
+        }>;
+        const getStatusClass = (status?: string) =>
+          status === "done"
+            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+
+        return (
+          <div className="p-4">
+            {actions.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <FaTasks size={32} className="mx-auto mb-3 opacity-50" />
+                <p>No actions on this {typeLabel.toLowerCase()}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {actions.map((action, idx) => (
+                  <div
+                    key={action.id ?? idx}
+                    className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {typeof action.action === "object"
+                          ? action.action?.en
+                          : action.action ?? action.what ?? "--"}
+                      </span>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${getStatusClass(action.status)}`}
+                      >
+                        {action.status ?? "pending"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
       case "contacts":
         console.log("currentData", currentData);
         // Use normalization helper to parse contacts from API
@@ -894,7 +954,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         ) : null;
 
       case "raw":
-        return isAdmin ? (
+        return (
           <JsonFieldEditor
             label="Full Transaction JSON"
             value={currentData}
@@ -902,7 +962,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             defaultExpanded
             maxHeight="600px"
           />
-        ) : null;
+        );
 
       default:
         return (

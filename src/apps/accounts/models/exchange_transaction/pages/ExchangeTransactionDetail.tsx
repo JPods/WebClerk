@@ -1,19 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ArrowRightLeft, ArrowLeftRight, DollarSign, TrendingUp, Calendar, Activity } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import { createExchangeTransaction, updateExchangeTransaction } from "../services/exchangeTransactionApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { exchangeTransactionSchema } from "../utils/exchangeTransactionSchema";
 import { ExchangeTransactionAddProps } from "../types/exchangeTransactionType";
+
+const STORAGE_KEY = "exchangeTransactionDetail_columnCount";
 
 export default function ExchangeTransactionDetail({
   modeProp,
@@ -24,6 +33,8 @@ export default function ExchangeTransactionDetail({
   onCancelInline,
 }: ExchangeTransactionAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
   const {
     register,
@@ -38,10 +49,15 @@ export default function ExchangeTransactionDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to comments
+  const { activeTab, setActiveTab } = useDetailTabs("exchangeTransaction", "comments");
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -52,12 +68,13 @@ export default function ExchangeTransactionDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof exchangeTransactionSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createExchangeTransaction({
               from_currency: formData.from_currency,
               to_currency: formData.to_currency,
@@ -79,17 +96,42 @@ export default function ExchangeTransactionDetail({
         dispatch(
           showToast({
             message: `Exchange Transaction ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -118,26 +160,88 @@ export default function ExchangeTransactionDetail({
     setValue("status", value);
   };
 
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
+  // Tab content renderer
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="exchange_transaction"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="exchange_transaction"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Exchange Transaction"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Exchange Transaction"
               : "Exchange Transaction Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Exchange Transaction"
+          recordId={data?.id}
+          recordName={data?.from_currency && data?.to_currency ? `${data.from_currency} → ${data.to_currency}` : undefined}
+          mode={currentMode}
+          backUrl="/accounts/exchange-transactions"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Exchange Transaction"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Exchange Transaction"
                 : "Add New Exchange Transaction"}
             </h3>
@@ -153,9 +257,11 @@ export default function ExchangeTransactionDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="from_currency">from_currency</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="From Currency" htmlFor="from_currency" icon={<ArrowRightLeft size={14} />}>
               <DropDown
                 id="from_currency"
                 options={currencyOptions}
@@ -163,11 +269,10 @@ export default function ExchangeTransactionDetail({
                 value={watch("from_currency")}
                 onChange={handleFromCurrencyChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="to_currency">to_currency</Label>
+            </HorizontalField>
+            <HorizontalField label="To Currency" htmlFor="to_currency" icon={<ArrowLeftRight size={14} />}>
               <DropDown
                 id="to_currency"
                 options={currencyOptions}
@@ -175,13 +280,10 @@ export default function ExchangeTransactionDetail({
                 value={watch("to_currency")}
                 onChange={handleToCurrencyChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="amount">amount</Label>
+            </HorizontalField>
+            <HorizontalField label="Amount" htmlFor="amount" error={errors.amount?.message} icon={<DollarSign size={14} />}>
               <Input
                 type="number"
                 id="amount"
@@ -189,11 +291,10 @@ export default function ExchangeTransactionDetail({
                 {...register("amount", { valueAsNumber: true })}
                 error={errors.amount && errors.amount.message ? true : false}
                 hint={errors.amount && errors.amount.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="rate">rate</Label>
+            </HorizontalField>
+            <HorizontalField label="Rate" htmlFor="rate" error={errors.rate?.message} icon={<TrendingUp size={14} />}>
               <Input
                 type="number"
                 id="rate"
@@ -201,13 +302,10 @@ export default function ExchangeTransactionDetail({
                 {...register("rate", { valueAsNumber: true })}
                 error={errors.rate && errors.rate.message ? true : false}
                 hint={errors.rate && errors.rate.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date">date</Label>
+            </HorizontalField>
+            <HorizontalField label="Date" htmlFor="date" error={errors.date?.message} icon={<Calendar size={14} />}>
               <Input
                 type="date"
                 id="date"
@@ -215,11 +313,10 @@ export default function ExchangeTransactionDetail({
                 {...register("date")}
                 error={errors.date && errors.date.message ? true : false}
                 hint={errors.date && errors.date.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="status">status</Label>
+            </HorizontalField>
+            <HorizontalField label="Status" htmlFor="status" icon={<Activity size={14} />}>
               <DropDown
                 id="status"
                 options={statusOptions}
@@ -227,17 +324,17 @@ export default function ExchangeTransactionDetail({
                 value={watch("status")}
                 onChange={handleStatusChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button
@@ -251,6 +348,19 @@ export default function ExchangeTransactionDetail({
             </div>
           )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs
+        entityType="exchangeTransaction"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["comments", "actions", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );

@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -11,6 +12,16 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { createAction, updateAction } from "../services/actionApi";
 import { PageRoutes } from "../../../../../routes/Routes";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs, TabConfig } from "../../../../../components/common/DetailTabs";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
+import QAPanel from "../../../../common/components/panels/QAPanel";
+import ContactLinksPanel from "../../../../common/components/panels/ContactLinksPanel";
+import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
+
+const STORAGE_KEY = "actionDetail_columnCount";
 
 // Action form schema
 const actionSchema = z.object({
@@ -50,6 +61,39 @@ export default function ActionDetail({
 }: ActionDetailProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 2);
+  
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("action", "comments", [
+    "comments",
+    "documents",
+    "qa",
+    "contacts",
+  ]);
+  
+  // Additional tabs for Action entity
+  const additionalTabs: TabConfig[] = [
+    {
+      id: "comments",
+      label: "Comments",
+      icon: <MessageSquare size={14} />,
+    },
+    {
+      id: "documents",
+      label: "Documents",
+      icon: <FileIcon size={14} />,
+    },
+    {
+      id: "qa",
+      label: "QA",
+      icon: <HelpCircle size={14} />,
+    },
+    {
+      id: "contacts",
+      label: "Contacts",
+      icon: <Users size={14} />,
+    },
+  ];
 
   const {
     register,
@@ -63,11 +107,13 @@ export default function ActionDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
 
   useEffect(() => {
-    if (mode === "add") {
+    if (initialMode === "add") {
       reset();
     } else if (data) {
       // Populate form with existing data
@@ -110,7 +156,7 @@ export default function ActionDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, initialMode]);
 
   const preparePayload = (formValues: z.infer<typeof actionSchema>): Record<string, unknown> => {
     return {
@@ -138,27 +184,29 @@ export default function ActionDetail({
   };
 
   const onSubmit = async (formData: z.infer<typeof actionSchema>) => {
+    setIsSaving(true);
     try {
       const payload = preparePayload(formData);
       const actionId = data?.id ?? data?.pk ?? data?.uuid;
-      if (mode === "edit" && (actionId === undefined || actionId === null)) {
+      if (currentMode === "edit" && (actionId === undefined || actionId === null)) {
         dispatch(
           showToast({
             message: "Action id is missing. Please reopen the action and try again.",
             type: "error",
           })
         );
+        setIsSaving(false);
         return;
       }
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createAction(payload)
           : await updateAction(actionId, payload);
       
       if (res) {
         dispatch(
           showToast({
-            message: `Action ${mode === "add" ? "created" : "updated"} successfully`,
+            message: `Action ${currentMode === "add" ? "created" : "updated"} successfully`,
             type: "success",
           })
         );
@@ -171,6 +219,40 @@ export default function ActionDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message || "Failed to save action", type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        if (data.action) {
+          setValue("action_en", data.action.en || "");
+          setValue("action_ar", data.action.ar || "");
+          setValue("action_bn", data.action.bn || "");
+        }
+        if (data.description) {
+          setValue("description_en", data.description.en || "");
+          setValue("description_ar", data.description.ar || "");
+          setValue("description_bn", data.description.bn || "");
+        }
+        setValue("kanban_column", data.kanban_column || "");
+        setValue("priority", data.priority || 1);
+        setValue("difficulty", data.difficulty || 1);
+        setValue("status", data.status || "");
+        setValue("percent_complete", data.percent_complete || 0);
+        setValue("project_name", data.project_name || "");
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -179,141 +261,183 @@ export default function ActionDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Action"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Action"
               : "Add New Action"
           }
         />
       )}
+
+      <SimpleDetailHeader
+        entityName="Action"
+        recordId={data?.id}
+        recordName={data?.action?.en}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/core/actions"}
+        onClose={inline ? onCancelInline : undefined}
+      />
+
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Action"
-                : mode === "view"
-                ? "View Action"
-                : "Add New Action"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-2xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex justify-end mb-4">
+          <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Action Translations */}
-          <div className="space-y-4">
-            <h4 className="text-md font-semibold dark:text-white border-b pb-2">Action Title</h4>
-            <div>
-              <Label htmlFor="action_en">action_en *</Label>
-              <Input
-                type="text"
-                id="action_en"
-                placeholder="Enter action in English"
-                {...register("action_en")}
-                error={errors.action_en && errors.action_en.message ? true : false}
-                hint={errors.action_en && errors.action_en.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="action_ar">action_ar</Label>
-              <Input
-                type="text"
-                id="action_ar"
-                placeholder="أدخل الإجراء بالعربية"
-                {...register("action_ar")}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="action_bn">action_bn</Label>
-              <Input
-                type="text"
-                id="action_bn"
-                placeholder="বাংলায় কর্ম প্রবেশ করুন"
-                {...register("action_bn")}
-                disabled={mode === "view"}
-              />
+          {/* Action Title Section */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+              Action Title
+            </h4>
+            <div className={getGridClassName(columnCount)}>
+              <HorizontalField
+                label="English"
+                htmlFor="action_en"
+                required
+                icon={<FileText size={14} />}
+                error={errors.action_en?.message}
+              >
+                <Input
+                  type="text"
+                  id="action_en"
+                  placeholder="Enter action in English"
+                  {...register("action_en")}
+                  disabled={currentMode === "view"}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="Arabic"
+                htmlFor="action_ar"
+                icon={<FileText size={14} />}
+              >
+                <Input
+                  type="text"
+                  id="action_ar"
+                  placeholder="أدخل الإجراء بالعربية"
+                  {...register("action_ar")}
+                  disabled={currentMode === "view"}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="Bengali"
+                htmlFor="action_bn"
+                icon={<FileText size={14} />}
+              >
+                <Input
+                  type="text"
+                  id="action_bn"
+                  placeholder="বাংলায় কর্ম প্রবেশ করুন"
+                  {...register("action_bn")}
+                  disabled={currentMode === "view"}
+                />
+              </HorizontalField>
             </div>
           </div>
 
-          {/* Description Translations */}
-          <div className="space-y-4">
-            <h4 className="text-md font-semibold dark:text-white border-b pb-2">Description</h4>
-            <div>
-              <Label htmlFor="description_en">description_en</Label>
+          {/* Description Section */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+              Description
+            </h4>
+            <HorizontalField
+              label="English"
+              htmlFor="description_en"
+              icon={<FileText size={14} />}
+            >
               <textarea
                 id="description_en"
-                rows={3}
+                rows={2}
                 placeholder="Enter description in English"
                 {...register("description_en")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-50"
               />
-            </div>
-            <div>
-              <Label htmlFor="description_ar">description_ar</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Arabic"
+              htmlFor="description_ar"
+              icon={<FileText size={14} />}
+            >
               <textarea
                 id="description_ar"
-                rows={3}
+                rows={2}
                 placeholder="أدخل الوصف بالعربية"
                 {...register("description_ar")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-50"
               />
-            </div>
-            <div>
-              <Label htmlFor="description_bn">description_bn</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Bengali"
+              htmlFor="description_bn"
+              icon={<FileText size={14} />}
+            >
               <textarea
                 id="description_bn"
-                rows={3}
+                rows={2}
                 placeholder="বাংলায় বিবরণ প্রবেশ করুন"
                 {...register("description_bn")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-50"
               />
-            </div>
+            </HorizontalField>
           </div>
 
-          {/* Action Details */}
-          <div className="space-y-4">
-            <h4 className="text-md font-semibold dark:text-white border-b pb-2">Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="project_name">project_name</Label>
+          {/* Action Details Section */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+              Details
+            </h4>
+            <div className={getGridClassName(columnCount)}>
+              <HorizontalField
+                label="Project"
+                htmlFor="project_name"
+                icon={<Folder size={14} />}
+              >
                 <Input
                   type="text"
                   id="project_name"
                   placeholder="Enter project name"
                   {...register("project_name")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label htmlFor="kanban_column">kanban_column</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Kanban"
+                htmlFor="kanban_column"
+                icon={<ColumnsIcon size={14} />}
+              >
                 <Input
                   type="text"
                   id="kanban_column"
                   placeholder="Enter kanban column"
                   {...register("kanban_column")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label htmlFor="status">status</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Status"
+                htmlFor="status"
+                icon={<Target size={14} />}
+              >
                 <select
                   id="status"
                   {...register("status")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-50"
                 >
                   <option value="">Select status</option>
@@ -322,13 +446,17 @@ export default function ActionDetail({
                   <option value="pending">Pending</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-              </div>
-              <div>
-                <Label htmlFor="priority">priority</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Priority"
+                htmlFor="priority"
+                icon={<BarChart3 size={14} />}
+              >
                 <select
                   id="priority"
                   {...register("priority", { valueAsNumber: true })}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-50"
                 >
                   <option value={1}>1 - Low</option>
@@ -336,9 +464,13 @@ export default function ActionDetail({
                   <option value={3}>3 - High</option>
                   <option value={4}>4 - Critical</option>
                 </select>
-              </div>
-              <div>
-                <Label htmlFor="difficulty">difficulty</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Difficulty"
+                htmlFor="difficulty"
+                icon={<BarChart3 size={14} />}
+              >
                 <Input
                   type="number"
                   id="difficulty"
@@ -346,57 +478,78 @@ export default function ActionDetail({
                   max="5"
                   placeholder="1-5"
                   {...register("difficulty", { valueAsNumber: true })}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label htmlFor="percent_complete">percent_complete</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Progress"
+                htmlFor="percent_complete"
+                icon={<Target size={14} />}
+              >
                 <Input
                   type="number"
                   id="percent_complete"
                   min="0"
                   max="100"
-                  placeholder="0-100"
+                  placeholder="0-100%"
                   {...register("percent_complete", { valueAsNumber: true })}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
+              </HorizontalField>
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="space-y-4">
-            <h4 className="text-md font-semibold dark:text-white border-b pb-2">Dates</h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="dt_start">dt_start</Label>
+          {/* Dates Section */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+              Dates
+            </h4>
+            <div className={getGridClassName(columnCount)}>
+              <HorizontalField
+                label="Start"
+                htmlFor="dt_start"
+                icon={<Calendar size={14} />}
+              >
                 <Input
                   type="date"
                   id="dt_start"
                   {...register("dt_start")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label htmlFor="dt_deadline">dt_deadline</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Deadline"
+                htmlFor="dt_deadline"
+                icon={<Calendar size={14} />}
+              >
                 <Input
                   type="date"
                   id="dt_deadline"
                   {...register("dt_deadline")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label htmlFor="dt_end">dt_end</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="End"
+                htmlFor="dt_end"
+                icon={<Calendar size={14} />}
+              >
                 <Input
                   type="date"
                   id="dt_end"
                   {...register("dt_end")}
-                  disabled={mode === "view"}
+                  disabled={currentMode === "view"}
                 />
-              </div>
-              <div>
-                <Label>Duration</Label>
+              </HorizontalField>
+
+              <HorizontalField
+                label="Duration"
+                htmlFor="duration"
+                icon={<Clock size={14} />}
+              >
                 <div className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   {data?.duration != null 
                     ? `${data.duration} day${data.duration !== 1 ? 's' : ''}`
@@ -411,40 +564,55 @@ export default function ActionDetail({
                     )
                   }
                 </div>
-              </div>
+              </HorizontalField>
             </div>
           </div>
-
-          {mode !== "view" && (
-            <div className="flex items-center gap-2 pt-4 border-t">
-              <button
-                type="submit"
-                className="flex items-center px-6 py-2.5 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900 transition-colors"
-              >
-                {mode === "edit" ? "Update Action" : "Create Action"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-6 py-2.5 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              )}
-              {!inline && (
-                <button
-                  type="button"
-                  onClick={() => navigate(PageRoutes.actionList)}
-                  className="flex items-center px-6 py-2.5 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs
+        entityType="action"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={[]}
+        additionalTabs={additionalTabs}
+      />
+
+      {/* Tab Content */}
+      <div className="mt-4">
+        {activeTab === "comments" && (
+          <CommentsPanel
+            comments={data?.comments}
+            isEditing={currentMode !== "view"}
+            entityType="action"
+            entityId={data?.id}
+          />
+        )}
+
+        {activeTab === "documents" && (
+          <DocumentsPanel
+            parentType="action"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+          />
+        )}
+
+        {activeTab === "qa" && (
+          <QAPanel
+            parentModel="action"
+            parentId={data?.id}
+          />
+        )}
+
+        {activeTab === "contacts" && (
+          <ContactLinksPanel
+            data={data?.refs?.links?.contact}
+            entityType="action"
+            entityId={data?.id}
+          />
+        )}
+      </div>
     </>
   );
 }

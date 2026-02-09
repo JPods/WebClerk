@@ -23,7 +23,7 @@ export default function DocumentList() {
       setLoading(true);
       const res = await fetchDocuments();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || res.data || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch documents", type: "error" })

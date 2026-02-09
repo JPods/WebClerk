@@ -26,7 +26,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
     </span>
   );
 };
-import { FaLock, FaShoppingCart } from "react-icons/fa";
+import { FaLock, FaShoppingCart, FaMoneyBillWave } from "react-icons/fa";
 import { TransactionPartySelector } from "./PartySelector";
 
 interface SummaryCardProps {
@@ -37,6 +37,20 @@ interface SummaryCardProps {
   customerInfo: any;
   billingContact: any;
   shippingContact: any;
+  /** Transaction type label (e.g., "Order", "Proposal", "Invoice") */
+  transactionLabel?: string;
+  /** Field label for the main document number (e.g., "Order No", "Proposal No") */
+  documentNoLabel?: string;
+  /** Field label for due/expiry date (e.g., "Due Date", "Valid Until") */
+  dueDateLabel?: string;
+  /** Whether to show shipping section */
+  showShipping?: boolean;
+  /** Whether to show cost/margin in totals */
+  showCostMargin?: boolean;
+  /** Whether to show payments section (received/balance) */
+  showPayments?: boolean;
+  /** Callback when Add Payment button is clicked */
+  onAddPayment?: () => void;
 }
 // Utility functions
 const formatCurrency = (value?: number | null): string => {
@@ -61,6 +75,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   customerInfo,
   billingContact,
   shippingContact,
+  transactionLabel = "Order",
+  documentNoLabel = "Order No",
+  dueDateLabel = "Due Date",
+  showShipping = true,
+  showCostMargin = true,
+  showPayments = false,
+  onAddPayment,
 }) => {
   // Add logic to extract billingContact and shippingContact from customerInfo or data
 
@@ -72,12 +93,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <FaShoppingCart className="text-blue-500" />
-            Order
+            {transactionLabel}
           </h3>
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Order No QQQ get action dotteed"
+                label={documentNoLabel}
                 mandatory
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -119,7 +140,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Due Date"
+                label={dueDateLabel}
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -389,7 +410,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         {/* Right: Totals */}
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Order Totals
+            {transactionLabel} Totals
           </h3>
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
@@ -443,37 +464,80 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 {formatCurrency(data.totals?.total ?? data.total)}
               </dd>
             </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Cost"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-600 dark:text-slate-400">
-                {formatCurrency(data.totals?.cost)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Margin"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd
-                className={`font-mono ${
-                  (data.totals?.margin ?? 0) >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(data.totals?.margin)}
-                {data.totals?.margin_pc != null && (
-                  <span className="ml-1 text-xs">
-                    ({data.totals.margin_pc.toFixed(1)}%)
-                  </span>
+            {showCostMargin && (
+              <>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Cost"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-400">
+                    {formatCurrency(data.totals?.cost)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Margin"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd
+                    className={`font-mono ${
+                      (data.totals?.margin ?? 0) >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {formatCurrency(data.totals?.margin)}
+                    {data.totals?.margin_pc != null && (
+                      <span className="ml-1 text-xs">
+                        ({data.totals.margin_pc.toFixed(1)}%)
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
+            {showPayments && (
+              <>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <FieldLabel
+                    label="Received"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-green-600 dark:text-green-400">
+                    {formatCurrency(data.totals?.received)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Balance"
+                    locked
+                    className="text-slate-700 dark:text-slate-200 font-semibold"
+                  />
+                  <dd className={`font-mono font-bold ${
+                    (data.totals?.balance ?? 0) > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}>
+                    {formatCurrency(data.totals?.balance)}
+                  </dd>
+                </div>
+                {onAddPayment && (
+                  <div className="pt-3">
+                    <button
+                      onClick={onAddPayment}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FaMoneyBillWave size={14} />
+                      Add Payment
+                    </button>
+                  </div>
                 )}
-              </dd>
-            </div>
+              </>
+            )}
           </dl>
         </div>
       </div>

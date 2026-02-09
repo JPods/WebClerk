@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Type, Activity, AlignLeft, Calendar, CalendarCheck } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createCampaign, updateCampaign } from "../services/campaignApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { campaignSchema } from "../utils/campaignSchema";
 import { CampaignAddProps } from "../types/campaignType";
+
+const STORAGE_KEY = "campaignDetail_columnCount";
 
 export default function CampaignDetail({
   modeProp,
@@ -36,11 +42,14 @@ export default function CampaignDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,19 +60,22 @@ export default function CampaignDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
+
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const onSubmit = async (formData: z.infer<typeof campaignSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createCampaign(formData)
           : await updateCampaign({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Campaign ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -71,9 +83,37 @@ export default function CampaignDetail({
         if (onSaved) {
           onSaved();
         }
+        if (currentMode === "add") {
+          navigate(-1);
+        } else {
+          setCurrentMode("view");
+        }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,21 +122,42 @@ export default function CampaignDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Campaign"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Campaign"
               : "Campaign Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Campaign"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/support/campaigns"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Campaign"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Campaign"
                 : "Add New Campaign"}
             </h3>
@@ -112,9 +173,11 @@ export default function CampaignDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={Type}>
               <Input
                 type="text"
                 id="name"
@@ -122,11 +185,10 @@ export default function CampaignDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="status">Status</Label>
+            </HorizontalField>
+            <HorizontalField label="Status" htmlFor="status" error={errors.status?.message} icon={Activity}>
               <Input
                 type="text"
                 id="status"
@@ -134,25 +196,21 @@ export default function CampaignDetail({
                 {...register("status")}
                 error={errors.status && errors.status.message ? true : false}
                 hint={errors.status && errors.status.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Input
-              type="text"
-              id="description"
-              placeholder="Description"
-              {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="start_date">Start Date</Label>
+            </HorizontalField>
+            <HorizontalField label="Description" htmlFor="description" error={errors.description?.message} icon={AlignLeft}>
+              <Input
+                type="text"
+                id="description"
+                placeholder="Description"
+                {...register("description")}
+                error={errors.description && errors.description.message ? true : false}
+                hint={errors.description && errors.description.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Start Date" htmlFor="start_date" error={errors.start_date?.message} icon={Calendar}>
               <Input
                 type="date"
                 id="start_date"
@@ -160,11 +218,10 @@ export default function CampaignDetail({
                 {...register("start_date")}
                 error={errors.start_date && errors.start_date.message ? true : false}
                 hint={errors.start_date && errors.start_date.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="end_date">End Date</Label>
+            </HorizontalField>
+            <HorizontalField label="End Date" htmlFor="end_date" error={errors.end_date?.message} icon={CalendarCheck}>
               <Input
                 type="date"
                 id="end_date"
@@ -172,17 +229,17 @@ export default function CampaignDetail({
                 {...register("end_date")}
                 error={errors.end_date && errors.end_date.message ? true : false}
                 hint={errors.end_date && errors.end_date.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {inline && currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

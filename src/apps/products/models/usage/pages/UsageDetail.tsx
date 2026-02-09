@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createUsage, updateUsage } from "../services/usageApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { usageSchema } from "../utils/usageSchema";
 import { UsageAddProps } from "../types/usageType";
+import { Package, User, Hash, Calendar, FileText } from "lucide-react";
+
+const STORAGE_KEY = "usageDetail_columnCount";
 
 export default function UsageDetail({
   modeProp,
@@ -24,6 +30,17 @@ export default function UsageDetail({
   onCancelInline,
 }: UsageAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
   const {
     register,
@@ -35,12 +52,8 @@ export default function UsageDetail({
     resolver: zodResolver(usageSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,29 +64,57 @@ export default function UsageDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof usageSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createUsage(formData)
           : await updateUsage({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Usage ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,109 +123,155 @@ export default function UsageDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Usage"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Usage"
               : "Usage Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Usage"
+          recordId={data?.id}
+          recordName={data?.item_id}
+          mode={currentMode}
+          backUrl="/products/usages"
+        />
+      )}
+
+      {/* Toolbar with action buttons */}
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Usage"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Usage"
                 : "Add New Usage"}
             </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+              {onCancelInline && (
+                <button
+                  type="button"
+                  onClick={onCancelInline}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="item_id">Item ID</Label>
+        {!inline && (
+          <div className="flex justify-end mb-4">
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Item ID"
+              htmlFor="item_id"
+              required
+              icon={<Package size={14} />}
+              error={errors.item_id?.message}
+            >
               <Input
                 type="text"
                 id="item_id"
                 placeholder="Item ID"
                 {...register("item_id")}
-                error={errors.item_id && errors.item_id.message ? true : false}
-                hint={errors.item_id && errors.item_id.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="user_id">User ID</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="User ID"
+              htmlFor="user_id"
+              icon={<User size={14} />}
+              error={errors.user_id?.message}
+            >
               <Input
                 type="text"
                 id="user_id"
                 placeholder="User ID"
                 {...register("user_id")}
-                error={errors.user_id && errors.user_id.message ? true : false}
-                hint={errors.user_id && errors.user_id.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="quantity_used">Quantity Used</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Quantity"
+              htmlFor="quantity_used"
+              icon={<Hash size={14} />}
+              error={errors.quantity_used?.message}
+            >
               <Input
                 type="number"
                 id="quantity_used"
                 placeholder="Quantity Used"
                 {...register("quantity_used", { valueAsNumber: true })}
-                error={errors.quantity_used && errors.quantity_used.message ? true : false}
-                hint={errors.quantity_used && errors.quantity_used.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="date_used">Date Used</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Date Used"
+              htmlFor="date_used"
+              icon={<Calendar size={14} />}
+              error={errors.date_used?.message}
+            >
               <Input
                 type="date"
                 id="date_used"
                 placeholder="Date Used"
                 {...register("date_used")}
-                error={errors.date_used && errors.date_used.message ? true : false}
-                hint={errors.date_used && errors.date_used.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="notes">Notes</Label>
+
+          <HorizontalField
+            label="Notes"
+            htmlFor="notes"
+            icon={<FileText size={14} />}
+            error={errors.notes?.message}
+          >
             <Input
               type="text"
               id="notes"
               placeholder="Notes"
               {...register("notes")}
-              error={errors.notes && errors.notes.message ? true : false}
-              hint={errors.notes && errors.notes.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          </HorizontalField>
+
+          {/* Inline mode buttons */}
+          {inline && currentMode !== "view" && (
+            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
-              {inline && onCancelInline && (
+              {onCancelInline && (
                 <button
                   type="button"
                   onClick={onCancelInline}

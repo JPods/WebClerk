@@ -1,0 +1,10 @@
+Rework to 3-column layout, full address after all individual address components. 
+
+Missing Header, Toolbar, Tab Navigation and Tab Content
+
+Have Overview be persistent. Move the Tab Navigation below the persistent Overview component.  In the Tab Navigation implement 
+/Users/williamjames/Documents/CommerceExpert/React2025/src/apps/common/components/panels/CommentsPanel.tsx
+/Users/williamjames/Documents/CommerceExpert/React2025/src/apps/common/components/panels/ActionsPanel.tsx
+/Users/williamjames/Documents/CommerceExpert/React2025/src/apps/common/components/panels/DocumentsPanel.tsx
+
+

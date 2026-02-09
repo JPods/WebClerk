@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,10 +9,12 @@ import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../..
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createItemXref, updateItemXref } from "../services/itemXrefApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { itemXrefSchema } from "../utils/itemXrefSchema";
 import { ItemXrefAddProps } from "../types/itemXrefType";
 import { Link2, Package, GitBranch, FileText } from "lucide-react";
@@ -28,7 +30,17 @@ export default function ItemXrefDetail({
   onCancelInline,
 }: ItemXrefAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
   const {
     register,
@@ -40,13 +52,8 @@ export default function ItemXrefDetail({
     resolver: zodResolver(itemXrefSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
-
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -57,29 +64,57 @@ export default function ItemXrefDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof itemXrefSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createItemXref(formData)
           : await updateItemXref({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Item xref ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -88,21 +123,44 @@ export default function ItemXrefDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Item Xref"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Item Xref"
               : "Item Xref Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Item Xref"
+          recordId={data?.id}
+          recordName={data?.item_id_1}
+          mode={currentMode}
+          backUrl="/products/item-xrefs"
+        />
+      )}
+
+      {/* Toolbar with action buttons */}
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Item Xref"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Item Xref"
                 : "Add New Item Xref"}
             </h3>
@@ -139,7 +197,7 @@ export default function ItemXrefDetail({
                 id="item_id_1"
                 placeholder="Item ID 1"
                 {...register("item_id_1")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
 
@@ -155,7 +213,7 @@ export default function ItemXrefDetail({
                 id="item_id_2"
                 placeholder="Item ID 2"
                 {...register("item_id_2")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
 
@@ -170,7 +228,7 @@ export default function ItemXrefDetail({
                 id="relationship_type"
                 placeholder="Relationship Type"
                 {...register("relationship_type")}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
           </div>
@@ -186,19 +244,20 @@ export default function ItemXrefDetail({
               id="description"
               placeholder="Description"
               {...register("description")}
-              disabled={mode === "view"}
+                disabled={currentMode === "view"}
             />
           </HorizontalField>
 
-          {mode !== "view" && (
+          {/* Inline mode buttons */}
+          {inline && currentMode !== "view" && (
             <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
-              {inline && onCancelInline && (
+              {onCancelInline && (
                 <button
                   type="button"
                   onClick={onCancelInline}

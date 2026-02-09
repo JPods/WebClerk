@@ -1,20 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Phone, Globe, Hash, Type, User, BellOff } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import { Input, DropDown } from "../../../../../components/wrapper";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
+import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import ContactLinksPanel from "../../../../common/components/panels/ContactLinksPanel";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import { createPhone, updatePhone } from "../services/phoneApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
+
+const STORAGE_KEY = "phoneDetail_columnCount";
 
 export default function PhoneDetail({
   modeProp,
@@ -33,18 +44,27 @@ export default function PhoneDetail({
     formState: { errors },
     reset,
     control,
-    watch,
   } = useForm({
     resolver: zodResolver(phoneSchema),
     defaultValues: { opt_out: false },
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to contacts since overview is persistent
+  const { activeTab, setActiveTab } = useDetailTabs("phone", "contacts");
+  
+  // Column count for responsive layout
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -55,19 +75,20 @@ export default function PhoneDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof phoneSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createPhone(formData)
           : await updatePhone({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Phone ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -78,60 +99,136 @@ export default function PhoneDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // const typeOptions = [
-  //   { value: "mobile", label: "Mobile" },
-  //   { value: "home", label: "Home" },
-  //   { value: "work", label: "Work" },
-  //   { value: "fax", label: "Fax" },
-  //   { value: "other", label: "Other" },
-  // ];
-  // const typeOptions = [
-  //   { value: "mobile", label: "Mobile" },
-  //   { value: "home", label: "Home" },
-  //   { value: "work", label: "Work" },
-  //   { value: "fax", label: "Fax" },
-  //   { value: "other", label: "Other" },
-  // ];
-
-  // const countryCodeOptions = [
-  //   { value: "+1", label: "+1 (USA)" },
-  //   { value: "+44", label: "+44 (UK)" },
-  //   { value: "+91", label: "+91 (India)" },
-  //   { value: "+86", label: "+86 (China)" },
-  //   { value: "+81", label: "+81 (Japan)" },
-  // ];
-
-  const handleTypeChange = (value: string) => {
-    setValue("type", value);
+  const handleEdit = () => {
+    setCurrentMode("edit");
   };
 
-  const handleCountryCodeChange = (value: string) => {
-    setValue("country_code", value);
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
+    }
+  };
+
+  // Render tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "contacts":
+        return (
+          <ContactLinksPanel
+            entityType="phone"
+            entityId={data?.id}
+            data={data?.refs?.links?.contact}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="phone"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="phone"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "documents":
+        return (
+          <DocumentsPanel
+            parentType="phone"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+            isEditing={currentMode === "edit"}
+          />
+        );
+
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
     <>
-      {!hideBreadcrumb && !inline && (
+      {/* Breadcrumb */}
+      {!hideBreadcrumb && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Phone"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Phone"
               : "Phone Detail"
           }
         />
       )}
+
+      {/* Header */}
+      <SimpleDetailHeader
+        entityName="Phone"
+        recordId={data?.id}
+        recordName={data?.number || data?.name}
+        mode={currentMode}
+        backUrl="/communications/phones"
+      />
+
+      {/* Toolbar */}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
+      {/* Persistent Overview Form */}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Phone"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Phone"
                 : "Add New Phone"}
             </h3>
@@ -147,78 +244,66 @@ export default function PhoneDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="number">number</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Number" htmlFor="number" error={errors.number?.message} icon={<Phone size={14} />}>
               <Input
                 type="text"
                 id="number"
                 placeholder="Phone Number"
                 {...register("number")}
-                error={errors.number && errors.number.message ? true : false}
-                hint={errors.number && errors.number.message}
-                disabled={mode === "view"}
+                error={errors.number?.message ? true : false}
+                hint={errors.number?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="country_code">country_code</Label>
+            </HorizontalField>
+            <HorizontalField label="Country" htmlFor="country_code" error={errors.country_code?.message} icon={<Globe size={14} />}>
               <Input
                 type="text"
                 id="country_code"
-                placeholder="country_code"
+                placeholder="+1"
                 {...register("country_code")}
-                error={
-                  errors.country_code && errors.country_code.message
-                    ? true
-                    : false
-                }
-                hint={errors.country_code && errors.country_code.message}
-                disabled={mode === "view"}
+                error={errors.country_code?.message ? true : false}
+                hint={errors.country_code?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="format">format</Label>
+            </HorizontalField>
+            <HorizontalField label="Format" htmlFor="format" error={errors.format?.message} icon={<Hash size={14} />}>
               <Input
                 type="text"
                 id="format"
-                placeholder="Format"
+                placeholder="(###) ###-####"
                 {...register("format")}
-                error={errors.format && errors.format.message ? true : false}
-                hint={errors.format && errors.format.message}
-                disabled={mode === "view"}
+                error={errors.format?.message ? true : false}
+                hint={errors.format?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="name">name</Label>
+            </HorizontalField>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={<Type size={14} />}>
               <Input
                 type="text"
                 id="name"
-                placeholder="Name"
+                placeholder="Phone Label (e.g., Main Office)"
                 {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                error={errors.name?.message ? true : false}
+                hint={errors.name?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
-            <div>
-              <Label htmlFor="attention">attention</Label>
+            </HorizontalField>
+            <HorizontalField label="Attention" htmlFor="attention" error={errors.attention?.message} icon={<User size={14} />}>
               <Input
                 type="text"
                 id="attention"
                 placeholder="Attention"
                 {...register("attention")}
-                error={
-                  errors.attention && errors.attention.message ? true : false
-                }
-                hint={errors.attention && errors.attention.message}
-                disabled={mode === "view"}
+                error={errors.attention?.message ? true : false}
+                hint={errors.attention?.message}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
+            </HorizontalField>
+            <HorizontalField label="Opt Out" htmlFor="opt_out" icon={<BellOff size={14} />}>
               <Controller
                 name="opt_out"
                 control={control}
@@ -227,32 +312,26 @@ export default function PhoneDetail({
                     id="opt_out"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Opt Out"
+                    label=""
                   />
                 )}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation (below persistent overview) */}
+      <DetailTabs
+        entityType="phone"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["contacts", "comments", "actions", "documents", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );
