@@ -18,7 +18,7 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
-    invoice_id = serializers.IntegerField(required=True)
+    invoice_id = serializers.IntegerField(required=False, allow_null=True)
     contact_id = serializers.IntegerField(required=True)
     payment_method_id = serializers.IntegerField(required=False, allow_null=True)
     payment_term_id = serializers.IntegerField(required=False, allow_null=True)
@@ -38,22 +38,26 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "dt_created", "dt_modified", "dt_processed", "dt_reconciliation", "version"]
 
     def create(self, validated_data):
-        invoice_id = validated_data.pop("invoice_id")
+        invoice_id = validated_data.pop("invoice_id", None)
         contact_id = validated_data.pop("contact_id")
         payment_method_id = validated_data.pop("paymentmethod_id", None)
         payment_term_id = validated_data.pop("paymentterm_id", None)
 
-        try:
-            invoice = Invoice.objects.get(pk=invoice_id)
-        except Invoice.DoesNotExist:
-            raise serializers.ValidationError({"invoice_id": "Invalid invoice id"})
+        # invoice_id is optional (for order-level deposits)
+        if invoice_id:
+            try:
+                invoice = Invoice.objects.get(pk=invoice_id)
+                validated_data["invoice_id"] = invoice
+            except Invoice.DoesNotExist:
+                raise serializers.ValidationError({"invoice_id": "Invalid invoice id"})
+        else:
+            validated_data["invoice_id"] = None
 
         try:
             contact = Contact.objects.get(pk=contact_id)
         except Contact.DoesNotExist:
             raise serializers.ValidationError({"contact_id": "Invalid contact id"})
 
-        validated_data["invoice_id"] = invoice
         validated_data["contact_id"] = contact
 
         if payment_method_id:
