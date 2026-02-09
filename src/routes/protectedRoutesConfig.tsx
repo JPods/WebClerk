@@ -74,6 +74,7 @@ import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList
 import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
+import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
 import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
@@ -159,6 +160,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsOrderDetail, element: <OrderDetail /> },
   { path: PageRoutes.transactionsInvoiceList, element: <InvoiceList /> },
   { path: PageRoutes.transactionsInvoiceDetail, element: <InvoiceDetail /> },
+  { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
   { path: PageRoutes.transactionsPurchaseOrderList, element: <PurchaseList /> },
   { path: PageRoutes.transactionsPurchaseOrderDetail, element: <PurchaseDetail /> },
   { path: PageRoutes.transactionsProposalList, element: <ProposalList /> },
