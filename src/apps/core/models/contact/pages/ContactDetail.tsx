@@ -1,6 +1,6 @@
 /**
  * ContactDetail.tsx
- * 
+ *
  * Standard Contact Detail page using Enterprise Best Practices Layout following UX research:
  * - Two-column layout with labels on the left (scannable)
  * - Logical field groupings in collapsible sections
@@ -8,10 +8,10 @@
  * - Compact but readable spacing
  * - Visual hierarchy with section headers
  * - Keyboard navigation support
- * 
+ *
  * This is the main ContactDetail component. Alternative layouts available via
  * ContactDetailStart.tsx which provides a layout selector.
- * 
+ *
  * References:
  * - Nielsen Norman Group enterprise form guidelines
  * - Luke Wroblewski's label placement research
@@ -30,9 +30,10 @@ import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
+import { useAppSelector } from "@/store/hooks";
 import { useDispatch } from "react-redux";
 import { useLocation, useParams, useSearchParams } from "react-router";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, getRecords } from "@/api/wcapi";
 import {
   contactSchema,
   updateContactSchema,
@@ -44,7 +45,7 @@ import {
   UpdateContactRequest,
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
-import { 
+import {
   FaChevronDown,
   FaChevronRight,
   FaUser,
@@ -88,11 +89,18 @@ interface FieldRowProps {
   hint?: string;
 }
 
-function FieldRow({ label, htmlFor, children, error, required, hint }: FieldRowProps) {
+function FieldRow({
+  label,
+  htmlFor,
+  children,
+  error,
+  required,
+  hint,
+}: FieldRowProps) {
   return (
     <div className="flex items-start gap-3 py-2">
-      <Label 
-        htmlFor={htmlFor} 
+      <Label
+        htmlFor={htmlFor}
         className="w-32 shrink-0 pt-2 text-right text-sm font-medium text-slate-600 dark:text-slate-400"
       >
         {label}
@@ -100,7 +108,9 @@ function FieldRow({ label, htmlFor, children, error, required, hint }: FieldRowP
       </Label>
       <div className="flex-1 min-w-0">
         {children}
-        {hint && !error && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+        {hint && !error && (
+          <p className="mt-0.5 text-xs text-slate-400">{hint}</p>
+        )}
         {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
       </div>
     </div>
@@ -118,7 +128,12 @@ interface SectionProps {
   defaultExpanded?: boolean;
 }
 
-function Section({ title, icon, children, defaultExpanded = true }: SectionProps) {
+function Section({
+  title,
+  icon,
+  children,
+  defaultExpanded = true,
+}: SectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
@@ -135,7 +150,9 @@ function Section({ title, icon, children, defaultExpanded = true }: SectionProps
             <FaChevronRight className="text-slate-400 w-3 h-3" />
           )}
           <span className="text-slate-500">{icon}</span>
-          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">{title}</span>
+          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+            {title}
+          </span>
         </div>
       </button>
       {isExpanded && (
@@ -198,6 +215,13 @@ export default function ContactDetail({
   const location = useLocation();
   const params = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
+
+  // Get current user from auth state for comments
+  const authUser = useAppSelector((state) => state.auth.user);
+  const currentUserName = authUser
+    ? `${authUser.name_first || ""}${authUser.name_last || ""}`
+    : "You";
+  const currentUserId = authUser?.id;
   const routeState = (location.state as any) || {};
 
   // Get ID from multiple sources (in priority order):
@@ -206,100 +230,223 @@ export default function ContactDetail({
   // 3. Search params (e.g., /wcapi/get/?model_name=contact&id=22)
   // 4. Route state (e.g., navigate with state)
   // 5. dataProp?.id (passed directly)
-  const urlId = idProp || recordId || params.id || searchParams.get("id") || routeState.data?.id || dataProp?.id;
-  const contactIdFromUrl = urlId ? (typeof urlId === 'number' ? urlId : parseInt(String(urlId), 10)) : null;
-  
-  console.log('[ContactDetail] ID resolution:', { 
+  const urlId =
+    idProp ||
+    recordId ||
+    params.id ||
+    searchParams.get("id") ||
+    routeState.data?.id ||
+    dataProp?.id;
+  const contactIdFromUrl = urlId
+    ? typeof urlId === "number"
+      ? urlId
+      : parseInt(String(urlId), 10)
+    : null;
+
+  console.log("[ContactDetail] ID resolution:", {
     idProp,
     recordId,
-    'params.id': params.id, 
-    'searchParams.id': searchParams.get("id"), 
-    'routeState.data?.id': routeState.data?.id,
-    'dataProp?.id': dataProp?.id,
-    contactIdFromUrl 
+    "params.id": params.id,
+    "searchParams.id": searchParams.get("id"),
+    "routeState.data?.id": routeState.data?.id,
+    "dataProp?.id": dataProp?.id,
+    contactIdFromUrl,
   });
-  
+
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const initialData = dataProp || routeState.data || null;
-  
+
   // State for fetched data (when navigating via URL with id param)
   const [fetchedData, setFetchedData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Use fetched data if available and matches URL id, otherwise use prop/state data
   // Priority: fetchedData (if matches URL) > initialData (if matches URL) > fetch needed
   const data = fetchedData || initialData;
-  
+
   // The actual contact ID - USE THE LOADED DATA'S ID as the source of truth
   // This is the ID of the contact record displayed in the form
   const activeContactId = data?.id || contactIdFromUrl || null;
-  
-  console.log('[ContactDetail] Data check:', {
+
+  console.log("[ContactDetail] Data check:", {
     contactIdFromUrl,
-    'data?.id': data?.id,
-    'initialData?.id': initialData?.id,
-    'fetchedData?.id': fetchedData?.id,
+    "data?.id": data?.id,
+    "initialData?.id": initialData?.id,
+    "fetchedData?.id": fetchedData?.id,
     activeContactId,
   });
-  
+
   // Fetch contact data when URL id doesn't match current data
   useEffect(() => {
     // Always fetch if we have a URL id that doesn't match current data
     if (contactIdFromUrl && contactIdFromUrl !== fetchedData?.id) {
       // Check if initialData already has the right contact
       if (initialData?.id === contactIdFromUrl) {
-        console.log('[ContactDetail] initialData matches URL id, no fetch needed');
+        console.log(
+          "[ContactDetail] initialData matches URL id, no fetch needed",
+        );
         return;
       }
-      
+
       setIsLoading(true);
-      console.log('[ContactDetail] Fetching contact:', contactIdFromUrl);
+      console.log("[ContactDetail] Fetching contact:", contactIdFromUrl);
       getRecord("contact", contactIdFromUrl)
         .then((result) => {
-          console.log('[ContactDetail] Fetched contact:', result);
+          console.log("[ContactDetail] Fetched contact:", result);
           setFetchedData(result?.record || result);
         })
         .catch((err) => {
-          console.error('[ContactDetail] Failed to fetch contact:', err);
+          console.error("[ContactDetail] Failed to fetch contact:", err);
         })
         .finally(() => setIsLoading(false));
     }
   }, [contactIdFromUrl, initialData?.id, fetchedData?.id]);
-  
+
   // Allow toggling between view and edit modes
-  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
-  
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(
+    mode,
+  );
+
+  // State for contact options (for ActionsPanel assignee dropdown)
+  const [contactOptions, setContactOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+
+  // Load contacts for assignee dropdown
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const response = await getRecords("contact", {
+          is_active: true,
+          limit: 500,
+        });
+        console.log("[ContactDetail] Raw response from getRecords:", response);
+
+        // Extract records from various response formats
+        let records: any[] = [];
+        if (Array.isArray(response)) {
+          records = response;
+        } else if (response && typeof response === "object") {
+          const resp = response as Record<string, unknown>;
+          if (Array.isArray(resp.results)) {
+            records = resp.results as any[];
+          } else if (Array.isArray(resp.data)) {
+            records = resp.data as any[];
+          } else if (Array.isArray(resp.items)) {
+            records = resp.items as any[];
+          }
+        }
+
+        const options = records
+          .filter((r: any) => r.id !== undefined && r.id !== null)
+          .map((r: any) => ({
+            id: String(r.id),
+            label: r.attention || r.name || `Contact #${r.id}`,
+          }))
+          .sort((a: { label: string }, b: { label: string }) =>
+            a.label.localeCompare(b.label),
+          );
+        console.log(
+          "[ContactDetail] Loaded contactOptions for assignee dropdown:",
+          options.length,
+          options.slice(0, 5),
+        );
+        setContactOptions(options);
+      } catch (error) {
+        console.error(
+          "[ContactDetail] Failed to load contacts for assignee dropdown:",
+          error,
+        );
+      }
+    };
+    loadContacts();
+  }, []);
+
+  // State for project options (for ActionsPanel project dropdown)
+  const [projectOptions, setProjectOptions] = useState<
+    Array<{ id: string; name?: string; intent?: string }>
+  >([]);
+
+  // Load projects for project dropdown
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const response = await getRecords("project", {
+          is_active: true,
+          limit: 500,
+        });
+        console.log("[ContactDetail] Raw project response:", response);
+
+        // Extract records from various response formats
+        let records: any[] = [];
+        if (Array.isArray(response)) {
+          records = response;
+        } else if (response && typeof response === "object") {
+          const resp = response as Record<string, unknown>;
+          if (Array.isArray(resp.results)) {
+            records = resp.results as any[];
+          } else if (Array.isArray(resp.data)) {
+            records = resp.data as any[];
+          } else if (Array.isArray(resp.items)) {
+            records = resp.items as any[];
+          }
+        }
+
+        const options = records
+          .filter((r: any) => r.id !== undefined && r.id !== null)
+          .map((r: any) => ({
+            id: String(r.id),
+            name: r.name || undefined,
+            intent: r.intent || undefined,
+          }))
+          .sort((a, b) =>
+            (a.name || a.intent || "").localeCompare(b.name || b.intent || ""),
+          );
+        console.log(
+          "[ContactDetail] Loaded projectOptions:",
+          options.length,
+          options.slice(0, 5),
+        );
+        setProjectOptions(options);
+      } catch (error) {
+        console.error("[ContactDetail] Failed to load projects:", error);
+      }
+    };
+    loadProjects();
+  }, []);
+
   // Local state for communications (updated by CommunicationsPanel after successful API calls)
   const [communications, setCommunications] = useState<CommunicationsData>({
     emails: data?.communications?.emails || data?.refs?.links?.email || [],
     phones: data?.communications?.phones || data?.refs?.links?.phone || [],
-    addresses: data?.communications?.addresses || data?.refs?.links?.address || [],
+    addresses:
+      data?.communications?.addresses || data?.refs?.links?.address || [],
     domains: data?.communications?.domains || data?.refs?.links?.domain || [],
   });
-  
+
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
     setEffectiveMode(mode);
   }, [mode]);
-  
+
   // Sync communications when data changes (e.g., after refetch)
   useEffect(() => {
     if (data?.communications || data?.refs?.links) {
       setCommunications({
         emails: data.communications?.emails || data.refs?.links?.email || [],
         phones: data.communications?.phones || data.refs?.links?.phone || [],
-        addresses: data.communications?.addresses || data.refs?.links?.address || [],
+        addresses:
+          data.communications?.addresses || data.refs?.links?.address || [],
         domains: data.communications?.domains || data.refs?.links?.domain || [],
       });
     }
   }, [data?.communications, data?.refs?.links]);
-  
+
   const contactFieldNames = useMemo(() => CONTACT_DETAIL_FIELDS.slice(), []);
-  const {
-    isAdmin,
-    isFieldVisible,
-    isFieldReadOnly,
-  } = useDetailFieldAccess("contact", contactFieldNames);
+  const { isAdmin, isFieldVisible, isFieldReadOnly } = useDetailFieldAccess(
+    "contact",
+    contactFieldNames,
+  );
 
   const isFieldDisabled = (fieldName: string) => {
     if (effectiveMode === "view") return true;
@@ -320,7 +467,9 @@ export default function ContactDetail({
     reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(mode === "edit" ? updateContactSchema : contactSchema),
+    resolver: zodResolver(
+      mode === "edit" ? updateContactSchema : contactSchema,
+    ),
     defaultValues: {
       refs: {
         tags: [],
@@ -329,9 +478,19 @@ export default function ContactDetail({
         depends_on: {},
         related_ids: [],
         links: {
-          rep: [], item: [], email: [], order: [], phone: [], domain: [],
-          contact: [], customer: [], document: [], address: [],
-          manufacturer: [], project: [], vendor: [],
+          rep: [],
+          item: [],
+          email: [],
+          order: [],
+          phone: [],
+          domain: [],
+          contact: [],
+          customer: [],
+          document: [],
+          address: [],
+          manufacturer: [],
+          project: [],
+          vendor: [],
         },
       },
     },
@@ -357,18 +516,29 @@ export default function ContactDetail({
         links: {
           ...data.refs?.links,
           email: (data.refs?.links?.email ?? []).map((e: any) => ({
-            id: e.id ?? 0, name: e.name ?? "", address: e.address ?? "",
+            id: e.id ?? 0,
+            name: e.name ?? "",
+            address: e.address ?? "",
           })),
           phone: (data.refs?.links?.phone ?? []).map((p: any) => ({
-            id: p.id ?? 0, name: p.name ?? "", number: p.number ?? "",
+            id: p.id ?? 0,
+            name: p.name ?? "",
+            number: p.number ?? "",
           })),
           address: (data.refs?.links?.address ?? []).map((a: any) => ({
-            id: a.id ?? 0, name: a.name ?? "", address_line1: a.address_line1 ?? "",
-            address_line2: a.address_line2 ?? "", city: a.city ?? "",
-            state: a.state ?? "", postal_code: a.postal_code ?? "", country: a.country ?? "",
+            id: a.id ?? 0,
+            name: a.name ?? "",
+            address_line1: a.address_line1 ?? "",
+            address_line2: a.address_line2 ?? "",
+            city: a.city ?? "",
+            state: a.state ?? "",
+            postal_code: a.postal_code ?? "",
+            country: a.country ?? "",
           })),
           domain: (data.refs?.links?.domain ?? []).map((d: any) => ({
-            id: d.id ?? 0, name: d.name ?? "", domain: d.domain ?? "",
+            id: d.id ?? 0,
+            name: d.name ?? "",
+            domain: d.domain ?? "",
           })),
         },
       },
@@ -378,9 +548,15 @@ export default function ContactDetail({
   }, [data, reset]);
 
   // Form submission
-  const onSubmit = async (formData: z.infer<typeof contactSchema> | z.infer<typeof updateContactSchema>) => {
+  const onSubmit = async (
+    formData:
+      | z.infer<typeof contactSchema>
+      | z.infer<typeof updateContactSchema>,
+  ) => {
     try {
-      const mappedRefs = formData.refs ? mapRefsFormToApi(formData.refs) : undefined;
+      const mappedRefs = formData.refs
+        ? mapRefsFormToApi(formData.refs)
+        : undefined;
       const basePayload = {
         email: formData.email,
         name_first: formData.name_first,
@@ -403,16 +579,32 @@ export default function ContactDetail({
         refs: mappedRefs,
       };
 
-      const payload = mode === "add"
-        ? { ...basePayload, password: (formData as any).password, cnf_password: (formData as any).cnf_password }
-        : basePayload;
+      const payload =
+        mode === "add"
+          ? {
+              ...basePayload,
+              password: (formData as any).password,
+              cnf_password: (formData as any).cnf_password,
+            }
+          : basePayload;
 
-      const res = mode === "add"
-        ? await createContact(payload as CreateContactRequest)
-        : await updateContact({ ...payload, id: data?.id } as UpdateContactRequest);
+      const res =
+        mode === "add"
+          ? await createContact(payload as CreateContactRequest)
+          : await updateContact({
+              ...payload,
+              id: data?.id,
+            } as UpdateContactRequest);
 
       if (res) {
-        dispatch(showToast({ message: `Contact ${mode === "add" ? "created" : "updated"} successfully`, type: "success" }));
+        dispatch(
+          showToast({
+            message: `Contact ${
+              mode === "add" ? "created" : "updated"
+            } successfully`,
+            type: "success",
+          }),
+        );
         if (onSaved) onSaved();
       }
     } catch (error: unknown) {
@@ -525,7 +717,12 @@ export default function ContactDetail({
             defaultExpanded={true}
           >
             {shouldRenderField("name_first") && (
-              <FieldRow label="First Name" htmlFor="name_first" error={errors.name_first?.message} required>
+              <FieldRow
+                label="First Name"
+                htmlFor="name_first"
+                error={errors.name_first?.message}
+                required
+              >
                 <Input
                   type="text"
                   id="name_first"
@@ -551,7 +748,12 @@ export default function ContactDetail({
 
             {/* Row 2: Last Name (left), Middle (right) */}
             {shouldRenderField("name_last") && (
-              <FieldRow label="Last Name" htmlFor="name_last" error={errors.name_last?.message} required>
+              <FieldRow
+                label="Last Name"
+                htmlFor="name_last"
+                error={errors.name_last?.message}
+                required
+              >
                 <Input
                   type="text"
                   id="name_last"
@@ -577,7 +779,11 @@ export default function ContactDetail({
 
             {/* Row 3: Attention (left), Suffix (right) */}
             {shouldRenderField("attention") && (
-              <FieldRow label="Attention" htmlFor="attention" hint="Auto-filled from first/last name">
+              <FieldRow
+                label="Attention"
+                htmlFor="attention"
+                hint="Auto-filled from first/last name"
+              >
                 <Input
                   type="text"
                   id="attention"
@@ -602,7 +808,11 @@ export default function ContactDetail({
           </Section>
 
           {/* 2. Company Information Section */}
-          <Section title="Company Information" icon={<FaBuilding className="w-4 h-4" />} defaultExpanded={true}>
+          <Section
+            title="Company Information"
+            icon={<FaBuilding className="w-4 h-4" />}
+            defaultExpanded={true}
+          >
             {shouldRenderField("company") && (
               <FieldRow label="Company" htmlFor="company">
                 <Input
@@ -649,7 +859,7 @@ export default function ContactDetail({
               contactId={activeContactId}
               data={communications}
               onChange={(comms) => {
-                console.log('Communications updated:', comms);
+                console.log("Communications updated:", comms);
                 // Update local state with new communications data
                 setCommunications(comms);
               }}
@@ -662,10 +872,51 @@ export default function ContactDetail({
             <ActionsPanel
               entityType="contact"
               entityId={data.id}
-              data={data.actions}
+              // Support both embedded actions and ID-based actions
+              data={Array.isArray(data.actions) ? data.actions : undefined}
+              actionIds={
+                data.actions &&
+                typeof data.actions === "object" &&
+                "ids" in data.actions
+                  ? (data.actions as { ids?: number[] }).ids
+                  : undefined
+              }
+              viewMode="table"
+              isEditing={effectiveMode === "edit"}
               onChange={(actions) => {
-                console.log('Actions updated:', actions);
+                // Update local state - always set, merging with current data
+                setFetchedData((prev: any) => ({
+                  ...(prev || data),
+                  actions,
+                }));
               }}
+              onActionIdsChange={(ids) => {
+                // Update local state with new action IDs
+                setFetchedData((prev: any) => ({
+                  ...(prev || data),
+                  actions: { ids },
+                }));
+              }}
+              onSave={async (actions) => {
+                // Persist to backend
+                try {
+                  await updateContact({ id: data.id, actions } as any);
+                  dispatch(
+                    showToast({ message: "Action saved", type: "success" }),
+                  );
+                } catch (error) {
+                  console.error("Failed to save action:", error);
+                  dispatch(
+                    showToast({
+                      message: "Failed to save action",
+                      type: "error",
+                    }),
+                  );
+                  throw error;
+                }
+              }}
+              assigneeOptions={contactOptions}
+              projectOptions={projectOptions}
               defaultCollapsed={false}
             />
           )}
@@ -675,10 +926,35 @@ export default function ContactDetail({
             <CommentsPanel
               entityType="contact"
               entityId={data.id}
-              data={data.comments}
+              comments={data.comments}
+              isEditing={effectiveMode === "edit"}
               onChange={(comments) => {
-                console.log('Comments updated:', comments);
+                // Update local state - always set, merging with current data
+                setFetchedData((prev: any) => ({
+                  ...(prev || data),
+                  comments,
+                }));
               }}
+              onSave={async (comments) => {
+                // Persist to backend
+                try {
+                  await updateContact({ id: data.id, comments } as any);
+                  dispatch(
+                    showToast({ message: "Comments saved", type: "success" }),
+                  );
+                } catch (error) {
+                  console.error("Failed to save comments:", error);
+                  dispatch(
+                    showToast({
+                      message: "Failed to save comments",
+                      type: "error",
+                    }),
+                  );
+                  throw error;
+                }
+              }}
+              currentUser={currentUserName}
+              currentUserId={currentUserId}
               defaultCollapsed={true}
             />
           )}
@@ -690,7 +966,7 @@ export default function ContactDetail({
               entityId={data.id}
               data={data.metadata}
               onChange={(metadata) => {
-                console.log('Metadata updated:', metadata);
+                console.log("Metadata updated:", metadata);
               }}
               defaultCollapsed={true}
             />
@@ -703,7 +979,7 @@ export default function ContactDetail({
               entityId={data.id}
               data={data.prefs}
               onChange={(prefs) => {
-                console.log('Prefs updated:', prefs);
+                console.log("Prefs updated:", prefs);
               }}
               defaultCollapsed={true}
             />
@@ -716,7 +992,7 @@ export default function ContactDetail({
               entityId={data.id}
               data={data.refs}
               onChange={(refs) => {
-                console.log('Refs updated:', refs);
+                console.log("Refs updated:", refs);
               }}
               defaultCollapsed={true}
             />
@@ -733,7 +1009,11 @@ export default function ContactDetail({
           )}
 
           {/* 10. System IDs Section - collapsed */}
-          <Section title="System IDs" icon={<FaCog className="w-4 h-4" />} defaultExpanded={false}>
+          <Section
+            title="System IDs"
+            icon={<FaCog className="w-4 h-4" />}
+            defaultExpanded={false}
+          >
             {shouldRenderField("customer_id") && (
               <FieldRow label="Customer ID" htmlFor="customer_id">
                 <Input
@@ -808,9 +1088,18 @@ export default function ContactDetail({
           </Section>
 
           {/* 10. Account Section - collapsed */}
-          <Section title="Account" icon={<FaUser className="w-4 h-4" />} defaultExpanded={false}>
+          <Section
+            title="Account"
+            icon={<FaUser className="w-4 h-4" />}
+            defaultExpanded={false}
+          >
             {shouldRenderField("email") && (
-              <FieldRow label="Email" htmlFor="email" error={errors.email?.message} required>
+              <FieldRow
+                label="Email"
+                htmlFor="email"
+                error={errors.email?.message}
+                required
+              >
                 <Input
                   type="email"
                   id="email"
@@ -825,7 +1114,13 @@ export default function ContactDetail({
             {effectiveMode === "add" && (
               <>
                 {shouldRenderField("password") && (
-                  <FieldRow label="Password" htmlFor="password" error={(errors as any).password?.message} required hint="Min 8 chars, not common">
+                  <FieldRow
+                    label="Password"
+                    htmlFor="password"
+                    error={(errors as any).password?.message}
+                    required
+                    hint="Min 8 chars, not common"
+                  >
                     <Input
                       type="password"
                       id="password"
@@ -837,7 +1132,12 @@ export default function ContactDetail({
                   </FieldRow>
                 )}
                 {shouldRenderField("cnf_password") && (
-                  <FieldRow label="Confirm" htmlFor="cnf_password" error={(errors as any).cnf_password?.message} required>
+                  <FieldRow
+                    label="Confirm"
+                    htmlFor="cnf_password"
+                    error={(errors as any).cnf_password?.message}
+                    required
+                  >
                     <Input
                       type="password"
                       id="cnf_password"

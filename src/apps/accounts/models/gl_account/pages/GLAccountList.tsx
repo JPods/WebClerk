@@ -22,7 +22,23 @@ export default function GLAccountList() {
       setLoading(true);
       const res = await fetchGLAccounts();
       if (res.status === 200) {
-        setData(res.data.items);
+        // Extract array from various response structures
+        // WCAPI standard: data.results, legacy: data.items, or direct array
+        const responseData = res.data;
+        let items: any[] = [];
+        if (Array.isArray(responseData)) {
+          items = responseData;
+        } else if (responseData?.data?.results && Array.isArray(responseData.data.results)) {
+          items = responseData.data.results;
+        } else if (responseData?.results && Array.isArray(responseData.results)) {
+          items = responseData.results;
+        } else if (responseData?.items && Array.isArray(responseData.items)) {
+          items = responseData.items;
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          items = responseData.data;
+        }
+        console.log('[GLAccountList] Loaded', items.length, 'accounts');
+        setData(items);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch gl accounts", type: "error" })
@@ -78,13 +94,22 @@ export default function GLAccountList() {
     }
   };
 
-  // Hardcoded columns: id and common fields
+  // Columns for GL Account table
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "30%" },
-    { name: "Code", selector: (row) => row.code || "--", sortable: true, width: "20%" },
-    { name: "Type", selector: (row) => row.type || "--", sortable: true, width: "20%" },
-    { name: "Balance", selector: (row) => row.balance || "--", sortable: true, width: "20%" },
+    { name: "Account #", selector: (row) => row.account_number || row.code || "--", sortable: true, width: "15%" },
+    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "25%" },
+    { name: "Type", selector: (row) => row.type || "--", sortable: true, width: "12%" },
+    { name: "Category", selector: (row) => row.category || "--", sortable: true, width: "12%" },
+    { name: "Division", selector: (row) => row.division || "--", sortable: true, width: "10%" },
+    { name: "Used For", selector: (row) => row.used_for || "--", sortable: true, width: "13%" },
+    { 
+      name: "Balance", 
+      selector: (row) => row.balance ?? 0, 
+      sortable: true, 
+      width: "13%",
+      right: true,
+      format: (row) => (row.balance != null ? Number(row.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"),
+    },
   ];
 
   userColumns.push({

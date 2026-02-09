@@ -18,7 +18,9 @@ All shared panel components follow the `{Name}Panel` suffix convention:
 | `DocumentsPanel`     | File uploads & attachments                      | `.refs.links.document`               |
 | `QAPanel`            | Q&A list with question/answer workflow          | Custom or `.qa`                      |
 | `ContactLinksPanel`  | Linked contacts grouped by role                 | `.refs.links.contact`                |
-| `FinancialsPanel`    | Financial summary with breakdown                | Computed or `.financials`            |
+| `FinancialsPanel`    | **Transaction** financials (subtotal, tax, shipping, total) | Transaction `.financials`  |
+| `FinancialSummaryPanel` | **Org** financial summary (collapsed, key metrics) | Org `.financial`                |
+| `CustomerFinancialPanel` | **Org** full financial detail (credit, aging, sales) | Org `.financial.customer`      |
 | `CommunicationsPanel`| Emails, phones, addresses management            | `.refs.links.{email,phone,location}` |
 | `LinkagesPanel`      | Cross-table record linkage (flow tracking)      | Linkage record or `.refs.links.linkage` |
 
@@ -57,6 +59,8 @@ const ALL_ROLES = [...USER_ROLES, 'viewer', 'guest'];
 | `QAPanel`            | all        | user+      | Indigo      |
 | `ContactLinksPanel`  | all        | user+      | Blue        |
 | `FinancialsPanel`    | manager+   | admin      | Green       |
+| `FinancialSummaryPanel` | all     | read-only  | Green       |
+| `CustomerFinancialPanel` | all    | read-only  | None        |
 | `CommunicationsPanel`| all        | user+      | Teal        |
 | `LinkagesPanel`      | all        | admin      | Violet      |
 

@@ -17,7 +17,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
-import { CustomerFinancialPanel, BasicInformationPanel } from "@/apps/common/components/panels";
+import { CustomerFinancialPanel, BasicInformationPanel, FinancialSummaryPanel } from "@/apps/common/components/panels";
 
 
 // Professional customer display component for right-side column
@@ -115,6 +115,8 @@ const COLUMN_OPTIONS = [
 ];
 
 const STORAGE_KEY = "customerDetail_columnCount";
+const TAB_STORAGE_KEY = "customerDetail_activeTab";
+const VALID_TABS = ["communication", "financial", "relations", "documents", "connections", "data", "metrics", "gl_accounts"];
 
 export default function CustomerDetail({
   modeProp,
@@ -130,8 +132,17 @@ export default function CustomerDetail({
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("communication");
+  const [activeTab, setActiveTab] = useState(() => {
+    const stored = localStorage.getItem(TAB_STORAGE_KEY);
+    return stored && VALID_TABS.includes(stored) ? stored : "communication";
+  });
   const [isEditing, setIsEditing] = useState(false);
+
+  // Persist activeTab to localStorage when it changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    localStorage.setItem(TAB_STORAGE_KEY, tabId);
+  };
   const [columnCount, setColumnCount] = useState<2 | 3>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === "2" ? 2 : 3; // Default to 3 columns
@@ -576,24 +587,20 @@ export default function CustomerDetail({
       {/* In edit/add mode, show editable form fields instead */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {mode === "view" ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <BasicInformationPanel
               data={customerData}
               columns={columnCount}
             />
-            {/* Financial Summary */}
+            {/* Financial Summary - Collapsible */}
             {customerData.financial && (
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                  <FaDollarSign size={16} />
-                  Financial Summary
-                </h3>
-                <CustomerFinancialPanel
-                  customer={customerData.financial?.customer}
-                  common={customerData.financial?.common}
-                  currency="USD"
-                />
-              </div>
+              <FinancialSummaryPanel
+                customer={customerData.financial?.customer}
+                common={customerData.financial?.common}
+                currency="USD"
+                defaultCollapsed={true}
+                columns={columnCount}
+              />
             )}
           </div>
         ) : (
@@ -712,7 +719,7 @@ export default function CustomerDetail({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
@@ -755,12 +762,29 @@ export default function CustomerDetail({
           <div className="p-4">
             {/* Tab content - structured data display */}
             {mode === "view" ? (
-              <CustomerDataPanel
-                data={getTabData(activeTab)}
-                showScalars={false}
-                grouped={false}
-                onSelectCategory={() => {}}
-              />
+              activeTab === "financial" ? (
+                /* Full Financial Details Panel */
+                <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                    <FaDollarSign size={16} className="text-green-500" />
+                    Financial Details
+                  </h3>
+                  <CustomerFinancialPanel
+                    customer={customerData.financial?.customer}
+                    common={customerData.financial?.common}
+                    currency="USD"
+                    showAll={true}
+                    columns={columnCount}
+                  />
+                </div>
+              ) : (
+                <CustomerDataPanel
+                  data={getTabData(activeTab)}
+                  showScalars={false}
+                  grouped={false}
+                  onSelectCategory={() => {}}
+                />
+              )
             ) : (
               <div className="space-y-4">
                 {(

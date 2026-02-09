@@ -2,14 +2,19 @@
  * InvoiceDetail - Refactored to use TransactionDetailBase
  * Extends base with invoice-specific fields and functionality
  */
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FaFileInvoiceDollar,
   FaPercent,
   FaShippingFast,
   FaPrint,
   FaEnvelope,
+  FaMoneyBillWave,
 } from "react-icons/fa";
+
+// Import Apply Payment Modal
+import ApplyPaymentModal from "../../../components/ApplyPaymentModal";
+import type { InvoiceRecord } from "../../../hooks/usePaymentApplication";
 
 // Import base component and shared types
 import TransactionDetailBase, {
@@ -71,7 +76,11 @@ const InvoiceHeader: React.FC<{
   data: Invoice;
   isEditing: boolean;
   onChange?: (field: keyof Invoice, value: unknown) => void;
-}> = ({ data, isEditing, onChange }) => {
+  onPaymentApplied?: () => void;
+}> = ({ data, isEditing, onChange, onPaymentApplied }) => {
+  // State for Apply Payment modal
+  const [showApplyPaymentModal, setShowApplyPaymentModal] = useState(false);
+  
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
   const billingContact = data.refs?.links?.contact?.find(
@@ -357,7 +366,28 @@ const InvoiceHeader: React.FC<{
           <FaEnvelope size={14} />
           Email
         </button>
+        {/* Apply Payment button - only show if balance_due > 0 */}
+        {(data.balance_due ?? 0) > 0 && (
+          <button 
+            onClick={() => setShowApplyPaymentModal(true)}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center gap-2"
+          >
+            <FaMoneyBillWave size={14} />
+            Apply Payment
+          </button>
+        )}
       </div>
+
+      {/* Apply Payment Modal */}
+      <ApplyPaymentModal
+        isOpen={showApplyPaymentModal}
+        onClose={() => setShowApplyPaymentModal(false)}
+        invoice={data as unknown as InvoiceRecord}
+        onPaymentApplied={() => {
+          setShowApplyPaymentModal(false);
+          onPaymentApplied?.();
+        }}
+      />
     </div>
   );
 };
@@ -763,7 +793,14 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
   // Custom header renderer - memoized
   const renderHeader = useCallback(
     (data: Transaction, isEditing: boolean) => (
-      <InvoiceHeader data={data as Invoice} isEditing={isEditing} />
+      <InvoiceHeader 
+        data={data as Invoice} 
+        isEditing={isEditing}
+        onPaymentApplied={() => {
+          // Reload to refresh invoice data after payment applied
+          window.location.reload();
+        }}
+      />
     ),
     [],
   );

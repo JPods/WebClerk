@@ -230,7 +230,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-72 overflow-hidden">
+        <div className="absolute z-[200002] w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-72 overflow-hidden">
           {/* Search Input */}
           <div className="p-2 border-b border-slate-200 dark:border-slate-700">
             <div className="relative">

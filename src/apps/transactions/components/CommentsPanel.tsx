@@ -105,6 +105,21 @@ const CommentList: React.FC<CommentListProps> = ({
     }
   };
 
+  const getTabLabel = () => {
+    switch (tabKey) {
+      case "public":
+        return "Public (visible to customer)";
+      case "process":
+        return "Process (internal only)";
+      case "partner":
+        return "Partner (shared with vendors)";
+      case "notes":
+        return "Notes (internal notes)";
+      default:
+        return tabKey;
+    }
+  };
+
   const handleSend = () => {
     console.log("[DEBUG] Send button clicked! inputValue:", inputValue);
     if (inputValue.trim()) {
@@ -155,6 +170,10 @@ const CommentList: React.FC<CommentListProps> = ({
 
   return (
     <div className="flex flex-col h-64">
+      <label className="block text-xs font-medium text-slate-700 dark:text-slate-400 mb-1">
+        {getTabLabel()}
+      </label>
+
       {/* Messages display area */}
       <div
         ref={scrollRef}
