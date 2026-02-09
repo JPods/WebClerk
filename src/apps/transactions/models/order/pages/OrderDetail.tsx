@@ -28,7 +28,8 @@ import type {
 } from "../../../types/transactionTypes";
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
-import { saveRecord } from "@/api/wcapi";
+import { getRecord, saveRecord } from "@/api/wcapi";
+import { apiClient } from "@/api/axios";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -893,6 +894,32 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     autoFetch: !!currentOrderId || hasActionIds,
   });
 
+  const fetchOrderData = useCallback(async (id: string) => {
+    const apiResult = await getRecord("order", Number(id));
+    const record = (apiResult as { record?: Transaction }).record ?? apiResult;
+
+    try {
+      const totalsRes = await apiClient.get(
+        `/api/transactions/orders/${id}/totals/`,
+        { cache: false } as any,
+      );
+      const totalsPayload = totalsRes.data?.data ?? totalsRes.data;
+      if (totalsPayload?.totals) {
+        record.totals = totalsPayload.totals;
+      }
+      if (totalsPayload?.cost) {
+        record.cost = totalsPayload.cost;
+      }
+      if (totalsPayload?.sell) {
+        record.sell = totalsPayload.sell;
+      }
+    } catch (err) {
+      console.warn("[OrderDetail] totals fetch failed, using record totals", err);
+    }
+
+    return record;
+  }, []);
+
   // Open create task modal
   const handleOpenCreateTask = useCallback(() => {
     setEditingTask(null);
@@ -1246,6 +1273,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         transactionType="order"
         typeLabel="Order"
         modelName="order"
+        fetchData={fetchOrderData}
         customTabsBefore={SALES_ORDER_TABS_BEFORE}
         getCustomTabsAfter={getOrderTabsAfter}
         renderCustomTab={renderCustomTab}
