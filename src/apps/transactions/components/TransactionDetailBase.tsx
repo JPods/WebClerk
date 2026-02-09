@@ -354,7 +354,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const lineCount = (data as unknown as Record<string, unknown>)?.lines
     ? ((data as unknown as Record<string, unknown>).lines as unknown[]).length
     : 0;
-  const commentCount = data?.comments?.notes?.length ?? 0;
+  // Count comments from all categories (public, process, partner, notes)
+  const commentCount = useMemo(() => {
+    if (!data?.comments) return 0;
+    const c = data.comments as Record<string, unknown>;
+    const publicLen = Array.isArray(c.public) ? c.public.length : 0;
+    const processLen = Array.isArray(c.process) ? c.process.length : 0;
+    const partnerLen = Array.isArray(c.partner) ? c.partner.length : 0;
+    const notesLen = Array.isArray(c.notes) ? c.notes.length : 0;
+    return publicLen + processLen + partnerLen + notesLen;
+  }, [data?.comments]);
 
   // Get dynamic custom tabs if function provided
   const dynamicCustomTabsAfter = useMemo(() => {
@@ -719,8 +728,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                   refs: {
                     ...editData.refs,
                     links: {
-                      ...((editData.refs && editData.refs.links) || {}),
-                      contact: newContacts,
+                      ...(editData.refs?.links || {}),
+                      contact: newContacts as unknown as NonNullable<
+                        NonNullable<typeof editData.refs>["links"]
+                      >["contact"],
                     },
                   },
                 });
@@ -743,9 +754,34 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         const commentsSource =
           isEditing && editData ? editData.comments : data?.comments;
 
+        // Transform CommentEntry[] to CommentMessage[] format for CommentsPanel
+        const transformedComments = commentsSource
+          ? {
+              ...commentsSource,
+              notes: (commentsSource.notes ?? []).map((entry) =>
+                "user" in entry
+                  ? (entry as Record<string, unknown>) // Already in correct format
+                  : {
+                      // Transform CommentEntry to CommentMessage
+                      user:
+                        ((entry as unknown as Record<string, unknown>)
+                          .by as string) || "Unknown",
+                      mgs:
+                        ((entry as unknown as Record<string, unknown>)
+                          .text as string) || "",
+                      time:
+                        ((entry as unknown as Record<string, unknown>)
+                          .ts as string) || new Date().toISOString(),
+                    },
+              ),
+            }
+          : {};
+
         // Auto-save comments handler
         const handleCommentsSave = async (
-          newComments: Record<string, unknown>,
+          newComments: Parameters<
+            NonNullable<React.ComponentProps<typeof CommentsPanel>["onSave"]>
+          >[0],
         ) => {
           if (!editData) return;
 
@@ -795,7 +831,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
         return (
           <CommentsPanel
-            comments={commentsSource ?? {}}
+            comments={transformedComments as Record<string, unknown>}
             isEditing={isEditing}
             onChange={(val) => handleFieldChange("comments", val)}
             onSave={handleCommentsSave}

@@ -1,9 +1,9 @@
 /**
  * Shared Panel Components - Barrel Export
- * 
+ *
  * Reusable panels for displaying and editing common data structures
  * across all model detail pages.
- * 
+ *
  * @see README.md for documentation
  */
 
@@ -17,8 +17,10 @@ export type {
   EntityMetadata,
   EntityRefs,
   EntityPrefs,
+  CommentMessage,
   CommentEntry,
   EntityComments,
+  RawEntityComments,
   ActionEntry,
   ActionStatus,
   ActionPriority,
@@ -31,7 +33,7 @@ export type {
   PhoneLink,
   AddressLink,
   DomainLink,
-} from './types';
+} from "./types";
 
 // Constants
 export {
@@ -40,30 +42,33 @@ export {
   USER_ROLES,
   ALL_ROLES,
   DEFAULT_PANEL_PERMISSIONS,
-} from './types';
+} from "./types";
 
 // Hooks
-export { usePermissions } from './usePermissions';
-export type { UsePermissionsOptions, UsePermissionsResult } from './usePermissions';
+export { usePermissions } from "./usePermissions";
+export type {
+  UsePermissionsOptions,
+  UsePermissionsResult,
+} from "./usePermissions";
 
 // Panel Components - JSONB Field Editors (Admin)
-export { default as CommentsPanel } from './CommentsPanel';
-export { default as MetadataPanel } from './MetadataPanel';
-export { default as RefsPanel } from './RefsPanel';
-export { default as PrefsPanel } from './PrefsPanel';
-export { default as RawDataPanel } from './RawDataPanel';
+export { default as CommentsPanel } from "./CommentsPanel";
+export { default as MetadataPanel } from "./MetadataPanel";
+export { default as RefsPanel } from "./RefsPanel";
+export { default as PrefsPanel } from "./PrefsPanel";
+export { default as RawDataPanel } from "./RawDataPanel";
 
 // Panel Components - Entity Features
-export { default as ActionsPanel } from './ActionsPanel';
-export { default as BasicInformationPanel } from './BasicInformationPanel';
-export { default as DocumentsPanel } from './DocumentsPanel';
-export { default as QAPanel } from './QAPanel';
-export { default as ContactLinksPanel } from './ContactLinksPanel';
-export { default as FinancialsPanel } from './FinancialsPanel';
-export { default as FinancialSummaryPanel } from './FinancialSummaryPanel';
-export { default as CustomerFinancialPanel } from './CustomerFinancialPanel';
-export { default as CommunicationsPanel } from './CommunicationsPanel';
-export { default as LinkagesPanel } from './LinkagesPanel';
+export { default as ActionsPanel } from "./ActionsPanel";
+export { default as BasicInformationPanel } from "./BasicInformationPanel";
+export { default as DocumentsPanel } from "./DocumentsPanel";
+export { default as QAPanel } from "./QAPanel";
+export { default as ContactLinksPanel } from "./ContactLinksPanel";
+export { default as FinancialsPanel } from "./FinancialsPanel";
+export { default as FinancialSummaryPanel } from "./FinancialSummaryPanel";
+export { default as CustomerFinancialPanel } from "./CustomerFinancialPanel";
+export { default as CommunicationsPanel } from "./CommunicationsPanel";
+export { default as LinkagesPanel } from "./LinkagesPanel";
 
 // Q&A utilities and types
 export {
@@ -80,7 +85,7 @@ export {
   getEffectiveOptions,
   uploadQAImage,
   applyQuestionGroup,
-} from './qaUtils';
+} from "./qaUtils";
 export type {
   QAQuestionTemplate,
   QAAnswerChoice,
@@ -92,7 +97,7 @@ export type {
   QAAnswerRecord,
   ScopedQAGroups,
   ApplyQuestionGroupResponse,
-} from './qaUtils';
+} from "./qaUtils";
 
 // Document upload utilities and types
 export {
@@ -106,7 +111,7 @@ export {
   validateFile,
   getBrowserGeolocation,
   useDocumentUpload,
-} from './documentUpload';
+} from "./documentUpload";
 export type {
   DocumentRecord,
   DocumentMetadata,
@@ -117,10 +122,14 @@ export type {
   UploadDocumentOptions,
   UploadDocumentResult,
   UploadProgressCallback,
-} from './documentUpload';
+} from "./documentUpload";
 
 // Linkages types (exported from component file)
-export type { LinkageData, LinkedRecord, LinkagesPanelProps } from './LinkagesPanel';
+export type {
+  LinkageData,
+  LinkedRecord,
+  LinkagesPanelProps,
+} from "./LinkagesPanel";
 
 // BasicInformation types
-export type { BasicInformationData } from './BasicInformationPanel';
+export type { BasicInformationData } from "./BasicInformationPanel";
