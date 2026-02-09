@@ -58,7 +58,7 @@ class ScalarFirstFieldsetMixin:
 
 @admin.register(Item)
 class ItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "name", "sku", "description", "kind", "on_hand", "allocated", "available", "is_active", "dt_created")
+    list_display = ("id", "ida", "name", "sku", "description", "kind", "on_hand", "on_p", "on_so", "on_in", "on_po", "allocated", "available", "is_active", "dt_created")
     list_filter = ("kind", "is_active", "is_deleted")
     search_fields = ("ida", "name", "sku", "description")
     readonly_fields = ("uuid", "dt_created", "dt_modified")

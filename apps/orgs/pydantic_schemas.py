@@ -92,7 +92,7 @@ class OrgSnapshot(BaseModel):
     status: Optional[str] = None
     is_active: bool = True
     contacts: List[ContactMini] = Field(default_factory=list)
-    locations: List[LocationMini] = Field(default_factory=list)
+    addresses: List[LocationMini] = Field(default_factory=list)
     domains: List[DomainMini] = Field(default_factory=list)
     phones: List[PhoneMini] = Field(default_factory=list)
     emails: List[EmailMini] = Field(default_factory=list)
@@ -118,7 +118,7 @@ class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
     status: Optional[str] = None
     is_active: Optional[bool] = None
     contacts: Optional[List[ContactMini]] = None
-    locations: Optional[List[LocationMini]] = None
+    addresses: Optional[List[LocationMini]] = None
     domains: Optional[List[DomainMini]] = None
     phones: Optional[List[PhoneMini]] = None
     emails: Optional[List[EmailMini]] = None
@@ -140,7 +140,7 @@ def build_org_snapshot(org) -> OrgSnapshot:
         status=org.status,
         is_active=org.is_active,
         contacts=org.contacts or [],
-        locations=org.locations or [],
+        addresses=org.addresses or [],
         domains=org.domains or [],
         phones=org.phones or [],
         emails=org.emails or [],
