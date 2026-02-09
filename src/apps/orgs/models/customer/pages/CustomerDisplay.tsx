@@ -17,7 +17,18 @@ import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
-import { CustomerFinancialPanel, BasicInformationPanel, FinancialSummaryPanel } from "@/apps/common/components/panels";
+import { 
+  CustomerFinancialPanel, 
+  BasicInformationPanel, 
+  FinancialSummaryPanel,
+  CommentsPanel,
+  ActionsPanel,
+  DocumentsPanel,
+  MetadataPanel,
+  RawDataPanel,
+} from "@/apps/common/components/panels";
+import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
+import { useAppSelector } from "@/store/hooks";
 
 
 // Professional customer display component for right-side column
@@ -116,7 +127,7 @@ const COLUMN_OPTIONS = [
 
 const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
-const VALID_TABS = ["communication", "financial", "relations", "documents", "connections", "data", "metrics", "gl_accounts"];
+const VALID_TABS = ["overview", "comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
 
 export default function CustomerDetail({
   modeProp,
@@ -132,25 +143,35 @@ export default function CustomerDetail({
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState(() => {
-    const stored = localStorage.getItem(TAB_STORAGE_KEY);
-    return stored && VALID_TABS.includes(stored) ? stored : "communication";
-  });
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('customer', 'overview', VALID_TABS);
+  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount('customer', 3);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Persist activeTab to localStorage when it changes
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    localStorage.setItem(TAB_STORAGE_KEY, tabId);
-  };
-  const [columnCount, setColumnCount] = useState<2 | 3>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "2" ? 2 : 3; // Default to 3 columns
-  });
+  // Additional tabs specific to Customer (Communications, Financial, etc.)
+  const additionalTabs = [
+    { id: 'communication', label: 'Contact', icon: <FaPhone size={14} /> },
+    { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
+    { id: 'relations', label: 'Relations', icon: <FaUsers size={14} /> },
+    { id: 'connections', label: 'Connections', icon: <FaLink size={14} /> },
+    { id: 'data', label: 'Data', icon: <FaCog size={14} /> },
+    { id: 'metrics', label: 'Metrics', icon: <FaChartBar size={14} /> },
+    { id: 'gl_accounts', label: 'GL Accounts', icon: <FaCreditCard size={14} /> },
+  ];
 
-  const handleColumnChange = (cols: 2 | 3) => {
-    setColumnCount(cols);
-    localStorage.setItem(STORAGE_KEY, String(cols));
+  // Count badges for tabs
+  const getCommentCount = () => {
+    if (!data?.comments) return 0;
+    const c = data.comments;
+    return (c.public?.length || 0) + (c.process?.length || 0) + (c.partner?.length || 0) + (c.notes?.length || 0);
+  };
+  const getActionCount = () => data?.actions?.items?.filter((a: any) => a.status === 'pending').length || 0;
+  const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
+
+  const tabBadges = {
+    comments: getCommentCount(),
+    actions: getActionCount(),
+    documents: getDocumentCount(),
   };
 
   const {
@@ -441,18 +462,6 @@ export default function CustomerDetail({
     return buttons;
   };
 
-  // Tab definitions
-  const tabs = [
-    { id: "communication", label: "Contact", icon: <FaPhone size={14} /> },
-    { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-    { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
-    { id: "documents", label: "Documents", icon: <FaFileAlt size={14} /> },
-    { id: "connections", label: "Connections", icon: <FaLink size={14} /> },
-    { id: "data", label: "Data", icon: <FaCog size={14} /> },
-    { id: "metrics", label: "Metrics", icon: <FaChartBar size={14} /> },
-    { id: "gl_accounts", label: "GL Accounts", icon: <FaCreditCard size={14} /> },
-  ];
-
   const formData = watch();
   
   // In view mode, prefer direct data from props; in edit/add mode, use form values
@@ -710,82 +719,127 @@ export default function CustomerDetail({
         )}
       </div>
 
-      {/* Tab Navigation */}
-      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700">
-        <nav className="px-4">
-          <div className="flex items-center justify-between py-2 gap-4">
-            <div className="flex gap-1 overflow-x-auto">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            {/* Column Layout Selector */}
-            <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
-              <FaColumns className="text-slate-500 dark:text-slate-400" size={12} />
-              <span className="text-xs text-slate-500 dark:text-slate-400">Cols:</span>
-              <div className="flex rounded border border-slate-300 dark:border-slate-600 overflow-hidden">
-                {COLUMN_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleColumnChange(opt.value as 2 | 3)}
-                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
-                      columnCount === opt.value
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {opt.value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </nav>
-      </div>
+      {/* Tab Navigation - Using DetailTabs component */}
+      <DetailTabs
+        entityType="customer"
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        standardTabs={['overview', 'comments', 'actions', 'documents', 'history', 'raw']}
+        additionalTabs={additionalTabs}
+        badges={tabBadges}
+        showColumnSelector={true}
+        columnCount={columnCount}
+        onColumnCountChange={handleColumnChange}
+      />
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="h-full">
           <div className="p-4">
-            {/* Tab content - structured data display */}
+            {/* Standard Tabs - Overview */}
+            {activeTab === "overview" && (
+              <div className="space-y-4">
+                {mode === "view" ? (
+                  <BasicInformationPanel data={customerData} columns={columnCount} />
+                ) : (
+                  <div className="text-slate-500 dark:text-slate-400 text-sm">
+                    Edit basic information in the form above.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Standard Tabs - Comments */}
+            {activeTab === "comments" && (
+              <CommentsPanel
+                entityType="customer"
+                entityId={data?.id || 0}
+                comments={data?.comments}
+                isEditing={mode !== "view" || isEditing}
+                onChange={(comments) => {
+                  // Update local state - in a real app this would update the form
+                  console.log('Comments updated:', comments);
+                }}
+                currentUser={currentUser?.display_name || currentUser?.username}
+                currentUserId={currentUser?.id}
+              />
+            )}
+
+            {/* Standard Tabs - Actions */}
+            {activeTab === "actions" && (
+              <ActionsPanel
+                entityType="customer"
+                entityId={data?.id || 0}
+                data={data?.actions?.items}
+                actionIds={data?.actions?.ids}
+                isEditing={mode !== "view" || isEditing}
+                onChange={(actions) => {
+                  console.log('Actions updated:', actions);
+                }}
+              />
+            )}
+
+            {/* Standard Tabs - Documents */}
+            {activeTab === "documents" && (
+              <DocumentsPanel
+                parentType="customer"
+                parentId={data?.id || 0}
+                data={data?.refs?.links?.document}
+                isEditing={mode !== "view" || isEditing}
+                onChange={(docs) => {
+                  console.log('Documents updated:', docs);
+                }}
+              />
+            )}
+
+            {/* Standard Tabs - History (Admin) */}
+            {activeTab === "history" && (
+              <MetadataPanel
+                entityType="customer"
+                entityId={data?.id || 0}
+                data={data?.metadata}
+                isEditing={false}
+              />
+            )}
+
+            {/* Standard Tabs - Raw (Admin) */}
+            {activeTab === "raw" && (
+              <RawDataPanel
+                entityType="customer"
+                entityId={data?.id || 0}
+                data={data}
+              />
+            )}
+
+            {/* Model-Specific Tabs */}
             {mode === "view" ? (
-              activeTab === "financial" ? (
-                /* Full Financial Details Panel */
-                <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                    <FaDollarSign size={16} className="text-green-500" />
-                    Financial Details
-                  </h3>
-                  <CustomerFinancialPanel
-                    customer={customerData.financial?.customer}
-                    common={customerData.financial?.common}
-                    currency="USD"
-                    showAll={true}
-                    columns={columnCount}
+              <>
+                {activeTab === "financial" && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                      <FaDollarSign size={16} className="text-green-500" />
+                      Financial Details
+                    </h3>
+                    <CustomerFinancialPanel
+                      customer={customerData.financial?.customer}
+                      common={customerData.financial?.common}
+                      currency="USD"
+                      showAll={true}
+                      columns={columnCount}
+                    />
+                  </div>
+                )}
+                {["communication", "relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
+                  <CustomerDataPanel
+                    data={getTabData(activeTab)}
+                    showScalars={false}
+                    grouped={false}
+                    onSelectCategory={() => {}}
                   />
-                </div>
-              ) : (
-                <CustomerDataPanel
-                  data={getTabData(activeTab)}
-                  showScalars={false}
-                  grouped={false}
-                  onSelectCategory={() => {}}
-                />
-              )
+                )}
+              </>
             ) : (
+              /* Edit mode - JSON editors for model-specific tabs */
               <div className="space-y-4">
                 {(
                   {
@@ -798,7 +852,6 @@ export default function CustomerDetail({
                     ],
                     financial: [{ field: "financial", label: "financial" }],
                     relations: [{ field: "relations", label: "relations" }],
-                    documents: [{ field: "docs", label: "docs" }],
                     connections: [{ field: "connections", label: "connections" }],
                     data: [{ field: "data", label: "data" }],
                     metrics: [{ field: "metrics", label: "metrics" }],
@@ -826,9 +879,7 @@ export default function CustomerDetail({
                       );
                     }}
                   />
-                )) ?? (
-                  <div className="text-slate-400 text-sm">No editor for this tab.</div>
-                )}
+                ))}
               </div>
             )}
           </div>
