@@ -1,5 +1,4 @@
 import QATab from "./QATab";
-import DocumentsTab from "./DocumentsTab";
 import { normalizeRefsLinksContact } from "./RefsLinksContactPanel";
 /**
  * TransactionDetail - Base component for all transaction detail pages
@@ -40,6 +39,8 @@ import ContactLinksTable from "./ContactLinksTable";
 import CommentsPanel from "./CommentsPanel";
 import MetadataPanel from "./MetadataPanel";
 import FinancialsCard from "./FinancialsCard";
+
+import { DocumentsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
 
@@ -831,6 +832,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
         return (
           <CommentsPanel
+            entityType={modelName as any}
+            entityId={Number(currentData?.id ?? 0)}
             comments={transformedComments as Record<string, unknown>}
             isEditing={isEditing}
             onChange={(val) => handleFieldChange("comments", val)}
@@ -852,7 +855,28 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         );
 
       case "documents":
-        return <DocumentsTab />;
+        return (
+          <DocumentsPanel
+            parentType={modelName}
+            parentId={currentData?.id}
+            data={(currentData as any)?.refs?.links?.document ?? []}
+            readOnly={!isEditing}
+            onChange={
+              isEditing
+                ? (nextDocs) => {
+                    const nextRefs = {
+                      ...(currentData as any)?.refs,
+                      links: {
+                        ...(currentData as any)?.refs?.links,
+                        document: nextDocs,
+                      },
+                    };
+                    handleFieldChange("refs", nextRefs);
+                  }
+                : undefined
+            }
+          />
+        );
 
       case "qa":
         return (

@@ -17,12 +17,10 @@ import {
   FaSpinner,
   FaStar,
 } from "react-icons/fa";
-import type { ContactPurpose } from "../types/transactionTypes";
 import { CommunicationsPanel } from "@/apps/common/components/panels";
 import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
 
-export { default } from "@/apps/common/components/panels/RefsLinksContactPanel";
-export { normalizeRefsLinksContact } from "@/apps/common/components/panels/RefsLinksContactPanel";
+type ContactPurpose = string;
 
 // ------------------------------------
 // Communication Record Types
@@ -76,11 +74,117 @@ export interface RefContact {
   address?: any; // Added to fix compile error
 }
 
-// normalizeRefsLinksContact is re-exported from the common panel.
+// Helper to normalize refs.links.contact API data to RefContact[]
+export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
+  if (!Array.isArray(apiContacts)) return [];
+  return apiContacts.map((c, idx) => {
+    // Accept both {contact, purpose} and {purpose, ...fields} shapes
+    let base = c;
+    let purpose = c.purpose || "";
+    let contact_id: any;
+
+    // If nested contact, flatten and get contact_id from nested object
+    // API structure: refs.links.contact[].contact.id
+    if (c.contact && typeof c.contact === "object") {
+      base = c.contact;
+      purpose = c.purpose || base.purpose || "";
+      contact_id = c.contact.id; // Get id from nested contact object
+    } else {
+      contact_id = c.id;
+    }
+
+    // Fallback if contact_id is still not set
+    if (contact_id === undefined || contact_id === null || contact_id === "") {
+      contact_id = idx + 1;
+    }
+
+    // Helper to extract and join all address full fields (newline separated)
+    const extractAddressFull = (field: any) => {
+      if (Array.isArray(field)) {
+        return field
+          .map((item) => {
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              typeof item.full === "string"
+            ) {
+              return item.full;
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+      if (
+        typeof field === "object" &&
+        field !== null &&
+        typeof field.full === "string"
+      ) {
+        return field.full;
+      }
+      return typeof field === "string" ? field : "";
+    };
+    const attention = base.attention || undefined;
+    const addressFull = extractAddressFull(base.address);
+    // Helper to normalize contact fields to array of {id, name, value}
+    const normalizeContactField = (field: any) => {
+      if (Array.isArray(field)) {
+        return field.map((item: any, idx: number) => {
+          if (typeof item === "object" && item !== null) {
+            return {
+              id: item.id ?? idx,
+              name: item.name ?? "",
+              value: item.value ?? "",
+            };
+          }
+          return {
+            id: idx,
+            name: "",
+            value: item ?? "",
+          };
+        });
+      }
+      if (typeof field === "object" && field !== null) {
+        return [
+          {
+            id: field.id ?? 0,
+            name: field.name ?? "",
+            value: field.value ?? "",
+          },
+        ];
+      }
+      if (typeof field === "string") {
+        // Split by comma for email/phone/domain
+        return field.split(",").map((val, idx) => ({
+          id: idx,
+          name: "",
+          value: val.trim(),
+        }));
+      }
+      return [];
+    };
+
+    return {
+      contact_id,
+      purpose,
+      attention,
+      email: normalizeContactField(base.email),
+      phone: normalizeContactField(base.phone),
+      domain: normalizeContactField(base.domain),
+      full: addressFull,
+      address: base.address, // preserve original address array/object for modal editing
+    };
+  });
+}
 
 interface RefsLinksContactPanelProps {
   contacts: RefContact[];
   isEditing?: boolean;
+  /** Generic parent model name for persistence (e.g. 'order', 'invoice', 'vendor') */
+  parentType?: string;
+  /** Generic parent record ID for persistence */
+  parentId?: number;
+  /** Back-compat for transaction/order callers */
   orderId?: number; // Order ID for saving contact data
   onAdd?: (purpose: ContactPurpose | string) => void;
   onRemove?: (contactId: number) => void;
@@ -127,11 +231,14 @@ const groupContactsByPurpose = (
 const ContactEditModal: React.FC<{
   contact: RefContact | null;
   isOpen: boolean;
+  parentType?: string;
+  parentId?: number;
+  /** Back-compat for transaction/order callers */
   orderId?: number;
   onClose: () => void;
   onSave: (contact: RefContact) => void;
   onSaveSuccess?: () => void;
-}> = ({ contact, isOpen, orderId, onClose, onSave, onSaveSuccess }) => {
+}> = ({ contact, isOpen, parentType, parentId, orderId, onClose, onSave, onSaveSuccess }) => {
   // Communications state - fetched from contact model using contact_id
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -513,9 +620,12 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={async () => {
-              if (!orderId || !contact) {
+              const effectiveParentType = parentType || (orderId ? "order" : undefined);
+              const effectiveParentId = parentId ?? orderId;
+
+              if (!effectiveParentType || !effectiveParentId || !contact) {
                 console.warn(
-                  "[ContactEditModal] No orderId or contact to save",
+                  "[ContactEditModal] Missing parentType/parentId or contact to save",
                 );
                 onSave(contact);
                 onClose();
@@ -563,8 +673,9 @@ const ContactEditModal: React.FC<{
                   },
                 };
 
-                console.log("[ContactEditModal] Saving contact to order:", {
-                  orderId,
+                console.log("[ContactEditModal] Saving contact to parent:", {
+                  parentType: effectiveParentType,
+                  parentId: effectiveParentId,
                   contactPayload,
                   originalContactId: contact.contact_id,
                   newContactId: selectedContactId,
@@ -573,14 +684,17 @@ const ContactEditModal: React.FC<{
                   emailCount: contactPayload.contact.email.length,
                 });
 
-                // Save to order model - update refs.links.contact
+                // Save to parent model - update refs.links.contact
                 // The API expects the full refs.links.contact array, so we need to:
-                // 1. Fetch current order to get existing contacts
+                // 1. Fetch current parent to get existing contacts
                 // 2. Update the specific contact by original id and purpose (find by original values)
-                // 3. Save back to order with new selectedContactId and selectedPurpose
-                const orderResult = await getRecord("order", orderId);
-                const orderData = orderResult?.record || orderResult;
-                const existingContacts = orderData?.refs?.links?.contact || [];
+                // 3. Save back with new selectedContactId and selectedPurpose
+                const parentResult = await getRecord(
+                  effectiveParentType,
+                  effectiveParentId,
+                );
+                const parentData = parentResult?.record || parentResult;
+                const existingContacts = parentData?.refs?.links?.contact || [];
 
                 console.log(
                   "[ContactEditModal] Existing contacts:",
@@ -635,10 +749,10 @@ const ContactEditModal: React.FC<{
                   updatedContacts.push(contactPayload);
                 }
 
-                // Save to order - wrap refs in proper mode/value structure for save_view.py
+                // Save - wrap refs in proper mode/value structure for save_view.py
                 // The backend expects: { field_name: { mode: 'update', value: <actual_value> } }
                 const savePayload = {
-                  id: orderId,
+                  id: effectiveParentId,
                   refs: {
                     mode: "update",
                     value: {
@@ -649,11 +763,8 @@ const ContactEditModal: React.FC<{
                   },
                 };
 
-                console.log(
-                  "[ContactEditModal] Saving order payload:",
-                  savePayload,
-                );
-                await saveRecord("order", savePayload);
+                console.log("[ContactEditModal] Saving payload:", savePayload);
+                await saveRecord(effectiveParentType, savePayload);
                 console.log("[ContactEditModal] Save successful");
 
                 // Build updated contact object with new selectedContactId and selectedPurpose
@@ -721,6 +832,9 @@ const ContactEditModal: React.FC<{
 // Add New Purpose Modal - Add a new contact with a specific purpose
 const AddPurposeModal: React.FC<{
   isOpen: boolean;
+  parentType?: string;
+  parentId?: number;
+  /** Back-compat for transaction/order callers */
   orderId?: number;
   existingContacts: RefContact[];
   onClose: () => void;
@@ -728,6 +842,8 @@ const AddPurposeModal: React.FC<{
   onSaveSuccess?: () => void;
 }> = ({
   isOpen,
+  parentType,
+  parentId,
   orderId,
   existingContacts,
   onClose,
@@ -805,8 +921,11 @@ const AddPurposeModal: React.FC<{
   }, [selectedPurpose, selectedContactId, existingContacts]);
 
   const handleSave = async () => {
-    if (!orderId) {
-      console.warn("[AddPurposeModal] No orderId to save");
+    const effectiveParentType = parentType || (orderId ? "order" : undefined);
+    const effectiveParentId = parentId ?? orderId;
+
+    if (!effectiveParentType || !effectiveParentId) {
+      console.warn("[AddPurposeModal] Missing parentType/parentId to save");
       return;
     }
 
@@ -838,17 +957,20 @@ const AddPurposeModal: React.FC<{
         contactPayload,
       );
 
-      // Fetch current order to get existing contacts
-      const orderResult = await getRecord("order", orderId);
-      const orderData = orderResult?.record || orderResult;
-      const existingOrderContacts = orderData?.refs?.links?.contact || [];
+      // Fetch current parent to get existing contacts
+      const parentResult = await getRecord(
+        effectiveParentType,
+        effectiveParentId,
+      );
+      const parentData = parentResult?.record || parentResult;
+      const existingParentContacts = parentData?.refs?.links?.contact || [];
 
       // Add the new contact
-      const updatedContacts = [...existingOrderContacts, contactPayload];
+      const updatedContacts = [...existingParentContacts, contactPayload];
 
-      // Save to order with proper mode/value structure
+      // Save to parent with proper mode/value structure
       const savePayload = {
-        id: orderId,
+        id: effectiveParentId,
         refs: {
           mode: "update",
           value: {
@@ -859,8 +981,8 @@ const AddPurposeModal: React.FC<{
         },
       };
 
-      console.log("[AddPurposeModal] Saving order payload:", savePayload);
-      await saveRecord("order", savePayload);
+      console.log("[AddPurposeModal] Saving payload:", savePayload);
+      await saveRecord(effectiveParentType, savePayload);
       console.log("[AddPurposeModal] Save successful");
 
       // Build RefContact for instant local state update
@@ -1400,12 +1522,16 @@ const PurposeSection: React.FC<{
 const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   contacts = [],
   isEditing = false,
+  parentType,
+  parentId,
   orderId,
   onRemove,
   onEdit,
   onChange,
   onSaveSuccess,
 }) => {
+  const effectiveParentType = parentType || (orderId ? "order" : undefined);
+  const effectiveParentId = parentId ?? orderId;
   const { ensureWindow, activateWindow } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1499,7 +1625,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   if (allPurposes.size === 0 && !isEditing) {
     return (
       <div className="text-sm text-slate-500 dark:text-slate-400 italic">
-        No contacts linked to this transaction
+        No contacts linked
       </div>
     );
   }
@@ -1510,7 +1636,8 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       <ContactEditModal
         contact={editingContact}
         isOpen={isModalOpen}
-        orderId={orderId}
+        parentType={effectiveParentType}
+        parentId={effectiveParentId}
         onClose={() => {
           setIsModalOpen(false);
           setEditingContact(null);
@@ -1522,7 +1649,8 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       {/* Add Purpose Modal */}
       <AddPurposeModal
         isOpen={isAddPurposeModalOpen}
-        orderId={orderId}
+        parentType={effectiveParentType}
+        parentId={effectiveParentId}
         existingContacts={contacts}
         onClose={() => setIsAddPurposeModalOpen(false)}
         onChange={(newContact) => {
@@ -1579,6 +1707,4 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   );
 };
 
-export { RefsLinksContactPanel as LegacyRefsLinksContactPanel };
-
-// Legacy implementation remains for reference; exports are re-exported from common.
+export default RefsLinksContactPanel;

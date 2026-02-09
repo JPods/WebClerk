@@ -29,6 +29,7 @@ import type {
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
 import { saveRecord } from "@/api/wcapi";
+import { ShippingPanel } from "@/apps/common/components/panels";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -699,109 +700,6 @@ const ActionsTable: React.FC<{
   );
 };
 
-// Shipping Tab Content
-const ShippingTab: React.FC<{
-  data: Order;
-  isEditing: boolean;
-}> = ({ data }) => {
-  const shippingContact = data.refs?.links?.contact?.find(
-    (c) => c.purpose === "shipto",
-  );
-  const shippingLocation = data.refs?.links?.location?.find(
-    (l) => l.type === "shipto",
-  );
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-          Shipping Details
-        </h3>
-        <dl className="space-y-3 text-xs">
-          <div className="flex justify-between">
-            <FieldLabel
-              label="Ship Date"
-              className="text-slate-500 dark:text-slate-400"
-            />
-            <dd className="text-slate-900 dark:text-white">
-              {data.ship_date
-                ? new Date(data.ship_date).toLocaleDateString()
-                : "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <FieldLabel
-              label="Ship Via"
-              className="text-slate-500 dark:text-slate-400"
-            />
-            <dd className="text-slate-900 dark:text-white">
-              {data.ship_via ?? "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <FieldLabel
-              label="FOB"
-              className="text-slate-500 dark:text-slate-400"
-            />
-            <dd className="text-slate-900 dark:text-white">
-              {data.fob ?? "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <FieldLabel
-              label="Weight"
-              className="text-slate-500 dark:text-slate-400"
-            />
-            <dd className="text-slate-900 dark:text-white">
-              {data.weight ? `${data.weight} kg` : "--"}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-          Ship To Address
-        </h3>
-        {shippingContact ? (
-          <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
-            <p className="font-medium">{shippingContact.display_name}</p>
-            {shippingContact.company && <p>{shippingContact.company}</p>}
-            {shippingLocation?.address && (
-              <>
-                <p>
-                  {(shippingLocation.address as Record<string, string>).street}
-                </p>
-                <p>
-                  {(shippingLocation.address as Record<string, string>).city},{" "}
-                  {(shippingLocation.address as Record<string, string>).state}{" "}
-                  {(shippingLocation.address as Record<string, string>).zip}
-                </p>
-                {(shippingLocation.address as Record<string, string>)
-                  .country && (
-                  <p>
-                    {
-                      (shippingLocation.address as Record<string, string>)
-                        .country
-                    }
-                  </p>
-                )}
-              </>
-            )}
-            {shippingContact.phone && (
-              <p className="mt-2">Tel: {shippingContact.phone}</p>
-            )}
-          </div>
-        ) : (
-          <p className="text-slate-400 text-xs">
-            No shipping address specified
-          </p>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // Main OrderDetail Component
 interface OrderDetailProps {
   isAdmin?: boolean;
@@ -1116,7 +1014,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
             />
           );
         case "shipping":
-          return <ShippingTab data={orderData} isEditing={isEditing} />;
+          return <ShippingPanel data={orderData} />;
         default:
           return null;
       }
