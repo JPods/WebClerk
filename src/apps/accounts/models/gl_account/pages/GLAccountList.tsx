@@ -22,7 +22,23 @@ export default function GLAccountList() {
       setLoading(true);
       const res = await fetchGLAccounts();
       if (res.status === 200) {
-        setData(res.data.items);
+        // Extract array from various response structures
+        // WCAPI standard: data.results, legacy: data.items, or direct array
+        const responseData = res.data;
+        let items: any[] = [];
+        if (Array.isArray(responseData)) {
+          items = responseData;
+        } else if (responseData?.data?.results && Array.isArray(responseData.data.results)) {
+          items = responseData.data.results;
+        } else if (responseData?.results && Array.isArray(responseData.results)) {
+          items = responseData.results;
+        } else if (responseData?.items && Array.isArray(responseData.items)) {
+          items = responseData.items;
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          items = responseData.data;
+        }
+        console.log('[GLAccountList] Loaded', items.length, 'accounts');
+        setData(items);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch gl accounts", type: "error" })

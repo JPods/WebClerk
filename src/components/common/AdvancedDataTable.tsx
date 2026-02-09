@@ -462,7 +462,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   const rowByKey = useMemo(() => {
     const map = new Map<string, T>();
-    data.forEach((row, index) => {
+    const safeData = Array.isArray(data) ? data : [];
+    safeData.forEach((row, index) => {
       map.set(getRowKey(row, index), row);
     });
     return map;
