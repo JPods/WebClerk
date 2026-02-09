@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Currency, ExchangeRate, ExchangeTransaction, Term
+from .models import Currency, ExchangeRate, ExchangeTransaction, Term, GlAccount
+
+@admin.register(GlAccount)
+class GLAccountAdmin(admin.ModelAdmin):
+	list_display = ("id", "account_number", "name", "type", "category", "division", "used_for", "account_debit", "account_credit")
+	list_filter = ("is_active",)
+	search_fields = ("account_number", "name")
 
 
 @admin.register(Currency)
