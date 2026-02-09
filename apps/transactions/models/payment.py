@@ -66,8 +66,10 @@ class Payment(BaseModel):
     invoice_id = models.ForeignKey(
         'transactions.Invoice',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='payments',
-        help_text="Invoice this payment is for"
+        help_text="Invoice this payment is for (nullable for order-level deposits)"
     )
     contact_id = models.ForeignKey(
         'core.Contact',
