@@ -41,7 +41,7 @@ export interface CustomerType {
   id: number;
   org_type: "customer";
   contacts?: Array<{id: number; name: string; role?: string; phones?: string[]; emails?: string[]}>;
-  locations?: Array<{id: number; type?: string; address?: any; geo?: {lat: number; lng: number}}>; 
+  addresses?: Array<{id: number; type?: string; address?: any; geo?: {lat: number; lng: number}}>; 
   domains?: Array<{domain: string; verified: boolean; dt_verified: number}>;
   phones?: Array<{id: number; type?: string; number?: string; ext?: string; primary?: boolean}>;
   emails?: Array<{id: number; type?: string; email?: string; primary?: boolean; bounce_count?: number}>;

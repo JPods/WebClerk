@@ -119,6 +119,7 @@ export default function VendorDetail({
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {headerDisplayName}
+                {data?.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{data.id}</span>}
               </h2>
               <div className="flex items-center gap-3 mt-1">
                 <span
@@ -184,32 +185,94 @@ export default function VendorDetail({
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="h-full">
             <div className="p-4 space-y-4">
-              <div>
-                <Label htmlFor="display_name">Display Name</Label>
-                <Input
-                  type="text"
-                  id="display_name"
-                  placeholder="Display Name"
-                  {...register("display_name")}
-                  error={!!errors.display_name}
-                  hint={errors.display_name?.message}
-                  disabled={mode === "view"}
-                  className="mt-1"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="display_name">Display Name *</Label>
+                  <Input
+                    type="text"
+                    id="display_name"
+                    placeholder="Display Name"
+                    {...register("display_name")}
+                    error={!!errors.display_name}
+                    hint={errors.display_name?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="attention">Attention</Label>
+                  <Input
+                    type="text"
+                    id="attention"
+                    placeholder="Attn: line for mailing"
+                    {...register("attention")}
+                    error={!!errors.attention}
+                    hint={errors.attention?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Input
-                  type="text"
-                  id="status"
-                  placeholder="Status"
-                  {...register("status")}
-                  error={!!errors.status}
-                  hint={errors.status?.message}
-                  disabled={mode === "view"}
-                  className="mt-1"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    type="email"
+                    id="email"
+                    placeholder="Primary email"
+                    {...register("email")}
+                    error={!!errors.email}
+                    hint={errors.email?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="phone"
+                    placeholder="Primary phone"
+                    {...register("phone")}
+                    error={!!errors.phone}
+                    hint={errors.phone?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Input
+                    type="text"
+                    id="status"
+                    placeholder="Status"
+                    {...register("status")}
+                    error={!!errors.status}
+                    hint={errors.status?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="price_level">Price Level</Label>
+                  <Input
+                    type="text"
+                    id="price_level"
+                    placeholder="e.g. retail, wholesale"
+                    {...register("price_level")}
+                    error={!!errors.price_level}
+                    hint={errors.price_level?.message}
+                    disabled={mode === "view"}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center">

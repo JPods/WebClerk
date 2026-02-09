@@ -1250,9 +1250,7 @@ const KanbanBoardPage: React.FC = () => {
     setProjectFetchError(null);
     try {
       const response = await getRecords("project", {
-        active: true,
         is_active: true,
-        status: "active",
         limit: 500,
       });
       const rawRecords = extractRecordArray(response);

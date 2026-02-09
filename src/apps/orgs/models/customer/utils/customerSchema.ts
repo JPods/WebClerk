@@ -3,11 +3,18 @@ import * as z from "zod";
 export const customerSchema = z.object({
   display_name: z.string().min(1, "Name is required"),
   org_type: z.string().default("customer"),
-  status: z.string().min(1, "Phone is required"),
+  status: z.string().optional(),
   version: z.number().default(1),
   is_active: z.boolean().default(false),
+  // New scalar fields from wc3
+  attention: z.string().nullable().optional(),
+  contact_id: z.number().nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal("")),
+  phone: z.string().nullable().optional(),
+  price_level: z.string().nullable().optional(),
+  // JSON aspect fields
   contacts: z.string().optional(),
-  locations: z.string().optional(),
+  addresses: z.string().optional(),
   domains: z.string().optional(),
   phones: z.string().optional(),
   emails: z.string().optional(),

@@ -8,6 +8,7 @@ All shared panel components follow the `{Name}Panel` suffix convention:
 
 | Panel                | Purpose                                         | Data Source                          |
 | -------------------- | ----------------------------------------------- | ------------------------------------ |
+| `BasicInformationPanel` | Common org scalar fields (name, email, phone, etc.) | Org entity scalars             |
 | `CommentsPanel`      | Comments with tabs (Public/Process/Partner/History) | `.comments`                      |
 | `MetadataPanel`      | Admin-only key-value metadata editor            | `.metadata`                          |
 | `RefsPanel`          | Admin-only relationships & lineage viewer       | `.refs`                              |
@@ -45,6 +46,7 @@ const ALL_ROLES = [...USER_ROLES, 'viewer', 'guest'];
 
 | Panel                | View Roles | Edit Roles | Theme Color |
 | -------------------- | ---------- | ---------- | ----------- |
+| `BasicInformationPanel` | all     | user+      | Slate       |
 | `CommentsPanel`      | all        | user+      | Blue        |
 | `MetadataPanel`      | admin      | admin      | Amber       |
 | `RefsPanel`          | admin      | admin      | Cyan        |

@@ -83,3 +83,68 @@ Users can select their preferred layout via the layout selector, and their choic
 - `src/apps/core/models/contact/pages/ContactDetail.tsx` - Main contact detail with layout selector
 - `src/apps/core/models/contact/pages/ContactDetailHorizontal.tsx` - Horizontal layout component
 - `src/apps/core/models/contact/pages/ContactDetailTwoColumn.tsx` - Two-column layout component
+- `src/apps/orgs/models/customer/pages/CustomerDisplay.tsx` - Customer detail with horizontal layout
+
+---
+
+## Detail Page Layout Pattern
+
+The standard layout for model Detail pages follows this vertical structure:
+
+```
+┌────────────────────────────────────────┐
+│  Header (Title, ID, Nav Arrows)        │
+├────────────────────────────────────────┤
+│  Toolbar (Save, Cancel, Edit, Delete)  │
+├────────────────────────────────────────┤
+│  Basic Information Panel (PERSISTENT)  │  ← Always visible, read-only in view mode
+│  - Core scalar fields                  │     Editable form in edit/add mode
+├────────────────────────────────────────┤
+│  Tab Navigation                        │
+├────────────────────────────────────────┤
+│  Tab Content (scrollable)              │
+│  - Financial Summary (collapsed)       │  ← Collapsed by default, expand on demand
+│  - Tab-specific data panels            │
+└────────────────────────────────────────┘
+```
+
+### Key Principles
+
+| Element | Behavior | Rationale |
+|---------|----------|-----------|
+| **Basic Information** | Persistent, between toolbar and tabs | Users always need quick reference to core fields |
+| **Financial Summary** | Below tabs, collapsed by default | Important but secondary; expand when needed |
+| **Tab Content** | Scrollable | Keeps navigation fixed while browsing data |
+
+### Component Placement
+
+- **BasicInformationPanel** - Displays read-only scalar fields (display_name, email, phone, etc.)
+- **Financial Summary** - Collapsible panel inside tab content area
+- **Tab panels** - JSON aspect data (contacts, addresses, documents, etc.)
+
+---
+
+## CustomerDisplay.tsx Implementation
+
+### Layout Choices
+
+| Setting | Value | Rationale |
+|---------|-------|----------|
+| **Layout** | Horizontal | Label-left for enterprise power users |
+| **Default Columns** | 3 | More density, less scrolling |
+| **Label Width** | `w-20` (5rem) | Compact but readable |
+| **Column Selector** | 2 or 3 | Persisted to localStorage for team review |
+| **Default Mode** | View (read-only) | Edit button to switch to edit mode |
+
+### Key Components
+
+- **HorizontalField** - Reusable label-left field wrapper
+- **Column Selector** - Toggle buttons (2/3) in tab bar, persisted to `customerDetail_columnCount`
+- **Edit Button** - Local `isEditing` state for inline view→edit switching
+
+### Grid Classes
+
+```tsx
+// Dynamic column layout
+className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}
+```

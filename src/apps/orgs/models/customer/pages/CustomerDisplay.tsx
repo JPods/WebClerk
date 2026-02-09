@@ -10,13 +10,14 @@ import { createCustomer, updateCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaBuilding, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog, FaColumns } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+import { CustomerFinancialPanel, BasicInformationPanel } from "@/apps/common/components/panels";
 
 
 // Professional customer display component for right-side column
@@ -29,8 +30,15 @@ interface Customer {
   org_type?: string;
   version?: number;
   is_active?: boolean;
+  // New scalar fields from wc3
+  attention?: string | null;
+  contact_id?: number | null;
+  email?: string | null;
+  phone?: string | null;
+  price_level?: string | null;
+  // JSON aspect fields
   contacts?: any;
-  locations?: any;
+  addresses?: any;
   domains?: any;
   phones?: any;
   emails?: any;
@@ -45,7 +53,7 @@ interface Customer {
 
 const JSON_DEFAULTS: Record<string, any> = {
   contacts: [],
-  locations: [],
+  addresses: [],
   domains: [],
   phones: [],
   emails: [],
@@ -73,7 +81,40 @@ const ORG_TYPE_OPTIONS = [
   { value: "internal", label: "Internal" },
 ];
 
+/* ----------------------------------
+   Horizontal Field Row Component
+   Label on left, input on right (Enterprise standard)
+   Compact version for 2-column grid layout
+---------------------------------- */
+interface HorizontalFieldProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  required?: boolean;
+}
 
+function HorizontalField({ label, htmlFor, children, error, required }: HorizontalFieldProps) {
+  return (
+    <div className="flex items-center gap-2 py-2">
+      <Label htmlFor={htmlFor} className="w-20 shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </Label>
+      <div className="flex-1 min-w-0">
+        {children}
+        {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+// Column layout options
+const COLUMN_OPTIONS = [
+  { value: 2, label: "2 Columns" },
+  { value: 3, label: "3 Columns" },
+];
+
+const STORAGE_KEY = "customerDetail_columnCount";
 
 export default function CustomerDetail({
   modeProp,
@@ -89,7 +130,17 @@ export default function CustomerDetail({
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("communication");
+  const [isEditing, setIsEditing] = useState(false);
+  const [columnCount, setColumnCount] = useState<2 | 3>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === "2" ? 2 : 3; // Default to 3 columns
+  });
+
+  const handleColumnChange = (cols: 2 | 3) => {
+    setColumnCount(cols);
+    localStorage.setItem(STORAGE_KEY, String(cols));
+  };
 
   const {
     register,
@@ -111,7 +162,9 @@ export default function CustomerDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = (modeProp || (routeState.mode as "add" | "edit" | "view") || "add");
+  const baseMode: "add" | "edit" | "view" = (modeProp || (routeState.mode as "add" | "edit" | "view") || "add");
+  // Allow local edit override when in view mode
+  const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
   const data = dataProp || routeState.data || null;
 
   useEffect(() => {
@@ -207,6 +260,12 @@ export default function CustomerDetail({
   };
 
   const handleCancel = () => {
+    // If we're in local edit mode, just go back to view
+    if (isEditing) {
+      setIsEditing(false);
+      resetToDefaults();
+      return;
+    }
     if (inline && onCancelInline) {
       onCancelInline();
       return;
@@ -233,6 +292,12 @@ export default function CustomerDetail({
         org_type: formData.org_type,
         version: formData.version,
         is_active: formData.is_active,
+        // New scalar fields from wc3
+        attention: formData.attention || null,
+        contact_id: formData.contact_id || null,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        price_level: formData.price_level || null,
         ...jsonPayload,
       };
       const res =
@@ -248,6 +313,10 @@ export default function CustomerDetail({
             type: "success",
           })
         );
+        // Return to view mode after successful save
+        if (isEditing) {
+          setIsEditing(false);
+        }
         if (onSaved) {
           onSaved();
         }
@@ -268,7 +337,20 @@ export default function CustomerDetail({
   const getActionButtons = () => {
     const buttons = [];
 
-    if (mode === "view") {
+    if (baseMode === "view" && !isEditing) {
+      // View mode - show Edit button to switch to edit mode
+      buttons.push(
+        <button
+          key="edit-local"
+          type="button"
+          onClick={() => setIsEditing(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          title="Edit Customer"
+        >
+          <FaEdit size={14} />
+          Edit
+        </button>
+      );
       if (onCancel) {
         buttons.push(
           <button
@@ -348,9 +430,8 @@ export default function CustomerDetail({
     return buttons;
   };
 
-  // Tab definitions - merged summary and overview
+  // Tab definitions
   const tabs = [
-    { id: "overview", label: "Overview", icon: <FaBuilding size={14} /> },
     { id: "communication", label: "Contact", icon: <FaPhone size={14} /> },
     { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
     { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
@@ -362,15 +443,33 @@ export default function CustomerDetail({
   ];
 
   const formData = watch();
-  const customerData: Customer = {
-    ...formData,
-    id: data?.id,
-    display_name: formData.display_name,
-    status: formData.status,
-    org_type: formData.org_type,
-    version: formData.version,
-    is_active: formData.is_active,
-  };
+  
+  // In view mode, prefer direct data from props; in edit/add mode, use form values
+  const customerData: Customer = mode === "view" && data
+    ? {
+        ...data,
+        id: data.id,
+        display_name: data.display_name,
+        status: data.status,
+        org_type: data.org_type,
+        version: data.version,
+        is_active: data.is_active,
+        attention: data.attention,
+        contact_id: data.contact_id,
+        email: data.email,
+        phone: data.phone,
+        price_level: data.price_level,
+        financial: data.financial,
+      }
+    : {
+        ...formData,
+        id: data?.id,
+        display_name: formData.display_name,
+        status: formData.status,
+        org_type: formData.org_type,
+        version: formData.version,
+        is_active: formData.is_active,
+      };
 
   // Function to get data for specific tab
   const getTabData = (tabId: string) => {
@@ -388,7 +487,7 @@ export default function CustomerDetail({
 
     // Define which fields belong to each tab
     const tabFieldMapping: Record<string, string[]> = {
-      communication: ['contacts', 'locations', 'domains', 'phones', 'emails'],
+      communication: ['contacts', 'addresses', 'domains', 'phones', 'emails'],
       financial: ['financial'],
       relations: ['relations'],
       documents: ['docs'],
@@ -417,7 +516,8 @@ export default function CustomerDetail({
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-              {watch("display_name") || data?.display_name || "New Customer"}
+              {customerData.display_name || "New Customer"}
+              {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
             </h2>
             <div className="flex items-center gap-3 mt-1">
               <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
@@ -472,25 +572,179 @@ export default function CustomerDetail({
         </div>
       )}
 
+      {/* Persistent Basic Information Panel - always visible in view mode */}
+      {/* In edit/add mode, show editable form fields instead */}
+      <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+        {mode === "view" ? (
+          <div className="space-y-4">
+            <BasicInformationPanel
+              data={customerData}
+              columns={columnCount}
+            />
+            {/* Financial Summary */}
+            {customerData.financial && (
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                  <FaDollarSign size={16} />
+                  Financial Summary
+                </h3>
+                <CustomerFinancialPanel
+                  customer={customerData.financial?.customer}
+                  common={customerData.financial?.common}
+                  currency="USD"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Editable Basic Information - Horizontal Layout */
+          <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
+            <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
+              <Input
+                type="text"
+                id="display_name"
+                placeholder="Enter company name"
+                {...register("display_name")}
+                error={errors.display_name && errors.display_name.message ? true : false}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Email" htmlFor="email">
+              <Input
+                type="email"
+                id="email"
+                placeholder="Primary email"
+                {...register("email")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Attention" htmlFor="attention">
+              <Input
+                type="text"
+                id="attention"
+                placeholder="Attn: line"
+                {...register("attention")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Phone" htmlFor="phone">
+              <Input
+                type="tel"
+                id="phone"
+                placeholder="Primary phone"
+                {...register("phone")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Price Level" htmlFor="price_level">
+              <Input
+                type="text"
+                id="price_level"
+                placeholder="retail, wholesale"
+                {...register("price_level")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Status" htmlFor="status" required>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={STATUS_OPTIONS}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select status"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Org Type" htmlFor="org_type">
+              <Controller
+                name="org_type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={ORG_TYPE_OPTIONS}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select type"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="Version" htmlFor="version">
+              <Input
+                type="number"
+                id="version"
+                placeholder="1"
+                {...register("version", { valueAsNumber: true })}
+              />
+            </HorizontalField>
+
+            <div className="flex items-center gap-2 py-2">
+              <div className="w-20 shrink-0" />
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_active"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Active"
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Tab Navigation */}
       <div className="shrink-0 border-b border-slate-200 dark:border-slate-700">
         <nav className="px-4">
-          <div className="flex gap-1 py-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between py-2 gap-4">
+            <div className="flex gap-1 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {/* Column Layout Selector */}
+            <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
+              <FaColumns className="text-slate-500 dark:text-slate-400" size={12} />
+              <span className="text-xs text-slate-500 dark:text-slate-400">Cols:</span>
+              <div className="flex rounded border border-slate-300 dark:border-slate-600 overflow-hidden">
+                {COLUMN_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleColumnChange(opt.value as 2 | 3)}
+                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
+                      columnCount === opt.value
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {opt.value}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </nav>
       </div>
@@ -499,184 +753,59 @@ export default function CustomerDetail({
       <div className="flex-1 overflow-y-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="h-full">
           <div className="p-4">
-            {/* Overview Tab - Basic Information */}
-            {activeTab === "overview" && (
-              <div className="space-y-6">
-                {mode === "view" ? (
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                        <FaBuilding size={16} />
-                        Basic Information
-                      </h3>
-                      <dl className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-slate-400">Company Name</dt>
-                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.display_name || "—"}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-slate-400">Status</dt>
-                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.status || "—"}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-slate-400">Organization Type</dt>
-                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.org_type || "—"}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-slate-400">Version</dt>
-                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.version ?? 1}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-slate-400">Active</dt>
-                          <dd className="font-medium">
-                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                              customerData.is_active
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-                            }`}>
-                              {customerData.is_active ? 'Yes' : 'No'}
-                            </span>
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="display_name">Company Name *</Label>
-                      <Input
-                        type="text"
-                        id="display_name"
-                        placeholder="Enter company name"
-                        {...register("display_name")}
-                        error={errors.display_name && errors.display_name.message ? true : false}
-                        hint={errors.display_name && errors.display_name.message}
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="status">Status *</Label>
-                        <Controller
-                          name="status"
-                          control={control}
-                          render={({ field }) => (
-                            <Select
-                              options={STATUS_OPTIONS}
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="Select status"
-                            />
-                          )}
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="org_type">Organization Type</Label>
-                        <Controller
-                          name="org_type"
-                          control={control}
-                          render={({ field }) => (
-                            <Select
-                              options={ORG_TYPE_OPTIONS}
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="Select type"
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="version">Version</Label>
-                        <Input
-                          type="number"
-                          id="version"
-                          placeholder="1"
-                          {...register("version", { valueAsNumber: true })}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="flex items-center">
-                        <Controller
-                          name="is_active"
-                          control={control}
-                          render={({ field }) => (
-                            <Checkbox
-                              id="is_active"
-                              checked={field.value ?? false}
-                              onChange={field.onChange}
-                              label="Active"
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
+            {/* Tab content - structured data display */}
+            {mode === "view" ? (
+              <CustomerDataPanel
+                data={getTabData(activeTab)}
+                showScalars={false}
+                grouped={false}
+                onSelectCategory={() => {}}
+              />
+            ) : (
+              <div className="space-y-4">
+                {(
+                  {
+                    communication: [
+                      { field: "contacts", label: "contacts" },
+                      { field: "addresses", label: "addresses" },
+                      { field: "domains", label: "domains" },
+                      { field: "phones", label: "phones" },
+                      { field: "emails", label: "emails" },
+                    ],
+                    financial: [{ field: "financial", label: "financial" }],
+                    relations: [{ field: "relations", label: "relations" }],
+                    documents: [{ field: "docs", label: "docs" }],
+                    connections: [{ field: "connections", label: "connections" }],
+                    data: [{ field: "data", label: "data" }],
+                    metrics: [{ field: "metrics", label: "metrics" }],
+                    gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
+                  } as Record<
+                    string,
+                    Array<{ field: keyof CustomerFormValues; label: string }>
+                  >
+                )[activeTab]?.map(({ field, label }) => (
+                  <JsonFieldEditor
+                    key={String(field)}
+                    label={label}
+                    value={safeParseJson(
+                      formData[field] as unknown as string | undefined,
+                      JSON_DEFAULTS[String(field)],
+                    )}
+                    readonly={false}
+                    defaultExpanded
+                    maxHeight="520px"
+                    onChange={(val) => {
+                      setValue(
+                        field,
+                        JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
+                        { shouldDirty: true, shouldValidate: true },
+                      );
+                    }}
+                  />
+                )) ?? (
+                  <div className="text-slate-400 text-sm">No editor for this tab.</div>
                 )}
               </div>
-            )}
-
-            {/* Other tabs with structured data display */}
-            {activeTab !== "overview" && (
-              mode === "view" ? (
-                <CustomerDataPanel
-                  data={getTabData(activeTab)}
-                  showScalars={false}
-                  grouped={false}
-                  onSelectCategory={() => {}}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {(
-                    {
-                      communication: [
-                        { field: "contacts", label: "contacts" },
-                        { field: "locations", label: "locations" },
-                        { field: "domains", label: "domains" },
-                        { field: "phones", label: "phones" },
-                        { field: "emails", label: "emails" },
-                      ],
-                      financial: [{ field: "financial", label: "financial" }],
-                      relations: [{ field: "relations", label: "relations" }],
-                      documents: [{ field: "docs", label: "docs" }],
-                      connections: [{ field: "connections", label: "connections" }],
-                      data: [{ field: "data", label: "data" }],
-                      metrics: [{ field: "metrics", label: "metrics" }],
-                      gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
-                    } as Record<
-                      string,
-                      Array<{ field: keyof CustomerFormValues; label: string }>
-                    >
-                  )[activeTab]?.map(({ field, label }) => (
-                    <JsonFieldEditor
-                      key={String(field)}
-                      label={label}
-                      value={safeParseJson(
-                        formData[field] as unknown as string | undefined,
-                        JSON_DEFAULTS[String(field)],
-                      )}
-                      readonly={false}
-                      defaultExpanded
-                      maxHeight="520px"
-                      onChange={(val) => {
-                        setValue(
-                          field,
-                          JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
-                          { shouldDirty: true, shouldValidate: true },
-                        );
-                      }}
-                    />
-                  )) ?? (
-                    <div className="text-slate-400 text-sm">No editor for this tab.</div>
-                  )}
-                </div>
-              )
             )}
           </div>
         </form>

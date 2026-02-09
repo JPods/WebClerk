@@ -1100,77 +1100,84 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       isEditing: boolean,
       data?: Transaction,
       onLinesChange?: (lines: TransactionLine[]) => void,
-    ) => (
-      <LinesCard
-        lines={lines}
-        isEditing={isEditing}
-        isLocked={data?.is_locked}
-        onDeleteLine={(lineId) => {
-          // Delete line from array
-          if (onLinesChange) {
-            onLinesChange(lines.filter((l) => l.id !== lineId));
-          }
-        }}
-        onUpdateLine={(lineId, field, value) => {
-          // Update line field - handle nested structure
-          if (onLinesChange) {
-            onLinesChange(
-              lines.map((l) => {
-                if (l.id !== lineId) return l;
+    ) => {
+      // Get price level from transaction, default to "base" if null/undefined
+      const orderData = data as Order | undefined;
+      const priceLevel = orderData?.price_level || "base";
 
-                // Mark line as dirty when modified
-                const baseUpdate = { ...l, _dirty: true };
-
-                // Map field names to nested structure
-                switch (field) {
-                  case "qty":
-                    return {
-                      ...baseUpdate,
-                      quantity: { ...l.quantity, ordered: Number(value) },
-                    };
-                  case "description":
-                    return {
-                      ...baseUpdate,
-                      item: { ...l.item, description: String(value) },
-                    };
-                  case "unit_price":
-                    const newPrice = Number(value);
-                    const qty = l.quantity?.ordered ?? 0;
-                    return {
-                      ...baseUpdate,
-                      price: {
-                        ...l.price,
-                        unit: newPrice,
-                        extended: newPrice * qty,
-                      },
-                    };
-                  default:
-                    // For flat fields or unknown fields, try top-level
-                    return { ...baseUpdate, [field]: value };
-                }
-              }),
-            );
-          }
-        }}
-        onDuplicateLine={(lineId) => {
-          // Duplicate line - mark as dirty since it's new
-          if (onLinesChange) {
-            const lineToDup = lines.find((l) => l.id === lineId);
-            if (lineToDup) {
-              // Omit 'id' property so the new line does not have an 'id' field at all
-              const { id, ...rest } = lineToDup;
-              const newLine: TransactionLine = {
-                ...rest,
-                id: Date.now(), // Assign a new unique id
-              };
-              onLinesChange([...lines, newLine]);
+      return (
+        <LinesCard
+          lines={lines}
+          isEditing={isEditing}
+          isLocked={data?.is_locked}
+          priceLevel={priceLevel}
+          onDeleteLine={(lineId) => {
+            // Delete line from array
+            if (onLinesChange) {
+              onLinesChange(lines.filter((l) => l.id !== lineId));
             }
-          }
-        }}
-        onLinesChange={onLinesChange}
-        onAddItem={handleAddItem}
-      />
-    ),
+          }}
+          onUpdateLine={(lineId, field, value) => {
+            // Update line field - handle nested structure
+            if (onLinesChange) {
+              onLinesChange(
+                lines.map((l) => {
+                  if (l.id !== lineId) return l;
+
+                  // Mark line as dirty when modified
+                  const baseUpdate = { ...l, _dirty: true };
+
+                  // Map field names to nested structure
+                  switch (field) {
+                    case "qty":
+                      return {
+                        ...baseUpdate,
+                        quantity: { ...l.quantity, ordered: Number(value) },
+                      };
+                    case "description":
+                      return {
+                        ...baseUpdate,
+                        item: { ...l.item, description: String(value) },
+                      };
+                    case "unit_price":
+                      const newPrice = Number(value);
+                      const qty = l.quantity?.ordered ?? 0;
+                      return {
+                        ...baseUpdate,
+                        price: {
+                          ...l.price,
+                          unit: newPrice,
+                          extended: newPrice * qty,
+                        },
+                      };
+                    default:
+                      // For flat fields or unknown fields, try top-level
+                      return { ...baseUpdate, [field]: value };
+                  }
+                }),
+              );
+            }
+          }}
+          onDuplicateLine={(lineId) => {
+            // Duplicate line - mark as dirty since it's new
+            if (onLinesChange) {
+              const lineToDup = lines.find((l) => l.id === lineId);
+              if (lineToDup) {
+                // Omit 'id' property so the new line does not have an 'id' field at all
+                const { id, ...rest } = lineToDup;
+                const newLine: TransactionLine = {
+                  ...rest,
+                  id: Date.now(), // Assign a new unique id
+                };
+                onLinesChange([...lines, newLine]);
+              }
+            }
+          }}
+          onLinesChange={onLinesChange}
+          onAddItem={handleAddItem}
+        />
+      );
+    },
     [handleAddItem],
   );
 

@@ -18,6 +18,7 @@ interface LinesCardProps {
   lines: any[];
   isEditing: boolean;
   isLocked?: boolean;
+  priceLevel?: string | null;
   onDeleteLine?: (lineId: number) => void;
   onUpdateLine?: (lineId: number, field: string, value: unknown) => void;
   onUpdateFullLine?: (line: any) => void;
@@ -30,6 +31,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   lines,
   isEditing,
   isLocked = false,
+  priceLevel,
   onDeleteLine,
   onUpdateLine,
   onUpdateFullLine,
@@ -251,6 +253,8 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 item.unitOfMeasure ??
                 item.unit_measure ??
                 "EA";
+              // Default price level to "base" if not provided
+              const level = priceLevel || "base";
               let unitPrice = 0;
               if (typeof item.price === "number") {
                 unitPrice = item.price;
@@ -258,13 +262,9 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 unitPrice = parseFloat(item.price) || 0;
               } else if (item.price && typeof item.price === "object") {
                 const priceObj = item.price as Record<string, unknown>;
-                unitPrice = Number(
-                  priceObj.base ??
-                    priceObj.retail ??
-                    priceObj.sell ??
-                    priceObj.unit ??
-                    0,
-                );
+                // Look up price by level, fall back to base
+                const levelValue = priceObj[level] ?? priceObj.base;
+                unitPrice = Number(levelValue ?? 0);
               }
               if (unitPrice === 0) {
                 unitPrice = Number(
