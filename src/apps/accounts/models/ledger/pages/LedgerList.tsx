@@ -16,6 +16,7 @@ export default function LedgerList() {
   const [selectedLedgers, setSelectedLedgers] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getLedgerData = useCallback(async () => {
     try {
@@ -34,6 +35,20 @@ export default function LedgerList() {
   useEffect(() => {
     getLedgerData();
   }, [getLedgerData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const list = await getRecords('ledger', { search: searchQuery });
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = useCallback((row: any) => {
     setSelectedLedger(row);
@@ -143,6 +158,10 @@ export default function LedgerList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search ledgers..."
               noDataMessage="No ledgers found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedLedgers.length > 0 && (

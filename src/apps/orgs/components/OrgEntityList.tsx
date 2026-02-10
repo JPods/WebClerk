@@ -32,6 +32,14 @@ interface OrgEntityListProps<T = any> {
     edit?: (id: any) => string;
     detail?: (id: any) => string;
   };
+  /** Enable toggle between searching in current selection vs querying database */
+  enableDatabaseSearch?: boolean;
+  /** Current search mode: true = query database, false = search in selection */
+  searchDatabase?: boolean;
+  /** Callback when search mode changes */
+  onSearchModeChange?: (searchDatabase: boolean) => void;
+  /** Callback to perform database search with parsed terms */
+  onDatabaseSearch?: (terms: string[]) => Promise<void> | void;
 }
 
 export default function OrgEntityList<T = any>({
@@ -47,6 +55,10 @@ export default function OrgEntityList<T = any>({
   routes,
   onImportFile,
   onPrint,
+  enableDatabaseSearch,
+  searchDatabase,
+  onSearchModeChange,
+  onDatabaseSearch,
 }: OrgEntityListProps<T>) {
   const dispatch = useDispatch();
   const { ensureWindow, activateWindow } = useWindowManager();
@@ -295,6 +307,10 @@ export default function OrgEntityList<T = any>({
               onAdd={handleAdd}
               onDeleteSelected={() => handleBulkDelete()}
               noDataMessage={`No ${title || modelKey} found`}
+              enableDatabaseSearch={enableDatabaseSearch}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={onSearchModeChange}
+              onDatabaseSearch={onDatabaseSearch}
               />
             </ErrorBoundary>
           </ComponentCard>

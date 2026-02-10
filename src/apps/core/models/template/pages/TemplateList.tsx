@@ -15,6 +15,7 @@ export default function TemplateList() {
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -40,6 +41,23 @@ export default function TemplateList() {
   useEffect(() => {
     getTemplateData();
   }, [getTemplateData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await fetchTemplates({ search: query });
+      if (res.status === 200) {
+        setData(res.data.items);
+      }
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedTemplate(row);
@@ -154,6 +172,10 @@ export default function TemplateList() {
               storageKey="template_list"
               loading={loading}
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

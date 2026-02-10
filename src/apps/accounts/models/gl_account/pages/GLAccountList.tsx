@@ -14,6 +14,7 @@ export default function GLAccountList() {
   const [selectedGLAccount, setSelectedGLAccount] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -55,6 +56,34 @@ export default function GLAccountList() {
   useEffect(() => {
     getGLAccountData();
   }, [getGLAccountData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchGLAccounts({ search: searchQuery });
+      if (res.status === 200) {
+        const responseData = res.data;
+        let items: any[] = [];
+        if (Array.isArray(responseData)) {
+          items = responseData;
+        } else if (responseData?.data?.results && Array.isArray(responseData.data.results)) {
+          items = responseData.data.results;
+        } else if (responseData?.results && Array.isArray(responseData.results)) {
+          items = responseData.results;
+        } else if (responseData?.items && Array.isArray(responseData.items)) {
+          items = responseData.items;
+        } else if (responseData?.data && Array.isArray(responseData.data)) {
+          items = responseData.data;
+        }
+        setData(items);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = (row: any) => {
     setSelectedGLAccount(row);
@@ -158,6 +187,10 @@ export default function GLAccountList() {
                 loading={loading}
                 onRowActivate={handleEdit}
                 rowKeyField="id"
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
               />
             </div>
           </ComponentCard>

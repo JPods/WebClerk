@@ -35,6 +35,7 @@ export default function InvoiceList() {
   const [data, setData] = useState<InvoiceRow[]>([]);
   const [_selectedInvoices, setSelectedInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -59,6 +60,22 @@ export default function InvoiceList() {
       setLoading(false);
     }
   }, [dispatch]);
+
+  // Database search handler for comma-separated terms (AND logic)
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchInvoices({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     getInvoiceData();
@@ -390,6 +407,10 @@ export default function InvoiceList() {
             exportFileName="invoices"
             searchPlaceholder="Search invoices, customers, vendors..."
             noDataMessage="No invoices found"
+            enableDatabaseSearch={true}
+            searchDatabase={searchDatabase}
+            onSearchModeChange={setSearchDatabase}
+            onDatabaseSearch={handleDatabaseSearch}
             customActions={
               <button
                 onClick={handleAdd}

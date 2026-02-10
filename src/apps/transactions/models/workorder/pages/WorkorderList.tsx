@@ -18,6 +18,7 @@ export default function WorkorderList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getWorkorderData = useCallback(async () => {
     try {
@@ -39,6 +40,21 @@ export default function WorkorderList() {
   useEffect(() => {
     getWorkorderData();
   }, [getWorkorderData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchWorkorders({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const openWorkorder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -173,6 +189,10 @@ export default function WorkorderList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search workorders..."
               noDataMessage="No workorders found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedWorkorders.length > 0 && (

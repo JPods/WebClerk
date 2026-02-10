@@ -30,6 +30,7 @@ export default function APILogList() {
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<APILogRecord | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -49,6 +50,24 @@ export default function APILogList() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await getRecords("api_log", { 
+        order_by: "-dt_created",
+        limit: 500,
+        search: query
+      });
+      setData(res.results || []);
+    } catch (error) {
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: APILogRecord) => {
     setSelectedLog(row);
@@ -223,6 +242,10 @@ export default function APILogList() {
           loading={loading}
           enableExport={true}
           enableSelection={false}
+          enableDatabaseSearch={true}
+          searchDatabase={searchDatabase}
+          onSearchModeChange={setSearchDatabase}
+          onDatabaseSearch={handleDatabaseSearch}
         />
       </ComponentCard>
 

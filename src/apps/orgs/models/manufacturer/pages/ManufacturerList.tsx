@@ -4,6 +4,7 @@ import ManufacturerDetail from "./ManufacturerDisplay";
 import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { useState, useCallback } from "react";
 
 const columns = (actions: {
   onView: (row: any) => void;
@@ -163,6 +164,13 @@ const filters: ColumnFilter[] = [
 ];
 
 export default function ManufacturerList() {
+  const [searchDatabase, setSearchDatabase] = useState(false);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const searchQuery = terms.join(",");
+    await fetchManufacturers({ search: searchQuery });
+  }, []);
+
   return (
     <OrgEntityList
       modelKey="manufacturer"
@@ -174,6 +182,10 @@ export default function ManufacturerList() {
       storageKey="manufacturer-list"
       exportFileName="manufacturers_export"
       displayComponent={ManufacturerDetail}
+      enableDatabaseSearch={true}
+      searchDatabase={searchDatabase}
+      onSearchModeChange={setSearchDatabase}
+      onDatabaseSearch={handleDatabaseSearch}
     />
   );
 }

@@ -14,6 +14,7 @@ export default function ReportList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -35,6 +36,20 @@ export default function ReportList() {
   useEffect(() => {
     getReportData();
   }, [getReportData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    try {
+      const res = await fetchReports(undefined, { search: query });
+      if (res.status === 200) {
+        setData(res.data.items);
+      }
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedReport(row);
@@ -164,6 +179,10 @@ export default function ReportList() {
               data={data}
               storageKey="report_list"
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

@@ -57,6 +57,8 @@ type Transaction = TransactionBase & {
   lines?: TransactionLine[];
   currency?: string; // Add currency property
   number?: string | number; // Add number property to fix compile error
+  dt?: string; // Transaction date
+  due_date?: string; // Due date
 };
 
 // Tab definition
@@ -229,6 +231,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Handle "add" mode - create empty record
   useEffect(() => {
     if (modeProp === "add") {
+      // Get today's date at midnight (zero time)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayIso = today.toISOString();
+
       const emptyRecord: Transaction = {
         id: 0, // id should be a number
         customer_id: 0,
@@ -241,6 +248,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         comments: { notes: [] },
         totals: {},
         finance: {},
+        // Initialize all date fields to today at midnight
+        dt: todayIso,
+        due_date: todayIso,
       };
       setData(emptyRecord);
       setEditData(emptyRecord);

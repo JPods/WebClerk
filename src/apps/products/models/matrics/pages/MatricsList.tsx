@@ -15,6 +15,7 @@ export default function MatricsList() {
   const [selectedMatrics, setSelectedMatrics] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -78,6 +79,21 @@ export default function MatricsList() {
       }
     }
   };
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchMatricss({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const userColumns: TableColumn<any>[] = useMemo(() => [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
@@ -149,6 +165,10 @@ export default function MatricsList() {
               onRowActivate={handleEdit}
               title="Matrics"
               exportFileName="matrics"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

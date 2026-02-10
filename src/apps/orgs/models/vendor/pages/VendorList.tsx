@@ -4,6 +4,7 @@ import VendorDetail from "./VendorDetail";
 import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { useState, useCallback } from "react";
 
 const columns = (actions: {
   onView: (row: any) => void;
@@ -164,6 +165,20 @@ const filters: ColumnFilter[] = [
 ];
 
 export default function VendorList() {
+  const [searchDatabase, setSearchDatabase] = useState(false);
+
+  // Database search handler for comma-separated terms (AND logic)
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const searchQuery = terms.join(",");
+    try {
+      const res = await fetchVendors({ search: searchQuery });
+      // Results will be handled by OrgEntityList's data prop via fetchFn
+      console.log("Database search for vendors:", searchQuery);
+    } catch (error) {
+      console.error("Database search failed:", error);
+    }
+  }, []);
+
   return (
     <OrgEntityList
       modelKey="vendor"
@@ -175,6 +190,10 @@ export default function VendorList() {
       storageKey="vendor-list"
       exportFileName="vendors_export"
       displayComponent={VendorDetail}
+      enableDatabaseSearch={true}
+      searchDatabase={searchDatabase}
+      onSearchModeChange={setSearchDatabase}
+      onDatabaseSearch={handleDatabaseSearch}
     />
   );
 }

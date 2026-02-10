@@ -17,6 +17,7 @@ export default function ProjectList() {
   const [selectedProjects, setSelectedProjects] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getProjectData = useCallback(async () => {
     try {
@@ -38,6 +39,21 @@ export default function ProjectList() {
   useEffect(() => {
     getProjectData();
   }, [getProjectData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchProjects({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = useCallback((row: any) => {
     setSelectedProject(row);
@@ -149,6 +165,10 @@ export default function ProjectList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search projects..."
               noDataMessage="No projects found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedProjects.length > 0 && (

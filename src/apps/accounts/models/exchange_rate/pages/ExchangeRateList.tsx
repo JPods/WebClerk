@@ -15,6 +15,7 @@ export default function ExchangeRateList() {
   const [selectedExchangeRate, setSelectedExchangeRate] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -40,6 +41,21 @@ export default function ExchangeRateList() {
   useEffect(() => {
     getExchangeRateData();
   }, [getExchangeRateData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchExchangeRates({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || res.data || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = (row: any) => {
     setSelectedExchangeRate(row);
@@ -134,6 +150,10 @@ export default function ExchangeRateList() {
                 loading={loading}
                 onRowActivate={handleEdit}
                 rowKeyField="id"
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
               />
             </div>
           </ComponentCard>

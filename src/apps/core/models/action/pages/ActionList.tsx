@@ -39,6 +39,7 @@ const ActionListPage = () => {
   const [selectedActions, setSelectedActions] = useState<ActionData[]>([]);
   const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   // Helper to extract translated text
   const getTranslatedText = useCallback((
@@ -186,6 +187,37 @@ const ActionListPage = () => {
   useEffect(() => {
     fetchActions();
   }, [fetchActions]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const response = await Actions({ search: query });
+      if (response && response.status === 200) {
+        const apiData = response.data?.data;
+        let actions: ActionData[] = [];
+        if (Array.isArray(apiData)) {
+          actions = apiData;
+        } else if (apiData && typeof apiData === "object") {
+          if (Array.isArray(apiData.results)) actions = apiData.results;
+          else if (Array.isArray(apiData.data)) actions = apiData.data;
+        }
+        const normalizedActions = actions.map((action, index) => ({
+          ...action,
+          id: action.id || action.pk || action.uuid || `temp-${index}`,
+          actionText: getTranslatedText(action.action, action.languages),
+          descriptionText: getTranslatedText(action.description, action.languages),
+        }));
+        setData(normalizedActions);
+      }
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, getTranslatedText]);
 
   // Handle delete
   const handleDelete = useCallback(
@@ -542,6 +574,10 @@ const ActionListPage = () => {
           filters={filters}
           enableExport={true}
           enableSelection={true}
+          enableDatabaseSearch={true}
+          searchDatabase={searchDatabase}
+          onSearchModeChange={setSearchDatabase}
+          onDatabaseSearch={handleDatabaseSearch}
           onSelectionChange={setSelectedActions}
           exportFileName="actions_export"
           searchPlaceholder="Search actions, projects, assignees..."

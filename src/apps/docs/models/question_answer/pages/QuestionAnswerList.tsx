@@ -15,6 +15,7 @@ export default function QuestionAnswerList() {
   const [selectedQuestionAnswer, setSelectedQuestionAnswer] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -35,6 +36,22 @@ export default function QuestionAnswerList() {
   useEffect(() => {
     getQuestionAnswerData();
   }, [getQuestionAnswerData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const list = await getRecords('question_answer', { search: query });
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedQuestionAnswer(row);
@@ -123,6 +140,10 @@ export default function QuestionAnswerList() {
               storageKey="question_answer_list"
               loading={loading}
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

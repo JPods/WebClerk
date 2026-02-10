@@ -15,6 +15,7 @@ export default function LinkageEntryList() {
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -35,6 +36,22 @@ export default function LinkageEntryList() {
   useEffect(() => {
     getLinkageEntryData();
   }, [getLinkageEntryData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const list = await getRecords('linkage_entry', { search: query });
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedEntry(row);
@@ -125,6 +142,10 @@ export default function LinkageEntryList() {
               storageKey="linkage_entry_list"
               loading={loading}
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

@@ -15,6 +15,7 @@ export default function TagList() {
   const [selectedTag, setSelectedTag] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -35,6 +36,22 @@ export default function TagList() {
   useEffect(() => {
     getTagData();
   }, [getTagData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const list = await getRecords('tag', { search: query });
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedTag(row);
@@ -123,6 +140,10 @@ export default function TagList() {
               storageKey="tag_list"
               loading={loading}
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

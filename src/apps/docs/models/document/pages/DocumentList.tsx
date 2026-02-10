@@ -15,6 +15,7 @@ export default function DocumentList() {
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -42,6 +43,24 @@ export default function DocumentList() {
   useEffect(() => {
     getDocumentData();
   }, [getDocumentData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await fetchDocuments({ search: query });
+      if (res.status === 200) {
+        const items = res.data?.data?.results || res.data?.results || res.data?.items || res.data || [];
+        setData(items);
+      }
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: any) => {
     setSelectedDocument(row);
@@ -147,6 +166,10 @@ export default function DocumentList() {
               storageKey="document_list"
               loading={loading}
               onRowActivate={handleEdit}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

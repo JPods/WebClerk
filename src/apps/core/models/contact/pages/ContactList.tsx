@@ -40,6 +40,7 @@ const ContactList = () => {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
+  const [searchDatabase, setSearchDatabase] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
   // Helper to extract translated text
   const getTranslatedText = useCallback(
@@ -141,6 +142,26 @@ const ContactList = () => {
   useEffect(() => {
     fetchActions();
   }, [fetchActions]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const response = await fetchContacts({ search: query });
+      if (response) {
+        const apiData = Array.isArray(response?.data?.results)
+          ? response.data.results
+          : [];
+        setData(apiData);
+      }
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   // Handle delete
   const handleDelete = useCallback(
@@ -481,6 +502,10 @@ const ContactList = () => {
                 filters={filters}
                 enableExport={true}
                 enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
                 onSelectionChange={setSelectedContacts}
                 exportFileName="contact_export"
                 searchPlaceholder="Search contact, name_first, name_last..."

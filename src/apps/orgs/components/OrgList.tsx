@@ -23,6 +23,14 @@ export interface OrgListProps {
   onRowClick?: (row: Organization) => void;
   showInlineDetail?: boolean;
   DetailComponent?: React.ComponentType<{ org: Organization; mode: 'view' | 'edit' | 'add'; onClose: () => void; onSaved: () => void }>;
+  /** Enable toggle between searching in current selection vs querying database */
+  enableDatabaseSearch?: boolean;
+  /** Current search mode: true = query database, false = search in selection */
+  searchDatabase?: boolean;
+  /** Callback when search mode changes */
+  onSearchModeChange?: (searchDatabase: boolean) => void;
+  /** Callback to perform database search with parsed terms */
+  onDatabaseSearch?: (terms: string[]) => Promise<void> | void;
 }
 
 // --- Component ---
@@ -34,6 +42,10 @@ const OrgList: React.FC<OrgListProps> = ({
   onRowClick,
   showInlineDetail = true,
   DetailComponent,
+  enableDatabaseSearch,
+  searchDatabase,
+  onSearchModeChange,
+  onDatabaseSearch,
 }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -283,6 +295,10 @@ const OrgList: React.FC<OrgListProps> = ({
             loading={loading}
             storageKey="org_list"
             onRowActivate={handleView}
+            enableDatabaseSearch={enableDatabaseSearch}
+            searchDatabase={searchDatabase}
+            onSearchModeChange={onSearchModeChange}
+            onDatabaseSearch={onDatabaseSearch}
           />
         </ComponentCard>
       </div>

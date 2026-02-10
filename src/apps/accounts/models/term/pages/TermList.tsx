@@ -14,6 +14,7 @@ export default function TermList() {
   const [selectedTerm, setSelectedTerm] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -33,6 +34,19 @@ export default function TermList() {
   useEffect(() => {
     getTermData();
   }, [getTermData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await getRecords('term', { search: searchQuery });
+      setData(res.results || []);
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = (row: any) => {
     setSelectedTerm(row);
@@ -120,6 +134,10 @@ export default function TermList() {
               onRowActivate={handleEdit}
               title="Terms"
               exportFileName="terms"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
             />
           </ComponentCard>
         </div>

@@ -16,6 +16,7 @@ export default function ReceiptList() {
   const [selectedReceipts, setSelectedReceipts] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getReceiptData = useCallback(async () => {
     try {
@@ -37,6 +38,21 @@ export default function ReceiptList() {
   useEffect(() => {
     getReceiptData();
   }, [getReceiptData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchReceipts({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = useCallback((row: any) => {
     setSelectedReceipt(row);
@@ -143,6 +159,10 @@ export default function ReceiptList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search receipts..."
               noDataMessage="No receipts found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedReceipts.length > 0 && (

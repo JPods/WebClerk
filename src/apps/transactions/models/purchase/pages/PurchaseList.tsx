@@ -20,6 +20,7 @@ export default function PurchaseList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -48,6 +49,24 @@ export default function PurchaseList() {
   useEffect(() => {
     getPurchaseOrderData();
   }, [getPurchaseOrderData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchPurchaseOrders({ search: searchQuery });
+      if (res.status === 200) {
+        const sanitizedItems = Array.isArray(res.data.items)
+          ? res.data.items.map((item: any) => sanitizeRecord(item, numericPurchaseOrderKeys))
+          : [];
+        setData(sanitizedItems);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const openPurchaseOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -221,6 +240,10 @@ export default function PurchaseList() {
               exportFileName="purchase_orders"
               searchPlaceholder="Search purchase orders..."
               noDataMessage="No purchase orders found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <button
                   onClick={handleAdd}
