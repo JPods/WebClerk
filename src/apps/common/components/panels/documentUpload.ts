@@ -8,7 +8,7 @@
  * 
  * @see readmes/topics/document-uploads.md
  */
-import { apiClient } from '@/api/axios';
+import { apiClient } from '../../../../api/axios';
 import type { RefLink } from './types';
 
 // ---------------------------------------------------------------------------

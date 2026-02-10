@@ -1,6 +1,6 @@
 import React from "react";
 import FieldLabel from "../components/FieldLabel";
-import { Input, DropDown } from "@/components/wrapper";
+import { Input, DropDown } from "../../../components/wrapper";
 import CustomerSalesPanel, { type CustomerSelectionData } from "./CustomerSalesPanel";
 
 // Inline StatusBadge (copied from OrderDetail)

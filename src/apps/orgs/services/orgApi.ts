@@ -2,8 +2,8 @@
  * Unified Organization API Service
  * Handles all org CRUD operations via wcapi endpoints
  */
-import apiClient from '@/api/axios';
-import { PostLoginURL } from '@/routes/network';
+import apiClient from '../../../api/axios';
+import { PostLoginURL } from '../../../routes/network';
 import type {
   Organization,
   OrgType,

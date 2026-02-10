@@ -3,8 +3,8 @@
  * Syncs with refs.links.contact structure from API
  */
 import React, { useState, useEffect } from "react";
-import { useWindowManager } from "@/context/WindowManagerContext";
-import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
+import { useWindowManager } from "../../../context/WindowManagerContext";
+import { SearchableSelect } from "../../../components/ui/dropdown/SearchableSelect";
 import {
   FaUser,
   FaEnvelope,
@@ -18,8 +18,8 @@ import {
   FaStar,
 } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
-import { CommunicationsPanel } from "@/apps/common/components/panels";
-import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import { CommunicationsPanel } from "../../common/components/panels";
+import { getRecord, getRecords, saveRecord } from "../../../api/wcapi";
 
 // ------------------------------------
 // Communication Record Types

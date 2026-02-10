@@ -22,9 +22,9 @@ import {
   FaChartLine,
   FaCheck,
 } from "react-icons/fa";
-import { customerApi } from "@/apps/orgs/services/orgApi";
-import type { Organization } from "@/apps/orgs/types/orgTypes";
-import ComponentCard from "@/components/layout/ComponentCard";
+import { customerApi } from "../../orgs/services/orgApi";
+import type { Organization } from "../../orgs/types/orgTypes";
+import ComponentCard from "../../../components/common/ComponentCard";
 
 // ---------- Types ----------
 

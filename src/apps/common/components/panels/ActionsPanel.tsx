@@ -60,8 +60,8 @@ import {
   FaThumbsUp,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
-import { getRecords } from "@/api/wcapi";
-import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
+import { getRecords } from "../../../../api/wcapi";
+import { SearchableSelect } from "../../../../components/ui/dropdown/SearchableSelect";
 import type {
   BasePanelProps,
   ActionEntry,

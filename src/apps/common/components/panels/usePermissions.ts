@@ -2,7 +2,7 @@
  * usePermissions - Hook for panel permission checking
  * Determines if current user can view or edit a panel based on their role
  */
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "../../../../store/hooks";
 import type { UserRole, PanelPermissions } from "./types";
 import { ADMIN_ROLES, DEFAULT_PANEL_PERMISSIONS } from "./types";
 

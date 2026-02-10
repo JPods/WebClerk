@@ -4,7 +4,7 @@
  * Fetches question templates from Setting records and manages Q&A answers.
  * See: readmes/topics/settings-api.md
  */
-import { apiClient } from '@/api/axios';
+import { apiClient } from '../../../../api/axios';
 
 // ---------------------------------------------------------------------------
 // Types
