@@ -54,12 +54,14 @@ INSTALLED_APPS = [
     'drf_spectacular_sidecar',
 ]
 
-MIGRATION_MODULES = {
-    'admin': None,
-    'auth': None,
-    'contenttypes': None,
-    'sessions': None,
-}
+_running_django_test = 'test' in sys.argv
+if not _running_django_test:
+    MIGRATION_MODULES = {
+        'admin': None,
+        'auth': None,
+        'contenttypes': None,
+        'sessions': None,
+    }
 
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",

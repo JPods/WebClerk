@@ -7,8 +7,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0011_merge_20260110_1331'),
-        ('core', '0012_alter_contact_role 2'),
-        ('core', '0013_contact_customer_id_contact_employee_id_and_more 2'),
+        ('core', '0012_alter_contact_role'),
+        ('core', '0013_contact_customer_id_contact_employee_id_and_more'),
         ('core', '0014_action_contact_id'),
     ]
 
