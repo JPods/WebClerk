@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateGLJournalRequest,
   GLJournalApiTask,
@@ -35,13 +36,8 @@ export const updateGLJournal = async (
   return unwrap<GLJournalApiTask>(res);
 };
 
-export const deleteGLJournal = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteGLJournal = async (id: number) => {
+  return deleteRecord("gl_journal", id);
 };
 
 export const fetchGLJournals = async (id: any = "") => {

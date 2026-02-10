@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateBillOfMaterialRequest,
   BillOfMaterialApiTask,
@@ -35,13 +36,8 @@ export const updateBillOfMaterial = async (
   return unwrap<BillOfMaterialApiTask>(res);
 };
 
-export const deleteBillOfMaterial = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteBillOfMaterial = async (id: number) => {
+  return deleteRecord("bill_of_material", id);
 };
 
 export const fetchBillOfMaterials = async (id: any = "") => {

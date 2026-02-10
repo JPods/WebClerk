@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateConnectionRequest,
   ConnectionApiTask,
@@ -35,13 +36,8 @@ export const updateConnection = async (
   return unwrap<ConnectionApiTask>(res);
 };
 
-export const deleteConnection = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteConnection = async (id: number) => {
+  return deleteRecord("connection", id);
 };
 
 export const fetchConnections = async (id: any = "") => {

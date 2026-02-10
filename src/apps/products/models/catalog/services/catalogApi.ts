@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateCatalogRequest,
   CatalogApiTask,
@@ -35,13 +36,8 @@ export const updateCatalog = async (
   return unwrap<CatalogApiTask>(res);
 };
 
-export const deleteCatalog = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteCatalog = async (id: number) => {
+  return deleteRecord("catalog", id);
 };
 
 export const fetchCatalogs = async (id: any = "") => {

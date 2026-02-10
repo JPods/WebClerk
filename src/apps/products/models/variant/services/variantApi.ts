@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateVariantRequest,
   VariantApiTask,
@@ -35,13 +36,8 @@ export const updateVariant = async (
   return unwrap<VariantApiTask>(res);
 };
 
-export const deleteVariant = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteVariant = async (id: number) => {
+  return deleteRecord("variant", id);
 };
 
 export const fetchVariants = async (id: any = "") => {

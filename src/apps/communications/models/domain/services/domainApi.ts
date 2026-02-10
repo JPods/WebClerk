@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateDomainRequest,
   DomainApiTask,
@@ -35,13 +36,8 @@ export const updateDomain = async (
   return unwrap<DomainApiTask>(res);
 };
 
-export const deleteDomain = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteDomain = async (id: number) => {
+  return deleteRecord("domain", id);
 };
 
 export const fetchDomains = async (id: any = "") => {

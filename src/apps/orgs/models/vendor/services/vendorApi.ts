@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateVendorRequest,
   VendorApiTask,
@@ -35,13 +36,8 @@ export const updateVendor = async (
   return unwrap<VendorApiTask>(res);
 };
 
-export const deleteVendor = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteVendor = async (id: number) => {
+  return deleteRecord("vendor", id);
 };
 
 export const fetchVendors = async (id: any = "") => {

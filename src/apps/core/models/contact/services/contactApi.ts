@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateContactRequest,
   ContactApiTask,
@@ -35,13 +36,8 @@ export const updateContact = async (
   return unwrap<ContactApiTask>(res);
 };
 
-export const deleteContact = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteContact = async (id: number) => {
+  return deleteRecord("contact", id);
 };
 
 export const fetchContacts = async (id: any = "") => {

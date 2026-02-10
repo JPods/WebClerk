@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateTemplateRequest,
   TemplateApiTask,
@@ -35,13 +36,8 @@ export const updateTemplate = async (
   return unwrap<TemplateApiTask>(res);
 };
 
-export const deleteTemplate = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteTemplate = async (id: number) => {
+  return deleteRecord("template", id);
 };
 
 export const fetchTemplates = async (id: any = "") => {

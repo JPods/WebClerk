@@ -1,5 +1,5 @@
 /**
- * TagDisplay - Follows 3-column standard with tab navigation
+ * LinkageEntryDisplay - Follows 3-column standard with tab navigation
  * Tabs: Actions, Comments, Documents, History, Refs, Raw
  */
 import { useEffect, useState, useMemo } from "react";
@@ -7,19 +7,20 @@ import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import {
+  Link,
+  Hash,
+  Target,
   Tag,
+  FileText,
+  Activity,
   CheckSquare,
   MessageSquare,
   FileIcon,
   History,
   Code,
-  Link,
-  Target,
-  Activity,
-  Hash,
   ListOrdered,
-  Eye,
   Database,
+  Users,
 } from "lucide-react";
 
 import ComponentCard from "@/components/common/ComponentCard";
@@ -45,7 +46,7 @@ import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
 
-interface TagDisplayProps {
+interface LinkageEntryDisplayProps {
   inline?: boolean;
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
@@ -53,15 +54,15 @@ interface TagDisplayProps {
   onCancelInline?: () => void;
 }
 
-const STORAGE_KEY = "tagDisplay_columnCount";
+const STORAGE_KEY = "linkageEntryDisplay_columnCount";
 
-export default function TagDisplay({
+export default function LinkageEntryDisplay({
   inline = false,
   modeProp,
   dataProp,
   onSaved,
   onCancelInline,
-}: TagDisplayProps) {
+}: LinkageEntryDisplayProps) {
   const [data, setData] = useState<any>(dataProp || {});
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,7 +73,7 @@ export default function TagDisplay({
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   // Tab navigation
-  const { activeTab, setActiveTab } = useDetailTabs("tag", "actions", [
+  const { activeTab, setActiveTab } = useDetailTabs("linkage_entry", "actions", [
     "actions", "comments", "documents", "history", "refs", "raw",
   ]);
 
@@ -94,7 +95,7 @@ export default function TagDisplay({
       const fetchData = async () => {
         try {
           setLoading(true);
-          const rec = await getRecord('tag', dataProp.id);
+          const rec = await getRecord('linkage_entry', dataProp.id);
           setData(rec.record || rec);
         } catch (error) {
           console.error("Failed to fetch record", error);
@@ -113,8 +114,8 @@ export default function TagDisplay({
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      await saveRecord('tag', data);
-      dispatch(showToast({ message: "Tag saved successfully", type: "success" }));
+      await saveRecord('linkage_entry', data);
+      dispatch(showToast({ message: "Linkage Entry saved successfully", type: "success" }));
       onSaved?.();
       if (currentMode === "add") {
         onCancelInline?.();
@@ -123,7 +124,7 @@ export default function TagDisplay({
       }
     } catch (error) {
       console.error("Failed to save", error);
-      dispatch(showToast({ message: "Failed to save tag", type: "error" }));
+      dispatch(showToast({ message: "Failed to save linkage entry", type: "error" }));
     } finally {
       setIsSaving(false);
     }
@@ -142,7 +143,7 @@ export default function TagDisplay({
     }
   };
 
-  const handleFieldChange = (field: string, value: string) => {
+  const handleFieldChange = (field: string, value: string | number) => {
     setData({ ...data, [field]: value });
   };
 
@@ -150,9 +151,9 @@ export default function TagDisplay({
     <>
       {/* Header */}
       <SimpleDetailHeader
-        entityName="Tag"
+        entityName="Linkage Entry"
         recordId={data?.id}
-        recordName={data?.name}
+        recordName={data?.name || `${data?.model_name}:${data?.record_id}`}
         mode={currentMode}
         backUrl=""
         showBackButton={false}
@@ -179,36 +180,16 @@ export default function TagDisplay({
       {!loading && (
         <ComponentCard>
           <div className="flex justify-end mb-4">
-            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
           </div>
           <div className={getGridClassName(columnCount)}>
-            <HorizontalField label="Name" htmlFor="name" icon={<Tag size={14} />}>
+            <HorizontalField label="Group ID" htmlFor="group_id" icon={<Users size={14} />}>
               <Input
-                type="text"
-                id="name"
-                placeholder="Tag Name"
-                value={data?.name || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("name", e.target.value)}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Purpose" htmlFor="purpose" icon={<Target size={14} />}>
-              <Input
-                type="text"
-                id="purpose"
-                placeholder="Purpose"
-                value={data?.purpose || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("purpose", e.target.value)}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Status" htmlFor="status" icon={<Activity size={14} />}>
-              <Input
-                type="text"
-                id="status"
-                placeholder="Status"
-                value={data?.status || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("status", e.target.value)}
+                type="number"
+                id="group_id"
+                placeholder="Group ID"
+                value={data?.group_id ?? ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("group_id", parseInt(e.target.value) || 0)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
@@ -216,7 +197,7 @@ export default function TagDisplay({
               <Input
                 type="text"
                 id="model_name"
-                placeholder="Source model (e.g. order, item)"
+                placeholder="e.g. order, item, contact"
                 value={data?.model_name || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("model_name", e.target.value)}
                 disabled={currentMode === "view"}
@@ -226,9 +207,39 @@ export default function TagDisplay({
               <Input
                 type="number"
                 id="record_id"
-                placeholder="ID in source table"
+                placeholder="ID in target model"
                 value={data?.record_id ?? ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("record_id", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("record_id", parseInt(e.target.value) || 0)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Purpose" htmlFor="purpose" icon={<Target size={14} />}>
+              <Input
+                type="text"
+                id="purpose"
+                placeholder="Linkage purpose"
+                value={data?.purpose || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("purpose", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Name" htmlFor="name" icon={<Tag size={14} />}>
+              <Input
+                type="text"
+                id="name"
+                placeholder="Human-readable name"
+                value={data?.name || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("name", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Role" htmlFor="role" icon={<Activity size={14} />}>
+              <Input
+                type="text"
+                id="role"
+                placeholder="e.g. source, target, parent"
+                value={data?.role || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("role", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
@@ -236,38 +247,26 @@ export default function TagDisplay({
               <Input
                 type="number"
                 id="sequence"
-                placeholder="0"
+                placeholder="Order within group"
                 value={data?.sequence ?? 0}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("sequence", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("sequence", parseInt(e.target.value) || 0)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-            <HorizontalField label="Access Count" htmlFor="count_accessed" icon={<Eye size={14} />}>
-              <Input
-                type="number"
-                id="count_accessed"
-                value={data?.count_accessed ?? 0}
-                disabled={true}
+          </div>
+          <div className="mt-4">
+            <HorizontalField label="Note" htmlFor="note" icon={<FileText size={14} />}>
+              <textarea
+                id="note"
+                placeholder="Notes about this link"
+                value={data?.note || ""}
+                onChange={(e) => handleFieldChange("note", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                rows={3}
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
           </div>
-        </ComponentCard>
-      )}
-
-      {/* Data Payload Panel */}
-      {!loading && (
-        <ComponentCard>
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <Database size={16} /> Tag Data Payload
-          </h3>
-          <JsonFieldEditor
-            label=""
-            value={data?.data || {}}
-            readonly={currentMode === "view"}
-            defaultExpanded
-            maxHeight="300px"
-            onChange={(newData) => setData({ ...data, data: newData })}
-          />
         </ComponentCard>
       )}
 
@@ -275,7 +274,7 @@ export default function TagDisplay({
       {!loading && data?.id && (
         <>
           <DetailTabs
-            entityType="tag"
+            entityType="linkage_entry"
             activeTab={activeTab}
             onTabChange={setActiveTab}
             standardTabs={[]}
@@ -285,7 +284,7 @@ export default function TagDisplay({
           <div className="mt-4">
             {activeTab === "actions" && (
               <ActionsPanel
-                entityType="tag"
+                entityType="linkage_entry"
                 entityId={data?.id}
                 data={data?.actions?.items}
                 actionIds={data?.actions?.ids}
@@ -298,17 +297,16 @@ export default function TagDisplay({
               <CommentsPanel
                 comments={data?.comments}
                 isEditing={currentMode !== "view"}
-                entityType="tag"
+                entityType="linkage_entry"
                 entityId={data?.id}
               />
             )}
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="tag"
+                parentType="linkage_entry"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
-                isEditing={currentMode !== "view"}
                 onChange={(docs) => console.log("Documents updated:", docs)}
               />
             )}
@@ -339,10 +337,9 @@ export default function TagDisplay({
 
             {activeTab === "refs" && (
               <RefsPanel
-                entityType="tag"
+                entityType="linkage_entry"
                 entityId={data?.id}
                 data={data?.refs}
-                isEditing={currentMode !== "view"}
                 onChange={(refs) => console.log("Refs updated:", refs)}
               />
             )}

@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateExchangeRateRequest,
   ExchangeRateApiTask,
@@ -35,13 +36,8 @@ export const updateExchangeRate = async (
   return unwrap<ExchangeRateApiTask>(res);
 };
 
-export const deleteExchangeRate = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteExchangeRate = async (id: number) => {
+  return deleteRecord("exchange_rate", id);
 };
 
 export const fetchExchangeRates = async (id: any = "") => {

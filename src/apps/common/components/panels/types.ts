@@ -69,6 +69,11 @@ export type EntityType =
   | "phone"
   | "address"
   | "domain"
+  // Docs
+  | "document"
+  | "linkage_entry"
+  | "tag"
+  | "question_answer"
   // Support
   | "campaign"
   | "project"

@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateSerialRequest,
   SerialApiTask,
@@ -35,13 +36,8 @@ export const updateSerial = async (
   return unwrap<SerialApiTask>(res);
 };
 
-export const deleteSerial = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteSerial = async (id: number) => {
+  return deleteRecord('serial', id);
 };
 
 export const fetchSerials = async (id: any = "") => {

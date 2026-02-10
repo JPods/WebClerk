@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateGLAccountRequest,
   GLAccountApiTask,
@@ -35,13 +36,8 @@ export const updateGLAccount = async (
   return unwrap<GLAccountApiTask>(res);
 };
 
-export const deleteGLAccount = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteGLAccount = async (id: number) => {
+  return deleteRecord("gl_account", id);
 };
 
 export const fetchGLAccounts = async (id: any = "") => {

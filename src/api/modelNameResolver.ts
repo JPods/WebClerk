@@ -34,6 +34,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
   wo: 'workorder',
   requisition: 'requisition',
   req: 'requisition',
+  project: 'project',
+  receipt: 'receipt',
+  purchasereceipt: 'receipt',
   
   // Transaction Lines
   salesorderline: 'order_line',
@@ -61,12 +64,22 @@ const MODEL_NAME_MAP: Record<string, string> = {
   // Products
   item: 'item',
   product: 'item',
+  service: 'service',
   category: 'category',
   warehouse: 'warehouse',
   serial: 'serial',
   variant: 'variant',
   specification: 'specification',
   spec: 'specification',
+  catalog: 'catalog',
+  billofmaterial: 'bill_of_material',
+  bom: 'bill_of_material',
+  flow: 'flow',
+  usage: 'usage',
+  matrics: 'matrics',
+  metrics: 'metrics',
+  orgitem: 'org_item',
+  itemxref: 'item_xref',
   
   // Core
   contact: 'contact',
@@ -75,6 +88,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
   setting: 'setting',
   report: 'report',
   action: 'action',
+  template: 'template',
+  notification: 'notification',
+  apilog: 'api_log',
   
   // Communications
   email: 'email',
@@ -85,6 +101,7 @@ const MODEL_NAME_MAP: Record<string, string> = {
   audit: 'audit',
   currency: 'currency',
   exchangerate: 'exchange_rate',
+  exchangetransaction: 'exchange_transaction',
   glaccount: 'gl_account',
   gljournal: 'gl_journal',
   ledger: 'ledger',
@@ -96,13 +113,23 @@ const MODEL_NAME_MAP: Record<string, string> = {
   task: 'task',
   event: 'event',
   
+  // Docs
+  document: 'document',
+  tag: 'tag',
+  questionanswer: 'question_answer',
+  qa: 'question_answer',
+  linkageentry: 'linkage_entry',
+  linkage: 'linkage_entry',
+  
   // Sync
   bundle: 'bundle',
+  connection: 'connection',
 };
 
 // RESTful path patterns to model name
 // Handles paths like /api/transactions/salesorder/22
 const PATH_PATTERN_MAP: Record<string, string> = {
+  // Transactions
   'transactions/sales-order': 'order',
   'transactions/salesorder': 'order',
   'transactions/order': 'order',
@@ -111,30 +138,83 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   'transactions/purchaseorder': 'purchase',
   'transactions/purchase': 'purchase',
   'transactions/proposal': 'proposal',
+  'transactions/quote': 'proposal',
   'transactions/work-order': 'workorder',
   'transactions/workorder': 'workorder',
   'transactions/requisition': 'requisition',
+  'transactions/project': 'project',
+  'transactions/receipt': 'receipt',
+  
+  // Orgs
   'orgs/customer': 'customer',
   'orgs/vendor': 'vendor',
   'orgs/manufacturer': 'manufacturer',
   'orgs/rep': 'rep',
   'orgs/employee': 'employee',
   'orgs/organization': 'organization',
+  'orgs/contact': 'contact',
+  
+  // Products
   'products/item': 'item',
+  'products/service': 'service',
   'products/category': 'category',
   'products/warehouse': 'warehouse',
+  'products/serial': 'serial',
+  'products/variant': 'variant',
+  'products/specification': 'specification',
+  'products/catalog': 'catalog',
+  'products/bill-of-material': 'bill_of_material',
+  'products/bom': 'bill_of_material',
+  'products/flow': 'flow',
+  'products/usage': 'usage',
+  'products/matrics': 'matrics',
+  'products/metrics': 'metrics',
+  'products/org-item': 'org_item',
+  'products/item-xref': 'item_xref',
+  
+  // Core
   'core/contact': 'contact',
   'core/location': 'location',
   'core/setting': 'setting',
   'core/action': 'action',
+  'core/template': 'template',
+  'core/notification': 'notification',
+  'core/report': 'report',
+  'core/api-log': 'api_log',
+  
+  // Communications
   'communications/email': 'email',
   'communications/phone': 'phone',
+  'communications/domain': 'domain',
+  'communications/address': 'location',
+  
+  // Accounts
   'accounts/audit': 'audit',
   'accounts/currency': 'currency',
+  'accounts/exchange-rate': 'exchange_rate',
+  'accounts/exchange-transaction': 'exchange_transaction',
   'accounts/gl-account': 'gl_account',
+  'accounts/gl-journal': 'gl_journal',
   'accounts/ledger': 'ledger',
+  'accounts/term': 'term',
+  'accounts/tax-jurisdiction': 'tax_jurisdiction',
+  
+  // Docs
+  'docs/document': 'document',
+  'docs/tag': 'tag',
+  'docs/question-answer': 'question_answer',
+  'docs/qa': 'question_answer',
+  'docs/linkage': 'linkage_entry',
+  'docs/linkage-entry': 'linkage_entry',
+  
+  // Support
   'support/campaign': 'campaign',
   'support/task': 'task',
+  'support/event': 'event',
+  
+  // Sync
+  'sync/bundle': 'bundle',
+  'sync/connection': 'connection',
 };
 
 /**

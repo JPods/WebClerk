@@ -10,15 +10,15 @@ This document outlines the plan to standardize all `*Detail.tsx` pages with cons
 |-----|-------|--------|
 | **orgs/** | 4 | ✅ Complete (CustomerDisplay, VendorDetail, ContactDetail, EmployeeDetail) |
 | **transactions/** | 14 | ✅ Complete (6 use TransactionDetailBase, Project/Requisition rewritten, 5 lines are simple forms) |
-| **products/** | 13 | ✅ Complete (ItemDetail has full panels, 12 use SimpleDetailHeader/Toolbar) |
+| **products/** | 15 | ✅ Complete (ItemDetail has full panels, ItemDisplay/ServiceDisplay with tabs, 12 use SimpleDetailHeader/Toolbar) |
 | **accounts/** | 6 | ✅ Complete (4 use SimpleDetailHeader/Toolbar, GLAccount enterprise, Audit read-only) |
 | **core/** | 6 | ✅ Complete (4 use SimpleDetailHeader/Toolbar, ContactDetail sections, APILog read-only) |
 | **communications/** | 4 | ✅ Complete (All use SimpleDetailHeader/Toolbar) |
 | **sync/** | 3 | ✅ Complete (2 use SimpleDetailHeader/Toolbar) |
-| **docs/** | 1 | ✅ Complete (Uses SimpleDetailHeader/Toolbar) |
+| **docs/** | 5 | ✅ Complete (All have full 3-column layout + tabs: Actions, Comments, Documents, History, Refs, Raw) |
 | **support/** | 1 | ✅ Complete (Uses SimpleDetailHeader/Toolbar) |
 
-**Total: 52 Detail files standardized**
+**Total: 58 Detail/Display files standardized**
 
 ### Components Added
 
@@ -175,7 +175,9 @@ interface EntityRefs {
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
 | Item | `ItemDetail.tsx` | ✅ | ✅ | ✅ | ✅ Accordion+Panels (1411 lines) |
+| Item | `ItemDisplay.tsx` | ✅ | ✅ | ✅ | ✅ 3-column + tabs (Actions, Comments, Documents, History, Refs, Raw) |
 | Service | `ServiceDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
+| Service | `ServiceDisplay.tsx` | ✅ | ✅ | ✅ | ✅ 3-column + tabs (Actions, Comments, Documents, History, Refs, Raw) |
 | Serial | `SerialDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 | Catalog | `CatalogDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 | Warehouse | `WarehouseDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
@@ -188,7 +190,7 @@ interface EntityRefs {
 | Flow | `FlowDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 | Usage | `UsageDetail.tsx` | ➖ | ➖ | ➖ | ✅ Simple form + Header/Toolbar |
 
-> **Note:** Only `ItemDetail.tsx` has full panel support. Supporting product entities use SimpleDetailHeader + SimpleDetailToolbar + HorizontalField layout.
+> **Note:** `ItemDetail.tsx` has full panel support. `ItemDisplay.tsx` and `ServiceDisplay.tsx` use the standard 3-column layout with tab navigation (Actions, Comments, Documents, History, Refs, Raw). Other product entities use SimpleDetailHeader + SimpleDetailToolbar + HorizontalField layout.
 
 ---
 
@@ -259,9 +261,16 @@ interface EntityRefs {
 
 | Model | File | Comments | Actions | Documents | Status |
 |-------|------|:--------:|:-------:|:---------:|--------|
-| Document | `DocumentDetail.tsx` | ➖ | ➖ | ❌ | ✅ Simple form + Header/Toolbar |
+| Document | `DocumentDetail.tsx` | ✅ | ✅ | ✅ | ✅ Full tabs + 3-column standard |
+| Document | `DocumentDisplay.tsx` | ✅ | ✅ | ✅ | ✅ Full tabs + 3-column standard |
+| Tag | `TagDisplay.tsx` | ✅ | ✅ | ✅ | ✅ Full tabs + 3-column standard |
+| QuestionAnswer | `QuestionAnswerDisplay.tsx` | ✅ | ✅ | ✅ | ✅ Full tabs + 3-column standard |
+| LinkageEntry | `LinkageEntryDisplay.tsx` | ✅ | ✅ | ✅ | ✅ Full tabs + 3-column standard |
 
-> **Note:** Document model is the document itself. Now uses SimpleDetailHeader + SimpleDetailToolbar for metadata editing.
+> **Note:** All docs models follow the 3-column standard layout with tab navigation:
+> - Actions, Comments, Documents, History, Refs, Raw tabs
+> - SimpleDetailHeader + SimpleDetailToolbar
+> - ComponentCard with HorizontalField grid (2/3 column selector)
 
 ---
 

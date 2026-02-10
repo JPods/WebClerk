@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateQuestionAnswerRequest,
   QuestionAnswerApiTask,
@@ -35,13 +36,8 @@ export const updateQuestionAnswer = async (
   return unwrap<QuestionAnswerApiTask>(res);
 };
 
-export const deleteQuestionAnswer = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteQuestionAnswer = async (id: number) => {
+  return deleteRecord("question_answer", id);
 };
 
 export const fetchQuestionAnswers = async (id: any = "") => {

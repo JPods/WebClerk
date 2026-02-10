@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateSpecificationRequest,
   SpecificationApiTask,
@@ -35,13 +36,8 @@ export const updateSpecification = async (
   return unwrap<SpecificationApiTask>(res);
 };
 
-export const deleteSpecification = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteSpecification = async (id: number) => {
+  return deleteRecord("specification", id);
 };
 
 export const fetchSpecifications = async (id: any = "") => {

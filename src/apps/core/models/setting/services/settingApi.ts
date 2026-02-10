@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateSettingRequest,
   SettingApiTask,
@@ -35,13 +36,8 @@ export const updateSetting = async (
   return unwrap<SettingApiTask>(res);
 };
 
-export const deleteSetting = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteSetting = async (id: number) => {
+  return deleteRecord("setting", id);
 };
 
 export const fetchSettings = async (id: any = "") => {

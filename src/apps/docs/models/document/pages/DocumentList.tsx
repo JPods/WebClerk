@@ -23,7 +23,9 @@ export default function DocumentList() {
       setLoading(true);
       const res = await fetchDocuments();
       if (res.status === 200) {
-        setData(res.data.items || res.data || []);
+        // API returns { data: { results: [...] } } envelope
+        const items = res.data?.data?.results || res.data?.results || res.data?.items || res.data || [];
+        setData(items);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch documents", type: "error" })
@@ -83,25 +85,25 @@ export default function DocumentList() {
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Name",
-      selector: (row) => row.name || "--",
+      selector: (row) => typeof row.name === 'string' ? row.name : "--",
       sortable: true,
       width: "25%",
     },
     {
       name: "Slug",
-      selector: (row) => row.slug || "--",
+      selector: (row) => typeof row.slug === 'string' ? row.slug : "--",
       sortable: true,
       width: "20%",
     },
     {
-      name: "Category",
-      selector: (row) => row.category || "--",
+      name: "Type",
+      selector: (row) => typeof row.model_name === 'string' ? row.model_name : "--",
       sortable: true,
       width: "15%",
     },
     {
       name: "Status",
-      selector: (row) => row.status || "--",
+      selector: (row) => typeof row.status === 'string' ? row.status : "--",
       sortable: true,
       width: "15%",
     },
@@ -121,8 +123,6 @@ export default function DocumentList() {
         </div>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
 

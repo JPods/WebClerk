@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateFlowRequest,
   FlowApiTask,
@@ -35,13 +36,8 @@ export const updateFlow = async (
   return unwrap<FlowApiTask>(res);
 };
 
-export const deleteFlow = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteFlow = async (id: number) => {
+  return deleteRecord("flow", id);
 };
 
 export const fetchFlows = async (id: any = "") => {

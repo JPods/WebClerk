@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateOrganizationRequest,
   OrganizationApiTask,
@@ -35,13 +36,8 @@ export const updateOrganization = async (
   return unwrap<OrganizationApiTask>(res);
 };
 
-export const deleteOrganization = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteOrganization = async (id: number) => {
+  return deleteRecord("other", id);
 };
 
 export const fetchOrganizations = async (id: any = "") => {

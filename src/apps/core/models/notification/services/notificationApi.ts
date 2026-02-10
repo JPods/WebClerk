@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateNotificationRequest,
   NotificationApiTask,
@@ -35,13 +36,8 @@ export const updateNotification = async (
   return unwrap<NotificationApiTask>(res);
 };
 
-export const deleteNotification = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteNotification = async (id: number) => {
+  return deleteRecord("notification", id);
 };
 
 export const fetchNotifications = async (id: any = "") => {

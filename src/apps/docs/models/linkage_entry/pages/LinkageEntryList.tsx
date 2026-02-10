@@ -8,83 +8,85 @@ import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { deleteRecord } from "@/api/wcapi";
-import LinkageDisplay from "./LinkageDisplay";
+import LinkageEntryDisplay from "./LinkageEntryDisplay";
 
-export default function LinkageList() {
+export default function LinkageEntryList() {
   const [data, setData] = useState<any[]>([]);
-  const [selectedLinkage, setSelectedLinkage] = useState<any | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getLinkageData = useCallback(async () => {
+  const getLinkageEntryData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('linkage');
+      const list = await getRecords('linkage_entry');
       const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
       setData(recs);
     } catch (error) {
-      console.error("Failed to fetch linkages", error);
-      dispatch(showToast({ message: "Failed to fetch linkages", type: "error" }));
+      console.error("Failed to fetch linkage entries", error);
+      dispatch(showToast({ message: "Failed to fetch linkage entries", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getLinkageData();
-  }, [getLinkageData]);
+    getLinkageEntryData();
+  }, [getLinkageEntryData]);
 
   const handleView = (row: any) => {
-    setSelectedLinkage(row);
+    setSelectedEntry(row);
     setFormMode("view");
   };
 
   const handleEdit = (row: any) => {
-    setSelectedLinkage(row);
+    setSelectedEntry(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedLinkage(null);
+    setSelectedEntry(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getLinkageData();
+    getLinkageEntryData();
     setFormMode(null);
-    setSelectedLinkage(null);
+    setSelectedEntry(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedLinkage(null);
+    setSelectedEntry(null);
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete linkage ${row.id}?`)) {
+    if (window.confirm(`Delete linkage entry ${row.id}?`)) {
       try {
-        await deleteRecord('linkage', row.id);
-        dispatch(showToast({ message: "Linkage deleted successfully", type: "success" }));
-        getLinkageData(); // Refresh data
+        await deleteRecord('linkage_entry', row.id);
+        dispatch(showToast({ message: "Linkage Entry deleted successfully", type: "success" }));
+        getLinkageEntryData();
       } catch (error) {
-        dispatch(showToast({ message: "Failed to delete linkage", type: "error" }));
+        dispatch(showToast({ message: "Failed to delete linkage entry", type: "error" }));
       }
     }
   };
 
-  // Hardcoded columns: id and common fields
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Source", selector: (row) => row.source || "--", sortable: true, width: "30%" },
-    { name: "Target", selector: (row) => row.target || "--", sortable: true, width: "30%" },
-    { name: "Type", selector: (row) => row.type || "--", sortable: true, width: "30%" },
+    { name: "ID", selector: (row: any) => row.id, sortable: true, width: "80px" },
+    { name: "Group", selector: (row: any) => row.group_id, sortable: true, width: "100px" },
+    { name: "Model", selector: (row: any) => row.model_name || "--", sortable: true, width: "120px" },
+    { name: "Record ID", selector: (row: any) => row.record_id, sortable: true, width: "100px" },
+    { name: "Purpose", selector: (row: any) => row.purpose || "--", sortable: true, width: "120px" },
+    { name: "Role", selector: (row: any) => row.role || "--", sortable: true, width: "100px" },
+    { name: "Name", selector: (row: any) => row.name || "--", sortable: true },
   ];
 
   userColumns.push({
     name: "Action",
-    cell: (row) => (
+    cell: (row: any) => (
       <div className="flex gap-2">
         <button onClick={() => handleView(row)} title="View">
           <FaEye className="text-blue-600 hover:scale-110 transition" />
@@ -104,7 +106,7 @@ export default function LinkageList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Linkage List" />
+      <PageBreadcrumb pageTitle="Linkage Entries" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -114,13 +116,13 @@ export default function LinkageList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Linkage
+                Add Linkage Entry
               </button>
             </div>
             <AdvancedDataTable
               columns={userColumns}
               data={data}
-              storageKey="linkage_list"
+              storageKey="linkage_entry_list"
               loading={loading}
               onRowActivate={handleEdit}
             />
@@ -128,10 +130,10 @@ export default function LinkageList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <LinkageDisplay
+            <LinkageEntryDisplay
               inline
               modeProp={formMode}
-              dataProp={selectedLinkage}
+              dataProp={selectedEntry}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

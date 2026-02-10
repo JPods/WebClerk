@@ -55,7 +55,7 @@ const KNOWN_APP_MODEL_MAP: Record<string, string[]> = {
     "SoftDeleteLedger",
     "Template",
   ],
-  docs: ["Document", "Linkage", "LinkageIndex", "QuestionAnswer", "Tag"],
+  docs: ["Document", "QuestionAnswer", "Tag"],
   orgs: ["Customer", "Employee", "Manufacturer", "OrgBase", "Rep", "Vendor"],
   products: [
     "BillOfMaterial",

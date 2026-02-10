@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateUsageRequest,
   UsageApiTask,
@@ -35,13 +36,8 @@ export const updateUsage = async (
   return unwrap<UsageApiTask>(res);
 };
 
-export const deleteUsage = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteUsage = async (id: number) => {
+  return deleteRecord("usage", id);
 };
 
 export const fetchUsages = async (id: any = "") => {

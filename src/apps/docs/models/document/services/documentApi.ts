@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateDocumentRequest,
   DocumentApiTask,
@@ -35,19 +36,29 @@ export const updateDocument = async (
   return unwrap<DocumentApiTask>(res);
 };
 
-export const deleteDocument = async (id: any) => {
+export const deleteDocument = async (id: number) => {
+  return deleteRecord("document", id);
+};
+
+export const fetchDocuments = async () => {
   try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
+    const res = await apiClient.get(
+      PostLoginURL.allTypes + "model_name=document"
+    );
     return res;
   } catch (error: any) {
     return error.response?.data || error.message;
   }
 };
 
-export const fetchDocuments = async (id: any = "") => {
+/**
+ * Fetch a single document by ID
+ * API: wcapi/get/?model_name=document&id=X
+ */
+export const fetchDocumentById = async (id: number | string) => {
   try {
     const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=document" + (id ? `&id=${id}` : "")
+      `${PostLoginURL.allTypes}model_name=document&id=${id}`
     );
     return res;
   } catch (error: any) {

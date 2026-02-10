@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateItemXrefRequest,
   ItemXrefApiTask,
@@ -35,13 +36,8 @@ export const updateItemXref = async (
   return unwrap<ItemXrefApiTask>(res);
 };
 
-export const deleteItemXref = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteItemXref = async (id: number) => {
+  return deleteRecord("item_xref", id);
 };
 
 export const fetchItemXrefs = async (id: any = "") => {

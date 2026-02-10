@@ -143,8 +143,7 @@
   // Docs
   static readonly documentList: string = "/docs/document/list";
   static readonly documentDetail: string = "/docs/document/detail/:id?";
-  static readonly linkageList: string = "/docs/linkage/list";
-  static readonly linkageIndexList: string = "/docs/linkage-index/list";
+  static readonly linkageEntryList: string = "/docs/linkage-entry/list";
   static readonly questionAnswerList: string = "/docs/question-answer/list";
   static readonly tagList: string = "/docs/tag/list";
 }

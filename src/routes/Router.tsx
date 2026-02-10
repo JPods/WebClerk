@@ -61,8 +61,6 @@ import {
   // Docs
   DocumentList,
   DocumentDetail,
-  LinkageList,
-  LinkageIndexList,
   QuestionAnswerList,
   TagList,
 } from "../pages/wrapperPage";
@@ -250,14 +248,6 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.documentDetail}
             element={<DocumentDetail />}
-          />
-          <Route
-            path={PageRoutes.linkageList}
-            element={<LinkageList />}
-          />
-          <Route
-            path={PageRoutes.linkageIndexList}
-            element={<LinkageIndexList />}
           />
           <Route
             path={PageRoutes.questionAnswerList}

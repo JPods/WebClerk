@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateTagRequest,
   TagApiTask,
@@ -35,13 +36,8 @@ export const updateTag = async (
   return unwrap<TagApiTask>(res);
 };
 
-export const deleteTag = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteTag = async (id: number) => {
+  return deleteRecord("tag", id);
 };
 
 export const fetchTags = async (id: any = "") => {

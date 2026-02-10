@@ -1,5 +1,6 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
+import { deleteRecord } from "@/api/wcapi";
 import type {
   CreateBundleRequest,
   BundleApiTask,
@@ -35,13 +36,8 @@ export const updateBundle = async (
   return unwrap<BundleApiTask>(res);
 };
 
-export const deleteBundle = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteBundle = async (id: number) => {
+  return deleteRecord("bundle", id);
 };
 
 export const fetchBundles = async (id: any = "") => {
