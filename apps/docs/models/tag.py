@@ -11,7 +11,7 @@ from django.utils import timezone
 class Tag(BaseModel):
     """Tracking / classification tag.
 
-    Distinct from Linkage: optimized for per-item tracking (shipments, equipment, locations).
+    Optimized for per-item tracking (shipments, equipment, locations).
     Heavy use of refs / metadata for dynamic attributes.
     Supports hierarchical (nested) relationships via refs.tags.children / parent.
     """
@@ -121,8 +121,7 @@ class Tag(BaseModel):
 # Status:
 
 # Tag tests: pass.
-# Existing QuestionAnswer, Document, Linkage tests previously green 
-# (unchanged by fix).
+# Existing QuestionAnswer and Document tests previously green.
 # No migration generated (fields already compatible 
 # or prior migration may be needed later if DB schema 
 # differs; generate manually if deploying to fresh DB).

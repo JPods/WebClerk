@@ -14,8 +14,8 @@ from apps.transactions.models import (
     Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine
 )
-from apps.docs.models.linkage import Linkage
-from apps.docs.models.linkage_index import LinkageIndex
+# NOTE: Linkage functionality removed - use LinkageEntry if needed
+# from apps.docs.models.linkage_entry import LinkageEntry
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
 from apps.products.models.inventory_layer import InventoryLayer
@@ -129,71 +129,21 @@ def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseLine,
 
 
 # ---------------------------------------------------------------------------
-# Linkage helpers
+# Linkage helpers (DISABLED - use LinkageEntry if needed)
 # ---------------------------------------------------------------------------
-def ensure_linkage_for_lines(lines) -> int:
-    """Ensure a shared linkage id exists for the provided source lines.
-
-    If any line already has a linkage id in refs.links.linkage, that id is
-    returned. Otherwise a new Linkage record is created (purpose=transaction_flow)
-    and assigned to all lines (persisted). Returns the linkage id.
+def ensure_linkage_for_lines(lines) -> Optional[int]:
+    """Linkage functionality removed. Returns None.
+    
+    TODO: Reimplement using LinkageEntry if cross-transaction linking is needed.
     """
-    existing_id = None
-    for ln in lines:
-        refs = getattr(ln, 'refs', {}) or {}
-        if isinstance(refs, dict):
-            links = refs.get('links') or {}
-            if isinstance(links, dict):
-                linkage_list = links.get('linkage') or []
-                if isinstance(linkage_list, list) and linkage_list:
-                    existing_id = linkage_list[0]
-                    break
-    if existing_id:
-        return existing_id
-    linkage = Linkage.objects.create(purpose='transaction_flow')
-    # Populate linkage.refs.links with initial line ids grouped by table name
-    links_container = linkage.refs.get('links') if isinstance(getattr(linkage, 'refs', {}), dict) else None
-    if not isinstance(links_container, dict):
-        linkage.refs = linkage.refs if isinstance(linkage.refs, dict) else {}
-        linkage.refs['links'] = {}
-        links_container = linkage.refs['links']
-    for ln in lines:
-        try:
-            table = ln._meta.db_table  # type: ignore[attr-defined]
-            lst = links_container.setdefault(table, [])
-            if ln.pk:
-                lst.append(ln.pk)
-                # Maintain index row; ignore duplicates during rebuild flows
-                try:
-                    LinkageIndex.objects.get_or_create(linkage=linkage, table_name=table, record_id=ln.pk)
-                except Exception:
-                    pass
-        except Exception:
-            continue
-    linkage.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
-    for ln in lines:
-        try:
-            refs = getattr(ln, 'refs', {}) or {}
-            if not isinstance(refs, dict):
-                refs = {}
-            links = refs.setdefault('links', {"linkage": []})
-            linkage_list = links.setdefault('linkage', [])
-            if not linkage_list:
-                linkage_list.append(linkage.id)
-            setattr(ln, 'refs', refs)
-            ln.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
-        except Exception:  # pragma: no cover
-            pass
-    return linkage.id
+    return None
 
 
 def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Order:
     so = Order.objects.create(order_no=order_no or f"SO-{proposal.pk or 'new'}")
     src_lines = list(ProposalLine.objects.filter(parent=proposal).order_by('id'))
-    if src_lines:
-        linkage_id = ensure_linkage_for_lines(src_lines)
-    else:
-        linkage_id = None
+    # Linkage disabled - pass None
+    linkage_id = None
     # Copy lines after ensuring linkage id
     for pl in src_lines:
         sol = OrderLine(parent=so)
