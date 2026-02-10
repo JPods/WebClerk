@@ -253,8 +253,8 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 item.unitOfMeasure ??
                 item.unit_measure ??
                 "EA";
-              // Default price level to "base" if not provided
-              const level = priceLevel || "base";
+              // Default price level to "retail" if not provided ("retail" and "base" are equivalent)
+              const level = priceLevel || "retail";
               let unitPrice = 0;
               if (typeof item.price === "number") {
                 unitPrice = item.price;
@@ -262,8 +262,17 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 unitPrice = parseFloat(item.price) || 0;
               } else if (item.price && typeof item.price === "object") {
                 const priceObj = item.price as Record<string, unknown>;
-                // Look up price by level, fall back to base
-                const levelValue = priceObj[level] ?? priceObj.base;
+                // Look up price by level; "retail" and "base" are equivalent
+                let levelValue = priceObj[level];
+                if (levelValue === undefined || levelValue === null) {
+                  if (level === "retail") {
+                    levelValue = priceObj.base;
+                  } else if (level === "base") {
+                    levelValue = priceObj.retail;
+                  } else {
+                    levelValue = priceObj.base ?? priceObj.retail;
+                  }
+                }
                 unitPrice = Number(levelValue ?? 0);
               }
               if (unitPrice === 0) {

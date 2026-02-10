@@ -24,6 +24,7 @@ export default function AddressList() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
   const getAddressData = useCallback(async (addressId?: number) => {
@@ -43,6 +44,21 @@ export default function AddressList() {
   useEffect(() => {
     getAddressData();
   }, [getAddressData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await fetchAddresses(undefined, { search: query });
+      setData(res.data.data.results);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: dynamicData) => {
     setSelectedAddress(row);
@@ -224,6 +240,10 @@ export default function AddressList() {
                   filters={filters}
                   enableExport={true}
                   enableSelection={true}
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
                   onSelectionChange={setSelectedAddresses}
                   exportFileName="addresses_export"
                   searchPlaceholder="Search addresses..."

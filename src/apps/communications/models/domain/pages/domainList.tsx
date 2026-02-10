@@ -36,6 +36,7 @@ export default function DomainList() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
   const getEmailData = useCallback(async (emailId?: number) => {
@@ -55,6 +56,21 @@ export default function DomainList() {
   useEffect(() => {
     getEmailData();
   }, [getEmailData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await fetchDomains(undefined, { search: query });
+      setData(res.data.data.results);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: dynamicData) => {
     setSelectedEmail(row);
@@ -240,6 +256,10 @@ export default function DomainList() {
                   filters={filters}
                   enableExport={true}
                   enableSelection={true}
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
                   onSelectionChange={setSelectedDomains}
                   exportFileName="domains_export"
                   searchPlaceholder="Search domains..."

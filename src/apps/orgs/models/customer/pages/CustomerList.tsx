@@ -5,6 +5,7 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { useState, useCallback } from "react";
 
 const columns = (actions: {
   onView: (row: any) => void;
@@ -178,6 +179,25 @@ const filters: ColumnFilter[] = [
 ];
 
 export default function CustomerList() {
+  const [searchDatabase, setSearchDatabase] = useState(false);
+  const [data, setData] = useState<any[]>([]);
+
+  // Database search handler - called when "Query DB" checkbox is checked
+  // and user enters comma-separated search terms
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    // Build search query from terms (AND logic for database)
+    // The backend should search across all scalar fields and refs.keywords
+    const searchQuery = terms.join(",");
+    try {
+      const res = await fetchCustomers({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    }
+  }, []);
+
   return (
     <OrgEntityList
       modelKey="customer"
@@ -194,6 +214,10 @@ export default function CustomerList() {
         edit: (id: any) => `${PageRoutes.customerEdit}/${id}`,
         detail: (id: any) => `${PageRoutes.customerDetail}/${id}`,
       }}
+      enableDatabaseSearch={true}
+      searchDatabase={searchDatabase}
+      onSearchModeChange={setSearchDatabase}
+      onDatabaseSearch={handleDatabaseSearch}
     />
   );
 }

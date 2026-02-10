@@ -15,6 +15,7 @@ export default function InvoiceLineList() {
   const [selectedInvoiceLine, setSelectedInvoiceLine] = useState<InvoiceLine | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -40,6 +41,21 @@ export default function InvoiceLineList() {
   useEffect(() => {
     getInvoiceLineData();
   }, [getInvoiceLineData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchInvoiceLines({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = (row: InvoiceLine) => {
     setSelectedInvoiceLine(row);
@@ -168,6 +184,10 @@ export default function InvoiceLineList() {
                 storageKey="invoice_line_list"
                 onRowActivate={handleEdit}
                 loading={loading}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
               />
             </div>
           </ComponentCard>

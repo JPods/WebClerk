@@ -16,6 +16,7 @@ export default function CurrencyList() {
   const [selectedCurrencies, setSelectedCurrencies] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getCurrencyData = useCallback(async () => {
     try {
@@ -37,6 +38,21 @@ export default function CurrencyList() {
   useEffect(() => {
     getCurrencyData();
   }, [getCurrencyData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchCurrencies({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || res.data || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = useCallback((row: any) => {
     setSelectedCurrency(row);
@@ -138,6 +154,10 @@ export default function CurrencyList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search currencies..."
               noDataMessage="No currencies found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedCurrencies.length > 0 && (

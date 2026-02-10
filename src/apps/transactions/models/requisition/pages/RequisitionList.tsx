@@ -17,6 +17,7 @@ export default function RequisitionList() {
   const [selectedRequisitions, setSelectedRequisitions] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getRequisitionData = useCallback(async () => {
     try {
@@ -38,6 +39,21 @@ export default function RequisitionList() {
   useEffect(() => {
     getRequisitionData();
   }, [getRequisitionData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchRequisitions({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = useCallback((row: any) => {
     setSelectedRequisition(row);
@@ -141,6 +157,10 @@ export default function RequisitionList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search requisitions..."
               noDataMessage="No requisitions found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedRequisitions.length > 0 && (

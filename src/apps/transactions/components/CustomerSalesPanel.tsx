@@ -24,7 +24,12 @@ import {
 } from "react-icons/fa";
 import { customerApi } from "@/apps/orgs/services/orgApi";
 import type { Organization } from "@/apps/orgs/types/orgTypes";
-import ComponentCard from "@/components/layout/ComponentCard";
+import ComponentCard from "@/components/common/ComponentCard";
+
+// ---------- Constants ----------
+
+/** Default price level when customer doesn't have one set. "retail" and "base" are equivalent. */
+const DEFAULT_PRICE_LEVEL = "retail";
 
 // ---------- Types ----------
 
@@ -195,12 +200,27 @@ const StatusBadge: React.FC<{ hold?: boolean; codOnly?: boolean; inactive?: bool
 
 // ---------- Financial Info Display ----------
 
-const FinancialInfo: React.FC<{ financial?: CustomerFinancial }> = ({ financial }) => {
+const FinancialInfo: React.FC<{ financial?: CustomerFinancial; priceLevel?: string | null }> = ({ financial, priceLevel }) => {
   const common = financial?.common;
   const customer = financial?.customer;
+  // Display price level, defaulting to "retail" if not set
+  const displayPriceLevel = priceLevel || DEFAULT_PRICE_LEVEL;
 
   return (
     <div className="mt-4 space-y-4">
+      {/* Price Level & Last Sale Info */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Price Level: </span>
+          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 uppercase">{displayPriceLevel}</span>
+        </div>
+        {customer?.sales?.dt_last_sale && (
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            Last Sale: <span className="font-medium text-slate-700 dark:text-slate-300">{formatDate(customer.sales.dt_last_sale)}</span>
+          </div>
+        )}
+      </div>
+
       {/* Credit & Balances */}
       <div className="grid grid-cols-2 gap-4">
         {/* Credit Info */}
@@ -318,6 +338,12 @@ const FinancialInfo: React.FC<{ financial?: CustomerFinancial }> = ({ financial 
               <dt className="text-slate-500 dark:text-slate-400">Lifetime</dt>
               <dd className="font-medium text-green-600 dark:text-green-400">
                 {formatCurrency(customer?.sales?.lifetime)}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500 dark:text-slate-400">Last Sale</dt>
+              <dd className="font-medium text-slate-600 dark:text-slate-300">
+                {formatDate(customer?.sales?.dt_last_sale)}
               </dd>
             </div>
           </dl>
@@ -571,10 +597,11 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
     const termsId = customer.financial?.common?.settings?.terms_id;
 
     // Call onSelect with customer data plus terms/price_level for parent
+    // Default to "retail" if customer doesn't have a price_level set
     onSelect({
       customer,
       terms: termsId ? String(termsId) : null,
-      price_level: customer.price_level,
+      price_level: customer.price_level || DEFAULT_PRICE_LEVEL,
     });
 
     setIsOpen(false);
@@ -588,10 +615,11 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
     saveToRecent(customer);
 
     const termsId = customer.financial?.common?.settings?.terms_id;
+    // Default to "retail" if customer doesn't have a price_level set
     onSelect({
       customer,
       terms: termsId ? String(termsId) : null,
-      price_level: customer.price_level,
+      price_level: customer.price_level || DEFAULT_PRICE_LEVEL,
     });
 
     setIsOpen(false);
@@ -852,7 +880,7 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
 
         {/* Financial Info Display */}
         {selectedCustomer && showFinancials && (
-          <FinancialInfo financial={selectedCustomer.financial} />
+          <FinancialInfo financial={selectedCustomer.financial} priceLevel={selectedCustomer.price_level} />
         )}
       </div>
     </ComponentCard>

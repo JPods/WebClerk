@@ -16,6 +16,7 @@ export default function BaseOrgModelList() {
   const [selectedBaseOrgModels, setSelectedBaseOrgModels] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getBaseOrgModelData = useCallback(async () => {
     try {
@@ -34,6 +35,22 @@ export default function BaseOrgModelList() {
   useEffect(() => {
     getBaseOrgModelData();
   }, [getBaseOrgModelData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const list = await getRecords('base_org_model', { search: query });
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = useCallback((row: any) => {
     setSelectedBaseOrgModel(row);
@@ -139,6 +156,10 @@ export default function BaseOrgModelList() {
               storageKey="base-org-model-list"
               enableExport={true}
               enableSelection={true}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               onSelectionChange={setSelectedBaseOrgModels}
               exportFileName="base_org_models_export"
               onRowActivate={handleEdit}

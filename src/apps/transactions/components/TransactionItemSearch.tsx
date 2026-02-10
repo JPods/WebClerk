@@ -69,20 +69,32 @@ export function resolveItemKey(item: ItemSearchResult): string {
  * Resolve unit price based on price level
  * If item.price is an object with price levels (base, wholesale, distributor, sample),
  * looks up item.price[priceLevel], falling back to item.price.base if level not found.
- * priceLevel defaults to "base" if null/undefined.
+ * priceLevel defaults to "retail" if null/undefined.
+ * Note: "retail" and "base" are treated as equivalent.
  */
 export function resolveUnitPrice(
   item: ItemSearchResult,
   priceLevel?: string | null,
 ): number {
-  // Default price level to "base" if not provided
-  const level = priceLevel || "base";
+  // Default price level to "retail" if not provided ("retail" and "base" are equivalent)
+  const level = priceLevel || "retail";
 
   // Check if item.price is an object with price levels
   if (item.price && typeof item.price === "object") {
     const priceObj = item.price as Record<string, unknown>;
-    // Try the requested price level first, fall back to base
-    const levelValue = priceObj[level] ?? priceObj.base;
+    // Try the requested price level first
+    // For "retail" also check "base", and vice versa (they are equivalent)
+    let levelValue = priceObj[level];
+    if (levelValue === undefined || levelValue === null) {
+      if (level === "retail") {
+        levelValue = priceObj.base;
+      } else if (level === "base") {
+        levelValue = priceObj.retail;
+      } else {
+        // Fall back to base/retail for other levels not found
+        levelValue = priceObj.base ?? priceObj.retail;
+      }
+    }
     if (typeof levelValue === "number" && levelValue >= 0) return levelValue;
     if (typeof levelValue === "string") {
       const parsed = Number.parseFloat(levelValue);

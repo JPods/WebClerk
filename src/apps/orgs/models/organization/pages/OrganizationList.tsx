@@ -4,6 +4,7 @@ import OrganizationDetail from "./OrganizationDisplay";
 import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { useState, useCallback } from "react";
 
 const columns = (actions: {
   onView: (row: any) => void;
@@ -163,6 +164,13 @@ const filters: ColumnFilter[] = [
 ];
 
 export default function OrganizationList() {
+  const [searchDatabase, setSearchDatabase] = useState(false);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const searchQuery = terms.join(",");
+    await fetchOrganizations({ search: searchQuery });
+  }, []);
+
   return (
     <OrgEntityList
       modelKey="organization"
@@ -174,6 +182,10 @@ export default function OrganizationList() {
       storageKey="organization-list"
       exportFileName="organizations_export"
       displayComponent={OrganizationDetail}
+      enableDatabaseSearch={true}
+      searchDatabase={searchDatabase}
+      onSearchModeChange={setSearchDatabase}
+      onDatabaseSearch={handleDatabaseSearch}
     />
   );
 }

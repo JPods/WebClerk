@@ -63,6 +63,7 @@ export default function ItemList() {
   const [formMode, setFormMode] = useState<ItemListMode>(null);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getItemId = useCallback((row: any) => {
     return valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ?? null;
@@ -174,6 +175,23 @@ export default function ItemList() {
     }
   }, [selectedItems, dispatch, getItemId, getItems]);
 
+  // Database search handler for comma-separated terms (AND logic)
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchItems({ search: searchQuery });
+      if (res.status === 200) {
+        const normalized = extractItems(res);
+        setItems(normalized);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const filters: ColumnFilter[] = useMemo(() => [
     { key: "category", label: "Category", type: "text" },
     { key: "kind", label: "Kind", type: "select", options: [
@@ -261,6 +279,10 @@ export default function ItemList() {
               onRowDoubleClicked={handleDoubleClick}
               searchPlaceholder="Search items..."
               noDataMessage="No items found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedItems.length > 0 && (

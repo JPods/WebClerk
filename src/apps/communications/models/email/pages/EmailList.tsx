@@ -23,6 +23,7 @@ export default function EmailList() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
   const getEmailData = useCallback(async (emailId?: number) => {
@@ -42,6 +43,21 @@ export default function EmailList() {
   useEffect(() => {
     getEmailData();
   }, [getEmailData]);
+
+  // Handle database search
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    const query = terms.join(' ');
+    setLoading(true);
+    try {
+      const res = await fetchEmails(undefined, { search: query });
+      setData(res.data.data.results);
+    } catch (error) {
+      console.error("Database search error:", error);
+      dispatch(showToast({ message: "Search failed", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
 
   const handleView = (row: dynamicData) => {
     setSelectedEmail(row);
@@ -251,6 +267,10 @@ export default function EmailList() {
                   filters={filters}
                   enableExport={true}
                   enableSelection={true}
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
                   onSelectionChange={setSelectedEmails}
                   exportFileName="emails_export"
                   searchPlaceholder="Search emails, names, attention..."

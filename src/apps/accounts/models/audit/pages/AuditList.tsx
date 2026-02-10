@@ -14,6 +14,7 @@ export default function AuditList() {
   const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -37,6 +38,21 @@ export default function AuditList() {
   useEffect(() => {
     getAuditData();
   }, [getAuditData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchAudits({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items || res.data || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = (row: any) => {
     setSelectedAudit(row);
@@ -148,6 +164,10 @@ export default function AuditList() {
                 storageKey="audit_list"
                 loading={loading}
                 onRowActivate={handleEdit}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
                 rowKeyField="id"
               />
             </div>

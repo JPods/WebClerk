@@ -29,6 +29,19 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+/**
+ * Parse comma-separated search terms into an array of trimmed lowercase terms.
+ * Supports both "," and ", " as separators.
+ * Exported for use in List components that need to perform database searches.
+ */
+export const parseSearchTerms = (input: string): string[] => {
+  if (!input || !input.trim()) return [];
+  return input
+    .split(/,\s*/)
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0);
+};
+
 export type ColumnFilter = {
   key: string; // unique key for the filter (used as object key)
   label: string; // label to display in the UI
@@ -74,6 +87,14 @@ export interface AdvancedDataTableProps<T> {
   rowClickAllowedColumnIds?: Array<string | number>;
   searchPlaceholder?: string;
   noDataMessage?: string;
+  /** Enable toggle between searching in current selection vs querying database */
+  enableDatabaseSearch?: boolean;
+  /** Current search mode: true = query database, false = search in selection */
+  searchDatabase?: boolean;
+  /** Callback when search mode changes */
+  onSearchModeChange?: (searchDatabase: boolean) => void;
+  /** Callback to perform database search with parsed terms. Parent component handles updating data. */
+  onDatabaseSearch?: (terms: string[]) => Promise<void> | void;
 }
 
 // Draggable Column Header Component
@@ -192,6 +213,10 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     rowClickAllowedColumnIds,
     searchPlaceholder = "Search...",
     noDataMessage = "No data available",
+    enableDatabaseSearch = false,
+    searchDatabase: searchDatabaseProp,
+    onSearchModeChange,
+    onDatabaseSearch,
   }: AdvancedDataTableProps<T>,
   ref: React.Ref<AdvancedDataTableHandle<T>>,
 ) {
@@ -200,6 +225,11 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchDatabaseInternal, setSearchDatabaseInternal] = useState(false);
+  
+  // Controlled or uncontrolled search mode
+  const searchDatabase = searchDatabaseProp ?? searchDatabaseInternal;
+  const setSearchDatabase = onSearchModeChange ?? setSearchDatabaseInternal;
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [selectionAnchorKey, setSelectionAnchorKey] = useState<string | null>(
@@ -595,18 +625,73 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     rowKeyField,
   ]);
 
+  /**
+   * Parse comma-separated search terms into an array of trimmed lowercase terms.
+   * Supports both "," and ", " as separators.
+   */
+  const parseSearchTerms = useCallback((input: string): string[] => {
+    if (!input || !input.trim()) return [];
+    return input
+      .split(/,\s*/)
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => t.length > 0);
+  }, []);
+
+  /**
+   * Check if a row matches ALL search terms (AND logic).
+   * Searches all scalar fields and refs.keywords.
+   */
+  const rowMatchesAllTerms = useCallback((row: Record<string, any>, terms: string[]): boolean => {
+    if (!terms.length) return true;
+
+    // Collect all searchable text from the row
+    const searchableValues: string[] = [];
+
+    // Add all scalar field values
+    Object.entries(row).forEach(([key, value]) => {
+      if (value === null || value === undefined) return;
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        searchableValues.push(String(value).toLowerCase());
+      }
+    });
+
+    // Add refs.keywords if present
+    const refs = row.refs;
+    if (refs && typeof refs === 'object') {
+      const keywords = refs.keywords;
+      if (typeof keywords === 'string') {
+        searchableValues.push(keywords.toLowerCase());
+      } else if (Array.isArray(keywords)) {
+        keywords.forEach((kw) => {
+          if (typeof kw === 'string') {
+            searchableValues.push(kw.toLowerCase());
+          }
+        });
+      }
+    }
+
+    // Check that ALL terms match somewhere in the searchable values
+    const searchableText = searchableValues.join(' ');
+    return terms.every((term) => searchableText.includes(term));
+  }, []);
+
   // Filter and search logic
   const filteredData = useMemo(() => {
+    // If database search mode is active and we have a search term, 
+    // filtering is handled externally via onDatabaseSearch callback
+    if (searchDatabase && effectiveSearchTerm && onDatabaseSearch) {
+      // Return all data - parent component handles database query results
+      return [...(Array.isArray(data) ? data : [])];
+    }
+
     let result = [...(Array.isArray(data) ? data : [])];
 
-    // Apply search
+    // Apply search with AND logic for comma-separated terms
     if (effectiveSearchTerm) {
-      const searchLower = effectiveSearchTerm.toLowerCase();
-      result = result.filter((row) =>
-        Object.values(row).some((value) =>
-          String(value).toLowerCase().includes(searchLower),
-        ),
-      );
+      const terms = parseSearchTerms(effectiveSearchTerm);
+      if (terms.length > 0) {
+        result = result.filter((row) => rowMatchesAllTerms(row, terms));
+      }
     }
 
     // Apply column filters
@@ -620,7 +705,17 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     });
 
     return result;
-  }, [data, effectiveSearchTerm, filterValues]);
+  }, [data, effectiveSearchTerm, filterValues, searchDatabase, onDatabaseSearch, parseSearchTerms, rowMatchesAllTerms]);
+
+  // Trigger database search callback when in database mode
+  useEffect(() => {
+    if (searchDatabase && onDatabaseSearch && effectiveSearchTerm) {
+      const terms = parseSearchTerms(effectiveSearchTerm);
+      if (terms.length > 0) {
+        onDatabaseSearch(terms);
+      }
+    }
+  }, [searchDatabase, onDatabaseSearch, effectiveSearchTerm, parseSearchTerms]);
 
   useEffect(() => {
     if (onVisibleRowsChange) {
@@ -1014,6 +1109,18 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                     </button>
                   )}
                 </div>
+                {/* Database Search Toggle */}
+                {enableDatabaseSearch && (
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={searchDatabase}
+                      onChange={(e) => setSearchDatabase(e.target.checked)}
+                      className="w-3.5 h-3.5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                    />
+                    <span>Query DB</span>
+                  </label>
+                )}
               </div>
             </div>
             {/* Custom Actions */}

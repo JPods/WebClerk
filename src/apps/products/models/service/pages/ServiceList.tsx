@@ -16,6 +16,7 @@ export default function ServiceList() {
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const getData = useCallback(async () => {
     try {
@@ -59,6 +60,21 @@ export default function ServiceList() {
     } catch { dispatch(showToast({ message: "Failed to delete some services", type: "error" })); }
   }, [selectedItems, dispatch, getData]);
 
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchServices({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data?.items || res.data?.data?.results || []);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const columns: TableColumn<any>[] = useMemo(() => [
     { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
     { id: "name", name: "Name", selector: (row) => row.name || "--", sortable: true },
@@ -98,6 +114,10 @@ export default function ServiceList() {
               onRowActivate={handleEdit}
               searchPlaceholder="Search services..."
               noDataMessage="No services found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <div className="flex gap-2">
                   {selectedItems.length > 0 && (

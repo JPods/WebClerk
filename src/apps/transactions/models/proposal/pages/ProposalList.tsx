@@ -17,6 +17,7 @@ export default function ProposalList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -42,6 +43,21 @@ export default function ProposalList() {
   useEffect(() => {
     getProposalData();
   }, [getProposalData]);
+
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchProposals({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.results);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const openProposal = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -324,6 +340,10 @@ export default function ProposalList() {
               exportFileName="proposals"
               searchPlaceholder="Search proposals, customers..."
               noDataMessage="No proposals found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <button
                   onClick={handleAdd}

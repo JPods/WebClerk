@@ -46,6 +46,7 @@ export default function OrderList() {
   );
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [searchDatabase, setSearchDatabase] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -71,6 +72,22 @@ export default function OrderList() {
   useEffect(() => {
     getOrderData();
   }, [getOrderData]);
+
+  // Database search handler for comma-separated terms (AND logic)
+  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
+    try {
+      setLoading(true);
+      const searchQuery = terms.join(",");
+      const res = await fetchOrders({ search: searchQuery });
+      if (res.status === 200) {
+        setData(res.data.items);
+      }
+    } catch (error) {
+      console.error("Database search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const openOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -418,6 +435,10 @@ export default function OrderList() {
               exportFileName="orders"
               searchPlaceholder="Search orders, customers, vendors..."
               noDataMessage="No orders found"
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               customActions={
                 <button
                   onClick={handleAdd}
