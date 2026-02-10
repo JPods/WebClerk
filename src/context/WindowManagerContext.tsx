@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export type WindowEntry = {
   path: string;
@@ -30,6 +31,7 @@ type WindowManagerCtx = {
   updateWindowPosition: (path: string, x: number, y: number) => void;
   maximizeWindow: (path: string, maximized?: boolean) => void;
   updateWindowSize: (path: string, width: number, height: number) => void;
+  setNavigate: (nav: (path: string) => void) => void;
 };
 
 const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
@@ -37,9 +39,17 @@ const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
 export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [windows, setWindows] = useState<WindowEntry[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
-  const openedCounter = React.useRef(0);
+  const openedCounter = useRef(0);
+  const navigateRef = useRef<((path: string) => void) | null>(null);
+  
+  const setNavigate = useCallback((nav: (path: string) => void) => {
+    navigateRef.current = nav;
+  }, []);
 
   const ensureWindow = useCallback((path: string, title = path, options?: EnsureWindowOptions) => {
+    if (navigateRef.current) {
+      navigateRef.current(path);
+    }
     setWindows((prev) => {
       const existing = prev.find((w) => w.path === path);
       if (existing) {
@@ -109,6 +119,9 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const activateWindow = useCallback((path: string) => {
+    if (navigateRef.current) {
+      navigateRef.current(path);
+    }
     setWindows((prev) => {
       const target = prev.find((w) => w.path === path);
       if (!target) return prev;
@@ -131,11 +144,23 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const api = useMemo<WindowManagerCtx>(
-    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize }),
-    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize]
+    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate }),
+    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate]
   );
 
   return <WindowManagerContext.Provider value={api}>{children}</WindowManagerContext.Provider>;
+};
+
+// Hook component to connect React Router's navigate to WindowManager
+export const WindowManagerNavigationSync: React.FC = () => {
+  const navigate = useNavigate();
+  const { setNavigate } = useWindowManager();
+  
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate, setNavigate]);
+  
+  return null;
 };
 
 export const useWindowManager = () => {

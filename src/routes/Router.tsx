@@ -3,6 +3,7 @@ import WcapiRouteHandler from "./WcapiRouteHandler";
 import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import PrivateRoute from "./PrivateRoute";
 import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
@@ -108,6 +109,7 @@ const Router: React.FC = () => {
   return (
     // <Provider store={store}>
     <BrowserRouter>
+      <WindowManagerNavigationSync />
       <ScrollToTop />
       <Toster />
       <Routes>

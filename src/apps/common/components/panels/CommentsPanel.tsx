@@ -348,7 +348,7 @@ const CommentList: React.FC<CommentListProps> = ({
             </div>
           </div>
           <button
-            className="px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
+            className="self-start px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
             onClick={handleSend}
             disabled={!inputValue.trim()}
           >
