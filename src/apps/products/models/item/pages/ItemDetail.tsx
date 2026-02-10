@@ -20,9 +20,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import DetailShell from "@/components/common/DetailShell";
 import ComponentCard from "@/components/common/ComponentCard";
 import Label from "@/components/form/Label";
+import { SimpleDetailHeader } from "@/components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "@/components/common/SimpleDetailToolbar";
 import Input from "@/components/form/input/InputField";
 import {
   Table,
@@ -68,7 +69,7 @@ import {
 } from "@/apps/common/components/panels";
 
 // ============================================================================
-// Types
+// Types (matching Django Item model)
 // ============================================================================
 
 interface QuantityData {
@@ -78,41 +79,115 @@ interface QuantityData {
   on_so?: number;
   on_po?: number;
   on_p?: number;
+  on_reciept?: number;  // Note: typo from legacy
+  on_in?: number;
   on_wo?: number;
-  invoiced?: number;
+}
+
+interface PriceTier {
+  level: string;
+  price: number;
+}
+
+interface QtyBreak {
+  min_qty: number;
+  unit_price?: number;
+  variant_item_id?: number;
 }
 
 interface PriceData {
   base?: number;
-  retail?: number;
-  wholesale?: number;
-  sale?: number;
-  breaks?: Array<{ qty: number; price: number }>;
+  msrp?: number;
+  tiers?: PriceTier[];
+  qty_breaks?: QtyBreak[];
+  currency?: string;
+  history?: Array<{ dt_utc: string; field: string; old: any; new: any }>;
+}
+
+interface CostBreak {
+  min_qty: number;
+  unit_cost?: number;
+  variant_item_id?: number;
 }
 
 interface CostData {
-  average?: number;
-  last?: number;
   standard?: number;
+  last?: number;
+  avg?: number;
   landed?: number;
+  currency?: string;
+  components?: Record<string, number>;
+  qty_breaks?: CostBreak[];
+  history?: Array<{ dt_utc: string; field: string; old: any; new: any }>;
+}
+
+interface GlsData {
+  inventory?: string;
+  cogs?: string;
+  revenue?: string;
+  variance?: string;
+  [key: string]: string | undefined;
+}
+
+interface TaxCodeData {
+  code?: string;
+  jurisdiction?: string;
+  category?: string;
+  rate?: number;
+  exemptions?: string[];
+  jurisdiction_params?: Array<{
+    jurisdiction: string;
+    kind?: string;
+    params?: Record<string, any>;
+    effective_from?: string;
+    effective_to?: string;
+  }>;
+}
+
+interface FlagsData {
+  back_order_allowed?: boolean;
+  discountable?: boolean;
+  linked?: boolean;
+  not_tracked?: boolean;
+  pacing?: boolean;
+  print_suppressed?: boolean;
+  serialized?: boolean;
+  tally_by_type?: boolean;
+}
+
+interface CatalogWebData {
+  slug?: string;
+  title?: string;
+  short?: string;
+  seo?: Record<string, any>;
+}
+
+interface CatalogData {
+  categories?: string[];
+  attributes?: Record<string, any>;
+  web?: CatalogWebData;
+  flags?: Record<string, boolean>;
 }
 
 interface ItemData {
   id?: number;
   name?: string;
   sku?: string;
+  qr_code?: string;
   kind?: string;
   uom?: string;
+  base_uom?: string;
   description?: string;
   category?: string;
   specification_id?: number;
+  row_version?: number;
   price?: PriceData | number;
   cost?: CostData;
   quantity?: QuantityData;
-  flags?: Record<string, boolean>;
-  gls?: Record<string, string>;
-  tax_code?: Record<string, any>;
-  catalog?: Record<string, any>;
+  flags?: FlagsData;
+  gls?: GlsData;
+  tax_code?: TaxCodeData;
+  catalog?: CatalogData;
   is_active?: boolean;
   dt_created?: number;
   dt_modified?: number;
@@ -415,8 +490,9 @@ function InventoryGrid({ quantity }: InventoryGridProps) {
     { label: "On SO", value: quantity.on_so, highlight: false },
     { label: "On PO", value: quantity.on_po, highlight: false },
     { label: "On Proposal", value: quantity.on_p, highlight: false },
+    { label: "On Receipt", value: quantity.on_reciept, highlight: false },
+    { label: "On Inbound", value: quantity.on_in, highlight: false },
     { label: "On WO", value: quantity.on_wo, highlight: false },
-    { label: "Invoiced", value: quantity.invoiced, highlight: false },
   ];
 
   const formatValue = (val: number | undefined): string => {
@@ -732,7 +808,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
 
   const getPrice = (price: PriceData | number | undefined): number | undefined => {
     if (typeof price === "number") return price;
-    if (typeof price === "object" && price) return price.base ?? price.retail;
+    if (typeof price === "object" && price) return price.base ?? price.msrp;
     return undefined;
   };
 
@@ -772,23 +848,25 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
 
       {/* 1. Basic Information - expanded */}
       <DataSection title="Basic Information" icon={<FaBox className="w-4 h-4" />} defaultOpen={true} noTable>
-        {/* Row 1: name, sku, ida, uom */}
+        {/* Row 1: name, sku, qr_code, id */}
         <DataFieldGrid columns={4}>
           <DataField label="name" value={data.name} highlight />
           <DataField label="sku" value={data.sku} />
-          <DataField label="ida" value={data.id} />
-          <DataField label="uom" value={data.uom} />
+          <DataField label="qr_code" value={data.qr_code} />
+          <DataField label="id" value={data.id} />
         </DataFieldGrid>
-        {/* Row 2: description (full width) */}
+        {/* Row 2: kind, uom, base_uom, specification_id */}
+        <DataFieldGrid columns={4}>
+          <DataField label="kind" value={data.kind} />
+          <DataField label="uom" value={data.uom} />
+          <DataField label="base_uom" value={data.base_uom} />
+          <DataField label="specification_id" value={data.specification_id} />
+        </DataFieldGrid>
+        {/* Row 3: description (full width) */}
         <DataFieldGrid columns={2}>
           <div className="col-span-2">
             <DataField label="description" value={data.description} />
           </div>
-        </DataFieldGrid>
-        {/* Row 3: kind, specification_id */}
-        <DataFieldGrid columns={2}>
-          <DataField label="kind" value={data.kind} />
-          <DataField label="specification_id" value={data.specification_id} />
         </DataFieldGrid>
       </DataSection>
 
@@ -799,22 +877,50 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
           {/* Pricing - expanded */}
           <DataSection title="Pricing" icon={<FaDollarSign className="w-4 h-4" />} defaultOpen={true} noTable>
             {typeof data.price === "object" && data.price ? (
-              <DataFieldGrid columns={2}>
-                <DataField label=".base" value={data.price.base} highlight isCurrency />
-                <DataField label=".retail" value={data.price.retail} isCurrency />
-                <DataField label=".wholesale" value={data.price.wholesale} isCurrency />
-                <DataField label=".sale" value={data.price.sale} isCurrency />
-                {data.price.breaks && data.price.breaks.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <DataField
-                      label=".breaks"
-                      value={data.price.breaks
-                        .map((b) => `${b.qty}+ @ $${b.price}`)
-                        .join(", ")}
-                    />
+              <>
+                <DataFieldGrid columns={3}>
+                  <DataField label=".base" value={(data.price as PriceData).base} highlight isCurrency />
+                  <DataField label=".msrp" value={(data.price as PriceData).msrp} isCurrency />
+                  <DataField label=".currency" value={(data.price as PriceData).currency || "USD"} />
+                </DataFieldGrid>
+                {/* Tiers */}
+                {(data.price as PriceData).tiers && (data.price as PriceData).tiers!.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Tiers</p>
+                    <div className="bg-gray-50 dark:bg-slate-800 rounded p-2 text-sm">
+                      {(data.price as PriceData).tiers!.map((t, i) => (
+                        <span key={i} className="mr-3">{t.level}: ${t.price?.toFixed(2)}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </DataFieldGrid>
+                {/* Qty Breaks */}
+                {(data.price as PriceData).qty_breaks && (data.price as PriceData).qty_breaks!.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Qty Breaks</p>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Min Qty</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Unit Price</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Variant ID</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(data.price as PriceData).qty_breaks!.map((b, i) => (
+                            <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                              <td className="px-2 py-1">{b.min_qty}</td>
+                              <td className="px-2 py-1">{b.unit_price != null ? `$${b.unit_price.toFixed(2)}` : "—"}</td>
+                              <td className="px-2 py-1">{b.variant_item_id ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <DataFieldGrid columns={2}>
                 <DataField label="price" value={getPrice(data.price)} highlight isCurrency />
@@ -825,12 +931,52 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
           {/* Cost - expanded */}
           {data.cost && typeof data.cost === "object" && (
             <DataSection title="Cost" icon={<FaCalculator className="w-4 h-4" />} defaultOpen={true} noTable>
-              <DataFieldGrid columns={2}>
-                <DataField label=".average" value={data.cost.average} isCurrency />
-                <DataField label=".last" value={data.cost.last} isCurrency />
-                <DataField label=".standard" value={data.cost.standard} isCurrency />
-                <DataField label=".landed" value={data.cost.landed} isCurrency />
+              <DataFieldGrid columns={3}>
+                <DataField label=".standard" value={(data.cost as CostData).standard} isCurrency />
+                <DataField label=".last" value={(data.cost as CostData).last} isCurrency />
+                <DataField label=".avg" value={(data.cost as CostData).avg} isCurrency />
               </DataFieldGrid>
+              <DataFieldGrid columns={2}>
+                <DataField label=".landed" value={(data.cost as CostData).landed} isCurrency />
+                <DataField label=".currency" value={(data.cost as CostData).currency || "USD"} />
+              </DataFieldGrid>
+              {/* Components */}
+              {(data.cost as CostData).components && Object.keys((data.cost as CostData).components!).length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Components</p>
+                  <div className="bg-gray-50 dark:bg-slate-800 rounded p-2 text-sm">
+                    {Object.entries((data.cost as CostData).components!).map(([k, v]) => (
+                      <span key={k} className="mr-3">{k}: ${v?.toFixed(2)}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Qty Breaks */}
+              {(data.cost as CostData).qty_breaks && (data.cost as CostData).qty_breaks!.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Cost Breaks</p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Min Qty</th>
+                          <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Unit Cost</th>
+                          <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Variant ID</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data.cost as CostData).qty_breaks!.map((b, i) => (
+                          <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                            <td className="px-2 py-1">{b.min_qty}</td>
+                            <td className="px-2 py-1">{b.unit_cost != null ? `$${b.unit_cost.toFixed(2)}` : "—"}</td>
+                            <td className="px-2 py-1">{b.variant_item_id ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </DataSection>
           )}
         </div>
@@ -914,32 +1060,105 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
       )}
 
       {/* 10. GL Accounts - collapsed */}
-      {data.gls && Object.keys(data.gls).length > 0 && (
-        <DataSection title="GL Accounts" icon={<FaListAlt className="w-4 h-4" />} defaultOpen={false}>
-          <TableBody>
-            {Object.entries(data.gls).map(([key, value]) => (
-              <DataRow
-                key={key}
-                label={key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                value={value}
-              />
-            ))}
-          </TableBody>
+      {data.gls && (
+        <DataSection title="GL Accounts" icon={<FaListAlt className="w-4 h-4" />} defaultOpen={false} noTable>
+          <DataFieldGrid columns={4}>
+            <DataField label="inventory" value={(data.gls as GlsData).inventory} />
+            <DataField label="cogs" value={(data.gls as GlsData).cogs} />
+            <DataField label="revenue" value={(data.gls as GlsData).revenue} />
+            <DataField label="variance" value={(data.gls as GlsData).variance} />
+          </DataFieldGrid>
         </DataSection>
       )}
 
       {/* 11. Tax Information - collapsed */}
-      {data.tax_code && Object.keys(data.tax_code).length > 0 && (
-        <DataSection title="Tax Information" icon={<FaFileInvoice className="w-4 h-4" />} defaultOpen={false}>
-          <TableBody>
-            {Object.entries(data.tax_code).map(([key, value]) => (
-              <DataRow
-                key={key}
-                label={key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                value={value}
-              />
-            ))}
-          </TableBody>
+      {data.tax_code && (
+        <DataSection title="Tax Information" icon={<FaFileInvoice className="w-4 h-4" />} defaultOpen={false} noTable>
+          <DataFieldGrid columns={3}>
+            <DataField label="code" value={(data.tax_code as TaxCodeData).code} />
+            <DataField label="jurisdiction" value={(data.tax_code as TaxCodeData).jurisdiction} />
+            <DataField label="category" value={(data.tax_code as TaxCodeData).category} />
+          </DataFieldGrid>
+          <DataFieldGrid columns={2}>
+            <DataField label="rate" value={(data.tax_code as TaxCodeData).rate} />
+            <DataField label="exemptions" value={(data.tax_code as TaxCodeData).exemptions?.join(", ")} />
+          </DataFieldGrid>
+          {/* Jurisdiction Params */}
+          {(data.tax_code as TaxCodeData).jurisdiction_params && (data.tax_code as TaxCodeData).jurisdiction_params!.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Jurisdiction Params</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Jurisdiction</th>
+                      <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Kind</th>
+                      <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Effective From</th>
+                      <th className="px-2 py-1 text-left text-xs font-semibold text-gray-500">Effective To</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.tax_code as TaxCodeData).jurisdiction_params!.map((jp, i) => (
+                      <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="px-2 py-1">{jp.jurisdiction}</td>
+                        <td className="px-2 py-1">{jp.kind ?? "—"}</td>
+                        <td className="px-2 py-1">{jp.effective_from ?? "—"}</td>
+                        <td className="px-2 py-1">{jp.effective_to ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </DataSection>
+      )}
+
+      {/* 11b. Catalog - collapsed */}
+      {data.catalog && (
+        <DataSection title="Catalog" icon={<FaListAlt className="w-4 h-4" />} defaultOpen={false} noTable>
+          {/* Categories */}
+          {(data.catalog as CatalogData).categories && (data.catalog as CatalogData).categories!.length > 0 && (
+            <DataFieldGrid columns={2}>
+              <div className="sm:col-span-2">
+                <DataField label="categories" value={(data.catalog as CatalogData).categories!.join(" > ")} />
+              </div>
+            </DataFieldGrid>
+          )}
+          {/* Web */}
+          {(data.catalog as CatalogData).web && (
+            <DataFieldGrid columns={4}>
+              <DataField label="web.slug" value={(data.catalog as CatalogData).web?.slug} />
+              <DataField label="web.title" value={(data.catalog as CatalogData).web?.title} />
+              <DataField label="web.short" value={(data.catalog as CatalogData).web?.short} />
+              <DataField label="web.seo" value={(data.catalog as CatalogData).web?.seo ? JSON.stringify((data.catalog as CatalogData).web!.seo) : null} />
+            </DataFieldGrid>
+          )}
+          {/* Attributes */}
+          {(data.catalog as CatalogData).attributes && Object.keys((data.catalog as CatalogData).attributes!).length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Attributes</p>
+              <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-sm">
+                {Object.entries((data.catalog as CatalogData).attributes!).map(([k, v]) => (
+                  <div key={k} className="flex items-baseline gap-1">
+                    <dt className="text-xs font-mono text-gray-500 dark:text-gray-400">{k}:</dt>
+                    <dd className="text-gray-900 dark:text-white">{String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+          {/* Catalog Flags */}
+          {(data.catalog as CatalogData).flags && Object.keys((data.catalog as CatalogData).flags!).length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Flags</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries((data.catalog as CatalogData).flags!).map(([k, v]) => (
+                  <Badge key={k} color={v ? "success" : "light"}>{k}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </DataSection>
       )}
 
@@ -986,7 +1205,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
       <DataSection title="Record Information" icon={<FaCog className="w-4 h-4" />} defaultOpen={false}>
         <TableBody>
           <DataRow label="Record ID" value={data.id} />
-          <DataRow label="Version" value={data.version} />
+          <DataRow label="Row Version" value={data.row_version} />
           <DataRow label="Created" value={formatDate(data.dt_created)} />
           <DataRow label="Last Modified" value={formatDate(data.dt_modified)} />
           <DataRow label="Active" value={data.is_active} />
@@ -1111,6 +1330,7 @@ export default function ItemDetail({
   
   // Allow toggling between view and edit modes
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
@@ -1172,6 +1392,7 @@ export default function ItemDetail({
   // Form submission
   const onSubmit = async (formData: z.infer<typeof itemSchema>) => {
     try {
+      setIsSaving(true);
       const payload = {
         ...formData,
         ...(mode === "edit" && data?.id ? { id: data.id } : {}),
@@ -1187,11 +1408,47 @@ export default function ItemDetail({
           type: "success" 
         }));
         if (onSaved) onSaved();
+        if (effectiveMode === "add" && onCancelInline) {
+          onCancelInline();
+        } else {
+          setEffectiveMode("view");
+        }
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         dispatch(showToast({ message: error.message, type: "error" }));
       }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Toolbar handlers
+  const handleSave = () => {
+    handleSubmit(onSubmit)();
+  };
+
+  const handleEdit = () => {
+    setEffectiveMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (effectiveMode === "add") {
+      onCancelInline?.();
+    } else {
+      // Reset form to original data
+      if (data) {
+        const normalizedItem = {
+          name: data.name || "",
+          description: data.description || "",
+          price: typeof data.price === "number" ? data.price : (data.price as PriceData)?.base || 0,
+          category: data.category || "",
+        };
+        reset(normalizedItem);
+      }
+      setEffectiveMode("view");
     }
   };
 
@@ -1208,31 +1465,53 @@ export default function ItemDetail({
   // View mode - show data display
   if (effectiveMode === "view" && data) {
     return (
-      <DetailShell
-        title="Item"
-        mode={effectiveMode}
-        inline={inline}
-        hideBreadcrumb={hideBreadcrumb}
-        onCancelInline={onCancelInline}
-        card={false}
-      >
+      <>
+        {/* Header */}
+        <SimpleDetailHeader
+          entityName="Item"
+          recordId={data?.id}
+          recordName={data?.name || data?.sku}
+          mode={effectiveMode}
+          backUrl={inline ? undefined : "/products/items"}
+        />
+
+        {/* Toolbar */}
+        <SimpleDetailToolbar
+          mode={effectiveMode}
+          isSaving={isSaving}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+
         <ComponentCard>
           <ItemDataView data={data} isAdmin={isAdmin} />
         </ComponentCard>
-      </DetailShell>
+      </>
     );
   }
 
   // Edit/Add mode - show form
   return (
-    <DetailShell
-      title="Item"
-      mode={effectiveMode}
-      inline={inline}
-      hideBreadcrumb={hideBreadcrumb}
-      onCancelInline={onCancelInline}
-      card={false}
-    >
+    <>
+      {/* Header */}
+      <SimpleDetailHeader
+        entityName="Item"
+        recordId={data?.id}
+        recordName={data?.name || data?.sku}
+        mode={effectiveMode}
+        backUrl={inline ? undefined : "/products/items"}
+      />
+
+      {/* Toolbar */}
+      <SimpleDetailToolbar
+        mode={effectiveMode}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* 1. Basic Information Section */}
@@ -1383,29 +1662,8 @@ export default function ItemDetail({
               )}
             </>
           )}
-
-          {/* Submit Button */}
-          {effectiveMode !== "view" && (
-            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Create"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
       </ComponentCard>
-    </DetailShell>
+    </>
   );
 }

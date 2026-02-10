@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,7 +17,17 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { usageSchema } from "../utils/usageSchema";
 import { UsageAddProps } from "../types/usageType";
-import { Package, User, Hash, Calendar, FileText } from "lucide-react";
+import { Package, User, Hash, Calendar, FileText, CheckSquare, MessageSquare, FileIcon, History, Link, Code } from "lucide-react";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+
+// Panels
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import RefsPanel from "@/apps/common/components/panels/RefsPanel";
+import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
 
 const STORAGE_KEY = "usageDetail_columnCount";
 
@@ -42,6 +52,27 @@ export default function UsageDetail({
   // Mode state for switching between view/edit
   const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
+  // Full record data for panels (needed for tabs)
+  const [recordData, setRecordData] = useState<any>(data || {});
+
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("usage_detail", "actions", [
+    "actions", "comments", "documents", "history", "refs", "raw",
+  ]);
+
+  // Tab configuration
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+    ],
+    [recordData]
+  );
+
   const {
     register,
     setValue,
@@ -55,14 +86,17 @@ export default function UsageDetail({
   useEffect(() => {
     if (currentMode === "add") {
       reset();
+      setRecordData({});
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
       });
+      setRecordData(data);
     } else {
       reset({});
+      setRecordData({});
     }
   }, [data, reset, setValue, currentMode]);
 
@@ -133,56 +167,27 @@ export default function UsageDetail({
       )}
       
       {/* Header with entity name, ID, and mode indicator */}
-      {!inline && (
-        <SimpleDetailHeader
-          entityName="Usage"
-          recordId={data?.id}
-          recordName={data?.item_id}
-          mode={currentMode}
-          backUrl="/products/usages"
-        />
-      )}
+      <SimpleDetailHeader
+        entityName="Usage"
+        recordId={data?.id}
+        recordName={data?.item_id}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/products/usages"}
+      />
 
       {/* Toolbar with action buttons */}
-      {!inline && (
-        <SimpleDetailToolbar
-          mode={currentMode}
-          isSaving={isSaving}
-          onSave={handleSubmit(onSubmit)}
-          onCancel={handleCancel}
-          onEdit={handleEdit}
-        />
-      )}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
 
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {currentMode === "edit"
-                ? "Edit Usage"
-                : currentMode === "view"
-                ? "View Usage"
-                : "Add New Usage"}
-            </h3>
-            <div className="flex items-center gap-3">
-              <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
-              {onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        {!inline && (
-          <div className="flex justify-end mb-4">
-            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
-          </div>
-        )}
+        <div className="flex justify-end mb-4">
+          <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className={getGridClassName(columnCount)}>
             <HorizontalField
@@ -261,29 +266,35 @@ export default function UsageDetail({
               disabled={currentMode === "view"}
             />
           </HorizontalField>
-
-          {/* Inline mode buttons */}
-          {inline && currentMode !== "view" && (
-            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {currentMode === "edit" ? "Update" : "Submit"}
-              </button>
-              {onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab Content */}
+      {activeTab === "actions" && (
+        <ActionsPanel entityType="usage" entityId={data?.id} />
+      )}
+      {activeTab === "comments" && (
+        <CommentsPanel entityType="usage" entityId={data?.id} />
+      )}
+      {activeTab === "documents" && (
+        <DocumentsPanel entityType="usage" entityId={data?.id} />
+      )}
+      {activeTab === "history" && (
+        <ComponentCard title="History">
+          <p className="text-gray-500 dark:text-gray-400">History panel coming soon...</p>
+        </ComponentCard>
+      )}
+      {activeTab === "refs" && (
+        <RefsPanel entityType="usage" entityId={data?.id} refs={recordData?.refs} />
+      )}
+      {activeTab === "raw" && (
+        <ComponentCard title="Full Usage JSON">
+          <JsonFieldEditor value={recordData} label="Full Usage JSON" />
+        </ComponentCard>
+      )}
     </>
   );
 }
