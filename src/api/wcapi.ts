@@ -238,18 +238,14 @@ export async function saveTransactionWithLines(
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-      model_name: resolved,
-      id,
-      method: "delete",
+    const res = await apiClient.get<ApiEnvelope<any>>("/wcapi/delete/", {
+      params: { model_name: resolved, id },
     });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
-        model_name: resolved,
-        id,
-        method: "delete",
+      const res2 = await apiClient.get<ApiEnvelope<any>>("/api/wcapi/delete/", {
+        params: { model_name: resolved, id },
       });
       return res2.data.data;
     }

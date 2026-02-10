@@ -1,6 +1,7 @@
 import React from "react";
 import FieldLabel from "../components/FieldLabel";
 import { Input, DropDown } from "@/components/wrapper";
+import CustomerSalesPanel, { type CustomerSelectionData } from "./CustomerSalesPanel";
 
 // Inline StatusBadge (copied from OrderDetail)
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
@@ -26,8 +27,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
     </span>
   );
 };
-import { FaLock, FaShoppingCart } from "react-icons/fa";
-import { TransactionPartySelector } from "./PartySelector";
+import { FaLock, FaShoppingCart, FaMoneyBillWave, FaUser } from "react-icons/fa";
 
 interface SummaryCardProps {
   data: any;
@@ -37,6 +37,24 @@ interface SummaryCardProps {
   customerInfo: any;
   billingContact: any;
   shippingContact: any;
+  /** Transaction type label (e.g., "Order", "Proposal", "Invoice") */
+  transactionLabel?: string;
+  /** Field label for the main document number (e.g., "Order No", "Proposal No") */
+  documentNoLabel?: string;
+  /** Field label for due/expiry date (e.g., "Due Date", "Valid Until") */
+  dueDateLabel?: string;
+  /** Whether to show shipping section */
+  showShipping?: boolean;
+  /** Whether to show cost/margin in totals */
+  showCostMargin?: boolean;
+  /** Whether to show payments section (received/balance) */
+  showPayments?: boolean;
+  /** Callback when Add Payment button is clicked */
+  onAddPayment?: () => void;
+  /** Whether to use the enhanced CustomerSalesPanel (default: true) */
+  useCustomerSalesPanel?: boolean;
+  /** Callback when customer is selected via CustomerSalesPanel - transfers terms/price_level */
+  onCustomerSelect?: (data: CustomerSelectionData | null) => void;
 }
 // Utility functions
 const formatCurrency = (value?: number | null): string => {
@@ -61,8 +79,35 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   customerInfo,
   billingContact,
   shippingContact,
+  transactionLabel = "Order",
+  documentNoLabel = "Order No",
+  dueDateLabel = "Due Date",
+  showShipping = true,
+  showCostMargin = true,
+  showPayments = false,
+  onAddPayment,
+  useCustomerSalesPanel = true,
+  onCustomerSelect,
 }) => {
-  // Add logic to extract billingContact and shippingContact from customerInfo or data
+  // Handle customer selection from CustomerSalesPanel
+  const handleCustomerSelect = (selectionData: CustomerSelectionData | null) => {
+    if (onCustomerSelect) {
+      onCustomerSelect(selectionData);
+    }
+    // Also update individual fields via onChange if provided
+    if (onChange && selectionData) {
+      onChange("customer_id", selectionData.customer.id);
+      // Transfer terms and price_level if customer provides them and they're not already set
+      if (selectionData.terms && !data.terms) {
+        onChange("terms", selectionData.terms);
+      }
+      if (selectionData.price_level && !data.price_level) {
+        onChange("price_level", selectionData.price_level);
+      }
+    } else if (onChange && !selectionData) {
+      onChange("customer_id", null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -72,12 +117,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <FaShoppingCart className="text-blue-500" />
-            Order
+            {transactionLabel}
           </h3>
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Order No QQQ get action dotteed"
+                label={documentNoLabel}
                 mandatory
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -119,7 +164,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Due Date"
+                label={dueDateLabel}
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -242,154 +287,154 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           </dl>
         </div>
 
-        {/* Center: Customer Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Customer
-          </h3>
-          {/* Customer selection or display */}
-          {isEditing && !customerInfo ? (
-            <div>
-              <FieldLabel label="Customer" mandatory />
-              <TransactionPartySelector
-                transactionType="sales"
-                value={data.customer_id ?? null}
-                onChange={(party) =>
-                  onChange && onChange("customer_id", party?.id ?? null)
-                }
-                className="text-sm"
-              />
-            </div>
-          ) : customerInfo ? (
-            <dl className="space-y-3 text-xs">
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="Customer ID"
-                  locked
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="font-mono text-slate-600 dark:text-slate-300">
-                  {data.customer_id ?? "--"}
-                </dd>
-              </div>
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="Name"
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="text-slate-900 dark:text-white">
-                  {customerInfo.display_name ?? "--"}
-                </dd>
-              </div>
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="IDA"
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="font-mono text-slate-600 dark:text-slate-300">
-                  {customerInfo.ida ?? "--"}
-                </dd>
-              </div>
-            </dl>
-          ) : (
-            <p className="text-slate-400 text-xs">No customer linked</p>
-          )}
+        {/* Center: Customer Info - uses CustomerSalesPanel for enhanced search/display */}
+        {useCustomerSalesPanel ? (
+          <CustomerSalesPanel
+            value={data.customer_id ?? customerInfo?.id ?? null}
+            onSelect={handleCustomerSelect}
+            isEditing={isEditing}
+            showFinancials={true}
+            title="Customer"
+            className="h-full"
+          />
+        ) : (
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <FaUser className="text-blue-500" />
+              Customer
+            </h3>
+            {/* Legacy customer display */}
+            {customerInfo ? (
+              <dl className="space-y-3 text-xs">
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Customer ID"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-300">
+                    {data.customer_id ?? "--"}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Name"
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="text-slate-900 dark:text-white">
+                    {customerInfo.display_name ?? "--"}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="IDA"
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-300">
+                    {customerInfo.ida ?? "--"}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-slate-400 text-xs">No customer linked</p>
+            )}
 
-          {billingContact && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                Bill To
-              </h4>
-              <p className="text-xs text-slate-900 dark:text-white">
-                {billingContact.display_name}
-              </p>
-              {billingContact.email && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {Array.isArray(billingContact.email)
-                    ? billingContact.email
-                        .map((e: any) =>
-                          typeof e === "string" ? e : e?.full || e?.value || "",
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                    : typeof billingContact.email === "object" &&
-                      billingContact.email !== null
-                    ? billingContact.email.full ||
-                      billingContact.email.value ||
-                      ""
-                    : billingContact.email}
+            {billingContact && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                  Bill To
+                </h4>
+                <p className="text-xs text-slate-900 dark:text-white">
+                  {billingContact.display_name}
                 </p>
-              )}
-              {billingContact.phone && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {Array.isArray(billingContact.phone)
-                    ? billingContact.phone
-                        .map((p: any) =>
-                          typeof p === "string" ? p : p?.full || p?.value || "",
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                    : typeof billingContact.phone === "object" &&
-                      billingContact.phone !== null
-                    ? billingContact.phone.full ||
-                      billingContact.phone.value ||
-                      ""
-                    : billingContact.phone}
-                </p>
-              )}
-            </div>
-          )}
+                {billingContact.email && (
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {Array.isArray(billingContact.email)
+                      ? billingContact.email
+                          .map((e: any) =>
+                            typeof e === "string" ? e : e?.full || e?.value || "",
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : typeof billingContact.email === "object" &&
+                        billingContact.email !== null
+                      ? billingContact.email.full ||
+                        billingContact.email.value ||
+                        ""
+                      : billingContact.email}
+                  </p>
+                )}
+                {billingContact.phone && (
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {Array.isArray(billingContact.phone)
+                      ? billingContact.phone
+                          .map((p: any) =>
+                            typeof p === "string" ? p : p?.full || p?.value || "",
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : typeof billingContact.phone === "object" &&
+                        billingContact.phone !== null
+                      ? billingContact.phone.full ||
+                        billingContact.phone.value ||
+                        ""
+                      : billingContact.phone}
+                  </p>
+                )}
+              </div>
+            )}
 
-          {shippingContact && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                Ship To
-              </h4>
-              <p className="text-xs text-slate-900 dark:text-white">
-                {shippingContact.display_name}
-              </p>
-              {shippingContact.email && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {Array.isArray(shippingContact.email)
-                    ? shippingContact.email
-                        .map((e: any) =>
-                          typeof e === "string" ? e : e?.full || e?.value || "",
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                    : typeof shippingContact.email === "object" &&
-                      shippingContact.email !== null
-                    ? shippingContact.email.full ||
-                      shippingContact.email.value ||
-                      ""
-                    : shippingContact.email}
+            {shippingContact && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                  Ship To
+                </h4>
+                <p className="text-xs text-slate-900 dark:text-white">
+                  {shippingContact.display_name}
                 </p>
-              )}
-              {shippingContact.phone && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {Array.isArray(shippingContact.phone)
-                    ? shippingContact.phone
-                        .map((p: any) =>
-                          typeof p === "string" ? p : p?.full || p?.value || "",
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                    : typeof shippingContact.phone === "object" &&
-                      shippingContact.phone !== null
-                    ? shippingContact.phone.full ||
-                      shippingContact.phone.value ||
-                      ""
-                    : shippingContact.phone}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+                {shippingContact.email && (
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {Array.isArray(shippingContact.email)
+                      ? shippingContact.email
+                          .map((e: any) =>
+                            typeof e === "string" ? e : e?.full || e?.value || "",
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : typeof shippingContact.email === "object" &&
+                        shippingContact.email !== null
+                      ? shippingContact.email.full ||
+                        shippingContact.email.value ||
+                        ""
+                      : shippingContact.email}
+                  </p>
+                )}
+                {shippingContact.phone && (
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {Array.isArray(shippingContact.phone)
+                      ? shippingContact.phone
+                          .map((p: any) =>
+                            typeof p === "string" ? p : p?.full || p?.value || "",
+                          )
+                          .filter(Boolean)
+                          .join(", ")
+                      : typeof shippingContact.phone === "object" &&
+                        shippingContact.phone !== null
+                      ? shippingContact.phone.full ||
+                        shippingContact.phone.value ||
+                        ""
+                      : shippingContact.phone}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Right: Totals */}
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Order Totals
+            {transactionLabel} Totals
           </h3>
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
@@ -443,37 +488,80 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 {formatCurrency(data.totals?.total ?? data.total)}
               </dd>
             </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Cost"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-600 dark:text-slate-400">
-                {formatCurrency(data.totals?.cost)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Margin"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd
-                className={`font-mono ${
-                  (data.totals?.margin ?? 0) >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(data.totals?.margin)}
-                {data.totals?.margin_pc != null && (
-                  <span className="ml-1 text-xs">
-                    ({data.totals.margin_pc.toFixed(1)}%)
-                  </span>
+            {showCostMargin && (
+              <>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Cost"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-400">
+                    {formatCurrency(data.totals?.cost)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Margin"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd
+                    className={`font-mono ${
+                      (data.totals?.margin ?? 0) >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {formatCurrency(data.totals?.margin)}
+                    {data.totals?.margin_pc != null && (
+                      <span className="ml-1 text-xs">
+                        ({data.totals.margin_pc.toFixed(1)}%)
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
+            {showPayments && (
+              <>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <FieldLabel
+                    label="Received"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-green-600 dark:text-green-400">
+                    {formatCurrency(data.totals?.received)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="Balance"
+                    locked
+                    className="text-slate-700 dark:text-slate-200 font-semibold"
+                  />
+                  <dd className={`font-mono font-bold ${
+                    (data.totals?.balance ?? 0) > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}>
+                    {formatCurrency(data.totals?.balance)}
+                  </dd>
+                </div>
+                {onAddPayment && (
+                  <div className="pt-3">
+                    <button
+                      onClick={onAddPayment}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FaMoneyBillWave size={14} />
+                      Add Payment
+                    </button>
+                  </div>
                 )}
-              </dd>
-            </div>
+              </>
+            )}
           </dl>
         </div>
       </div>

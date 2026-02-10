@@ -1,61 +1,34 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateCustomerRequest,
   CustomerApiTask,
   UpdateCustomerRequest,
 } from "../types/customerType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createCustomer = async (
   payload: CreateCustomerRequest
 ): Promise<CustomerApiTask> => {
-  const model_name: string = "customer";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<CustomerApiTask>(res);
+  const res = await saveRecord("customer", payload);
+  return res;
 };
 
 export const updateCustomer = async (
   payload: UpdateCustomerRequest
 ): Promise<CustomerApiTask> => {
-  const model_name: string = "customer";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<CustomerApiTask>(res);
+  const res = await saveRecord("customer", payload);
+  return res;
 };
 
-export const deleteCustomer = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteCustomer = async (id: number) => {
+  return deleteRecord("customer", id);
 };
 
-export const fetchCustomers = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=customer" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchCustomers = async (params?: any) => {
+  const res = await getRecords("customer", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchCustomer = async (): Promise<CustomerApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=customer");
-  return unwrap<CustomerApiTask[]>(res);
+  const res = await getRecords("customer");
+  return res.results || [];
 };

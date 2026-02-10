@@ -1,19 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Calendar, FileText, DollarSign, List } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
+import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
+import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import { createGLJournal, updateGLJournal } from "../services/glJournalApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { glJournalSchema } from "../utils/glJournalSchema";
 import { GLJournalAddProps } from "../types/glJournalType";
+
+const STORAGE_KEY = "glJournalDetail_columnCount";
 
 export default function GLJournalDetail({
   modeProp,
@@ -24,6 +33,8 @@ export default function GLJournalDetail({
   onCancelInline,
 }: GLJournalAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
   const {
     register,
@@ -38,10 +49,15 @@ export default function GLJournalDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const data = dataProp || routeState.data || null;
+
+  // Tab state - default to comments
+  const { activeTab, setActiveTab } = useDetailTabs("glJournal", "comments");
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -52,29 +68,55 @@ export default function GLJournalDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof glJournalSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createGLJournal(formData)
           : await updateGLJournal({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `GL Journal ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -88,26 +130,88 @@ export default function GLJournalDetail({
     setValue("type", value);
   };
 
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
+  // Tab content renderer
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="gl_journal"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={currentMode === "edit"}
+            currentUser="Current User"
+          />
+        );
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="gl_journal"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={currentMode === "edit"}
+          />
+        );
+      case "history":
+        return (
+          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
+            <p>History log will appear here</p>
+          </div>
+        );
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit GL Journal"
-              : mode === "view"
+              : currentMode === "view"
               ? "View GL Journal"
               : "GL Journal Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="GL Journal"
+          recordId={data?.id}
+          recordName={data?.description}
+          mode={currentMode}
+          backUrl="/accounts/gl-journals"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit GL Journal"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View GL Journal"
                 : "Add New GL Journal"}
             </h3>
@@ -123,9 +227,11 @@ export default function GLJournalDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date">date</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Date" htmlFor="date" error={errors.date?.message} icon={<Calendar size={14} />}>
               <Input
                 type="date"
                 id="date"
@@ -133,11 +239,10 @@ export default function GLJournalDetail({
                 {...register("date")}
                 error={errors.date && errors.date.message ? true : false}
                 hint={errors.date && errors.date.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="type">type</Label>
+            </HorizontalField>
+            <HorizontalField label="Type" htmlFor="type" icon={<List size={14} />}>
               <DropDown
                 id="type"
                 options={journalTypes}
@@ -145,13 +250,10 @@ export default function GLJournalDetail({
                 value={watch("type")}
                 onChange={handleTypeChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="amount">amount</Label>
+            </HorizontalField>
+            <HorizontalField label="Amount" htmlFor="amount" error={errors.amount?.message} icon={<DollarSign size={14} />}>
               <Input
                 type="number"
                 id="amount"
@@ -159,13 +261,10 @@ export default function GLJournalDetail({
                 {...register("amount", { valueAsNumber: true })}
                 error={errors.amount && errors.amount.message ? true : false}
                 hint={errors.amount && errors.amount.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="description">description</Label>
+            </HorizontalField>
+            <HorizontalField label="Description" htmlFor="description" error={errors.description?.message} icon={<FileText size={14} />}>
               <Input
                 type="text"
                 id="description"
@@ -175,17 +274,17 @@ export default function GLJournalDetail({
                   errors.description && errors.description.message ? true : false
                 }
                 hint={errors.description && errors.description.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button
@@ -199,6 +298,19 @@ export default function GLJournalDetail({
             </div>
           )}
         </form>
+      </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs
+        entityType="glJournal"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        standardTabs={["comments", "actions", "history", "raw"]}
+      />
+
+      {/* Tab Content */}
+      <ComponentCard>
+        {renderTabContent()}
       </ComponentCard>
     </>
   );

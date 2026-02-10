@@ -1,19 +1,35 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createSpecification, updateSpecification } from "../services/specificationApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { specificationSchema } from "../utils/specificationSchema";
 import { SpecificationAddProps } from "../types/specificationType";
+import { FileSpreadsheet, GitBranch, FileText, ListChecks, CheckSquare, MessageSquare, FileIcon, History, Link, Code } from "lucide-react";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+
+// Panels
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import RefsPanel from "@/apps/common/components/panels/RefsPanel";
+import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+
+const STORAGE_KEY = "specificationDetail_columnCount";
 
 export default function SpecificationDetail({
   modeProp,
@@ -24,6 +40,38 @@ export default function SpecificationDetail({
   onCancelInline,
 }: SpecificationAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+
+  // Full record data for panels (needed for tabs)
+  const [recordData, setRecordData] = useState<any>(data || {});
+
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("specification_detail", "actions", [
+    "actions", "comments", "documents", "history", "refs", "raw",
+  ]);
+
+  // Tab configuration
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+    ],
+    [recordData]
+  );
 
   const {
     register,
@@ -35,45 +83,72 @@ export default function SpecificationDetail({
     resolver: zodResolver(specificationSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
+      setRecordData({});
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
       });
+      setRecordData(data);
     } else {
       reset({});
+      setRecordData({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof specificationSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createSpecification(formData)
           : await updateSpecification({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Specification ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,107 +157,211 @@ export default function SpecificationDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Specification"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Specification"
               : "Specification Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      <SimpleDetailHeader
+        entityName="Specification"
+        recordId={data?.id}
+        recordName={data?.name}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/products/specifications"}
+      />
+
+      {/* Toolbar with action buttons */}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Specification"
-                : mode === "view"
-                ? "View Specification"
-                : "Add New Specification"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
+        <div className="flex justify-end mb-4">
+          <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Name"
+              htmlFor="name"
+              required
+              icon={<FileSpreadsheet size={14} />}
+              error={errors.name?.message}
+            >
               <Input
                 type="text"
                 id="name"
                 placeholder="Specification Name"
                 {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="version">Version</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Version"
+              htmlFor="version"
+              icon={<GitBranch size={14} />}
+              error={errors.version?.message}
+            >
               <Input
                 type="text"
                 id="version"
                 placeholder="Version"
                 {...register("version")}
-                error={errors.version && errors.version.message ? true : false}
-                hint={errors.version && errors.version.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Requirements"
+              htmlFor="requirements"
+              icon={<ListChecks size={14} />}
+              error={errors.requirements?.message}
+            >
+              <Input
+                type="text"
+                id="requirements"
+                placeholder="Requirements"
+                {...register("requirements")}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+
+          <HorizontalField
+            label="Description"
+            htmlFor="description"
+            icon={<FileText size={14} />}
+            error={errors.description?.message}
+          >
             <Input
               type="text"
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
+                disabled={currentMode === "view"}
             />
-          </div>
-          <div>
-            <Label htmlFor="requirements">Requirements</Label>
-            <Input
-              type="text"
-              id="requirements"
-              placeholder="Requirements"
-              {...register("requirements")}
-              error={errors.requirements && errors.requirements.message ? true : false}
-              hint={errors.requirements && errors.requirements.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
+          </HorizontalField>
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation - only show when viewing/editing existing record */}
+      {recordData?.id && (
+        <>
+          <DetailTabs
+            entityType="specification_detail"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[]}
+            additionalTabs={tabs}
+          />
+
+          {/* Tab Content */}
+          <div className="mt-4">
+            {activeTab === "actions" && (
+              <ActionsPanel
+                entityType="specification"
+                entityId={recordData?.id}
+                data={recordData?.actions?.items}
+                actionIds={recordData?.actions?.ids}
+                isEditing={currentMode !== "view"}
+                onChange={(actions) =>
+                  setRecordData({ ...recordData, actions: { ...recordData.actions, items: actions } })
+                }
+              />
+            )}
+
+            {activeTab === "comments" && (
+              <CommentsPanel
+                comments={recordData?.comments}
+                isEditing={currentMode !== "view"}
+                entityType="specification"
+                entityId={recordData?.id}
+                onChange={(comments) => setRecordData({ ...recordData, comments })}
+              />
+            )}
+
+            {activeTab === "documents" && (
+              <DocumentsPanel
+                parentType="specification"
+                parentId={recordData?.id}
+                data={recordData?.refs?.links?.document}
+                isEditing={currentMode !== "view"}
+                onChange={(docs) =>
+                  setRecordData({
+                    ...recordData,
+                    refs: { ...recordData.refs, links: { ...recordData.refs?.links, document: docs } },
+                  })
+                }
+              />
+            )}
+
+            {activeTab === "history" && (
+              <ComponentCard>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+                  Change History
+                </h3>
+                {recordData?.metadata?.history?.length > 0 ? (
+                  <div className="space-y-3">
+                    {recordData.metadata.history.map((entry: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                      >
+                        <History size={16} className="text-slate-400 mt-0.5" />
+                        <div className="flex-1 text-sm">
+                          <div className="text-slate-900 dark:text-white">
+                            {entry.action || entry.description || "Change"}
+                          </div>
+                          <div className="text-slate-500 text-xs">
+                            {entry.timestamp
+                              ? new Date(entry.timestamp).toLocaleString()
+                              : entry.dt_created
+                              ? new Date(entry.dt_created * 1000).toLocaleString()
+                              : "--"}
+                            {entry.user && ` by ${entry.user}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">No history available</p>
+                )}
+              </ComponentCard>
+            )}
+
+            {activeTab === "refs" && (
+              <RefsPanel
+                entityType="specification"
+                entityId={recordData?.id}
+                data={recordData?.refs}
+                isEditing={currentMode !== "view"}
+                onChange={(refs) => setRecordData({ ...recordData, refs })}
+              />
+            )}
+
+            {activeTab === "raw" && (
+              <JsonFieldEditor
+                label="Full Specification JSON"
+                value={recordData}
+                readonly
+                defaultExpanded
+                maxHeight="600px"
+              />
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
+import SimpleDetailHeader from "../../../../../components/common/SimpleDetailHeader";
+import SimpleDetailToolbar from "../../../../../components/common/SimpleDetailToolbar";
 import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
@@ -37,10 +39,26 @@ export default function OrderLineDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEdit = () => setCurrentMode("edit");
+  const handleCancel = () => {
+    setCurrentMode("view");
+    if (data) {
+      Object.keys(data).forEach((key: any) => {
+        if (data[key] !== undefined) {
+          setValue(key, data[key]);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,7 +69,7 @@ export default function OrderLineDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const preparePayload = (formValues: z.infer<typeof orderLineSchema>): Record<string, unknown> => {
     const numericPrice =
@@ -70,17 +88,18 @@ export default function OrderLineDetail({
   };
 
   const onSubmit = async (formData: z.infer<typeof orderLineSchema>) => {
+    setIsSaving(true);
     try {
       const payload = preparePayload(formData);
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createOrderLine(payload)
           : await updateOrderLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({
             message: `Order line ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -91,6 +110,8 @@ export default function OrderLineDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -99,21 +120,33 @@ export default function OrderLineDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Order Line"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Order Line"
               : "Order Line Detail"
           }
         />
       )}
+      <SimpleDetailHeader
+        entityName="Order Line"
+        id={data?.id}
+        mode={currentMode}
+      />
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onEdit={handleEdit}
+        onCancel={handleCancel}
+        onSave={handleSubmit(onSubmit)}
+      />
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Order Line"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Order Line"
                 : "Add New Order Line"}
             </h3>
@@ -138,7 +171,7 @@ export default function OrderLineDetail({
               {...register("order_id", { valueAsNumber: true })}
               error={errors.order_id && errors.order_id.message ? true : false}
               hint={errors.order_id && errors.order_id.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -150,7 +183,7 @@ export default function OrderLineDetail({
               {...register("item_id", { valueAsNumber: true })}
               error={errors.item_id && errors.item_id.message ? true : false}
               hint={errors.item_id && errors.item_id.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -162,7 +195,7 @@ export default function OrderLineDetail({
               {...register("quantity", { valueAsNumber: true })}
               error={errors.quantity && errors.quantity.message ? true : false}
               hint={errors.quantity && errors.quantity.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -175,7 +208,7 @@ export default function OrderLineDetail({
               {...register("unit_price", { valueAsNumber: true })}
               error={errors.unit_price && errors.unit_price.message ? true : false}
               hint={errors.unit_price && errors.unit_price.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
           <div>
@@ -188,16 +221,16 @@ export default function OrderLineDetail({
               {...register("line_total", { valueAsNumber: true })}
               error={errors.line_total && errors.line_total.message ? true : false}
               hint={errors.line_total && errors.line_total.message}
-              disabled={mode === "view"}
+              disabled={currentMode === "view"}
             />
           </div>
-          {mode !== "view" && (
+          {currentMode !== "view" && (
             <div className="flex items-center gap-2">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

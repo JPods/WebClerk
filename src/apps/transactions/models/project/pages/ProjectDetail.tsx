@@ -1,198 +1,321 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+/**
+ * ProjectDetail - Refactored to use TransactionDetailBase
+ * Standardized to match OrderDetail.tsx pattern
+ */
+import React, { useCallback } from "react";
+import {
+  FaProjectDiagram,
+  FaCalendar,
+  FaTasks,
+} from "react-icons/fa";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+// Import base component and shared types
+import TransactionDetailBase, { TransactionTab } from "../../../components/TransactionDetailBase";
+import FieldLabel from "../../../components/FieldLabel";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createProject, updateProject } from "../services/projectApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
-import { projectSchema } from "../utils/projectSchema";
-import { ProjectAddProps } from "../types/projectType";
+// Import types
+import type { Transaction, TransactionStatus } from "../../../types/transactionTypes";
 
-export default function ProjectDetail({
-  modeProp,
-  dataProp,
-  hideBreadcrumb,
-  onSaved,
-  inline = false,
-  onCancelInline,
-}: ProjectAddProps) {
-  const dispatch = useDispatch();
+// Project specific fields that extend base Transaction
+interface Project extends Transaction {
+  ida?: string;
+  name?: string;
+  description?: string;
+  status: TransactionStatus;
+  start_date?: string;
+  end_date?: string;
+}
 
-  const {
-    register,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<z.infer<typeof projectSchema>>({
-    resolver: zodResolver(projectSchema),
-  });
-
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
-  useEffect(() => {
-    if (mode === "add") {
-      reset();
-    } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
-        }
-      });
-    } else {
-      reset({});
-    }
-  }, [data, reset, setValue, mode]);
-
-  const onSubmit = async (formData: z.infer<typeof projectSchema>) => {
-    try {
-      const res =
-        mode === "add"
-          ? await createProject(formData)
-          : await updateProject(data && data.id, formData);
-      if (res) {
-        dispatch(
-          showToast({
-            message: `Project ${
-              mode === "add" ? "created" : "updated"
-            } successfully`,
-            type: "success",
-          })
-        );
-        if (onSaved) {
-          onSaved();
-        }
-      }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
-    }
+// Status Badge Component  
+const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  const statusStyles: Record<string, string> = {
+    planned: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+    active: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    completed: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    on_hold: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   };
 
+  const styleKey = status ?? "planned";
+  const styleClass = statusStyles[styleKey] ?? statusStyles.planned;
+
   return (
-    <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Project"
-              : mode === "view"
-              ? "View Project"
-              : "Project Detail"
-          }
-        />
-      )}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Project"
-                : mode === "view"
-                ? "View Project"
-                : "Add New Project"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <Label htmlFor="name">name</Label>
-            <Input
-              type="text"
-              id="name"
-              placeholder="Project Name"
-              {...register("name")}
-              error={errors.name && errors.name.message ? true : false}
-              hint={errors.name && errors.name.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">description</Label>
-            <Input
-              type="text"
-              id="description"
-              placeholder="Description"
-              {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="status">status</Label>
-            <Input
-              type="text"
-              id="status"
-              placeholder="Status"
-              {...register("status")}
-              error={errors.status && errors.status.message ? true : false}
-              hint={errors.status && errors.status.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="start_date">start_date</Label>
-            <Input
-              type="date"
-              id="start_date"
-              placeholder="Start Date"
-              {...register("start_date")}
-              error={errors.start_date && errors.start_date.message ? true : false}
-              hint={errors.start_date && errors.start_date.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="end_date">end_date</Label>
-            <Input
-              type="date"
-              id="end_date"
-              placeholder="End Date"
-              {...register("end_date")}
-              error={errors.end_date && errors.end_date.message ? true : false}
-              hint={errors.end_date && errors.end_date.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
+    <span className={`px-2 py-1 text-xs font-medium rounded-full ${styleClass}`}>
+      {status?.replace("_", " ") ?? "planned"}
+    </span>
+  );
+};
+
+// Format date for display
+const formatDate = (dateStr?: string): string => {
+  if (!dateStr) return "--";
+  try {
+    return new Date(dateStr).toLocaleDateString();
+  } catch {
+    return dateStr;
+  }
+};
+
+// Dynamic tabs generator with badges based on data (like OrderDetail)
+const getProjectTabsAfter = (_data: Transaction): TransactionTab[] => {
+  // No additional tabs - actions are now in base
+  return [];
+};
+
+// Custom Project Header Component
+const ProjectHeader: React.FC<{
+  data: Project;
+  isEditing: boolean;
+  onChange?: (field: keyof Project, value: unknown) => void;
+}> = ({ data, isEditing, onChange }) => {
+  // Extract customer info from refs.links
+  const customerInfo = data.refs?.links?.customer?.[0];
+
+  return (
+    <div className="space-y-6">
+      {/* Project Header Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Project Details */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <FaProjectDiagram className="text-blue-500" />
+            Project Details
+          </h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Name" mandatory className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.name ?? ""}
+                  onChange={(e) => onChange("name", e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white font-medium">{data.name ?? "--"}</dd>
               )}
             </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
+              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? "--"}</dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="IDA" locked className="text-slate-500 dark:text-slate-400" />
+              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.ida ?? "--"}</dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <select
+                  value={data.status ?? "planned"}
+                  onChange={(e) => onChange("status", e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="active">Active</option>
+                  <option value="on_hold">On Hold</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              ) : (
+                <dd><StatusBadge status={data.status} /></dd>
+              )}
+            </div>
+          </dl>
+        </div>
+
+        {/* Center: Schedule */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <FaCalendar className="text-green-500" />
+            Schedule
+          </h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Start Date" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.start_date ? new Date(data.start_date).toISOString().split("T")[0] : ""}
+                  onChange={(e) => onChange("start_date", e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{formatDate(data.start_date)}</dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="End Date" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.end_date ? new Date(data.end_date).toISOString().split("T")[0] : ""}
+                  onChange={(e) => onChange("end_date", e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{formatDate(data.end_date)}</dd>
+              )}
+            </div>
+          </dl>
+        </div>
+
+        {/* Right: Customer Info */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+            Customer
+          </h3>
+          {customerInfo ? (
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <FieldLabel label="Name" className="text-slate-500 dark:text-slate-400" />
+                <dd className="text-slate-900 dark:text-white font-medium">{customerInfo.display_name ?? "--"}</dd>
+              </div>
+              <div className="flex justify-between">
+                <FieldLabel label="IDA" className="text-slate-500 dark:text-slate-400" />
+                <dd className="font-mono text-slate-600 dark:text-slate-300">{customerInfo.ida ?? "--"}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">No customer linked</p>
           )}
-        </form>
-      </ComponentCard>
-    </>
+        </div>
+      </div>
+
+      {/* Description */}
+      {(data.description || isEditing) && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Description</h3>
+          {isEditing && onChange ? (
+            <textarea
+              value={data.description ?? ""}
+              onChange={(e) => onChange("description", e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              placeholder="Project description..."
+            />
+          ) : (
+            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+              {data.description || <span className="italic text-slate-400">No description</span>}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
+};
+
+// Props interface
+interface ProjectDetailProps {
+  modeProp?: "view" | "edit" | "add";
+  dataProp?: Project;
+  hideBreadcrumb?: boolean;
+  onSaved?: () => void;
+  inline?: boolean;
+  onCancelInline?: () => void;
+  isAdmin?: boolean;
 }
+
+// Main Component
+const ProjectDetail: React.FC<ProjectDetailProps> = (props) => {
+  // Custom tab content renderer for actions
+  const renderCustomTab = useCallback(
+    (
+      tabId: string,
+      data: Transaction,
+      _isEditing: boolean,
+      _onFieldChange?: (field: string, value: unknown) => void,
+    ) => {
+      const projectData = data as Project;
+
+      switch (tabId) {
+        case "actions": {
+          const actions = projectData.actions?.items ?? [];
+          const statusClass = (status?: string) =>
+            status === "done"
+              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+
+          return (
+            <div className="p-4">
+              {actions.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <FaTasks size={32} className="mx-auto mb-3 opacity-50" />
+                  <p>No actions on this project</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {actions.map((action, idx) => (
+                    <div
+                      key={action.id ?? idx}
+                      className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {typeof action.action === "object"
+                            ? action.action?.en
+                            : action.action ?? action.what ?? "--"}
+                        </span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${statusClass(action.status)}`}>
+                          {action.status ?? "pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
+  // Custom header renderer
+  const renderHeader = useCallback(
+    (
+      data: Transaction,
+      isEditing: boolean,
+      onChange?: (field: string, value: unknown) => void,
+    ) => (
+      <ProjectHeader
+        data={data as Project}
+        isEditing={isEditing}
+        onChange={onChange as ((field: keyof Project, value: unknown) => void) | undefined}
+      />
+    ),
+    [],
+  );
+
+  // Empty lines renderer (projects don't have lines)
+  const renderLines = useCallback(() => null, []);
+
+  // Check if project can be edited
+  const canEdit = useCallback((data: Transaction) => {
+    const status = data.status?.toLowerCase();
+    return status !== "completed" && status !== "cancelled";
+  }, []);
+
+  return (
+    <TransactionDetailBase
+      transactionType="project"
+      typeLabel="Project"
+      modelName="tx_projects"
+      getCustomTabsAfter={getProjectTabsAfter}
+      renderCustomTab={renderCustomTab}
+      renderHeader={renderHeader}
+      renderLines={renderLines}
+      isAdmin={props.isAdmin}
+      canEdit={canEdit}
+      inline={props.inline}
+      modeProp={props.modeProp}
+      dataProp={props.dataProp}
+      onSaved={props.onSaved}
+    />
+  );
+};
+
+export default ProjectDetail;

@@ -1,61 +1,32 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateGLJournalRequest,
   GLJournalApiTask,
   UpdateGLJournalRequest,
 } from "../types/glJournalType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createGLJournal = async (
   payload: CreateGLJournalRequest
 ): Promise<GLJournalApiTask> => {
-  const model_name: string = "gl_journal";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<GLJournalApiTask>(res);
+  return saveRecord("gl_journal", payload);
 };
 
 export const updateGLJournal = async (
   payload: UpdateGLJournalRequest
 ): Promise<GLJournalApiTask> => {
-  const model_name: string = "gl_journal";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<GLJournalApiTask>(res);
+  return saveRecord("gl_journal", payload);
 };
 
-export const deleteGLJournal = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteGLJournal = async (id: number) => {
+  return deleteRecord("gl_journal", id);
 };
 
-export const fetchGLJournals = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=gl_journal" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchGLJournals = async (params?: any) => {
+  const res = await getRecords("gl_journal", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchGLJournal = async (): Promise<GLJournalApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=gl_journal");
-  return unwrap<GLJournalApiTask[]>(res);
+  const res = await getRecords("gl_journal");
+  return res.results || [];
 };

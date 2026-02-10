@@ -1,61 +1,32 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateUsageRequest,
   UsageApiTask,
   UpdateUsageRequest,
 } from "../types/usageType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createUsage = async (
   payload: CreateUsageRequest
 ): Promise<UsageApiTask> => {
-  const model_name: string = "usage";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<UsageApiTask>(res);
+  return saveRecord("usage", payload);
 };
 
 export const updateUsage = async (
   payload: UpdateUsageRequest
 ): Promise<UsageApiTask> => {
-  const model_name: string = "usage";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<UsageApiTask>(res);
+  return saveRecord("usage", payload);
 };
 
-export const deleteUsage = async (id: any) => {
-  try {
-    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const deleteUsage = async (id: number) => {
+  return deleteRecord("usage", id);
 };
 
-export const fetchUsages = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=usage" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchUsages = async (params?: any) => {
+  const res = await getRecords("usage", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchUsage = async (): Promise<UsageApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=usage");
-  return unwrap<UsageApiTask[]>(res);
+  const res = await getRecords("usage");
+  return res.results || [];
 };

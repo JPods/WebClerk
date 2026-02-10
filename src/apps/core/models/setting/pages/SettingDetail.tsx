@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Type, Target, Shield, Box, Database } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createSetting, updateSetting } from "../services/settingApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { settingSchema } from "../utils/settingSchema";
 import { SettingAddProps } from "../types/settingType";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+
+const STORAGE_KEY = "settingDetail_columnCount";
 
 export default function SettingDetail({
   modeProp,
@@ -37,11 +43,14 @@ export default function SettingDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (initialMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -52,19 +61,20 @@ export default function SettingDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, initialMode]);
 
   const onSubmit = async (formData: z.infer<typeof settingSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createSetting(formData)
           : await updateSetting({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Setting ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -75,6 +85,29 @@ export default function SettingDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -91,26 +124,49 @@ export default function SettingDetail({
     setValue("purpose", value);
   };
 
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Setting"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Setting"
               : "Setting Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Setting"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/core/settings"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Setting"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Setting"
                 : "Add New Setting"}
             </h3>
@@ -126,9 +182,11 @@ export default function SettingDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">name</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={Type}>
               <Input
                 type="text"
                 id="name"
@@ -136,11 +194,10 @@ export default function SettingDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="purpose">purpose</Label>
+            </HorizontalField>
+            <HorizontalField label="Purpose" htmlFor="purpose" icon={Target}>
               <DropDown
                 id="purpose"
                 options={purposes}
@@ -148,13 +205,10 @@ export default function SettingDetail({
                 value={watch("purpose")}
                 onChange={handlePurposeChange}
                 className="dark:bg-dark-900"
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="role">role</Label>
+            </HorizontalField>
+            <HorizontalField label="Role" htmlFor="role" error={errors.role?.message} icon={Shield}>
               <Input
                 type="text"
                 id="role"
@@ -162,11 +216,10 @@ export default function SettingDetail({
                 {...register("role")}
                 error={errors.role && errors.role.message ? true : false}
                 hint={errors.role && errors.role.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="parent_model">parent_model</Label>
+            </HorizontalField>
+            <HorizontalField label="Parent Model" htmlFor="parent_model" error={errors.parent_model?.message} icon={Box}>
               <Input
                 type="text"
                 id="parent_model"
@@ -174,13 +227,10 @@ export default function SettingDetail({
                 {...register("parent_model")}
                 error={errors.parent_model && errors.parent_model.message ? true : false}
                 hint={errors.parent_model && errors.parent_model.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="data">data</Label>
+            </HorizontalField>
+            <HorizontalField label="Data" htmlFor="data" error={errors.data?.message} icon={Database}>
               <Input
                 type="text"
                 id="data"
@@ -188,17 +238,17 @@ export default function SettingDetail({
                 {...register("data")}
                 error={errors.data && errors.data.message ? true : false}
                 hint={errors.data && typeof errors.data.message === 'string' ? errors.data.message : undefined}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

@@ -1,19 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Type, List, Server, Hash, User, Lock, Database } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import HorizontalField from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createConnection, updateConnection } from "../services/connectionApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { connectionSchema } from "../utils/connectionSchema";
 import { ConnectionAddProps } from "../types/connectionType";
+
+const STORAGE_KEY = "connectionDetail_columnCount";
 
 export default function ConnectionDetail({
   modeProp,
@@ -24,6 +30,7 @@ export default function ConnectionDetail({
   onCancelInline,
 }: ConnectionAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -37,10 +44,12 @@ export default function ConnectionDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+  const [isSaving, setIsSaving] = useState(false);
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,19 +60,22 @@ export default function ConnectionDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
+
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const onSubmit = async (formData: z.infer<typeof connectionSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createConnection(formData)
           : await updateConnection({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Connection ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -71,9 +83,37 @@ export default function ConnectionDetail({
         if (onSaved) {
           onSaved();
         }
+        if (currentMode === "add") {
+          navigate(-1);
+        } else {
+          setCurrentMode("view");
+        }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,21 +122,42 @@ export default function ConnectionDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Connection"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Connection"
               : "Connection Detail"
           }
         />
       )}
+
+      {!inline && (
+        <SimpleDetailHeader
+          entityName="Connection"
+          recordId={data?.id}
+          recordName={data?.name}
+          mode={currentMode}
+          backUrl="/sync/connections"
+        />
+      )}
+
+      {!inline && (
+        <SimpleDetailToolbar
+          mode={currentMode}
+          isSaving={isSaving}
+          onSave={handleSubmit(onSubmit)}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
+              {currentMode === "edit"
                 ? "Edit Connection"
-                : mode === "view"
+                : currentMode === "view"
                 ? "View Connection"
                 : "Add New Connection"}
             </h3>
@@ -112,9 +173,11 @@ export default function ConnectionDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">name</Label>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector value={columnCount} onChange={setColumnCount} />
+          </div>
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField label="Name" htmlFor="name" error={errors.name?.message} icon={Type}>
               <Input
                 type="text"
                 id="name"
@@ -122,11 +185,10 @@ export default function ConnectionDetail({
                 {...register("name")}
                 error={errors.name && errors.name.message ? true : false}
                 hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="type">type</Label>
+            </HorizontalField>
+            <HorizontalField label="Type" htmlFor="type" error={errors.type?.message} icon={List}>
               <Input
                 type="text"
                 id="type"
@@ -134,13 +196,10 @@ export default function ConnectionDetail({
                 {...register("type")}
                 error={errors.type && errors.type.message ? true : false}
                 hint={errors.type && errors.type.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="host">host</Label>
+            </HorizontalField>
+            <HorizontalField label="Host" htmlFor="host" error={errors.host?.message} icon={Server}>
               <Input
                 type="text"
                 id="host"
@@ -148,11 +207,10 @@ export default function ConnectionDetail({
                 {...register("host")}
                 error={errors.host && errors.host.message ? true : false}
                 hint={errors.host && errors.host.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="port">port</Label>
+            </HorizontalField>
+            <HorizontalField label="Port" htmlFor="port" error={errors.port?.message} icon={Hash}>
               <Input
                 type="number"
                 id="port"
@@ -160,13 +218,10 @@ export default function ConnectionDetail({
                 {...register("port", { valueAsNumber: true })}
                 error={errors.port && errors.port.message ? true : false}
                 hint={errors.port && errors.port.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="username">username</Label>
+            </HorizontalField>
+            <HorizontalField label="Username" htmlFor="username" error={errors.username?.message} icon={User}>
               <Input
                 type="text"
                 id="username"
@@ -174,11 +229,10 @@ export default function ConnectionDetail({
                 {...register("username")}
                 error={errors.username && errors.username.message ? true : false}
                 hint={errors.username && errors.username.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="password">password</Label>
+            </HorizontalField>
+            <HorizontalField label="Password" htmlFor="password" error={errors.password?.message} icon={Lock}>
               <Input
                 type="password"
                 id="password"
@@ -186,29 +240,28 @@ export default function ConnectionDetail({
                 {...register("password")}
                 error={errors.password && errors.password.message ? true : false}
                 hint={errors.password && errors.password.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
+            <HorizontalField label="Database" htmlFor="database" error={errors.database?.message} icon={Database}>
+              <Input
+                type="text"
+                id="database"
+                placeholder="Database"
+                {...register("database")}
+                error={errors.database && errors.database.message ? true : false}
+                hint={errors.database && errors.database.message}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="database">database</Label>
-            <Input
-              type="text"
-              id="database"
-              placeholder="Database"
-              {...register("database")}
-              error={errors.database && errors.database.message ? true : false}
-              hint={errors.database && errors.database.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
+          {currentMode !== "view" && inline && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
-                {mode === "edit" ? "Update" : "Submit"}
+                {currentMode === "edit" ? "Update" : "Submit"}
               </button>
               {inline && onCancelInline && (
                 <button

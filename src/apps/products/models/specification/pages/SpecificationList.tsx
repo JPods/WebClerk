@@ -25,7 +25,7 @@ export default function SpecificationList() {
       setLoading(true);
       const res = await fetchSpecifications();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch specifications", type: "error" })

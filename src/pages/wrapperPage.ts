@@ -55,8 +55,7 @@ import CoreTemplateDetail from "../apps/core/models/template/pages/TemplateDetai
 // Docs
 import DocumentList from "../apps/docs/models/document/pages/DocumentList";
 import DocumentDetail from "../apps/docs/models/document/pages/DocumentDetail";
-import LinkageList from "../apps/docs/models/linkage/pages/LinkageList";
-import LinkageIndexList from "../apps/docs/models/linkage_index/pages/LinkageIndexList";
+import LinkageEntryList from "../apps/docs/models/linkage_entry/pages/LinkageEntryList";
 import QuestionAnswerList from "../apps/docs/models/question_answer/pages/QuestionAnswerList";
 import TagList from "../apps/docs/models/tag/pages/TagList";
 
@@ -117,8 +116,7 @@ export {
   CoreTemplateDetail,
   DocumentList,
   DocumentDetail,
-  LinkageList,
-  LinkageIndexList,
+  LinkageEntryList,
   QuestionAnswerList,
   TagList,
 };

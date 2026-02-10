@@ -1,13 +1,30 @@
 import * as z from "zod";
 
 export const documentSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
-  content: z.string().min(1, "Content is required"),
-  summary: z.string().min(1, "Summary is required"),
-  category: z.string().min(1, "Category is required"),
-  status: z.string().min(1, "Status is required"),
-  parent_id: z.number().nullable().optional(),
-  doc_type: z.string().optional(),
-  author_id: z.number().optional(),
+  // Core identifiers
+  name: z.string().optional(),
+  slug: z.string().optional(),
+  status: z.string().optional(),
+  
+  // Content fields
+  description: z.string().optional(),
+  body: z.string().optional(),
+  comment: z.string().optional(),
+  
+  // Classification
+  model_name: z.string().optional(),
+  confidential: z.string().optional(),
+  
+  // Technical metadata
+  mime_type: z.string().optional(),
+  checksum: z.string().optional(),
+  size_bytes: z.number().nullable().optional(),
+  retention_period: z.number().nullable().optional(),
+  sequence: z.number().nullable().optional(),
+  count_accessed: z.number().nullable().optional(),
+  
+  // JSON fields
+  data: z.any().optional(),
+  copyright: z.any().optional(),
+  path: z.any().optional(),
 });

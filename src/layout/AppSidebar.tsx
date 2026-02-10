@@ -165,6 +165,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
+    name: "CycleDetails",
+    path: PageRoutes.detailReview,
+  },
+  {
+    icon: <GridIcon />,
     name: "Whitelist Tester",
     path: "/whitelist",
   },

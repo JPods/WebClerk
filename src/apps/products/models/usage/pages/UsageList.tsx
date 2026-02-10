@@ -25,7 +25,7 @@ export default function UsageList() {
       setLoading(true);
       const res = await fetchUsages();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch usages", type: "error" })

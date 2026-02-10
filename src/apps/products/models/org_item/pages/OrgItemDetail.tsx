@@ -1,19 +1,35 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createOrgItem, updateOrgItem } from "../services/orgItemApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { orgItemSchema } from "../utils/orgItemSchema";
 import { OrgItemAddProps } from "../types/orgItemType";
+import { Building2, Package, Hash, FileText, CheckSquare, MessageSquare, FileIcon, History, Link, Code } from "lucide-react";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+
+// Panels
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import RefsPanel from "@/apps/common/components/panels/RefsPanel";
+import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+
+const STORAGE_KEY = "orgItemDetail_columnCount";
 
 export default function OrgItemDetail({
   modeProp,
@@ -24,6 +40,38 @@ export default function OrgItemDetail({
   onCancelInline,
 }: OrgItemAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const data = dataProp || routeState.data || null;
+  
+  // Mode state for switching between view/edit
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+
+  // Full record data for panels (needed for tabs)
+  const [recordData, setRecordData] = useState<any>(data || {});
+
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("org_item_detail", "actions", [
+    "actions", "comments", "documents", "history", "refs", "raw",
+  ]);
+
+  // Tab configuration
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+    ],
+    [recordData]
+  );
 
   const {
     register,
@@ -35,45 +83,72 @@ export default function OrgItemDetail({
     resolver: zodResolver(orgItemSchema),
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
+      setRecordData({});
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
       });
+      setRecordData(data);
     } else {
       reset({});
+      setRecordData({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof orgItemSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createOrgItem(formData)
           : await updateOrgItem({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Org item ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
         );
         if (onSaved) {
           onSaved();
+        } else {
+          // Switch to view mode after save
+          setCurrentMode("view");
         }
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentMode("edit");
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      navigate(-1);
+    } else {
+      // Reset form and go back to view mode
+      if (data) {
+        Object.keys(data).forEach((key: any) => {
+          if (data[key] !== undefined) {
+            setValue(key, data[key]);
+          }
+        });
+      }
+      setCurrentMode("view");
     }
   };
 
@@ -82,107 +157,134 @@ export default function OrgItemDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Org Item"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Org Item"
               : "Org Item Detail"
           }
         />
       )}
+      
+      {/* Header with entity name, ID, and mode indicator */}
+      <SimpleDetailHeader
+        entityName="Org Item"
+        recordId={data?.id}
+        recordName={data?.org_id}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/products/org-items"}
+      />
+
+      {/* Toolbar with action buttons */}
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Org Item"
-                : mode === "view"
-                ? "View Org Item"
-                : "Add New Org Item"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="org_id">Org ID</Label>
+        <div className="flex justify-end mb-4">
+          <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Org ID"
+              htmlFor="org_id"
+              required
+              icon={<Building2 size={14} />}
+              error={errors.org_id?.message}
+            >
               <Input
                 type="text"
                 id="org_id"
                 placeholder="Org ID"
                 {...register("org_id")}
-                error={errors.org_id && errors.org_id.message ? true : false}
-                hint={errors.org_id && errors.org_id.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="item_id">Item ID</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Item ID"
+              htmlFor="item_id"
+              required
+              icon={<Package size={14} />}
+              error={errors.item_id?.message}
+            >
               <Input
                 type="text"
                 id="item_id"
                 placeholder="Item ID"
                 {...register("item_id")}
-                error={errors.item_id && errors.item_id.message ? true : false}
-                hint={errors.item_id && errors.item_id.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
-            </div>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Quantity"
+              htmlFor="quantity"
+              icon={<Hash size={14} />}
+              error={errors.quantity?.message}
+            >
+              <Input
+                type="number"
+                id="quantity"
+                placeholder="Quantity"
+                {...register("quantity", { valueAsNumber: true })}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              type="number"
-              id="quantity"
-              placeholder="Quantity"
-              {...register("quantity", { valueAsNumber: true })}
-              error={errors.quantity && errors.quantity.message ? true : false}
-              hint={errors.quantity && errors.quantity.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+
+          <HorizontalField
+            label="Description"
+            htmlFor="description"
+            icon={<FileText size={14} />}
+            error={errors.description?.message}
+          >
             <Input
               type="text"
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
-              disabled={mode === "view"}
+                disabled={currentMode === "view"}
             />
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
+          </HorizontalField>
+
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      <DetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab Content */}
+      {activeTab === "actions" && (
+        <ActionsPanel entityType="org_item" entityId={data?.id} />
+      )}
+      {activeTab === "comments" && (
+        <CommentsPanel entityType="org_item" entityId={data?.id} />
+      )}
+      {activeTab === "documents" && (
+        <DocumentsPanel entityType="org_item" entityId={data?.id} />
+      )}
+      {activeTab === "history" && (
+        <ComponentCard title="History">
+          <p className="text-gray-500 dark:text-gray-400">History panel coming soon...</p>
+        </ComponentCard>
+      )}
+      {activeTab === "refs" && (
+        <RefsPanel entityType="org_item" entityId={data?.id} />
+      )}
+      {activeTab === "raw" && (
+        <JsonFieldEditor
+          value={recordData}
+          onChange={() => {}}
+          label="Full Org Item JSON"
+          readOnly={true}
+        />
+      )}
     </>
   );
 }

@@ -7,9 +7,8 @@ import {
   FaFileInvoiceDollar,
   FaPercent,
   FaShippingFast,
-  FaPrint,
-  FaEnvelope,
   FaMoneyBillWave,
+  FaTasks,
 } from "react-icons/fa";
 
 // Import Apply Payment Modal
@@ -20,6 +19,7 @@ import type { InvoiceRecord } from "../../../hooks/usePaymentApplication";
 import TransactionDetailBase, {
   TransactionTab,
 } from "../../../components/TransactionDetailBase";
+import LinesCard from "../../../components/LinesCard";
 import FieldLabel from "../../../components/FieldLabel";
 import { CustomerSelector } from "../../../components/PartySelector";
 import { InvoiceItemSearch } from "../components/InvoiceItemSearch";
@@ -66,10 +66,13 @@ interface Invoice extends Transaction {
 // Invoice-specific tabs
 const INVOICE_TABS_BEFORE: TransactionTab[] = [];
 
-const INVOICE_TABS_AFTER: TransactionTab[] = [
-  { id: "shipping", label: "Shipping", icon: <FaShippingFast size={14} /> },
-  { id: "tax", label: "Tax", icon: <FaPercent size={14} /> },
-];
+// Dynamic tabs generator with badges based on data (like OrderDetail)
+const getInvoiceTabsAfter = (_data: Transaction): TransactionTab[] => {
+  return [
+    { id: "shipping", label: "Shipping", icon: <FaShippingFast size={14} /> },
+    { id: "tax", label: "Tax", icon: <FaPercent size={14} /> },
+  ];
+};
 
 // Custom Invoice Header Component
 const InvoiceHeader: React.FC<{
@@ -353,29 +356,15 @@ const InvoiceHeader: React.FC<{
               </dd>
             </div>
           </dl>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-2">
-        <button className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-          <FaPrint size={14} />
-          Print
-        </button>
-        <button className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-          <FaEnvelope size={14} />
-          Email
-        </button>
-        {/* Apply Payment button - only show if balance_due > 0 */}
-        {(data.balance_due ?? 0) > 0 && (
-          <button 
+          {/* Apply Payment button */}
+          <button
             onClick={() => setShowApplyPaymentModal(true)}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center gap-2"
+            className="mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <FaMoneyBillWave size={14} />
             Apply Payment
           </button>
-        )}
+        </div>
       </div>
 
       {/* Apply Payment Modal */}
@@ -779,6 +768,45 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
       const invoiceData = data as Invoice;
 
       switch (tabId) {
+        case "actions":
+          // Simple placeholder for actions - can be expanded like OrderDetail
+          const actions = invoiceData.actions?.items ?? [];
+          return (
+            <div className="p-4">
+              {actions.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <FaTasks size={32} className="mx-auto mb-3 opacity-50" />
+                  <p>No actions on this invoice</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {actions.map((action, idx) => (
+                    <div
+                      key={action.id ?? idx}
+                      className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {typeof action.action === "object"
+                            ? action.action?.en
+                            : action.action ?? action.what ?? "--"}
+                        </span>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            action.status === "done"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          }`}
+                        >
+                          {action.status ?? "pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
         case "shipping":
           return <ShippingTab data={invoiceData} isEditing={isEditing} />;
         case "tax":
@@ -805,20 +833,77 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
     [],
   );
 
-  // Custom lines renderer - memoized
+  // Custom lines renderer using LinesCard
   const renderLines = useCallback(
     (
       lines: TransactionLine[],
       isEditing: boolean,
-      _data?: Transaction,
+      data?: Transaction,
       onLinesChange?: (lines: TransactionLine[]) => void,
-    ) => (
-      <InvoiceLines
-        lines={lines}
-        isEditing={isEditing}
-        onLinesChange={onLinesChange}
-      />
-    ),
+    ) => {
+      return (
+        <LinesCard
+          lines={lines}
+          isEditing={isEditing}
+          isLocked={data?.is_locked}
+          priceLevel="base"
+          onDeleteLine={(lineId) => {
+            if (onLinesChange) {
+              onLinesChange(lines.filter((l) => l.id !== lineId));
+            }
+          }}
+          onUpdateLine={(lineId, field, value) => {
+            if (onLinesChange) {
+              onLinesChange(
+                lines.map((l) => {
+                  if (l.id !== lineId) return l;
+                  const baseUpdate = { ...l, _dirty: true };
+                  switch (field) {
+                    case "qty":
+                      return {
+                        ...baseUpdate,
+                        quantity: { ...l.quantity, ordered: Number(value) },
+                      };
+                    case "description":
+                      return {
+                        ...baseUpdate,
+                        item: { ...l.item, description: String(value) },
+                      };
+                    case "unit_price":
+                      const newPrice = Number(value);
+                      const qty = l.quantity?.ordered ?? 0;
+                      return {
+                        ...baseUpdate,
+                        price: {
+                          ...l.price,
+                          unit: newPrice,
+                          extended: newPrice * qty,
+                        },
+                      };
+                    default:
+                      return { ...baseUpdate, [field]: value };
+                  }
+                }),
+              );
+            }
+          }}
+          onDuplicateLine={(lineId) => {
+            if (onLinesChange) {
+              const lineToDup = lines.find((l) => l.id === lineId);
+              if (lineToDup) {
+                const { id, ...rest } = lineToDup;
+                const newLine: TransactionLine = {
+                  ...rest,
+                  id: Date.now(),
+                };
+                onLinesChange([...lines, newLine]);
+              }
+            }
+          }}
+          onLinesChange={onLinesChange}
+        />
+      );
+    },
     [],
   );
 
@@ -834,7 +919,7 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
       typeLabel="Invoice"
       modelName="invoice"
       customTabsBefore={INVOICE_TABS_BEFORE}
-      customTabsAfter={INVOICE_TABS_AFTER}
+      getCustomTabsAfter={getInvoiceTabsAfter}
       renderCustomTab={renderCustomTab}
       renderHeader={renderHeader}
       renderLines={renderLines}

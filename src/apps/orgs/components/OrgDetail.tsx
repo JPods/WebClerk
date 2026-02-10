@@ -6,10 +6,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapMarkerAlt, FaPhone, FaEnvelope, FaFileAlt, FaDatabase, FaChartBar, FaDollarSign, FaLink, FaCog } from 'react-icons/fa';
+import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapMarkerAlt, FaPhone, FaEnvelope, FaFileAlt, FaDatabase, FaChartBar, FaDollarSign, FaLink, FaCog, FaListAlt } from 'react-icons/fa';
 import { showToast } from '@/store/slices/toastSlice';
 import DetailShell from '@/components/common/DetailShell';
 import ComponentCard from '@/components/common/ComponentCard';
+import SimpleDetailHeader from '@/components/common/SimpleDetailHeader';
+import SimpleDetailToolbar from '@/components/common/SimpleDetailToolbar';
 import OrgFinancialsPanel from './OrgFinancialsPanel';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
@@ -34,6 +36,144 @@ export interface OrgDetailProps {
   onClose?: () => void;
   onSaved?: () => void;
 }
+
+// --- Basic Information Panel (PERSISTENT above tabs) ---
+const BasicInformationPanel: React.FC<{
+  org: Organization;
+  editing: boolean;
+  onChange: (updates: Partial<Organization>) => void;
+  columnCount?: 2 | 3;
+}> = ({ org, editing, onChange, columnCount = 3 }) => {
+  const gridCols = columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2';
+  
+  return (
+    <div className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-4">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${gridCols} gap-4`}>
+        {/* Display Name */}
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">Name</span>
+          {editing ? (
+            <input
+              type="text"
+              value={org.display_name || ''}
+              onChange={(e) => onChange({ display_name: e.target.value })}
+              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              placeholder="Display Name *"
+            />
+          ) : (
+            <span className="text-sm font-medium text-slate-900 dark:text-white">{org.display_name || '—'}</span>
+          )}
+        </div>
+        {/* Display ID */}
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">ID Code</span>
+          {editing ? (
+            <input
+              type="text"
+              value={org.display_id || ''}
+              onChange={(e) => onChange({ display_id: e.target.value })}
+              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              placeholder="Display ID"
+            />
+          ) : (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{org.display_id || '—'}</span>
+          )}
+        </div>
+        {/* Company */}
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">Company</span>
+          {editing ? (
+            <input
+              type="text"
+              value={org.company || ''}
+              onChange={(e) => onChange({ company: e.target.value })}
+              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              placeholder="Company"
+            />
+          ) : (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{org.company || '—'}</span>
+          )}
+        </div>
+        {/* Email */}
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">Email</span>
+          {editing ? (
+            <input
+              type="email"
+              value={org.email || ''}
+              onChange={(e) => onChange({ email: e.target.value || null })}
+              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              placeholder="Primary Email"
+            />
+          ) : (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{org.email || '—'}</span>
+          )}
+        </div>
+        {/* Phone */}
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">Phone</span>
+          {editing ? (
+            <input
+              type="text"
+              value={org.phone || ''}
+              onChange={(e) => onChange({ phone: e.target.value || null })}
+              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              placeholder="Primary Phone"
+            />
+          ) : (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{org.phone || '—'}</span>
+          )}
+        </div>
+        {/* Status & Active */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Status</span>
+            {editing ? (
+              <select
+                value={org.status || 'lead'}
+                onChange={(e) => onChange({ status: e.target.value as OrgStatus })}
+                className="rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="lead">Lead</option>
+                <option value="prospect">Prospect</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            ) : (
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                org.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                org.status === 'inactive' ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400' :
+                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              }`}>
+                {org.status || 'lead'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {editing ? (
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={org.is_active ?? false}
+                  onChange={(e) => onChange({ is_active: e.target.checked })}
+                  className="rounded border-slate-300 text-blue-600"
+                />
+                <span className="text-xs text-slate-600 dark:text-slate-400">Active</span>
+              </label>
+            ) : (
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                org.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+              }`}>
+                {org.is_active ? 'Active' : 'Inactive'}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // --- Tab Content Components ---
 
@@ -637,7 +777,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
 
   // Tab configuration - Full admin access to all aspects
   const defaultTabs: TabConfig[] = [
-    { key: 'info', label: 'Info', icon: <FaUser size={14} /> },
+    { key: 'info', label: 'All Fields', icon: <FaListAlt size={14} /> },
     { key: 'contacts', label: 'Contacts', icon: <FaUser size={14} /> },
     { key: 'addresses', label: 'Addresses', icon: <FaMapMarkerAlt size={14} /> },
     { key: 'phones', label: 'Phones', icon: <FaPhone size={14} /> },
@@ -869,24 +1009,25 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         showInlineHeader={false}
         card={false}
       >
-        <ComponentCard title={org.id ? `${title} #${org.id} - ${org.display_name || 'Unnamed'}` : `New ${title}`}>
-          {/* Header */}
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {!editing && (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
-                >
-                  <FaEdit size={12} /> Edit
-                </button>
-              )}
-            </div>
-            <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-400">
-              <FaTimes size={18} />
-            </button>
-          </div>
-
+        <SimpleDetailHeader
+          entityName={title}
+          id={org.id}
+          mode={inlineMode === 'add' ? 'add' : editing ? 'edit' : 'view'}
+        />
+        <SimpleDetailToolbar
+          mode={inlineMode === 'add' ? 'add' : editing ? 'edit' : 'view'}
+          isSaving={saving}
+          onEdit={() => setEditing(true)}
+          onCancel={handleCancel}
+          onSave={handleSave}
+        />
+        <BasicInformationPanel
+          org={org}
+          editing={editing}
+          onChange={handleChange}
+          columnCount={2}
+        />
+        <ComponentCard>
           {/* Tabs */}
           <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-700">
             {tabs.map((tab) => (
@@ -907,26 +1048,6 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
 
           {/* Tab Content */}
           <div className="min-h-50">{renderTabContent()}</div>
-
-          {/* Actions */}
-          {editing && (
-            <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-              <button
-                onClick={handleCancel}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                <FaSave size={12} />
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          )}
         </ComponentCard>
       </DetailShell>
     );
@@ -940,44 +1061,25 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
       breadcrumbTitle={org.display_name || 'New'}
       card={false}
     >
-      <ComponentCard title={org.id ? `${title} #${org.id} - ${org.display_name || 'Unnamed'}` : `New ${title}`}>
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <button
-            onClick={() => listPath && navigate(listPath)}
-            className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400"
-          >
-            <FaChevronLeft size={12} /> Back to List
-          </button>
-          <div className="flex gap-3">
-            {!editing ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
-              >
-                <FaEdit size={14} /> Edit
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleCancel}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <FaSave size={14} />
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
+      <SimpleDetailHeader
+        entityName={title}
+        id={org.id}
+        mode={editing ? 'edit' : 'view'}
+      />
+      <SimpleDetailToolbar
+        mode={editing ? 'edit' : 'view'}
+        isSaving={saving}
+        onEdit={() => setEditing(true)}
+        onCancel={handleCancel}
+        onSave={handleSave}
+      />
+      <BasicInformationPanel
+        org={org}
+        editing={editing}
+        onChange={handleChange}
+        columnCount={3}
+      />
+      <ComponentCard>
         {/* Tabs */}
         <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700">
           {tabs.map((tab) => (

@@ -1,51 +1,34 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
+/**
+ * Address API - Uses centralized wcapi endpoints
+ */
+import { getRecords, getRecord, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateAddressRequest,
   UpdateAddressRequest,
   AddressApiTask,
 } from "../types/addressType";
-import { deleteRecord } from "../../../../../api/wcapi";
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
+
+const MODEL_NAME = "address";
 
 export const createAddress = async (
   payload: CreateAddressRequest
 ): Promise<AddressApiTask> => {
-  const model_name: string = "address";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<AddressApiTask>(res);
+  return saveRecord(MODEL_NAME, payload);
 };
 
 export const updateAddress = async (
   payload: UpdateAddressRequest
 ): Promise<AddressApiTask> => {
-  const model_name: string = "address";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<AddressApiTask>(res);
+  return saveRecord(MODEL_NAME, payload);
 };
 
 export const deleteAddress = async (id: number) => {
-  return deleteRecord("address", id);
+  return deleteRecord(MODEL_NAME, id);
 };
 
-export const fetchAddresses = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=address" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
+export const fetchAddresses = async (id?: number | string) => {
+  if (id) {
+    return getRecord(MODEL_NAME, Number(id));
   }
+  return getRecords(MODEL_NAME);
 };

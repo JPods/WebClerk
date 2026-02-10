@@ -61,12 +61,11 @@ import {
   // Docs
   DocumentList,
   DocumentDetail,
-  LinkageList,
-  LinkageIndexList,
   QuestionAnswerList,
   TagList,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import DetailReview from "../pages/admin/DetailReview";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
 import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
@@ -233,6 +232,10 @@ const Router: React.FC = () => {
             element={<AdminWorkbench />}
           />
           <Route
+            path={PageRoutes.detailReview}
+            element={<DetailReview />}
+          />
+          <Route
             path={PageRoutes.modelWorkbench}
             element={<AllModelsWorkbench />}
           />
@@ -245,14 +248,6 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.documentDetail}
             element={<DocumentDetail />}
-          />
-          <Route
-            path={PageRoutes.linkageList}
-            element={<LinkageList />}
-          />
-          <Route
-            path={PageRoutes.linkageIndexList}
-            element={<LinkageIndexList />}
           />
           <Route
             path={PageRoutes.questionAnswerList}

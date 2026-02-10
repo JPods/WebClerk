@@ -23,7 +23,7 @@ export default function MatricsList() {
       setLoading(true);
       const res = await fetchMatricss();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch matrics", type: "error" })

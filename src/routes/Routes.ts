@@ -27,6 +27,7 @@
 
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
+  static readonly detailReview: string = "/detail-review";
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";
@@ -142,8 +143,7 @@
   // Docs
   static readonly documentList: string = "/docs/document/list";
   static readonly documentDetail: string = "/docs/document/detail/:id?";
-  static readonly linkageList: string = "/docs/linkage/list";
-  static readonly linkageIndexList: string = "/docs/linkage-index/list";
+  static readonly linkageEntryList: string = "/docs/linkage-entry/list";
   static readonly questionAnswerList: string = "/docs/question-answer/list";
   static readonly tagList: string = "/docs/tag/list";
 }

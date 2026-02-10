@@ -8,19 +8,13 @@ import {
   FaClipboardList,
   FaCheck,
   FaClock,
+  FaTasks,
 } from 'react-icons/fa';
 
 // Import base component and shared types
-import TransactionDetailBase from '../../../components/TransactionDetailBase';
+import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
+import LinesCard from '../../../components/LinesCard';
 import FieldLabel from '../../../components/FieldLabel';
-import {
-  TransactionItemSearch,
-  resolveItemCode,
-  resolveItemDescription,
-  resolveUnitPrice,
-  resolveUnitCost,
-  ItemSearchResult,
-} from '../../../components';
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
@@ -380,8 +374,150 @@ interface WorkOrderDetailProps {
   isAdmin?: boolean;
 }
 
+// Dynamic tabs generator with badges based on data (like OrderDetail)
+const getWorkorderTabsAfter = (_data: Transaction): TransactionTab[] => {
+  // No additional tabs - actions are now in base
+  return [];
+};
+
 // Main Component
 const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
+  // Custom tab content renderer for actions
+  const renderCustomTab = useCallback(
+    (
+      tabId: string,
+      data: Transaction,
+      isEditing: boolean,
+      _onFieldChange?: (field: string, value: unknown) => void,
+    ) => {
+      const workorderData = data as WorkOrder;
+
+      switch (tabId) {
+        case "actions":
+          const actions = workorderData.actions?.items ?? [];
+          return (
+            <div className="p-4">
+              {actions.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <FaTasks size={32} className="mx-auto mb-3 opacity-50" />
+                  <p>No actions on this work order</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {actions.map((action, idx) => (
+                    <div
+                      key={action.id ?? idx}
+                      className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {typeof action.action === "object"
+                            ? action.action?.en
+                            : action.action ?? action.what ?? "--"}
+                        </span>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            action.status === "done"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          }`}
+                        >
+                          {action.status ?? "pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
+  // Custom lines renderer using LinesCard
+  const renderLines = useCallback(
+    (
+      lines: TransactionLine[],
+      isEditing: boolean,
+      data?: Transaction,
+      onLinesChange?: (lines: TransactionLine[]) => void,
+    ) => {
+      return (
+        <LinesCard
+          lines={lines}
+          isEditing={isEditing}
+          isLocked={data?.is_locked}
+          priceLevel="base"
+          onDeleteLine={(lineId) => {
+            if (onLinesChange) {
+              onLinesChange(lines.filter((l) => l.id !== lineId));
+            }
+          }}
+          onUpdateLine={(lineId, field, value) => {
+            if (onLinesChange) {
+              onLinesChange(
+                lines.map((l) => {
+                  if (l.id !== lineId) return l;
+                  const baseUpdate = { ...l, _dirty: true };
+                  switch (field) {
+                    case "qty":
+                      return {
+                        ...baseUpdate,
+                        quantity: { ...l.quantity, ordered: Number(value) },
+                      };
+                    case "description":
+                      return {
+                        ...baseUpdate,
+                        item: { ...l.item, description: String(value) },
+                      };
+                    case "unit_price":
+                      const newPrice = Number(value);
+                      const qty = l.quantity?.ordered ?? 0;
+                      return {
+                        ...baseUpdate,
+                        price: {
+                          ...l.price,
+                          unit: newPrice,
+                          extended: newPrice * qty,
+                        },
+                      };
+                    default:
+                      return { ...baseUpdate, [field]: value };
+                  }
+                }),
+              );
+            }
+          }}
+          onDuplicateLine={(lineId) => {
+            if (onLinesChange) {
+              const lineToDup = lines.find((l) => l.id === lineId);
+              if (lineToDup) {
+                const { id, ...rest } = lineToDup;
+                const newLine: TransactionLine = {
+                  ...rest,
+                  id: Date.now(),
+                };
+                onLinesChange([...lines, newLine]);
+              }
+            }
+          }}
+          onLinesChange={onLinesChange}
+        />
+      );
+    },
+    [],
+  );
+
+  // Check if work order can be edited
+  const canEdit = useCallback((data: Transaction) => {
+    const status = data.status?.toLowerCase();
+    return status !== "completed" && status !== "canceled" && status !== "closed";
+  }, []);
+
   return (
     <TransactionDetailBase
       transactionType="workorder"
@@ -390,15 +526,15 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
       renderHeader={(data, isEditing, onChange) => (
         <WorkOrderHeader data={data as WorkOrder} isEditing={isEditing} onChange={onChange as any} />
       )}
-      renderLines={(lines, isEditing, data, onLinesChange) => (
-        <WorkOrderLinesContent data={data as WorkOrder} isEditing={isEditing} onLinesChange={onLinesChange} />
-      )}
+      renderLines={renderLines}
+      getCustomTabsAfter={getWorkorderTabsAfter}
+      renderCustomTab={renderCustomTab}
       inline={props.inline}
       modeProp={props.modeProp}
       dataProp={props.dataProp}
       onSaved={props.onSaved}
-      onCancelInline={props.onCancelInline}
       isAdmin={props.isAdmin}
+      canEdit={canEdit}
     />
   );
 };

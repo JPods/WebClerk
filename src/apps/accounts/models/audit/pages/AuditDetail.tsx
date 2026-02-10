@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import Label from "../../../../../components/form/Label";
 import { Input, CustTextArea } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { createAudit, updateAudit } from "../services/auditApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -37,10 +39,23 @@ export default function AuditDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
+
+  const handleEdit = () => setCurrentMode("edit");
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else if (initialMode === "add") {
+      // Navigate back or reset
+    } else {
+      setCurrentMode("view");
+    }
+  };
   useEffect(() => {
-    if (mode === "add") {
+    if (currentMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -51,19 +66,20 @@ export default function AuditDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, setValue, currentMode]);
 
   const onSubmit = async (formData: z.infer<typeof auditSchema>) => {
+    setIsSaving(true);
     try {
       const res =
-        mode === "add"
+        currentMode === "add"
           ? await createAudit(formData)
           : await updateAudit({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Audit ${
-              mode === "add" ? "created" : "updated"
+              currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
           })
@@ -74,6 +90,8 @@ export default function AuditDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -82,35 +100,33 @@ export default function AuditDetail({
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
-            mode === "edit"
+            currentMode === "edit"
               ? "Edit Audit"
-              : mode === "view"
+              : currentMode === "view"
               ? "View Audit"
               : "Audit Detail"
           }
         />
       )}
+
+      <SimpleDetailHeader
+        entityName="Audit"
+        recordId={data?.id}
+        recordName={data?.action || data?.description}
+        mode={currentMode}
+        backUrl={inline ? undefined : "/accounts/audits"}
+        onClose={inline ? onCancelInline : undefined}
+      />
+
+      <SimpleDetailToolbar
+        mode={currentMode}
+        isSaving={isSaving}
+        onSave={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        onEdit={handleEdit}
+      />
+
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Audit"
-                : mode === "view"
-                ? "View Audit"
-                : "Add New Audit"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -122,7 +138,7 @@ export default function AuditDetail({
                 {...register("date")}
                 error={errors.date && errors.date.message ? true : false}
                 hint={errors.date && errors.date.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
             <div>
@@ -134,7 +150,7 @@ export default function AuditDetail({
                 {...register("action")}
                 error={errors.action && errors.action.message ? true : false}
                 hint={errors.action && errors.action.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
@@ -148,7 +164,7 @@ export default function AuditDetail({
                 {...register("user")}
                 error={errors.user && errors.user.message ? true : false}
                 hint={errors.user && errors.user.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
@@ -161,29 +177,10 @@ export default function AuditDetail({
                 {...register("description")}
                 error={errors.description && errors.description.message ? true : false}
                 hint={errors.description && errors.description.message}
-                disabled={mode === "view"}
+                disabled={currentMode === "view"}
               />
             </div>
           </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
       </ComponentCard>
     </>
