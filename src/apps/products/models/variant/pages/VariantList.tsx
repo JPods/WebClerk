@@ -25,7 +25,7 @@ export default function VariantList() {
       setLoading(true);
       const res = await fetchVariants();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch variants", type: "error" })

@@ -251,7 +251,7 @@ export default function ConnectionDetail({
                 {...register("database")}
                 error={errors.database && errors.database.message ? true : false}
                 hint={errors.database && errors.database.message}
-                disabled={currentMode === "view"
+                disabled={currentMode === "view"}
               />
             </HorizontalField>
           </div>

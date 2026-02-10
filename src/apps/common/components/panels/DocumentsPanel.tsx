@@ -53,6 +53,8 @@ interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'd
   parentId?: number;
   /** Documents array (RefLinks from refs.links.document) */
   data?: DocumentRefLink[];
+  /** Whether editing is enabled */
+  isEditing?: boolean;
   /** Purpose/category for uploaded documents */
   purpose?: string;
   /** Max file size in bytes */

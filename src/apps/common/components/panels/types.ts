@@ -64,6 +64,18 @@ export type EntityType =
   // Products
   | "item"
   | "category"
+  | "warehouse"
+  | "catalog"
+  | "serial"
+  | "variant"
+  | "bill_of_material"
+  | "flow"
+  | "item_xref"
+  | "org_item"
+  | "matrics"
+  | "specification"
+  | "usage"
+  | "service"
   // Communications
   | "email"
   | "phone"

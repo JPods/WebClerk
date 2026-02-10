@@ -25,7 +25,7 @@ export default function ItemXrefList() {
       setLoading(true);
       const res = await fetchItemXrefs();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch item xrefs", type: "error" })

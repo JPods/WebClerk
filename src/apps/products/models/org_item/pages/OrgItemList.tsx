@@ -25,7 +25,7 @@ export default function OrgItemList() {
       setLoading(true);
       const res = await fetchOrgItems();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch org items", type: "error" })

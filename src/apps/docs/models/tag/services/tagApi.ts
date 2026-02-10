@@ -1,57 +1,34 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
-import { deleteRecord } from "@/api/wcapi";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateTagRequest,
   TagApiTask,
   UpdateTagRequest,
 } from "../types/tagType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createTag = async (
   payload: CreateTagRequest
 ): Promise<TagApiTask> => {
-  const model_name: string = "tag";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<TagApiTask>(res);
+  const res = await saveRecord("tag", payload);
+  return res;
 };
 
 export const updateTag = async (
   payload: UpdateTagRequest
 ): Promise<TagApiTask> => {
-  const model_name: string = "tag";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<TagApiTask>(res);
+  const res = await saveRecord("tag", payload);
+  return res;
 };
 
 export const deleteTag = async (id: number) => {
   return deleteRecord("tag", id);
 };
 
-export const fetchTags = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=tag" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchTags = async (params?: any) => {
+  const res = await getRecords("tag", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchTag = async (): Promise<TagApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=tag");
-  return unwrap<TagApiTask[]>(res);
+  const res = await getRecords("tag");
+  return res.results || [];
 };

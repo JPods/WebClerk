@@ -1,54 +1,31 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
-import { deleteRecord } from "@/api/wcapi";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateDocumentRequest,
   DocumentApiTask,
   UpdateDocumentRequest,
 } from "../types/documentType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createDocument = async (
   payload: CreateDocumentRequest
 ): Promise<DocumentApiTask> => {
-  const model_name: string = "document";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<DocumentApiTask>(res);
+  const res = await saveRecord("document", payload);
+  return res;
 };
 
 export const updateDocument = async (
   payload: UpdateDocumentRequest
 ): Promise<DocumentApiTask> => {
-  const model_name: string = "document";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<DocumentApiTask>(res);
+  const res = await saveRecord("document", payload);
+  return res;
 };
 
 export const deleteDocument = async (id: number) => {
   return deleteRecord("document", id);
 };
 
-export const fetchDocuments = async () => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=document"
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchDocuments = async (params?: any) => {
+  const res = await getRecords("document", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 /**
@@ -56,17 +33,11 @@ export const fetchDocuments = async () => {
  * API: wcapi/get/?model_name=document&id=X
  */
 export const fetchDocumentById = async (id: number | string) => {
-  try {
-    const res = await apiClient.get(
-      `${PostLoginURL.allTypes}model_name=document&id=${id}`
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+  const res = await getRecords("document", { id });
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchDocument = async (): Promise<DocumentApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=document");
-  return unwrap<DocumentApiTask[]>(res);
+  const res = await getRecords("document");
+  return res.results || [];
 };

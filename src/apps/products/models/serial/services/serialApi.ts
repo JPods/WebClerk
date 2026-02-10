@@ -1,57 +1,32 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
-import { deleteRecord } from "@/api/wcapi";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateSerialRequest,
   SerialApiTask,
   UpdateSerialRequest,
 } from "../types/serialType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createSerial = async (
   payload: CreateSerialRequest
 ): Promise<SerialApiTask> => {
-  const model_name: string = "serial";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<SerialApiTask>(res);
+  return saveRecord("serial", payload);
 };
 
 export const updateSerial = async (
   payload: UpdateSerialRequest
 ): Promise<SerialApiTask> => {
-  const model_name: string = "serial";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<SerialApiTask>(res);
+  return saveRecord("serial", payload);
 };
 
 export const deleteSerial = async (id: number) => {
-  return deleteRecord('serial', id);
+  return deleteRecord("serial", id);
 };
 
-export const fetchSerials = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=serial" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
-  }
+export const fetchSerials = async (params?: any) => {
+  const res = await getRecords("serial", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
 
 export const fetchSerial = async (): Promise<SerialApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=serial");
-  return unwrap<SerialApiTask[]>(res);
+  const res = await getRecords("serial");
+  return res.results || [];
 };

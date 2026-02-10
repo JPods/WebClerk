@@ -18,17 +18,19 @@ All data access should use these standardized endpoints:
 
 ## Current API File Audit
 
-### Summary (Updated)
+### Summary (Updated: Feb 9, 2026)
 
 | Category | Count | Status |
 |----------|-------|--------|
-| ✅ Using centralized wcapi | 17 | **Good - No changes needed** |
+| ✅ Using centralized wcapi | 21 | **Good - No changes needed** |
 | ✅ Delete patterns fixed | 37 | **COMPLETED** |
-| ⚠️ Hybrid (wcapi + PostLoginURL) | 4 | **Needs consolidation** |
-| 🔶 Direct apiClient + PostLoginURL | 2 | **Should migrate to wcapi** |
+| ✅ Hybrid migration | 4 | **COMPLETED** |
+| 🔶 Direct apiClient + PostLoginURL | 1 | **orgApi.ts - Factory pattern, lower priority** |
 | 📌 Custom endpoints | 2 | **OK - Special cases** |
 
-> **Migration Status:** All 37 files with broken `apiClient.delete()` patterns have been migrated to use `deleteRecord()` from `@/api/wcapi`.
+> **Migration Status:** 
+> - All 37 files with broken `apiClient.delete()` patterns migrated ✅
+> - All 4 hybrid files (emailApi, phoneApi, addressApi, connectionApi) fully migrated ✅
 
 ---
 
@@ -53,6 +55,10 @@ These files properly import from `@/api/wcapi`:
 - `src/apps/transactions/models/workorder/services/workorderApi.ts`
 - `src/apps/transactions/models/workorder_line/services/workOrderLineApi.ts`
 - `src/apps/transactions/models/requisition/services/requisitionApi.ts`
+- `src/apps/communications/models/email/services/emailApi.ts` *(migrated Feb 2026)*
+- `src/apps/communications/models/phone/services/phoneApi.ts` *(migrated Feb 2026)*
+- `src/apps/communications/models/address/services/addressApi.ts` *(migrated Feb 2026)*
+- `src/apps/sync/connection/services/connectionApi.ts` *(migrated Feb 2026)*
 
 ---
 

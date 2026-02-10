@@ -1,57 +1,39 @@
-import apiClient from "../../../../api/axios";
-import { PostLoginURL } from "../../../../routes/network";
-import { deleteRecord } from "@/api/wcapi";
+/**
+ * Connection API - Uses centralized wcapi endpoints
+ */
+import { getRecords, getRecord, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateConnectionRequest,
   ConnectionApiTask,
   UpdateConnectionRequest,
 } from "../types/connectionType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
+const MODEL_NAME = "connection";
 
 export const createConnection = async (
   payload: CreateConnectionRequest
 ): Promise<ConnectionApiTask> => {
-  const model_name: string = "connection";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<ConnectionApiTask>(res);
+  return saveRecord(MODEL_NAME, payload);
 };
 
 export const updateConnection = async (
   payload: UpdateConnectionRequest
 ): Promise<ConnectionApiTask> => {
-  const model_name: string = "connection";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<ConnectionApiTask>(res);
+  return saveRecord(MODEL_NAME, payload);
 };
 
 export const deleteConnection = async (id: number) => {
-  return deleteRecord("connection", id);
+  return deleteRecord(MODEL_NAME, id);
 };
 
-export const fetchConnections = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=connection" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
+export const fetchConnections = async (id?: number | string) => {
+  if (id) {
+    return getRecord(MODEL_NAME, Number(id));
   }
+  return getRecords(MODEL_NAME);
 };
 
 export const fetchConnection = async (): Promise<ConnectionApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=connection");
-  return unwrap<ConnectionApiTask[]>(res);
+  const result = await getRecords(MODEL_NAME);
+  return result.results as ConnectionApiTask[];
 };
