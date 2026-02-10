@@ -1,0 +1,9 @@
+2026-02-10 20:08:27,388 - INFO - ═══════════════════════════════════════════════════════════════
+2026-02-10 20:08:27,388 - INFO -   RESTORE DATA STARTED: 2026-02-10 20:08:27
+2026-02-10 20:08:27,388 - INFO -   Source: /Users/williamjames/Documents/CommerceExpert/webclerk3_data
+2026-02-10 20:08:27,388 - INFO -   Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/restore_data.log
+2026-02-10 20:08:27,388 - INFO - ═══════════════════════════════════════════════════════════════
+2026-02-10 20:08:27,392 - INFO - 
+2026-02-10 20:08:27,392 - INFO -   ┌─ action.json → core.Action
+2026-02-10 20:08:27,392 - INFO -   │  Records to load: 150
+2026-02-10 20:08:31,282 - INFO -   │  Cleared 2 existing records (1.0s)
