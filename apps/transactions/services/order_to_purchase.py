@@ -24,7 +24,7 @@ def transfer_order_to_purchase(
     Transfer order lines to purchase orders, optionally grouping by vendor.
     Creates separate POs for each vendor if group_by_vendor=True.
     """
-    qs = OrderLine.objects.select_for_update().filter(parent=order)
+    qs = OrderLine.objects.select_for_update().filter(order=order)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:

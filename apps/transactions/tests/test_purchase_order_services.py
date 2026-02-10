@@ -62,13 +62,13 @@ class PurchaseTotalsServiceTest(TestCase):
         # Create line items
         PurchaseLine.objects.create(
             purchase=self.purchase,
-            description="Item 1",
+            item={'description': 'Item 1'},
             quantity={'placed': 2},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         PurchaseLine.objects.create(
             purchase=self.purchase,
-            description="Item 2",
+            item={'description': 'Item 2'},
             quantity={'placed': 1},
             cost={'unit': 12.00, 'extended': 12.00}
         )
@@ -92,7 +92,7 @@ class PurchaseTotalsServiceTest(TestCase):
         """Test computing totals with additional cost components."""
         PurchaseLine.objects.create(
             purchase=self.purchase,
-            description="Item 1",
+            item={'description': 'Item 1'},
             quantity={'placed': 1},
             cost={
                 'unit': 80.00,
@@ -150,8 +150,8 @@ class OrderToPurchaseServiceTest(TestCase):
         """Test basic transfer from order to purchase order."""
         # Create order lines
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={'description': 'Item 1'},
             quantity={'placed': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00}
@@ -189,16 +189,16 @@ class OrderToPurchaseServiceTest(TestCase):
 
         # Create order lines with different vendors
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={'description': 'Item 1'},
             quantity={'placed': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00},
             vendor_id=self.vendor.id
         )
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 2",
+            order=self.order,
+            item={'description': 'Item 2'},
             quantity={'placed': 1},
             price={'unit': 15.00},
             cost={'unit': 12.00},

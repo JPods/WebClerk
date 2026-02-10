@@ -33,7 +33,7 @@ def transfer_purchase_to_invoice(
     for pl in selected:
         qty = convert_quantity_from_source(getattr(pl, "quantity", {}) or {}, "purchase_order")
         il = InvoiceLine.objects.create(
-            parent=inv,
+            invoice=inv,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,

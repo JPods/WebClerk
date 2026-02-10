@@ -62,10 +62,10 @@ class ProposalTotalsServiceTest(TestCase):
         """Test totals computation for proposal with single line item."""
         # Create a line item
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Test Item",
-            quantity=2,
-            price={'sell': 10.00, 'cost': 8.00, 'extended': 20.00, 'discount_amount': 1.00},
+            proposal=self.proposal,
+            item={'description': 'Test Item'},
+            quantity={'placed': 2, 'remaining': 2},
+            price={'unit': 10.00, 'extended': 20.00, 'discount_amount': 1.00},
             cost={'extended': 16.00, 'tax': 1.60, 'shipping': 0.50}
         )
 
@@ -92,17 +92,17 @@ class ProposalTotalsServiceTest(TestCase):
         """Test totals computation for proposal with multiple line items."""
         # Create multiple line items
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Item 1",
-            quantity=2,
-            price={'sell': 10.00, 'cost': 8.00, 'extended': 20.00},
+            proposal=self.proposal,
+            item={'description': 'Item 1'},
+            quantity={'placed': 2, 'remaining': 2},
+            price={'unit': 10.00, 'extended': 20.00},
             cost={'extended': 16.00}
         )
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Item 2",
-            quantity=3,
-            price={'sell': 5.00, 'cost': 4.00, 'extended': 15.00, 'discount_amount': 2.00},
+            proposal=self.proposal,
+            item={'description': 'Item 2'},
+            quantity={'placed': 3, 'remaining': 3},
+            price={'unit': 5.00, 'extended': 15.00, 'discount_amount': 2.00},
             cost={'extended': 12.00, 'tax': 0.60}
         )
 
@@ -127,10 +127,10 @@ class ProposalTotalsServiceTest(TestCase):
     def test_compute_proposal_sell_cost_totals_zero_sell_price(self):
         """Test totals computation when sell price is zero (division by zero protection)."""
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Free Item",
-            quantity=1,
-            price={'sell': 0.00, 'cost': 5.00, 'extended': 0.00},
+            proposal=self.proposal,
+            item={'description': 'Free Item'},
+            quantity={'placed': 1, 'remaining': 1},
+            price={'unit': 0.00, 'extended': 0.00},
             cost={'extended': 5.00}
         )
 
@@ -145,9 +145,9 @@ class ProposalTotalsServiceTest(TestCase):
         """Test totals computation with missing or incomplete price data."""
         # Create line with missing price data
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Incomplete Item",
-            quantity=1,
+            proposal=self.proposal,
+            item={'description': 'Incomplete Item'},
+            quantity={'placed': 1, 'remaining': 1},
             price={},  # Empty price dict
             cost={}    # Empty cost dict
         )
@@ -163,10 +163,10 @@ class ProposalTotalsServiceTest(TestCase):
     def test_compute_proposal_sell_cost_totals_all_cost_components(self):
         """Test totals computation with all cost components present."""
         ProposalLine.objects.create(
-            parent=self.proposal,
-            description="Complete Item",
-            quantity=1,
-            price={'sell': 100.00, 'cost': 80.00, 'extended': 100.00},
+            proposal=self.proposal,
+            item={'description': 'Complete Item'},
+            quantity={'placed': 1, 'remaining': 1},
+            price={'unit': 100.00, 'extended': 100.00},
             cost={
                 'extended': 80.00,
                 'tax': 8.00,

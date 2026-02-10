@@ -141,12 +141,12 @@ def ensure_linkage_for_lines(lines) -> Optional[int]:
 
 def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Order:
     so = Order.objects.create(order_no=order_no or f"SO-{proposal.pk or 'new'}")
-    src_lines = list(ProposalLine.objects.filter(parent=proposal).order_by('id'))
+    src_lines = list(ProposalLine.objects.filter(proposal=proposal).order_by('id'))
     # Linkage disabled - pass None
     linkage_id = None
     # Copy lines after ensuring linkage id
     for pl in src_lines:
-        sol = OrderLine(parent=so)
+        sol = OrderLine(order=so)
         _copy_common_line_fields(pl, sol)
         if linkage_id:
             # Ensure propagated (could already be present from copy)
@@ -166,10 +166,10 @@ def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Ord
 def order_to_invoice(so: Order, invoice_no: Optional[str] = None) -> Invoice:
     # invoice_no is deprecated; ida is auto-generated from id.
     inv = Invoice.objects.create()
-    src_lines = list(OrderLine.objects.filter(parent=so).order_by('id'))
+    src_lines = list(OrderLine.objects.filter(order=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:
-        il = InvoiceLine(parent=inv)
+        il = InvoiceLine(invoice=inv)
         _copy_common_line_fields(sol, il)
         if linkage_id:
             refs = getattr(il, 'refs', {}) or {}
@@ -192,7 +192,7 @@ def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> Purchase:
     comment & lineage chain.
     """
     po = Purchase.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
-    src_lines = list(OrderLine.objects.filter(parent=so).order_by('id'))
+    src_lines = list(OrderLine.objects.filter(order=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:
         pol = PurchaseLine(purchase=po)

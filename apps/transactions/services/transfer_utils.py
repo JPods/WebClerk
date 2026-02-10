@@ -82,6 +82,23 @@ def _to_decimal_safe(val: Any, default: Decimal = Decimal(0)) -> Decimal:
     except Exception:
         return default
 
+def _resolve_line_parent_id(src_line: Any) -> Any:
+    if hasattr(src_line, 'parent_id_value'):
+        try:
+            return src_line.parent_id_value
+        except Exception:
+            pass
+    parent_obj = getattr(src_line, 'parent', None)
+    if parent_obj is not None:
+        return getattr(parent_obj, 'id', None)
+    for field_name in (
+        'proposal_id', 'order_id', 'invoice_id', 'purchase_id',
+        'workorder_id', 'receipt_id', 'requisition_id'
+    ):
+        if hasattr(src_line, field_name):
+            return getattr(src_line, field_name)
+    return None
+
 def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
     """
     Build a normalized payload array for a source line, to be embedded into refs['xfer'].
@@ -114,7 +131,7 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
         "version": PAYLOAD_VERSION,
         "source": {
             "kind": src_kind,
-            "parent_id": getattr(src_line, "parent_id", None) or getattr(getattr(src_line, "parent", None), "id", None),
+            "parent_id": _resolve_line_parent_id(src_line),
             "line_id": getattr(src_line, "id", None),
         },
         "item": {

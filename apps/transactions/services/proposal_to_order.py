@@ -57,7 +57,7 @@ def validate_proposal_for_transfer(
             "total_amount": 0.0,
         }
 
-    qs = ProposalLine.objects.filter(parent=proposal)
+    qs = ProposalLine.objects.filter(proposal=proposal)
 
     if line_ids is not None:
         existing = set(qs.filter(id__in=line_ids).values_list("id", flat=True))
@@ -153,7 +153,7 @@ def transfer_proposal_to_order(
     if not transfer_all and not line_ids:
         raise ProposalToOrderTransferError("Must specify line_ids when transfer_all is False")
 
-    all_lines_qs = ProposalLine.objects.select_for_update().filter(parent=proposal)
+    all_lines_qs = ProposalLine.objects.select_for_update().filter(proposal=proposal)
     if transfer_all:
         selected_lines = list(all_lines_qs)
         if not selected_lines:
@@ -188,7 +188,7 @@ def transfer_proposal_to_order(
     for pl in selected_lines:
         qty = _convert_quantity_from_proposal(getattr(pl, "quantity", None))
         ol = OrderLine.objects.create(
-            parent=order,
+            order=order,
             price=pl.price or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,

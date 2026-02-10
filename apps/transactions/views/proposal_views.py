@@ -54,56 +54,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def convert_to_order(self, request, pk=None):
         """Convert proposal to sales order."""
         proposal = self.get_object()
-
-        # Validate proposal can be converted
-        if proposal.status not in ['accepted']:
-            return Response(
-                {'error': 'Only accepted proposals can be converted to orders'},
-                status=status.HTTP_400_BAD_REQUEST
+        try:
+            from apps.transactions.services.proposal_to_order import transfer_proposal_to_order
+            result = transfer_proposal_to_order(
+                proposal=proposal,
+                line_ids=request.data.get('line_ids'),
+                transfer_all=request.data.get('transfer_all', True),
+                order_status=request.data.get('order_status', 'confirmed'),
+                preserve_proposal=request.data.get('preserve_proposal', True),
             )
-
-        # Create sales order data
-        order_data = {
-            'model_name': 'sales_order',
-            'customer_id': proposal.customer_id,
-            'vendor_id': proposal.vendor_id,
-            'status': 'released',
-            'sell': proposal.sell,
-            'cost': proposal.cost,
-            'source': {'proposal_id': proposal.id}
-        }
-
-        # Use WCAPI to create sales order
-        result = wcapi.save_item('sales_order', request=request, data=order_data)
-        if result[1] == 'created':
-            order_id = result[0]
-
-            # Copy proposal lines to order lines
-            for line in proposal.proposalline_set.all():
-                line_data = {
-                    'model_name': 'sales_order_line',
-                    'parent': order_id,
-                    'item_id': line.item_id,
-                    'description': line.description,
-                    'quantity': line.quantity,
-                    'price': line.price,
-                    'discount_amount': line.discount_amount
-                }
-                wcapi.save_item('sales_order_line', request=request, data=line_data)
-
-            # Update proposal status
-            proposal.status = 'accepted'  # or 'converted'
-            proposal.save()
-
-            return Response({'order_id': order_id}, status=status.HTTP_201_CREATED)
-
-        # Backwards-compatible alias expected by external docs/tests
-        @action(detail=True, methods=['post'], url_path='convert-to-sales-order')
-        def convert_to_sales_order(self, request, pk=None):
-            """Alias for convert_to_order to support legacy route naming."""
-            return self.convert_to_order(request, pk)
-
-        return Response({'error': 'Failed to create order'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
@@ -111,6 +73,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         proposal = self.get_object()
         totals = proposal.update_sell_cost_totals(persist=False)
         return Response(totals)
+
+    # Backwards-compatible alias expected by external docs/tests
+    @action(detail=True, methods=['post'], url_path='convert-to-sales-order')
+    def convert_to_sales_order(self, request, pk=None):
+        """Alias for convert_to_order to support legacy route naming."""
+        return self.convert_to_order(request, pk)
 
 
 class ProposalLineViewSet(viewsets.ModelViewSet):
@@ -126,7 +94,7 @@ class ProposalLineViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
         proposal_id = self.request.query_params.get('proposal_id')
         if proposal_id:
-            queryset = queryset.filter(parent_id=proposal_id)
+            queryset = queryset.filter(proposal_id=proposal_id)
         return queryset
 
     def perform_create(self, serializer):

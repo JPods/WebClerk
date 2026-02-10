@@ -133,13 +133,17 @@ def execute_transfer(request):
                 line_ids=data.get('line_ids'),
                 transfer_all=data.get('transfer_all', True),
                 purchase_status=data.get('target_status', 'open'),
-                preserve_order=data.get('preserve_source', True)
+                preserve_order=data.get('preserve_source', True),
+                group_by_vendor=False,
             )
+
+            purchase_ids = result.get('purchase_order_ids') or []
+            target_id = purchase_ids[0] if purchase_ids else None
 
             response_data = {
                 'success': result['success'],
-                'target_id': result['purchase_order_id'],
-                'source_id': result['order_id'],
+                'target_id': target_id,
+                'source_id': result['sales_order_id'],
                 'lines_transferred': result['lines_transferred'],
                 'line_mapping': result['line_mapping'],
                 'source_preserved': result['order_preserved'],

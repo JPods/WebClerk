@@ -24,9 +24,9 @@ def transfer_order_to_invoice(
         raise OrderToInvoiceTransferError("Must specify line_ids when transfer_all=False")
 
     lines_to_transfer = (
-        OrderLine.objects.filter(parent=order)
+        OrderLine.objects.filter(order=order)
         if transfer_all
-        else OrderLine.objects.filter(parent=order, id__in=line_ids)
+        else OrderLine.objects.filter(order=order, id__in=line_ids)
     )
     if not lines_to_transfer.exists():
         raise OrderToInvoiceTransferError("No lines to transfer")
@@ -38,7 +38,8 @@ def transfer_order_to_invoice(
     # Create invoice
     invoice = Invoice.objects.create(
         status=invoice_status,
-        party=_resolve_order_party(order),
+        customer_id=getattr(order, "customer_id", 0) or 0,
+        vendor_id=getattr(order, "vendor_id", 0) or 0,
         refs=_prepare_invoice_refs(order, invoice_type),
         prefs=dict(order.prefs or {}),
         metadata=_prepare_invoice_metadata(order, invoice_type),
@@ -53,7 +54,7 @@ def transfer_order_to_invoice(
             continue
 
         il = InvoiceLine.objects.create(
-            parent=invoice,
+            invoice=invoice,
             status=ol.status or "pending",
             price_level=ol.price_level,
             item=ol.item,
@@ -72,12 +73,12 @@ def transfer_order_to_invoice(
         _update_order_line_quantity(ol, remaining)
     if transfer_all:
         remaining_total = sum(
-            (l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(parent=order)
+            (l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(order=order)
         )
         if remaining_total <= 0:
             order.status = "fulfilled"
             order.save(update_fields=["status", "dt_modified", "version"])
-        remaining_total = sum((l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(parent=order))
+        remaining_total = sum((l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(order=order))
         if remaining_total <= 0:
             order.status = "fulfilled"
             order.save(update_fields=["status", "dt_modified", "version"])
@@ -113,7 +114,7 @@ def _resolve_order_party(order: Order) -> Any:
             value = getattr(order, attr)
             if value is not None:
                 return value
-    raise OrderToInvoiceTransferError("Order missing party/customer association required for invoice creation")
+    return None
     
 def _prepare_invoice_refs(order: Order, invoice_type: str) -> Dict[str, Any]:
     refs = dict(order.refs or {})
@@ -140,6 +141,8 @@ def _prepare_line_refs(ol: OrderLine) -> Dict[str, Any]:
     refs = dict(ol.refs or {})
     src = refs.setdefault("source", {})
     src["order_line_id"] = ol.id
+    if "order_id" not in src:
+        src["order_id"] = getattr(ol, "order_id", None)
     if "proposal_line_id" in src:
         src["original_proposal_line_id"] = src["proposal_line_id"]
     return refs

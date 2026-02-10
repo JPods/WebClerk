@@ -11,6 +11,8 @@ from apps.transactions.serializers import (
     ProposalSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer, PaymentSerializer
 )
+from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
+from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -25,8 +27,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def convert_to_order(self, request, pk=None):
         """Convert proposal to order."""
         proposal = self.get_object()
-        # Implementation would call transfer service
-        return Response({'message': 'Conversion endpoint - implementation needed'})
+        try:
+            result = proposal_to_order.transfer_proposal_to_order(
+                proposal=proposal,
+                line_ids=request.data.get('line_ids'),
+                transfer_all=request.data.get('transfer_all', True),
+                order_status=request.data.get('order_status', 'confirmed'),
+                preserve_proposal=request.data.get('preserve_proposal', True),
+            )
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -41,7 +52,18 @@ class OrderViewSet(viewsets.ModelViewSet):
     def convert_to_invoice(self, request, pk=None):
         """Convert order to invoice."""
         order = self.get_object()
-        return Response({'message': 'Conversion endpoint - implementation needed'})
+        try:
+            result = order_to_invoice.transfer_order_to_invoice(
+                order=order,
+                line_ids=request.data.get('line_ids'),
+                transfer_all=request.data.get('transfer_all', True),
+                invoice_status=request.data.get('invoice_status', 'pending'),
+                preserve_order=request.data.get('preserve_order', True),
+                invoice_type=request.data.get('invoice_type', 'standard'),
+            )
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def create_purchase(self, request, pk=None):
@@ -67,7 +89,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     def reserve_inventory(self, request, pk=None):
         """Reserve inventory for order."""
         order = self.get_object()
-        return Response({'message': 'Inventory reservation endpoint - implementation needed'})
+        try:
+            result = inventory_flow.reserve_inventory_for_order(order)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PurchaseViewSet(viewsets.ModelViewSet):
@@ -81,8 +107,6 @@ class PurchaseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
         """Record receipt of goods."""
-        from apps.transactions.services.flow import receive_purchase, ReceiveLine
-
         purchase = self.get_object()
         receipt_id = request.data.get('receipt_id')
         if not receipt_id:
@@ -95,7 +119,7 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         lines = []
         for ld in lines_data:
             lines.append(ReceiveLine(
-                purchase_line_id=ld['purchase_line_id'],
+                po_line_id=ld.get('po_line_id') or ld['purchase_line_id'],
                 qty=ld['qty'],
                 warehouse_code=ld['warehouse_code'],
                 unit_cost=ld.get('unit_cost'),
@@ -104,7 +128,7 @@ class PurchaseViewSet(viewsets.ModelViewSet):
             ))
 
         try:
-            result = receive_purchase(purchase, receipt_id, lines)
+            result = receive_purchase_order(purchase, receipt_id, lines)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -70,7 +70,11 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         # Use the transfer service
         try:
-            result = transfer_order_to_invoice(order_id, invoice_id=invoice.id)
+            from apps.transactions.models import Order
+            order = Order.objects.filter(pk=order_id).first()
+            if not order:
+                return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            result = transfer_order_to_invoice(order=order)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -33,7 +33,7 @@ def transfer_purchase_to_order(
     for pl in selected:
         qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase_order")
         sl = OrderLine.objects.create(
-            parent=so,
+            order=so,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,

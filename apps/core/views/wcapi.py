@@ -284,6 +284,16 @@ class WCAPIGetView(APIView):
         """
         filters = {}
         field_names = {f.name for f in ModelCls._meta.get_fields()}
+
+        def _resolve_parent_field() -> Optional[str]:
+            parent_candidates = (
+                'proposal', 'order', 'invoice', 'purchase',
+                'workorder', 'receipt', 'requisition'
+            )
+            for candidate in parent_candidates:
+                if candidate in field_names:
+                    return candidate
+            return None
         
         # Build a map of field name to field type for type coercion
         field_types = {}
@@ -298,6 +308,12 @@ class WCAPIGetView(APIView):
             if key in {'model_name', 'id', 'fields', 'limit', 'offset', 'page', 'page_size', 
                       'q', 'search', 'order_by', 'ordering', 'model_name_filter'}:
                 continue
+
+            # Map generic parent filters to the actual FK field on line models
+            if key in {'parent', 'parent_id'}:
+                parent_field = _resolve_parent_field()
+                if parent_field:
+                    key = parent_field
             
             # Validate field name (before __lookup)
             field_base = key.split('__')[0]

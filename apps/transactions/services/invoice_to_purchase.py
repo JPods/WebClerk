@@ -18,7 +18,7 @@ def transfer_invoice_to_purchase(
     purchase_status: str = "open",
     preserve_invoice: bool = True,
 ) -> Dict:
-    qs = InvoiceLine.objects.select_for_update().filter(parent=invoice)
+    qs = InvoiceLine.objects.select_for_update().filter(invoice=invoice)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:

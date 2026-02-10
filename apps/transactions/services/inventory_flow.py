@@ -39,7 +39,7 @@ def reserve_inventory_for_order(order: Order) -> Dict[str, int]:
     lines_reserved = 0
     total_reserved = Decimal(0)
 
-    for line in OrderLine.objects.filter(parent=order).select_related('parent'):
+    for line in OrderLine.objects.filter(order=order).select_related('order'):
         qty_needed = _get_order_quantity_needed(line)
         if qty_needed <= 0:
             continue
@@ -119,7 +119,7 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
     deltas_created = 0
     total_processed = Decimal(0)
 
-    for line in InvoiceLine.objects.filter(parent=invoice).select_related('parent'):
+    for line in InvoiceLine.objects.filter(invoice=invoice).select_related('invoice'):
         qty_invoiced = _get_invoice_quantity_invoiced(line)
         if qty_invoiced == 0:
             continue

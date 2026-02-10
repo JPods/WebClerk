@@ -75,50 +75,19 @@ class OrderViewSet(viewsets.ModelViewSet):
     def convert_to_invoice(self, request, pk=None):
         """Convert order to invoice."""
         order = self.get_object()
-
-        # Validate order can be converted
-        if order.status not in ['released']:
-            return Response(
-                {'error': 'Only released orders can be converted to invoices'},
-                status=status.HTTP_400_BAD_REQUEST
+        try:
+            from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
+            result = transfer_order_to_invoice(
+                order=order,
+                line_ids=request.data.get('line_ids'),
+                transfer_all=request.data.get('transfer_all', True),
+                invoice_status=request.data.get('invoice_status', 'pending'),
+                preserve_order=request.data.get('preserve_order', True),
+                invoice_type=request.data.get('invoice_type', 'standard'),
             )
-
-        # Create invoice data
-        invoice_data = {
-            'model_name': 'invoice',
-            'customer_id': order.customer_id,
-            'vendor_id': order.vendor_id,
-            'status': 'pending',
-            'sell': order.sell,
-            'cost': order.cost,
-            'refs': {'source': {'order_id': order.id}}
-        }
-
-        # Use WCAPI to create invoice
-        result = wcapi.save_item('invoice', request=request, data=invoice_data)
-        if result[1] == 'created':
-            invoice_id = result[0]
-
-            # Copy order lines to invoice lines
-            for line in order.lines.all():
-                line_data = {
-                    'model_name': 'invoice_line',
-                    'parent': invoice_id,
-                    'item_id': line.item_id,
-                    'description': line.item.get('description', '') if line.item else '',
-                    'quantity': line.quantity,
-                    'price': line.price,
-                    'cost': line.cost,
-                }
-                wcapi.save_item('invoice_line', request=request, data=line_data)
-
-            # Update order status
-            order.status = 'invoiced'
-            order.save()
-
-            return Response({'invoice_id': invoice_id}, status=status.HTTP_201_CREATED)
-
-        return Response({'error': 'Failed to create invoice'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
@@ -141,7 +110,7 @@ class OrderLineViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
         order_id = self.request.query_params.get('order_id')
         if order_id:
-            queryset = queryset.filter(parent_id=order_id)
+            queryset = queryset.filter(order_id=order_id)
         return queryset
 
     def perform_create(self, serializer):

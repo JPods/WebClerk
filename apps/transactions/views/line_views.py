@@ -62,9 +62,9 @@ class ProposalLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, g
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['proposal_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'proposal_id', 'status']
     pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
@@ -164,9 +164,9 @@ class OrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, gene
     serializer_class = OrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['order_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'order_id', 'status']
     pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
@@ -266,9 +266,9 @@ class InvoiceLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, ge
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['invoice_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'invoice_id', 'status']
     pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
@@ -491,9 +491,9 @@ class WorkOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, 
     serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['workorder_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'workorder_id', 'status']
     pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
@@ -614,9 +614,9 @@ class RequisitionLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin
     serializer_class = RequisitionLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['requisition_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'requisition_id', 'status']
     pagination_class = DefaultPagination
 
 

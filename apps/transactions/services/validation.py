@@ -48,7 +48,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
 
     # Check for lines
     from apps.transactions.models import ProposalLine
-    lines = list(ProposalLine.objects.filter(parent=proposal))
+    lines = list(ProposalLine.objects.filter(proposal=proposal))
     data['line_count'] = len(lines)
 
     if not lines:
@@ -113,7 +113,7 @@ def validate_order_for_invoicing(order: Order) -> ValidationResult:
 
     # Check for lines
     from apps.transactions.models import OrderLine
-    lines = list(OrderLine.objects.filter(parent=order))
+    lines = list(OrderLine.objects.filter(order=order))
     data['line_count'] = len(lines)
 
     if not lines:
