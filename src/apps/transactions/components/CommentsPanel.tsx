@@ -6,7 +6,7 @@
  */
 import React, { useState } from "react";
 import { FaComment, FaCog, FaHandshake, FaEdit, FaTrash } from "react-icons/fa";
-import { Input } from "@/components/wrapper";
+import { Input } from "../../../components/wrapper";
 
 interface CommentMessage {
   user: string;

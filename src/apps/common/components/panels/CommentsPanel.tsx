@@ -29,7 +29,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
-import { Input } from "@/components/wrapper";
+import { Input } from "../../../../components/wrapper";
 import { usePermissions } from "./usePermissions";
 import type {
   BasePanelProps,

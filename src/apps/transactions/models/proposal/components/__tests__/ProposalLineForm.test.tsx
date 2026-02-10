@@ -26,6 +26,13 @@ vi.mock('react-icons/fa', () => ({
 }));
 
 describe('ProposalLineForm', () => {
+    const renderInTable = (ui: React.ReactElement) => {
+      return render(
+        <table>
+          <tbody>{ui}</tbody>
+        </table>
+      );
+    };
   const mockOnSave = vi.fn();
   const mockOnCancel = vi.fn();
   const mockOnChange = vi.fn();
@@ -41,14 +48,18 @@ describe('ProposalLineForm', () => {
   });
 
   it('renders form with default values', () => {
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    expect(screen.getByPlaceholderText('Select product (optional)')).toBeInTheDocument();
+    const productSelect = screen.getByTestId('product-select-input');
+    expect(productSelect).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Select product (optional)' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Description')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('1')).toBeInTheDocument(); // quantity default
-    expect(screen.getByDisplayValue('0')).toBeInTheDocument(); // price sell default
-    expect(screen.getByDisplayValue('0')).toBeInTheDocument(); // price cost default
-    expect(screen.getByDisplayValue('0')).toBeInTheDocument(); // discount default
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs).toHaveLength(4);
+    expect(inputs[0]).toHaveValue(1);
+    expect(inputs[1]).toHaveValue(0);
+    expect(inputs[2]).toHaveValue(0);
+    expect(inputs[3]).toHaveValue(0);
     expect(screen.getByText('$0.00')).toBeInTheDocument(); // total
   });
 
@@ -62,7 +73,7 @@ describe('ProposalLineForm', () => {
       discount_amount: 1.00,
     };
 
-    render(<ProposalLineForm {...defaultProps} line={lineData} />);
+    renderInTable(<ProposalLineForm {...defaultProps} line={lineData} />);
 
     expect(screen.getByDisplayValue('Test Item')).toBeInTheDocument();
     expect(screen.getByDisplayValue('5')).toBeInTheDocument();
@@ -74,7 +85,7 @@ describe('ProposalLineForm', () => {
 
   it('updates description when typing', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     const descriptionInput = screen.getByPlaceholderText('Description');
     await user.clear(descriptionInput);
@@ -88,9 +99,9 @@ describe('ProposalLineForm', () => {
 
   it('updates quantity when changed', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    const quantityInput = screen.getByDisplayValue('1');
+    const quantityInput = screen.getAllByRole('spinbutton')[0];
     await user.clear(quantityInput);
     await user.type(quantityInput, '3');
 
@@ -102,9 +113,9 @@ describe('ProposalLineForm', () => {
 
   it('updates sell price when changed', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    const sellPriceInput = screen.getAllByDisplayValue('0')[0]; // First price input (sell)
+    const sellPriceInput = screen.getAllByRole('spinbutton')[1];
     await user.clear(sellPriceInput);
     await user.type(sellPriceInput, '25.99');
 
@@ -117,9 +128,9 @@ describe('ProposalLineForm', () => {
 
   it('updates cost price when changed', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    const costPriceInput = screen.getAllByDisplayValue('0')[1]; // Second price input (cost)
+    const costPriceInput = screen.getAllByRole('spinbutton')[2];
     await user.clear(costPriceInput);
     await user.type(costPriceInput, '20.50');
 
@@ -132,9 +143,9 @@ describe('ProposalLineForm', () => {
 
   it('updates discount when changed', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    const discountInput = screen.getAllByDisplayValue('0')[2]; // Third numeric input (discount)
+    const discountInput = screen.getAllByRole('spinbutton')[3];
     await user.clear(discountInput);
     await user.type(discountInput, '5.00');
 
@@ -145,7 +156,7 @@ describe('ProposalLineForm', () => {
 
   it('updates product selection and description', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     const productSelect = screen.getByTestId('product-select-input');
     await user.selectOptions(productSelect, '1');
@@ -160,20 +171,20 @@ describe('ProposalLineForm', () => {
 
   it('calculates total correctly', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     // Set quantity to 2
-    const quantityInput = screen.getByDisplayValue('1');
+    const quantityInput = screen.getAllByRole('spinbutton')[0];
     await user.clear(quantityInput);
     await user.type(quantityInput, '2');
 
     // Set sell price to 15.00
-    const sellPriceInput = screen.getAllByDisplayValue('0')[0];
+    const sellPriceInput = screen.getAllByRole('spinbutton')[1];
     await user.clear(sellPriceInput);
     await user.type(sellPriceInput, '15.00');
 
     // Set discount to 3.00
-    const discountInput = screen.getAllByDisplayValue('0')[2];
+    const discountInput = screen.getAllByRole('spinbutton')[3];
     await user.clear(discountInput);
     await user.type(discountInput, '3.00');
 
@@ -185,14 +196,14 @@ describe('ProposalLineForm', () => {
 
   it('calls onSave with form data when save button is clicked', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     // Fill out the form
     const descriptionInput = screen.getByPlaceholderText('Description');
     await user.clear(descriptionInput);
     await user.type(descriptionInput, 'Test Description');
 
-    const quantityInput = screen.getByDisplayValue('1');
+    const quantityInput = screen.getAllByRole('spinbutton')[0];
     await user.clear(quantityInput);
     await user.type(quantityInput, '2');
 
@@ -213,7 +224,7 @@ describe('ProposalLineForm', () => {
 
   it('calls onCancel when cancel button is clicked', async () => {
     const user = userEvent.setup();
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     const cancelButton = screen.getByTestId('cancel-icon').closest('button');
     expect(cancelButton).toBeInTheDocument();
@@ -223,23 +234,23 @@ describe('ProposalLineForm', () => {
   });
 
   it('validates required description field', () => {
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
     const descriptionInput = screen.getByPlaceholderText('Description');
     expect(descriptionInput).toHaveAttribute('required');
   });
 
   it('validates numeric inputs', () => {
-    render(<ProposalLineForm {...defaultProps} />);
+    renderInTable(<ProposalLineForm {...defaultProps} />);
 
-    const quantityInput = screen.getByDisplayValue('1');
+    const quantityInput = screen.getAllByRole('spinbutton')[0];
     expect(quantityInput).toHaveAttribute('type', 'number');
     expect(quantityInput).toHaveAttribute('min', '0');
     expect(quantityInput).toHaveAttribute('step', '0.01');
     expect(quantityInput).toHaveAttribute('required');
 
-    const priceInputs = screen.getAllByDisplayValue('0');
-    priceInputs.forEach(input => {
+    const numericInputs = screen.getAllByRole('spinbutton');
+    numericInputs.forEach(input => {
       expect(input).toHaveAttribute('type', 'number');
       expect(input).toHaveAttribute('min', '0');
       expect(input).toHaveAttribute('step', '0.01');

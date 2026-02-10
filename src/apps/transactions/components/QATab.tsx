@@ -25,7 +25,7 @@ import {
   applyQuestionGroup,
   type ScopedQAGroups,
   type QAQuestionsSetting,
-} from "@/apps/common/components/panels";
+} from "../../common/components/panels";
 
 interface QATabProps {
   /** Transaction type for API persistence (e.g., "order", "purchase") */

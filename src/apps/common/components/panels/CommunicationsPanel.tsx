@@ -41,7 +41,7 @@ import type {
 } from "./types";
 
 // WCAPI for save/delete operations
-import { saveRecord, deleteRecord } from "@/api/wcapi";
+import { saveRecord, deleteRecord } from "../../../../api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types
