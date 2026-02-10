@@ -55,7 +55,8 @@ INSTALLED_APPS = [
 ]
 
 _running_django_test = 'test' in sys.argv
-if not _running_django_test:
+_disable_contrib_migrations = config('DISABLE_CONTRIB_MIGRATIONS', default=False, cast=bool)
+if _running_django_test or _disable_contrib_migrations:
     MIGRATION_MODULES = {
         'admin': None,
         'auth': None,
