@@ -38,19 +38,29 @@ WcapiResponseSerializer = inline_serializer(
 class WCAPIDeleteView(APIView):
     """Delete WCAPI endpoint supporting record removal by model_name and id."""
 
-    http_method_names = ["post", "options", "head"]
+    http_method_names = ["get", "post", "options", "head"]
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests with query params: ?model_name=X&id=Y"""
+        model_key = request.query_params.get("model_name") or request.query_params.get("model")
+        record_id = request.query_params.get("id")
+        return self._do_delete(request, model_key, record_id)
 
     def post(self, request, *args, **kwargs):
+        """Handle POST requests with body: { model_name, id }"""
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
+        return self._do_delete(request, model_key, record_id)
 
+    def _do_delete(self, request, model_key, record_id):
+        """Shared delete logic for GET and POST."""
         if not model_key or record_id is None:
             return api_response(
                 success=False,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="invalid payload",
-                error={"code": "invalid_payload", "details": body},
+                error={"code": "invalid_payload", "details": {"model_name": model_key, "id": record_id}},
             )
 
         try:
