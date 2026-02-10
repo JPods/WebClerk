@@ -1,4 +1,5 @@
 import { getRecords, getRecord } from '../../../../../api/wcapi';
+import apiClient from '../../../../../api/axios';
 import { patchAction } from '../../../../../api/userProfile';
 import { Proposal } from '../types/proposalType';
 import { ProposalFormData } from "../utils/proposalSchema";
@@ -49,10 +50,17 @@ export const deleteProposal = async (id: number): Promise<{ status: number; data
 };
 
 // Proposal Actions - Note: Backend action endpoint may need implementation
-export const convertProposalToOrder = async (_id: number): Promise<{ status: number; data: any }> => {
-  // This may need to be implemented in backend or use direct API call
-  // For now, return placeholder
-  return { status: 200, data: { message: 'Conversion not yet implemented' } };
+export const convertProposalToOrder = async (id: number): Promise<{ status: number; data: any }> => {
+  try {
+    const res = await apiClient.post(`/tx/proposals/${id}/convert-to-order/`);
+    return { status: res.status, data: res.data };
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post(`/api/tx/proposals/${id}/convert-to-order/`);
+      return { status: res2.status, data: res2.data };
+    }
+    throw err;
+  }
 };
 
 export const generateProposalPdf = async (_id: number): Promise<{ status: number; data: any }> => {

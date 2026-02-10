@@ -67,13 +67,31 @@ const FinancialsCard: React.FC<FinancialsCardProps> = ({
   isEditing = false,
   onChange,
 }) => {
-  // Calculate margins
-  const grossMarginAmount = (totals.ex ?? 0) - (cost.total ?? 0);
-  const grossMarginPercent = totals.ex && totals.ex > 0 
-    ? ((grossMarginAmount / totals.ex) * 100) 
-    : undefined;
-  const marginTrend = grossMarginPercent !== undefined 
-    ? grossMarginPercent >= 20 ? 'up' : grossMarginPercent >= 10 ? 'neutral' : 'down'
+  const toNumber = (value?: number | null): number => (value ?? 0);
+
+  // Normalize totals from backend (subtotal/tax/total) or legacy (ex/inc)
+  const subtotal = toNumber(totals.subtotal ?? (totals as Record<string, number | null>).ex);
+  const discount = toNumber(totals.discount);
+  const taxable = toNumber(totals.taxable ?? subtotal - discount);
+  const tax = toNumber(totals.tax);
+  const shipping = toNumber(totals.shipping);
+  const other = toNumber(totals.other);
+  const total = toNumber(
+    totals.total ?? (totals as Record<string, number | null>).inc ?? taxable + tax + shipping + other,
+  );
+  const received = toNumber(totals.received ?? (totals as Record<string, number | null>).deposit);
+  const balance = toNumber(totals.balance ?? total - received);
+
+  const costTotal = toNumber(cost.total ?? totals.cost);
+  const marginAmount = toNumber(totals.margin ?? total - costTotal);
+  const marginPercent = totals.margin_pc !== undefined && totals.margin_pc !== null
+    ? totals.margin_pc
+    : total > 0
+      ? (marginAmount / total) * 100
+      : undefined;
+
+  const marginTrend = marginPercent !== undefined 
+    ? marginPercent >= 20 ? 'up' : marginPercent >= 10 ? 'neutral' : 'down'
     : 'neutral';
 
   return (
@@ -95,40 +113,40 @@ const FinancialsCard: React.FC<FinancialsCardProps> = ({
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox 
-            label="Total (ex Tax)" 
-            value={formatCurrency(totals.ex, currency)} 
+            label="Subtotal" 
+            value={formatCurrency(subtotal, currency)} 
             mandatory 
           />
           <StatBox 
+            label="Discount" 
+            value={formatCurrency(discount, currency)} 
+          />
+          <StatBox 
             label="Tax" 
-            value={formatCurrency(totals.tax, currency)} 
+            value={formatCurrency(tax, currency)} 
           />
           <StatBox 
-            label="Total (inc Tax)" 
-            value={formatCurrency(totals.inc, currency)} 
+            label="Total" 
+            value={formatCurrency(total, currency)} 
             highlight 
-          />
-          <StatBox 
-            label="Deposit" 
-            value={formatCurrency(totals.deposit, currency)} 
           />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
           <StatBox 
-            label="Net Total" 
-            value={formatCurrency(totals.net, currency)} 
+            label="Shipping" 
+            value={formatCurrency(shipping, currency)} 
           />
           <StatBox 
-            label="Quantity" 
-            value={totals.qty?.toString() ?? '--'} 
+            label="Other" 
+            value={formatCurrency(other, currency)} 
           />
           <StatBox 
-            label="Pieces" 
-            value={totals.pcs?.toString() ?? '--'} 
+            label="Received" 
+            value={formatCurrency(received, currency)} 
           />
           <StatBox 
-            label="Weight" 
-            value={totals.wt ? `${totals.wt} kg` : '--'} 
+            label="Balance" 
+            value={formatCurrency(balance, currency)} 
           />
         </div>
       </div>
@@ -138,28 +156,31 @@ const FinancialsCard: React.FC<FinancialsCardProps> = ({
         <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
           Cost Breakdown
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatBox 
             label="Items" 
-            value={formatCurrency(cost.items, currency)} 
+            value={formatCurrency(cost.line_sum_goods, currency)} 
             sublabel="Product cost"
+          />
+          <StatBox 
+            label="Tax" 
+            value={formatCurrency(cost.line_sum_tax, currency)} 
+          />
+          <StatBox 
+            label="Shipping" 
+            value={formatCurrency(cost.line_sum_shipping, currency)} 
+          />
+          <StatBox 
+            label="Handling" 
+            value={formatCurrency(cost.line_sum_handling, currency)} 
           />
           <StatBox 
             label="Freight" 
             value={formatCurrency(cost.freight, currency)} 
           />
           <StatBox 
-            label="Landing" 
-            value={formatCurrency(cost.landing, currency)} 
-            sublabel="Duties/fees"
-          />
-          <StatBox 
-            label="Overhead" 
-            value={formatCurrency(cost.overhead, currency)} 
-          />
-          <StatBox 
             label="Total Cost" 
-            value={formatCurrency(cost.total, currency)} 
+            value={formatCurrency(costTotal, currency)} 
             highlight 
             mandatory 
             locked 
@@ -174,28 +195,24 @@ const FinancialsCard: React.FC<FinancialsCardProps> = ({
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatBox 
-            label="Retail" 
-            value={formatCurrency(sell.retail, currency)} 
-            sublabel="List price"
+            label="Line Sum" 
+            value={formatCurrency(sell.line_sum_goods, currency)} 
           />
           <StatBox 
-            label="Trade" 
-            value={formatCurrency(sell.trade, currency)} 
-            sublabel="Wholesale"
+            label="Discount" 
+            value={formatCurrency(sell.discount, currency)} 
           />
           <StatBox 
-            label="Contract" 
-            value={formatCurrency(sell.contract, currency)} 
-            sublabel="Agreed price"
+            label="Tax" 
+            value={formatCurrency(sell.tax, currency)} 
           />
           <StatBox 
-            label="Promo" 
-            value={formatCurrency(sell.promo, currency)} 
-            sublabel="Special"
+            label="Other" 
+            value={formatCurrency(sell.other, currency)} 
           />
           <StatBox 
-            label="Selling Price" 
-            value={formatCurrency(sell.total, currency)} 
+            label="Sell Total" 
+            value={formatCurrency(sell.total ?? total, currency)} 
             highlight 
           />
         </div>
@@ -209,13 +226,13 @@ const FinancialsCard: React.FC<FinancialsCardProps> = ({
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatBox 
-            label="Gross Margin $" 
-            value={formatCurrency(grossMarginAmount, currency)} 
+            label="Margin $" 
+            value={formatCurrency(marginAmount, currency)} 
             trend={marginTrend}
           />
           <StatBox 
-            label="Gross Margin %" 
-            value={formatPercent(grossMarginPercent)} 
+            label="Margin %" 
+            value={formatPercent(marginPercent)} 
             trend={marginTrend}
             highlight
           />
