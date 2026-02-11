@@ -176,7 +176,9 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check permissions
@@ -193,70 +195,84 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
   if (!canView) return null;
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size
+  const validateFile = (file: File): string | null => {
     if (maxFileSize && file.size > maxFileSize) {
-      setError(`File size exceeds maximum of ${formatSize(maxFileSize)}`);
-      return;
+      return `File size exceeds maximum of ${formatSize(maxFileSize)}`;
     }
-
-    // Validate file extension
     if (allowedExtensions) {
       const ext = file.name.split('.').pop()?.toLowerCase() || '';
       if (!allowedExtensions.includes(ext)) {
-        setError(`File type .${ext} not allowed`);
-        return;
+        return `File type .${ext} not allowed`;
       }
+    }
+    return null;
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (!files.length) return;
+    if (!onChange) return;
+
+    const firstError = files
+      .map((f) => validateFile(f))
+      .find((msg) => msg);
+    if (firstError) {
+      setError(firstError);
+      return;
     }
 
     setError(null);
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadStatus(null);
 
     try {
-      if (hasApiPersistence) {
-        // Full API upload flow: upload file + create Document record
-        const result = await uploadDocument(
-          {
-            file,
-            parentType: parentType!,
-            parentId: parentId!,
+      let nextDocs = [...data];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadStatus(`Uploading ${file.name} (${i + 1}/${files.length})`);
+
+        if (hasApiPersistence) {
+          const result = await uploadDocument(
+            {
+              file,
+              parentType: parentType!,
+              parentId: parentId!,
+              purpose,
+            },
+            (p) => {
+              const overall = ((i + p / 100) / files.length) * 100;
+              setUploadProgress(Math.max(0, Math.min(100, Math.round(overall))));
+            },
+          );
+
+          const docRefLink: DocumentRefLink = {
+            id: result.document.id,
+            document_id: result.document.id,
+            name: result.document.name,
+            display: result.document.name,
+            type: result.document.mime_type,
             purpose,
-          },
-          setUploadProgress
-        );
+            size: result.document.size_bytes,
+            uploaded_at: new Date().toISOString(),
+            url: result.url,
+          };
 
-        // Build RefLink for refs.links.document
-        const docRefLink: DocumentRefLink = {
-          id: result.document.id,
-          document_id: result.document.id,
-          name: result.document.name,
-          display: result.document.name,
-          type: result.document.mime_type,
-          purpose,
-          size: result.document.size_bytes,
-          uploaded_at: new Date().toISOString(),
-          url: result.url,
-        };
-
-        if (onChange) {
-          onChange([...data, docRefLink]);
+          nextDocs = [...nextDocs, docRefLink];
+          onChange(nextDocs);
+        } else {
+          const localDoc: DocumentRefLink = {
+            id: Date.now() + i,
+            name: file.name,
+            display: file.name,
+            type: file.type,
+            size: file.size,
+            uploaded_at: new Date().toISOString(),
+            uploaded_by: 'current_user',
+          };
+          nextDocs = [...nextDocs, localDoc];
+          onChange(nextDocs);
         }
-      } else if (onChange) {
-        // Local mode: create local entry without API
-        const localDoc: DocumentRefLink = {
-          id: Date.now(),
-          name: file.name,
-          display: file.name,
-          type: file.type,
-          size: file.size,
-          uploaded_at: new Date().toISOString(),
-          uploaded_by: 'current_user',
-        };
-        onChange([...data, localDoc]);
       }
     } catch (err) {
       console.error('Upload failed:', err);
@@ -264,15 +280,23 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
-      // Reset input
+      setUploadStatus(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    await uploadFiles(files);
+  };
+
   const handleDelete = async (index: number) => {
     if (!onChange) return;
+
+    const ok = window.confirm('Delete this document? This cannot be undone.');
+    if (!ok) return;
 
     const doc = data[index];
 
@@ -346,6 +370,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept={acceptAttr}
         onChange={handleFileSelect}
         className="hidden"
@@ -354,12 +379,79 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       {/* Content */}
       {!isCollapsed && (
         <div className={compact ? 'p-2' : 'p-4'}>
+          {/* Dropzone */}
+          {canEdit && (
+            <div
+              className={`mb-3 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors ${
+                isDragging
+                  ? 'border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20'
+                  : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30'
+              }`}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                const files = Array.from(e.dataTransfer.files ?? []);
+                await uploadFiles(files);
+              }}
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              aria-label="Upload documents"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium text-slate-700 dark:text-slate-200">
+                    Drag and drop files here
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    or click to browse
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isUploading}
+                  className="px-3 py-2 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isUploading ? 'Uploading…' : 'Upload'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Upload progress */}
           {isUploading && (
             <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-600">
               <div className="flex items-center gap-2">
                 <FaSpinner className="animate-spin" size={10} />
-                <span>Uploading... {uploadProgress}%</span>
+                <span>
+                  {uploadStatus || 'Uploading…'} {uploadProgress}%
+                </span>
               </div>
               <div className="mt-1 h-1 bg-blue-100 rounded overflow-hidden">
                 <div 
@@ -386,7 +478,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                   onClick={() => fileInputRef.current?.click()}
                   className="mt-2 text-blue-600 hover:underline text-xs"
                 >
-                  + Upload first document
+                  + Upload documents
                 </button>
               )}
             </div>

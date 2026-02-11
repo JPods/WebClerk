@@ -699,6 +699,11 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   ) => {
     if (!onChange) return;
 
+    const ok = window.confirm(
+      `Delete this ${type}? This cannot be undone.`,
+    );
+    if (!ok) return;
+
     // Get the item to delete
     let itemToDelete: { id?: number } | undefined;
     if (type === "email") itemToDelete = emails[index];
@@ -900,6 +905,12 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
               {totalItems}
             </span>
           )}
+          {isSaving && (
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-teal-700 dark:text-teal-300">
+              <FaSpinner className="animate-spin" size={11} />
+              Saving...
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isCollapsed ? (
@@ -913,58 +924,42 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
       {/* Content */}
       {!isCollapsed && (
         <div className={compact ? "p-2" : "p-4"}>
-          {totalItems === 0 ? (
-            <div className="text-center py-4 text-slate-400 text-sm">
-              <FaEnvelope size={24} className="mx-auto mb-2 opacity-50" />
-              <p>No contact information</p>
-              {canEdit && (
-                <div className="flex justify-center gap-2 mt-2 text-xs">
-                  {showTypes.includes("email") && (
+          {totalItems === 0 && (
+            <div className="mb-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300">
+              No contact information yet.
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Emails */}
+            {showTypes.includes("email") && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Email
+                    {emails.length > 0 && (
+                      <span className="ml-2 text-[11px] text-slate-400">
+                        ({emails.length})
+                      </span>
+                    )}
+                  </h4>
+                  {canEdit && (
                     <button
                       onClick={() => handleAdd("email")}
-                      className="text-teal-600 hover:underline"
+                      className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
+                      aria-label="Add email"
+                      title="Add email"
                     >
-                      + Email
-                    </button>
-                  )}
-                  {showTypes.includes("phone") && (
-                    <button
-                      onClick={() => handleAdd("phone")}
-                      className="text-teal-600 hover:underline"
-                    >
-                      + Phone
-                    </button>
-                  )}
-                  {showTypes.includes("address") && (
-                    <button
-                      onClick={() => handleAdd("address")}
-                      className="text-teal-600 hover:underline"
-                    >
-                      + Address
+                      <FaPlus size={10} />
                     </button>
                   )}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Emails */}
-              {showTypes.includes("email") && emails.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Email
-                    </h4>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleAdd("email")}
-                        className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
-                      >
-                        <FaPlus size={10} />
-                      </button>
-                    )}
+                {emails.length === 0 ? (
+                  <div className="rounded border border-dashed border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                    No emails
                   </div>
-                  {emails.map((email, idx) => (
+                ) : (
+                  emails.map((email, idx) => (
                     <EmailItem
                       key={email.id || idx}
                       email={email}
@@ -973,27 +968,40 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       onEdit={() => handleEdit("email", email, idx)}
                       onDelete={() => handleDelete("email", idx)}
                     />
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
+            )}
 
-              {/* Phones */}
-              {showTypes.includes("phone") && phones.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Phone
-                    </h4>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleAdd("phone")}
-                        className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
-                      >
-                        <FaPlus size={10} />
-                      </button>
+            {/* Phones */}
+            {showTypes.includes("phone") && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Phone
+                    {phones.length > 0 && (
+                      <span className="ml-2 text-[11px] text-slate-400">
+                        ({phones.length})
+                      </span>
                     )}
+                  </h4>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleAdd("phone")}
+                      className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
+                      aria-label="Add phone"
+                      title="Add phone"
+                    >
+                      <FaPlus size={10} />
+                    </button>
+                  )}
+                </div>
+                {phones.length === 0 ? (
+                  <div className="rounded border border-dashed border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                    No phones
                   </div>
-                  {phones.map((phone, idx) => (
+                ) : (
+                  phones.map((phone, idx) => (
                     <PhoneItem
                       key={phone.id || idx}
                       phone={phone}
@@ -1001,27 +1009,40 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       onEdit={() => handleEdit("phone", phone, idx)}
                       onDelete={() => handleDelete("phone", idx)}
                     />
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
+            )}
 
-              {/* Addresses */}
-              {showTypes.includes("address") && addresses.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Address
-                    </h4>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleAdd("address")}
-                        className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
-                      >
-                        <FaPlus size={10} />
-                      </button>
+            {/* Addresses */}
+            {showTypes.includes("address") && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Address
+                    {addresses.length > 0 && (
+                      <span className="ml-2 text-[11px] text-slate-400">
+                        ({addresses.length})
+                      </span>
                     )}
+                  </h4>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleAdd("address")}
+                      className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
+                      aria-label="Add address"
+                      title="Add address"
+                    >
+                      <FaPlus size={10} />
+                    </button>
+                  )}
+                </div>
+                {addresses.length === 0 ? (
+                  <div className="rounded border border-dashed border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                    No addresses
                   </div>
-                  {addresses.map((addr, idx) => (
+                ) : (
+                  addresses.map((addr, idx) => (
                     <AddressItem
                       key={addr.id || idx}
                       address={addr}
@@ -1029,27 +1050,40 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       onEdit={() => handleEdit("address", addr, idx)}
                       onDelete={() => handleDelete("address", idx)}
                     />
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
+            )}
 
-              {/* Domains */}
-              {showTypes.includes("domain") && domains.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Domains
-                    </h4>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleAdd("domain")}
-                        className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400"
-                      >
-                        + Add
-                      </button>
+            {/* Domains */}
+            {showTypes.includes("domain") && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Domains
+                    {domains.length > 0 && (
+                      <span className="ml-2 text-[11px] text-slate-400">
+                        ({domains.length})
+                      </span>
                     )}
+                  </h4>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleAdd("domain")}
+                      className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
+                      aria-label="Add domain"
+                      title="Add domain"
+                    >
+                      <FaPlus size={10} />
+                    </button>
+                  )}
+                </div>
+                {domains.length === 0 ? (
+                  <div className="rounded border border-dashed border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                    No domains
                   </div>
-                  {domains.map((domain, idx) => (
+                ) : (
+                  domains.map((domain, idx) => (
                     <DomainItem
                       key={domain.domain || idx}
                       domain={domain}
@@ -1057,49 +1091,11 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       onEdit={() => handleEdit("domain", domain, idx)}
                       onDelete={() => handleDelete("domain", idx)}
                     />
-                  ))}
-                </div>
-              )}
-
-              {/* Add buttons for empty sections */}
-              {canEdit && (
-                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                  {showTypes.includes("email") && emails.length === 0 && (
-                    <button
-                      onClick={() => handleAdd("email")}
-                      className="text-xs text-teal-600 hover:underline"
-                    >
-                      + Email
-                    </button>
-                  )}
-                  {showTypes.includes("phone") && phones.length === 0 && (
-                    <button
-                      onClick={() => handleAdd("phone")}
-                      className="text-xs text-teal-600 hover:underline"
-                    >
-                      + Phone
-                    </button>
-                  )}
-                  {showTypes.includes("address") && addresses.length === 0 && (
-                    <button
-                      onClick={() => handleAdd("address")}
-                      className="text-xs text-teal-600 hover:underline"
-                    >
-                      + Address
-                    </button>
-                  )}
-                  {showTypes.includes("domain") && domains.length === 0 && (
-                    <button
-                      onClick={() => handleAdd("domain")}
-                      className="text-xs text-teal-600 hover:underline"
-                    >
-                      + Domain
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
