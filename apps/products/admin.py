@@ -66,14 +66,14 @@ class ItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(ItemXRef)
 class ItemXRefAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "description", "is_active", "dt_created")
+    list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(BillOfMaterial)
 class BillOfMaterialAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "description", "is_active", "dt_created")
+    list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 

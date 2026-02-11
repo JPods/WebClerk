@@ -1,0 +1,43 @@
+2026-02-10 22:36:25,504 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-10 22:36:25,507 - INFO -   LOAD Q&A STARTED: 2026-02-10 22:36:25
+2026-02-10 22:36:25,507 - INFO -   Source: /Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/qa/qa.json
+2026-02-10 22:36:25,507 - INFO -   Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/load_qa.log
+2026-02-10 22:36:25,507 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-10 22:36:25,507 - INFO - 
+2026-02-10 22:36:25,507 - INFO -   Loaded 5 groups from JSON
+2026-02-10 22:36:29,568 - INFO -   Cleared 0 qa_questions and 1 qa_counters records
+2026-02-10 22:36:29,568 - INFO - 
+2026-02-10 22:36:29,569 - INFO -   ┌─ Group: Planning
+2026-02-10 22:36:29,569 - INFO -   │  Questions: 11
+2026-02-10 22:36:29,569 - INFO -   │  Answers: 49
+2026-02-10 22:36:31,666 - INFO -   └─ Created Setting id=2
+2026-02-10 22:36:31,892 - INFO - 
+2026-02-10 22:36:31,892 - INFO -   ┌─ Group: Prepress
+2026-02-10 22:36:31,893 - INFO -   │  Questions: 4
+2026-02-10 22:36:31,893 - INFO -   │  Answers: 27
+2026-02-10 22:36:34,001 - INFO -   └─ Created Setting id=3
+2026-02-10 22:36:34,287 - INFO - 
+2026-02-10 22:36:34,287 - INFO -   ┌─ Group: Press
+2026-02-10 22:36:34,288 - INFO -   │  Questions: 7
+2026-02-10 22:36:34,288 - INFO -   │  Answers: 28
+2026-02-10 22:36:36,386 - INFO -   └─ Created Setting id=4
+2026-02-10 22:36:36,618 - INFO - 
+2026-02-10 22:36:36,618 - INFO -   ┌─ Group: Finishing
+2026-02-10 22:36:36,618 - INFO -   │  Questions: 1
+2026-02-10 22:36:36,618 - INFO -   │  Answers: 2
+2026-02-10 22:36:38,715 - INFO -   └─ Created Setting id=5
+2026-02-10 22:36:39,006 - INFO - 
+2026-02-10 22:36:39,006 - INFO -   ┌─ Group: jitSetup
+2026-02-10 22:36:39,006 - INFO -   │  Questions: 6
+2026-02-10 22:36:39,006 - INFO -   │  Answers: 20
+2026-02-10 22:36:41,102 - INFO -   └─ Created Setting id=6
+2026-02-10 22:36:41,329 - INFO - 
+2026-02-10 22:36:41,329 - INFO -   Creating qa_counters singleton...
+2026-02-10 22:36:41,330 - INFO -   │  Max question_id: 45
+2026-02-10 22:36:41,330 - INFO -   │  Max answer_id: 152
+2026-02-10 22:36:43,463 - INFO -   └─ Created qa_counters id=7
+2026-02-10 22:36:43,723 - INFO - 
+2026-02-10 22:36:43,723 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-10 22:36:43,723 - INFO -   COMPLETE: 5 groups, 29 questions, 126 answers
+2026-02-10 22:36:43,724 - INFO -   Duration: 18.2s
+2026-02-10 22:36:43,724 - INFO - ═════════════════════════════════════════════════════════════════
