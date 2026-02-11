@@ -213,11 +213,31 @@ const CommentList: React.FC<CommentListProps> = ({
       >
         {messages.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
-            <p className="text-sm">No messages yet</p>
+            <p className="text-sm">No comments yet</p>
+            {isEditing && (
+              <p className="mt-1 text-xs">Be the first to add one.</p>
+            )}
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <div key={idx} className="border-l-4 border-blue-300 pl-2 py-1">
+            <div
+              key={idx}
+              className={`flex ${
+                (currentUserId !== undefined && msg.user_id === currentUserId) ||
+                (msg.user && msg.user === currentUser)
+                  ? "justify-end"
+                  : "justify-start"
+              }`}
+            >
+              <div
+                className={`max-w-[85%] rounded-lg border px-3 py-2 shadow-sm ${
+                  (currentUserId !== undefined &&
+                    msg.user_id === currentUserId) ||
+                  (msg.user && msg.user === currentUser)
+                    ? "bg-white border-blue-200 dark:bg-slate-700 dark:border-blue-900/60"
+                    : "bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                }`}
+              >
               {editingIndex === idx ? (
                 <div className="space-y-1">
                   <Input
@@ -253,9 +273,16 @@ const CommentList: React.FC<CommentListProps> = ({
                 <>
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-                      <span>{msg.user}</span>
-                      <span>•</span>
-                      <span>{msg.time}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                          {(msg.user || "?").slice(0, 1).toUpperCase()}
+                        </span>
+                        <span className="truncate">{msg.user}</span>
+                      </span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {msg.time}
+                      </span>
                     </div>
                     {isEditing && (
                       <div className="flex gap-1">
@@ -272,7 +299,12 @@ const CommentList: React.FC<CommentListProps> = ({
                           </button>
                         )}
                         <button
-                          onClick={() => onDelete(idx)}
+                          onClick={() => {
+                            const ok = window.confirm(
+                              "Delete this comment? This cannot be undone.",
+                            );
+                            if (ok) onDelete(idx);
+                          }}
                           className="text-red-500 hover:text-red-700 dark:hover:text-red-300 text-xs"
                           title="Delete"
                         >
@@ -288,6 +320,7 @@ const CommentList: React.FC<CommentListProps> = ({
                   </p>
                 </>
               )}
+              </div>
             </div>
           ))
         )}
@@ -296,20 +329,26 @@ const CommentList: React.FC<CommentListProps> = ({
       {/* Input area */}
       {isEditing && (
         <div className="flex gap-2 p-2 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600 rounded-b">
-          <Input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Add ${tabKey} comment...`}
-            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) {
-                handleSend();
-              }
-            }}
-          />
+          <div className="flex-1">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={`Add ${tabKey} comment... (Enter to send, Shift+Enter for new line)`}
+              className="w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (inputValue.trim()) handleSend();
+                }
+              }}
+            />
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Tip: Shift+Enter for a new line.
+            </div>
+          </div>
           <button
-            className="px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
+            className="self-start px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
             onClick={handleSend}
             disabled={!inputValue.trim()}
           >

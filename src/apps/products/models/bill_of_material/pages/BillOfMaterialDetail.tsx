@@ -1,333 +1,407 @@
+/**
+ * BillOfMaterialDetail - Follows 3-column standard with tab navigation
+ * Tabs: Actions, Comments, Documents, History, Raw
+ */
 import { useEffect, useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import { HorizontalField } from "../../../../../components/form/HorizontalField";
-import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
-import { Input } from "../../../../../components/wrapper";
-
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
-import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
-import { createBillOfMaterial, updateBillOfMaterial } from "../services/billOfMaterialApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
+import { getRecord, saveRecord } from "@/api/wcapi";
+import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation, useNavigate } from "react-router";
-import { billOfMaterialSchema } from "../utils/billOfMaterialSchema";
-import { BillOfMaterialAddProps } from "../types/billOfMaterialType";
-import { ClipboardList, Package, FileText, Layers, CheckSquare, MessageSquare, FileIcon, History, Link, Code } from "lucide-react";
+import {
+  ClipboardList,
+  Package,
+  Layers,
+  FileText,
+  CheckSquare,
+  MessageSquare,
+  FileIcon,
+  History,
+  Code,
+} from "lucide-react";
 
-// Tab navigation
-import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+import ComponentCard from "@/components/common/ComponentCard";
+import HorizontalField from "@/components/form/HorizontalField";
+import {
+  useColumnCount,
+  ColumnSelector,
+  getGridClassName,
+} from "@/components/form/useColumnCount";
+import { Input } from "@/components/wrapper";
+import { SimpleDetailHeader } from "@/components/common/SimpleDetailHeader";
+import { SimpleDetailToolbar } from "@/components/common/SimpleDetailToolbar";
+import {
+  DetailTabs,
+  useDetailTabs,
+  TabConfig,
+} from "@/components/common/DetailTabs";
 
 // Panels
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
-import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+
+interface BillOfMaterialDetailProps {
+  inline?: boolean;
+  modeProp?: "add" | "edit" | "view";
+  dataProp?: any;
+  onSaved?: () => void;
+  onCancelInline?: () => void;
+}
 
 const STORAGE_KEY = "billOfMaterialDetail_columnCount";
 
 export default function BillOfMaterialDetail({
+  inline = false,
   modeProp,
   dataProp,
-  hideBreadcrumb,
   onSaved,
-  inline = false,
   onCancelInline,
-}: BillOfMaterialAddProps) {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
+}: BillOfMaterialDetailProps) {
+  const [data, setData] = useState<any>(dataProp || {});
+  const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
-  
-  // Mode state for switching between view/edit
+  const dispatch = useDispatch();
+  const initialMode: "add" | "edit" | "view" = modeProp || "view";
   const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
-  // Full record data for panels (needed for tabs)
-  const [recordData, setRecordData] = useState<any>(data || {});
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   // Tab navigation
-  const { activeTab, setActiveTab } = useDetailTabs("bom_detail", "actions", [
-    "actions", "comments", "documents", "history", "refs", "raw",
+  const { activeTab, setActiveTab } = useDetailTabs("bill_of_material_detail", "actions", [
+    "actions", "comments", "documents", "history", "raw",
   ]);
 
   // Tab configuration
   const tabs: TabConfig[] = useMemo(
     () => [
       { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
-      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
-      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: data?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: data?.refs?.links?.document?.length },
       { id: "history", label: "History", icon: <History size={14} /> },
-      { id: "refs", label: "Refs", icon: <Link size={14} /> },
       { id: "raw", label: "Raw", icon: <Code size={14} /> },
     ],
-    [recordData]
+    [data]
   );
 
-  const {
-    register,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<z.infer<typeof billOfMaterialSchema>>({
-    resolver: zodResolver(billOfMaterialSchema),
-  });
-
   useEffect(() => {
-    if (currentMode === "add") {
-      reset();
-      setRecordData({});
-    } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
+    if (modeProp === "edit" && dataProp?.id) {
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const rec = await getRecord('bill_of_material', dataProp.id);
+          setData(rec.record || rec);
+        } catch (error) {
+          console.error("Failed to fetch record", error);
+        } finally {
+          setLoading(false);
         }
-      });
-      setRecordData(data);
-    } else {
-      reset({});
-      setRecordData({});
+      };
+      fetchData();
+    } else if (modeProp === "add") {
+      setData({});
+    } else if (dataProp) {
+      setData(dataProp);
     }
-  }, [data, reset, setValue, currentMode]);
+  }, [modeProp, dataProp]);
 
-  const onSubmit = async (formData: z.infer<typeof billOfMaterialSchema>) => {
-    setIsSaving(true);
+  const handleSave = async () => {
     try {
-      const res =
-        currentMode === "add"
-          ? await createBillOfMaterial(formData)
-          : await updateBillOfMaterial({ ...formData, id: data && data.id });
-      if (res) {
-        dispatch(
-          showToast({
-            message: `Bill of material ${
-              currentMode === "add" ? "created" : "updated"
-            } successfully`,
-            type: "success",
-          })
-        );
-        if (onSaved) {
-          onSaved();
-        } else {
-          // Switch to view mode after save
-          setCurrentMode("view");
-        }
+      setIsSaving(true);
+      await saveRecord('bill_of_material', data);
+      dispatch(showToast({ message: "Bill of Material saved successfully", type: "success" }));
+      onSaved?.();
+      if (currentMode === "add") {
+        onCancelInline?.();
+      } else {
+        setCurrentMode("view");
       }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+    } catch (error) {
+      console.error("Failed to save", error);
+      dispatch(showToast({ message: "Failed to save bill of material", type: "error" }));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleEdit = () => {
-    setCurrentMode("edit");
-  };
+  const handleEdit = () => setCurrentMode("edit");
 
   const handleCancel = () => {
     if (inline && onCancelInline) {
       onCancelInline();
     } else if (initialMode === "add") {
-      navigate(-1);
+      onCancelInline?.();
     } else {
-      // Reset form and go back to view mode
-      if (data) {
-        Object.keys(data).forEach((key: any) => {
-          if (data[key] !== undefined) {
-            setValue(key, data[key]);
-          }
-        });
-      }
+      if (dataProp) setData(dataProp);
       setCurrentMode("view");
     }
   };
 
+  const handleFieldChange = (field: string, value: string | number | boolean) => {
+    setData({ ...data, [field]: value });
+  };
+
   return (
     <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            currentMode === "edit"
-              ? "Edit Bill of Material"
-              : currentMode === "view"
-              ? "View Bill of Material"
-              : "Bill of Material Detail"
-          }
-        />
-      )}
-      
-      {/* Header with entity name, ID, and mode indicator */}
+      {/* Header */}
       <SimpleDetailHeader
         entityName="Bill of Material"
         recordId={data?.id}
         recordName={data?.name}
         mode={currentMode}
-        backUrl={inline ? undefined : "/products/bill-of-materials"}
+        backUrl=""
+        showBackButton={false}
       />
 
-      {/* Toolbar with action buttons */}
+      {/* Toolbar */}
       <SimpleDetailToolbar
         mode={currentMode}
         isSaving={isSaving}
-        onSave={handleSubmit(onSubmit)}
+        onSave={handleSave}
         onCancel={handleCancel}
         onEdit={handleEdit}
       />
 
-      <ComponentCard>
-        <div className="flex justify-end mb-4">
-          <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+      {/* Loading state */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+          <span className="ml-3 text-slate-600 dark:text-slate-400">Loading...</span>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      )}
+
+      {/* Basic Information Panel */}
+      {!loading && (
+        <ComponentCard>
+          <div className="flex justify-end mb-4">
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+          </div>
           <div className={getGridClassName(columnCount)}>
-            <HorizontalField
-              label="Name"
-              htmlFor="name"
-              required
-              icon={<ClipboardList size={14} />}
-              error={errors.name?.message}
-            >
+            <HorizontalField label="Name" htmlFor="name" icon={<ClipboardList size={14} />}>
               <Input
                 type="text"
                 id="name"
-                placeholder="Bill of Material Name"
-                {...register("name")}
+                placeholder="BOM Name"
+                value={data?.name || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("name", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-
-            <HorizontalField
-              label="Product ID"
-              htmlFor="product_id"
-              icon={<Package size={14} />}
-              error={errors.product_id?.message}
-            >
+            <HorizontalField label="Product ID" htmlFor="product_id" icon={<Package size={14} />}> 
               <Input
                 type="text"
                 id="product_id"
                 placeholder="Product ID"
-                {...register("product_id")}
+                value={data?.product_id || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("product_id", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-
-            <HorizontalField
-              label="Components"
-              htmlFor="components"
-              icon={<Layers size={14} />}
-              error={errors.components?.message}
-            >
+            <HorizontalField label="Components" htmlFor="components" icon={<Layers size={14} />}>
               <Input
                 type="text"
                 id="components"
                 placeholder="Components (JSON)"
-                {...register("components")}
+                value={data?.components || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("components", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Parent ID" htmlFor="parent_id" icon={<Package size={14} />}> 
+              <Input
+                type="text"
+                id="parent_id"
+                value={data?.parent_id || ""}
+                onChange={(e) => handleFieldChange("parent_id", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Child ID" htmlFor="child_id" icon={<Package size={14} />}> 
+              <Input
+                type="text"
+                id="child_id"
+                value={data?.child_id || ""}
+                onChange={(e) => handleFieldChange("child_id", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Revision" htmlFor="revision" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="revision"
+                value={data?.revision || ""}
+                onChange={(e) => handleFieldChange("revision", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Effective From" htmlFor="dt_effective_from" icon={<Layers size={14} />}> 
+              <Input
+                type="date"
+                id="dt_effective_from"
+                value={data?.dt_effective_from || ""}
+                onChange={(e) => handleFieldChange("dt_effective_from", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Effective To" htmlFor="dt_effective_to" icon={<Layers size={14} />}> 
+              <Input
+                type="date"
+                id="dt_effective_to"
+                value={data?.dt_effective_to || ""}
+                onChange={(e) => handleFieldChange("dt_effective_to", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Quantity" htmlFor="quantity" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="quantity"
+                value={data?.quantity || ""}
+                onChange={(e) => handleFieldChange("quantity", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Scrap Factor" htmlFor="scrap_factor" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="scrap_factor"
+                value={data?.scrap_factor || ""}
+                onChange={(e) => handleFieldChange("scrap_factor", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Yield %" htmlFor="yield_pct" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="yield_pct"
+                value={data?.yield_pct || ""}
+                onChange={(e) => handleFieldChange("yield_pct", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Sequence" htmlFor="sequence" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="sequence"
+                value={data?.sequence || ""}
+                onChange={(e) => handleFieldChange("sequence", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Is Alternate" htmlFor="is_alternate" icon={<Layers size={14} />}> 
+              <Input
+                type="checkbox"
+                id="is_alternate"
+                checked={data?.is_alternate || false}
+                onChange={(e) => handleFieldChange("is_alternate", e.target.checked)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Alternate Group" htmlFor="alternate_group" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="alternate_group"
+                value={data?.alternate_group || ""}
+                onChange={(e) => handleFieldChange("alternate_group", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Is Optional" htmlFor="is_optional" icon={<Layers size={14} />}> 
+              <Input
+                type="checkbox"
+                id="is_optional"
+                checked={data?.is_optional || false}
+                onChange={(e) => handleFieldChange("is_optional", e.target.checked)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Cost Snapshot" htmlFor="cost_snapshot" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="cost_snapshot"
+                value={data?.cost_snapshot || ""}
+                onChange={(e) => handleFieldChange("cost_snapshot", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Change Reason" htmlFor="change_reason" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="change_reason"
+                value={data?.change_reason || ""}
+                onChange={(e) => handleFieldChange("change_reason", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
           </div>
-
-          <HorizontalField
-            label="Description"
-            htmlFor="description"
-            icon={<FileText size={14} />}
-            error={errors.description?.message}
-          >
-            <Input
-              type="text"
-              id="description"
-              placeholder="Description"
-              {...register("description")}
+          <div className="mt-4">
+            <HorizontalField label="Description" htmlFor="description" icon={<FileText size={14} />}>
+              <Input
+                type="text"
+                id="description"
+                placeholder="Description"
+                value={data?.description || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("description", e.target.value)}
                 disabled={currentMode === "view"}
-            />
-          </HorizontalField>
-        </form>
-      </ComponentCard>
+              />
+            </HorizontalField>
+          </div>
+        </ComponentCard>
+      )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}
-      {recordData?.id && (
+      {!loading && data?.id && (
         <>
           <DetailTabs
-            entityType="bom_detail"
+            entityType="bill_of_material"
             activeTab={activeTab}
             onTabChange={setActiveTab}
             standardTabs={[]}
             additionalTabs={tabs}
           />
 
-          {/* Tab Content */}
           <div className="mt-4">
             {activeTab === "actions" && (
               <ActionsPanel
-                entityType="billofmaterial"
-                entityId={recordData?.id}
-                data={recordData?.actions?.items}
-                actionIds={recordData?.actions?.ids}
+                entityType="bill_of_material"
+                entityId={data?.id}
+                data={data?.actions?.items}
+                actionIds={data?.actions?.ids}
                 isEditing={currentMode !== "view"}
-                onChange={(actions) =>
-                  setRecordData({ ...recordData, actions: { ...recordData.actions, items: actions } })
-                }
+                onChange={(actions) => console.log("Actions updated:", actions)}
               />
             )}
 
             {activeTab === "comments" && (
               <CommentsPanel
-                comments={recordData?.comments}
+                comments={data?.comments}
                 isEditing={currentMode !== "view"}
-                entityType="billofmaterial"
-                entityId={recordData?.id}
-                onChange={(comments) => setRecordData({ ...recordData, comments })}
+                entityType="bill_of_material"
+                entityId={data?.id}
               />
             )}
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="billofmaterial"
-                parentId={recordData?.id}
-                data={recordData?.refs?.links?.document}
+                parentType="bill_of_material"
+                parentId={data?.id}
+                data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}
-                onChange={(docs) =>
-                  setRecordData({
-                    ...recordData,
-                    refs: { ...recordData.refs, links: { ...recordData.refs?.links, document: docs } },
-                  })
-                }
+                onChange={(docs) => console.log("Documents updated:", docs)}
               />
             )}
 
             {activeTab === "history" && (
               <ComponentCard>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                  Change History
-                </h3>
-                {recordData?.metadata?.history?.length > 0 ? (
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Change History</h3>
+                {data?.metadata?.history?.length > 0 ? (
                   <div className="space-y-3">
-                    {recordData.metadata.history.map((entry: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                      >
+                    {data.metadata.history.map((entry: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                         <History size={16} className="text-slate-400 mt-0.5" />
                         <div className="flex-1 text-sm">
-                          <div className="text-slate-900 dark:text-white">
-                            {entry.action || entry.description || "Change"}
-                          </div>
+                          <div className="text-slate-900 dark:text-white">{entry.action || entry.description || "Change"}</div>
                           <div className="text-slate-500 text-xs">
-                            {entry.timestamp
-                              ? new Date(entry.timestamp).toLocaleString()
-                              : entry.dt_created
-                              ? new Date(entry.dt_created * 1000).toLocaleString()
-                              : "--"}
+                            {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : entry.dt_created ? new Date(entry.dt_created * 1000).toLocaleString() : "--"}
                             {entry.user && ` by ${entry.user}`}
                           </div>
                         </div>
@@ -340,24 +414,8 @@ export default function BillOfMaterialDetail({
               </ComponentCard>
             )}
 
-            {activeTab === "refs" && (
-              <RefsPanel
-                entityType="billofmaterial"
-                entityId={recordData?.id}
-                data={recordData?.refs}
-                isEditing={currentMode !== "view"}
-                onChange={(refs) => setRecordData({ ...recordData, refs })}
-              />
-            )}
-
             {activeTab === "raw" && (
-              <JsonFieldEditor
-                label="Full Bill of Material JSON"
-                value={recordData}
-                readonly
-                defaultExpanded
-                maxHeight="600px"
-              />
+              <JsonFieldEditor label="Full Record JSON" value={data} readonly defaultExpanded maxHeight="600px" />
             )}
           </div>
         </>

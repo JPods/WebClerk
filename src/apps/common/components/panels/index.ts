@@ -64,7 +64,14 @@ export { default as BasicInformationPanel } from "./BasicInformationPanel";
 export { default as DocumentsPanel } from "./DocumentsPanel";
 export { default as QAPanel } from "./QAPanel";
 export { default as ContactLinksPanel } from "./ContactLinksPanel";
+export {
+  default as RefsLinksContactPanel,
+  normalizeRefsLinksContact,
+} from "./RefsLinksContactPanel";
+export type { RefContact } from "./RefsLinksContactPanel";
 export { default as FinancialsPanel } from "./FinancialsPanel";
+export { default as TransactionFinancialsPanel } from "./TransactionFinancialsPanel";
+export { default as ShippingPanel } from "./ShippingPanel";
 export { default as FinancialSummaryPanel } from "./FinancialSummaryPanel";
 export { default as CustomerFinancialPanel } from "./CustomerFinancialPanel";
 export { default as CommunicationsPanel } from "./CommunicationsPanel";

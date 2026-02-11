@@ -72,7 +72,7 @@ type AdminWorkspaceContextValue = {
 
 const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | undefined>(undefined);
 
-const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZES = [25, 50, 100, 250, 500];
 
 const coerceErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
@@ -112,7 +112,7 @@ const deriveDefaultPageSize = (
   if (fallback) {
     return fallback;
   }
-  return 25;
+  return 500;
 };
 
 type ProviderProps = {

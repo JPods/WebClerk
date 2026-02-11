@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,16 +16,13 @@ import { vendorSchema } from "../utils/vendorSchema";
 import { VendorAddProps } from "../types/vendorType";
 import Checkbox from "@/components/form/input/Checkbox";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
-import { 
+import {
   CommentsPanel,
-  ActionsPanel,
   DocumentsPanel,
-  MetadataPanel,
-  RawDataPanel,
-  CommunicationsPanel,
-  FinancialSummaryPanel,
+  RefsLinksContactPanel,
+  normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
-import { DetailTabs, useDetailTabs, useColumnCount, type TabConfig } from "@/components/common/DetailTabs";
+import { getRecord, saveRecord } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
 
 export default function VendorDetail({
@@ -37,10 +34,11 @@ export default function VendorDetail({
   onCancelInline,
 }: VendorAddProps) {
   const dispatch = useDispatch();
-  const currentUser = useAppSelector((state) => state.auth.user);
-  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('vendor', 'overview');
-  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount('vendor', 3);
-  const [isEditing, setIsEditing] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
+  const currentUser = useMemo(() => {
+    if (!user) return "You";
+    return `${user.name_first ?? ""}${user.name_last ?? ""}`.trim() || "You";
+  }, [user]);
 
   const {
     register,
@@ -61,39 +59,21 @@ export default function VendorDetail({
   const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
   const data = dataProp || routeState.data || null;
 
-  // Additional tabs specific to Vendor
-  const additionalTabs: TabConfig[] = [
-    { id: 'communication', label: 'Contact', icon: <FaPhone size={14} /> },
-    { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { id: 'relations', label: 'Relations', icon: <FaUsers size={14} /> },
-  ];
-
-  // Count badges for tabs
-  const getCommentCount = () => {
-    if (!data?.comments) return 0;
-    const c = data.comments;
-    return (c.public?.length || 0) + (c.process?.length || 0) + (c.partner?.length || 0) + (c.notes?.length || 0);
-  };
-  const getActionCount = () => data?.actions?.items?.filter((a: any) => a.status === 'pending').length || 0;
-  const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
-
-  const tabBadges = {
-    comments: getCommentCount(),
-    actions: getActionCount(),
-    documents: getDocumentCount(),
-  };
-
+  const [panelRecord, setPanelRecord] = useState<any>(data ?? {});
   useEffect(() => {
     if (mode === "add") {
       reset();
+      setPanelRecord({});
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
       });
+      setPanelRecord(data);
     } else {
       reset({});
+      setPanelRecord({});
     }
   }, [data, reset, setValue, mode]);
 
@@ -104,6 +84,10 @@ export default function VendorDetail({
           ? await createVendor(formData)
           : await updateVendor({ ...formData, id: data && data.id });
       if (res) {
+        const maybeRecord = (res as any)?.record ?? res;
+        if (maybeRecord && typeof maybeRecord === "object") {
+          setPanelRecord((prev: any) => ({ ...prev, ...maybeRecord }));
+        }
         dispatch(
           showToast({
             message: `Vendor ${
@@ -145,15 +129,140 @@ export default function VendorDetail({
   const headerOrgType = watch("org_type") || data?.org_type || "Vendor";
   const headerVersion = watch("version") ?? data?.version ?? 1;
 
-  // Vendor data for panels
-  const vendorData = {
-    ...data,
-    id: data?.id,
-    display_name: headerDisplayName,
-    email: watch("email") || data?.email,
-    phone: watch("phone") || data?.phone,
-    status: watch("status") || data?.status,
-    is_active: headerIsActive,
+  const vendorId: number | undefined = panelRecord?.id ?? data?.id;
+  const canEditPanels = mode !== "view" && !!vendorId;
+
+  const handleVendorCommentsSave: NonNullable<
+    ComponentProps<typeof CommentsPanel>["onSave"]
+  > = async (newComments) => {
+    if (!vendorId) return;
+
+    const payload = {
+      id: vendorId,
+      comments: {
+        ...(panelRecord?.comments ?? {}),
+        ...newComments,
+      },
+    };
+
+    const apiResult = await saveRecord("vendor", payload);
+    const saved = (apiResult as any)?.record ?? apiResult;
+    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
+  };
+
+  const handleVendorDocumentsChange = async (nextDocs: any[]) => {
+    if (!vendorId) return;
+    const nextRefs = {
+      ...(panelRecord?.refs ?? {}),
+      links: {
+        ...(panelRecord?.refs?.links ?? {}),
+        document: nextDocs,
+      },
+    };
+
+    // Optimistic local update for snappy UI
+    setPanelRecord((prev: any) => ({ ...prev, refs: nextRefs }));
+
+    const apiResult = await saveRecord("vendor", {
+      id: vendorId,
+      refs: nextRefs,
+    });
+    const saved = (apiResult as any)?.record ?? apiResult;
+    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
+  };
+
+  const handleVendorContactsRefresh = async () => {
+    if (!vendorId) return;
+    const apiResult = await getRecord("vendor", vendorId);
+    const saved = (apiResult as any)?.record ?? apiResult;
+    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
+  };
+
+  const handleVendorContactsChange = (nextContacts: any[]) => {
+    // Convert RefContact[] (panel shape) -> refs.links.contact (API shape)
+    const asArray = Array.isArray(nextContacts) ? nextContacts : [];
+    const contactLinks = asArray
+      .map((c: any) => {
+        const normalizeField = (field: any) => {
+          if (Array.isArray(field)) {
+            return field.map((item: any, idx: number) => ({
+              id: item?.id ?? idx,
+              name: item?.name ?? "",
+              value: item?.value ?? "",
+            }));
+          }
+          if (typeof field === "string") {
+            return field
+              .split(",")
+              .map((val, idx) => ({ id: idx, name: "", value: val.trim() }))
+              .filter((x) => x.value);
+          }
+          return [];
+        };
+
+        const id = Number(c?.contact_id ?? c?.contact?.id ?? c?.id ?? 0);
+        const purpose = String(c?.purpose ?? "");
+        if (!id || !purpose) return null;
+
+        const address = Array.isArray(c?.address)
+          ? c.address.map((a: any, idx: number) => ({
+              id: a?.id ?? idx,
+              name: a?.name ?? "",
+              full: a?.full ?? "",
+            }))
+          : typeof c?.full === "string" && c.full.trim()
+            ? [{ id: 0, name: "", full: c.full }]
+            : [];
+
+        return {
+          purpose,
+          contact: {
+            id,
+            email: normalizeField(c?.email),
+            phone: normalizeField(c?.phone),
+            domain: normalizeField(c?.domain),
+            address,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    setPanelRecord((prev: any) => ({
+      ...prev,
+      refs: {
+        ...(prev?.refs ?? {}),
+        links: {
+          ...(prev?.refs?.links ?? {}),
+          contact: contactLinks,
+        },
+      },
+    }));
+  };
+
+  const handleVendorContactRemove = async (contactId: number) => {
+    if (!vendorId) return;
+    const existing = panelRecord?.refs?.links?.contact;
+    const existingArray = Array.isArray(existing) ? existing : [];
+    const filtered = existingArray.filter(
+      (c: any) => Number(c?.contact?.id ?? c?.id ?? 0) !== Number(contactId),
+    );
+
+    const nextRefs = {
+      ...(panelRecord?.refs ?? {}),
+      links: {
+        ...(panelRecord?.refs?.links ?? {}),
+        contact: filtered,
+      },
+    };
+
+    setPanelRecord((prev: any) => ({ ...prev, refs: nextRefs }));
+
+    const apiResult = await saveRecord("vendor", {
+      id: vendorId,
+      refs: nextRefs,
+    });
+    const saved = (apiResult as any)?.record ?? apiResult;
+    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
   };
 
   return (
@@ -468,6 +577,48 @@ export default function VendorDetail({
               )}
             </div>
           </form>
+
+          <div className="p-4 space-y-4 border-t border-slate-200 dark:border-slate-700">
+            <CommentsPanel
+              entityType="vendor"
+              entityId={vendorId ?? 0}
+              comments={panelRecord?.comments}
+              isEditing={canEditPanels}
+              onChange={(next) =>
+                setPanelRecord((prev: any) => ({ ...prev, comments: next }))
+              }
+              onSave={canEditPanels ? handleVendorCommentsSave : undefined}
+              currentUser={currentUser}
+              currentUserId={user?.id}
+              message={!vendorId ? "Save vendor to add comments" : undefined}
+            />
+
+            {!vendorId && (
+              <div className="text-sm text-slate-500 dark:text-slate-400 italic">
+                Save vendor to manage linked contacts
+              </div>
+            )}
+
+            <RefsLinksContactPanel
+              parentType="vendor"
+              parentId={vendorId}
+              contacts={normalizeRefsLinksContact(
+                panelRecord?.refs?.links?.contact ?? [],
+              )}
+              isEditing={canEditPanels}
+              onChange={handleVendorContactsChange}
+              onRemove={canEditPanels ? handleVendorContactRemove : undefined}
+              onSaveSuccess={handleVendorContactsRefresh}
+            />
+
+            <DocumentsPanel
+              parentType="vendor"
+              parentId={vendorId}
+              data={panelRecord?.refs?.links?.document ?? []}
+              readOnly={!canEditPanels}
+              onChange={canEditPanels ? handleVendorDocumentsChange : undefined}
+            />
+          </div>
         </div>
       </div>
     </>

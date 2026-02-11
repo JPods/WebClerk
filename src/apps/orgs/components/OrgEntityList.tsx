@@ -79,7 +79,14 @@ export default function OrgEntityList<T = any>({
       if (fetchFn) {
         const res = await fetchFn();
         // Try to unwrap common API shapes
-        const results = Array.isArray(res) ? res : res?.data?.data?.results || res?.results || [];
+        const results = Array.isArray(res) 
+          ? res 
+          : res?.data?.data?.results 
+            || res?.data?.items 
+            || res?.data?.results 
+            || res?.results 
+            || res?.items 
+            || [];
         setData(results);
       }
     } catch (error) {

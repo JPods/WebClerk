@@ -113,6 +113,7 @@ export const DEFAULT_PANEL_PERMISSIONS: Record<string, PanelPermissions> = {
   contactLinks: { viewRoles: ALL_ROLES, editRoles: USER_ROLES },
   financials: { viewRoles: MANAGER_ROLES, editRoles: ADMIN_ROLES },
   actions: { viewRoles: ALL_ROLES, editRoles: USER_ROLES },
+  shipping: { viewRoles: ALL_ROLES, editRoles: USER_ROLES },
   communications: { viewRoles: ALL_ROLES, editRoles: USER_ROLES },
   linkages: { viewRoles: ALL_ROLES, editRoles: ADMIN_ROLES },
   metadata: { viewRoles: ADMIN_ROLES, editRoles: ADMIN_ROLES },

@@ -1,6 +1,6 @@
 import OrgEntityList from "@/apps/orgs/components/OrgEntityList";
 import { fetchCustomers, deleteCustomer } from "../services/customerApi";
-import CustomerDisplay from "./CustomerDisplay";
+import CustomerDetail from "./CustomerDetail";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
@@ -208,7 +208,7 @@ export default function CustomerList() {
       filters={filters}
       storageKey="customer-list"
       exportFileName="customers_export"
-      displayComponent={CustomerDisplay}
+      displayComponent={CustomerDetail}
       routes={{
         add: PageRoutes.customerAdd,
         edit: (id: any) => `${PageRoutes.customerEdit}/${id}`,
