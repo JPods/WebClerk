@@ -136,7 +136,7 @@ export default function BillOfMaterialDisplay({
     }
   };
 
-  const handleFieldChange = (field: string, value: string | number) => {
+  const handleFieldChange = (field: string, value: string | number | boolean) => {
     setData({ ...data, [field]: value });
   };
 
@@ -186,7 +186,7 @@ export default function BillOfMaterialDisplay({
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-            <HorizontalField label="Product ID" htmlFor="product_id" icon={<Package size={14} />}>
+            <HorizontalField label="Product ID" htmlFor="product_id" icon={<Package size={14} />}> 
               <Input
                 type="text"
                 id="product_id"
@@ -203,6 +203,132 @@ export default function BillOfMaterialDisplay({
                 placeholder="Components (JSON)"
                 value={data?.components || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("components", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Parent ID" htmlFor="parent_id" icon={<Package size={14} />}> 
+              <Input
+                type="text"
+                id="parent_id"
+                value={data?.parent_id || ""}
+                onChange={(e) => handleFieldChange("parent_id", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Child ID" htmlFor="child_id" icon={<Package size={14} />}> 
+              <Input
+                type="text"
+                id="child_id"
+                value={data?.child_id || ""}
+                onChange={(e) => handleFieldChange("child_id", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Revision" htmlFor="revision" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="revision"
+                value={data?.revision || ""}
+                onChange={(e) => handleFieldChange("revision", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Effective From" htmlFor="dt_effective_from" icon={<Layers size={14} />}> 
+              <Input
+                type="date"
+                id="dt_effective_from"
+                value={data?.dt_effective_from || ""}
+                onChange={(e) => handleFieldChange("dt_effective_from", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Effective To" htmlFor="dt_effective_to" icon={<Layers size={14} />}> 
+              <Input
+                type="date"
+                id="dt_effective_to"
+                value={data?.dt_effective_to || ""}
+                onChange={(e) => handleFieldChange("dt_effective_to", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Quantity" htmlFor="quantity" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="quantity"
+                value={data?.quantity || ""}
+                onChange={(e) => handleFieldChange("quantity", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Scrap Factor" htmlFor="scrap_factor" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="scrap_factor"
+                value={data?.scrap_factor || ""}
+                onChange={(e) => handleFieldChange("scrap_factor", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Yield %" htmlFor="yield_pct" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="yield_pct"
+                value={data?.yield_pct || ""}
+                onChange={(e) => handleFieldChange("yield_pct", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Sequence" htmlFor="sequence" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="sequence"
+                value={data?.sequence || ""}
+                onChange={(e) => handleFieldChange("sequence", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Is Alternate" htmlFor="is_alternate" icon={<Layers size={14} />}> 
+              <Input
+                type="checkbox"
+                id="is_alternate"
+                checked={data?.is_alternate || false}
+                onChange={(e) => handleFieldChange("is_alternate", e.target.checked)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Alternate Group" htmlFor="alternate_group" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="alternate_group"
+                value={data?.alternate_group || ""}
+                onChange={(e) => handleFieldChange("alternate_group", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Is Optional" htmlFor="is_optional" icon={<Layers size={14} />}> 
+              <Input
+                type="checkbox"
+                id="is_optional"
+                checked={data?.is_optional || false}
+                onChange={(e) => handleFieldChange("is_optional", e.target.checked)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Cost Snapshot" htmlFor="cost_snapshot" icon={<Layers size={14} />}> 
+              <Input
+                type="number"
+                id="cost_snapshot"
+                value={data?.cost_snapshot || ""}
+                onChange={(e) => handleFieldChange("cost_snapshot", e.target.value)}
+                disabled={currentMode === "view"}
+              />
+            </HorizontalField>
+            <HorizontalField label="Change Reason" htmlFor="change_reason" icon={<Layers size={14} />}> 
+              <Input
+                type="text"
+                id="change_reason"
+                value={data?.change_reason || ""}
+                onChange={(e) => handleFieldChange("change_reason", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>

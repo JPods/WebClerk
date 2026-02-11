@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,10 +6,10 @@ import { z } from "zod";
 import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
-import { createCustomer, updateCustomer } from "../services/customerApi";
+import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog, FaColumns } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
@@ -29,6 +29,10 @@ import {
 } from "@/apps/common/components/panels";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
+import { useWindowManager } from "../../../../../context/WindowManagerContext";
+import { PageRoutes } from "../../../../../routes/Routes";
+import { dynamicData } from "../../../../../model/dynamicData";
+import RippleLoader from "@/components/common/RippleLoader";
 
 
 // Professional customer display component for right-side column
@@ -129,24 +133,153 @@ const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
 const VALID_TABS = ["overview", "comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
 
-export default function CustomerDetail({
+export default function CustomerDisplay({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-  onPrev,
-  onNext,
-  onCancel,
-  onEdit,
-  onDelete,
+  onPrev: onPrevProp,
+  onNext: onNextProp,
+  onCancel: onCancelProp,
+  onEdit: onEditProp,
+  onDelete: onDeleteProp,
 }: CustomerAddProps) {
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { ensureWindow, activateWindow, closeWindow } = useWindowManager();
   const currentUser = useAppSelector((state) => state.auth.user);
   const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('customer', 'overview', VALID_TABS);
   const { columnCount, setColumnCount: handleColumnChange } = useColumnCount('customer', 3);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Data fetching state (used when no dataProp provided)
+  const [fetchedRecord, setFetchedRecord] = useState<dynamicData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Detect mode from route if modeProp not provided
+  const routeMode = useMemo(() => {
+    const path = location.pathname;
+    if (path.includes('/customer/add')) return 'add';
+    if (path.includes('/customer/edit/')) return 'edit';
+    if (path.includes('/customer/detail/')) return 'view';
+    return 'view';
+  }, [location.pathname]);
+  
+  const customerId = Number(id);
+
+  // Fetch data when in view/edit mode and no dataProp provided
+  useEffect(() => {
+    if (dataProp) return; // Skip if data provided via props
+    if (routeMode === 'add') return; // No fetch needed for add mode
+    if (!Number.isFinite(customerId)) return;
+    
+    setLoading(true);
+    setError(null);
+    fetchCustomers(customerId)
+      .then((res) => {
+        const data = res?.data?.data?.record || res?.data?.data || res?.data;
+        setFetchedRecord(data || null);
+      })
+      .catch((err) => {
+        setError(err?.message || "Failed to load customer.");
+      })
+      .finally(() => setLoading(false));
+  }, [customerId, dataProp, routeMode]);
+
+  // Window management
+  useEffect(() => {
+    const record = dataProp || fetchedRecord;
+    if (!record && routeMode !== 'add') return;
+    const title = record?.display_name || record?.name || 
+      (routeMode === 'add' ? 'New Customer' : `Customer ${record?.id ?? customerId}`);
+    const prefix = routeMode === 'edit' ? 'Edit ' : '';
+    ensureWindow(location.pathname, `${prefix}${title}`, { maximized: false });
+  }, [dataProp, fetchedRecord, ensureWindow, location.pathname, customerId, routeMode]);
+
+  // List navigation (prev/next)
+  const listOrder = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("customer-list-order");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [] as number[];
+    }
+  }, [customerId]);
+
+  const currentIndex = useMemo(() => listOrder.indexOf(customerId), [listOrder, customerId]);
+  const prevId = currentIndex > 0 ? listOrder[currentIndex - 1] : null;
+  const nextId = currentIndex >= 0 && currentIndex < listOrder.length - 1 ? listOrder[currentIndex + 1] : null;
+
+  // Navigation handlers
+  const handleClose = useCallback(() => {
+    closeWindow(location.pathname);
+  }, [closeWindow, location.pathname]);
+
+  const openRecord = useCallback((targetId: number, targetMode: 'view' | 'edit') => {
+    const basePath = targetMode === 'edit' ? PageRoutes.customerEdit : PageRoutes.customerDetail;
+    const path = `${basePath}/${targetId}`;
+    const prefix = targetMode === 'edit' ? 'Edit ' : '';
+    ensureWindow(path, `${prefix}Customer ${targetId}`, { maximized: false });
+    activateWindow(path);
+    closeWindow(location.pathname);
+  }, [activateWindow, closeWindow, ensureWindow, location.pathname]);
+
+  const handlePrev = useMemo(() => {
+    if (onPrevProp) return onPrevProp;
+    if (!prevId) return undefined;
+    return () => openRecord(prevId, routeMode === 'edit' ? 'edit' : 'view');
+  }, [onPrevProp, prevId, openRecord, routeMode]);
+
+  const handleNext = useMemo(() => {
+    if (onNextProp) return onNextProp;
+    if (!nextId) return undefined;
+    return () => openRecord(nextId, routeMode === 'edit' ? 'edit' : 'view');
+  }, [onNextProp, nextId, openRecord, routeMode]);
+
+  const handleEditClick = useCallback(() => {
+    if (onEditProp) {
+      onEditProp();
+      return;
+    }
+    if (!Number.isFinite(customerId)) return;
+    const record = dataProp || fetchedRecord;
+    const path = `${PageRoutes.customerEdit}/${customerId}`;
+    const label = record?.display_name || record?.name || `Customer ${customerId}`;
+    ensureWindow(path, `Edit ${label}`, { maximized: false });
+    activateWindow(path);
+    closeWindow(location.pathname);
+  }, [onEditProp, activateWindow, closeWindow, customerId, ensureWindow, location.pathname, dataProp, fetchedRecord]);
+
+  const handleDeleteClick = useCallback(async () => {
+    const record = dataProp || fetchedRecord;
+    if (onDeleteProp) {
+      onDeleteProp();
+      return;
+    }
+    if (!record?.id) return;
+    if (!window.confirm(`Delete customer ${record.display_name || record.name || record.id}?`)) return;
+    try {
+      await deleteCustomer(record.id);
+      dispatch(showToast({ message: "Customer deleted successfully", type: "success" }));
+      handleClose();
+      navigate(PageRoutes.customerList);
+    } catch (err: any) {
+      dispatch(showToast({ message: err?.message || "Failed to delete customer", type: "error" }));
+    }
+  }, [onDeleteProp, dispatch, handleClose, navigate, dataProp, fetchedRecord]);
+
+  // Resolved props - use provided or derived
+  const onCancel = onCancelProp || handleClose;
+  const onEdit = routeMode === 'view' ? handleEditClick : undefined;
+  const onDelete = routeMode === 'view' ? handleDeleteClick : undefined;
+  const onPrev = handlePrev;
+  const onNext = handleNext;
 
   // Additional tabs specific to Customer (Communications, Financial, etc.)
   const additionalTabs = [
@@ -177,12 +310,11 @@ export default function CustomerDetail({
     },
   });
 
-  const location = useLocation();
   const routeState = (location.state as any) || {};
-  const baseMode: "add" | "edit" | "view" = (modeProp || (routeState.mode as "add" | "edit" | "view") || "add");
+  const baseMode: "add" | "edit" | "view" = (modeProp || routeMode || (routeState.mode as "add" | "edit" | "view") || "add");
   // Allow local edit override when in view mode
   const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
-  const data = dataProp || routeState.data || null;
+  const data = dataProp || fetchedRecord || routeState.data || null;
 
   // Count badges for tabs (must be after data declaration)
   const getCommentCount = () => {
@@ -528,6 +660,24 @@ export default function CustomerDetail({
 
     return { ...baseData, ...filteredData };
   };
+
+  // Handle loading and error states for data fetch
+  if (loading) {
+    return <RippleLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-red-600 dark:text-red-400">{error}</div>
+      </div>
+    );
+  }
+
+  // For view/edit modes, wait for data before rendering
+  if (routeMode !== 'add' && !data && !dataProp) {
+    return <RippleLoader />;
+  }
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">

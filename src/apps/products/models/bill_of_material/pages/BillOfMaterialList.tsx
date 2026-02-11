@@ -9,7 +9,7 @@ import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import BillOfMaterialDetail from "./BillOfMaterialDetail";
+import BillOfMaterialDisplay from "./BillOfMaterialDisplay";
 
 // Normalizes differing API payload shapes into a flat array of items.
 const extractItems = (payload: any): any[] => {
@@ -62,13 +62,24 @@ export default function BillOfMaterialList() {
       setLoading(true);
       const res = await fetchBillOfMaterials();
       if (res.status === 200) {
-        const items = extractItems(res);
-        setData(items);
+         const items = extractItems(res).map((it:any)=>({
+            ...it,
+            quantity:{
+              on_hand:100,
+              on_p:0,
+              on_so:0,
+              on_po:0,
+              on_wo:0,
+              on_in:0,
+              ...(it.quantity||{})
+            }
+         }));
+         setData(items);
         if (!items.length) {
           dispatch(
             showToast({
               message: "Bill of material response contained no rows",
-              type: "warning",
+              type: "info",
             })
           );
         }
@@ -144,28 +155,83 @@ export default function BillOfMaterialList() {
   }, []);
 
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+    // {
+    //   name: "Alternate Group",
+    //   selector: (row) => row.alternate_group || "--",
+    //   sortable: true,
+    //   width: "10%",
+    // },
+
+    { name: "ID", selector: (row: any) => row.id, sortable: true, width: "5%" },
     {
-      name: "Name",
-      selector: (row) => row.name || "--",
+      name: "CHILD ID",
+      selector: (row: { child_id: string }) => row.child_id,
       sortable: true,
-      width: "25%",
+      width: "8%",
+    },
+    {
+      name: "Cost Snapshot",
+      selector: (row: any) => row.cost_snapshot ?? "--",
+      sortable: true,
+      width: "8%",
     },
     {
       name: "Description",
-      selector: (row) => row.description || "--",
-      sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Product ID",
-      selector: (row) => row.product_id || "--",
+      selector: (row: any) => row.description || "--",
       sortable: true,
       width: "20%",
     },
     {
+      name: "Is Active",
+      selector: (row: any) => (row.is_active ? "Yes" : "No"),
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "Is Alternate",
+      selector: (row: any) => (row.is_alternate ? "Yes" : "No"),
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "Is Optional",
+      selector: (row: any) => (row.is_optional ? "Yes" : "No"),
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "PARENT ID",
+      selector: (row: { parent_id: string }) => row.parent_id,
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "Quantity",
+      selector: (row: any) => row.quantity?.on_hand ?? "--",
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "Revision",
+      selector: (row: any) => row.revision || "--",
+      sortable: true,
+      width: "6%",
+    },
+    {
+      name: "Scrap Factor",
+      selector: (row: any) => row.scrap_factor ?? "--",
+      sortable: true,
+      width: "7%",
+    },
+    {
+      name: "Sequence",
+      selector: (row: any) => row.sequence ?? "--",
+      sortable: true,
+      width: "6%",
+    },
+    {
       name: "Action",
-      cell: (row) => (
+      cell: (row: any) => (
         <div className="flex gap-2">
           <button onClick={() => handleView(row)} title="View">
             <FaEye className="text-blue-600 hover:scale-110 transition" />
@@ -219,7 +285,7 @@ export default function BillOfMaterialList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <BillOfMaterialDetail
+            <BillOfMaterialDisplay
               inline
               modeProp={formMode}
               dataProp={selectedBillOfMaterial}
