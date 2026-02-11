@@ -125,7 +125,7 @@ const DETAIL_FILES: DetailFileInfo[] = [
   
   // Orgs (4)
   { category: 'orgs', model: 'contact', fileName: 'ContactDetail.tsx', path: 'src/apps/core/models/contact/pages/ContactDetail.tsx', pattern: 'CustomLayout', route: '/core/contact/detail', notes: 'Section layout with panels' },
-  { category: 'orgs', model: 'customer', fileName: 'CustomerDisplay.tsx', path: 'src/apps/orgs/components/CustomerDisplay.tsx', pattern: 'DetailTabs', route: '/org/customer/detail' },
+  { category: 'orgs', model: 'customer', fileName: 'CustomerDetail.tsx', path: 'src/apps/orgs/models/customer/pages/CustomerDetail.tsx', pattern: 'DetailTabs', route: '/org/customer/detail' },
   { category: 'orgs', model: 'employee', fileName: 'EmployeeDetail.tsx', path: 'src/apps/orgs/models/employee/pages/EmployeeDetail.tsx', pattern: 'CustomLayout', notes: 'Uses OrgDetail base' },
   { category: 'orgs', model: 'vendor', fileName: 'VendorDetail.tsx', path: 'src/apps/orgs/models/vendor/pages/VendorDetail.tsx', pattern: 'DetailTabs' },
   

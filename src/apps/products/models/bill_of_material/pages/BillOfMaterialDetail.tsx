@@ -1,5 +1,5 @@
 /**
- * BillOfMaterialDisplay - Follows 3-column standard with tab navigation
+ * BillOfMaterialDetail - Follows 3-column standard with tab navigation
  * Tabs: Actions, Comments, Documents, History, Raw
  */
 import { useEffect, useState, useMemo } from "react";
@@ -40,7 +40,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
 
-interface BillOfMaterialDisplayProps {
+interface BillOfMaterialDetailProps {
   inline?: boolean;
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
@@ -48,15 +48,15 @@ interface BillOfMaterialDisplayProps {
   onCancelInline?: () => void;
 }
 
-const STORAGE_KEY = "billOfMaterialDisplay_columnCount";
+const STORAGE_KEY = "billOfMaterialDetail_columnCount";
 
-export default function BillOfMaterialDisplay({
+export default function BillOfMaterialDetail({
   inline = false,
   modeProp,
   dataProp,
   onSaved,
   onCancelInline,
-}: BillOfMaterialDisplayProps) {
+}: BillOfMaterialDetailProps) {
   const [data, setData] = useState<any>(dataProp || {});
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,7 +67,7 @@ export default function BillOfMaterialDisplay({
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   // Tab navigation
-  const { activeTab, setActiveTab } = useDetailTabs("bill_of_material_display", "actions", [
+  const { activeTab, setActiveTab } = useDetailTabs("bill_of_material_detail", "actions", [
     "actions", "comments", "documents", "history", "raw",
   ]);
 

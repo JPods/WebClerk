@@ -33,17 +33,17 @@ import AppPhoneDetail from "../apps/communications/models/phone/pages/PhoneDetai
 
 // Orgs
 import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
-import CustomerDisplay from "../apps/orgs/models/customer/pages/CustomerDisplay";
+import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDetail";
 import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";
 import ManufacturerList from "../apps/orgs/models/manufacturer/pages/ManufacturerList";
 import OrganizationsList from "../apps/orgs/models/organization/pages/OrganizationList";
 import RepList from "../apps/orgs/models/rep/pages/RepList";
 import VendorList from "../apps/orgs/models/vendor/pages/VendorList";
 
-// Alias CustomerDisplay for route compatibility
-const CustomerDetailPage = CustomerDisplay;
-const CustomerAddPage = CustomerDisplay;
-const CustomerEditPage = CustomerDisplay;
+// Alias CustomerDetail for route compatibility
+const CustomerDetailPage = CustomerDetail;
+const CustomerAddPage = CustomerDetail;
+const CustomerEditPage = CustomerDetail;
 
 // Core
 import CoreContactList from "../apps/core/models/contact/pages/ContactList";

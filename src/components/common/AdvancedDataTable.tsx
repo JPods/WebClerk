@@ -1689,8 +1689,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
           columns={dataTableColumns as unknown as TableColumn<RowWithKey>[]}
           data={tableRows}
           pagination
-          paginationPerPage={10}
-          paginationRowsPerPageOptions={[10, 25, 50, 100]}
+          paginationPerPage={500}
+          paginationRowsPerPageOptions={[25, 50, 100, 250, 500]}
           keyField={internalRowKeyField}
           selectableRows={enableSelection && selectionMode === "checkbox"}
           selectableRowsHighlight={

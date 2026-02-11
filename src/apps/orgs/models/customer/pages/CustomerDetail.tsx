@@ -133,7 +133,7 @@ const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
 const VALID_TABS = ["overview", "comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
 
-export default function CustomerDisplay({
+export default function CustomerDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,

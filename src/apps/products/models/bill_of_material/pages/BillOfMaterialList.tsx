@@ -9,7 +9,7 @@ import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import BillOfMaterialDisplay from "./BillOfMaterialDisplay";
+import BillOfMaterialDetail from "./BillOfMaterialDetail";
 
 // Normalizes differing API payload shapes into a flat array of items.
 const extractItems = (payload: any): any[] => {
@@ -285,7 +285,7 @@ export default function BillOfMaterialList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <BillOfMaterialDisplay
+            <BillOfMaterialDetail
               inline
               modeProp={formMode}
               dataProp={selectedBillOfMaterial}

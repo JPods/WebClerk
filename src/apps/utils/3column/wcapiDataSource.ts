@@ -16,7 +16,7 @@ export type WcapiDataSourceOptions = {
   mapOutgoingRecord?: (record: Partial<AdminRecord>) => Record<string, unknown>;
 };
 
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 500;
 
 const normalizeRecord = (
   record: Record<string, unknown>,
