@@ -1,5 +1,5 @@
 {
-  "db_mode": "local",
+  "db_mode": "remote",
   "data_set_id": "DEV",
   "data_set_name": "Development Server",
   "available_modes": {
