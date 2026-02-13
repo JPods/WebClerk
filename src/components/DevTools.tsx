@@ -129,7 +129,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
       const maxAttempts = 30;
       const checkServer = async () => {
         try {
-          const resp = await fetch('/wcapi/get/?model_name=system_info');
+          const resp = await fetch('/wcapi/system-info/');
           if (resp.ok) {
             window.location.reload();
             return;
