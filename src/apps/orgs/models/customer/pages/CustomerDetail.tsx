@@ -192,15 +192,16 @@ export default function CustomerDetail({
       .finally(() => setLoading(false));
   }, [customerId, dataProp, routeMode]);
 
-  // Window management
+  // Window management - only when NOT rendered inline
   useEffect(() => {
+    if (inline) return; // Skip window management for inline rendering
     const record = dataProp || fetchedRecord;
     if (!record && routeMode !== 'add') return;
     const title = record?.display_name || record?.name || 
       (routeMode === 'add' ? 'New Customer' : `Customer ${record?.id ?? customerId}`);
     const prefix = routeMode === 'edit' ? 'Edit ' : '';
     ensureWindow(location.pathname, `${prefix}${title}`, { maximized: false });
-  }, [dataProp, fetchedRecord, ensureWindow, location.pathname, customerId, routeMode]);
+  }, [inline, dataProp, fetchedRecord, ensureWindow, location.pathname, customerId, routeMode]);
 
   // List navigation (prev/next)
   const listOrder = useMemo(() => {
@@ -223,13 +224,14 @@ export default function CustomerDetail({
   }, [closeWindow, location.pathname]);
 
   const openRecord = useCallback((targetId: number, targetMode: 'view' | 'edit') => {
+    if (inline) return; // Don't open windows when inline
     const basePath = targetMode === 'edit' ? PageRoutes.customerEdit : PageRoutes.customerDetail;
     const path = `${basePath}/${targetId}`;
     const prefix = targetMode === 'edit' ? 'Edit ' : '';
     ensureWindow(path, `${prefix}Customer ${targetId}`, { maximized: false });
     activateWindow(path);
     closeWindow(location.pathname);
-  }, [activateWindow, closeWindow, ensureWindow, location.pathname]);
+  }, [inline, activateWindow, closeWindow, ensureWindow, location.pathname]);
 
   const handlePrev = useMemo(() => {
     if (onPrevProp) return onPrevProp;
@@ -248,6 +250,10 @@ export default function CustomerDetail({
       onEditProp();
       return;
     }
+    if (inline) {
+      setIsEditing(true); // Just switch to edit mode inline
+      return;
+    }
     if (!Number.isFinite(customerId)) return;
     const record = dataProp || fetchedRecord;
     const path = `${PageRoutes.customerEdit}/${customerId}`;
@@ -255,7 +261,7 @@ export default function CustomerDetail({
     ensureWindow(path, `Edit ${label}`, { maximized: false });
     activateWindow(path);
     closeWindow(location.pathname);
-  }, [onEditProp, activateWindow, closeWindow, customerId, ensureWindow, location.pathname, dataProp, fetchedRecord]);
+  }, [onEditProp, inline, activateWindow, closeWindow, customerId, ensureWindow, location.pathname, dataProp, fetchedRecord]);
 
   const handleDeleteClick = useCallback(async () => {
     const record = dataProp || fetchedRecord;
