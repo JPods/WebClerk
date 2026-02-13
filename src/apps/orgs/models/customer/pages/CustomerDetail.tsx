@@ -543,19 +543,6 @@ export default function CustomerDetail({
     const buttons = [];
 
     if (baseMode === "view" && !isEditing) {
-      // View mode - show Create Contact button
-      buttons.push(
-        <button
-          key="create-contact"
-          type="button"
-          onClick={handleCreateContact}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-          title="Create Contact from Customer"
-        >
-          <FaUserPlus size={14} />
-          Create Contact
-        </button>
-      );
       // View mode - show Edit button to switch to edit mode
       buttons.push(
         <button
@@ -596,6 +583,19 @@ export default function CustomerDetail({
           </button>
         );
       }
+      // Create Contact button - secondary action, after primary buttons
+      buttons.push(
+        <button
+          key="create-contact"
+          type="button"
+          onClick={handleCreateContact}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+          title="Create Contact from Customer"
+        >
+          <FaUserPlus size={14} />
+          Create Contact
+        </button>
+      );
       if (onDelete) {
         buttons.push(
           <button
@@ -800,30 +800,10 @@ export default function CustomerDetail({
     {/* In edit/add mode, show editable form fields instead */}
     <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
       {mode === "view" ? (
-        <div className="space-y-3">
-          <BasicInformationPanel
-            data={customerData}
-            columns={columnCount}
-          />
-          {/* Always show ContactLinksPanel inline */}
-          <ContactLinksPanel
-            entityType="customer"
-            entityId={customerData.id}
-            data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
-            readOnly={true}
-            title="Contacts"
-            defaultCollapsed={false}
-          />
-          {/* Financial Summary - Collapsible */}
-          {customerData.financial && (
-            <FinancialsPanel
-              data={customerData.financial?.customer}
-              currency="USD"
-              defaultCollapsed={true}
-              compact
-            />
-          )}
-        </div>
+        <BasicInformationPanel
+          data={customerData}
+          columns={columnCount}
+        />
       ) : (
         /* Editable Basic Information - Horizontal Layout */
         <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
@@ -931,196 +911,203 @@ export default function CustomerDetail({
       )}
     </div>
 
-      {/* Tab Navigation - Using DetailTabs component */}
-      <DetailTabs
-        entityType="customer"
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        standardTabs={['overview', 'comments', 'actions', 'documents', 'history', 'raw']}
-        additionalTabs={additionalTabs}
-        badges={tabBadges}
-        showColumnSelector={true}
-        columnCount={columnCount}
-        onColumnCountChange={handleColumnChange}
-      />
+    {/* Tab Navigation - Using DetailTabs component */}
+    <DetailTabs
+      entityType="customer"
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      standardTabs={['overview', 'comments', 'actions', 'documents', 'history', 'raw']}
+      additionalTabs={additionalTabs}
+      badges={tabBadges}
+      showColumnSelector={true}
+      columnCount={columnCount}
+      onColumnCountChange={handleColumnChange}
+    />
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto">
-        <form onSubmit={handleSubmit(onSubmit)} className="h-full">
-          <div className="p-4">
-            {/* Standard Tabs - Overview */}
-            {activeTab === "overview" && (
-              <div className="space-y-4">
-                {mode === "view" ? (
-                  <BasicInformationPanel data={customerData} columns={columnCount} />
-                ) : (
-                  <div className="text-slate-500 dark:text-slate-400 text-sm">
-                    Edit basic information in the form above.
-                  </div>
-                )}
-              </div>
-            )}
+    {/* Tab Content */}
+    <div className="flex-1 overflow-y-auto">
+      <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+        <div className="p-4">
+          {/* Standard Tabs - Overview */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
+              {/* Financial Summary - collapsed by default, inside tab content per layout standard */}
+              {mode === "view" && customerData.financial && (
+                <FinancialsPanel
+                  data={customerData.financial?.customer}
+                  currency="USD"
+                  defaultCollapsed={true}
+                  compact
+                />
+              )}
+              {mode !== "view" && (
+                <div className="text-slate-500 dark:text-slate-400 text-sm">
+                  Edit basic information in the form above.
+                </div>
+              )}
+            </div>
+          )}
 
-            {/* Standard Tabs - Comments */}
-            {activeTab === "comments" && (
-              <CommentsPanel
-                entityType="customer"
-                entityId={data?.id || 0}
-                comments={data?.comments}
-                isEditing={mode !== "view" || isEditing}
-                onChange={(comments) => {
-                  // Update local state - in a real app this would update the form
-                  console.log('Comments updated:', comments);
-                }}
-                currentUser={currentUser?.display_name || currentUser?.username}
-                currentUserId={currentUser?.id}
-              />
-            )}
+          {/* Standard Tabs - Comments */}
+          {activeTab === "comments" && (
+            <CommentsPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              comments={data?.comments}
+              isEditing={mode !== "view" || isEditing}
+              onChange={(comments) => {
+                // Update local state - in a real app this would update the form
+                console.log('Comments updated:', comments);
+              }}
+              currentUser={currentUser?.display_name || currentUser?.username}
+              currentUserId={currentUser?.id}
+            />
+          )}
 
-            {/* Standard Tabs - Actions */}
-            {activeTab === "actions" && (
-              <ActionsPanel
-                entityType="customer"
-                entityId={data?.id || 0}
-                data={data?.actions?.items}
-                actionIds={data?.actions?.ids}
-                isEditing={mode !== "view" || isEditing}
-                onChange={(actions) => {
-                  console.log('Actions updated:', actions);
-                }}
-              />
-            )}
+          {/* Standard Tabs - Actions */}
+          {activeTab === "actions" && (
+            <ActionsPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data?.actions?.items}
+              actionIds={data?.actions?.ids}
+              isEditing={mode !== "view" || isEditing}
+              onChange={(actions) => {
+                console.log('Actions updated:', actions);
+              }}
+            />
+          )}
 
-            {/* Standard Tabs - Documents */}
-            {activeTab === "documents" && (
-              <DocumentsPanel
-                parentType="customer"
-                parentId={data?.id || 0}
-                data={data?.refs?.links?.document}
-                isEditing={mode !== "view" || isEditing}
-                onChange={(docs) => {
-                  console.log('Documents updated:', docs);
-                }}
-              />
-            )}
+          {/* Standard Tabs - Documents */}
+          {activeTab === "documents" && (
+            <DocumentsPanel
+              parentType="customer"
+              parentId={data?.id || 0}
+              data={data?.refs?.links?.document}
+              isEditing={mode !== "view" || isEditing}
+              onChange={(docs) => {
+                console.log('Documents updated:', docs);
+              }}
+            />
+          )}
 
-            {/* Standard Tabs - History (Admin) */}
-            {activeTab === "history" && (
-              <MetadataPanel
-                entityType="customer"
-                entityId={data?.id || 0}
-                data={data?.metadata}
-                isEditing={false}
-              />
-            )}
+          {/* Standard Tabs - History (Admin) */}
+          {activeTab === "history" && (
+            <MetadataPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data?.metadata}
+              isEditing={false}
+            />
+          )}
 
-            {/* Standard Tabs - Raw (Admin) */}
-            {activeTab === "raw" && (
-              <RawDataPanel
-                entityType="customer"
-                entityId={data?.id || 0}
-                data={data}
-              />
-            )}
+          {/* Standard Tabs - Raw (Admin) */}
+          {activeTab === "raw" && (
+            <RawDataPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data}
+            />
+          )}
 
-            {/* Model-Specific Tabs */}
-            {mode === "view" ? (
-              <>
-                {activeTab === "financial" && (
-                  <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                      <FaDollarSign size={16} className="text-green-500" />
-                      Financial Details
-                    </h3>
-                    <FinancialsPanel
-                      data={customerData.financial?.customer}
-                      currency="USD"
-                      showAll={true}
-                      columns={columnCount}
-                    />
-                  </div>
-                )}
-                {activeTab === "communication" && (
-                  <div className="space-y-4">
-                    {/* Contacts Table */}
-                    <ContactLinksPanel
-                      entityType="customer"
-                      entityId={customerData.id}
-                      data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
-                      readOnly={true}
-                      title="Contacts"
-                      defaultCollapsed={false}
-                    />
-                    {/* Other communication data */}
-                    <CustomerDataPanel
-                      data={{
-                        addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
-                        domains: safeParseJson(formData.domains as unknown as string | undefined, []),
-                        phones: safeParseJson(formData.phones as unknown as string | undefined, []),
-                        emails: safeParseJson(formData.emails as unknown as string | undefined, []),
-                      }}
-                      showScalars={false}
-                      grouped={false}
-                      onSelectCategory={() => {}}
-                    />
-                  </div>
-                )}
-                {["relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
+          {/* Model-Specific Tabs */}
+          {mode === "view" ? (
+            <>
+              {activeTab === "financial" && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                    <FaDollarSign size={16} className="text-green-500" />
+                    Financial Details
+                  </h3>
+                  <FinancialsPanel
+                    data={customerData.financial?.customer}
+                    currency="USD"
+                    showAll={true}
+                    columns={columnCount}
+                  />
+                </div>
+              )}
+              {activeTab === "communication" && (
+                <div className="space-y-4">
+                  {/* Contacts Table */}
+                  <ContactLinksPanel
+                    entityType="customer"
+                    entityId={customerData.id}
+                    data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
+                    readOnly={true}
+                    title="Contacts"
+                    defaultCollapsed={false}
+                  />
+                  {/* Other communication data */}
                   <CustomerDataPanel
-                    data={getTabData(activeTab)}
+                    data={{
+                      addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
+                      domains: safeParseJson(formData.domains as unknown as string | undefined, []),
+                      phones: safeParseJson(formData.phones as unknown as string | undefined, []),
+                      emails: safeParseJson(formData.emails as unknown as string | undefined, []),
+                    }}
                     showScalars={false}
                     grouped={false}
                     onSelectCategory={() => {}}
                   />
-                )}
-              </>
-            ) : (
-              /* Edit mode - JSON editors for model-specific tabs */
-              <div className="space-y-4">
-                {(
-                  {
-                    communication: [
-                      { field: "contacts", label: "contacts" },
-                      { field: "addresses", label: "addresses" },
-                      { field: "domains", label: "domains" },
-                      { field: "phones", label: "phones" },
-                      { field: "emails", label: "emails" },
-                    ],
-                    financial: [{ field: "financial", label: "financial" }],
-                    relations: [{ field: "relations", label: "relations" }],
-                    connections: [{ field: "connections", label: "connections" }],
-                    data: [{ field: "data", label: "data" }],
-                    metrics: [{ field: "metrics", label: "metrics" }],
-                    gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
-                  } as Record<
-                    string,
-                    Array<{ field: keyof CustomerFormValues; label: string }>
-                  >
-                )[activeTab]?.map(({ field, label }) => (
-                  <JsonFieldEditor
-                    key={String(field)}
-                    label={label}
-                    value={safeParseJson(
-                      formData[field] as unknown as string | undefined,
-                      JSON_DEFAULTS[String(field)],
-                    )}
-                    readonly={false}
-                    defaultExpanded
-                    maxHeight="520px"
-                    onChange={(val) => {
-                      setValue(
-                        field,
-                        JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
-                        { shouldDirty: true, shouldValidate: true },
-                      );
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </form>
-      </div>
+                </div>
+              )}
+              {["relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
+                <CustomerDataPanel
+                  data={getTabData(activeTab)}
+                  showScalars={false}
+                  grouped={false}
+                  onSelectCategory={() => {}}
+                />
+              )}
+            </>
+          ) : (
+            /* Edit mode - JSON editors for model-specific tabs */
+            <div className="space-y-4">
+              {(
+                {
+                  communication: [
+                    { field: "contacts", label: "contacts" },
+                    { field: "addresses", label: "addresses" },
+                    { field: "domains", label: "domains" },
+                    { field: "phones", label: "phones" },
+                    { field: "emails", label: "emails" },
+                  ],
+                  financial: [{ field: "financial", label: "financial" }],
+                  relations: [{ field: "relations", label: "relations" }],
+                  connections: [{ field: "connections", label: "connections" }],
+                  data: [{ field: "data", label: "data" }],
+                  metrics: [{ field: "metrics", label: "metrics" }],
+                  gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
+                } as Record<
+                  string,
+                  Array<{ field: keyof CustomerFormValues; label: string }>
+                >
+              )[activeTab]?.map(({ field, label }) => (
+                <JsonFieldEditor
+                  key={String(field)}
+                  label={label}
+                  value={safeParseJson(
+                    formData[field] as unknown as string | undefined,
+                    JSON_DEFAULTS[String(field)],
+                  )}
+                  readonly={false}
+                  defaultExpanded
+                  maxHeight="520px"
+                  onChange={(val) => {
+                    setValue(
+                      field,
+                      JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
+                      { shouldDirty: true, shouldValidate: true },
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </form>
     </div>
+  </div>
   );
 }

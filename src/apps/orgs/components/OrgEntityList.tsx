@@ -65,7 +65,7 @@ export default function OrgEntityList<T = any>({
   const [data, setData] = useState<T[]>([]);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const [detailMode, setDetailMode] = useState<"view" | "edit">("view");
+  const [detailMode, setDetailMode] = useState<"view" | "edit" | "add">("view");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const tableRef = useRef<any>(null);
@@ -127,6 +127,11 @@ export default function OrgEntityList<T = any>({
     setDetailMode("edit");
   }, []);
 
+  const handleAddInline = useCallback(() => {
+    setSelectedRow({});
+    setDetailMode("add");
+  }, []);
+
   const handleDeleteInline = useCallback(async (row: any) => {
     if (!deleteFn) return;
     const display = row.display_name || row.name || `${title || modelKey} ${row.id}`;
@@ -177,7 +182,7 @@ export default function OrgEntityList<T = any>({
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
           <button
-            onClick={handleAdd}
+            onClick={handleAddInline}
             title="Add"
             className="w-9 h-9 flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
@@ -305,13 +310,13 @@ export default function OrgEntityList<T = any>({
               enableSelection={!!deleteFn}
               onSelectionChange={setSelectedRows}
               exportFileName={exportFileName}
-              onRowActivate={handleEdit}
+              onRowActivate={handleViewInline}
               onRowDoubleClicked={handleRowDoubleClick}
               onRowClicked={(row: any) => {
                 setSelectedRow(row);
                 setDetailMode("view");
               }}
-              onAdd={handleAdd}
+              onAdd={handleAddInline}
               onDeleteSelected={() => handleBulkDelete()}
               noDataMessage={`No ${title || modelKey} found`}
               enableDatabaseSearch={enableDatabaseSearch}
