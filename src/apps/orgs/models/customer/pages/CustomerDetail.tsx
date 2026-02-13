@@ -7,11 +7,12 @@ import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
+import { getRecord } from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog, FaColumns, FaUserPlus } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaUserPlus } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
@@ -26,7 +27,8 @@ import {
   DocumentsPanel,
   MetadataPanel,
   RawDataPanel,
-  ContactLinksPanel,
+  RefsLinksContactPanel,
+  normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
@@ -132,7 +134,7 @@ const COLUMN_OPTIONS = [
 
 const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
-const VALID_TABS = ["comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
+const VALID_TABS = ["comments", "actions", "contacts", "documents", "communications", "financial", "history", "raw"];
 
 export default function CustomerDetail({
   modeProp,
@@ -290,13 +292,9 @@ export default function CustomerDetail({
 
   // Additional tabs specific to Customer (Communications, Financial, etc.)
   const additionalTabs = [
-    { id: 'communication', label: 'Contact', icon: <FaPhone size={14} /> },
+    { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} /> },
+    { id: 'communications', label: 'Communications', icon: <FaPhone size={14} /> },
     { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { id: 'relations', label: 'Relations', icon: <FaUsers size={14} /> },
-    { id: 'connections', label: 'Connections', icon: <FaLink size={14} /> },
-    { id: 'data', label: 'Data', icon: <FaCog size={14} /> },
-    { id: 'metrics', label: 'Metrics', icon: <FaChartBar size={14} /> },
-    { id: 'gl_accounts', label: 'GL Accounts', icon: <FaCreditCard size={14} /> },
   ];
 
   const {
@@ -336,6 +334,7 @@ export default function CustomerDetail({
     comments: getCommentCount(),
     actions: getActionCount(),
     documents: getDocumentCount(),
+    contacts: data?.refs?.links?.contact?.length || 0,
   };
 
   useEffect(() => {
@@ -783,14 +782,10 @@ export default function CustomerDetail({
 
     // Define which fields belong to each tab
     const tabFieldMapping: Record<string, string[]> = {
-      communication: ['contacts', 'addresses', 'domains', 'phones', 'emails'],
+      contacts: ['contacts'],
+      communications: ['addresses', 'domains', 'phones', 'emails'],
       financial: ['financial'],
-      relations: ['relations'],
       documents: ['docs'],
-      connections: ['connections'],
-      data: ['data'],
-      metrics: ['metrics'],
-      gl_accounts: ['gl_accounts'],
     };
 
     const fieldsForTab = tabFieldMapping[tabId] || [];
@@ -1084,6 +1079,55 @@ export default function CustomerDetail({
           {/* Model-Specific Tabs */}
           {mode === "view" ? (
             <>
+              {/* Contacts tab – RefsLinksContactPanel (same as transactions) */}
+              {activeTab === "contacts" && (
+                <RefsLinksContactPanel
+                  contacts={normalizeRefsLinksContact(
+                    data?.refs?.links?.contact ?? []
+                  )}
+                  isEditing={false}
+                  allowCreate={true}
+                  parentType="customer"
+                  parentId={customerData.id}
+                  customer_id={customerData.id}
+                  customer_name={customerData.display_name}
+                  onSaveSuccess={() => {
+                    if (customerData.id) {
+                      getRecord("customer", customerData.id)
+                        .then((res: any) => {
+                          const rec = res?.record ?? res;
+                          if (rec) {
+                            Object.keys(rec).forEach((key) => {
+                              if (key in JSON_DEFAULTS) {
+                                setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
+                              } else {
+                                setValue(key as keyof CustomerFormValues, rec[key]);
+                              }
+                            });
+                          }
+                        })
+                        .catch(() => {});
+                    }
+                  }}
+                />
+              )}
+
+              {/* Communications tab – addresses, domains, phones, emails */}
+              {activeTab === "communications" && (
+                <CustomerDataPanel
+                  data={{
+                    addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
+                    domains: safeParseJson(formData.domains as unknown as string | undefined, []),
+                    phones: safeParseJson(formData.phones as unknown as string | undefined, []),
+                    emails: safeParseJson(formData.emails as unknown as string | undefined, []),
+                  }}
+                  showScalars={false}
+                  grouped={false}
+                  onSelectCategory={() => {}}
+                />
+              )}
+
+              {/* Financial tab */}
               {activeTab === "financial" && (
                 <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
                   <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
@@ -1098,58 +1142,63 @@ export default function CustomerDetail({
                   />
                 </div>
               )}
-              {activeTab === "communication" && (
-                <div className="space-y-4">
-                  {/* Contacts Table */}
-                  <ContactLinksPanel
-                    entityType="customer"
-                    entityId={customerData.id}
-                    data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
-                    readOnly={true}
-                    title="Contacts"
-                    defaultCollapsed={false}
-                  />
-                  {/* Other communication data */}
-                  <CustomerDataPanel
-                    data={{
-                      addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
-                      domains: safeParseJson(formData.domains as unknown as string | undefined, []),
-                      phones: safeParseJson(formData.phones as unknown as string | undefined, []),
-                      emails: safeParseJson(formData.emails as unknown as string | undefined, []),
-                    }}
-                    showScalars={false}
-                    grouped={false}
-                    onSelectCategory={() => {}}
-                  />
-                </div>
-              )}
-              {["relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
-                <CustomerDataPanel
-                  data={getTabData(activeTab)}
-                  showScalars={false}
-                  grouped={false}
-                  onSelectCategory={() => {}}
-                />
-              )}
             </>
           ) : (
             /* Edit mode - JSON editors for model-specific tabs */
             <div className="space-y-4">
+              {/* Contacts tab in edit mode – still uses RefsLinksContactPanel */}
+              {activeTab === "contacts" && (
+                <RefsLinksContactPanel
+                  contacts={normalizeRefsLinksContact(
+                    data?.refs?.links?.contact ?? []
+                  )}
+                  isEditing={true}
+                  parentType="customer"
+                  parentId={customerData.id}
+                  customer_id={customerData.id}
+                  customer_name={customerData.display_name}
+                  onChange={(newContacts) => {
+                    const currentRefs = safeParseJson(formData.refs as unknown as string | undefined, { links: {} });
+                    setValue(
+                      "refs" as keyof CustomerFormValues,
+                      JSON.stringify({
+                        ...currentRefs,
+                        links: { ...currentRefs.links, contact: newContacts },
+                      }, null, 2) as any,
+                      { shouldDirty: true },
+                    );
+                  }}
+                  onSaveSuccess={() => {
+                    if (customerData.id) {
+                      getRecord("customer", customerData.id)
+                        .then((res: any) => {
+                          const rec = res?.record ?? res;
+                          if (rec) {
+                            Object.keys(rec).forEach((key) => {
+                              if (key in JSON_DEFAULTS) {
+                                setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
+                              } else {
+                                setValue(key as keyof CustomerFormValues, rec[key]);
+                              }
+                            });
+                          }
+                        })
+                        .catch(() => {});
+                    }
+                  }}
+                />
+              )}
+
+              {/* Other model-specific tabs in edit mode – JSON editors */}
               {(
                 {
-                  communication: [
-                    { field: "contacts", label: "contacts" },
+                  communications: [
                     { field: "addresses", label: "addresses" },
                     { field: "domains", label: "domains" },
                     { field: "phones", label: "phones" },
                     { field: "emails", label: "emails" },
                   ],
                   financial: [{ field: "financial", label: "financial" }],
-                  relations: [{ field: "relations", label: "relations" }],
-                  connections: [{ field: "connections", label: "connections" }],
-                  data: [{ field: "data", label: "data" }],
-                  metrics: [{ field: "metrics", label: "metrics" }],
-                  gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
                 } as Record<
                   string,
                   Array<{ field: keyof CustomerFormValues; label: string }>

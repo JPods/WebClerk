@@ -116,9 +116,9 @@ const OrderHeader: React.FC<{
       <AddPaymentModal
         isOpen={showAddPaymentModal}
         onClose={() => setShowAddPaymentModal(false)}
-        orderId={data.id || 0}
-        contactId={paymentContactId ? Number(paymentContactId) : null}
-        customerName={customerInfo?.display_name}
+        order_id={data.id || 0}
+        contact_id={paymentContactId ? Number(paymentContactId) : null}
+        customer_name={customerInfo?.display_name}
         orderTotal={data.totals?.total ?? data.total}
         onPaymentAdded={() => {
           setShowAddPaymentModal(false);

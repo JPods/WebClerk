@@ -790,7 +790,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
-            orderId={currentData?.id}
+            order_id={currentData?.id}
+            customer_id={currentData?.customer_id || currentData?.refs?.links?.customer?.[0]?.id}
+            customer_name={currentData?.refs?.links?.customer?.[0]?.display_name}
             onChange={(newContacts) => {
               // Update editData.refs.links.contact in edit mode
               if (isEditing && editData) {

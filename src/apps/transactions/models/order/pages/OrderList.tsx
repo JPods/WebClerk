@@ -91,11 +91,11 @@ export default function OrderList() {
 
   const openOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
-      const orderId = row?.id;
+      const order_id = row?.id;
       console.log("[openOrder] row:", row);
-      console.log("[openOrder] orderId:", orderId);
+      console.log("[openOrder] order_id:", order_id);
       console.log("[openOrder] modeToSet:", modeToSet);
-      if (!orderId) {
+      if (!order_id) {
         dispatch(showToast({ message: "Order id missing", type: "error" }));
         return;
       }
@@ -106,7 +106,7 @@ export default function OrderList() {
       setSelectedOrder(null);
 
       try {
-        const detail = await fetchOrderDetail(orderId);
+        const detail = await fetchOrderDetail(order_id);
         console.log("[openOrder] detail from API:", detail);
         console.log("[openOrder] detail.lines:", detail?.lines);
         console.log("[openOrder] detail.lines count:", detail?.lines?.length);

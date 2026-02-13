@@ -7,6 +7,7 @@ import { useWindowManager } from "@/context/WindowManagerContext";
 import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
 import {
   FaUser,
+  FaUserPlus,
   FaEnvelope,
   FaPhone,
   FaTimes,
@@ -185,12 +186,18 @@ interface RefsLinksContactPanelProps {
   /** Generic parent record ID for persistence */
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number; // Order ID for saving contact data
+  order_id?: number; // Order ID for saving contact data
+  /** Customer ID from parent transaction – used when creating a new contact */
+  customer_id?: number;
+  /** Customer display name – pre-fills company on new contact */
+  customer_name?: string;
   onAdd?: (purpose: ContactPurpose | string) => void;
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
   onChange?: (contacts: RefContact[]) => void;
   onSaveSuccess?: () => void; // Callback after successful save
+  /** Allow Create Contact button even when isEditing is false (e.g. view-mode CustomerDetail) */
+  allowCreate?: boolean;
 }
 
 // Standard purposes in display order
@@ -234,11 +241,11 @@ const ContactEditModal: React.FC<{
   parentType?: string;
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number;
+  order_id?: number;
   onClose: () => void;
   onSave: (contact: RefContact) => void;
   onSaveSuccess?: () => void;
-}> = ({ contact, isOpen, parentType, parentId, orderId, onClose, onSave, onSaveSuccess }) => {
+}> = ({ contact, isOpen, parentType, parentId, order_id, onClose, onSave, onSaveSuccess }) => {
   // Communications state - fetched from contact model using contact_id
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -620,8 +627,8 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={async () => {
-              const effectiveParentType = parentType || (orderId ? "order" : undefined);
-              const effectiveParentId = parentId ?? orderId;
+              const effectiveParentType = parentType || (order_id ? "order" : undefined);
+              const effectiveParentId = parentId ?? order_id;
 
               if (!effectiveParentType || !effectiveParentId || !contact) {
                 console.warn(
@@ -835,7 +842,7 @@ const AddPurposeModal: React.FC<{
   parentType?: string;
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number;
+  order_id?: number;
   existingContacts: RefContact[];
   onClose: () => void;
   onChange?: (newContact: RefContact) => void; // For instant local state update
@@ -844,7 +851,7 @@ const AddPurposeModal: React.FC<{
   isOpen,
   parentType,
   parentId,
-  orderId,
+  order_id,
   existingContacts,
   onClose,
   onChange,
@@ -921,8 +928,8 @@ const AddPurposeModal: React.FC<{
   }, [selectedPurpose, selectedContactId, existingContacts]);
 
   const handleSave = async () => {
-    const effectiveParentType = parentType || (orderId ? "order" : undefined);
-    const effectiveParentId = parentId ?? orderId;
+    const effectiveParentType = parentType || (order_id ? "order" : undefined);
+    const effectiveParentId = parentId ?? order_id;
 
     if (!effectiveParentType || !effectiveParentId) {
       console.warn("[AddPurposeModal] Missing parentType/parentId to save");
@@ -1519,23 +1526,305 @@ const PurposeSection: React.FC<{
   );
 };
 
+// Create Contact Modal – creates a brand-new contact record and links it to the
+// parent transaction and its customer, then opens the contact detail page.
+const CreateContactModal: React.FC<{
+  isOpen: boolean;
+  parentType?: string;
+  parentId?: number;
+  customer_id?: number;
+  customer_name?: string;
+  existingContacts: RefContact[];
+  onClose: () => void;
+  onChange?: (newContact: RefContact) => void;
+  onSaveSuccess?: () => void;
+}> = ({
+  isOpen,
+  parentType,
+  parentId,
+  customer_id,
+  customer_name,
+  existingContacts,
+  onClose,
+  onChange,
+  onSaveSuccess,
+}) => {
+  const { ensureWindow, activateWindow } = useWindowManager();
+  const [saving, setSaving] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [selectedPurpose, setSelectedPurpose] = useState<string>("billto");
+
+  // Reset when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setPhone("");
+      setSelectedPurpose("billto");
+    }
+  }, [isOpen]);
+
+  const handleCreate = async () => {
+    if (!firstName.trim() && !lastName.trim()) return;
+
+    setSaving(true);
+    try {
+      // 1. Create the contact record
+      const contactPayload: Record<string, unknown> = {
+        name_first: firstName.trim(),
+        name_last: lastName.trim(),
+        attention: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        company: customer_name || undefined,
+        customer_id: customer_id || undefined,
+        comment: parentType && parentId
+          ? `Created from ${parentType} #${parentId}`
+          : "Created from transaction contact panel",
+        refs: {
+          links: {
+            ...(customer_id ? { customer: [customer_id] } : {}),
+            ...(parentType && parentId ? { [parentType]: [parentId] } : {}),
+          },
+        },
+      };
+
+      console.log("[CreateContactModal] Creating contact:", contactPayload);
+      const result = await saveRecord("contact", contactPayload);
+      const newContactId = result?.record?.id ?? result?.id;
+
+      if (!newContactId) {
+        throw new Error("Contact created but no ID returned");
+      }
+
+      console.log("[CreateContactModal] Contact created, id:", newContactId);
+
+      // 2. Add the new contact to the parent transaction's refs.links.contact
+      if (parentType && parentId) {
+        const parentResult = await getRecord(parentType, parentId);
+        const parentData = parentResult?.record || parentResult;
+        const existingParentContacts = parentData?.refs?.links?.contact || [];
+
+        const contactEntry = {
+          purpose: selectedPurpose,
+          contact: {
+            id: newContactId,
+            email: [],
+            phone: [],
+            domain: [],
+            address: [],
+          },
+        };
+
+        const updatedContacts = [...existingParentContacts, contactEntry];
+
+        const savePayload = {
+          id: parentId,
+          refs: {
+            mode: "update",
+            value: {
+              links: {
+                contact: updatedContacts,
+              },
+            },
+          },
+        };
+
+        console.log("[CreateContactModal] Updating parent:", savePayload);
+        await saveRecord(parentType, savePayload);
+      }
+
+      // 3. Local state update
+      const newRefContact: RefContact = {
+        contact_id: newContactId,
+        purpose: selectedPurpose,
+        attention: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: [],
+        phone: [],
+        domain: [],
+        address: [],
+      };
+
+      if (onChange) {
+        onChange(newRefContact);
+      }
+      if (onSaveSuccess) {
+        onSaveSuccess();
+      }
+
+      // 4. Open the new contact detail page for address entry
+      const contactPath = `/core/contact/detail/${newContactId}`;
+      ensureWindow(contactPath, `Contact ${firstName} ${lastName}`.trim(), {
+        maximized: false,
+      });
+      activateWindow(contactPath);
+
+      onClose();
+    } catch (error) {
+      console.error("[CreateContactModal] Error creating contact:", error);
+      alert("Failed to create contact. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-center justify-center">
+      <div
+        className="pointer-events-auto absolute inset-0 bg-black/30"
+        onClick={onClose}
+      />
+      <div className="pointer-events-auto relative w-full max-w-md mx-4 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            Create New Contact
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Name Fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@example.com"
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Phone
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(555) 123-4567"
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Purpose */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Purpose <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedPurpose}
+              onChange={(e) => setSelectedPurpose(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {STANDARD_PURPOSES.map((purpose) => (
+                <option key={purpose} value={purpose}>
+                  {formatPurpose(purpose)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Customer info badge */}
+          {customer_name && (
+            <div className="p-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <span className="font-medium">Customer:</span> {customer_name}
+              {customer_id ? ` (#${customer_id})` : ""}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={saving || (!firstName.trim() && !lastName.trim())}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving && <FaSpinner className="animate-spin w-4 h-4" />}
+            {saving ? "Creating..." : "Create & Open Contact"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   contacts = [],
   isEditing = false,
   parentType,
   parentId,
-  orderId,
+  order_id,
+  customer_id,
+  customer_name,
   onRemove,
   onEdit,
   onChange,
   onSaveSuccess,
+  allowCreate,
 }) => {
-  const effectiveParentType = parentType || (orderId ? "order" : undefined);
-  const effectiveParentId = parentId ?? orderId;
+  const effectiveParentType = parentType || (order_id ? "order" : undefined);
+  const effectiveParentId = parentId ?? order_id;
   const { ensureWindow, activateWindow } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddPurposeModalOpen, setIsAddPurposeModalOpen] = useState(false);
+  const [isCreateContactModalOpen, setIsCreateContactModalOpen] = useState(false);
 
   const grouped = groupContactsByPurpose(contacts);
   //const grouped = groupContactsByPurpose(contacts);
@@ -1666,12 +1955,41 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         onSaveSuccess={onSaveSuccess}
       />
 
+      {/* Create Contact Modal – creates a brand-new contact record */}
+      <CreateContactModal
+        isOpen={isCreateContactModalOpen}
+        parentType={effectiveParentType}
+        parentId={effectiveParentId}
+        customer_id={customer_id}
+        customer_name={customer_name}
+        existingContacts={contacts}
+        onClose={() => setIsCreateContactModalOpen(false)}
+        onChange={(newContact) => {
+          if (onChange) {
+            console.log(
+              "[RefsLinksContactPanel] New contact created, adding to local state:",
+              newContact,
+            );
+            onChange([...contacts, newContact]);
+          }
+        }}
+        onSaveSuccess={onSaveSuccess}
+      />
+
       {/* Add Contact Section - Navigate to Contact List/Add page */}
-      {isEditing && (
-        <div className="flex justify-end mb-1 px-2">
+      {(isEditing || allowCreate) && (
+        <div className="flex justify-end mb-1 px-2 gap-2">
           <button
             type="button"
-            className="me-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+            onClick={() => setIsCreateContactModalOpen(true)}
+          >
+            <FaUserPlus className="w-3 h-3" />
+            Create Contact
+          </button>
+          <button
+            type="button"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
             onClick={() => openWindow("/core/contact/list", "Contact")}
           >
             <FaPlus className="w-3 h-3" />
