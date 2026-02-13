@@ -62,7 +62,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     if kind == "proposal":
         return {
             "placed": 0,
-            "ordered": 0,
+            "actioned": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -73,7 +73,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
         # Sales orders track fulfillment progress
         return {
             "placed": 0,
-            "invoiced": 0,
+            "actioned": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -84,7 +84,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
         # Invoices track packing/ship confirmation at line-level
         return {
             "placed": 0,
-            "packed": 0,
+            "actioned": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -96,7 +96,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
         # Invoices track packing/ship confirmation at line-level
         return {
             "placed": 0,
-            "received": 0,
+            "actioned": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -107,6 +107,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
         # Default structure
         return {
             "placed": None,
+            "actioned": None,
             "remaining": None,
             "is_fixed": False,
             "precision": 2,
