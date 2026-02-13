@@ -20,9 +20,9 @@ interface PaymentMethod {
 interface AddPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId: number;
-  contactId?: number | null;
-  customerName?: string;
+  order_id: number;
+  contact_id?: number | null;
+  customer_name?: string;
   orderTotal?: number;
   onPaymentAdded?: () => void;
 }
@@ -30,9 +30,9 @@ interface AddPaymentModalProps {
 const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
   onClose,
-  orderId,
-  contactId,
-  customerName,
+  order_id,
+  contact_id,
+  customer_name,
   orderTotal,
   onPaymentAdded
 }) => {
@@ -90,7 +90,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       return;
     }
 
-    if (!contactId) {
+    if (!contact_id) {
       dispatch(showToast({ message: 'Order must have a customer to record payment', type: 'error' }));
       return;
     }
@@ -99,7 +99,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     try {
       const paymentData = {
         amount: parseFloat(amount),
-        contact_id: contactId,
+        contact_id: contact_id,
         dt_payment: new Date(paymentDate).toISOString(),
         paymentmethod_id: paymentMethodId,
         reference_number: referenceNumber,
@@ -107,9 +107,9 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
         status: 'completed',
         gateway: 'manual',
         refs: {
-          order_ids: [orderId],
+          order_ids: [order_id],
           invoice_ids: [],
-          source: { type: 'order', id: orderId }
+          source: { type: 'order', id: order_id }
         }
       };
 
@@ -132,7 +132,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [amount, contactId, paymentDate, paymentMethodId, referenceNumber, notes, orderId, dispatch, onPaymentAdded, onClose]);
+  }, [amount, contact_id, paymentDate, paymentMethodId, referenceNumber, notes, order_id, dispatch, onPaymentAdded, onClose]);
 
   if (!isOpen) return null;
 
@@ -174,7 +174,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">Customer:</span>
-              <span className="font-medium text-slate-900 dark:text-white">{customerName || '--'}</span>
+              <span className="font-medium text-slate-900 dark:text-white">{customer_name || '--'}</span>
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-slate-500 dark:text-slate-400">Order Total:</span>

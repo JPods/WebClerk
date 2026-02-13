@@ -8,20 +8,20 @@ import { AuditTrail } from '../common/AuditTrail';
 import { TransactionLine } from '../../../hooks/useRealTimeCalculations';
 
 export interface OrderFormProps {
-  orderId?: number;
+  order_id?: number;
   onSave?: (order: any) => void;
   onCancel?: () => void;
 }
 
 export const OrderForm: React.FC<OrderFormProps> = ({
-  orderId,
+  order_id,
   onSave,
   onCancel,
 }) => {
   const { get, create, update } = useWCAPI();
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState({
-    id: orderId || 0,
+    id: order_id || 0,
     uuid: '',
     ida: '',
     order_no: '',
@@ -44,10 +44,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
   const [lines, setLines] = useState<TransactionLine[]>([]);
   const totals = useRealTimeCalculations(lines, 0.08, 0, 0);
-  const { addEntry } = useAuditTrail(orderId || 0, 'sales_order');
+  const { addEntry } = useAuditTrail(order_id || 0, 'sales_order');
 
   useEffect(() => {
-    if (orderId) {
+    if (order_id) {
       loadOrder();
     } else {
       setOrder(prev => ({
@@ -56,14 +56,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         dt_modified: new Date().toISOString(),
       }));
     }
-  }, [orderId]);
+  }, [order_id]);
 
   const loadOrder = async () => {
     setLoading(true);
     try {
       const [orderRes, linesRes] = await Promise.all([
-        get('sales_order', { id: orderId }),
-        get('sales_order_line', { parent: orderId }),
+        get('sales_order', { id: order_id }),
+        get('sales_order_line', { parent: order_id }),
       ]);
 
       if (orderRes?.record) {
@@ -92,8 +92,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     setLoading(true);
     try {
       let savedOrder;
-      if (orderId) {
-        const response = await update('sales_order', orderId, order);
+      if (order_id) {
+        const response = await update('sales_order', order_id, order);
         savedOrder = response?.record;
         await addEntry('updated', { status: order.status });
       } else {
@@ -140,7 +140,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     <div className="order-form max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">
-          {orderId ? `Edit Order #${order.order_no}` : 'New Order'}
+          {order_id ? `Edit Order #${order.order_no}` : 'New Order'}
         </h1>
         <div className="space-x-2">
           <button
@@ -161,7 +161,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
       <TransactionHeader
         model="sales_order"
-        transactionId={orderId}
+        transactionId={order_id}
         data={order}
         onChange={handleHeaderChange}
       />
@@ -202,9 +202,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
       <TransactionTotals totals={totals} />
 
-      {orderId && (
+      {order_id && (
         <AuditTrail
-          transactionId={orderId}
+          transactionId={order_id}
           model="sales_order"
           className="mt-6"
         />

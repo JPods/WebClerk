@@ -61,12 +61,12 @@ export const deleteOrder = async (id: number) => {
 
 // Order Lines API
 export const fetchOrderLines = async (
-  orderId: number,
+  order_id: number,
 ): Promise<{
   status: number;
   data: { results: OrderLine[]; total: number };
 }> => {
-  const res = await getRecords("order_line", { parent: orderId });
+  const res = await getRecords("order_line", { parent: order_id });
   return {
     status: 200,
     data: { results: res.results || [], total: res.total || 0 },
@@ -74,27 +74,27 @@ export const fetchOrderLines = async (
 };
 
 export const createOrderLine = async (
-  orderId: number,
+  order_id: number,
   data: CreateOrderLineRequest,
 ): Promise<{ status: number; data: OrderLine }> => {
   const payload = {
     model_name: "order_line",
     ...data,
-    parent: orderId,
+    parent: order_id,
   };
   const res = await patchAction(payload);
   return { status: res?.status || 200, data: res?.data || res };
 };
 
 export const updateOrderLine = async (
-  orderId: number,
+  order_id: number,
   lineId: number,
   data: UpdateOrderLineRequest,
 ): Promise<{ status: number; data: OrderLine }> => {
   const payload = {
     model_name: "order_line",
     ...data,
-    parent: orderId,
+    parent: order_id,
     id: lineId,
   };
   const res = await patchAction(payload);

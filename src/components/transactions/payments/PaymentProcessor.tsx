@@ -3,8 +3,8 @@ import { useWCAPI } from '../../../hooks/useWCAPI';
 import { useAuditTrail } from '../../../hooks/useAuditTrail';
 
 export interface PaymentProcessorProps {
-  invoiceId?: number;
-  orderId?: number;
+  invoice_id?: number;
+  order_id?: number;
   amount: number;
   currency?: string;
   onPaymentComplete?: (payment: any) => void;
@@ -12,8 +12,8 @@ export interface PaymentProcessorProps {
 }
 
 export const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
-  invoiceId,
-  orderId,
+  invoice_id,
+  order_id,
   amount,
   currency = 'USD',
   onPaymentComplete,
@@ -49,8 +49,8 @@ export const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
         currency,
         method: paymentMethod,
         status: 'processing',
-        invoice_id: invoiceId || 0,
-        order_id: orderId || 0,
+        invoice_id: invoice_id || 0,
+        order_id: order_id || 0,
         payment_data: {
           ...paymentData,
           processed_at: new Date().toISOString(),
@@ -74,8 +74,8 @@ export const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
           amount,
           currency,
           method: paymentMethod,
-          invoice_id: invoiceId,
-          order_id: orderId,
+          invoice_id: invoice_id,
+          order_id: order_id,
         });
 
         onPaymentComplete?.(updatedPayment);

@@ -186,16 +186,18 @@ interface RefsLinksContactPanelProps {
   /** Generic parent record ID for persistence */
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number; // Order ID for saving contact data
+  order_id?: number; // Order ID for saving contact data
   /** Customer ID from parent transaction – used when creating a new contact */
-  customerId?: number;
+  customer_id?: number;
   /** Customer display name – pre-fills company on new contact */
-  customerName?: string;
+  customer_name?: string;
   onAdd?: (purpose: ContactPurpose | string) => void;
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
   onChange?: (contacts: RefContact[]) => void;
   onSaveSuccess?: () => void; // Callback after successful save
+  /** Allow Create Contact button even when isEditing is false (e.g. view-mode CustomerDetail) */
+  allowCreate?: boolean;
 }
 
 // Standard purposes in display order
@@ -239,11 +241,11 @@ const ContactEditModal: React.FC<{
   parentType?: string;
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number;
+  order_id?: number;
   onClose: () => void;
   onSave: (contact: RefContact) => void;
   onSaveSuccess?: () => void;
-}> = ({ contact, isOpen, parentType, parentId, orderId, onClose, onSave, onSaveSuccess }) => {
+}> = ({ contact, isOpen, parentType, parentId, order_id, onClose, onSave, onSaveSuccess }) => {
   // Communications state - fetched from contact model using contact_id
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -625,8 +627,8 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={async () => {
-              const effectiveParentType = parentType || (orderId ? "order" : undefined);
-              const effectiveParentId = parentId ?? orderId;
+              const effectiveParentType = parentType || (order_id ? "order" : undefined);
+              const effectiveParentId = parentId ?? order_id;
 
               if (!effectiveParentType || !effectiveParentId || !contact) {
                 console.warn(
@@ -840,7 +842,7 @@ const AddPurposeModal: React.FC<{
   parentType?: string;
   parentId?: number;
   /** Back-compat for transaction/order callers */
-  orderId?: number;
+  order_id?: number;
   existingContacts: RefContact[];
   onClose: () => void;
   onChange?: (newContact: RefContact) => void; // For instant local state update
@@ -849,7 +851,7 @@ const AddPurposeModal: React.FC<{
   isOpen,
   parentType,
   parentId,
-  orderId,
+  order_id,
   existingContacts,
   onClose,
   onChange,
@@ -926,8 +928,8 @@ const AddPurposeModal: React.FC<{
   }, [selectedPurpose, selectedContactId, existingContacts]);
 
   const handleSave = async () => {
-    const effectiveParentType = parentType || (orderId ? "order" : undefined);
-    const effectiveParentId = parentId ?? orderId;
+    const effectiveParentType = parentType || (order_id ? "order" : undefined);
+    const effectiveParentId = parentId ?? order_id;
 
     if (!effectiveParentType || !effectiveParentId) {
       console.warn("[AddPurposeModal] Missing parentType/parentId to save");
@@ -1530,8 +1532,8 @@ const CreateContactModal: React.FC<{
   isOpen: boolean;
   parentType?: string;
   parentId?: number;
-  customerId?: number;
-  customerName?: string;
+  customer_id?: number;
+  customer_name?: string;
   existingContacts: RefContact[];
   onClose: () => void;
   onChange?: (newContact: RefContact) => void;
@@ -1540,8 +1542,8 @@ const CreateContactModal: React.FC<{
   isOpen,
   parentType,
   parentId,
-  customerId,
-  customerName,
+  customer_id,
+  customer_name,
   existingContacts,
   onClose,
   onChange,
@@ -1578,14 +1580,14 @@ const CreateContactModal: React.FC<{
         attention: `${firstName.trim()} ${lastName.trim()}`.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
-        company: customerName || undefined,
-        customer_id: customerId || undefined,
+        company: customer_name || undefined,
+        customer_id: customer_id || undefined,
         comment: parentType && parentId
           ? `Created from ${parentType} #${parentId}`
           : "Created from transaction contact panel",
         refs: {
           links: {
-            ...(customerId ? { customer: [customerId] } : {}),
+            ...(customer_id ? { customer: [customer_id] } : {}),
             ...(parentType && parentId ? { [parentType]: [parentId] } : {}),
           },
         },
@@ -1770,10 +1772,10 @@ const CreateContactModal: React.FC<{
           </div>
 
           {/* Customer info badge */}
-          {customerName && (
+          {customer_name && (
             <div className="p-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-              <span className="font-medium">Customer:</span> {customerName}
-              {customerId ? ` (#${customerId})` : ""}
+              <span className="font-medium">Customer:</span> {customer_name}
+              {customer_id ? ` (#${customer_id})` : ""}
             </div>
           )}
         </div>
@@ -1807,16 +1809,17 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   isEditing = false,
   parentType,
   parentId,
-  orderId,
-  customerId,
-  customerName,
+  order_id,
+  customer_id,
+  customer_name,
   onRemove,
   onEdit,
   onChange,
   onSaveSuccess,
+  allowCreate,
 }) => {
-  const effectiveParentType = parentType || (orderId ? "order" : undefined);
-  const effectiveParentId = parentId ?? orderId;
+  const effectiveParentType = parentType || (order_id ? "order" : undefined);
+  const effectiveParentId = parentId ?? order_id;
   const { ensureWindow, activateWindow } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1957,8 +1960,8 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         isOpen={isCreateContactModalOpen}
         parentType={effectiveParentType}
         parentId={effectiveParentId}
-        customerId={customerId}
-        customerName={customerName}
+        customer_id={customer_id}
+        customer_name={customer_name}
         existingContacts={contacts}
         onClose={() => setIsCreateContactModalOpen(false)}
         onChange={(newContact) => {
@@ -1974,7 +1977,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       />
 
       {/* Add Contact Section - Navigate to Contact List/Add page */}
-      {isEditing && (
+      {(isEditing || allowCreate) && (
         <div className="flex justify-end mb-1 px-2 gap-2">
           <button
             type="button"
