@@ -15,7 +15,7 @@ import { FaDollarSign, FaPhone, FaUsers } from "react-icons/fa";
 import { vendorSchema } from "../utils/vendorSchema";
 import { VendorAddProps } from "../types/vendorType";
 import Checkbox from "@/components/form/input/Checkbox";
-import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
   CommentsPanel,
   DocumentsPanel,
@@ -285,6 +285,7 @@ export default function VendorDetail({
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+                <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">VendorDetail</span>
                 {headerDisplayName}
                 {data?.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{data.id}</span>}
               </h2>

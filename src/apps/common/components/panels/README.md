@@ -1,27 +1,301 @@
-# Shared Panel Components
+# Shared Components & Panels
 
-Reusable panel components for displaying and editing common data structures across all model detail pages. These panels align with the Django `BaseModel` JSONB field structure (`.metadata`, `.refs`, `.prefs`, `.comments`, `.actions`).
+Reusable components for displaying and editing common data structures across all model detail pages. These panels align with the Django `BaseModel` JSONB field structure (`.metadata`, `.refs`, `.prefs`, `.comments`, `.actions`).
 
-## Naming Convention
+> **Last updated:** 2025-02-13
 
-All shared panel components follow the `{Name}Panel` suffix convention:
+---
 
-| Panel                | Purpose                                         | Data Source                          |
-| -------------------- | ----------------------------------------------- | ------------------------------------ |
-| `BasicInformationPanel` | Common org scalar fields (name, email, phone, etc.) | Org entity scalars             |
-| `CommentsPanel`      | Comments with tabs (Public/Process/Partner/History) | `.comments`                      |
-| `MetadataPanel`      | Admin-only key-value metadata editor            | `.metadata`                          |
-| `RefsPanel`          | Admin-only relationships & lineage viewer       | `.refs`                              |
-| `PrefsPanel`         | User/entity preferences (display/notifications) | `.prefs`                             |
-| `RawDataPanel`       | Admin-only raw JSON viewer with syntax highlight| Full entity                          |
-| `ActionsPanel`       | Tasks/actions with status (pending/done/blocked)| `.actions`                           |
-| `DocumentsPanel`     | File uploads & attachments                      | `.refs.links.document`               |
-| `QAPanel`            | Q&A list with question/answer workflow          | Custom or `.qa`                      |
-| `ContactLinksPanel`  | Linked contacts grouped by role                 | `.refs.links.contact`                |
-| `FinancialsPanel`    | **Transaction** financials (subtotal, tax, shipping, total) | Transaction `.financials`  |
-| `FinancialsPanel` | **Org** financial summary (collapsed, key metrics, full detail) | Org `.financial` / `.financial.customer` |
-| `CommunicationsPanel`| Emails, phones, addresses management            | `.refs.links.{email,phone,location}` |
-| `LinkagesPanel`      | Cross-table record linkage (flow tracking)      | Linkage record or `.refs.links.linkage` |
+## Directory Structure
+
+```
+src/apps/common/components/
+├── JsonFieldEditor.tsx           # Generic JSON editor (admin power users)
+├── TransactionToolbar.tsx        # Action toolbar (save, clone, transfer, print)
+│
+└── panels/
+    ├── README.md                 # This documentation
+    ├── index.ts                  # Barrel exports
+    ├── types.ts                  # Shared types (aligned with Django models)
+    ├── usePermissions.ts         # Permission checking hook
+    ├── documentUpload.ts         # Upload utilities (multi-file, geo, virus scan)
+    ├── qaUtils.ts                # Q&A question groups, counters, image upload
+    │
+    │── # Standard Tab Panels (shown as tabs on detail pages)
+    ├── ActionsPanel.tsx          # Tasks/actions with status tracking
+    ├── CommentsPanel.tsx         # Comments with Public/Process/Partner/History
+    ├── ContactPanel.tsx          # Re-export alias for RefsLinksContactPanel
+    ├── DocumentsPanel.tsx        # File uploads, preview, download
+    ├── FinancialsPanel.tsx       # Org financial summary (credit, aging, AR/AP)
+    ├── TransactionFinancialsPanel.tsx  # Transaction financials (subtotal, tax, total)
+    ├── QAPanel.tsx               # Q&A with question/answer workflow
+    ├── LinkagesPanel.tsx         # Cross-table record flow (proposal→order→invoice)
+    ├── ShippingPanel.tsx         # Shipping details (carrier, tracking, weight)
+    ├── BasicInformationPanel.tsx # Common org scalar fields (name, email, phone)
+    ├── CommunicationsPanel.tsx   # Email/phone/address/domain CRUD (direct API)
+    ├── RefsLinksContactPanel.tsx # Contacts grouped by purpose with editing
+    │
+    │── # Admin / Developer Panels
+    ├── MetadataPanel.tsx         # Admin-only key-value metadata editor
+    ├── RefsPanel.tsx             # Admin-only relationships & lineage viewer
+    ├── PrefsPanel.tsx            # User/entity preferences (display/notifications)
+    ├── RawDataPanel.tsx          # Admin-only raw JSON viewer with syntax highlight
+    ├── TemplateQAPanel.tsx       # Template-based Q&A (not yet integrated)
+    └── ModelDataPanel.tsx        # Generic model data display (not yet integrated)
+```
+
+Also in `transactions/components/` (transaction-specific, not shared):
+
+```
+src/apps/transactions/components/
+├── TransactionDetailBase.tsx     # Base shell for all transaction detail pages
+├── SummaryCard.tsx               # Transaction header (customer, totals, dates)
+├── LinesCard.tsx                 # Line items grid with inline editing
+├── LineDetailsModal.tsx          # Side-drawer for single line item editing
+├── ContactLinksTable.tsx         # Spreadsheet-style contact table (drag columns)
+├── QATab.tsx                     # Wraps QAPanel + question group selection
+├── MetadataPanel.tsx             # Transaction-specific metadata (history, health)
+├── PartySelector.tsx             # Customer/Vendor/Manufacturer search dropdown
+├── TransactionItemSearch.tsx     # Item search for adding to transactions
+├── CustomerSalesPanel.tsx        # Customer search + financial data + terms
+├── ActionsModal.tsx              # Task creation modal (legacy → TransactionTaskModal)
+├── TransactionTaskModal.tsx      # Task creation/edit slide-out panel
+├── TransactionTaskModal.types.ts # Task type definitions
+├── useTransactionTasks.ts        # Hook for task CRUD operations
+├── AddPaymentModal.tsx           # Record payment against order
+├── ApplyPaymentModal.tsx         # Apply existing payment to invoice
+├── SplitLineModal.tsx            # Split line quantity across allocations
+├── FieldLabel.tsx                # Label styling (mandatory/locked states)
+├── ActivityLogTab.tsx            # Timeline view (pending integration)
+├── QuickAddRecent.tsx            # Recent items for quick re-adding (pending)
+├── PrintPreviewModal.tsx         # Print preview with options (pending)
+├── print/                        # Print document templates per transaction type
+│
+│── # Re-export stubs (canonical source is common/)
+├── CommentsPanel.tsx             # → common/panels/CommentsPanel
+├── FinancialsCard.tsx            # → common/panels/TransactionFinancialsPanel
+├── JsonFieldEditor.tsx           # → common/components/JsonFieldEditor
+├── TransactionToolbar.tsx        # → common/components/TransactionToolbar
+└── RefsLinksContactPanel.tsx     # → common/panels/RefsLinksContactPanel
+```
+
+---
+
+## Panel Inventory
+
+### Standard Tab Panels
+
+These should appear as tabs on every model that supports them:
+
+| Panel | Component | Data Source | Purpose |
+|-------|-----------|-------------|---------|
+| Action | `ActionsPanel` | `.actions` | Tasks with status, priority, assignees, due dates |
+| Contact | `RefsLinksContactPanel` | `.refs.links.contact` | Linked contacts grouped by purpose |
+| Comments | `CommentsPanel` | `.comments` | Public/Process/Partner/History comment tabs |
+| Documents | `DocumentsPanel` | `.refs.links.document` | File uploads, preview, download, delete |
+| Financials | `FinancialsPanel` | `.financial` | Org financials (credit, aging, payment history) |
+| Financials | `TransactionFinancialsPanel` | `.financials` | Transaction totals (subtotal, tax, shipping, total) |
+| QA | `QAPanel` / `QATab` | Q&A API | Question/answer workflow with templates |
+| Linkage | `LinkagesPanel` | Linkage API | Cross-table record flow tracking |
+| Shipping | `ShippingPanel` | `.shipping` | Carrier, tracking, weight, FOB |
+| Basic Info | `BasicInformationPanel` | Org scalars | Name, email, phone, company, title |
+| Communications | `CommunicationsPanel` | `.refs.links.{email,phone,location,domain}` | Email/phone/address/domain CRUD |
+
+### Contact Sub-Panels (accessed via CommunicationsPanel)
+
+These are managed through `CommunicationsPanel` with direct API persistence:
+
+| Record Type | API Model | refs.links key | Fields |
+|-------------|-----------|----------------|--------|
+| Email | `email` | `.refs.links.email` | address, name, type, is_primary |
+| Phone | `phone` | `.refs.links.phone` | number, format, name, type |
+| Address | `address` | `.refs.links.location` | address1/2, city, state, zip, country |
+| Domain | `domain` | `.refs.links.domain` | domain, name, type, is_primary |
+
+### Admin / Developer Panels
+
+| Panel | Component | Data Source | Access | Purpose |
+|-------|-----------|-------------|--------|---------|
+| JSON Editor | `JsonFieldEditor` | Any JSONB field | admin | Inline JSON edit with validation |
+| Metadata | `MetadataPanel` | `.metadata` | admin | Key-value editor (security, version, health) |
+| Refs | `RefsPanel` | `.refs` | admin | Relationships, lineage, system links |
+| Prefs | `PrefsPanel` | `.prefs` | admin | User/entity preferences |
+| Raw Data | `RawDataPanel` | Full entity | admin | Raw JSON viewer with syntax highlight |
+
+---
+
+## Model × Panel Integration Matrix
+
+### Legend
+
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Integrated — panel is imported and wired |
+| 🔲 | Planned — should have this panel but not yet integrated |
+| ➖ | N/A — panel does not apply to this model |
+| 🔄 | Via base — provided by TransactionDetailBase or OrgDetail |
+
+### Transactions (via TransactionDetailBase)
+
+All transaction models use `TransactionDetailBase` which provides: Actions, Contact (RefsLinksContactPanel + ContactLinksTable), Comments, Documents, Financials (TransactionFinancialsPanel), QA (QATab), Metadata, JsonFieldEditor, TransactionToolbar.
+
+| Model | Actions | Contact | Comments | Docs | Financials | QA | Linkage | Shipping | Lines |
+|-------|---------|---------|----------|------|------------|-----|---------|----------|-------|
+| order | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | ✅ | ✅ |
+| invoice | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
+| proposal | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
+| purchase | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
+| workorder | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
+| receipt | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | 🔲 |
+| requisition | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | 🔲 |
+| project | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | ➖ | ➖ |
+
+### Orgs
+
+| Model | Actions | Contact | Comments | Docs | Financials | QA | Linkage | Comms | Basic Info | Metadata | Refs | Prefs | Raw |
+|-------|---------|---------|----------|------|------------|-----|---------|-------|------------|----------|------|-------|-----|
+| customer | ✅ | ✅ | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ |
+| vendor | 🔲 | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| manufacturer | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| organization | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| employee | 🔲 | 🔲 | 🔲 | 🔲 | 🔄 | 🔲 | 🔲 | 🔲 | 🔄 | 🔲 | 🔲 | 🔲 | 🔲 |
+| rep | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+
+### Core
+
+| Model | Actions | Contact | Comments | Docs | QA | Linkage | Comms | Metadata | Refs | Prefs | Raw |
+|-------|---------|---------|----------|------|----|---------|-------|----------|------|-------|-----|
+| contact | ✅ | ➖ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| action | ➖ | ✅ | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| report | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| setting | 🔲 | ➖ | 🔲 | ➖ | ➖ | ➖ | ➖ | 🔲 | 🔲 | 🔲 | 🔲 |
+| template | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | ➖ | ➖ | 🔲 | 🔲 | 🔲 | 🔲 |
+
+### Products
+
+| Model | Actions | Contact | Comments | Docs | QA | Linkage | JsonEditor | Refs | Metadata | Prefs | Raw |
+|-------|---------|---------|----------|------|----|---------|------------|------|----------|-------|-----|
+| item | ✅ | 🔲 | ✅ | 🔲 | 🔲 | ✅ | 🔲 | ✅ | ✅ | ✅ | ✅ |
+| catalog | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| variant | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| serial | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| specification | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| warehouse | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| service | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| flow | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| usage | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| metrics | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| org_item | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| item_xref | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| bill_of_material | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | 🔲 | 🔲 | 🔲 | 🔲 |
+
+### Accounts
+
+| Model | Actions | Comments | Docs | QA | Financials | JsonEditor | Refs | Metadata | Prefs | Raw |
+|-------|---------|----------|------|----|------------|------------|------|----------|-------|-----|
+| currency | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| exchange_rate | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| exchange_transaction | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| gl_account | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| gl_journal | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| ledger | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| tax_jurisdiction | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| term | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| audit | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+
+### Docs
+
+| Model | Actions | Comments | Docs | QA | JsonEditor | Refs | Metadata | Prefs | Raw |
+|-------|---------|----------|------|----|------------|------|----------|-------|-----|
+| document | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| linkage_entry | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| question_answer | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+| tag | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
+
+### Communications
+
+| Model | Actions | Contact | Comments | Docs |
+|-------|---------|---------|----------|------|
+| email | ✅ | ✅ | ✅ | ✅ |
+| phone | ✅ | ✅ | ✅ | ✅ |
+| address | ✅ | ✅ | ✅ | ✅ |
+| domain | ✅ | ✅ | ✅ | ✅ |
+
+### Support / Sync
+
+| Model | Actions | Comments | Docs | QA | JsonEditor | Refs |
+|-------|---------|----------|------|----|------------|------|
+| campaign | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| bundle | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+| connection | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+
+---
+
+## Standard Tab Navigation
+
+Every model detail page should aim for a consistent tab set.
+
+### Universal Tabs (all models)
+
+| Tab | Panel Component | Required |
+|-----|-----------------|----------|
+| Actions | `ActionsPanel` | Yes |
+| Contact | `RefsLinksContactPanel` | Yes (except settings, templates) |
+| Comments | `CommentsPanel` | Yes |
+| Documents | `DocumentsPanel` | Yes |
+| Financials | `FinancialsPanel` or `TransactionFinancialsPanel` | Context-dependent |
+| QA | `QAPanel` or `QATab` (transactions) | Yes |
+| Linkage | `LinkagesPanel` | Yes (where cross-record flow exists) |
+
+### Contextual Tabs (model-specific)
+
+| Tab | Models | Panel Component |
+|-----|--------|-----------------|
+| Ledger | order, invoice, purchase, gl_journal | *(planned)* |
+| Invoice Lines | invoice | `LinesCard` |
+| Order Lines | order | `LinesCard` |
+| Proposal Lines | proposal | `LinesCard` |
+| Purchase Lines | purchase | `LinesCard` |
+| Workorder Lines | workorder | `LinesCard` |
+| Shipping | order, invoice, purchase | `ShippingPanel` |
+| Reports | *(all)* | *(planned)* |
+| Settings | *(admin)* | *(planned)* |
+
+### Related Entity Tabs
+
+These tabs navigate to filtered list views of related records:
+
+| Tab | Applies To | Shows |
+|-----|------------|-------|
+| Employee | org models | Employees linked to org |
+| Customer | contact, org | Customer records for contact/org |
+| Vendor | contact, org | Vendor records for contact/org |
+| Manufacturer | contact, org | Manufacturer records for contact/org |
+| Rep | contact, org | Rep records for contact/org |
+| Catalog | item, variant | Catalog entries for item |
+| Inventory Layer | item, warehouse | Inventory layers |
+| Inventory Reservation | item, warehouse | Reserved quantities |
+| Item | catalog, org_item, variant | Item records |
+| Metrics | item | Usage/performance metrics |
+| Serial | item | Serial number records |
+| Specification | item | Specifications |
+| Usage | item | Usage tracking |
+| Variant | item | Variant records |
+| Warehouse | item | Warehouse locations |
+| Campaign | contact, org | Campaigns |
+| Bundle | sync | Sync bundles |
+
+### Admin Tabs (role-restricted)
+
+| Tab | Panel Component | Visible To |
+|-----|-----------------|------------|
+| JSON Editor | `JsonFieldEditor` | admin |
+| Metadata | `MetadataPanel` | admin |
+| Refs & Links | `RefsPanel` | admin |
+| Prefs | `PrefsPanel` | admin |
+| Raw Data | `RawDataPanel` | admin |
+
+---
 
 ## Role-Based Access Control
 
@@ -29,14 +303,13 @@ All panels support role-based visibility and edit permissions via the `usePermis
 
 ```typescript
 interface PanelPermissions {
-  viewRoles: UserRole[];  // Roles that can view this panel
-  editRoles: UserRole[];  // Roles that can edit data in this panel
+  viewRoles: UserRole[];
+  editRoles: UserRole[];
 }
 
-type UserRole = 'admin' | 'superadmin' | 'super_admin' | 'administrator' 
+type UserRole = 'admin' | 'superadmin' | 'super_admin' | 'administrator'
               | 'manager' | 'user' | 'viewer' | 'guest';
 
-// Role groups for convenience
 const ADMIN_ROLES = ['admin', 'superadmin', 'super_admin', 'administrator'];
 const MANAGER_ROLES = [...ADMIN_ROLES, 'manager'];
 const USER_ROLES = [...MANAGER_ROLES, 'user'];
@@ -45,47 +318,24 @@ const ALL_ROLES = [...USER_ROLES, 'viewer', 'guest'];
 
 ### Default Permissions
 
-| Panel                | View Roles | Edit Roles | Theme Color |
-| -------------------- | ---------- | ---------- | ----------- |
-| `BasicInformationPanel` | all     | user+      | Slate       |
-| `CommentsPanel`      | all        | user+      | Blue        |
-| `MetadataPanel`      | admin      | admin      | Amber       |
-| `RefsPanel`          | admin      | admin      | Cyan        |
-| `PrefsPanel`         | user+      | admin      | Purple      |
-| `RawDataPanel`       | admin      | admin      | Gray        |
-| `ActionsPanel`       | all        | user+      | Emerald     |
-| `DocumentsPanel`     | all        | user+      | Slate       |
-| `QAPanel`            | all        | user+      | Indigo      |
-| `ContactLinksPanel`  | all        | user+      | Blue        |
-| `FinancialsPanel`    | manager+   | admin      | Green       |
-| `FinancialsPanel` | all     | read-only  | Green       |
-| `CommunicationsPanel`| all        | user+      | Teal        |
-| `LinkagesPanel`      | all        | admin      | Violet      |
+| Panel | View | Edit | Theme |
+|-------|------|------|-------|
+| BasicInformationPanel | all | user+ | Slate |
+| CommentsPanel | all | user+ | Blue |
+| ActionsPanel | all | user+ | Emerald |
+| DocumentsPanel | all | user+ | Slate |
+| QAPanel | all | user+ | Indigo |
+| ContactPanel | all | user+ | Blue |
+| CommunicationsPanel | all | user+ | Teal |
+| LinkagesPanel | all | admin | Violet |
+| FinancialsPanel | manager+ | admin | Green |
+| ShippingPanel | all | user+ | Slate |
+| MetadataPanel | admin | admin | Amber |
+| RefsPanel | admin | admin | Cyan |
+| PrefsPanel | user+ | admin | Purple |
+| RawDataPanel | admin | admin | Gray |
 
-### Using Permissions
-
-```tsx
-import { CommentsPanel, usePermissions } from '@/apps/common/components/panels';
-
-// Automatic permission checking
-<CommentsPanel
-  entityType="contact"
-  entityId={contact.id}
-  data={contact.comments}
-  onChange={handleCommentsChange}
-/>
-
-// Override permissions
-<CommentsPanel
-  entityType="contact"
-  entityId={contact.id}
-  data={contact.comments}
-  onChange={handleCommentsChange}
-  viewRoles={['admin', 'manager']}  // Restrict viewing
-  editRoles={['admin']}             // Restrict editing
-  readOnly={true}                   // Force read-only
-/>
-```
+---
 
 ## Common Props Interface
 
@@ -93,27 +343,27 @@ All panels extend from `BasePanelProps`:
 
 ```typescript
 interface BasePanelProps<T = unknown> {
-  entityType: EntityType;       // Type of entity (contact, order, etc.)
-  entityId: number;             // ID of the entity
-  data: T;                      // The data to display
-  onChange?: (data: T) => void; // Callback when data changes
-  readOnly?: boolean;           // Force read-only mode
-  viewRoles?: UserRole[];       // Override default view roles
-  editRoles?: UserRole[];       // Override default edit roles
-  className?: string;           // Additional CSS classes
-  compact?: boolean;            // Compact display mode
-  title?: string;               // Title override
-  defaultCollapsed?: boolean;   // Start collapsed
+  entityType: EntityType;
+  entityId: number;
+  data: T;
+  onChange?: (data: T) => void;
+  readOnly?: boolean;
+  viewRoles?: UserRole[];
+  editRoles?: UserRole[];
+  className?: string;
+  compact?: boolean;
+  title?: string;
+  defaultCollapsed?: boolean;
 }
 ```
+
+---
 
 ## Django Model Alignment
 
 These panels align with the Django `BaseModel` (from `common/models.py`) JSONB fields:
 
-### `.metadata` - Entity Metadata
-
-Based on `MetadataMixin` with `default_metadata()`:
+### `.metadata` → MetadataPanel
 
 ```typescript
 interface EntityMetadata {
@@ -122,9 +372,6 @@ interface EntityMetadata {
   priority?: string;
   version?: string;
   access?: { view: number[]; edit: number[] };
-  resources?: { required: object; allocated: object };
-  flow?: object;      // Lineage hints, parent/child hops
-  source?: object;    // Campaign/vendor/manufacturer attribution
   history?: {
     created: { dt: number; contact_id: number };
     modified: { dt: number; contact_id: number };
@@ -133,21 +380,15 @@ interface EntityMetadata {
     synced: { dt: number; contact_id: number };
   };
   health?: {
-    rating: number;
-    completeness: number;
-    accuracy: number;
-    freshness: number;
-    consistency: number;
+    rating: number; completeness: number; accuracy: number;
+    freshness: number; consistency: number;
   };
   flags?: Record<string, boolean>;
-  undefined?: object;
   [key: string]: unknown;
 }
 ```
 
-### `.refs` - Relationships & Classification
-
-Based on `RefsMixin` with `default_refs()` and `LINK_DENORMALIZE_FIELDS`:
+### `.refs` → RefsPanel, RefsLinksContactPanel, CommunicationsPanel, DocumentsPanel
 
 ```typescript
 interface EntityRefs {
@@ -155,28 +396,25 @@ interface EntityRefs {
   tags?: string[];
   categories?: string[];
   related_ids?: number[];
-  depends_on?: Record<string, number[]>;  // Execution gating
+  depends_on?: Record<string, number[]>;
   links?: {
-    contact?: ContactLink[];   // {id, email, name_first, name_last, company, title, role}
-    email?: EmailLink[];       // {id, email, name, type, is_primary}
-    phone?: PhoneLink[];       // {id, number, format, name}
-    location?: AddressLink[];  // {id, address1, city, state, zip, country, full}
-    document?: DocumentLink[]; // {id, name, type}
-    item?: ItemLink[];         // {id, name, sku, description, kind, uom}
+    contact?: ContactLink[];
+    email?: EmailLink[];
+    phone?: PhoneLink[];
+    location?: AddressLink[];
+    document?: DocumentLink[];
+    domain?: DomainLink[];
+    item?: ItemLink[];
     [key: string]: RefLink[] | undefined;
   };
   lineage?: {
-    parent_id?: number;
-    parent_type?: string;
-    source_id?: number;
-    source_type?: string;
+    parent_id?: number; parent_type?: string;
+    source_id?: number; source_type?: string;
   };
 }
 ```
 
-### `.prefs` - Preferences
-
-Based on `PrefsMixin` with `default_prefs()`:
+### `.prefs` → PrefsPanel
 
 ```typescript
 interface EntityPrefs {
@@ -185,932 +423,127 @@ interface EntityPrefs {
     layout?: 'grid' | 'list' | 'card' | 'table';
     columns?: string[];
     sort?: { field: string; order: 'asc' | 'desc' };
-    theme?: 'light' | 'dark' | 'system';
   };
   notifications?: {
-    email?: boolean;
-    sms?: boolean;
-    push?: boolean;
+    email?: boolean; sms?: boolean; push?: boolean;
     frequency?: 'immediate' | 'daily' | 'weekly';
   };
   defaults?: Record<string, unknown>;
 }
 ```
 
-### `.comments` - Structured Comments
-
-Based on `CommentsMixin` with `default_comments()`:
+### `.comments` → CommentsPanel
 
 ```typescript
 interface EntityComments {
-  public?: string | CommentEntry[];   // Customer-visible
-  process?: string | CommentEntry[];  // Internal process notes
-  partner?: string | CommentEntry[];  // Partner/vendor notes
-  notes?: CommentEntry[];             // Append-only history
+  public?: string | CommentEntry[];
+  process?: string | CommentEntry[];
+  partner?: string | CommentEntry[];
+  notes?: CommentEntry[];
   general?: Record<string, CommentEntry[]>;
-  records?: Record<string, Record<string, CommentEntry[]>>;
 }
 
 interface CommentEntry {
-  ts: string;       // ISO timestamp
-  by: string | number;
-  text: string;
-  source?: string;
+  ts: string; by: string | number; text: string; source?: string;
 }
 ```
 
-### `.actions` - Next-Step Metadata
-
-Based on `ActionsMixin`:
+### `.actions` → ActionsPanel
 
 ```typescript
 interface ActionEntry {
   required?: boolean;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
-  who?: number | string;      // contact_id or username
-  when?: number | string;     // ms epoch or ISO date
-  what?: string;              // Description
+  who?: number | string;
+  when?: number | string;
+  what?: string;
   kind?: 'task' | 'followup' | 'call' | 'email' | 'review' | 'approve' | 'ship' | 'other';
   priority?: 'low' | 'normal' | 'high' | 'urgent';
-  extra?: object;             // Free-form per domain
+  extra?: object;
 }
 ```
-
-## Directory Structure
-
-```
-src/apps/common/components/panels/
-├── README.md                 # This documentation
-├── index.ts                  # Barrel exports
-├── types.ts                  # Shared types (aligned with Django models)
-├── usePermissions.ts         # Permission checking hook
-│
-├── CommentsPanel.tsx         # Comments with Public/Process/Partner/History tabs
-├── MetadataPanel.tsx         # Admin-only metadata key-value editor
-├── RefsPanel.tsx             # Admin-only refs viewer with link navigation
-├── PrefsPanel.tsx            # Preferences editor (display/notifications)
-├── RawDataPanel.tsx          # Admin-only raw JSON viewer
-│
-├── ActionsPanel.tsx          # Task/action list with status tracking
-├── DocumentsPanel.tsx        # File attachments with upload
-├── QAPanel.tsx               # Q&A with question/answer workflow
-├── ContactLinksPanel.tsx     # Linked contacts grouped by role
-├── FinancialsPanel.tsx       # Financial summary with breakdown
-├── CommunicationsPanel.tsx   # Emails, phones, addresses
-└── LinkagesPanel.tsx         # Cross-table record linkage (flow tracking)
-```
-
-## Usage Examples
-
-### Basic Usage
-
-```tsx
-import { 
-  CommentsPanel, 
-  ActionsPanel,
-  FinancialsPanel,
-  ContactLinksPanel,
-  MetadataPanel,
-  RefsPanel,
-} from '@/apps/common/components/panels';
-
-const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
-  const [data, setData] = useState(order);
-  
-  const updateField = <K extends keyof Order>(field: K, value: Order[K]) => {
-    setData(prev => ({ ...prev, [field]: value }));
-  };
-
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* Actions - visible to all, editable by users */}
-      <ActionsPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.actions}
-        onChange={(actions) => updateField('actions', actions)}
-      />
-      
-      {/* Financials - visible to managers, editable by admins */}
-      <FinancialsPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.financials}
-        currency={data.currency}
-      />
-      
-      {/* Contact links */}
-      <ContactLinksPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.refs?.links?.contact}
-        onChange={(contacts) => updateField('refs', {
-          ...data.refs,
-          links: { ...data.refs?.links, contact: contacts }
-        })}
-      />
-      
-      {/* Comments */}
-      <CommentsPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.comments}
-        onChange={(comments) => updateField('comments', comments)}
-      />
-      
-      {/* Admin-only panels */}
-      <MetadataPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.metadata}
-        onChange={(metadata) => updateField('metadata', metadata)}
-      />
-      
-      <RefsPanel
-        entityType="order"
-        entityId={order.id}
-        data={data.refs}
-      />
-    </div>
-  );
-};
-```
-
-### Compact Mode for Sidebars
-
-```tsx
-<CommentsPanel
-  entityType="contact"
-  entityId={contact.id}
-  data={contact.comments}
-  compact={true}
-  defaultCollapsed={true}
-/>
-```
-
-### Read-Only Display
-
-```tsx
-<FinancialsPanel
-  entityType="invoice"
-  entityId={invoice.id}
-  data={invoice.financials}
-  readOnly={true}
-/>
-```
-
-## Implementation Status
-
-| Panel                | Status | Features |
-| -------------------- | ------ | -------- |
-| `CommentsPanel`      | ✅ Done | Tabs, history, role-based |
-| `MetadataPanel`      | ✅ Done | Key-value editor, admin-only |
-| `RefsPanel`          | ✅ Done | Link navigation, lineage display |
-| `PrefsPanel`         | ✅ Done | Display/notification prefs |
-| `RawDataPanel`       | ✅ Done | Syntax highlight, search, copy |
-| `ActionsPanel`       | ✅ Done | Status tracking, due dates, priority |
-| `DocumentsPanel`     | ✅ Done | Upload, download, file icons |
-| `QAPanel`            | ✅ Done | Question/answer workflow |
-| `ContactLinksPanel`  | ✅ Done | Role grouping, search/add |
-| `FinancialsPanel`    | ✅ Done | Breakdown, payments, balance |
-| `CommunicationsPanel`| ✅ Done | Email/phone/address CRUD |
-| `LinkagesPanel`      | ✅ Done | Cross-table linking, flow tracking |
-
-## Imports
-
-```tsx
-// Import individual panels
-import { CommentsPanel } from '@/apps/common/components/panels';
-
-// Import multiple panels
-import { 
-  CommentsPanel,
-  ActionsPanel,
-  FinancialsPanel,
-  ContactLinksPanel,
-  DocumentsPanel,
-  QAPanel,
-  CommunicationsPanel,
-  LinkagesPanel,
-  MetadataPanel,
-  RefsPanel,
-  PrefsPanel,
-  RawDataPanel,
-} from '@/apps/common/components/panels';
-
-// Import types
-import type {
-  BasePanelProps,
-  EntityType,
-  UserRole,
-  EntityMetadata,
-  EntityRefs,
-  EntityPrefs,
-  EntityComments,
-  ActionEntry,
-  CommentEntry,
-  QAEntry,
-  DocumentEntry,
-  FinancialSummary,
-  EmailLink,
-  PhoneLink,
-  AddressLink,
-  LinkageData,
-  LinkedRecord,
-} from '@/apps/common/components/panels';
-
-// Import permission utilities
-import { 
-  usePermissions,
-  ADMIN_ROLES,
-  MANAGER_ROLES,
-  USER_ROLES,
-  ALL_ROLES,
-  DEFAULT_PANEL_PERMISSIONS,
-} from '@/apps/common/components/panels';
-```
-
-## LinkagesPanel - Cross-Table Record Flow
-
-The `LinkagesPanel` displays records from multiple tables that are linked together through a Linkage hub. This tracks document/record relationships as items flow through business processes:
-
-```
-Proposal → Order → Invoice → Payment
-    ↓         ↓        ↓         ↓
- [all linked by a common Linkage record]
-```
-
-### Linkage Data Structure
-
-Based on Django `Linkage` model from `apps/docs/models/linkage.py`:
-
-```typescript
-interface LinkageData {
-  id: number;
-  ida?: string;
-  purpose?: string;        // e.g., "Item Transfer", "Service Order"
-  name?: string;           // Human-readable linkage name
-  note?: string;           // Additional context
-  refs?: {
-    links?: Record<string, LinkedRecord[] | number[]>;  // {table_name: [records/ids]}
-  };
-  metadata?: { history?: { created?: {...}, modified?: {...} } };
-  dt_created?: number;
-  dt_modified?: number;
-}
-
-interface LinkedRecord {
-  id: number;
-  ida?: string;
-  name?: string;
-  display?: string;
-  status?: string;
-  dt_created?: number;
-  dt_modified?: number;
-}
-```
-
-### LinkagesPanel Usage
-
-```tsx
-import { LinkagesPanel } from '@/apps/common/components/panels';
-
-// Basic usage
-<LinkagesPanel
-  entityType="order"
-  entityId={order.id}
-  data={order.linkage}  // LinkageData or null
-  onRecordClick={(table, id, record) => {
-    // Navigate to the linked record
-    navigate(`/${table}/${id}`);
-  }}
-/>
-
-// With custom flow highlighting
-<LinkagesPanel
-  entityType="invoice"
-  entityId={invoice.id}
-  data={invoice.linkage}
-  flowTables={['proposal', 'order', 'invoice', 'payment']}
-  tableDisplayNames={{
-    'sales_order': 'Sales Orders',
-    'purchase_order': 'Purchase Orders',
-  }}
-  onViewLinkage={(linkageId) => navigate(`/linkages/${linkageId}`)}
-/>
-```
-
-### LinkagesPanel Props
-
-| Prop                | Type                                           | Description                              |
-| ------------------- | ---------------------------------------------- | ---------------------------------------- |
-| `data`              | `LinkageData \| null`                          | Linkage data (null if no linkage exists) |
-| `onRecordClick`     | `(table, id, record?) => void`                 | Callback when clicking linked record     |
-| `onViewLinkage`     | `(linkageId) => void`                          | Callback to view linkage details         |
-| `flowTables`        | `string[]`                                     | Tables to highlight in business flow     |
-| `tableDisplayNames` | `Record<string, string>`                       | Custom display names for tables          |
 
 ---
 
 ## CommunicationsPanel - Direct API Integration
 
-The `CommunicationsPanel` manages emails, phones, addresses, and domains with **direct persistence to WC3**. Unlike other panels that rely on parent `onChange` handlers, this panel makes its own API calls via `wcapi`.
-
-### Architecture
+Unlike other panels that rely on parent `onChange` handlers, `CommunicationsPanel` makes its own API calls via `wcapi`:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  CommunicationsPanel                                            │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  User adds/edits/deletes email, phone, address, or domain   ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                              ↓                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  wcapi.saveRecord('email', { contact_id, email, name... })  ││
-│  │  wcapi.deleteRecord('email', id)                            ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                              ↓                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  On 200 Success: Update local state with refs.links format  ││
-│  └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
+User adds/edits/deletes email, phone, address, or domain
+  → wcapi.saveRecord('email', { contact_id, email, name... })
+  → On 200: Update local state with refs.links format
 ```
 
-### Required Props
-
-| Prop         | Type                            | Description                         |
-| ------------ | ------------------------------- | ----------------------------------- |
-| `contactId`  | `number`                        | **Required** - Contact ID for linking records |
-| `emails`     | `EmailLink[]`                   | Email records from `refs.links.email` |
-| `phones`     | `PhoneLink[]`                   | Phone records from `refs.links.phone` |
-| `addresses`  | `AddressLink[]`                 | Address records from `refs.links.location` |
-| `domains`    | `DomainLink[]`                  | Domain records from `refs.links.domain` |
-| `onChange`   | `(field, value) => void`        | Callback to sync local state after API success |
-
-### API Integration
-
-All CRUD operations use the `wcapi` module:
-
-```typescript
-import { saveRecord, deleteRecord } from '@/api/wcapi';
-
-// Save always includes contact_id
-const handleSave = async (type: string, data: Record<string, unknown>) => {
-  const payload = { ...data, contact_id: contactId };
-  const response = await saveRecord(type, payload);
-  
-  if (response.status === 'success') {
-    // Format for refs.links and update local state
-    onChange(`refs.links.${type}`, formattedData);
-  }
-};
-
-// Delete by record ID
-const handleDelete = async (type: string, id: number) => {
-  const response = await deleteRecord(type, id);
-  if (response.status === 'success') {
-    // Remove from local state
-  }
-};
-```
-
-### Data Formats (refs.links)
-
-On successful API response (200), data is formatted for the `refs.links` structure:
-
-#### Email
-
-```typescript
-refs.links.email: [
-  {
-    id: 123,
-    value: "john@example.com",   // Display value
-    name: "work",                // Type label
-    email: "john@example.com",   // Raw email
-    is_primary: true
-  }
-]
-```
-
-#### Phone
-
-```typescript
-refs.links.phone: [
-  {
-    id: 456,
-    value: "(555) 123-4567",     // Formatted display
-    name: "mobile",              // Type label
-    number: "5551234567"         // Raw number
-  }
-]
-```
-
-#### Domain
-
-```typescript
-refs.links.domain: [
-  {
-    id: 789,
-    value: "example.com",        // Display value
-    name: "primary",             // Type label
-    domain: "example.com",       // Raw domain
-    is_primary: true
-  }
-]
-```
-
-#### Address
-
-```typescript
-refs.links.location: [
-  {
-    id: 101,
-    name: "shipping",            // Type label
-    full: "123 Main St, City, ST 12345",  // Formatted address
-    address1: "123 Main St",
-    address2: "",
-    city: "City",
-    state: "ST",
-    zip: "12345",
-    country: "US"
-  }
-]
-```
-
-### Usage Example
-
-```tsx
-import { CommunicationsPanel } from '@/apps/common/components/panels';
-
-<CommunicationsPanel
-  entityType="contact"
-  entityId={contact.id}
-  contactId={contact.id}  // Required for API calls
-  emails={contact.refs?.links?.email || []}
-  phones={contact.refs?.links?.phone || []}
-  addresses={contact.refs?.links?.location || []}
-  domains={contact.refs?.links?.domain || []}
-  onChange={(field, value) => {
-    // Update local state after successful API call
-    setContact(prev => ({
-      ...prev,
-      refs: {
-        ...prev.refs,
-        links: {
-          ...prev.refs?.links,
-          [field.split('.').pop()!]: value
-        }
-      }
-    }));
-  }}
-/>
-```
-
-### Loading States
-
-The panel manages its own `isSaving` state to provide loading feedback:
-
-- Save button shows spinner and disables during API call
-- Delete confirmation shows loading state
-- Modal stays open until API response received
-
-### Backend Integration
-
-The Django `Email` model auto-links account emails on Contact save:
-
-```python
-# Contact model save() method
-def _ensure_account_email_linked(self):
-    """Auto-create Email record from account email if not exists."""
-    if self.account and self.account.email:
-        Email.objects.get_or_create(
-            email=self.account.email,
-            contact_id=self.pk,
-            defaults={'name': 'account'}
-        )
-```
+**Required prop:** `contactId` — all CRUD operations include this for linking.
 
 ---
 
-## Implementation Plan: Org & Transaction UI Integration
+## TransactionDetailBase - Internal Panel Inventory
 
-### Overview
+`TransactionDetailBase` is the shell for all transaction detail pages. It internally imports and provides:
 
-Integrate the shared panel components into existing model detail pages across the application. This will replace ad-hoc implementations with standardized, permission-aware panels.
+| Panel | Source |
+|-------|--------|
+| TransactionToolbar | `common/components/TransactionToolbar` (via re-export) |
+| RefsLinksContactPanel | `common/panels/RefsLinksContactPanel` (via re-export) |
+| ContactLinksTable | `transactions/components/ContactLinksTable` |
+| CommentsPanel | `common/panels/CommentsPanel` (via re-export) |
+| MetadataPanel | `transactions/components/MetadataPanel` (transaction-specific) |
+| FinancialsCard | `common/panels/TransactionFinancialsPanel` (via re-export) |
+| DocumentsPanel | `common/panels/DocumentsPanel` |
+| JsonFieldEditor | `common/components/JsonFieldEditor` (via re-export) |
+| QATab | `transactions/components/QATab` (wraps `common/panels/QAPanel`) |
 
-### Phase 1: Contacts & Core Models
+Transaction detail pages extend this base and add model-specific components (SummaryCard, LinesCard, ShippingPanel, etc.).
 
-**Target Pages:**
-- `ContactDetail.tsx` - Core contact management (primary focus)
-- `CustomerDetail.tsx` - Customer org view
-- `VendorDetail.tsx` - Vendor org view
-- `ManufacturerDetail.tsx` - Manufacturer org view
+---
 
-**Panels to Add:**
-
-| Page | Panels | Priority |
-|------|--------|----------|
-| ContactDetail | CommentsPanel, CommunicationsPanel, DocumentsPanel, ActionsPanel, PrefsPanel, LinkagesPanel | High |
-| CustomerDetail | CommentsPanel, ContactLinksPanel, FinancialsPanel, DocumentsPanel, ActionsPanel, LinkagesPanel | High |
-| VendorDetail | CommentsPanel, ContactLinksPanel, DocumentsPanel, ActionsPanel, QAPanel, LinkagesPanel | High |
-| ManufacturerDetail | CommentsPanel, ContactLinksPanel, DocumentsPanel, ActionsPanel | Medium |
-
-#### Contact-Specific Implementation
-
-The `ContactDetail` page is foundational - contacts link to nearly every other entity in the system.
-
-**ContactDetail Panel Layout:**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Contact Header (name, company, title, role, avatar)            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐   │
-│  │  CommunicationsPanel    │  │  ActionsPanel               │   │
-│  │  - Emails (primary/alt) │  │  - Pending tasks            │   │
-│  │  - Phones (work/mobile) │  │  - Follow-ups               │   │
-│  │  - Addresses            │  │  - Reminders                │   │
-│  └─────────────────────────┘  └─────────────────────────────┘   │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐   │
-│  │  CommentsPanel          │  │  DocumentsPanel             │   │
-│  │  - Public notes         │  │  - Contracts                │   │
-│  │  - Process notes        │  │  - Agreements               │   │
-│  │  - Partner notes        │  │  - ID docs                  │   │
-│  └─────────────────────────┘  └─────────────────────────────┘   │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐   │
-│  │  LinkagesPanel          │  │  PrefsPanel                 │   │
-│  │  - Related orders       │  │  - Communication prefs      │   │
-│  │  - Related invoices     │  │  - Display settings         │   │
-│  │  - Related proposals    │  │  - Notification opts        │   │
-│  └─────────────────────────┘  └─────────────────────────────┘   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Admin-Only: MetadataPanel | RefsPanel | RawDataPanel     │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Contact-Specific Tasks:**
-- [ ] Create `ContactDetailPanels.tsx` wrapper component
-- [ ] Implement `useContactMutations` hook for panel onChange handlers
-- [ ] Add CommunicationsPanel with email/phone/address CRUD
-- [ ] Wire ActionsPanel for contact-specific actions (call, email, follow-up)
-- [ ] Connect LinkagesPanel to show orders/invoices where contact is linked
-- [ ] Add PrefsPanel for communication preferences (opt-in/out)
-- [ ] Test admin panels visibility (MetadataPanel, RefsPanel, RawDataPanel)
-
-**Org Detail Tasks:**
-- [ ] Create `OrgDetailPanels.tsx` shared wrapper for Customer/Vendor/Manufacturer
-- [ ] Wire up `onChange` handlers to API mutation hooks
-- [ ] Add ContactLinksPanel to show employees/reps/contacts
-- [ ] Add FinancialsPanel for customer/vendor account summary
-- [ ] Test permission visibility across user roles
-
-### Phase 2: Transaction Documents
-
-**Target Pages:**
-- `OrderDetail.tsx` / `SalesOrderDetail.tsx`
-- `InvoiceDetail.tsx`
-- `ProposalDetail.tsx`
-- `PurchaseOrderDetail.tsx`
-- `WorkOrderDetail.tsx`
-
-**Panels to Add:**
-
-| Page | Panels | Priority |
-|------|--------|----------|
-| OrderDetail | CommentsPanel, ContactLinksPanel, FinancialsPanel, DocumentsPanel, ActionsPanel, LinkagesPanel, QAPanel | High |
-| InvoiceDetail | CommentsPanel, ContactLinksPanel, FinancialsPanel, DocumentsPanel, LinkagesPanel | High |
-| ProposalDetail | CommentsPanel, ContactLinksPanel, FinancialsPanel, DocumentsPanel, ActionsPanel, QAPanel | High |
-| PurchaseOrderDetail | CommentsPanel, ContactLinksPanel, FinancialsPanel, DocumentsPanel, ActionsPanel, LinkagesPanel | Medium |
-| WorkOrderDetail | CommentsPanel, ContactLinksPanel, DocumentsPanel, ActionsPanel, LinkagesPanel, QAPanel | Medium |
-
-**Tasks:**
-- [ ] Create `TransactionDetailPanels.tsx` shared wrapper
-- [ ] Implement linkage fetching hook (`useLinkage`)
-- [ ] Wire LinkagesPanel with navigation callbacks
-- [ ] Add financial calculation helpers for FinancialsPanel
-- [ ] Deprecate old `CommentsTab`, `DocumentsTab`, `QATab` components
-
-### Phase 3: Line Item Details
-
-**Target Pages:**
-- `OrderLineDetail.tsx`
-- `ProposalLineDetail.tsx`
-- `InvoiceLineDetail.tsx`
-- `WorkOrderLineDetail.tsx`
-
-**Panels to Add:**
-
-| Page | Panels | Priority |
-|------|--------|----------|
-| All Line Details | CommentsPanel, ActionsPanel, LinkagesPanel, DocumentsPanel | Medium |
-
-**Tasks:**
-- [ ] Create `LineDetailPanels.tsx` compact wrapper
-- [ ] Ensure linkage flows properly between header and lines
-- [ ] Add line-specific action templates
-
-### Phase 4: Admin & Support Pages
-
-**Target Pages:**
-- `ItemDetail.tsx` - Product/inventory items
-- `ProjectDetail.tsx` - Project management
-- `CampaignDetail.tsx` - Marketing campaigns
-- `SettingDetail.tsx` - System settings
-
-**Panels to Add:**
-
-| Page | Panels | Priority |
-|------|--------|----------|
-| ItemDetail | CommentsPanel, DocumentsPanel, ContactLinksPanel (vendors), PrefsPanel | Low |
-| ProjectDetail | CommentsPanel, ContactLinksPanel, DocumentsPanel, ActionsPanel, FinancialsPanel | Low |
-| CampaignDetail | CommentsPanel, ContactLinksPanel, DocumentsPanel, ActionsPanel | Low |
-| SettingDetail | MetadataPanel, PrefsPanel, RawDataPanel | Low |
-
-### Implementation Pattern
+## Quick Import Reference
 
 ```tsx
-// Example: ContactDetail.tsx integration
-
+// Standard panels
 import {
-  CommentsPanel,
-  CommunicationsPanel,
-  DocumentsPanel,
   ActionsPanel,
-  PrefsPanel,
-  LinkagesPanel,
-  MetadataPanel,
-  RefsPanel,
-  RawDataPanel,
-} from '@/apps/common/components/panels';
-
-const ContactDetail: React.FC<{ contact: Contact }> = ({ contact }) => {
-  const [data, setData] = useState(contact);
-  const { mutate: updateContact } = useUpdateContact();
-  const { data: linkage } = useLinkage(contact.refs?.links?.linkage?.[0]);
-  const navigate = useNavigate();
-
-  const handleFieldChange = <K extends keyof Contact>(field: K, value: Contact[K]) => {
-    const updated = { ...data, [field]: value };
-    setData(updated);
-    updateContact({ id: contact.id, [field]: value });
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Contact Header */}
-      <div className="lg:col-span-2">
-        <ContactHeader contact={data} />
-      </div>
-
-      {/* Left Column - Communications & Actions */}
-      <div className="space-y-4">
-        <CommunicationsPanel
-          entityType="contact"
-          entityId={contact.id}
-          emails={data.refs?.links?.email}
-          phones={data.refs?.links?.phone}
-          addresses={data.refs?.links?.location}
-          onEmailChange={(emails) => handleFieldChange('refs', {
-            ...data.refs,
-            links: { ...data.refs?.links, email: emails }
-          })}
-          onPhoneChange={(phones) => handleFieldChange('refs', {
-            ...data.refs,
-            links: { ...data.refs?.links, phone: phones }
-          })}
-          onAddressChange={(addresses) => handleFieldChange('refs', {
-            ...data.refs,
-            links: { ...data.refs?.links, location: addresses }
-          })}
-        />
-        <ActionsPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.actions}
-          onChange={(actions) => handleFieldChange('actions', actions)}
-        />
-        <CommentsPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.comments}
-          onChange={(comments) => handleFieldChange('comments', comments)}
-        />
-      </div>
-
-      {/* Right Column - Documents & Preferences */}
-      <div className="space-y-4">
-        <DocumentsPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.refs?.links?.document}
-          onChange={(docs) => handleFieldChange('refs', {
-            ...data.refs,
-            links: { ...data.refs?.links, document: docs }
-          })}
-        />
-        <LinkagesPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={linkage}
-          onRecordClick={(table, id) => navigate(`/${table}/${id}`)}
-          flowTables={['proposal', 'order', 'invoice']}
-        />
-        <PrefsPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.prefs}
-          onChange={(prefs) => handleFieldChange('prefs', prefs)}
-        />
-      </div>
-
-      {/* Admin-Only Section */}
-      <div className="lg:col-span-2 space-y-4">
-        <MetadataPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.metadata}
-          onChange={(metadata) => handleFieldChange('metadata', metadata)}
-        />
-        <RefsPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data.refs}
-        />
-        <RawDataPanel
-          entityType="contact"
-          entityId={contact.id}
-          data={data}
-        />
-      </div>
-    </div>
-  );
-};
-```
-
-```tsx
-// Example: OrderDetail.tsx integration
-
-import {
   CommentsPanel,
-  ContactLinksPanel,
-  FinancialsPanel,
   DocumentsPanel,
-  ActionsPanel,
-  LinkagesPanel,
   QAPanel,
+  ContactPanel,           // alias for RefsLinksContactPanel
+  RefsLinksContactPanel,
+  FinancialsPanel,
+  TransactionFinancialsPanel,
+  LinkagesPanel,
+  ShippingPanel,
+  BasicInformationPanel,
+  CommunicationsPanel,
+} from '@/apps/common/components/panels';
+
+// Admin panels
+import {
   MetadataPanel,
   RefsPanel,
+  PrefsPanel,
   RawDataPanel,
 } from '@/apps/common/components/panels';
 
-const OrderDetail: React.FC<{ order: Order }> = ({ order }) => {
-  const [data, setData] = useState(order);
-  const { mutate: updateOrder } = useUpdateOrder();
-  const { data: linkage } = useLinkage(order.refs?.links?.linkage?.[0]);
-  const navigate = useNavigate();
+// Shared components (not in panels/)
+import JsonFieldEditor from '@/apps/common/components/JsonFieldEditor';
+import TransactionToolbar from '@/apps/common/components/TransactionToolbar';
 
-  const handleFieldChange = <K extends keyof Order>(field: K, value: Order[K]) => {
-    const updated = { ...data, [field]: value };
-    setData(updated);
-    updateOrder({ id: order.id, [field]: value });
-  };
+// Types
+import type {
+  BasePanelProps, EntityType, UserRole,
+  EntityMetadata, EntityRefs, EntityPrefs, EntityComments,
+  ActionEntry, CommentEntry, QAEntry, DocumentEntry,
+  FinancialSummary, EmailLink, PhoneLink, AddressLink,
+  LinkageData, LinkedRecord,
+} from '@/apps/common/components/panels';
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Primary Info Section */}
-      <div className="lg:col-span-2">
-        <OrderHeader order={data} />
-        <OrderLines lines={data.lines} />
-      </div>
-
-      {/* Left Column - User Panels */}
-      <div className="space-y-4">
-        <ActionsPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.actions}
-          onChange={(actions) => handleFieldChange('actions', actions)}
-        />
-        <CommentsPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.comments}
-          onChange={(comments) => handleFieldChange('comments', comments)}
-        />
-        <QAPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.qa}
-          onChange={(qa) => handleFieldChange('qa', qa)}
-        />
-      </div>
-
-      {/* Right Column - Reference Panels */}
-      <div className="space-y-4">
-        <FinancialsPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.financials}
-          currency={data.currency}
-        />
-        <ContactLinksPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.refs?.links?.contact}
-          onContactClick={(id) => navigate(`/contacts/${id}`)}
-        />
-        <DocumentsPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.refs?.links?.document}
-          onChange={(docs) => handleFieldChange('refs', {
-            ...data.refs,
-            links: { ...data.refs?.links, document: docs }
-          })}
-        />
-        <LinkagesPanel
-          entityType="order"
-          entityId={order.id}
-          data={linkage}
-          onRecordClick={(table, id) => navigate(`/${table}/${id}`)}
-          onViewLinkage={(id) => navigate(`/linkages/${id}`)}
-          flowTables={['proposal', 'order', 'invoice']}
-        />
-      </div>
-
-      {/* Admin-Only Section */}
-      <div className="lg:col-span-2 space-y-4">
-        <MetadataPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.metadata}
-          onChange={(metadata) => handleFieldChange('metadata', metadata)}
-        />
-        <RefsPanel
-          entityType="order"
-          entityId={order.id}
-          data={data.refs}
-        />
-        <RawDataPanel
-          entityType="order"
-          entityId={order.id}
-          data={data}
-        />
-      </div>
-    </div>
-  );
-};
+// Utilities
+import {
+  usePermissions,
+  ADMIN_ROLES, MANAGER_ROLES, USER_ROLES, ALL_ROLES,
+  uploadDocument, uploadDocuments, deleteDocument,
+  getQAQuestions, getQAAnswers, applyQuestionGroup,
+} from '@/apps/common/components/panels';
 ```
-
-### Migration Checklist
-
-For each detail page migration:
-
-1. **Audit existing implementation**
-   - [ ] Identify current comment/document/QA implementations
-   - [ ] Note any custom business logic to preserve
-   - [ ] Check for API endpoint compatibility
-
-2. **Add panel imports**
-   - [ ] Import required panels from `@/apps/common/components/panels`
-   - [ ] Import types if needed
-
-3. **Wire up data flow**
-   - [ ] Connect panel `data` props to entity state
-   - [ ] Implement `onChange` handlers with API mutations
-   - [ ] Add navigation callbacks where needed
-
-4. **Test permissions**
-   - [ ] Verify admin panels hidden from non-admin users
-   - [ ] Confirm edit buttons disabled for read-only roles
-   - [ ] Test manager-only panels (FinancialsPanel)
-
-5. **Deprecate old components**
-   - [ ] Mark old tab components as deprecated
-   - [ ] Remove after migration complete
-   - [ ] Update imports in any remaining usages
-
-### Files to Deprecate
-
-After migration, these components should be removed:
-
-```
-src/apps/transactions/components/
-├── CommentsTab.tsx        → Replace with CommentsPanel
-├── DocumentsTab.tsx       → Replace with DocumentsPanel
-├── QATab.tsx              → Replace with QAPanel
-├── ContactsSection.tsx    → Replace with ContactLinksPanel
-└── FinancialSummary.tsx   → Replace with FinancialsPanel
-```
-
-### Timeline Estimate
-
-| Phase | Duration | Dependencies |
-|-------|----------|--------------|
-| Phase 1: Contacts & Orgs | 1 week | None |
-| Phase 2: Transactions | 2 weeks | Phase 1, API hooks |
-| Phase 3: Line Items | 1 week | Phase 2, Linkage API |
-| Phase 4: Admin/Support | 1 week | Phase 1-3 complete |
-
-**Total: ~5 weeks**

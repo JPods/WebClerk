@@ -27,7 +27,7 @@ import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
-import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 const STORAGE_KEY = "catalogDetail_columnCount";
 

@@ -8,7 +8,6 @@ export { default as FieldLabel } from "./FieldLabel";
 
 // Refs/Links Components
 export { default as RefsLinksContactPanel } from "./RefsLinksContactPanel";
-export { default as RefsLinksTable } from "./RefsLinksTable";
 export { default as ContactLinksTable } from "./ContactLinksTable";
 export type {
   ContactLinkDisplayRow,
@@ -42,9 +41,6 @@ export { default as ActivityLogTab } from "./ActivityLogTab";
 
 // Print Preview
 export { default as PrintPreviewModal } from "./PrintPreviewModal";
-
-// Attachments
-export { default as AttachmentsTab } from "./AttachmentsTab";
 
 // Payment Modals
 export { default as AddPaymentModal } from "./AddPaymentModal";

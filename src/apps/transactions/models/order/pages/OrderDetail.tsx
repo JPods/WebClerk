@@ -28,7 +28,7 @@ import type {
 } from "../../../types/transactionTypes";
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
-import { saveRecord } from "@/api/wcapi";
+import { saveRecord, getRecord } from "@/api/wcapi";
 import { ShippingPanel } from "@/apps/common/components/panels";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 

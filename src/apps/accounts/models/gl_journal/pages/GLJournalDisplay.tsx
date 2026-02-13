@@ -85,6 +85,7 @@ export default function GLJournalDisplay({
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
+        <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">GLJournalDisplay</span>
         {modeProp === "add" ? "Add GL Journal" : modeProp === "edit" ? "Edit GL Journal" : "View GL Journal"}
       </h2>
       <div className="grid grid-cols-2 gap-4">

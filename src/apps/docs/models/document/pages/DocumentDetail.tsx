@@ -51,7 +51,7 @@ import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import RefsPanel from "../../../../common/components/panels/RefsPanel";
-import JsonFieldEditor from "../../../../transactions/components/JsonFieldEditor";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 import { createDocument, updateDocument, fetchDocumentById } from "../services/documentApi";
 import { showToast } from "../../../../../store/slices/toastSlice";

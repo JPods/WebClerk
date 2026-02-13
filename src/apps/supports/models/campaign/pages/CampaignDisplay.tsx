@@ -85,6 +85,7 @@ export default function CampaignDisplay({
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
+        <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">CampaignDisplay</span>
         {modeProp === "add" ? "Add Campaign" : modeProp === "edit" ? "Edit Campaign" : "View Campaign"}
       </h2>
       <div className="grid grid-cols-2 gap-4">

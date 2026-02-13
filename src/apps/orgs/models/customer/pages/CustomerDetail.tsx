@@ -16,8 +16,8 @@ import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
-import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
-import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { 
   FinancialsPanel, 
   BasicInformationPanel,
@@ -132,7 +132,7 @@ const COLUMN_OPTIONS = [
 
 const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
-const VALID_TABS = ["overview", "comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
+const VALID_TABS = ["comments", "actions", "documents", "communication", "financial", "relations", "connections", "data", "metrics", "gl_accounts", "history", "raw"];
 
 export default function CustomerDetail({
   modeProp,
@@ -153,7 +153,7 @@ export default function CustomerDetail({
   const dispatch = useDispatch();
   const { ensureWindow, activateWindow, closeWindow } = useWindowManager();
   const currentUser = useAppSelector((state) => state.auth.user);
-  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('customer', 'overview', VALID_TABS);
+  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('customer', 'comments', VALID_TABS);
   const { columnCount, setColumnCount: handleColumnChange } = useColumnCount('customer', 3);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -484,6 +484,30 @@ export default function CustomerDetail({
             type: "success",
           })
         );
+
+        // --- Auto-create contact for new customers ---
+        if (mode === "add") {
+          const newCustomerId = res?.record?.id ?? res?.id;
+          if (newCustomerId) {
+            try {
+              await autoCreateContactForCustomer(
+                newCustomerId,
+                formData.display_name,
+                formData.attention || "",
+                formData.email || "",
+                formData.phone || "",
+              );
+            } catch (contactErr: any) {
+              // Contact creation is best-effort; don't block customer save
+              console.error("[CustomerDetail] Auto-contact creation failed:", contactErr);
+              dispatch(showToast({
+                message: `Customer saved, but contact creation failed: ${contactErr?.message || "Unknown error"}`,
+                type: "warning",
+              }));
+            }
+          }
+        }
+
         // Return to view mode after successful save
         if (isEditing) {
           setIsEditing(false);
@@ -500,49 +524,95 @@ export default function CustomerDetail({
     }
   };
 
-  const onSubmit = async (formData: CustomerFormValues) => {
-    await saveCustomer(formData);
-  };
-
-  // Handler to create a contact from customer information
-  const handleCreateContact = useCallback(async () => {
-    const record = dataProp || fetchedRecord;
-    if (!record) {
-      dispatch(showToast({ message: "No customer data available", type: "error" }));
-      return;
-    }
-
-    // Parse attention field to get first/last name
-    const attention = record.attention || "";
+  /**
+   * Auto-create a contact from new customer data, link the records
+   * via refs.links, set customer.contact_id, then open the contact
+   * detail page so the user can add an address.
+   */
+  const autoCreateContactForCustomer = useCallback(async (
+    custId: number,
+    displayName: string,
+    attention: string,
+    email: string,
+    phone: string,
+  ) => {
+    // Parse attention into first/last name
     const nameParts = attention.trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
+    const firstName = nameParts[0] || displayName.split(/\s+/)[0] || "";
+    const lastName = nameParts.length > 1
+      ? nameParts.slice(1).join(" ")
+      : (displayName.split(/\s+/).slice(1).join(" ") || "");
 
-    // Build contact payload from customer data
+    // 1. Create the contact with a link back to this customer
     const contactPayload = {
       name_first: firstName,
       name_last: lastName,
-      attention: attention,
-      email: record.email || `contact${record.id}@placeholder.com`,
-      company: record.display_name || "",
-      customer_id: typeof record.id === 'number' ? record.id : undefined,
-      comment: `Created from customer #${record.id}`,
+      attention: attention || displayName,
+      email: email || `contact${custId}@placeholder.com`,
+      phone: phone || undefined,
+      company: displayName,
+      customer_id: custId,
+      comment: `Auto-created from customer #${custId}`,
       refs: {
         links: {
-          customer: typeof record.id === 'number' ? [record.id] : [],
+          customer: [custId],
         },
       },
     };
 
+    const contactResult = await createContact(contactPayload);
+    const newContactId = contactResult?.record?.id ?? contactResult?.id;
+
+    if (!newContactId) {
+      throw new Error("Contact created but no ID returned");
+    }
+
+    // 2. Update the customer with contact_id and refs.links.contact
+    await updateCustomer({
+      id: custId,
+      contact_id: newContactId,
+      refs: {
+        links: {
+          contact: [newContactId],
+        },
+      },
+    } as any);
+
+    dispatch(showToast({
+      message: `Contact #${newContactId} created — opening to add address…`,
+      type: "success",
+    }));
+
+    // 3. Open the new contact detail page for address entry
+    const contactPath = `/core/contact/detail/${newContactId}`;
+    ensureWindow(contactPath, `Contact ${firstName} ${lastName}`.trim(), { maximized: false });
+    activateWindow(contactPath);
+  }, [dispatch, ensureWindow, activateWindow]);
+
+  const onSubmit = async (formData: CustomerFormValues) => {
+    await saveCustomer(formData);
+  };
+
+  // Handler to create a contact from customer information (view/edit mode)
+  const handleCreateContact = useCallback(async () => {
+    const record = dataProp || fetchedRecord;
+    if (!record || !record.id) {
+      dispatch(showToast({ message: "Save the customer first before creating a contact", type: "error" }));
+      return;
+    }
+
     try {
-      const result = await createContact(contactPayload);
-      if (result) {
-        dispatch(showToast({ message: "Contact created successfully", type: "success" }));
-      }
+      await autoCreateContactForCustomer(
+        record.id,
+        record.display_name || "",
+        record.attention || "",
+        record.email || "",
+        record.phone || "",
+      );
     } catch (err: any) {
       dispatch(showToast({ message: err?.message || "Failed to create contact", type: "error" }));
     }
-  }, [dataProp, fetchedRecord, dispatch]);
+  }, [dataProp, fetchedRecord, dispatch, autoCreateContactForCustomer]);
 
   // Action buttons configuration based on mode
   const getActionButtons = () => {
@@ -617,7 +687,21 @@ export default function CustomerDetail({
         );
       }
     } else {
-      // Add/Edit mode - no action buttons
+      // Add/Edit mode - Create Contact button (only for edit mode with saved record)
+      if (mode === "edit" && data?.id) {
+        buttons.push(
+          <button
+            key="create-contact"
+            type="button"
+            onClick={handleCreateContact}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+            title="Create Contact from Customer"
+          >
+            <FaUserPlus size={14} />
+            Create Contact
+          </button>
+        );
+      }
     }
 
     // Navigation buttons (always available if callbacks provided)
@@ -746,6 +830,7 @@ export default function CustomerDetail({
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+            <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">CustomerDetail</span>
             {customerData.display_name || "New Customer"}
             {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
           </h2>
@@ -922,7 +1007,7 @@ export default function CustomerDetail({
       entityType="customer"
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      standardTabs={['overview', 'comments', 'actions', 'documents', 'history', 'raw']}
+      standardTabs={['comments', 'actions', 'documents', 'history', 'raw']}
       additionalTabs={additionalTabs}
       badges={tabBadges}
       showColumnSelector={true}
@@ -934,26 +1019,6 @@ export default function CustomerDetail({
     <div className="flex-1 overflow-y-auto">
       <form onSubmit={handleSubmit(onSubmit)} className="h-full">
         <div className="p-4">
-          {/* Standard Tabs - Overview */}
-          {activeTab === "overview" && (
-            <div className="space-y-4">
-              {/* Financial Summary - collapsed by default, inside tab content per layout standard */}
-              {mode === "view" && customerData.financial && (
-                <FinancialsPanel
-                  data={customerData.financial?.customer}
-                  currency="USD"
-                  defaultCollapsed={true}
-                  compact
-                />
-              )}
-              {mode !== "view" && (
-                <div className="text-slate-500 dark:text-slate-400 text-sm">
-                  Edit basic information in the form above.
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Standard Tabs - Comments */}
           {activeTab === "comments" && (
             <CommentsPanel

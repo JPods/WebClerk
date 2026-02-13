@@ -14,7 +14,7 @@ import { useLocation } from "react-router";
 import { repSchema } from "../utils/repSchema";
 import { RepAddProps } from "../types/repType";
 import Checkbox from "@/components/form/input/Checkbox";
-import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 
 export default function RepDetail({
   modeProp,
@@ -117,6 +117,7 @@ export default function RepDetail({
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+                <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">RepDisplay</span>
                 {headerDisplayName}
               </h2>
               <div className="flex items-center gap-3 mt-1">
