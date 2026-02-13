@@ -256,7 +256,7 @@ export default function MatricsDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="matrics"
+                parent_model="matrics"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

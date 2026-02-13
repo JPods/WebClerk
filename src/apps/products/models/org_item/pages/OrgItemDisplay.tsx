@@ -256,7 +256,7 @@ export default function OrgItemDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="org_item"
+                parent_model="org_item"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

@@ -292,7 +292,7 @@ export default function ServiceDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="service"
+                parent_model="service"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

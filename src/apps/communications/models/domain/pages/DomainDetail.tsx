@@ -182,7 +182,7 @@ export default function DomainDetail({
       case "documents":
         return (
           <DocumentsPanel
-            parentType="domain"
+            parent_model="domain"
             parentId={data?.id}
             data={data?.refs?.links?.document}
             isEditing={currentMode === "edit"}

@@ -256,7 +256,7 @@ export default function ItemXrefDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="item_xref"
+                parent_model="item_xref"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

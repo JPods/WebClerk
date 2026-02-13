@@ -305,7 +305,7 @@ export default function TagDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="tag"
+                parent_model="tag"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

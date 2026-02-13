@@ -518,7 +518,7 @@ export default function VendorDetail({
               {/* Documents Tab */}
               {activeTab === "documents" && data?.id && (
                 <DocumentsPanel
-                  parentType="vendor"
+                  parent_model="vendor"
                   parentId={data.id}
                   data={data.refs?.links?.document}
                   isEditing={mode !== "view" || isEditing}
@@ -600,7 +600,7 @@ export default function VendorDetail({
             )}
 
             <RefsLinksContactPanel
-              parentType="vendor"
+              parent_model="vendor"
               parentId={vendorId}
               contacts={normalizeRefsLinksContact(
                 panelRecord?.refs?.links?.contact ?? [],
@@ -612,7 +612,7 @@ export default function VendorDetail({
             />
 
             <DocumentsPanel
-              parentType="vendor"
+              parent_model="vendor"
               parentId={vendorId}
               data={panelRecord?.refs?.links?.document ?? []}
               readOnly={!canEditPanels}

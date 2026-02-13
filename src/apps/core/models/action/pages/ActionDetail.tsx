@@ -592,7 +592,7 @@ export default function ActionDetail({
 
         {activeTab === "documents" && (
           <DocumentsPanel
-            parentType="action"
+            parent_model="action"
             parentId={data?.id}
             data={data?.refs?.links?.document}
           />
@@ -600,7 +600,7 @@ export default function ActionDetail({
 
         {activeTab === "qa" && (
           <QAPanel
-            parentModel="action"
+            parent_model="action"
             parentId={data?.id}
           />
         )}

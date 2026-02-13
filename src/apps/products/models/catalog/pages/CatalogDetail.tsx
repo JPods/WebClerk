@@ -293,7 +293,7 @@ export default function CatalogDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="catalog"
+                parent_model="catalog"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

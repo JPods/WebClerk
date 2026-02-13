@@ -338,7 +338,7 @@ export interface Transaction {
   vendor_id: number;
   manufacturer_id: number;
   parent_id?: number | null;
-  parent_type?: TransactionParentType | null;
+  parent_model?: TransactionParentType | null;
 
   // Denormalized totals for quick access
   total?: number | null;

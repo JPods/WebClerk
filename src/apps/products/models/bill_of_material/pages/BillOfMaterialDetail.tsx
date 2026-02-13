@@ -382,7 +382,7 @@ export default function BillOfMaterialDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="bill_of_material"
+                parent_model="bill_of_material"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

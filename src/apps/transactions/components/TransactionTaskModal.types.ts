@@ -102,7 +102,7 @@ export interface TransactionTaskFormState {
   project_name?: string;
   kanban_column?: string;
   // Transaction context
-  parent_type?: string; // 'order', 'invoice', etc.
+  parent_model?: string; // 'order', 'invoice', etc.
   parent_id?: number;
 }
 
@@ -167,7 +167,7 @@ export const createDefaultTaskState = (
   dt_completed: "",
   progress: 0,
   assigned_to: [],
-  parent_type: transactionType,
+  parent_model: transactionType,
   parent_id: transactionId,
 });
 

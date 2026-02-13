@@ -157,7 +157,7 @@ interface LineageProps {
 const Lineage: React.FC<LineageProps> = ({ lineage, navigable, onNavigate }) => {
   if (!lineage) return null;
 
-  const { parent_id, parent_type, source_id, source_type } = lineage;
+  const { parent_id, parent_model, source_id, source_type } = lineage;
   const hasLineage = parent_id || source_id;
 
   if (!hasLineage) return null;
@@ -169,16 +169,16 @@ const Lineage: React.FC<LineageProps> = ({ lineage, navigable, onNavigate }) => 
         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Lineage</span>
       </div>
       <div className="ml-6 space-y-1">
-        {parent_id && parent_type && (
+        {parent_id && parent_model && (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500">Parent:</span>
             <span 
               className={`text-slate-700 dark:text-slate-300 ${
                 navigable && onNavigate ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
               }`}
-              onClick={() => navigable && onNavigate && onNavigate(parent_type, parent_id)}
+              onClick={() => navigable && onNavigate && onNavigate(parent_model, parent_id)}
             >
-              {parent_type} #{parent_id}
+              {parent_model} #{parent_id}
             </span>
           </div>
         )}

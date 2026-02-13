@@ -790,7 +790,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
-            order_id={currentData?.id}
+            parent_model={modelName}
+            parentId={currentData?.id}
             customer_id={currentData?.customer_id || currentData?.refs?.links?.customer?.[0]?.id}
             customer_name={currentData?.refs?.links?.customer?.[0]?.display_name}
             onChange={(newContacts) => {
@@ -929,7 +930,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       case "documents":
         return (
           <DocumentsPanel
-            parentType={modelName}
+            parent_model={modelName}
             parentId={currentData?.id}
             data={(currentData as any)?.refs?.links?.document ?? []}
             readOnly={!isEditing}

@@ -48,7 +48,7 @@ interface DocumentRefLink extends RefLink {
 
 interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'data' | 'entityType' | 'entityId'> {
   /** Parent entity type (e.g., 'sales_order', 'contact') */
-  parentType?: string;
+  parent_model?: string;
   /** Parent entity ID */
   parentId?: number;
   /** Documents array (RefLinks from refs.links.document) */
@@ -158,7 +158,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete, onDow
 // ---------------------------------------------------------------------------
 
 const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
-  parentType,
+  parent_model,
   parentId,
   data = [],
   onChange,
@@ -189,9 +189,9 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     forceReadOnly: readOnly,
   });
 
-  // Can edit only if we have onChange callback AND (parentType/parentId for API mode OR just onChange for local mode)
+  // Can edit only if we have onChange callback AND (parent_model/parentId for API mode OR just onChange for local mode)
   const canEdit = permCanEdit && !!onChange;
-  const hasApiPersistence = !!(parentType && parentId);
+  const hasApiPersistence = !!(parent_model && parentId);
 
   if (!canView) return null;
 
@@ -236,7 +236,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           const result = await uploadDocument(
             {
               file,
-              parentType: parentType!,
+              parent_model: parent_model!,
               parentId: parentId!,
               purpose,
             },

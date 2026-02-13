@@ -304,7 +304,7 @@ export default function LinkageEntryDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="linkage_entry"
+                parent_model="linkage_entry"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 onChange={(docs) => console.log("Documents updated:", docs)}

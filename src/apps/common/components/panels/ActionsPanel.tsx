@@ -92,7 +92,7 @@ interface ApiActionItem {
   project_id?: number;
   project_name?: string;
   contact_id?: number;
-  parent_type?: string;
+  parent_model?: string;
   parent_id?: number;
   who_name?: string;
   who?: number | string;

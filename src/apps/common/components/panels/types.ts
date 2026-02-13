@@ -216,7 +216,7 @@ export interface EntityRefs {
   };
   lineage?: {
     parent_id?: number;
-    parent_type?: string;
+    parent_model?: string;
     source_id?: number;
     source_type?: string;
   };

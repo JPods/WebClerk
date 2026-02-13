@@ -293,7 +293,7 @@ export default function VariantDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="variant"
+                parent_model="variant"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

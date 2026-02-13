@@ -292,7 +292,7 @@ export default function SpecificationDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="specification"
+                parent_model="specification"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

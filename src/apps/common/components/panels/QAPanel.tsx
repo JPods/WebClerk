@@ -58,7 +58,7 @@ interface QAPanelProps extends Omit<BasePanelProps<QAEntry[]>, 'data' | 'onChang
   /** Question group name - enables template mode */
   questionGroup?: string;
   /** Parent record model name (for API persistence, e.g., 'order', 'customer') */
-  parentModel?: string;
+  parent_model?: string;
   /** Parent record ID (for API persistence) */
   parentId?: number;
   /** Callback when answers change via API */
@@ -219,7 +219,7 @@ interface TemplateQAItemProps {
   options: QAEffectiveOptions;
   existingAnswer?: QAAnswerRecord;
   settingId: number;
-  parentModel: string;
+  parent_model: string;
   parentId: number;
   canEdit: boolean;
   onSave: (answer: QAAnswerRecord) => Promise<void>;
@@ -231,7 +231,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
   options,
   existingAnswer,
   settingId,
-  parentModel,
+  parent_model,
   parentId,
   canEdit,
   onSave,
@@ -283,7 +283,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
           question: question.question,
           setting_id: settingId,
           question_id: question.id,
-          parent_model: parentModel,
+          parent_model: parent_model,
           parent_id: parentId,
           status: 'answered',
           answer_id: choiceId,
@@ -335,7 +335,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
         question: question.question,
         setting_id: settingId,
         question_id: question.id,
-        parent_model: parentModel,
+        parent_model: parent_model,
         parent_id: parentId,
         status: 'answered',
         metadata: uploadedImages.length > 0 ? { images: uploadedImages } : undefined,
@@ -626,7 +626,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
   onChange,
   // Template mode props
   questionGroup,
-  parentModel,
+  parent_model,
   parentId,
   onAnswersChange,
   onLinksChange,
@@ -655,7 +655,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
 
   // Determine mode
   const isTemplateMode = !!questionGroup;
-  const hasApiPersistence = !!(parentModel && parentId);
+  const hasApiPersistence = !!(parent_model && parentId);
   // Allow freeform questions even in template mode
   const allowFreeform = !isTemplateMode || hasApiPersistence;
 
@@ -682,7 +682,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
       try {
         const [questionsSetting, existingAnswers] = await Promise.all([
           isTemplateMode ? getQAQuestions(questionGroup!) : Promise.resolve(null),
-          hasApiPersistence ? getQAAnswers(parentModel!, parentId!) : Promise.resolve([]),
+          hasApiPersistence ? getQAAnswers(parent_model!, parentId!) : Promise.resolve([]),
         ]);
 
         if (!mounted) return;
@@ -717,7 +717,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
     return () => {
       mounted = false;
     };
-  }, [questionGroup, parentModel, parentId, isTemplateMode, hasApiPersistence]);
+  }, [questionGroup, parent_model, parentId, isTemplateMode, hasApiPersistence]);
 
   // Helper to build links array from all answers
   const buildLinksArray = useCallback((template: QAAnswerRecord[], freeform: QAAnswerRecord[]) => {
@@ -766,7 +766,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
       id: editingEntry?.id as number | undefined,
       question: entry.question,
       answer: entry.answer,
-      parent_model: parentModel!,
+      parent_model: parent_model!,
       parent_id: parentId!,
       status: entry.answer ? 'answered' : 'open',
       // No question_id means it's a freeform question
@@ -787,7 +787,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
         return updated;
       });
     }
-  }, [hasApiPersistence, editingEntry, data, onChange, parentModel, parentId, templateAnswers, onAnswersChange, onLinksChange, buildLinksArray]);
+  }, [hasApiPersistence, editingEntry, data, onChange, parent_model, parentId, templateAnswers, onAnswersChange, onLinksChange, buildLinksArray]);
 
   const handleAdd = () => {
     setEditingEntry(undefined);
@@ -926,7 +926,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
                         options={options}
                         existingAnswer={existingAnswer}
                         settingId={setting.id}
-                        parentModel={parentModel!}
+                        parent_model={parent_model!}
                         parentId={parentId!}
                         canEdit={canEdit}
                         onSave={handleSaveTemplateAnswer}
