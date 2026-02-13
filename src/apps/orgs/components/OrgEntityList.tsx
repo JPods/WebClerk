@@ -144,7 +144,7 @@ export default function OrgEntityList<T = any>({
   const resolvedColumns = typeof columns === "function"
     ? columns({
         onView: handleViewInline,
-        onEdit: routes?.edit ? handleEdit : handleEditInline,
+        onEdit: handleEditInline,
         onDelete: handleDeleteInline,
       })
     : columns;
