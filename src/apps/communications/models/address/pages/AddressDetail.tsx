@@ -13,7 +13,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
-import ContactLinksPanel from "../../../../common/components/panels/ContactLinksPanel";
+import ContactLinksPanel from "../../../../common/components/panels/ContactPanel";
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
