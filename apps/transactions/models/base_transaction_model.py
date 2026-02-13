@@ -2,7 +2,7 @@ from django.db import models
 from typing import Callable, Dict, Any
 from common.models import BaseModel
 from apps.transactions.choices import (
-    TRANSACTION_PARENT_TYPE_CHOICES,
+    TRANSACTION_PARENT_MODEL_CHOICES,
     TRANSACTION_STATUS_CHOICES,
 )
 
@@ -117,7 +117,7 @@ class TransactionBaseModel(BaseModel):
     STATUS_CANCELED = "canceled"
     STATUS_CHOICES = TRANSACTION_STATUS_CHOICES
 
-    PARENT_TYPE_CHOICES = TRANSACTION_PARENT_TYPE_CHOICES
+    PARENT_MODEL_CHOICES = TRANSACTION_PARENT_MODEL_CHOICES
     #denormalized from record.totals.total for indexing and quick queries
     total = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
     #denormalized from record.totals.balance for indexing and quick queries
@@ -129,7 +129,7 @@ class TransactionBaseModel(BaseModel):
     manufacturer_id = models.BigIntegerField(default=0, db_index=True)
     vendor_id = models.BigIntegerField(default=0, db_index=True)
     parent_id = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="ID of the parent transaction")
-    parent_type = models.CharField(max_length=20, choices=PARENT_TYPE_CHOICES, blank=True, null=True, db_index=True, help_text="Type of the parent transaction")
+    parent_model = models.CharField(max_length=20, choices=PARENT_MODEL_CHOICES, blank=True, null=True, db_index=True, help_text="Model of the parent transaction")
     cost = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     sell = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     # Header-level cached totals for quick filtering and reporting. Persisted so
