@@ -293,7 +293,7 @@ export default function WarehouseDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="warehouse"
+                parent_model="warehouse"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

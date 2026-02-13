@@ -765,7 +765,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     contacts,
     projects,
   } = useTransactionTasks({
-    parentType: "order",
+    parent_model: "order",
     parentId: currentOrderId,
     actionIds: currentActionIds,
     useActionIds: hasActionIds, // Only use IDs-based fetching when IDs exist

@@ -1047,7 +1047,7 @@ export default function CustomerDetail({
           {/* Standard Tabs - Documents */}
           {activeTab === "documents" && (
             <DocumentsPanel
-              parentType="customer"
+              parent_model="customer"
               parentId={data?.id || 0}
               data={data?.refs?.links?.document}
               isEditing={mode !== "view" || isEditing}
@@ -1087,7 +1087,7 @@ export default function CustomerDetail({
                   )}
                   isEditing={false}
                   allowCreate={true}
-                  parentType="customer"
+                  parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
@@ -1153,7 +1153,7 @@ export default function CustomerDetail({
                     data?.refs?.links?.contact ?? []
                   )}
                   isEditing={true}
-                  parentType="customer"
+                  parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}

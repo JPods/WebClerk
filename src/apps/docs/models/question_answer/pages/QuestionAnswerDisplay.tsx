@@ -361,7 +361,7 @@ export default function QuestionAnswerDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="question_answer"
+                parent_model="question_answer"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

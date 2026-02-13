@@ -245,7 +245,7 @@ export default function FlowDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="flow"
+                parent_model="flow"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

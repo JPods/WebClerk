@@ -183,7 +183,7 @@ export default function EmailDetail({
       case "documents":
         return (
           <DocumentsPanel
-            parentType="email"
+            parent_model="email"
             parentId={data?.id}
             data={data?.refs?.links?.document}
             isEditing={currentMode === "edit"}

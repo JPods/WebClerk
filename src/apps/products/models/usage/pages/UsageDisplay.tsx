@@ -267,7 +267,7 @@ export default function UsageDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="usage"
+                parent_model="usage"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

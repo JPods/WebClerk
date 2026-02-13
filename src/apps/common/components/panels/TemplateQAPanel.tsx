@@ -33,7 +33,7 @@ interface TemplateQAPanelProps extends Omit<BasePanelProps<unknown>, 'data' | 'o
   /** Question group name (e.g., "Planning", "Prepress") */
   questionGroup: string;
   /** Parent record type (e.g., "sales_order", "project") */
-  parentType: string;
+  parent_model: string;
   /** Parent record ID */
   parentId: number;
   /** Callback when answers change */
@@ -49,7 +49,7 @@ interface QuestionItemProps {
   options: QAEffectiveOptions;
   existingAnswer?: QAAnswerRecord;
   settingId: number;
-  parentType: string;
+  parent_model: string;
   parentId: number;
   canEdit: boolean;
   onSave: (answer: QAAnswerRecord) => Promise<void>;
@@ -68,7 +68,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
   options,
   existingAnswer,
   settingId,
-  parentType,
+  parent_model,
   parentId,
   canEdit,
   onSave,
@@ -139,7 +139,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
     try {
       const result = await uploadDocument({
         file,
-        parentType,
+        parent_model,
         parentId,
         purpose: 'qa_image',
         description: `QA: ${question.question}`,
@@ -181,7 +181,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
         question: question.question,
         setting_id: settingId,
         question_id: question.id,
-        parent_type: parentType,
+        parent_model: parent_model,
         parent_id: parentId,
         status: 'answered',
       };
@@ -395,7 +395,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
 
 const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
   questionGroup,
-  parentType,
+  parent_model,
   parentId,
   readOnly = false,
   viewRoles,
@@ -433,7 +433,7 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
       try {
         const [questionsSetting, existingAnswers] = await Promise.all([
           getQAQuestions(questionGroup),
-          parentId ? getQAAnswers(parentType, parentId) : Promise.resolve([]),
+          parentId ? getQAAnswers(parent_model, parentId) : Promise.resolve([]),
         ]);
 
         if (!mounted) return;
@@ -461,7 +461,7 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
     return () => {
       mounted = false;
     };
-  }, [questionGroup, parentType, parentId]);
+  }, [questionGroup, parent_model, parentId]);
 
   // Handle save
   const handleSaveAnswer = useCallback(async (answer: QAAnswerRecord) => {
@@ -542,7 +542,7 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
                   options={options}
                   existingAnswer={existingAnswer}
                   settingId={setting.id}
-                  parentType={parentType}
+                  parent_model={parent_model}
                   parentId={parentId}
                   canEdit={canEdit}
                   onSave={handleSaveAnswer}

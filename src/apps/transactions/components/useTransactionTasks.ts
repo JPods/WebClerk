@@ -30,7 +30,7 @@ interface ActionItem {
   project_id?: number;
   project_name?: string;
   contact_id?: number;
-  parent_type?: string;
+  parent_model?: string;
   parent_id?: number;
   // Flattened fields from backend
   who_name?: string;
@@ -40,7 +40,7 @@ interface ActionItem {
 }
 
 interface UseTransactionTasksOptions {
-  parentType: string;
+  parent_model: string;
   parentId?: number;
   actionIds?: number[];
   useActionIds?: boolean; // When true, only fetch by actionIds, never by parent
@@ -129,7 +129,7 @@ const apiToFormState = (action: ActionItem): TransactionTaskFormState => {
     project_id: action.project_id,
     project_name: action.project_name,
     kanban_column: action.kanban_column,
-    parent_type: action.parent_type,
+    parent_model: action.parent_model,
     parent_id: action.parent_id,
   };
 };
@@ -236,8 +236,8 @@ const formStateToApi = (
   }
 
   // Handle parent transaction link
-  if (task.parent_type) {
-    payload.parent_type = task.parent_type;
+  if (task.parent_model) {
+    payload.parent_model = task.parent_model;
   }
   if (task.parent_id) {
     payload.parent_id = task.parent_id;
@@ -252,7 +252,7 @@ const formStateToApi = (
 };
 
 export function useTransactionTasks({
-  parentType,
+  parent_model,
   parentId,
   actionIds = [],
   useActionIds = false,
@@ -275,7 +275,7 @@ export function useTransactionTasks({
 
     try {
       const response = await getRecords("action", {
-        parent_type: parentType,
+        parent_model: parent_model,
         parent_id: parentId,
         limit: 100,
       });
@@ -291,7 +291,7 @@ export function useTransactionTasks({
     } finally {
       setIsLoading(false);
     }
-  }, [parentType, parentId]);
+  }, [parent_model, parentId]);
 
   // Fetch tasks by specific IDs (for when order has actions.ids array)
   // Backend doesn't support id__in filter, so we fetch each action individually
@@ -433,7 +433,7 @@ export function useTransactionTasks({
       try {
         const payload = formStateToApi({
           ...task,
-          parent_type: parentType,
+          parent_model: parent_model,
           parent_id: parentId,
         });
 
@@ -466,7 +466,7 @@ export function useTransactionTasks({
       }
     },
     [
-      parentType,
+      parent_model,
       parentId,
       fetchTasks,
       fetchTasksByIds,

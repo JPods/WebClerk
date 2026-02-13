@@ -82,7 +82,7 @@ const QATestPage: React.FC = () => {
         {selectedGroup && (
           <QAPanel
             questionGroup={selectedGroup}
-            parentType="test"
+            parent_model="test"
             parentId={parentId}
             onAnswersChange={(answers) => {
               console.log('Answers changed:', answers);

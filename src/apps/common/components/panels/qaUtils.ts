@@ -293,14 +293,14 @@ export async function getScopedQAQuestionGroups(modelName?: string): Promise<Sco
  * Returns answers sorted by id (oldest first, newest at bottom)
  */
 export async function getQAAnswers(
-  parentModel: string,
+  parent_model: string,
   parentId: number
 ): Promise<QAAnswerRecord[]> {
   try {
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
       params: {
         model_name: 'question_answer',
-        parent_model: parentModel,
+        parent_model: parent_model,
         parent_id: parentId,
       },
     });
@@ -308,7 +308,7 @@ export async function getQAAnswers(
     // Sort by id ascending so newest answers are at the bottom
     return results.sort((a, b) => (a.id || 0) - (b.id || 0));
   } catch (err: any) {
-    console.error(`Failed to fetch Q&A answers for ${parentModel}/${parentId}:`, err);
+    console.error(`Failed to fetch Q&A answers for ${parent_model}/${parentId}:`, err);
     return [];
   }
 }
@@ -361,21 +361,21 @@ export interface ApplyQuestionGroupResponse {
  * 
  * @param questionGroup - Name of the question group (e.g., 'Planning')
  * @param settingId - ID of the Setting record containing the question template
- * @param parentModel - Model name of the parent (e.g., 'order', 'customer')
+ * @param parent_model - Model name of the parent (e.g., 'order', 'customer')
  * @param parentId - ID of the parent record
  * @returns Response with created/existing counts and all QA records
  */
 export async function applyQuestionGroup(
   questionGroup: string,
   settingId: number,
-  parentModel: string,
+  parent_model: string,
   parentId: number
 ): Promise<ApplyQuestionGroupResponse> {
   try {
     const res = await apiClient.post<{ data: ApplyQuestionGroupResponse }>('/wcapi/qa/apply/', {
       question_group: questionGroup,
       setting_id: settingId,
-      parent_model: parentModel,
+      parent_model: parent_model,
       parent_id: parentId,
     });
     return res.data.data || res.data;
@@ -394,12 +394,12 @@ export async function applyQuestionGroup(
  */
 export async function uploadQAImage(
   file: File,
-  parentModel: string,
+  parent_model: string,
   parentId: number
 ): Promise<{ path: string; filename: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('parent_model', parentModel);
+  formData.append('parent_model', parent_model);
   formData.append('parent_id', String(parentId));
   formData.append('purpose', 'qa_image');
 

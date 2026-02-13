@@ -538,7 +538,7 @@ export default function DocumentDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="document"
+                parent_model="document"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

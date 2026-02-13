@@ -159,7 +159,7 @@ export default function AddressDetail({
       case "documents":
         return (
           <DocumentsPanel
-            parentType="address"
+            parent_model="address"
             parentId={data?.id}
             data={data?.refs?.links?.document}
             isEditing={currentMode === "edit"}

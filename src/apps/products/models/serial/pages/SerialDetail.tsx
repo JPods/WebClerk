@@ -293,7 +293,7 @@ export default function SerialDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="serial"
+                parent_model="serial"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

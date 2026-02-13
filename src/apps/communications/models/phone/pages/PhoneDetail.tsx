@@ -162,7 +162,7 @@ export default function PhoneDetail({
       case "documents":
         return (
           <DocumentsPanel
-            parentType="phone"
+            parent_model="phone"
             parentId={data?.id}
             data={data?.refs?.links?.document}
             isEditing={currentMode === "edit"}

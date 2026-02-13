@@ -254,7 +254,7 @@ export default function WarehouseDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="warehouse"
+                parent_model="warehouse"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

@@ -120,7 +120,7 @@ export interface UploadDocumentOptions {
   /** The file to upload */
   file: File;
   /** Parent model type (e.g., 'sales_order', 'question_answer') */
-  parentType: string;
+  parent_model: string;
   /** Parent record ID */
   parentId: number;
   /** Purpose/category of the document (e.g., 'qa_image', 'attachment', 'spec_sheet') */
@@ -184,7 +184,7 @@ export async function uploadDocument(
 ): Promise<UploadDocumentResult> {
   const {
     file,
-    parentType,
+    parent_model,
     parentId,
     purpose = 'attachment',
     description,
@@ -196,7 +196,7 @@ export async function uploadDocument(
   // Single-step: Upload file and create Document record
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('model_name', parentType);
+  formData.append('model_name', parent_model);
   formData.append('parent_id', String(parentId));
   formData.append('purpose', purpose);
   if (description) formData.append('description', description);
@@ -270,7 +270,7 @@ export async function uploadDocument(
       url,
     },
     checksum,
-    model_name: parentType,
+    model_name: parent_model,
     metadata: {
       original_name: file.name,
       upload_source: 'web',
@@ -300,7 +300,7 @@ export async function uploadDocument(
  */
 export async function uploadDocuments(
   files: File[],
-  parentType: string,
+  parent_model: string,
   parentId: number,
   options?: {
     purpose?: string;
@@ -313,7 +313,7 @@ export async function uploadDocuments(
     const result = await uploadDocument(
       {
         file: files[i],
-        parentType,
+        parent_model,
         parentId,
         purpose: options?.purpose,
       },
@@ -504,7 +504,7 @@ export async function uploadDocumentWithLocation(
 import { useState, useCallback } from 'react';
 
 interface UseDocumentUploadOptions {
-  parentType: string;
+  parent_model: string;
   parentId: number;
   purpose?: string;
   maxSizeBytes?: number;
@@ -562,7 +562,7 @@ export function useDocumentUpload(
         const result = await uploadDocument(
           {
             file,
-            parentType: options.parentType,
+            parent_model: options.parent_model,
             parentId: options.parentId,
             purpose: options.purpose,
           },

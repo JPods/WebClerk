@@ -276,7 +276,7 @@ export default function ServiceDisplay({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="service"
+                parent_model="service"
                 parentId={data?.id}
                 data={data?.refs?.links?.document}
                 isEditing={currentMode !== "view"}

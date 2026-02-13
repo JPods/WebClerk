@@ -292,7 +292,7 @@ export default function MatricsDetail({
 
             {activeTab === "documents" && (
               <DocumentsPanel
-                parentType="matrics"
+                parent_model="matrics"
                 parentId={recordData?.id}
                 data={recordData?.refs?.links?.document}
                 isEditing={currentMode !== "view"}
