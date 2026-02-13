@@ -42,6 +42,7 @@ export default function DetailShell({
   const inlineHeader = inline && showInlineHeader ? (
     <div className="flex justify-between items-center mb-4">
       <h3 className="dark:text-white text-lg font-semibold">
+        <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">{title}Detail</span>
         {getHeaderTitle(title, mode)}
       </h3>
       {onCancelInline && (

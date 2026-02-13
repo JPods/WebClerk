@@ -1072,6 +1072,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       )}
       {/* QQQ Summary and Lines item  */}
       <div className="flex items-center justify-between mb-0">
+        <span className="absolute top-1 left-1 z-10 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">{transactionType}Detail</span>
         {renderHeader ? (
           renderHeader(currentData, isEditing, handleFieldChange)
         ) : (

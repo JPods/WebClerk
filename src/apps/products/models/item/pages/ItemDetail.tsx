@@ -830,6 +830,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
       <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+            <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">ItemDetail</span>
             {data.name || "Unnamed Item"}
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
