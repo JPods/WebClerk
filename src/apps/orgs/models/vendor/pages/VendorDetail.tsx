@@ -542,11 +542,10 @@ export default function VendorDetail({
 
               {/* Financial Tab */}
               {activeTab === "financial" && data?.financial && (
-                <FinancialSummaryPanel
-                  customer={data.financial?.customer}
-                  common={data.financial?.common}
+                <FinancialsPanel
+                  data={data.financial?.customer}
                   currency="USD"
-                  columns={columnCount}
+                  className="mb-4"
                 />
               )}
 

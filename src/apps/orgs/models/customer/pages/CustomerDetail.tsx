@@ -7,10 +7,11 @@ import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
+import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog, FaColumns } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog, FaColumns, FaUserPlus } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
@@ -18,14 +19,14 @@ import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
 import { 
-  CustomerFinancialPanel, 
-  BasicInformationPanel, 
-  FinancialSummaryPanel,
+  FinancialsPanel, 
+  BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
   DocumentsPanel,
   MetadataPanel,
   RawDataPanel,
+  ContactLinksPanel,
 } from "@/apps/common/components/panels";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
@@ -497,11 +498,64 @@ export default function CustomerDetail({
     await saveCustomer(formData);
   };
 
+  // Handler to create a contact from customer information
+  const handleCreateContact = useCallback(async () => {
+    const record = dataProp || fetchedRecord;
+    if (!record) {
+      dispatch(showToast({ message: "No customer data available", type: "error" }));
+      return;
+    }
+
+    // Parse attention field to get first/last name
+    const attention = record.attention || "";
+    const nameParts = attention.trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    // Build contact payload from customer data
+    const contactPayload = {
+      name_first: firstName,
+      name_last: lastName,
+      attention: attention,
+      email: record.email || `contact${record.id}@placeholder.com`,
+      company: record.display_name || "",
+      customer_id: typeof record.id === 'number' ? record.id : undefined,
+      comment: `Created from customer #${record.id}`,
+      refs: {
+        links: {
+          customer: typeof record.id === 'number' ? [record.id] : [],
+        },
+      },
+    };
+
+    try {
+      const result = await createContact(contactPayload);
+      if (result) {
+        dispatch(showToast({ message: "Contact created successfully", type: "success" }));
+      }
+    } catch (err: any) {
+      dispatch(showToast({ message: err?.message || "Failed to create contact", type: "error" }));
+    }
+  }, [dataProp, fetchedRecord, dispatch]);
+
   // Action buttons configuration based on mode
   const getActionButtons = () => {
     const buttons = [];
 
     if (baseMode === "view" && !isEditing) {
+      // View mode - show Create Contact button
+      buttons.push(
+        <button
+          key="create-contact"
+          type="button"
+          onClick={handleCreateContact}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+          title="Create Contact from Customer"
+        >
+          <FaUserPlus size={14} />
+          Create Contact
+        </button>
+      );
       // View mode - show Edit button to switch to edit mode
       buttons.push(
         <button
@@ -680,194 +734,202 @@ export default function CustomerDetail({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-      {/* Compact Header */}
-      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-              {customerData.display_name || "New Customer"}
-              {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
-            </h2>
-            <div className="flex items-center gap-3 mt-1">
-              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                customerData.is_active
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-              }`}>
-                {customerData.is_active ? 'Active' : 'Inactive'}
+  <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+    {/* Compact Header */}
+    <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+      <div className="flex items-center justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+            {customerData.display_name || "New Customer"}
+            {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
+          </h2>
+          <div className="flex items-center gap-3 mt-1">
+            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+              customerData.is_active
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+            }`}>
+              {customerData.is_active ? 'Active' : 'Inactive'}
+            </span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
+            </span>
+            {(mode === "edit" || mode === "add") && isDirty && (
+              <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                Unsaved changes
               </span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">
-                {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
-              </span>
-              {(mode === "edit" || mode === "add") && isDirty && (
-                <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                  Unsaved changes
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            {getActionButtons()}
-          </div>
-        </div>
-      </div>
-
-      {/* Transaction-style Toolbar (edit/add mode) */}
-      {(mode === "edit" || mode === "add") && (
-        <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-          <TransactionToolbar
-            transactionType="order"
-            transactionId={data?.id}
-            isDirty={isDirty}
-            isSaving={isSubmitting}
-            isEditing
-            onSave={handleSubmit(async (fd) => {
-              await saveCustomer(fd);
-            })}
-            onSaveAndClose={
-              (inline ? !!onCancelInline : !!onCancel)
-                ? handleSubmit(async (fd) => {
-                    const ok = await saveCustomer(fd);
-                    if (ok) handleCancel();
-                  })
-                : undefined
-            }
-            onCancel={handleCancel}
-            canClone={false}
-            canTransfer={false}
-            canDelete={false}
-            showTaskButton={false}
-          />
-        </div>
-      )}
-
-      {/* Persistent Basic Information Panel - always visible in view mode */}
-      {/* In edit/add mode, show editable form fields instead */}
-      <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-        {mode === "view" ? (
-          <div className="space-y-3">
-            <BasicInformationPanel
-              data={customerData}
-              columns={columnCount}
-            />
-            {/* Financial Summary - Collapsible */}
-            {customerData.financial && (
-              <FinancialSummaryPanel
-                customer={customerData.financial?.customer}
-                common={customerData.financial?.common}
-                currency="USD"
-                defaultCollapsed={true}
-                columns={columnCount}
-              />
             )}
           </div>
-        ) : (
-          /* Editable Basic Information - Horizontal Layout */
-          <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
-            <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
-              <Input
-                type="text"
-                id="display_name"
-                placeholder="Enter company name"
-                {...register("display_name")}
-                error={errors.display_name && errors.display_name.message ? true : false}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Email" htmlFor="email">
-              <Input
-                type="email"
-                id="email"
-                placeholder="Primary email"
-                {...register("email")}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Attention" htmlFor="attention">
-              <Input
-                type="text"
-                id="attention"
-                placeholder="Attn: line"
-                {...register("attention")}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Phone" htmlFor="phone">
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="Primary phone"
-                {...register("phone")}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Price Level" htmlFor="price_level">
-              <Input
-                type="text"
-                id="price_level"
-                placeholder="retail, wholesale"
-                {...register("price_level")}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Status" htmlFor="status" required>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={STATUS_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select status"
-                  />
-                )}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Org Type" htmlFor="org_type">
-              <Controller
-                name="org_type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={ORG_TYPE_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select type"
-                  />
-                )}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="Version" htmlFor="version">
-              <Input
-                type="number"
-                id="version"
-                placeholder="1"
-                {...register("version", { valueAsNumber: true })}
-              />
-            </HorizontalField>
-
-            <div className="flex items-center gap-2 py-2">
-              <div className="w-20 shrink-0" />
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_active"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Active"
-                  />
-                )}
-              />
-            </div>
-          </div>
-        )}
+        </div>
+        <div className="flex items-center gap-2 ml-4">
+          {getActionButtons()}
+        </div>
       </div>
+    </div>
+
+    {/* Transaction-style Toolbar (edit/add mode) */}
+    {(mode === "edit" || mode === "add") && (
+      <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <TransactionToolbar
+          transactionType="order"
+          transactionId={data?.id}
+          isDirty={isDirty}
+          isSaving={isSubmitting}
+          isEditing
+          onSave={handleSubmit(async (fd) => {
+            await saveCustomer(fd);
+          })}
+          onSaveAndClose={
+            (inline ? !!onCancelInline : !!onCancel)
+              ? handleSubmit(async (fd) => {
+                  const ok = await saveCustomer(fd);
+                  if (ok) handleCancel();
+                })
+              : undefined
+          }
+          onCancel={handleCancel}
+          canClone={false}
+          canTransfer={false}
+          canDelete={false}
+          showTaskButton={false}
+        />
+      </div>
+    )}
+
+    {/* Persistent Basic Information Panel - always visible in view mode */}
+    {/* In edit/add mode, show editable form fields instead */}
+    <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+      {mode === "view" ? (
+        <div className="space-y-3">
+          <BasicInformationPanel
+            data={customerData}
+            columns={columnCount}
+          />
+          {/* Always show ContactLinksPanel inline */}
+          <ContactLinksPanel
+            entityType="customer"
+            entityId={customerData.id}
+            data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
+            readOnly={true}
+            title="Contacts"
+            defaultCollapsed={false}
+          />
+          {/* Financial Summary - Collapsible */}
+          {customerData.financial && (
+            <FinancialsPanel
+              data={customerData.financial?.customer}
+              currency="USD"
+              defaultCollapsed={true}
+              compact
+            />
+          )}
+        </div>
+      ) : (
+        /* Editable Basic Information - Horizontal Layout */
+        <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
+          <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
+            <Input
+              type="text"
+              id="display_name"
+              placeholder="Enter company name"
+              {...register("display_name")}
+              error={errors.display_name && errors.display_name.message ? true : false}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Email" htmlFor="email">
+            <Input
+              type="email"
+              id="email"
+              placeholder="Primary email"
+              {...register("email")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Attention" htmlFor="attention">
+            <Input
+              type="text"
+              id="attention"
+              placeholder="Attn: line"
+              {...register("attention")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Phone" htmlFor="phone">
+            <Input
+              type="tel"
+              id="phone"
+              placeholder="Primary phone"
+              {...register("phone")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Price Level" htmlFor="price_level">
+            <Input
+              type="text"
+              id="price_level"
+              placeholder="retail, wholesale"
+              {...register("price_level")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Status" htmlFor="status" required>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={STATUS_OPTIONS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select status"
+                />
+              )}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Org Type" htmlFor="org_type">
+            <Controller
+              name="org_type"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={ORG_TYPE_OPTIONS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select type"
+                />
+              )}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="Version" htmlFor="version">
+            <Input
+              type="number"
+              id="version"
+              placeholder="1"
+              {...register("version", { valueAsNumber: true })}
+            />
+          </HorizontalField>
+
+          <div className="flex items-center gap-2 py-2">
+            <div className="w-20 shrink-0" />
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="is_active"
+                  checked={field.value ?? false}
+                  onChange={field.onChange}
+                  label="Active"
+                />
+              )}
+            />
+          </div>
+        </div>
+      )}
+    </div>
 
       {/* Tab Navigation - Using DetailTabs component */}
       <DetailTabs
@@ -970,16 +1032,40 @@ export default function CustomerDetail({
                       <FaDollarSign size={16} className="text-green-500" />
                       Financial Details
                     </h3>
-                    <CustomerFinancialPanel
-                      customer={customerData.financial?.customer}
-                      common={customerData.financial?.common}
+                    <FinancialsPanel
+                      data={customerData.financial?.customer}
                       currency="USD"
                       showAll={true}
                       columns={columnCount}
                     />
                   </div>
                 )}
-                {["communication", "relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
+                {activeTab === "communication" && (
+                  <div className="space-y-4">
+                    {/* Contacts Table */}
+                    <ContactLinksPanel
+                      entityType="customer"
+                      entityId={customerData.id}
+                      data={safeParseJson(formData.contacts as unknown as string | undefined, []) as any[]}
+                      readOnly={true}
+                      title="Contacts"
+                      defaultCollapsed={false}
+                    />
+                    {/* Other communication data */}
+                    <CustomerDataPanel
+                      data={{
+                        addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
+                        domains: safeParseJson(formData.domains as unknown as string | undefined, []),
+                        phones: safeParseJson(formData.phones as unknown as string | undefined, []),
+                        emails: safeParseJson(formData.emails as unknown as string | undefined, []),
+                      }}
+                      showScalars={false}
+                      grouped={false}
+                      onSelectCategory={() => {}}
+                    />
+                  </div>
+                )}
+                {["relations", "connections", "data", "metrics", "gl_accounts"].includes(activeTab) && (
                   <CustomerDataPanel
                     data={getTabData(activeTab)}
                     showScalars={false}

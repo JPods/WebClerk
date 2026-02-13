@@ -85,7 +85,7 @@ Every Detail page should have a tab navigation component with the following stan
 |-----|-----------------|--------|
 | **Communications** | `CommunicationsPanel` | Contact, Customer, Vendor, Employee |
 | **Contacts** | `ContactLinksPanel` | Customer, Vendor, Order, Invoice |
-| **Financials** | `FinancialSummaryPanel` | Customer, Vendor |
+| **Financials** | `FinancialsPanel` | Customer, Vendor |
 | **Lines** | `LinesCard` | Order, Invoice, Proposal, Purchase |
 | **Q&A** | `QAPanel` | Template, Campaign |
 | **Linkages** | `LinkagesPanel` | Order, Invoice (flow tracking) |

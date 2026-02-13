@@ -393,20 +393,30 @@ const createTranslationEntry = (language: string, title = "", description = ""):
 
 const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 
-const createInitialTaskFormState = (columnId: string): TaskFormState => ({
-  translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
-  columnId,
-  projectId: "",
-  priority: "medium",
-  dt_deadline: "",
-  dt_start: "",
-  dt_completed: "",
-  dt_expected: "",
-  assigned_to: [],
-  difficulty: DEFAULT_DIFFICULTY_STRING,
-  percent_complete: DEFAULT_PROGRESS_STRING,
-  is_active: "true",
-});
+const createInitialTaskFormState = (columnId: string): TaskFormState => {
+  // Helper to format date as datetime-local string (YYYY-MM-DDTHH:MM)
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const formatDT = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  
+  const now = new Date();
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  return {
+    translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
+    columnId,
+    projectId: "",
+    priority: "medium",
+    dt_deadline: formatDT(sevenDaysLater),
+    dt_start: formatDT(now),
+    dt_completed: "",
+    dt_expected: "",
+    assigned_to: [],
+    difficulty: DEFAULT_DIFFICULTY_STRING,
+    percent_complete: DEFAULT_PROGRESS_STRING,
+    is_active: "true",
+  };
+};
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
   for (const code of DEFAULT_LANGUAGE_ORDER) {
