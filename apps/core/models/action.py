@@ -251,6 +251,18 @@ class Action(BaseModel):
         def is_empty(val):
             return val is None or val == 0
         
+        # For new actions with a project, set dt_start from project.dt_kanban, dt_deadline = dt_start + 7 days
+        if not self.pk and self.project_id and self.project_id > 0:
+            from apps.transactions.models import Project
+            project = Project.objects.filter(id=self.project_id).first()
+            if project and project.dt_kanban:
+                # Convert datetime to milliseconds
+                kanban_ts = int(project.dt_kanban.timestamp() * 1000)
+                if is_empty(self.dt_start):
+                    self.dt_start = kanban_ts
+                if is_empty(self.dt_deadline):
+                    self.dt_deadline = self.dt_start + (7 * one_day_ms)
+        
         # Only apply logic if duration is set and positive
         if self.duration and self.duration > 0:
             duration_ms = self.duration * one_day_ms

@@ -10,8 +10,9 @@ from .item import Item
 
 class BillOfMaterial(BaseModel):
 
-    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
-    description = models.CharField(max_length=255, blank=True, help_text="Description for this BOM line")
+    parent_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
+    recalc_parent_cost_description = models.CharField(max_length=255, blank=True, help_text="Description for this parent item (denormalized from Item.description for convenience)")
+    parent_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent")
 
     @property
     def ida(self):
@@ -37,8 +38,10 @@ class BillOfMaterial(BaseModel):
       - validation: quantity>0, 0<=scrap_factor<1, parent!=component, no duplicate sequence per parent+revision
     """
 
-    item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent")
-    component_id = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_component")
+
+    child_id = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_child")
+    child_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM child item (denormalized from Item.ida for convenience)")
+    child_description = models.CharField(max_length=255, blank=True, help_text="Description for this child item (denormalized from Item.description for convenience)")
 
     revision = models.CharField(max_length=20, blank=True, default="")
     dt_effective_from = models.DateField(null=True, blank=True)
@@ -66,14 +69,14 @@ class BillOfMaterial(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["item_id", "component_id"], name="uniq_bom_parent_component"),
-            models.CheckConstraint(check=~models.Q(item_id=models.F('component_id')), name='ck_bom_parent_ne_component'),
+            models.UniqueConstraint(fields=["parent_id", "child_id"], name="uniq_bom_parent_component"),
+            models.CheckConstraint(check=~models.Q(parent_id=models.F('child_id')), name='ck_bom_parent_ne_component'),
             models.CheckConstraint(check=models.Q(scrap_factor__gte=0) & models.Q(scrap_factor__lt=1), name='ck_bom_scrap_range'),
         ]
         indexes = [
-            models.Index(fields=("item_id",), name="bom_parent_idx"),
-            models.Index(fields=("component_id",), name="bom_component_idx"),
-            models.Index(fields=("item_id", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
+            models.Index(fields=("parent_id",), name="bom_parent_idx"),
+            models.Index(fields=("child_id",), name="bom_component_idx"),
+            models.Index(fields=("parent_id", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
         ]
 
     def clean(self):  # pragma: no cover - simple validations
