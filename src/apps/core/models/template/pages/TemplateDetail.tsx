@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Target, Type, Database } from "lucide-react";
+import { Target, Type, Database, CheckSquare, MessageSquare, FileIcon, History, Link, Code, FileText, SlidersHorizontal } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import HorizontalField from "../../../../../components/form/HorizontalField";
@@ -13,6 +13,13 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createTemplate, updateTemplate } from "../services/templateApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+
+// Panels
+import { ActionsPanel, CommentsPanel, DocumentsPanel, MetadataPanel, PrefsPanel, RefsPanel } from "@/apps/common/components/panels";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { useLocation, useNavigate } from "react-router";
 import { templateSchema } from "../utils/templateSchema";
 import { TemplateAddProps } from "../types/templateType";
@@ -48,17 +55,43 @@ export default function TemplateDetail({
   const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
+
+  // Full record data for panels
+  const [recordData, setRecordData] = useState<any>(data || {});
+
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("template_detail", "actions", [
+    "actions", "comments", "documents", "history", "metadata", "prefs", "raw", "refs",
+  ]);
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "metadata", label: "Metadata", icon: <FileText size={14} /> },
+      { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+    ],
+    [recordData],
+  );
+
   useEffect(() => {
     if (initialMode === "add") {
       reset();
+      setRecordData({});
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
       });
+      setRecordData(data);
     } else {
       reset({});
+      setRecordData({});
     }
   }, [data, reset, setValue, initialMode]);
 
@@ -232,6 +265,45 @@ export default function TemplateDetail({
           )}
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      {recordData?.id && (
+        <>
+          <DetailTabs
+            entityType="template_detail"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[]}
+            additionalTabs={tabs}
+          />
+          <div className="mt-4">
+            {activeTab === "actions" && (
+              <ActionsPanel entityType="template" entityId={recordData.id} data={recordData?.actions?.items} actionIds={recordData?.actions?.ids} isEditing={currentMode !== "view"} onChange={(actions: any) => setRecordData({ ...recordData, actions: { ...recordData.actions, items: actions } })} />
+            )}
+            {activeTab === "comments" && (
+              <CommentsPanel comments={recordData?.comments} isEditing={currentMode !== "view"} entityType="template" entityId={recordData.id} onChange={(comments: any) => setRecordData({ ...recordData, comments })} />
+            )}
+            {activeTab === "documents" && (
+              <DocumentsPanel parent_model="template" parentId={recordData.id} data={recordData?.refs?.links?.document} isEditing={currentMode !== "view"} onChange={(docs: any) => setRecordData({ ...recordData, refs: { ...recordData.refs, links: { ...recordData.refs?.links, document: docs } } })} />
+            )}
+            {activeTab === "history" && (
+              <MetadataPanel entityType="template" entityId={recordData.id} data={recordData?.metadata} />
+            )}
+            {activeTab === "metadata" && (
+              <MetadataPanel entityType="template" entityId={recordData.id} data={recordData?.metadata} />
+            )}
+            {activeTab === "prefs" && (
+              <PrefsPanel entityType="template" entityId={recordData.id} data={recordData?.prefs} />
+            )}
+            {activeTab === "raw" && (
+              <JsonFieldEditor label="Full Template JSON" value={recordData} readonly defaultExpanded maxHeight="600px" />
+            )}
+            {activeTab === "refs" && (
+              <RefsPanel entityType="template" entityId={recordData.id} data={recordData?.refs} isEditing={currentMode !== "view"} onChange={(refs: any) => setRecordData({ ...recordData, refs })} />
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }

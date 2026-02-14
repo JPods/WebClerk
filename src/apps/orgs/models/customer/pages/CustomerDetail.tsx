@@ -12,7 +12,7 @@ import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaUserPlus } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaUserPlus, FaQuestionCircle, FaLink, FaSlidersH } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
@@ -20,7 +20,7 @@ import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { 
-  FinancialsPanel, 
+  TransactionFinancialsPanel, 
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
@@ -29,6 +29,9 @@ import {
   RawDataPanel,
   RefsLinksContactPanel,
   normalizeRefsLinksContact,
+  QAPanel,
+  RefsPanel,
+  PrefsPanel,
 } from "@/apps/common/components/panels";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
@@ -134,7 +137,7 @@ const COLUMN_OPTIONS = [
 
 const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
-const VALID_TABS = ["comments", "actions", "contacts", "documents", "communications", "financial", "history", "raw"];
+const VALID_TABS = ["actions", "comments", "contacts", "documents", "financial", "history", "metadata", "prefs", "qa", "raw", "refs"];
 
 export default function CustomerDetail({
   modeProp,
@@ -290,11 +293,14 @@ export default function CustomerDetail({
   const onPrev = handlePrev;
   const onNext = handleNext;
 
-  // Additional tabs specific to Customer (Communications, Financial, etc.)
+  // Additional tabs specific to Customer
   const additionalTabs = [
     { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} /> },
-    { id: 'communications', label: 'Communications', icon: <FaPhone size={14} /> },
     { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
+    { id: 'metadata', label: 'Metadata', icon: <FaFileAlt size={14} /> },
+    { id: 'prefs', label: 'Prefs', icon: <FaSlidersH size={14} /> },
+    { id: 'qa', label: 'Q&A', icon: <FaQuestionCircle size={14} /> },
+    { id: 'refs', label: 'Refs', icon: <FaLink size={14} /> },
   ];
 
   const {
@@ -783,7 +789,6 @@ export default function CustomerDetail({
     // Define which fields belong to each tab
     const tabFieldMapping: Record<string, string[]> = {
       contacts: ['contacts'],
-      communications: ['addresses', 'domains', 'phones', 'emails'],
       financial: ['financial'],
       documents: ['docs'],
     };
@@ -1002,7 +1007,7 @@ export default function CustomerDetail({
       entityType="customer"
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      standardTabs={['comments', 'actions', 'documents', 'history', 'raw']}
+      standardTabs={['actions', 'comments', 'documents', 'history', 'raw']}
       additionalTabs={additionalTabs}
       badges={tabBadges}
       showColumnSelector={true}
@@ -1067,6 +1072,42 @@ export default function CustomerDetail({
             />
           )}
 
+          {/* Metadata tab */}
+          {activeTab === "metadata" && (
+            <MetadataPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data?.metadata}
+            />
+          )}
+
+          {/* Prefs tab */}
+          {activeTab === "prefs" && (
+            <PrefsPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data?.prefs}
+            />
+          )}
+
+          {/* Q&A tab */}
+          {activeTab === "qa" && (
+            <QAPanel
+              parent_model="customer"
+              parentId={data?.id || 0}
+              data={data?.qa}
+            />
+          )}
+
+          {/* Refs tab */}
+          {activeTab === "refs" && (
+            <RefsPanel
+              entityType="customer"
+              entityId={data?.id || 0}
+              data={data?.refs}
+            />
+          )}
+
           {/* Standard Tabs - Raw (Admin) */}
           {activeTab === "raw" && (
             <RawDataPanel
@@ -1112,35 +1153,12 @@ export default function CustomerDetail({
                 />
               )}
 
-              {/* Communications tab – addresses, domains, phones, emails */}
-              {activeTab === "communications" && (
-                <CustomerDataPanel
-                  data={{
-                    addresses: safeParseJson(formData.addresses as unknown as string | undefined, []),
-                    domains: safeParseJson(formData.domains as unknown as string | undefined, []),
-                    phones: safeParseJson(formData.phones as unknown as string | undefined, []),
-                    emails: safeParseJson(formData.emails as unknown as string | undefined, []),
-                  }}
-                  showScalars={false}
-                  grouped={false}
-                  onSelectCategory={() => {}}
-                />
-              )}
-
               {/* Financial tab */}
               {activeTab === "financial" && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                    <FaDollarSign size={16} className="text-green-500" />
-                    Financial Details
-                  </h3>
-                  <FinancialsPanel
-                    data={customerData.financial?.customer}
-                    currency="USD"
-                    showAll={true}
-                    columns={columnCount}
-                  />
-                </div>
+                <TransactionFinancialsPanel
+                  totals={customerData.financial?.customer}
+                  currency="USD"
+                />
               )}
             </>
           ) : (
@@ -1192,12 +1210,6 @@ export default function CustomerDetail({
               {/* Other model-specific tabs in edit mode – JSON editors */}
               {(
                 {
-                  communications: [
-                    { field: "addresses", label: "addresses" },
-                    { field: "domains", label: "domains" },
-                    { field: "phones", label: "phones" },
-                    { field: "emails", label: "emails" },
-                  ],
                   financial: [{ field: "financial", label: "financial" }],
                 } as Record<
                   string,

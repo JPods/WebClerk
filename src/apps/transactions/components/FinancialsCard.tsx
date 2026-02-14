@@ -1,1 +1,1 @@
-export { default } from "@/apps/common/components/panels/TransactionFinancialsPanel";
+export { default } from "@/apps/common/components/panels/FinancialsPanel";

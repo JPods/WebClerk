@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,21 +7,36 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import DetailTabs from "@/components/common/DetailTabs";
 import { createVendor, updateVendor } from "../services/vendorApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { FaDollarSign, FaPhone, FaUsers } from "react-icons/fa";
+import {
+  FaAddressCard,
+  FaDollarSign,
+  FaFileAlt,
+  FaLink,
+  FaQuestionCircle,
+  FaSlidersH,
+} from "react-icons/fa";
 import { vendorSchema } from "../utils/vendorSchema";
 import { VendorAddProps } from "../types/vendorType";
 import Checkbox from "@/components/form/input/Checkbox";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
+  ActionsPanel,
   CommentsPanel,
   DocumentsPanel,
+  MetadataPanel,
+  PrefsPanel,
+  QAPanel,
+  RawDataPanel,
   RefsLinksContactPanel,
+  RefsPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
+import { FinancialsPanel } from "@/apps/common/components/panels";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
 
@@ -56,8 +71,14 @@ export default function VendorDetail({
   const location = useLocation();
   const routeState = (location.state as any) || {};
   const baseMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [columnCount, setColumnCount] = useState<2 | 3>(3);
+
   const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
   const data = dataProp || routeState.data || null;
+  const vendorData = data ?? {};
 
   const [panelRecord, setPanelRecord] = useState<any>(data ?? {});
   useEffect(() => {
@@ -265,6 +286,31 @@ export default function VendorDetail({
     if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
   };
 
+  const handleTabChange = useCallback((tab: string) => setActiveTab(tab), []);
+  const handleColumnChange = useCallback((c: 2 | 3) => setColumnCount(c), []);
+
+  // Additional tabs (alphabetized) matching CustomerDetail pattern
+  const additionalTabs = useMemo(
+    () => [
+      { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
+      { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
+      { id: "metadata", label: "Metadata", icon: <FaFileAlt size={14} /> },
+      { id: "prefs", label: "Prefs", icon: <FaSlidersH size={14} /> },
+      { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
+      { id: "refs", label: "Refs", icon: <FaLink size={14} /> },
+    ],
+    [],
+  );
+
+  const tabBadges = useMemo(() => {
+    const badges: Record<string, number> = {};
+    const commentCount = Object.keys(panelRecord?.comments?.items ?? {}).length;
+    if (commentCount) badges.comments = commentCount;
+    const contactCount = (panelRecord?.refs?.links?.contact ?? []).length;
+    if (contactCount) badges.contacts = contactCount;
+    return badges;
+  }, [panelRecord]);
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -418,7 +464,7 @@ export default function VendorDetail({
           entityType="vendor"
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          standardTabs={['overview', 'comments', 'actions', 'documents', 'history', 'raw']}
+          standardTabs={['actions', 'comments', 'documents', 'history', 'overview', 'raw']}
           additionalTabs={additionalTabs}
           badges={tabBadges}
           showColumnSelector={true}
@@ -490,19 +536,6 @@ export default function VendorDetail({
                 </div>
               )}
 
-              {/* Comments Tab */}
-              {activeTab === "comments" && data?.id && (
-                <CommentsPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  comments={data.comments}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(comments) => console.log('Comments updated:', comments)}
-                  currentUser={currentUser?.display_name || currentUser?.username}
-                  currentUserId={currentUser?.id}
-                />
-              )}
-
               {/* Actions Tab */}
               {activeTab === "actions" && data?.id && (
                 <ActionsPanel
@@ -511,61 +544,121 @@ export default function VendorDetail({
                   data={data.actions?.items}
                   actionIds={data.actions?.ids}
                   isEditing={mode !== "view" || isEditing}
-                  onChange={(actions) => console.log('Actions updated:', actions)}
+                  onChange={(actions: any) => console.log('Actions updated:', actions)}
                 />
+              )}
+
+              {/* Comments Tab */}
+              {activeTab === "comments" && (
+                <CommentsPanel
+                  entityType="vendor"
+                  entityId={vendorId ?? 0}
+                  comments={panelRecord?.comments}
+                  isEditing={canEditPanels}
+                  onChange={(next) =>
+                    setPanelRecord((prev: any) => ({ ...prev, comments: next }))
+                  }
+                  onSave={canEditPanels ? handleVendorCommentsSave : undefined}
+                  currentUser={currentUser}
+                  currentUserId={user?.id}
+                  message={!vendorId ? "Save vendor to add comments" : undefined}
+                />
+              )}
+
+              {/* Contacts Tab */}
+              {activeTab === "contacts" && (
+                <>
+                  {!vendorId && (
+                    <div className="text-sm text-slate-500 dark:text-slate-400 italic mb-4">
+                      Save vendor to manage linked contacts
+                    </div>
+                  )}
+                  <RefsLinksContactPanel
+                    parent_model="vendor"
+                    parentId={vendorId}
+                    contacts={normalizeRefsLinksContact(
+                      panelRecord?.refs?.links?.contact ?? [],
+                    )}
+                    isEditing={canEditPanels}
+                    onChange={handleVendorContactsChange}
+                    onRemove={canEditPanels ? handleVendorContactRemove : undefined}
+                    onSaveSuccess={handleVendorContactsRefresh}
+                  />
+                </>
               )}
 
               {/* Documents Tab */}
-              {activeTab === "documents" && data?.id && (
+              {activeTab === "documents" && (
                 <DocumentsPanel
                   parent_model="vendor"
-                  parentId={data.id}
-                  data={data.refs?.links?.document}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(docs) => console.log('Documents updated:', docs)}
-                />
-              )}
-
-              {/* Communication Tab */}
-              {activeTab === "communication" && data?.id && (
-                <CommunicationsPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={{
-                    emails: data.refs?.links?.email || [],
-                    phones: data.refs?.links?.phone || [],
-                    addresses: data.refs?.links?.address || [],
-                    domains: data.refs?.links?.domain || [],
-                  }}
-                  onChange={(comms) => console.log('Communications updated:', comms)}
+                  parentId={vendorId}
+                  data={panelRecord?.refs?.links?.document ?? []}
+                  readOnly={!canEditPanels}
+                  onChange={canEditPanels ? handleVendorDocumentsChange : undefined}
                 />
               )}
 
               {/* Financial Tab */}
               {activeTab === "financial" && data?.financial && (
                 <FinancialsPanel
-                  data={data.financial?.customer}
+                  totals={data.financial?.totals}
+                  cost={data.financial?.cost}
+                  sell={data.financial?.sell}
                   currency="USD"
-                  className="mb-4"
                 />
               )}
 
-              {/* History Tab (Admin) */}
+              {/* History Tab */}
               {activeTab === "history" && data?.id && (
                 <MetadataPanel
                   entityType="vendor"
                   entityId={data.id}
                   data={data.metadata}
-                  isEditing={false}
                 />
               )}
 
-              {/* Raw Tab (Admin) */}
+              {/* Metadata Tab */}
+              {activeTab === "metadata" && data?.id && (
+                <MetadataPanel
+                  entityType="vendor"
+                  entityId={data.id}
+                  data={data.metadata}
+                />
+              )}
+
+              {/* Prefs Tab */}
+              {activeTab === "prefs" && (
+                <PrefsPanel
+                  entityType="vendor"
+                  entityId={Number(vendorId ?? 0)}
+                  data={panelRecord?.prefs}
+                />
+              )}
+
+              {/* Q&A Tab */}
+              {activeTab === "qa" && (
+                <QAPanel
+                  parent_model="vendor"
+                  parentId={Number(vendorId ?? 0)}
+                  data={panelRecord?.data}
+                />
+              )}
+
+              {/* Raw Tab */}
               {activeTab === "raw" && data?.id && (
                 <RawDataPanel
                   entityType="vendor"
                   entityId={data.id}
                   data={data}
+                />
+              )}
+
+              {/* Refs Tab */}
+              {activeTab === "refs" && (
+                <RefsPanel
+                  entityType="vendor"
+                  entityId={Number(vendorId ?? 0)}
+                  data={panelRecord?.refs}
                 />
               )}
 
@@ -577,48 +670,6 @@ export default function VendorDetail({
               )}
             </div>
           </form>
-
-          <div className="p-4 space-y-4 border-t border-slate-200 dark:border-slate-700">
-            <CommentsPanel
-              entityType="vendor"
-              entityId={vendorId ?? 0}
-              comments={panelRecord?.comments}
-              isEditing={canEditPanels}
-              onChange={(next) =>
-                setPanelRecord((prev: any) => ({ ...prev, comments: next }))
-              }
-              onSave={canEditPanels ? handleVendorCommentsSave : undefined}
-              currentUser={currentUser}
-              currentUserId={user?.id}
-              message={!vendorId ? "Save vendor to add comments" : undefined}
-            />
-
-            {!vendorId && (
-              <div className="text-sm text-slate-500 dark:text-slate-400 italic">
-                Save vendor to manage linked contacts
-              </div>
-            )}
-
-            <RefsLinksContactPanel
-              parent_model="vendor"
-              parentId={vendorId}
-              contacts={normalizeRefsLinksContact(
-                panelRecord?.refs?.links?.contact ?? [],
-              )}
-              isEditing={canEditPanels}
-              onChange={handleVendorContactsChange}
-              onRemove={canEditPanels ? handleVendorContactRemove : undefined}
-              onSaveSuccess={handleVendorContactsRefresh}
-            />
-
-            <DocumentsPanel
-              parent_model="vendor"
-              parentId={vendorId}
-              data={panelRecord?.refs?.links?.document ?? []}
-              readOnly={!canEditPanels}
-              onChange={canEditPanels ? handleVendorDocumentsChange : undefined}
-            />
-          </div>
         </div>
       </div>
     </>
