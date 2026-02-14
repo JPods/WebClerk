@@ -294,10 +294,7 @@ export default function VendorDetail({
     () => [
       { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
       { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-      { id: "metadata", label: "Metadata", icon: <FaFileAlt size={14} /> },
-      { id: "prefs", label: "Prefs", icon: <FaSlidersH size={14} /> },
       { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
-      { id: "refs", label: "Refs", icon: <FaLink size={14} /> },
     ],
     [],
   );
@@ -464,7 +461,7 @@ export default function VendorDetail({
           entityType="vendor"
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          standardTabs={['actions', 'comments', 'documents', 'history', 'overview', 'raw']}
+          standardTabs={['actions', 'comments', 'documents', 'overview', 'raw']}
           additionalTabs={additionalTabs}
           badges={tabBadges}
           showColumnSelector={true}
@@ -608,33 +605,6 @@ export default function VendorDetail({
                 />
               )}
 
-              {/* History Tab */}
-              {activeTab === "history" && data?.id && (
-                <MetadataPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data.metadata}
-                />
-              )}
-
-              {/* Metadata Tab */}
-              {activeTab === "metadata" && data?.id && (
-                <MetadataPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data.metadata}
-                />
-              )}
-
-              {/* Prefs Tab */}
-              {activeTab === "prefs" && (
-                <PrefsPanel
-                  entityType="vendor"
-                  entityId={Number(vendorId ?? 0)}
-                  data={panelRecord?.prefs}
-                />
-              )}
-
               {/* Q&A Tab */}
               {activeTab === "qa" && (
                 <QAPanel
@@ -650,15 +620,6 @@ export default function VendorDetail({
                   entityType="vendor"
                   entityId={data.id}
                   data={data}
-                />
-              )}
-
-              {/* Refs Tab */}
-              {activeTab === "refs" && (
-                <RefsPanel
-                  entityType="vendor"
-                  entityId={Number(vendorId ?? 0)}
-                  data={panelRecord?.refs}
                 />
               )}
 

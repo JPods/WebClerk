@@ -419,7 +419,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         label: "Financials",
         icon: <FaDollarSign size={14} />,
       },
-      { id: "prefs", label: "Prefs", icon: <FaSlidersH size={14} /> },
       { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
       {
         id: "raw",
@@ -428,23 +427,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       },
       // { id: "flow", label: "Flow", icon: <FaLink size={14} /> },
     ];
-
-    if (isAdmin) {
-      defaultTabs.push(
-        {
-          id: "metadata",
-          label: "Metadata",
-          icon: <FaFileAlt size={14} />,
-          adminOnly: true,
-        },
-        {
-          id: "refs",
-          label: "Refs",
-          icon: <FaLink size={14} />,
-          adminOnly: true,
-        },
-      );
-    }
 
     return [...customTabsBefore, ...defaultTabs, ...dynamicCustomTabsAfter];
   }, [
@@ -961,45 +943,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             canEdit={isEditing}
           />
         );
-
-      case "prefs":
-        return (
-          <PrefsPanel
-            entityType={modelName as any}
-            entityId={Number(currentData?.id ?? 0)}
-            data={currentData?.prefs as any}
-          />
-        );
-
-      case "metadata":
-        return isAdmin ? (
-          <MetadataPanel
-            metadata={currentData.metadata}
-            isEditing={isEditing}
-            onChange={(val) => handleFieldChange("metadata", val)}
-          />
-        ) : null;
-
-      case "refs":
-        return isAdmin ? (
-          <div className="space-y-6">
-            {/* Contact Links Table - draggable columns, click ID/name to edit */}
-            <ContactLinksTable
-              refs={currentData.refs as Record<string, unknown> | null}
-              title="refs.links.contact"
-              showEmptyState={true}
-              enableNavigation={true}
-            />
-
-            {/* Full refs JSON Editor */}
-            <JsonFieldEditor
-              label="refs"
-              value={currentData.refs ?? {}}
-              readonly={!isEditing}
-              onChange={(val) => handleFieldChange("refs", val)}
-            />
-          </div>
-        ) : null;
 
       case "raw":
         return (

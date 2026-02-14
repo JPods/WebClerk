@@ -20,7 +20,7 @@ import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { 
-  TransactionFinancialsPanel, 
+  FinancialsPanel, 
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
@@ -297,10 +297,7 @@ export default function CustomerDetail({
   const additionalTabs = [
     { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} /> },
     { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { id: 'metadata', label: 'Metadata', icon: <FaFileAlt size={14} /> },
-    { id: 'prefs', label: 'Prefs', icon: <FaSlidersH size={14} /> },
     { id: 'qa', label: 'Q&A', icon: <FaQuestionCircle size={14} /> },
-    { id: 'refs', label: 'Refs', icon: <FaLink size={14} /> },
   ];
 
   const {
@@ -1007,7 +1004,7 @@ export default function CustomerDetail({
       entityType="customer"
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      standardTabs={['actions', 'comments', 'documents', 'history', 'raw']}
+      standardTabs={['actions', 'comments', 'documents', 'raw']}
       additionalTabs={additionalTabs}
       badges={tabBadges}
       showColumnSelector={true}
@@ -1062,49 +1059,12 @@ export default function CustomerDetail({
             />
           )}
 
-          {/* Standard Tabs - History (Admin) */}
-          {activeTab === "history" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-              isEditing={false}
-            />
-          )}
-
-          {/* Metadata tab */}
-          {activeTab === "metadata" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-            />
-          )}
-
-          {/* Prefs tab */}
-          {activeTab === "prefs" && (
-            <PrefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.prefs}
-            />
-          )}
-
           {/* Q&A tab */}
           {activeTab === "qa" && (
             <QAPanel
               parent_model="customer"
               parentId={data?.id || 0}
               data={data?.qa}
-            />
-          )}
-
-          {/* Refs tab */}
-          {activeTab === "refs" && (
-            <RefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.refs}
             />
           )}
 
@@ -1155,7 +1115,7 @@ export default function CustomerDetail({
 
               {/* Financial tab */}
               {activeTab === "financial" && (
-                <TransactionFinancialsPanel
+                <FinancialsPanel
                   totals={customerData.financial?.customer}
                   currency="USD"
                 />

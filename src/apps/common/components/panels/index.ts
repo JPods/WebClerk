@@ -71,7 +71,6 @@ export {
 } from "./ContactPanel";
 export type { RefContact } from "./ContactPanel";
 export { default as FinancialsPanel } from "./FinancialsPanel";
-export { default as TransactionFinancialsPanel } from "./FinancialsPanel";
 export { default as ShippingPanel } from "./ShippingPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
 export { default as CommunicationsPanel } from "./CommunicationsPanel";
