@@ -53,10 +53,15 @@ import {
   FaCog,
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
+import { CheckSquare, MessageSquare, FileIcon, History, Link, Code, FileText, SlidersHorizontal, Phone } from "lucide-react";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
 
 // Panel Components
 import {
   CommentsPanel,
+  DocumentsPanel,
   MetadataPanel,
   RefsPanel,
   PrefsPanel,
@@ -64,6 +69,7 @@ import {
   ActionsPanel,
   CommunicationsPanel,
 } from "@/apps/common/components/panels";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 // ------------------------------------
 // Layout (reserved for future variations)
@@ -305,6 +311,26 @@ export default function ContactDetail({
   // Allow toggling between view and edit modes
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(
     mode,
+  );
+
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("contact_detail", "actions", [
+    "actions", "comments", "communications", "documents", "history", "metadata", "prefs", "raw", "refs",
+  ]);
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: data?.comments?.length },
+      { id: "communications", label: "Comms", icon: <Phone size={14} /> },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: data?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "metadata", label: "Metadata", icon: <FileText size={14} /> },
+      { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+    ],
+    [data],
   );
 
   // State for contact options (for ActionsPanel assignee dropdown)
@@ -850,163 +876,7 @@ export default function ContactDetail({
             )}
           </Section>
 
-          {/* 3. Communications Panel - emails, phones, addresses, domains */}
-          {/* Use activeContactId which is guaranteed to match URL */}
-          {mode !== "add" && activeContactId && (
-            <CommunicationsPanel
-              entityType="contact"
-              entityId={activeContactId}
-              contactId={activeContactId}
-              data={communications}
-              onChange={(comms) => {
-                console.log("Communications updated:", comms);
-                // Update local state with new communications data
-                setCommunications(comms);
-              }}
-              defaultCollapsed={false}
-            />
-          )}
-
-          {/* 4. Actions Panel - expanded (only for edit/view) */}
-          {mode !== "add" && data?.id && (
-            <ActionsPanel
-              entityType="contact"
-              entityId={data.id}
-              // Support both embedded actions and ID-based actions
-              data={Array.isArray(data.actions) ? data.actions : undefined}
-              actionIds={
-                data.actions &&
-                typeof data.actions === "object" &&
-                "ids" in data.actions
-                  ? (data.actions as { ids?: number[] }).ids
-                  : undefined
-              }
-              viewMode="table"
-              isEditing={effectiveMode === "edit"}
-              onChange={(actions) => {
-                // Update local state - always set, merging with current data
-                setFetchedData((prev: any) => ({
-                  ...(prev || data),
-                  actions,
-                }));
-              }}
-              onActionIdsChange={(ids) => {
-                // Update local state with new action IDs
-                setFetchedData((prev: any) => ({
-                  ...(prev || data),
-                  actions: { ids },
-                }));
-              }}
-              onSave={async (actions) => {
-                // Persist to backend
-                try {
-                  await updateContact({ id: data.id, actions } as any);
-                  dispatch(
-                    showToast({ message: "Action saved", type: "success" }),
-                  );
-                } catch (error) {
-                  console.error("Failed to save action:", error);
-                  dispatch(
-                    showToast({
-                      message: "Failed to save action",
-                      type: "error",
-                    }),
-                  );
-                  throw error;
-                }
-              }}
-              assigneeOptions={contactOptions}
-              projectOptions={projectOptions}
-              defaultCollapsed={false}
-            />
-          )}
-
-          {/* 5. Comments Panel - collapsed */}
-          {mode !== "add" && data?.id && (
-            <CommentsPanel
-              entityType="contact"
-              entityId={data.id}
-              comments={data.comments}
-              isEditing={effectiveMode === "edit"}
-              onChange={(comments) => {
-                // Update local state - always set, merging with current data
-                setFetchedData((prev: any) => ({
-                  ...(prev || data),
-                  comments,
-                }));
-              }}
-              onSave={async (comments) => {
-                // Persist to backend
-                try {
-                  await updateContact({ id: data.id, comments } as any);
-                  dispatch(
-                    showToast({ message: "Comments saved", type: "success" }),
-                  );
-                } catch (error) {
-                  console.error("Failed to save comments:", error);
-                  dispatch(
-                    showToast({
-                      message: "Failed to save comments",
-                      type: "error",
-                    }),
-                  );
-                  throw error;
-                }
-              }}
-              currentUser={currentUserName}
-              currentUserId={currentUserId}
-              defaultCollapsed={true}
-            />
-          )}
-
-          {/* 6. Metadata Panel - collapsed (admin only) */}
-          {mode !== "add" && data?.id && isAdmin && (
-            <MetadataPanel
-              entityType="contact"
-              entityId={data.id}
-              data={data.metadata}
-              onChange={(metadata) => {
-                console.log("Metadata updated:", metadata);
-              }}
-              defaultCollapsed={true}
-            />
-          )}
-
-          {/* 7. Prefs Panel - collapsed */}
-          {mode !== "add" && data?.id && (
-            <PrefsPanel
-              entityType="contact"
-              entityId={data.id}
-              data={data.prefs}
-              onChange={(prefs) => {
-                console.log("Prefs updated:", prefs);
-              }}
-              defaultCollapsed={true}
-            />
-          )}
-
-          {/* 8. Refs Panel - collapsed (admin only) */}
-          {mode !== "add" && data?.id && isAdmin && (
-            <RefsPanel
-              entityType="contact"
-              entityId={data.id}
-              data={data.refs}
-              onChange={(refs) => {
-                console.log("Refs updated:", refs);
-              }}
-              defaultCollapsed={true}
-            />
-          )}
-
-          {/* 9. Raw Data Panel - collapsed (admin only, seldom used) */}
-          {mode !== "add" && data?.id && isAdmin && (
-            <RawDataPanel
-              entityType="contact"
-              entityId={data.id}
-              data={data}
-              defaultCollapsed={true}
-            />
-          )}
+          {/* Panels 3-9 moved to tab navigation below */}
 
           {/* 10. System IDs Section - collapsed */}
           <Section
@@ -1202,6 +1072,91 @@ export default function ContactDetail({
           </Section>
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      {mode !== "add" && data?.id && (
+        <>
+          <DetailTabs
+            entityType="contact_detail"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[]}
+            additionalTabs={tabs}
+          />
+          <div className="mt-4">
+            {activeTab === "actions" && (
+              <ActionsPanel
+                entityType="contact"
+                entityId={data.id}
+                data={Array.isArray(data.actions) ? data.actions : undefined}
+                actionIds={data.actions && typeof data.actions === "object" && "ids" in data.actions ? (data.actions as { ids?: number[] }).ids : undefined}
+                viewMode="table"
+                isEditing={effectiveMode === "edit"}
+                onChange={(actions) => setFetchedData((prev: any) => ({ ...(prev || data), actions }))}
+                onActionIdsChange={(ids) => setFetchedData((prev: any) => ({ ...(prev || data), actions: { ids } }))}
+                onSave={async (actions) => {
+                  try {
+                    await updateContact({ id: data.id, actions } as any);
+                    dispatch(showToast({ message: "Action saved", type: "success" }));
+                  } catch (error) {
+                    dispatch(showToast({ message: "Failed to save action", type: "error" }));
+                    throw error;
+                  }
+                }}
+                assigneeOptions={contactOptions}
+                projectOptions={projectOptions}
+              />
+            )}
+            {activeTab === "comments" && (
+              <CommentsPanel
+                entityType="contact"
+                entityId={data.id}
+                comments={data.comments}
+                isEditing={effectiveMode === "edit"}
+                onChange={(comments) => setFetchedData((prev: any) => ({ ...(prev || data), comments }))}
+                onSave={async (comments) => {
+                  try {
+                    await updateContact({ id: data.id, comments } as any);
+                    dispatch(showToast({ message: "Comments saved", type: "success" }));
+                  } catch (error) {
+                    dispatch(showToast({ message: "Failed to save comments", type: "error" }));
+                    throw error;
+                  }
+                }}
+                currentUser={currentUserName}
+                currentUserId={currentUserId}
+              />
+            )}
+            {activeTab === "communications" && activeContactId && (
+              <CommunicationsPanel
+                entityType="contact"
+                entityId={activeContactId}
+                contactId={activeContactId}
+                data={communications}
+                onChange={(comms) => setCommunications(comms)}
+              />
+            )}
+            {activeTab === "documents" && (
+              <DocumentsPanel parent_model="contact" parentId={data.id} data={data?.refs?.links?.document} isEditing={effectiveMode === "edit"} />
+            )}
+            {activeTab === "history" && (
+              <MetadataPanel entityType="contact" entityId={data.id} data={data?.metadata} />
+            )}
+            {activeTab === "metadata" && (
+              <MetadataPanel entityType="contact" entityId={data.id} data={data?.metadata} />
+            )}
+            {activeTab === "prefs" && (
+              <PrefsPanel entityType="contact" entityId={data.id} data={data?.prefs} />
+            )}
+            {activeTab === "raw" && (
+              <JsonFieldEditor label="Full Contact JSON" value={data} readonly defaultExpanded maxHeight="600px" />
+            )}
+            {activeTab === "refs" && (
+              <RefsPanel entityType="contact" entityId={data.id} data={data?.refs} isEditing={effectiveMode === "edit"} onChange={(refs: any) => setFetchedData((prev: any) => ({ ...(prev || data), refs }))} />
+            )}
+          </div>
+        </>
+      )}
     </DetailShell>
   );
 }

@@ -16,10 +16,11 @@ import {
   FaComments,
   FaDollarSign,
   FaLink,
-  FaCog,
-  FaHistory,
   FaEllipsisH,
   FaTasks,
+  FaSlidersH,
+  FaQuestionCircle,
+  FaFileAlt,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
 
@@ -41,7 +42,7 @@ import CommentsPanel from "./CommentsPanel";
 import MetadataPanel from "./MetadataPanel";
 import FinancialsCard from "./FinancialsCard";
 
-import { DocumentsPanel } from "@/apps/common/components/panels";
+import { DocumentsPanel, PrefsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
 
@@ -418,7 +419,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         label: "Financials",
         icon: <FaDollarSign size={14} />,
       },
-      { id: "qa", label: "QA", icon: <FaComments size={14} /> },
+      { id: "prefs", label: "Prefs", icon: <FaSlidersH size={14} /> },
+      { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
       {
         id: "raw",
         label: "Raw",
@@ -432,13 +434,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         {
           id: "metadata",
           label: "Metadata",
-          icon: <FaCog size={14} />,
+          icon: <FaFileAlt size={14} />,
           adminOnly: true,
         },
         {
           id: "refs",
           label: "Refs",
-          icon: <FaHistory size={14} />,
+          icon: <FaLink size={14} />,
           adminOnly: true,
         },
       );
@@ -957,6 +959,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             transactionType={transactionType}
             transactionId={currentData?.id}
             canEdit={isEditing}
+          />
+        );
+
+      case "prefs":
+        return (
+          <PrefsPanel
+            entityType={modelName as any}
+            entityId={Number(currentData?.id ?? 0)}
+            data={currentData?.prefs as any}
           />
         );
 

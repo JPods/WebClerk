@@ -57,9 +57,15 @@ import {
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
 
+import { CheckSquare, MessageSquare, FileIcon, History, Link, Code, FileText, SlidersHorizontal } from "lucide-react";
+
+// Tab navigation
+import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
+
 // Panel Components
 import {
   CommentsPanel,
+  DocumentsPanel,
   MetadataPanel,
   RefsPanel,
   PrefsPanel,
@@ -67,6 +73,7 @@ import {
   ActionsPanel,
   LinkagesPanel,
 } from "@/apps/common/components/panels";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 // ============================================================================
 // Types (matching Django Item model)
@@ -1009,41 +1016,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
         <BOMSection itemId={data.id} defaultOpen={false} />
       )}
 
-      {/* 6. Linkages Panel - collapsed */}
-      {data.id && (
-        <LinkagesPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.refs?.links}
-          defaultCollapsed={true}
-        />
-      )}
-
-      {/* 7. Actions Panel - collapsed */}
-      {data.id && (
-        <ActionsPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.actions}
-          onChange={(actions) => {
-            console.log('Actions updated:', actions);
-          }}
-          defaultCollapsed={true}
-        />
-      )}
-
-      {/* 8. Comments Panel - collapsed */}
-      {data.id && (
-        <CommentsPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.comments}
-          onChange={(comments) => {
-            console.log('Comments updated:', comments);
-          }}
-          defaultCollapsed={true}
-        />
-      )}
+      {/* Panels 6-8 (Linkages, Actions, Comments) moved to tab navigation */}
 
       {/* 9. Flags & Settings - collapsed */}
       {data.flags && Object.keys(data.flags).length > 0 && (
@@ -1163,44 +1136,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
         </DataSection>
       )}
 
-      {/* 12. Metadata Panel - collapsed (admin only) */}
-      {data.id && isAdmin && (
-        <MetadataPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.metadata}
-          onChange={(metadata) => {
-            console.log('Metadata updated:', metadata);
-          }}
-          defaultCollapsed={true}
-        />
-      )}
-
-      {/* 13. Prefs Panel - collapsed */}
-      {data.id && (
-        <PrefsPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.prefs}
-          onChange={(prefs) => {
-            console.log('Prefs updated:', prefs);
-          }}
-          defaultCollapsed={true}
-        />
-      )}
-
-      {/* 14. Refs Panel - collapsed (admin only) */}
-      {data.id && isAdmin && (
-        <RefsPanel
-          entityType="item"
-          entityId={data.id}
-          data={data.refs}
-          onChange={(refs) => {
-            console.log('Refs updated:', refs);
-          }}
-          defaultCollapsed={true}
-        />
-      )}
+      {/* Panels 12-14 (Metadata, Prefs, Refs) moved to tab navigation */}
 
       {/* 15. Record Information - collapsed */}
       <DataSection title="Record Information" icon={<FaCog className="w-4 h-4" />} defaultOpen={false}>
@@ -1213,15 +1149,7 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
         </TableBody>
       </DataSection>
 
-      {/* 16. Raw Data Panel - collapsed (admin only, seldom used) */}
-      {data.id && isAdmin && (
-        <RawDataPanel
-          entityType="item"
-          entityId={data.id}
-          data={data}
-          defaultCollapsed={true}
-        />
-      )}
+      {/* Panel 16 (Raw Data) moved to tab navigation */}
     </div>
   );
 }
@@ -1333,6 +1261,25 @@ export default function ItemDetail({
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Tab navigation
+  const { activeTab, setActiveTab } = useDetailTabs("item_detail", "actions", [
+    "actions", "comments", "documents", "history", "metadata", "prefs", "raw", "refs",
+  ]);
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
+      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: data?.comments?.length },
+      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: data?.refs?.links?.document?.length },
+      { id: "history", label: "History", icon: <History size={14} /> },
+      { id: "metadata", label: "Metadata", icon: <FileText size={14} /> },
+      { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
+      { id: "raw", label: "Raw", icon: <Code size={14} /> },
+      { id: "refs", label: "Refs", icon: <Link size={14} /> },
+    ],
+    [data],
+  );
+
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
     setEffectiveMode(mode);
@@ -1488,6 +1435,45 @@ export default function ItemDetail({
         <ComponentCard>
           <ItemDataView data={data} isAdmin={isAdmin} />
         </ComponentCard>
+
+        {/* Tab Navigation */}
+        {data?.id && (
+          <>
+            <DetailTabs
+              entityType="item_detail"
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              standardTabs={[]}
+              additionalTabs={tabs}
+            />
+            <div className="mt-4">
+              {activeTab === "actions" && (
+                <ActionsPanel entityType="item" entityId={data.id} data={data?.actions?.items || data?.actions} isEditing={false} />
+              )}
+              {activeTab === "comments" && (
+                <CommentsPanel entityType="item" entityId={data.id} comments={data?.comments} isEditing={false} />
+              )}
+              {activeTab === "documents" && (
+                <DocumentsPanel parent_model="item" parentId={data.id} data={data?.refs?.links?.document} isEditing={false} />
+              )}
+              {activeTab === "history" && (
+                <MetadataPanel entityType="item" entityId={data.id} data={data?.metadata} />
+              )}
+              {activeTab === "metadata" && (
+                <MetadataPanel entityType="item" entityId={data.id} data={data?.metadata} />
+              )}
+              {activeTab === "prefs" && (
+                <PrefsPanel entityType="item" entityId={data.id} data={data?.prefs} />
+              )}
+              {activeTab === "raw" && (
+                <JsonFieldEditor label="Full Item JSON" value={data} readonly defaultExpanded maxHeight="600px" />
+              )}
+              {activeTab === "refs" && (
+                <RefsPanel entityType="item" entityId={data.id} data={data?.refs} isEditing={false} />
+              )}
+            </div>
+          </>
+        )}
       </>
     );
   }
@@ -1582,89 +1568,48 @@ export default function ItemDetail({
             )}
           </Section>
 
-          {/* 3. Panels for edit mode (existing record) */}
-          {mode !== "add" && activeItemId && (
-            <>
-              {/* Linkages Panel */}
-              <LinkagesPanel
-                entityType="item"
-                entityId={activeItemId}
-                data={data?.refs?.links}
-                defaultCollapsed={true}
-              />
-
-              {/* Actions Panel */}
-              <ActionsPanel
-                entityType="item"
-                entityId={activeItemId}
-                data={data?.actions}
-                onChange={(actions) => {
-                  console.log('Actions updated:', actions);
-                }}
-                defaultCollapsed={true}
-              />
-
-              {/* Comments Panel */}
-              <CommentsPanel
-                entityType="item"
-                entityId={activeItemId}
-                data={data?.comments}
-                onChange={(comments) => {
-                  console.log('Comments updated:', comments);
-                }}
-                defaultCollapsed={true}
-              />
-
-              {/* Metadata Panel (admin only) */}
-              {isAdmin && (
-                <MetadataPanel
-                  entityType="item"
-                  entityId={activeItemId}
-                  data={data?.metadata}
-                  onChange={(metadata) => {
-                    console.log('Metadata updated:', metadata);
-                  }}
-                  defaultCollapsed={true}
-                />
-              )}
-
-              {/* Prefs Panel */}
-              <PrefsPanel
-                entityType="item"
-                entityId={activeItemId}
-                data={data?.prefs}
-                onChange={(prefs) => {
-                  console.log('Prefs updated:', prefs);
-                }}
-                defaultCollapsed={true}
-              />
-
-              {/* Refs Panel (admin only) */}
-              {isAdmin && (
-                <RefsPanel
-                  entityType="item"
-                  entityId={activeItemId}
-                  data={data?.refs}
-                  onChange={(refs) => {
-                    console.log('Refs updated:', refs);
-                  }}
-                  defaultCollapsed={true}
-                />
-              )}
-
-              {/* Raw Data Panel (admin only) */}
-              {isAdmin && (
-                <RawDataPanel
-                  entityType="item"
-                  entityId={activeItemId}
-                  data={data}
-                  defaultCollapsed={true}
-                />
-              )}
-            </>
-          )}
+          {/* Panels moved to tab navigation below */}
         </form>
       </ComponentCard>
+
+      {/* Tab Navigation */}
+      {mode !== "add" && activeItemId && (
+        <>
+          <DetailTabs
+            entityType="item_detail"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[]}
+            additionalTabs={tabs}
+          />
+          <div className="mt-4">
+            {activeTab === "actions" && (
+              <ActionsPanel entityType="item" entityId={activeItemId} data={data?.actions?.items || data?.actions} isEditing={effectiveMode !== "view"} onChange={(actions: any) => console.log('Actions updated:', actions)} />
+            )}
+            {activeTab === "comments" && (
+              <CommentsPanel entityType="item" entityId={activeItemId} comments={data?.comments} isEditing={effectiveMode !== "view"} onChange={(comments: any) => console.log('Comments updated:', comments)} />
+            )}
+            {activeTab === "documents" && (
+              <DocumentsPanel parent_model="item" parentId={activeItemId} data={data?.refs?.links?.document} isEditing={effectiveMode !== "view"} />
+            )}
+            {activeTab === "history" && (
+              <MetadataPanel entityType="item" entityId={activeItemId} data={data?.metadata} />
+            )}
+            {activeTab === "metadata" && (
+              <MetadataPanel entityType="item" entityId={activeItemId} data={data?.metadata} />
+            )}
+            {activeTab === "prefs" && (
+              <PrefsPanel entityType="item" entityId={activeItemId} data={data?.prefs} />
+            )}
+            {activeTab === "raw" && (
+              <JsonFieldEditor label="Full Item JSON" value={data} readonly defaultExpanded maxHeight="600px" />
+            )}
+            {activeTab === "refs" && (
+              <RefsPanel entityType="item" entityId={activeItemId} data={data?.refs} isEditing={effectiveMode !== "view"} onChange={(refs: any) => console.log('Refs updated:', refs)} />
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapMarkerAlt, FaPhone, FaEnvelope, FaFileAlt, FaDatabase, FaChartBar, FaDollarSign, FaLink, FaCog, FaListAlt } from 'react-icons/fa';
+import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapMarkerAlt, FaPhone, FaEnvelope, FaFileAlt, FaDatabase, FaChartBar, FaDollarSign, FaLink, FaCog, FaListAlt, FaQuestionCircle, FaSlidersH } from 'react-icons/fa';
 import { showToast } from '@/store/slices/toastSlice';
 import DetailShell from '@/components/common/DetailShell';
 import ComponentCard from '@/components/common/ComponentCard';
@@ -15,9 +15,10 @@ import SimpleDetailToolbar from '@/components/common/SimpleDetailToolbar';
 import OrgFinancialsPanel from './OrgFinancialsPanel';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
+import { QAPanel } from '@/apps/common/components/panels';
 
 // --- Types ---
-type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'relations' | 'refs' | 'prefs' | 'metadata';
+type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'qa' | 'relations' | 'refs' | 'prefs' | 'metadata';
 
 interface TabConfig {
   key: AspectKey | 'info';
@@ -777,22 +778,23 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
 
   // Tab configuration - Full admin access to all aspects
   const defaultTabs: TabConfig[] = [
-    { key: 'info', label: 'All Fields', icon: <FaListAlt size={14} /> },
-    { key: 'contacts', label: 'Contacts', icon: <FaUser size={14} /> },
     { key: 'addresses', label: 'Addresses', icon: <FaMapMarkerAlt size={14} /> },
-    { key: 'phones', label: 'Phones', icon: <FaPhone size={14} /> },
-    { key: 'emails', label: 'Emails', icon: <FaEnvelope size={14} /> },
+    { key: 'connections', label: 'Connections', icon: <FaLink size={14} /> },
+    { key: 'contacts', label: 'Contacts', icon: <FaUser size={14} /> },
+    { key: 'data', label: 'Data', icon: <FaDatabase size={14} /> },
     { key: 'docs', label: 'Docs', icon: <FaFileAlt size={14} /> },
     { key: 'domains', label: 'Domains', icon: <FaLink size={14} /> },
-    { key: 'relations', label: 'Relations', icon: <FaLink size={14} /> },
+    { key: 'emails', label: 'Emails', icon: <FaEnvelope size={14} /> },
     { key: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { key: 'metrics', label: 'Metrics', icon: <FaChartBar size={14} /> },
-    { key: 'connections', label: 'Connections', icon: <FaLink size={14} /> },
-    { key: 'data', label: 'Data', icon: <FaDatabase size={14} /> },
     { key: 'gl_accounts', label: 'GL Accts', icon: <FaDollarSign size={14} /> },
-    { key: 'refs', label: 'Refs', icon: <FaCog size={14} /> },
-    { key: 'prefs', label: 'Prefs', icon: <FaCog size={14} /> },
-    { key: 'metadata', label: 'Metadata', icon: <FaDatabase size={14} /> },
+    { key: 'info', label: 'All Fields', icon: <FaListAlt size={14} /> },
+    { key: 'metadata', label: 'Metadata', icon: <FaFileAlt size={14} /> },
+    { key: 'metrics', label: 'Metrics', icon: <FaChartBar size={14} /> },
+    { key: 'phones', label: 'Phones', icon: <FaPhone size={14} /> },
+    { key: 'prefs', label: 'Prefs', icon: <FaSlidersH size={14} /> },
+    { key: 'qa', label: 'Q&A', icon: <FaQuestionCircle size={14} /> },
+    { key: 'refs', label: 'Refs', icon: <FaLink size={14} /> },
+    { key: 'relations', label: 'Relations', icon: <FaLink size={14} /> },
   ];
 
   const tabs = [...defaultTabs, ...additionalTabs];
@@ -990,6 +992,14 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
             editing={editing}
             onChange={(metadata) => handleChange({ metadata })}
             label="Metadata (system metadata)"
+          />
+        );
+      case 'qa':
+        return (
+          <QAPanel
+            entityType={orgType as any}
+            entityId={Number(org.id ?? 0)}
+            data={org.data}
           />
         );
       default:
