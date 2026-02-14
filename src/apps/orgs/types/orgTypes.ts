@@ -6,8 +6,8 @@
 // Org type enum matching Django OrgType.choices
 export type OrgType = 'customer' | 'vendor' | 'rep' | 'employee' | 'manufacturer' | 'other';
 
-// Status options
-export type OrgStatus = 'active' | 'prospect' | 'inactive' | 'retired' | '';
+// Status options — matches ORG_STATUS_CHOICES in apps/orgs/choices.py
+export type OrgStatus = 'active' | 'prospect' | 'suspended' | 'inactive' | 'retired' | '';
 
 // Aspect limit constants (match backend ASPECT_LIMITS)
 export const ASPECT_LIMITS = {
@@ -359,12 +359,22 @@ export interface Organization {
   refs?: Record<string, unknown>;
   prefs?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
   
-  // Timestamps
-  created_at?: string;
-  updated_at?: string;
-  dt_created?: string;
-  dt_modified?: string;
+  // Lifecycle
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  security_level?: number;
+  health_rating?: number;
+  
+  // Mixin fields
+  stats?: Record<string, unknown>;
+  relationship_stats?: Record<string, unknown>;
+  
+  // Timestamps (BigIntegerField, millisecond epoch)
+  dt_created?: number;
+  dt_modified?: number;
   version?: number;
 }
 

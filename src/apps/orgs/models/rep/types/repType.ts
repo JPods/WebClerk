@@ -1,6 +1,25 @@
+/**
+ * Rep Types — matches wc3 OrgBase (proxy: org_type="rep")
+ * @see webClerk3/apps/orgs/models/base.py
+ * @see webClerk3/apps/orgs/models/proxies.py
+ */
+
+import type {
+  Organization,
+  OrgFinancial,
+  OrgContact,
+  OrgLocation,
+  OrgDomain,
+  OrgPhone,
+  OrgEmail,
+  OrgRelations,
+  OrgDoc,
+  OrgMetrics,
+} from "@/apps/orgs/types/orgTypes";
+
 export interface RepAddProps {
   modeProp?: "add" | "edit" | "view";
-  dataProp?: any; // TODO: Type this properly
+  dataProp?: any;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -9,45 +28,77 @@ export interface RepAddProps {
 
 export interface CreateRepRequest {
   display_name: string;
-  status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
+  status?: string;
+  org_type?: "rep";
+  is_active?: boolean;
+  attention?: string;
+  email?: string;
+  phone?: string;
+  price_level?: string;
+  contact_id?: number | null;
+  contacts?: OrgContact[];
+  addresses?: OrgLocation[];
+  domains?: OrgDomain[];
+  phones?: OrgPhone[];
+  emails?: OrgEmail[];
+  relations?: OrgRelations;
+  financial?: OrgFinancial;
+  docs?: OrgDoc[];
+  connections?: Record<string, string>;
+  data?: Record<string, unknown>;
+  metrics?: OrgMetrics;
+  gl_accounts?: Record<string, unknown>;
+  refs?: Record<string, unknown>;
+  prefs?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
 }
 
 export interface RepApiTask {
   id: number;
+  uuid?: string;
+  ida?: string;
   display_name: string;
   status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
-}
-
-export interface UpdateRepRequest {
-  id: number;
-  display_name: string;
-  status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
-}
-
-export interface RepType {
-  id: number;
   org_type: "rep";
-  contacts?: Array<{id: number; name: string; role?: string; phones?: string[]; emails?: string[]}>;
-  addresses?: Array<{id: number; type?: string; address?: any; geo?: {lat: number; lng: number}}>; 
-  domains?: Array<{domain: string; verified: boolean; dt_verified: number}>;
-  phones?: Array<{id: number; type?: string; number?: string; ext?: string; primary?: boolean}>;
-  emails?: Array<{id: number; type?: string; email?: string; primary?: boolean; bounce_count?: number}>;
-  relations?: {parents: number[]; children: number[]; linked_ids: number[]};
-  financial?: {credit?: any; balances?: any; due_buckets?: any[]; metrics?: any};
-  docs?: Array<{id: number; kind?: string; name?: string; size?: number; sha256?: string}>;
+  is_active: boolean;
+  version: number;
+  attention?: string;
+  email?: string;
+  phone?: string;
+  price_level?: string;
+  contact_id?: number | null;
+  dt_created?: number;
+  dt_modified?: number;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  security_level?: number;
+  health_rating?: number;
+  contacts?: OrgContact[];
+  addresses?: OrgLocation[];
+  domains?: OrgDomain[];
+  phones?: OrgPhone[];
+  emails?: OrgEmail[];
+  relations?: OrgRelations;
+  financial?: OrgFinancial;
+  docs?: OrgDoc[];
   connections?: Record<string, string>;
-  access?: any;
-  data?: any;
-  metrics?: {counts?: any; periods?: Record<string, any>};
-  gl_accounts?: Record<string, string>;
-  // Add other fields as needed for strict alignment
+  data?: Record<string, unknown>;
+  metrics?: OrgMetrics;
+  gl_accounts?: Record<string, unknown>;
+  refs?: Record<string, unknown>;
+  prefs?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
+  stats?: Record<string, unknown>;
+  relationship_stats?: Record<string, unknown>;
 }
+
+export interface UpdateRepRequest extends Partial<CreateRepRequest> {
+  id: number;
+  version?: number;
+}
+
+export type RepType = Organization & { org_type: "rep" };

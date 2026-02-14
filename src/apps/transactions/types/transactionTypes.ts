@@ -5,27 +5,28 @@
  */
 
 // --- Status & Choice Types ---
+// Matches TRANSACTION_STATUS_CHOICES in apps/transactions/choices.py
+// The string union includes Django's canonical values; `| string` allows
+// display-layer values like "draft", "pending" used in legacy code.
 
 export type TransactionStatus =
+  | ""
   | "planned"
   | "released"
   | "in_progress"
   | "hold"
   | "complete"
   | "canceled"
-  | "draft"
-  | "pending"
-  | "approved"
-  | "rejected";
+  | string;
 
+// Matches TRANSACTION_PARENT_MODEL_CHOICES
 export type TransactionParentType =
-  | "order"
-  | "invoice"
   | "proposal"
+  | "sales_order"
+  | "invoice"
   | "purchase_order"
   | "workorder"
-  | "requisition"
-  | "project";
+  | "requisition";
 
 export type ContactPurpose =
   | "billto"

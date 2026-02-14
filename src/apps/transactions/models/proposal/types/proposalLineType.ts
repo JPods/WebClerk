@@ -1,79 +1,19 @@
-export interface ProposalLineItem {
-  item_id?: number;
-  ida_item?: string;
-  uuid_item?: string;
-  description?: string;
-  description_text?: string;
-  time_lead?: number;
-  locations?: any[];
-  unit_measure?: string;
-  sequence?: number;
-  line_number?: number;
-  is_deleted?: boolean;
-  is_active?: boolean;
-  is_archived?: boolean;
-}
+/**
+ * ProposalLine Types — matches wc3 BaseSellLineModel
+ * @see webClerk3/apps/transactions/models/base_line_model.py
+ *
+ * DB table: proposal_lines (extends BaseSellLineModel)
+ * BaseSellLineModel = BaseLineCore + price JSONB
+ */
 
-export interface ProposalLineQuantity {
-  placed?: number;
-  ordered?: number;
-  remaining?: number;
-  is_fixed?: boolean;
-  precision?: number;
-  is_blanket?: boolean;
-  increment?: number;
-}
-
-export interface ProposalLineCost {
-  unit?: number;
-  extended?: number;
-  shipping?: number;
-  handling?: number;
-  freight?: number;
-  commissions?: number;
-  tax_rate?: number;
-  tax?: number;
-  is_fixed?: boolean;
-  precision?: number;
-  tax_code?: string;
-  tax_code_id?: number;
-}
-
-export interface ProposalLinePrice {
-  unit?: number;
-  discount_percent?: number;
-  discount_amount?: number;
-  extended?: number;
-  is_fixed?: boolean;
-  precision?: number;
-}
-
-export interface ProposalLineTax {
-  sales_rate?: number;
-  sales?: number;
-  cost_rate?: number;
-  cost?: number;
-  shipping?: number;
-}
-
-export interface ProposalLinePhysical {
-  weight?: {
-    value?: number;
-    unit?: string;
-  };
-  dimensions?: {
-    length?: number;
-    width?: number;
-    height?: number;
-    unit?: string;
-  };
-  volume?: {
-    value?: number;
-    unit?: string;
-  };
-  package_count?: number;
-  is_hazmat?: boolean;
-}
+import type {
+  LineItem,
+  LineQuantity,
+  LineCost,
+  LinePrice,
+  LineTax,
+  LinePhysical,
+} from "@/apps/transactions/types/transactionTypes";
 
 export interface ProposalLine {
   id: number;
@@ -81,37 +21,42 @@ export interface ProposalLine {
   parent_ref_id: number;
   price_level?: string;
   status?: string;
-  item?: ProposalLineItem;
-  quantity?: ProposalLineQuantity;
-  cost?: ProposalLineCost;
-  price?: ProposalLinePrice;
-  tax?: ProposalLineTax;
-  physical?: ProposalLinePhysical;
-  dt_created: string;
-  dt_modified: string;
-  version: number;
+  item?: LineItem;
+  quantity?: LineQuantity;
+  cost?: LineCost;
+  price?: LinePrice;
+  tax?: LineTax;
+  physical?: LinePhysical;
+  dt_created?: number;
+  dt_modified?: number;
+  version?: number;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  security_level?: number;
+  health_rating?: number;
+  refs?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  prefs?: Record<string, unknown>;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
 }
 
 export interface CreateProposalLineRequest {
   parent_id: number;
   status?: string;
-  item?: ProposalLineItem;
-  quantity?: ProposalLineQuantity;
-  cost?: ProposalLineCost;
-  price?: ProposalLinePrice;
-  tax?: ProposalLineTax;
-  physical?: ProposalLinePhysical;
+  price_level?: string;
+  item?: LineItem;
+  quantity?: LineQuantity;
+  cost?: LineCost;
+  price?: LinePrice;
+  tax?: LineTax;
+  physical?: LinePhysical;
 }
 
-export interface UpdateProposalLineRequest {
+export interface UpdateProposalLineRequest extends Partial<CreateProposalLineRequest> {
   id: number;
-  status?: string;
-  item?: ProposalLineItem;
-  quantity?: ProposalLineQuantity;
-  cost?: ProposalLineCost;
-  price?: ProposalLinePrice;
-  tax?: ProposalLineTax;
-  physical?: ProposalLinePhysical;
+  version?: number;
 }
 
 export interface ProposalLineListResponse {
@@ -120,3 +65,16 @@ export interface ProposalLineListResponse {
   previous?: string;
   results: ProposalLine[];
 }
+
+/** @deprecated Use LineItem from transactionTypes */
+export type ProposalLineItem = LineItem;
+/** @deprecated Use LineQuantity from transactionTypes */
+export type ProposalLineQuantity = LineQuantity;
+/** @deprecated Use LineCost from transactionTypes */
+export type ProposalLineCost = LineCost;
+/** @deprecated Use LinePrice from transactionTypes */
+export type ProposalLinePrice = LinePrice;
+/** @deprecated Use LineTax from transactionTypes */
+export type ProposalLineTax = LineTax;
+/** @deprecated Use LinePhysical from transactionTypes */
+export type ProposalLinePhysical = LinePhysical;
