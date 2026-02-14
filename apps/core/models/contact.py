@@ -85,7 +85,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     
     # Core Identity Fields - Django auto-creates 'id' as primary key
     # REMOVED: id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    email = models.EmailField(unique=True, help_text="Primary email address for login")
+ 
     
     # Name Fields
     name_first = models.CharField(max_length=100, blank=True, help_text="First name")
@@ -94,6 +94,15 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     name_prefix = models.CharField(max_length=20, blank=True, help_text="Title (Mr., Ms., Dr.)")
     name_suffix = models.CharField(max_length=20, blank=True, help_text="Suffix (Jr., Sr., III)")
     attention = models.CharField(max_length=201, blank=True, help_text="Auto-filled attention line from first and last name")
+
+    email = models.EmailField(unique=True, help_text="Primary email address for login")
+    email_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary email record if needed")
+    address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
+    address_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary address record if needed")
+    phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
+    phone_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary phone record if needed")
+    domain = models.CharField(max_length=255, blank=True, null=True, help_text="Primary domain extracted from email for quick search")
+    domain_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary domain record if needed")
     
     
     # Business Fields a person can be associated with multiple orgs. A vendor may be a manufaucturer, customer, and a rep. Tranaction differ but the contact and relationship with the person is the same.

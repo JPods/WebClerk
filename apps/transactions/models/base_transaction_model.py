@@ -130,6 +130,22 @@ class TransactionBaseModel(BaseModel):
     vendor_id = models.BigIntegerField(default=0, db_index=True)
     parent_id = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="ID of the parent transaction")
     parent_model = models.CharField(max_length=20, choices=PARENT_MODEL_CHOICES, blank=True, null=True, db_index=True, help_text="Model of the parent transaction")
+
+
+    contact_id = models.IntegerField(blank=True, null=True)  # optional pointer to primary contact (could be denormalized from contacts aspect)
+    attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
+    address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
+    email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
+    phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
+	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
+	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
+    price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+    terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+    terms_id = models.IntegerField(blank=True, null=True)  # optional FK to terms table if needed
+
+    conditions_id = models.IntegerField(blank=True, null=True) 
+    conditions_description = models.CharField(max_length=255, blank=True, null=True)  # optional FK to conditions table if needed
+
     cost = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     sell = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     # Header-level cached totals for quick filtering and reporting. Persisted so
