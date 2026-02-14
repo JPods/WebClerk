@@ -8,7 +8,7 @@ from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView
 from apps.core.views.wcapi import WCAPIGetView, WCAPIGetViewWithModel, WCAPIDeleteView, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
-from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers
+from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -41,6 +41,7 @@ urlpatterns = [
     path("wcapi/qa/<str:parent_model>/<int:parent_id>/", ParentQAView.as_view(), name="wcapi-qa-parent"),
     # Dev tools endpoints (development only)
     path("wcapi/dev/config/", dev_config_status, name="dev-config"),
+    path("wcapi/dev/sync-status/", dev_sync_status, name="dev-sync-status"),
     path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch"),
     path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart"),
 ]

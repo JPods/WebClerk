@@ -266,9 +266,9 @@ EMAIL_BCC_ADMIN = config('EMAIL_BCC_ADMIN', default=False, cast=bool)
 EMAIL_ADMIN_RECIPIENT = config('EMAIL_ADMIN_RECIPIENT', default='')
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = config('TIME_ZONE', default='UTC')
 USE_I18N = True
-USE_TZ = True
+USE_TZ = config('USE_TZ', default=True, cast=bool)
 
 STATIC_URL = 'static/'
 

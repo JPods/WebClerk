@@ -3,6 +3,57 @@
 from django.db import migrations
 
 
+def _table_names(schema_editor) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        return set(connection.introspection.table_names(cursor))
+
+
+def _column_names(schema_editor, table_name: str) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        description = connection.introspection.get_table_description(cursor, table_name)
+    return {col.name for col in description}
+
+
+def _drop_column_if_exists(schema_editor, table_name: str, column_name: str):
+    if table_name in _table_names(schema_editor):
+        cols = _column_names(schema_editor, table_name)
+        if column_name in cols:
+            q_table = schema_editor.quote_name(table_name)
+            q_col = schema_editor.quote_name(column_name)
+            schema_editor.execute(f'ALTER TABLE {q_table} DROP COLUMN {q_col}')
+
+
+def _rename_column_if_needed(schema_editor, table_name: str, old_name: str, new_name: str):
+    if table_name in _table_names(schema_editor):
+        cols = _column_names(schema_editor, table_name)
+        if old_name in cols and new_name not in cols:
+            q_table = schema_editor.quote_name(table_name)
+            q_old = schema_editor.quote_name(old_name)
+            q_new = schema_editor.quote_name(new_name)
+            schema_editor.execute(f'ALTER TABLE {q_table} RENAME COLUMN {q_old} TO {q_new}')
+
+
+def _forward_compat_0019(apps, schema_editor):
+    _drop_column_if_exists(schema_editor, 'audit_log', 'user_id')
+
+    _rename_column_if_needed(schema_editor, 'actions', 'due_by', 'deadline_by')
+    _rename_column_if_needed(schema_editor, 'actions', 'dt_due', 'dt_deadline')
+
+    _drop_column_if_exists(schema_editor, 'actions', 'dt_end')
+    _drop_column_if_exists(schema_editor, 'actions', 'is_locked')
+    _drop_column_if_exists(schema_editor, 'contacts', 'is_locked')
+    _drop_column_if_exists(schema_editor, 'pending', 'is_locked')
+    _drop_column_if_exists(schema_editor, 'settings', 'is_locked')
+    _drop_column_if_exists(schema_editor, 'templates', 'is_locked')
+
+    for table_name in ('api_log', 'api_logs', 'audit_log', 'audit_logs'):
+        if table_name in _table_names(schema_editor):
+            q_table = schema_editor.quote_name(table_name)
+            schema_editor.execute(f'DROP TABLE {q_table}')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,48 +61,55 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='auditlog',
-            name='user_id',
-        ),
-        migrations.RenameField(
-            model_name='action',
-            old_name='due_by',
-            new_name='deadline_by',
-        ),
-        migrations.RenameField(
-            model_name='action',
-            old_name='dt_due',
-            new_name='dt_deadline',
-        ),
-        migrations.RemoveField(
-            model_name='action',
-            name='dt_end',
-        ),
-        migrations.RemoveField(
-            model_name='action',
-            name='is_locked',
-        ),
-        migrations.RemoveField(
-            model_name='contact',
-            name='is_locked',
-        ),
-        migrations.RemoveField(
-            model_name='pending',
-            name='is_locked',
-        ),
-        migrations.RemoveField(
-            model_name='setting',
-            name='is_locked',
-        ),
-        migrations.RemoveField(
-            model_name='template',
-            name='is_locked',
-        ),
-        migrations.DeleteModel(
-            name='APILog',
-        ),
-        migrations.DeleteModel(
-            name='AuditLog',
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_forward_compat_0019, migrations.RunPython.noop),
+            ],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='auditlog',
+                    name='user_id',
+                ),
+                migrations.RenameField(
+                    model_name='action',
+                    old_name='due_by',
+                    new_name='deadline_by',
+                ),
+                migrations.RenameField(
+                    model_name='action',
+                    old_name='dt_due',
+                    new_name='dt_deadline',
+                ),
+                migrations.RemoveField(
+                    model_name='action',
+                    name='dt_end',
+                ),
+                migrations.RemoveField(
+                    model_name='action',
+                    name='is_locked',
+                ),
+                migrations.RemoveField(
+                    model_name='contact',
+                    name='is_locked',
+                ),
+                migrations.RemoveField(
+                    model_name='pending',
+                    name='is_locked',
+                ),
+                migrations.RemoveField(
+                    model_name='setting',
+                    name='is_locked',
+                ),
+                migrations.RemoveField(
+                    model_name='template',
+                    name='is_locked',
+                ),
+                migrations.DeleteModel(
+                    name='APILog',
+                ),
+                migrations.DeleteModel(
+                    name='AuditLog',
+                ),
+            ],
         ),
     ]
