@@ -63,13 +63,13 @@ export { default as ActionsPanel } from "./ActionsPanel";
 export { default as BasicInformationPanel } from "./BasicInformationPanel";
 export { default as DocumentsPanel } from "./DocumentsPanel";
 export { default as QAPanel } from "./QAPanel";
-export { default as ContactPanel } from "./RefsLinksContactPanel";
-export { default as ContactLinksPanel } from "./RefsLinksContactPanel";
+export { default as ContactPanel } from "./ContactPanel";
+export { default as ContactLinksPanel } from "./ContactPanel";
 export {
   default as RefsLinksContactPanel,
   normalizeRefsLinksContact,
-} from "./RefsLinksContactPanel";
-export type { RefContact } from "./RefsLinksContactPanel";
+} from "./ContactPanel";
+export type { RefContact } from "./ContactPanel";
 export { default as FinancialsPanel } from "./FinancialsPanel";
 export { default as TransactionFinancialsPanel } from "./FinancialsPanel";
 export { default as ShippingPanel } from "./ShippingPanel";

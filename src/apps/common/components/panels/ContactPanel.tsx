@@ -1,5 +1,5 @@
 /**
- * RefsLinksContactPanel - Display contacts grouped by purpose with editing support
+ * ContactPanel - Display contacts grouped by purpose with editing support
  * Syncs with refs.links.contact structure from API
  */
 import React, { useState, useEffect } from "react";
@@ -178,7 +178,7 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
   });
 }
 
-interface RefsLinksContactPanelProps {
+interface ContactPanelProps {
   contacts: RefContact[];
   isEditing?: boolean;
   /** Generic parent model name for persistence (e.g. 'order', 'invoice', 'vendor') */
@@ -1804,7 +1804,7 @@ const CreateContactModal: React.FC<{
   );
 };
 
-const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
+const ContactPanel: React.FC<ContactPanelProps> = ({
   contacts = [],
   isEditing = false,
   parent_model,
@@ -1946,7 +1946,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
           // Instant local state update - add new contact to existing contacts
           if (onChange) {
             console.log(
-              "[RefsLinksContactPanel] Adding new contact to local state:",
+              "[ContactPanel] Adding new contact to local state:",
               newContact,
             );
             onChange([...contacts, newContact]);
@@ -1967,7 +1967,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         onChange={(newContact) => {
           if (onChange) {
             console.log(
-              "[RefsLinksContactPanel] New contact created, adding to local state:",
+              "[ContactPanel] New contact created, adding to local state:",
               newContact,
             );
             onChange([...contacts, newContact]);
@@ -2025,4 +2025,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   );
 };
 
-export default RefsLinksContactPanel;
+export default ContactPanel;
+
+/** @deprecated Use ContactPanel instead */
+export { ContactPanel as RefsLinksContactPanel };
