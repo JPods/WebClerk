@@ -18,7 +18,7 @@ import { DetailTabs, useDetailTabs, TabConfig } from "../../../../../components/
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import QAPanel from "../../../../common/components/panels/QAPanel";
-import ContactLinksPanel from "../../../../common/components/panels/ContactPanel";
+import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
 import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
 
 const STORAGE_KEY = "actionDetail_columnCount";

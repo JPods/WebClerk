@@ -7,7 +7,7 @@
 export { default as FieldLabel } from "./FieldLabel";
 
 // Refs/Links Components
-export { default as RefsLinksContactPanel } from "./RefsLinksContactPanel";
+export { default as RefsLinksContactPanel } from "./ContactPanel";
 export { default as ContactLinksTable } from "./ContactLinksTable";
 export type {
   ContactLinkDisplayRow,
