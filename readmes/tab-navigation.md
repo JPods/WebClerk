@@ -22,12 +22,12 @@ These tab IDs are built-in with pre-configured icons and behavior:
 
 | Tab ID | Icon | Auto-renders | Admin-only |
 |--------|------|:------------:|:----------:|
-| `overview` | FaInfoCircle | — | — |
-| `contacts` | FaUsers | — | — |
-| `comments` | FaComments | CommentsPanel | — |
 | `actions` | FaTasks | ActionsPanel | — |
+| `comments` | FaComments | CommentsPanel | — |
+| `contacts` | FaUsers | — | — |
 | `documents` | FaFile | DocumentsPanel | — |
 | `financials` | FaDollarSign | FinancialsPanel | — |
+| `overview` | FaInfoCircle | — | — |
 | `raw` | FaCode | JsonFieldEditor | ✓ |
 
 > `overview` and `contacts` provide tab buttons only — their content varies per page
@@ -137,34 +137,34 @@ migrate to Pattern 1 or 2 when possible.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `entityType` | `string` | — | localStorage key prefix for tab persistence |
 | `activeTab` | `string` | — | Currently active tab ID |
-| `onTabChange` | `(tabId: string) => void` | — | Tab change callback |
-| `standardTabs` | `StandardTabId[]` | `['overview','comments','actions','documents','raw']` | Which built-in tabs to show |
 | `additionalTabs` | `TabConfig[]` | `[]` | Custom tabs with optional `content` |
 | `badges` | `Record<string, number \| string>` | `{}` | Badge counts for tabs |
-| `entityId` | `string \| number` | — | Entity ID for panel components |
-| `recordData` | `any` | — | Full record data (triggers auto panel rendering) |
-| `panelEntityType` | `string` | `entityType` | Entity type for panels (e.g., "campaign") |
-| `isEditing` | `boolean` | `false` | Whether panels are in edit mode |
-| `onRecordChange` | `(data: any) => void` | — | Callback when panels update record data |
-| `showColumnSelector` | `boolean` | `false` | Show 2/3 column layout selector |
-| `columnCount` | `2 \| 3` | `3` | Current column count |
-| `onColumnCountChange` | `(count: 2 \| 3) => void` | — | Column change callback |
 | `className` | `string` | `''` | CSS class for the tab bar |
+| `columnCount` | `2 \| 3` | `3` | Current column count |
+| `entityId` | `string \| number` | — | Entity ID for panel components |
+| `entityType` | `string` | — | localStorage key prefix for tab persistence |
+| `isEditing` | `boolean` | `false` | Whether panels are in edit mode |
+| `onColumnCountChange` | `(count: 2 \| 3) => void` | — | Column change callback |
+| `onRecordChange` | `(data: any) => void` | — | Callback when panels update record data |
+| `onTabChange` | `(tabId: string) => void` | — | Tab change callback |
+| `panelEntityType` | `string` | `entityType` | Entity type for panels (e.g., "campaign") |
+| `recordData` | `any` | — | Full record data (triggers auto panel rendering) |
+| `showColumnSelector` | `boolean` | `false` | Show 2/3 column layout selector |
+| `standardTabs` | `StandardTabId[]` | `['actions','comments','documents','overview','raw']` | Which built-in tabs to show |
 
 ### TabConfig
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `adminOnly` | `boolean` | Only visible to admin users |
+| `badge` | `number \| string` | Optional badge count |
+| `content` | `ReactNode` | Panel content rendered when tab is active |
+| `hidden` | `boolean` | Hide this tab |
+| `icon` | `ReactNode` | Optional icon element |
 | `id` | `string` | Unique tab identifier |
 | `label` | `string` | Display label |
-| `icon` | `ReactNode` | Optional icon element |
-| `badge` | `number \| string` | Optional badge count |
-| `adminOnly` | `boolean` | Only visible to admin users |
 | `roles` | `string[]` | Only visible to these roles |
-| `hidden` | `boolean` | Hide this tab |
-| `content` | `ReactNode` | Panel content rendered when tab is active |
 
 ---
 
@@ -177,44 +177,46 @@ migrate to Pattern 1 or 2 when possible.
 | Customer | actions, comments, documents, raw | contacts, financial, qa |
 | Vendor | actions, comments, documents, overview, raw | contacts, financial, qa |
 
+> Tab IDs within each cell are listed alphabetically.
+
 ### Transactions (via TransactionDetailBase)
 
 | Tabs | Details |
 |------|---------|
 | Built-in | actions, comments, contacts, documents, financials, qa, raw |
-| Custom per type | shipping (Order/Invoice), tax (Invoice), receiving (Purchase) |
+| Custom per type | receiving (Purchase), shipping (Order/Invoice), tax (Invoice) |
 
 ### Products (Detail + Display pages)
 
 | Page | standardTabs |
 |------|-------------|
-| Catalog, Flow, Matrics, Serial, Service, Spec, Variant, Warehouse, Usage, ItemXref, OrgItem | actions, comments, documents, raw |
-| Item | actions, comments, documents, raw (two render paths: view + edit) |
 | Bill of Material | actions, comments, documents, raw |
+| Catalog, Flow, ItemXref, Matrics, OrgItem, Serial, Service, Spec, Usage, Variant, Warehouse | actions, comments, documents, raw |
+| Item | actions, comments, documents, raw (two render paths: view + edit) |
 
 ### Accounts
 
 | Page | standardTabs |
 |------|-------------|
-| Currency, GL Account, Exchange Rate, Exchange Transaction, GL Journal | comments, actions, raw |
 | Audit | actions, comments, documents, raw |
+| Currency, Exchange Rate, Exchange Transaction, GL Account, GL Journal | actions, comments, raw |
 
 ### Communications
 
 | Page | standardTabs |
 |------|-------------|
-| Address | contacts, comments, actions, documents, financials, raw |
-| Phone, Email, Domain | contacts, comments, actions, documents, raw |
+| Address | actions, comments, contacts, documents, financials, raw |
+| Domain, Email, Phone | actions, comments, contacts, documents, raw |
 
 ### Core / Docs
 
 | Page | Tabs |
 |------|------|
-| Setting, Report, Campaign, Bundle, Connection | actions, comments, documents, raw (migrated to auto-rendering) |
-| Template | actions, comments, documents, raw |
-| Action | comments, documents, qa, contacts |
+| Action | comments, contacts, documents, qa |
+| Bundle, Campaign, Connection, Report, Setting | actions, comments, documents, raw (migrated to auto-rendering) |
 | Contact | actions, comments, communications, documents, raw |
 | Document | actions, comments, documents, raw |
+| Template | actions, comments, documents, raw |
 
 ### Admin-Only
 
@@ -230,8 +232,8 @@ Pages migrated to auto-rendering (Pattern 1):
 
 | Status | Pages |
 |--------|-------|
-| ✅ Migrated | CampaignDetail, BundleDetail, ConnectionDetail, AuditDetail, ReportDetail, SettingDetail |
-| ⬜ Pending | Products (Detail + Display), Accounts, Communications, Core/Docs, Customer, Vendor, Item |
+| ✅ Migrated | AuditDetail, BundleDetail, CampaignDetail, ConnectionDetail, ReportDetail, SettingDetail |
+| ⬜ Pending | Accounts, Communications, Core/Docs, Customer, Item, Products (Detail + Display), Vendor |
 | N/A | TransactionDetailBase (own tab system), OrgDetail (own tab system), Line editors (no tabs) |
 
 ---
@@ -262,11 +264,11 @@ const { columnCount, setColumnCount } = useColumnCount("campaignDetail_columnCou
 
 | Component | Path |
 |-----------|------|
-| DetailTabs | `src/components/common/DetailTabs.tsx` |
 | ActionsPanel | `src/apps/common/components/panels/ActionsPanel.tsx` |
 | CommentsPanel | `src/apps/common/components/panels/CommentsPanel.tsx` |
+| DetailTabs | `src/components/common/DetailTabs.tsx` |
 | DocumentsPanel | `src/apps/common/components/panels/DocumentsPanel.tsx` |
 | FinancialsPanel | `src/apps/common/components/panels/FinancialsPanel.tsx` |
-| RawDataPanel | `src/apps/common/components/panels/RawDataPanel.tsx` |
 | JsonFieldEditor | `src/apps/common/components/JsonFieldEditor.tsx` |
 | Panel types | `src/apps/common/components/panels/types.ts` |
+| RawDataPanel | `src/apps/common/components/panels/RawDataPanel.tsx` |
