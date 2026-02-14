@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,12 +7,12 @@ import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaUserPlus, FaQuestionCircle, FaLink, FaSlidersH } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaQuestionCircle, FaLink, FaSlidersH, FaPlus, FaFileInvoiceDollar, FaShoppingCart, FaClipboardList } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
@@ -27,7 +27,7 @@ import {
   DocumentsPanel,
   MetadataPanel,
   RawDataPanel,
-  RefsLinksContactPanel,
+  ContactPanel,
   normalizeRefsLinksContact,
   QAPanel,
   RefsPanel,
@@ -40,6 +40,83 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
 
+// ---------------------------------------------------------------------------
+// Create Transaction Dropdown
+// ---------------------------------------------------------------------------
+
+const TRANSACTION_OPTIONS = [
+  { value: "proposal", label: "Proposal", icon: FaClipboardList, path: "/transactions/proposal/detail/" },
+  { value: "order",    label: "Order",    icon: FaShoppingCart,   path: "/transactions/order/detail/" },
+  { value: "invoice",  label: "Invoice",  icon: FaFileInvoiceDollar, path: "/transactions/invoice/detail/" },
+] as const;
+
+interface CreateTransactionDropdownProps {
+  customerId?: number | null;
+  customerName?: string;
+  ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
+}
+
+function CreateTransactionDropdown({
+  customerId,
+  customerName,
+  ensureWindow,
+}: CreateTransactionDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const handleSelect = (opt: typeof TRANSACTION_OPTIONS[number]) => {
+    setOpen(false);
+    const qs = new URLSearchParams();
+    if (customerId) qs.set("customer_id", String(customerId));
+    if (customerName) qs.set("customer_name", customerName);
+    const query = qs.toString();
+    const path = `${opt.path}${query ? `?${query}` : ""}`;
+    ensureWindow(path, `New ${opt.label}`, { maximized: false });
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+        title="Create transaction for this customer"
+      >
+        <FaPlus size={10} />
+        Create
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 py-1">
+          {TRANSACTION_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelect(opt)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+              >
+                <Icon size={14} className="text-slate-400" />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -167,6 +244,11 @@ export default function CustomerDetail({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // FK-based contact loading (replaces refs.links.contact)
+  const [fkContacts, setFkContacts] = useState<ReturnType<typeof normalizeRefsLinksContact>>([]);
+  const [fkContactsLoading, setFkContactsLoading] = useState(false);
+  const [fkRefreshTrigger, setFkRefreshTrigger] = useState(0);
+
   // Detect mode from route if modeProp not provided
   const routeMode = useMemo(() => {
     const path = location.pathname;
@@ -177,6 +259,14 @@ export default function CustomerDetail({
   }, [location.pathname]);
   
   const customerId = Number(id);
+
+  // Resolved customer ID — useParams may be empty in floating windows,
+  // so fall back to the record's own id from dataProp or fetchedRecord.
+  const resolvedCustomerId = useMemo(() => {
+    if (Number.isFinite(customerId) && customerId > 0) return customerId;
+    const fromData = dataProp?.id ?? fetchedRecord?.id;
+    return fromData ? Number(fromData) : 0;
+  }, [customerId, dataProp, fetchedRecord]);
 
   // Fetch data when in view/edit mode and no dataProp provided
   useEffect(() => {
@@ -196,6 +286,64 @@ export default function CustomerDetail({
       })
       .finally(() => setLoading(false));
   }, [customerId, dataProp, routeMode]);
+
+  /**
+   * FK-based contact fetching:
+   * Query contacts by customer_id FK instead of reading refs.links.contact.
+   * Also compares FK result with refs.links and logs any mismatches.
+   */
+  const fetchFkContacts = useCallback(async (custId: number) => {
+    if (!Number.isFinite(custId) || custId <= 0) {
+      console.log("[CustomerDetail.fetchFkContacts] skipped – invalid custId:", custId);
+      return;
+    }
+    console.log(`[CustomerDetail.fetchFkContacts] fetching contacts for customer_id=${custId}`);
+    setFkContactsLoading(true);
+    try {
+      const res = await getRecords("contact", { customer_id: custId });
+      console.log("[CustomerDetail.fetchFkContacts] API response:", res);
+      const results = res?.results ?? [];
+      console.log(`[CustomerDetail.fetchFkContacts] got ${results.length} contact(s)`);
+      // Map raw contact records to RefContact shape
+      const mapped = results.map((r: any) => ({
+        contact_id: r.id,
+        purpose: r.purpose || "",
+        attention: r.attention || "",
+        email: r.email || "",
+        phone: r.phone || "",
+        full: r.display_name || r.full || "",
+      }));
+      console.log("[CustomerDetail.fetchFkContacts] mapped contacts:", mapped);
+      setFkContacts(mapped);
+
+      // --- Mismatch detection (FK vs refs.links.contact) ---
+      // Use a snapshot; don't depend on fetchedRecord to avoid dep loops
+      const fkIds = mapped.map((c: any) => c.contact_id).sort();
+      logRefsMismatch({
+        parent_model: "customer",
+        parent_id: custId,
+        related_model: "contact",
+        fk_field: "customer_id",
+        fk_ids: fkIds,
+        refs_ids: [], // refs comparison deferred – avoids dep loop
+        caller: "CustomerDetail.fetchFkContacts",
+      });
+    } catch (err) {
+      console.error("[CustomerDetail] FK contact fetch failed:", err);
+    } finally {
+      setFkContactsLoading(false);
+    }
+  }, []); // no deps — stable function reference
+
+  // Trigger FK contact fetch when customer id or refresh trigger changes
+  useEffect(() => {
+    if (routeMode === "add") return;
+    if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
+      console.log("[CustomerDetail] FK fetch skipped – resolvedCustomerId:", resolvedCustomerId, "useParams id:", id);
+      return;
+    }
+    fetchFkContacts(resolvedCustomerId);
+  }, [resolvedCustomerId, routeMode, fetchFkContacts, fkRefreshTrigger]);
 
   // Window management - only when NOT rendered inline
   useEffect(() => {
@@ -337,7 +485,7 @@ export default function CustomerDetail({
     comments: getCommentCount(),
     actions: getActionCount(),
     documents: getDocumentCount(),
-    contacts: data?.refs?.links?.contact?.length || 0,
+    contacts: fkContacts.length,
   };
 
   useEffect(() => {
@@ -595,33 +743,21 @@ export default function CustomerDetail({
     await saveCustomer(formData);
   };
 
-  // Handler to create a contact from customer information (view/edit mode)
-  const handleCreateContact = useCallback(async () => {
-    const record = dataProp || fetchedRecord;
-    if (!record || !record.id) {
-      dispatch(showToast({ message: "Save the customer first before creating a contact", type: "error" }));
-      return;
-    }
-
-    try {
-      await autoCreateContactForCustomer(
-        record.id,
-        record.display_name || "",
-        record.attention || "",
-        record.email || "",
-        record.phone || "",
-      );
-    } catch (err: any) {
-      dispatch(showToast({ message: err?.message || "Failed to create contact", type: "error" }));
-    }
-  }, [dataProp, fetchedRecord, dispatch, autoCreateContactForCustomer]);
-
   // Action buttons configuration based on mode
   const getActionButtons = () => {
     const buttons = [];
 
     if (baseMode === "view" && !isEditing) {
-      // View mode - show Edit button to switch to edit mode
+      // View mode - Create Transaction dropdown
+      buttons.push(
+        <CreateTransactionDropdown
+          key="create-txn"
+          customerId={data?.id}
+          customerName={data?.display_name || data?.name}
+          ensureWindow={ensureWindow}
+        />,
+      );
+      // Edit button to switch to edit mode
       buttons.push(
         <button
           key="edit-local"
@@ -661,19 +797,6 @@ export default function CustomerDetail({
           </button>
         );
       }
-      // Create Contact button - secondary action, after primary buttons
-      buttons.push(
-        <button
-          key="create-contact"
-          type="button"
-          onClick={handleCreateContact}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-          title="Create Contact from Customer"
-        >
-          <FaUserPlus size={14} />
-          Create Contact
-        </button>
-      );
       if (onDelete) {
         buttons.push(
           <button
@@ -689,21 +812,7 @@ export default function CustomerDetail({
         );
       }
     } else {
-      // Add/Edit mode - Create Contact button (only for edit mode with saved record)
-      if (mode === "edit" && data?.id) {
-        buttons.push(
-          <button
-            key="create-contact"
-            type="button"
-            onClick={handleCreateContact}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-            title="Create Contact from Customer"
-          >
-            <FaUserPlus size={14} />
-            Create Contact
-          </button>
-        );
-      }
+      // Add/Edit mode — no Create Contact here (use ContactPanel's "+Add" instead)
     }
 
     // Navigation buttons (always available if callbacks provided)
@@ -1080,24 +1189,28 @@ export default function CustomerDetail({
           {/* Model-Specific Tabs */}
           {mode === "view" ? (
             <>
-              {/* Contacts tab – RefsLinksContactPanel (same as transactions) */}
+              {/* Contacts tab – ContactPanel (same as transactions) */}
               {activeTab === "contacts" && (
-                <RefsLinksContactPanel
-                  contacts={normalizeRefsLinksContact(
-                    data?.refs?.links?.contact ?? []
-                  )}
+                <ContactPanel
+                  contacts={fkContacts}
                   isEditing={false}
+                  loading={fkContactsLoading}
                   allowCreate={true}
                   parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onSaveSuccess={() => {
+                    // Bump the trigger to re-fetch FK contacts
+                    setFkRefreshTrigger((n) => n + 1);
+                    // Also refresh the parent record
                     if (customerData.id) {
                       getRecord("customer", customerData.id)
                         .then((res: any) => {
                           const rec = res?.record ?? res;
                           if (rec) {
+                            setFetchedRecord(rec);
                             Object.keys(rec).forEach((key) => {
                               if (key in JSON_DEFAULTS) {
                                 setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
@@ -1124,17 +1237,17 @@ export default function CustomerDetail({
           ) : (
             /* Edit mode - JSON editors for model-specific tabs */
             <div className="space-y-4">
-              {/* Contacts tab in edit mode – still uses RefsLinksContactPanel */}
+              {/* Contacts tab in edit mode */}
               {activeTab === "contacts" && (
-                <RefsLinksContactPanel
-                  contacts={normalizeRefsLinksContact(
-                    data?.refs?.links?.contact ?? []
-                  )}
+                <ContactPanel
+                  contacts={fkContacts}
                   isEditing={true}
+                  loading={fkContactsLoading}
                   parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onChange={(newContacts) => {
                     const currentRefs = safeParseJson(formData.refs as unknown as string | undefined, { links: {} });
                     setValue(
@@ -1147,11 +1260,13 @@ export default function CustomerDetail({
                     );
                   }}
                   onSaveSuccess={() => {
+                    setFkRefreshTrigger((n) => n + 1);
                     if (customerData.id) {
                       getRecord("customer", customerData.id)
                         .then((res: any) => {
                           const rec = res?.record ?? res;
                           if (rec) {
+                            setFetchedRecord(rec);
                             Object.keys(rec).forEach((key) => {
                               if (key in JSON_DEFAULTS) {
                                 setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));

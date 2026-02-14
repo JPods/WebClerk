@@ -18,7 +18,7 @@ How tab navigation works across Detail and Display pages.
 
 ### Standard Tabs
 
-These tab IDs are built-in with pre-configured icons and behavior:
+These tab IDs are built-in with pre-configured icons and behavior (alphabetical):
 
 | Tab ID | Icon | Auto-renders | Admin-only |
 |--------|------|:------------:|:----------:|
@@ -30,8 +30,11 @@ These tab IDs are built-in with pre-configured icons and behavior:
 | `overview` | FaInfoCircle | — | — |
 | `raw` | FaCode | JsonFieldEditor | ✓ |
 
-> `overview` and `contacts` provide tab buttons only — their content varies per page
-> and should be rendered via `additionalTabs[].content` when needed.
+> `overview` is not in `DEFAULT_STANDARD_TABS` — the overview section is rendered
+> persistently above the tab bar. Pass it explicitly in `standardTabs` only if needed.
+>
+> `contacts` provides a tab button only — its content varies per page and should be
+> rendered via `additionalTabs[].content`.
 
 ### Removed Tabs
 
@@ -151,7 +154,7 @@ migrate to Pattern 1 or 2 when possible.
 | `panelEntityType` | `string` | `entityType` | Entity type for panels (e.g., "campaign") |
 | `recordData` | `any` | — | Full record data (triggers auto panel rendering) |
 | `showColumnSelector` | `boolean` | `false` | Show 2/3 column layout selector |
-| `standardTabs` | `StandardTabId[]` | `['actions','comments','documents','overview','raw']` | Which built-in tabs to show |
+| `standardTabs` | `StandardTabId[]` | `['actions','comments','documents','raw']` | Which built-in tabs to show |
 
 ### TabConfig
 
@@ -168,61 +171,106 @@ migrate to Pattern 1 or 2 when possible.
 
 ---
 
-## Tab Layouts by Page Group
+## Tab Tiers
 
-### Customer & Vendor
+### Tier 1 — Base (every model)
 
-| Page | standardTabs | additionalTabs |
-|------|-------------|----------------|
-| Customer | actions, comments, documents, raw | contacts, financial, qa |
-| Vendor | actions, comments, documents, overview, raw | contacts, financial, qa |
+Every detail page receives these four tabs by default via `DEFAULT_STANDARD_TABS`:
 
-> Tab IDs within each cell are listed alphabetically.
+| Tab | Panel | Notes |
+|-----|-------|-------|
+| `actions` | ActionsPanel | auto-rendered |
+| `comments` | CommentsPanel | auto-rendered |
+| `documents` | DocumentsPanel | auto-rendered |
+| `raw` | JsonFieldEditor | auto-rendered, admin-only |
 
-### Transactions (via TransactionDetailBase)
+Pages that need nothing beyond these four pass no `additionalTabs` at all.
+
+**Models using base only:**
+Accounts (Audit, Currency, Exchange Rate, Exchange Transaction, GL Account, GL Journal),
+Products (Bill of Material, Catalog, Flow, Item, ItemXref, Matrics, OrgItem, Serial,
+Service, Spec, Usage, Variant, Warehouse),
+Core/Docs (Bundle, Campaign, Connection, Document, Report, Setting, Template).
+
+### Tier 2 — Org Tabs (Customer & Vendor)
+
+Orgs extend the base with five `additionalTabs`:
+
+| Tab | Panel | Notes |
+|-----|-------|-------|
+| `contacts` | ContactPanel | linked contacts |
+| `financials` | FinancialsPanel | totals, cost, sell, currency |
+| `items` | *ItemsPanel* | lines from transactions + serials (see below) |
+| `qa` | QAPanel | question groups |
+| `transactions` | *TransactionsPanel* | sub-tables per org type (see below) |
+
+#### `transactions` tab — contents by org type
+
+| Org type | Sub-tables |
+|----------|------------|
+| Customer | proposals, orders, invoices, ledgers, payments |
+| Vendor | purchases, receipts |
+
+The TransactionsPanel renders a filterable list grouped by sub-table type.
+Each row links to its transaction detail page.
+
+#### `items` tab
+
+Shows line items sourced from the org's transactions plus any linked serials.
+Provides a consolidated view of every product the org has interacted with.
+
+### Tier 3 — Transaction Tabs (via TransactionDetailBase)
+
+Transactions use their own tab system within `TransactionDetailBase`:
 
 | Tabs | Details |
 |------|---------|
 | Built-in | actions, comments, contacts, documents, financials, qa, raw |
 | Custom per type | receiving (Purchase), shipping (Order/Invoice), tax (Invoice) |
 
-### Products (Detail + Display pages)
+### Tier 4 — Communications
 
-| Page | standardTabs |
-|------|-------------|
-| Bill of Material | actions, comments, documents, raw |
-| Catalog, Flow, ItemXref, Matrics, OrgItem, Serial, Service, Spec, Usage, Variant, Warehouse | actions, comments, documents, raw |
-| Item | actions, comments, documents, raw (two render paths: view + edit) |
-
-### Accounts
-
-| Page | standardTabs |
-|------|-------------|
-| Audit | actions, comments, documents, raw |
-| Currency, Exchange Rate, Exchange Transaction, GL Account, GL Journal | actions, comments, raw |
-
-### Communications
-
-| Page | standardTabs |
-|------|-------------|
-| Address | actions, comments, contacts, documents, financials, raw |
-| Domain, Email, Phone | actions, comments, contacts, documents, raw |
-
-### Core / Docs
-
-| Page | Tabs |
-|------|------|
-| Action | comments, contacts, documents, qa |
-| Bundle, Campaign, Connection, Report, Setting | actions, comments, documents, raw (migrated to auto-rendering) |
-| Contact | actions, comments, communications, documents, raw |
-| Document | actions, comments, documents, raw |
-| Template | actions, comments, documents, raw |
+| Page | standardTabs | additionalTabs |
+|------|-------------|----------------|
+| Address | actions, comments, documents, raw | contacts, financials |
+| Domain, Email, Phone | actions, comments, documents, raw | contacts |
 
 ### Admin-Only
 
 | Page | Mechanism |
 |------|-----------|
 | OrgDetail (Employee wrapper) | Custom tab bar, 17 defaultTabs — not using DetailTabs |
+
+---
+
+## Tab Tier Summary
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Tier 1 — Base (all models)                         │
+│  actions · comments · documents · raw               │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 2 — Orgs (Customer / Vendor)            │  │
+│  │  + contacts · financials · items · qa         │  │
+│  │  + transactions                               │  │
+│  │    Customer: proposals, orders, invoices,     │  │
+│  │              ledgers, payments                │  │
+│  │    Vendor:   purchases, receipts              │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 3 — Transactions (own tab system)       │  │
+│  │  + contacts · financials · qa                 │  │
+│  │  + type-specific: receiving, shipping, tax    │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 4 — Communications                     │  │
+│  │  + contacts (all) · financials (Address only) │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -262,13 +310,31 @@ const { columnCount, setColumnCount } = useColumnCount("campaignDetail_columnCou
 
 ## File Locations
 
-| Component | Path |
-|-----------|------|
-| ActionsPanel | `src/apps/common/components/panels/ActionsPanel.tsx` |
-| CommentsPanel | `src/apps/common/components/panels/CommentsPanel.tsx` |
-| DetailTabs | `src/components/common/DetailTabs.tsx` |
-| DocumentsPanel | `src/apps/common/components/panels/DocumentsPanel.tsx` |
-| FinancialsPanel | `src/apps/common/components/panels/FinancialsPanel.tsx` |
-| JsonFieldEditor | `src/apps/common/components/JsonFieldEditor.tsx` |
-| Panel types | `src/apps/common/components/panels/types.ts` |
-| RawDataPanel | `src/apps/common/components/panels/RawDataPanel.tsx` |
+| Component | Path | Status |
+|-----------|------|--------|
+| ActionsPanel | `src/apps/common/components/panels/ActionsPanel.tsx` | ✅ |
+| BasicInformationPanel | `src/apps/common/components/panels/BasicInformationPanel.tsx` | ✅ |
+| CommentsPanel | `src/apps/common/components/panels/CommentsPanel.tsx` | ✅ |
+| CommunicationsPanel | `src/apps/common/components/panels/CommunicationsPanel.tsx` | ✅ |
+| ContactPanel | `src/apps/common/components/panels/ContactPanel.tsx` | ✅ |
+| DetailTabs | `src/components/common/DetailTabs.tsx` | ✅ |
+| DocumentsPanel | `src/apps/common/components/panels/DocumentsPanel.tsx` | ✅ |
+| FinancialsPanel | `src/apps/common/components/panels/FinancialsPanel.tsx` | ✅ |
+| ItemsPanel | `src/apps/common/components/panels/ItemsPanel.tsx` | ✅ |
+| JsonFieldEditor | `src/apps/common/components/JsonFieldEditor.tsx` | ✅ |
+| LinkagesPanel | `src/apps/common/components/panels/LinkagesPanel.tsx` | ✅ |
+| MetadataPanel | `src/apps/common/components/panels/MetadataPanel.tsx` | ✅ |
+| ModelDataPanel | `src/apps/common/components/panels/ModelDataPanel.tsx` | ✅ |
+| PrefsPanel | `src/apps/common/components/panels/PrefsPanel.tsx` | ✅ |
+| QAPanel | `src/apps/common/components/panels/QAPanel.tsx` | ✅ |
+| RawDataPanel | `src/apps/common/components/panels/RawDataPanel.tsx` | ✅ |
+| RefsPanel | `src/apps/common/components/panels/RefsPanel.tsx` | ✅ |
+| SerialPanel | `src/apps/common/components/panels/SerialPanel.tsx` | ✅ |
+| ShippingPanel | `src/apps/common/components/panels/ShippingPanel.tsx` | ✅ |
+| TemplateQAPanel | `src/apps/common/components/panels/TemplateQAPanel.tsx` | ✅ |
+| TransactionsPanel | `src/apps/common/components/panels/TransactionsPanel.tsx` | ✅ |
+| Panel barrel export | `src/apps/common/components/panels/index.ts` | ✅ |
+| Panel types | `src/apps/common/components/panels/types.ts` | ✅ |
+| Document upload utils | `src/apps/common/components/panels/documentUpload.ts` | ✅ |
+| QA utilities | `src/apps/common/components/panels/qaUtils.ts` | ✅ |
+| Permissions hook | `src/apps/common/components/panels/usePermissions.ts` | ✅ |

@@ -36,7 +36,7 @@ import {
 import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
 
 // Import shared components
-import RefsLinksContactPanel from "./ContactPanel";
+import ContactPanel from "./ContactPanel";
 import ContactLinksTable from "./ContactLinksTable";
 import CommentsPanel from "./CommentsPanel";
 import MetadataPanel from "./MetadataPanel";
@@ -769,7 +769,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         console.log("currentData", currentData);
         // Use normalization helper to parse contacts from API
         return (
-          <RefsLinksContactPanel
+          <ContactPanel
             contacts={normalizeRefsLinksContact(
               currentData.refs?.links?.contact ?? [],
             )}

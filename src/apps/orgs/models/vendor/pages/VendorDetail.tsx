@@ -32,7 +32,7 @@ import {
   PrefsPanel,
   QAPanel,
   RawDataPanel,
-  RefsLinksContactPanel,
+  ContactPanel,
   RefsPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
@@ -570,7 +570,7 @@ export default function VendorDetail({
                       Save vendor to manage linked contacts
                     </div>
                   )}
-                  <RefsLinksContactPanel
+                  <ContactPanel
                     parent_model="vendor"
                     parentId={vendorId}
                     contacts={normalizeRefsLinksContact(

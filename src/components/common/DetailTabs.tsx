@@ -11,18 +11,30 @@
  */
 import React, { useState, useCallback } from 'react';
 import {
-  FaInfoCircle,
-  FaComments,
-  FaTasks,
-  FaFile,
   FaCode,
   FaColumns,
-  FaUsers,
+  FaComments,
   FaDollarSign,
+  FaFile,
+  FaInfoCircle,
+  FaTasks,
+  FaUsers,
 } from 'react-icons/fa';
 import { useAppSelector } from '@/store/hooks';
 
 // Standard panels for automatic rendering
+// DetailTabs auto-renders these 5 panels when `recordData` is provided:
+//   - ActionsPanel        (tab: actions)
+//   - CommentsPanel       (tab: comments)
+//   - DocumentsPanel      (tab: documents)
+//   - FinancialsPanel     (tab: financials)
+//   - JsonFieldEditor     (tab: raw)
+//
+// Additional panels available via `additionalTabs[].content` (manual render):
+//   - BasicInformationPanel, CommunicationsPanel, ContactPanel,
+//     LinkagesPanel, MetadataPanel, PrefsPanel, QAPanel,
+//     RawDataPanel, ShippingPanel
+// Full inventory: src/apps/common/components/panels/index.ts
 import { ActionsPanel, CommentsPanel, DocumentsPanel } from '@/apps/common/components/panels';
 import type { EntityType } from '@/apps/common/components/panels/types';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
@@ -55,7 +67,7 @@ export interface DetailTabsProps {
   /** Tab change handler */
   onTabChange: (tabId: string) => void;
   /** Standard tabs to include (default: all standard) */
-  standardTabs?: ('overview' | 'contacts' | 'comments' | 'actions' | 'documents' | 'financials' | 'raw')[];
+  standardTabs?: ('actions' | 'comments' | 'contacts' | 'documents' | 'financials' | 'overview' | 'raw')[];
   /** Additional model-specific tabs (inserted before admin tabs) */
   additionalTabs?: TabConfig[];
   /** Badges for standard tabs (e.g., { comments: 5, actions: 2 }) */
@@ -86,25 +98,20 @@ export interface DetailTabsProps {
 // ---------------------------------------------------------------------------
 
 const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
-  overview: {
-    id: 'overview',
-    label: 'Overview',
-    icon: <FaInfoCircle size={14} />,
-  },
-  contacts: {
-    id: 'contacts',
-    label: 'Contacts',
-    icon: <FaUsers size={14} />,
+  actions: {
+    id: 'actions',
+    label: 'Actions',
+    icon: <FaTasks size={14} />,
   },
   comments: {
     id: 'comments',
     label: 'Comments',
     icon: <FaComments size={14} />,
   },
-  actions: {
-    id: 'actions',
-    label: 'Actions',
-    icon: <FaTasks size={14} />,
+  contacts: {
+    id: 'contacts',
+    label: 'Contacts',
+    icon: <FaUsers size={14} />,
   },
   documents: {
     id: 'documents',
@@ -116,6 +123,11 @@ const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
     label: 'Financials',
     icon: <FaDollarSign size={14} />,
   },
+  overview: {
+    id: 'overview',
+    label: 'Overview',
+    icon: <FaInfoCircle size={14} />,
+  },
   raw: {
     id: 'raw',
     label: 'Raw',
@@ -125,9 +137,8 @@ const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
 };
 
 const DEFAULT_STANDARD_TABS: (keyof typeof STANDARD_TAB_CONFIGS)[] = [
-  'overview',
-  'comments',
   'actions',
+  'comments',
   'documents',
   'raw',
 ];

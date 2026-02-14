@@ -51,6 +51,9 @@ export type {
   UsePermissionsResult,
 } from "./usePermissions";
 
+// Utilities
+export { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
+
 // Panel Components - JSONB Field Editors (Admin)
 export { default as CommentsPanel } from "./CommentsPanel";
 export { default as MetadataPanel } from "./MetadataPanel";
@@ -66,12 +69,20 @@ export { default as QAPanel } from "./QAPanel";
 export { default as ContactPanel } from "./ContactPanel";
 export { default as ContactLinksPanel } from "./ContactPanel";
 export {
-  default as RefsLinksContactPanel,
   normalizeRefsLinksContact,
 } from "./ContactPanel";
 export type { RefContact } from "./ContactPanel";
+
+// Legacy grouped-by-purpose version (renamed from original ContactPanel)
+export { default as ContactPanelx2 } from "./ContactPanelx2";
 export { default as FinancialsPanel } from "./FinancialsPanel";
+export { default as ItemsPanel } from "./ItemsPanel";
+export type { ItemsPanelProps, LineItemRecord } from "./ItemsPanel";
+export { default as SerialPanel } from "./SerialPanel";
+export type { SerialPanelProps, SerialRecord } from "./SerialPanel";
 export { default as ShippingPanel } from "./ShippingPanel";
+export { default as TransactionsPanel } from "./TransactionsPanel";
+export type { TransactionsPanelProps, TransactionRecord } from "./TransactionsPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
 export { default as CommunicationsPanel } from "./CommunicationsPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";

@@ -39,13 +39,19 @@ const deriveTitle = (path: string) => {
 
 const AppLayout: React.FC = () => {
   const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
-  const { ensureWindow, windows, activePath } = useWindowManager();
+  const { ensureWindow, windows, activePath, skipAutoCreateForPathRef } = useWindowManager();
   const { isExpanded, isHovered, isMobileOpen, isVisible, toggleVisibility } = useSidebar();
   const location = useLocation();
 
   useEffect(() => {
+    // If ensureWindow was just called explicitly (e.g. from a panel Add button),
+    // it already created the window. Skip to avoid a duplicate from the auto-create.
+    if (skipAutoCreateForPathRef.current === location.pathname) {
+      skipAutoCreateForPathRef.current = null;
+      return;
+    }
     ensureWindow(location.pathname, deriveTitle(location.pathname));
-  }, [location.pathname, ensureWindow]);
+  }, [location.pathname, ensureWindow, skipAutoCreateForPathRef]);
 
   // Show loading while auth state is being determined
   if (isLoading) {
