@@ -1,4 +1,24 @@
+/**
+ * Proposal Types — matches wc3 TransactionBaseModel
+ * @see webClerk3/apps/transactions/models/base_transaction_model.py
+ *
+ * DB table: proposals (extends TransactionBaseModel)
+ */
+
 import { ProposalFormData } from "../utils/proposalSchema";
+import type {
+  TransactionStatus,
+  TransactionParentType,
+  TransactionTotals,
+  HeaderCost,
+  HeaderSell,
+  TransactionFinance,
+  TransactionRefs,
+  TransactionMetadata,
+  TransactionPrefs,
+  TransactionComments,
+  TransactionActions,
+} from "@/apps/transactions/types/transactionTypes";
 
 export interface ProposalAddProps {
   modeProp?: "add" | "edit" | "view";
@@ -11,155 +31,82 @@ export interface ProposalAddProps {
   isAdmin?: boolean;
 }
 
-// JSON field interfaces
-export interface ProposalCost {
-  [key: string]: any;
-}
-
-export interface ProposalSell {
-  [key: string]: any;
-}
-
-export interface ProposalFinance {
-  [key: string]: any;
-}
-
-export interface ProposalFlow {
-  [key: string]: any;
-}
-
-export interface ProposalSource {
-  [key: string]: any;
-}
-
-export interface ProposalAction {
-  [key: string]: any;
-}
-
-// Main Proposal interface
-export interface Proposal {
-  id: number;
-  uuid: string;
-  ida?: string;
-  status: string;
-  priority?: string;
-  price_level?: string;
-  id_customer: number;
-  id_manufacturer?: number;
-  id_vendor?: number;
-  cost?: ProposalCost;
-  sell?: ProposalSell;
-  finance?: ProposalFinance;
-  flow?: ProposalFlow;
-  source?: ProposalSource;
-  action?: string | ProposalAction;
-  dt_created: string;
-  dt_modified: string;
-  version: number;
-}
-
-// API request interfaces
 export interface CreateProposalRequest {
-  ida?: string;
-  status?: string;
+  status?: TransactionStatus;
   priority?: string;
   price_level?: string;
-  id_customer: number;
-  id_manufacturer?: number;
-  id_vendor?: number;
-  company?: string;
-  attention?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  email?: string;
-  phoneCell?: string;
-  phone?: string;
-  actionBy?: string;
-  action?: string | ProposalAction;
-  actionDate?: string;
-  actionTime?: string;
-  salesNameId?: string;
-  orderedBy?: string;
-  contractDetailTag?: string;
-  terms?: string;
-  typeSale?: string;
-  taxJuris?: string;
-  adSource?: string;
-  addComment?: string;
-  comment?: string;
-  contractDetail?: string;
-  cost?: ProposalCost;
-  sell?: ProposalSell;
-  finance?: ProposalFinance;
-  flow?: ProposalFlow;
-  source?: ProposalSource;
+  customer_id?: number;
+  vendor_id?: number;
+  manufacturer_id?: number;
+  parent_id?: number | null;
+  parent_model?: TransactionParentType | null;
+  total?: number | null;
+  balance?: number | null;
+  ida?: string;
+  is_active?: boolean;
+  totals?: TransactionTotals;
+  cost?: HeaderCost;
+  sell?: HeaderSell;
+  finance?: TransactionFinance;
+  flow?: Record<string, unknown>;
+  source?: Record<string, unknown>;
+  refs?: TransactionRefs;
+  metadata?: TransactionMetadata;
+  prefs?: TransactionPrefs;
+  comments?: TransactionComments;
+  actions?: TransactionActions;
 }
 
-export interface UpdateProposalRequest {
+export interface ProposalApiTask {
   id: number;
+  uuid?: string;
   ida?: string;
-  status?: string;
+  status: TransactionStatus;
   priority?: string;
   price_level?: string;
-  id_customer?: number;
-  id_manufacturer?: number;
-  id_vendor?: number;
-  company?: string;
-  attention?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  email?: string;
-  phoneCell?: string;
-  phone?: string;
-  actionBy?: string;
-  action?: string | ProposalAction;
-  actionDate?: string;
-  actionTime?: string;
-  salesNameId?: string;
-  orderedBy?: string;
-  contractDetailTag?: string;
-  terms?: string;
-  typeSale?: string;
-  taxJuris?: string;
-  adSource?: string;
-  addComment?: string;
-  comment?: string;
-  contractDetail?: string;
-  cost?: ProposalCost;
-  sell?: ProposalSell;
-  finance?: ProposalFinance;
-  flow?: ProposalFlow;
-  source?: ProposalSource;
+  customer_id: number;
+  vendor_id: number;
+  manufacturer_id: number;
+  parent_id?: number | null;
+  parent_model?: TransactionParentType | null;
+  total?: number | null;
+  balance?: number | null;
+  dt_created?: number;
+  dt_modified?: number;
+  version?: number;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  security_level?: number;
+  health_rating?: number;
+  totals?: TransactionTotals;
+  cost?: HeaderCost;
+  sell?: HeaderSell;
+  finance?: TransactionFinance;
+  flow?: Record<string, unknown>;
+  source?: Record<string, unknown>;
+  refs?: TransactionRefs;
+  metadata?: TransactionMetadata;
+  prefs?: TransactionPrefs;
+  comments?: TransactionComments;
+  actions?: TransactionActions;
+  lines?: unknown[];
 }
 
-// API response interfaces
-export interface ProposalApiResponse {
+export interface UpdateProposalRequest extends Partial<CreateProposalRequest> {
   id: number;
-  uuid: string;
-  ida?: string;
-  status: string;
-  id_customer: number;
-  id_vendor?: number;
-  cost?: ProposalCost;
-  sell?: ProposalSell;
-  finance?: ProposalFinance;
-  flow?: ProposalFlow;
-  source?: ProposalSource;
-  action?: string | ProposalAction;
-  dt_created: string;
-  dt_modified: string;
-  version: number;
+  version?: number;
 }
+
+/** @deprecated Use ProposalApiTask instead */
+export type ProposalApiResponse = ProposalApiTask;
+
+/** @deprecated Use ProposalApiTask instead */
+export type Proposal = ProposalApiTask;
 
 export interface ProposalListResponse {
   count: number;
   next?: string;
   previous?: string;
-  results: ProposalApiResponse[];
+  results: ProposalApiTask[];
 }

@@ -1,6 +1,23 @@
+/**
+ * WorkOrderLine Types — matches wc3 BaseExecLineModel
+ * @see webClerk3/apps/transactions/models/base_line_model.py
+ *
+ * DB table: workorder_lines (extends BaseExecLineModel)
+ * BaseExecLineModel = BaseLineCore (no price JSONB)
+ * JSONB fields: item, quantity, cost, tax, physical
+ */
+
+import type {
+  LineItem,
+  LineQuantity,
+  LineCost,
+  LineTax,
+  LinePhysical,
+} from "@/apps/transactions/types/transactionTypes";
+
 export interface WorkOrderLineAddProps {
   modeProp?: "add" | "edit" | "view";
-  dataProp?: any; // TODO: Type this properly
+  dataProp?: any;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -8,31 +25,43 @@ export interface WorkOrderLineAddProps {
 }
 
 export interface CreateWorkOrderLineRequest {
-  workorder_id: number;  // FK matches Django model field name
-  item_id: number;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
+  parent_id: number;
+  status?: string;
+  price_level?: string;
+  item?: LineItem;
+  quantity?: LineQuantity;
+  cost?: LineCost;
+  tax?: LineTax;
+  physical?: LinePhysical;
 }
 
 export interface WorkOrderLineApiTask {
   id: number;
-  workorder_id: number;  // FK matches Django model field name
-  item_id: number;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
+  parent_id: number;
+  parent_ref_id?: number;
+  price_level?: string;
+  status?: string;
+  item?: LineItem;
+  quantity?: LineQuantity;
+  cost?: LineCost;
+  tax?: LineTax;
+  physical?: LinePhysical;
   dt_created?: number;
   dt_modified?: number;
   version?: number;
   is_active?: boolean;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  security_level?: number;
+  health_rating?: number;
+  refs?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  prefs?: Record<string, unknown>;
+  comments?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
 }
 
-export interface UpdateWorkOrderLineRequest {
+export interface UpdateWorkOrderLineRequest extends Partial<CreateWorkOrderLineRequest> {
   id: number;
-  workorder_id: number;  // FK matches Django model field name
-  item_id: number;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
+  version?: number;
 }
