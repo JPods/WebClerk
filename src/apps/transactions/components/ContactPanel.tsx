@@ -1,5 +1,5 @@
 /**
- * RefsLinksContactPanel - Re-exported from common panels
+ * ContactPanel - Re-exported from common panels
  * @see @/apps/common/components/panels/RefsLinksContactPanel
  */
 export { default } from "@/apps/common/components/panels/RefsLinksContactPanel";

@@ -1,5 +1,5 @@
 import QATab from "./QATab";
-import { normalizeRefsLinksContact } from "./RefsLinksContactPanel";
+import { normalizeRefsLinksContact } from "./ContactPanel";
 /**
  * TransactionDetail - Base component for all transaction detail pages
  * Provides common tabbed layout with standard sections
@@ -35,7 +35,7 @@ import {
 import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
 
 // Import shared components
-import RefsLinksContactPanel from "./RefsLinksContactPanel";
+import RefsLinksContactPanel from "./ContactPanel";
 import ContactLinksTable from "./ContactLinksTable";
 import CommentsPanel from "./CommentsPanel";
 import MetadataPanel from "./MetadataPanel";

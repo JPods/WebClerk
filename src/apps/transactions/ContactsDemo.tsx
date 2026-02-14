@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import RefsLinksContactPanel, { RefContact } from "./RefsLinksContactPanel";
+import RefsLinksContactPanel, { RefContact } from "./components/ContactPanel";
 
 const initialContacts: RefContact[] = [
   {
