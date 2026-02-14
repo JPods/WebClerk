@@ -43,6 +43,46 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncMessage, setSyncMessage] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncDirection, setSyncDirection] = useState<'remote-to-local' | 'local-to-remote' | null>(null);
+  const [backendStatus, setBackendStatus] = useState<'live' | 'restarting' | 'offline'>('live');
+
+  const checkBackendHealth = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/wcapi/system-info/');
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const waitForServerAndReload = useCallback((initialDelayMs = 3000) => {
+    let attempts = 0;
+    const maxAttempts = 45;
+
+    const checkServer = async () => {
+      const isLive = await checkBackendHealth();
+      if (isLive) {
+        setBackendStatus('live');
+        window.location.reload();
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < maxAttempts) {
+        setBackendStatus('restarting');
+        setTimeout(checkServer, 1000);
+      } else {
+        setBackendStatus('offline');
+        setMessage({ type: 'error', text: 'Restart timeout. Please refresh manually.' });
+      }
+    };
+
+    setBackendStatus('restarting');
+    setTimeout(checkServer, initialDelayMs);
+  }, [checkBackendHealth]);
 
   // Only show in dev mode
   const isDev = import.meta.env.VITE_ENV === 'DEV' || import.meta.env.DEV;
@@ -67,6 +107,32 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     }
   }, []);
 
+  const waitForServerAndRefresh = useCallback((initialDelayMs = 300) => {
+    let attempts = 0;
+    const maxAttempts = 45;
+
+    const checkServer = async () => {
+      const isLive = await checkBackendHealth();
+      if (isLive) {
+        setBackendStatus('live');
+        await fetchConfig();
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < maxAttempts) {
+        setBackendStatus('restarting');
+        setTimeout(checkServer, 1000);
+      } else {
+        setBackendStatus('offline');
+        setMessage({ type: 'error', text: 'Restart timeout. Please refresh manually.' });
+      }
+    };
+
+    setBackendStatus('restarting');
+    setTimeout(checkServer, initialDelayMs);
+  }, [checkBackendHealth, fetchConfig]);
+
   // Fetch config on mount (for badge display)
   useEffect(() => {
     if (isDev) {
@@ -81,9 +147,64 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     }
   }, [isOpen, fetchConfig]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      const isLive = await checkBackendHealth();
+      if (cancelled) return;
+      setBackendStatus((prev) => {
+        if (prev === 'restarting' && !isLive) {
+          return 'restarting';
+        }
+        return isLive ? 'live' : 'offline';
+      });
+    };
+
+    poll();
+    const timer = setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isOpen, checkBackendHealth]);
+
+  useEffect(() => {
+    if (!isSyncing) return;
+    const poll = setInterval(async () => {
+      try {
+        const response = await fetch('/wcapi/dev/sync-status/');
+        if (!response.ok) return;
+        const json = await response.json();
+        const data = json.data?.data || json.data || {};
+        const progress = Number(data.progress ?? 0);
+        setSyncProgress(Number.isFinite(progress) ? progress : 0);
+        setSyncMessage(data.message || 'Syncing remote data to local...');
+
+        if (data.state === 'completed' || data.state === 'failed') {
+          setIsSyncing(false);
+        }
+      } catch {
+        // ignore polling errors while backend restarts
+      }
+    }, 700);
+
+    return () => clearInterval(poll);
+  }, [isSyncing]);
+
   const handleSwitchMode = async (newMode: string) => {
     setIsSwitching(true);
     setMessage(null);
+    setSyncProgress(0);
+    if (newMode === 'local') {
+      setSyncDirection('remote-to-local');
+      setSyncMessage('Starting remote → local sync...');
+      setIsSyncing(true);
+    } else {
+      setSyncDirection(null);
+      setIsSyncing(false);
+    }
     
     try {
       const response = await fetch('/wcapi/dev/switch/', {
@@ -98,15 +219,33 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
       
       if (response.ok) {
         setMessage({ type: 'success', text: json.message || data.message || `Switched to ${newMode}` });
-        if (data?.changed) {
-          // Refresh config
+        if (data?.changed && data?.restarting) {
+          setMessage({
+            type: 'success',
+            text:
+              newMode === 'local'
+                ? 'Switching to local, syncing remote data if reachable, and restarting servers...'
+                : 'Switching mode and restarting servers...',
+          });
+          waitForServerAndReload(3000);
+        } else if (data?.changed && data?.same_console_required) {
+          setMessage({
+            type: 'success',
+            text: data?.instructions?.note || json.message || 'Switch completed.',
+          });
+          waitForServerAndRefresh(300);
+        } else if (data?.changed) {
           await fetchConfig();
         }
       } else {
         setMessage({ type: 'error', text: data.message });
+        setIsSyncing(false);
+        setSyncDirection(null);
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to switch mode' });
+      setIsSyncing(false);
+      setSyncDirection(null);
     } finally {
       setIsSwitching(false);
     }
@@ -120,35 +259,20 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setMessage({ type: 'success', text: 'Restarting servers...' });
     
     try {
-      await fetch('/wcapi/dev/restart/', { method: 'POST' });
-      // Server will restart, so we won't get a response
-      setMessage({ type: 'success', text: 'Restart initiated. Page will reload when ready.' });
-      
-      // Poll until server is back up
-      let attempts = 0;
-      const maxAttempts = 30;
-      const checkServer = async () => {
-        try {
-          const resp = await fetch('/wcapi/system-info/');
-          if (resp.ok) {
-            window.location.reload();
-            return;
-          }
-        } catch {
-          // Server not ready yet
-        }
-        
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(checkServer, 1000);
-        } else {
-          setMessage({ type: 'error', text: 'Server restart timeout. Please refresh manually.' });
-        }
-      };
-      
-      setTimeout(checkServer, 3000);
+      const response = await fetch('/wcapi/dev/restart/', { method: 'POST' });
+      const json = await response.json().catch(() => ({}));
+      const data = json.data?.data || json.data || json;
+      if (response.ok && data?.same_console_required) {
+        setMessage({
+          type: 'success',
+          text: data?.instructions?.note || json.message || 'Restart signal sent.',
+        });
+        waitForServerAndRefresh(300);
+      } else {
+        setMessage({ type: 'success', text: 'Restart requested.' });
+      }
     } catch {
-      // Expected - server is restarting
+      setMessage({ type: 'error', text: 'Failed to request restart' });
     }
   };
 
@@ -157,6 +281,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
   const posStyle = positionStyles[position];
   const currentMode = config?.db_mode || 'remote';
   const colors = modeColors[currentMode] || modeColors.remote;
+  const isPendingSwitch = isSwitching || isSyncing || backendStatus === 'restarting';
 
   const badgeStyle: React.CSSProperties = {
     position: 'fixed',
@@ -214,9 +339,9 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     border: isActive ? '2px solid #22c55e' : '1px solid #334155',
     backgroundColor: isActive ? '#166534' : '#1e293b',
     color: '#f8fafc',
-    cursor: isSwitching ? 'not-allowed' : 'pointer',
+    cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
     textAlign: 'left',
-    opacity: isSwitching ? 0.6 : 1,
+    opacity: isPendingSwitch ? 0.6 : 1,
     transition: 'all 0.2s',
   });
 
@@ -230,6 +355,22 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     color: '#f8fafc',
     cursor: 'pointer',
     fontWeight: 600,
+  };
+
+  const backendStatusStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '4px 8px',
+    borderRadius: '999px',
+    border: '1px solid',
+    backgroundColor:
+      backendStatus === 'live' ? '#14532d' : backendStatus === 'restarting' ? '#78350f' : '#7f1d1d',
+    borderColor:
+      backendStatus === 'live' ? '#22c55e' : backendStatus === 'restarting' ? '#f59e0b' : '#dc2626',
+    color: '#f8fafc',
   };
 
   if (!isOpen) {
@@ -280,6 +421,11 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
               <div style={{ fontWeight: 600 }}>
                 {config.data_set_id} - {config.data_set_name}
               </div>
+              <div style={{ marginTop: '8px' }}>
+                <span style={backendStatusStyle}>
+                  {backendStatus === 'live' ? '● Backend Live' : backendStatus === 'restarting' ? '◐ Backend Restarting' : '○ Backend Offline'}
+                </span>
+              </div>
             </div>
 
             <div style={{ marginBottom: '8px' }}>
@@ -292,7 +438,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                   key={mode}
                   style={modeButtonStyle(config.db_mode === mode)}
                   onClick={() => handleSwitchMode(mode)}
-                  disabled={isSwitching}
+                  disabled={isPendingSwitch}
                 >
                   <div style={{ fontWeight: 600, marginBottom: '4px' }}>
                     {info.label}
@@ -321,23 +467,28 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
               </div>
             )}
 
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '12px', 
-              backgroundColor: '#1e293b', 
-              borderRadius: '8px',
-              fontSize: '11px', 
-              color: '#94a3b8',
-              lineHeight: '1.6'
-            }}>
-              <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '6px' }}>
-                ⚠️ After switching, restart Django:
+            {isSyncing && (
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{
+                  height: '8px',
+                  backgroundColor: '#334155',
+                  borderRadius: '999px',
+                  overflow: 'hidden',
+                  border: '1px solid #475569'
+                }}>
+                  <div style={{
+                    width: `${Math.max(2, Math.min(100, syncProgress))}%`,
+                    height: '100%',
+                    backgroundColor: '#22c55e',
+                    transition: 'width 0.35s ease'
+                  }} />
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                  {syncMessage || (syncDirection === 'local-to-remote' ? 'Syncing local data to remote...' : 'Syncing remote data to local...')} ({syncProgress}%)
+                </div>
               </div>
-              <div>1. Stop Django server (Ctrl+C in terminal)</div>
-              <div>2. Run: <code style={{ backgroundColor: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#f8fafc' }}>
-                python manage.py runserver
-              </code></div>
-            </div>
+            )}
+
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
