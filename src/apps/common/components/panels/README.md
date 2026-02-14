@@ -24,7 +24,7 @@ src/apps/common/components/
     │── # Standard Tab Panels (shown as tabs on detail pages)
     ├── ActionsPanel.tsx          # Tasks/actions with status tracking
     ├── CommentsPanel.tsx         # Comments with Public/Process/Partner/History
-    ├── ContactPanel.tsx          # Re-export alias for RefsLinksContactPanel
+    ├── ContactPanel.tsx          # Contacts grouped by purpose with editing
     ├── DocumentsPanel.tsx        # File uploads, preview, download
     ├── FinancialsPanel.tsx       # Org financial summary (credit, aging, AR/AP)
     ├── TransactionFinancialsPanel.tsx  # Transaction financials (subtotal, tax, total)
@@ -33,7 +33,7 @@ src/apps/common/components/
     ├── ShippingPanel.tsx         # Shipping details (carrier, tracking, weight)
     ├── BasicInformationPanel.tsx # Common org scalar fields (name, email, phone)
     ├── CommunicationsPanel.tsx   # Email/phone/address/domain CRUD (direct API)
-    ├── RefsLinksContactPanel.tsx # Contacts grouped by purpose with editing
+    ├── ContactPanel.tsx          # Contacts grouped by purpose with editing (canonical)
     │
     │── # Admin / Developer Panels
     ├── MetadataPanel.tsx         # Admin-only key-value metadata editor
@@ -76,7 +76,7 @@ src/apps/transactions/components/
 ├── FinancialsCard.tsx            # → common/panels/TransactionFinancialsPanel
 ├── JsonFieldEditor.tsx           # → common/components/JsonFieldEditor
 ├── TransactionToolbar.tsx        # → common/components/TransactionToolbar
-└── RefsLinksContactPanel.tsx     # → common/panels/RefsLinksContactPanel
+└── ContactPanel.tsx              # → common/panels/ContactPanel
 ```
 
 ---
@@ -90,7 +90,7 @@ These should appear as tabs on every model that supports them:
 | Panel | Component | Data Source | Purpose |
 |-------|-----------|-------------|---------|
 | Action | `ActionsPanel` | `.actions` | Tasks with status, priority, assignees, due dates |
-| Contact | `RefsLinksContactPanel` | `.refs.links.contact` | Linked contacts grouped by purpose |
+| Contact | `ContactPanel` | `.refs.links.contact` | Linked contacts grouped by purpose |
 | Comments | `CommentsPanel` | `.comments` | Public/Process/Partner/History comment tabs |
 | Documents | `DocumentsPanel` | `.refs.links.document` | File uploads, preview, download, delete |
 | Financials | `FinancialsPanel` | `.financial` | Org financials (credit, aging, payment history) |
@@ -137,7 +137,7 @@ These are managed through `CommunicationsPanel` with direct API persistence:
 
 ### Transactions (via TransactionDetailBase)
 
-All transaction models use `TransactionDetailBase` which provides: Actions, Contact (RefsLinksContactPanel + ContactLinksTable), Comments, Documents, Financials (TransactionFinancialsPanel), QA (QATab), Metadata, JsonFieldEditor, TransactionToolbar.
+All transaction models use `TransactionDetailBase` which provides: Actions, Contact (ContactPanel + ContactLinksTable), Comments, Documents, Financials (TransactionFinancialsPanel), QA (QATab), Metadata, JsonFieldEditor, TransactionToolbar.
 
 | Model | Actions | Contact | Comments | Docs | Financials | QA | Linkage | Shipping | Lines |
 |-------|---------|---------|----------|------|------------|-----|---------|----------|-------|
@@ -240,7 +240,7 @@ Every model detail page should aim for a consistent tab set.
 | Tab | Panel Component | Required |
 |-----|-----------------|----------|
 | Actions | `ActionsPanel` | Yes |
-| Contact | `RefsLinksContactPanel` | Yes (except settings, templates) |
+| Contact | `ContactPanel` | Yes (except settings, templates) |
 | Comments | `CommentsPanel` | Yes |
 | Documents | `DocumentsPanel` | Yes |
 | Financials | `FinancialsPanel` or `TransactionFinancialsPanel` | Context-dependent |
@@ -388,7 +388,7 @@ interface EntityMetadata {
 }
 ```
 
-### `.refs` → RefsPanel, RefsLinksContactPanel, CommunicationsPanel, DocumentsPanel
+### `.refs` → RefsPanel, ContactPanel, CommunicationsPanel, DocumentsPanel
 
 ```typescript
 interface EntityRefs {
@@ -486,7 +486,7 @@ User adds/edits/deletes email, phone, address, or domain
 | Panel | Source |
 |-------|--------|
 | TransactionToolbar | `common/components/TransactionToolbar` (via re-export) |
-| RefsLinksContactPanel | `common/panels/RefsLinksContactPanel` (via re-export) |
+| ContactPanel | `common/panels/ContactPanel` (via re-export) |
 | ContactLinksTable | `transactions/components/ContactLinksTable` |
 | CommentsPanel | `common/panels/CommentsPanel` (via re-export) |
 | MetadataPanel | `transactions/components/MetadataPanel` (transaction-specific) |
@@ -508,8 +508,8 @@ import {
   CommentsPanel,
   DocumentsPanel,
   QAPanel,
-  ContactPanel,           // alias for RefsLinksContactPanel
-  RefsLinksContactPanel,
+  ContactPanel,
+  RefsLinksContactPanel,  // deprecated alias for ContactPanel
   FinancialsPanel,
   TransactionFinancialsPanel,
   LinkagesPanel,

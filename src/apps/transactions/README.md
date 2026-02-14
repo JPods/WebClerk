@@ -81,7 +81,7 @@ Located in `components/`:
 | `SummaryCard.tsx`           | Header summary display                                            |
 | `FinancialsCard.tsx`        | Totals, tax, shipping breakdown                                   |
 | `CommentsPanel.tsx`         | Public/process comments & notes                                   |
-| `RefsLinksContactPanel.tsx` | Contacts, customers, vendors linked to transaction                |
+| `ContactPanel.tsx`          | Contacts, customers, vendors linked to transaction                |
 | `RefsLinksTable.tsx`        | Generic refs.links display                                        |
 | `ContactLinksTable.tsx`     | Contact-specific links table                                      |
 | `MetadataPanel.tsx`         | Admin metadata (created, modified, health)                        |
