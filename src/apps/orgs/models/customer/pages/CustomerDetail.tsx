@@ -117,15 +117,32 @@ interface HorizontalFieldProps {
 
 function HorizontalField({ label, htmlFor, children, error, required }: HorizontalFieldProps) {
   return (
-    <div className="flex items-center gap-2 py-2">
-      <Label htmlFor={htmlFor} className="w-20 shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400">
+    <div className="flex items-center gap-1.5 py-1">
+      <Label htmlFor={htmlFor} className="w-18 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-400">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </Label>
       <div className="flex-1 min-w-0">
         {children}
-        {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
+        {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
       </div>
     </div>
+  );
+}
+
+interface SingleWindowSectionProps {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function SingleWindowSection({ title, children, className = "" }: SingleWindowSectionProps) {
+  return (
+    <section className={`rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 ${className}`}>
+      <div className="px-2 py-1 text-[10px] font-semibold tracking-wide uppercase text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700">
+        {title}
+      </div>
+      <div className="p-2">{children}</div>
+    </section>
   );
 }
 
@@ -826,33 +843,33 @@ export default function CustomerDetail({
   return (
   <div className="h-full flex flex-col bg-white dark:bg-slate-900">
     {/* Compact Header */}
-    <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+    <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
             <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">CustomerDetail</span>
             {customerData.display_name || "New Customer"}
-            {customerData.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
+            {customerData.id && <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
           </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
               customerData.is_active
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
                 : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
             }`}>
               {customerData.is_active ? 'Active' : 'Inactive'}
             </span>
-            <span className="text-sm text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
             </span>
             {(mode === "edit" || mode === "add") && isDirty && (
-              <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded">
                 Unsaved changes
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-1 ml-3">
           {getActionButtons()}
         </div>
       </div>
@@ -860,7 +877,7 @@ export default function CustomerDetail({
 
     {/* Transaction-style Toolbar (edit/add mode) */}
     {(mode === "edit" || mode === "add") && (
-      <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+      <div className="sticky top-0 z-20 mx-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
         <TransactionToolbar
           transactionType="order"
           transactionId={data?.id}
@@ -889,7 +906,7 @@ export default function CustomerDetail({
 
     {/* Persistent Basic Information Panel - always visible in view mode */}
     {/* In edit/add mode, show editable form fields instead */}
-    <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+    <div className="shrink-0 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
       {mode === "view" ? (
         <BasicInformationPanel
           data={customerData}
@@ -897,7 +914,7 @@ export default function CustomerDetail({
         />
       ) : (
         /* Editable Basic Information - Horizontal Layout */
-        <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
+        <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-3 gap-y-0.5`}>
           <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
             <Input
               type="text"
@@ -983,8 +1000,8 @@ export default function CustomerDetail({
             />
           </HorizontalField>
 
-          <div className="flex items-center gap-2 py-2">
-            <div className="w-20 shrink-0" />
+          <div className="flex items-center gap-1.5 py-1">
+            <div className="w-18 shrink-0" />
             <Controller
               name="is_active"
               control={control}
@@ -1002,124 +1019,123 @@ export default function CustomerDetail({
       )}
     </div>
 
-    {/* Tab Navigation - Using DetailTabs component */}
-    <DetailTabs
-      entityType="customer"
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
-      standardTabs={['actions', 'comments', 'documents', 'history', 'raw']}
-      additionalTabs={additionalTabs}
-      badges={tabBadges}
-      showColumnSelector={true}
-      columnCount={columnCount}
-      onColumnCountChange={handleColumnChange}
-    />
+    {/* View mode keeps tabbed workflow; add/edit uses single-window workspace */}
+    {mode === "view" && (
+      <DetailTabs
+        entityType="customer"
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        standardTabs={['actions', 'comments', 'documents', 'history', 'raw']}
+        additionalTabs={additionalTabs}
+        badges={tabBadges}
+        showColumnSelector={true}
+        columnCount={columnCount}
+        onColumnCountChange={handleColumnChange}
+      />
+    )}
 
-    {/* Tab Content */}
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-slate-50/60 dark:bg-slate-950/40">
       <form onSubmit={handleSubmit(onSubmit)} className="h-full">
-        <div className="p-4">
-          {/* Standard Tabs - Comments */}
-          {activeTab === "comments" && (
-            <CommentsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              comments={data?.comments}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(comments) => {
-                // Update local state - in a real app this would update the form
-                console.log('Comments updated:', comments);
-              }}
-              currentUser={currentUser?.display_name || currentUser?.username}
-              currentUserId={currentUser?.id}
-            />
-          )}
-
-          {/* Standard Tabs - Actions */}
-          {activeTab === "actions" && (
-            <ActionsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.actions?.items}
-              actionIds={data?.actions?.ids}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(actions) => {
-                console.log('Actions updated:', actions);
-              }}
-            />
-          )}
-
-          {/* Standard Tabs - Documents */}
-          {activeTab === "documents" && (
-            <DocumentsPanel
-              parent_model="customer"
-              parentId={data?.id || 0}
-              data={data?.refs?.links?.document}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(docs) => {
-                console.log('Documents updated:', docs);
-              }}
-            />
-          )}
-
-          {/* Standard Tabs - History (Admin) */}
-          {activeTab === "history" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-              isEditing={false}
-            />
-          )}
-
-          {/* Metadata tab */}
-          {activeTab === "metadata" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-            />
-          )}
-
-          {/* Prefs tab */}
-          {activeTab === "prefs" && (
-            <PrefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.prefs}
-            />
-          )}
-
-          {/* Q&A tab */}
-          {activeTab === "qa" && (
-            <QAPanel
-              parent_model="customer"
-              parentId={data?.id || 0}
-              data={data?.qa}
-            />
-          )}
-
-          {/* Refs tab */}
-          {activeTab === "refs" && (
-            <RefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.refs}
-            />
-          )}
-
-          {/* Standard Tabs - Raw (Admin) */}
-          {activeTab === "raw" && (
-            <RawDataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data}
-            />
-          )}
-
-          {/* Model-Specific Tabs */}
+        <div className="p-2.5">
           {mode === "view" ? (
             <>
+              {/* Standard Tabs - Comments */}
+              {activeTab === "comments" && (
+                <CommentsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  comments={data?.comments}
+                  isEditing={mode !== "view" || isEditing}
+                  onChange={(comments) => {
+                    console.log('Comments updated:', comments);
+                  }}
+                  currentUser={currentUser?.display_name || currentUser?.username}
+                  currentUserId={currentUser?.id}
+                />
+              )}
+
+              {/* Standard Tabs - Actions */}
+              {activeTab === "actions" && (
+                <ActionsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.actions?.items}
+                  actionIds={data?.actions?.ids}
+                  isEditing={mode !== "view" || isEditing}
+                  onChange={(actions) => {
+                    console.log('Actions updated:', actions);
+                  }}
+                />
+              )}
+
+              {/* Standard Tabs - Documents */}
+              {activeTab === "documents" && (
+                <DocumentsPanel
+                  parent_model="customer"
+                  parentId={data?.id || 0}
+                  data={data?.refs?.links?.document}
+                  isEditing={mode !== "view" || isEditing}
+                  onChange={(docs) => {
+                    console.log('Documents updated:', docs);
+                  }}
+                />
+              )}
+
+              {/* Standard Tabs - History (Admin) */}
+              {activeTab === "history" && (
+                <MetadataPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.metadata}
+                  isEditing={false}
+                />
+              )}
+
+              {/* Metadata tab */}
+              {activeTab === "metadata" && (
+                <MetadataPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.metadata}
+                />
+              )}
+
+              {/* Prefs tab */}
+              {activeTab === "prefs" && (
+                <PrefsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.prefs}
+                />
+              )}
+
+              {/* Q&A tab */}
+              {activeTab === "qa" && (
+                <QAPanel
+                  parent_model="customer"
+                  parentId={data?.id || 0}
+                  data={data?.qa}
+                />
+              )}
+
+              {/* Refs tab */}
+              {activeTab === "refs" && (
+                <RefsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.refs}
+                />
+              )}
+
+              {/* Standard Tabs - Raw (Admin) */}
+              {activeTab === "raw" && (
+                <RawDataPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data}
+                />
+              )}
+
               {/* Contacts tab – RefsLinksContactPanel (same as transactions) */}
               {activeTab === "contacts" && (
                 <RefsLinksContactPanel
@@ -1162,10 +1178,8 @@ export default function CustomerDetail({
               )}
             </>
           ) : (
-            /* Edit mode - JSON editors for model-specific tabs */
-            <div className="space-y-4">
-              {/* Contacts tab in edit mode – still uses RefsLinksContactPanel */}
-              {activeTab === "contacts" && (
+            <div className="space-y-3">
+              <SingleWindowSection title="Contacts & Links">
                 <RefsLinksContactPanel
                   contacts={normalizeRefsLinksContact(
                     data?.refs?.links?.contact ?? []
@@ -1205,36 +1219,115 @@ export default function CustomerDetail({
                     }
                   }}
                 />
-              )}
+              </SingleWindowSection>
 
-              {/* Other model-specific tabs in edit mode – JSON editors */}
-              {(
-                {
-                  financial: [{ field: "financial", label: "financial" }],
-                } as Record<
-                  string,
-                  Array<{ field: keyof CustomerFormValues; label: string }>
-                >
-              )[activeTab]?.map(({ field, label }) => (
-                <JsonFieldEditor
-                  key={String(field)}
-                  label={label}
-                  value={safeParseJson(
-                    formData[field] as unknown as string | undefined,
-                    JSON_DEFAULTS[String(field)],
-                  )}
-                  readonly={false}
-                  defaultExpanded
-                  maxHeight="520px"
-                  onChange={(val) => {
-                    setValue(
-                      field,
-                      JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
-                      { shouldDirty: true, shouldValidate: true },
-                    );
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <SingleWindowSection title="Financial">
+                  <JsonFieldEditor
+                    label="financial"
+                    value={safeParseJson(
+                      formData.financial as unknown as string | undefined,
+                      JSON_DEFAULTS.financial,
+                    )}
+                    readonly={false}
+                    defaultExpanded
+                    maxHeight="300px"
+                    onChange={(val) => {
+                      setValue(
+                        "financial",
+                        JSON.stringify(val ?? JSON_DEFAULTS.financial, null, 2) as any,
+                        { shouldDirty: true, shouldValidate: true },
+                      );
+                    }}
+                  />
+                </SingleWindowSection>
+
+                <SingleWindowSection title="References">
+                  <RefsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data?.refs}
+                  />
+                </SingleWindowSection>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <SingleWindowSection title="Comments">
+                  <CommentsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    comments={data?.comments}
+                    isEditing={true}
+                    onChange={(comments) => {
+                      console.log('Comments updated:', comments);
+                    }}
+                    currentUser={currentUser?.display_name || currentUser?.username}
+                    currentUserId={currentUser?.id}
+                  />
+                </SingleWindowSection>
+
+                <SingleWindowSection title="Actions">
+                  <ActionsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data?.actions?.items}
+                    actionIds={data?.actions?.ids}
+                    isEditing={true}
+                    onChange={(actions) => {
+                      console.log('Actions updated:', actions);
+                    }}
+                  />
+                </SingleWindowSection>
+              </div>
+
+              <SingleWindowSection title="Documents">
+                <DocumentsPanel
+                  parent_model="customer"
+                  parentId={data?.id || 0}
+                  data={data?.refs?.links?.document}
+                  isEditing={true}
+                  onChange={(docs) => {
+                    console.log('Documents updated:', docs);
                   }}
                 />
-              ))}
+              </SingleWindowSection>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <SingleWindowSection title="Preferences">
+                  <PrefsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data?.prefs}
+                  />
+                </SingleWindowSection>
+
+                <SingleWindowSection title="Q&A">
+                  <QAPanel
+                    parent_model="customer"
+                    parentId={data?.id || 0}
+                    data={data?.qa}
+                  />
+                </SingleWindowSection>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <SingleWindowSection title="Metadata">
+                  <MetadataPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data?.metadata}
+                    isEditing={false}
+                  />
+                </SingleWindowSection>
+
+                <SingleWindowSection title="Raw Data">
+                  <RawDataPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data}
+                  />
+                </SingleWindowSection>
+              </div>
             </div>
           )}
         </div>
