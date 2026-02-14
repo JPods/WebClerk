@@ -9,6 +9,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
+import { useWindowPath } from "@/context/WindowPathContext";
 import {
   FaArrowLeft,
   FaEdit,
@@ -204,13 +205,32 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const { user } = useAppSelector((state) => state.auth);
   const displayName = user ? `${user.name_first}${user.name_last}` : "You";
 
+  // Parse query params from the floating window path (if available)
+  const windowPath = useWindowPath();
+  const windowSearchParams = useMemo(() => {
+    if (!windowPath) return null;
+    try {
+      return new URL(windowPath, "http://x").searchParams;
+    } catch {
+      return null;
+    }
+  }, [windowPath]);
+
+  // Determine effective mode: if no ID is available and modeProp isn't set,
+  // treat as "add" mode (e.g. opened from Create Transaction dropdown)
+  const effectiveMode = useMemo(() => {
+    if (modeProp) return modeProp;
+    if (!id) return "add" as const;
+    return null;
+  }, [modeProp, id]);
+
   // State
   const [data, setData] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Start in edit mode if modeProp is 'add' or 'edit'
   const [isEditing, setIsEditing] = useState(
-    modeProp === "add" || modeProp === "edit",
+    effectiveMode === "add" || effectiveMode === "edit",
   );
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [saving, setSaving] = useState(false);
@@ -232,21 +252,67 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Handle "add" mode - create empty record
   useEffect(() => {
-    if (modeProp === "add") {
+    if (effectiveMode !== "add") return;
       // Get today's date at midnight (zero time)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayIso = today.toISOString();
 
+      // Pre-populate from query params if available
+      const qsCustomerId = windowSearchParams?.get("customer_id");
+      const qsCustomerName = windowSearchParams?.get("customer_name");
+      const qsPriceLevel = windowSearchParams?.get("price_level");
+      const qsAttention = windowSearchParams?.get("attention");
+      const qsPhone = windowSearchParams?.get("phone");
+      const qsEmail = windowSearchParams?.get("email");
+      const qsTerms = windowSearchParams?.get("terms");
+      const qsTermsId = windowSearchParams?.get("terms_id");
+      const qsContactId = windowSearchParams?.get("contact_id");
+      const qsAddressFull = windowSearchParams?.get("address_full");
+
+      // Build refs.links with customer defaults transferred from query params
+      const links: Record<string, unknown> = {};
+      if (qsCustomerId) {
+        links.customer = [{
+          id: Number(qsCustomerId),
+          display_name: qsCustomerName || "",
+        }];
+      }
+      if (qsContactId) {
+        links.contact = [{
+          id: Number(qsContactId),
+          purpose: "billto",
+          display_name: qsAttention || "",
+          email: qsEmail || "",
+          phone: qsPhone || "",
+        }];
+      } else if (qsAttention || qsEmail || qsPhone) {
+        links.contact = [{
+          id: 0,
+          purpose: "billto",
+          display_name: qsAttention || "",
+          email: qsEmail || "",
+          phone: qsPhone || "",
+        }];
+      }
+
       const emptyRecord: Transaction = {
-        id: 0, // id should be a number
-        customer_id: 0,
+        id: 0,
+        customer_id: qsCustomerId ? Number(qsCustomerId) : 0,
         vendor_id: 0,
         manufacturer_id: 0,
         status: "planned",
+        ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
+        ...(qsTerms ? { terms: qsTerms } : {}),
+        ...(qsTermsId ? { terms_id: Number(qsTermsId) } : {}),
+        ...(qsContactId ? { contact_id: Number(qsContactId) } : {}),
+        ...(qsAttention ? { attention: qsAttention } : {}),
+        ...(qsPhone ? { phone: qsPhone } : {}),
+        ...(qsEmail ? { email: qsEmail } : {}),
+        ...(qsAddressFull ? { address_full: qsAddressFull } : {}),
         lines: [],
-        refs: { links: {} },
-        metadata: {},
+        refs: { links } as any,
+        metadata: {} as any,
         comments: { notes: [] },
         totals: {},
         finance: {},
@@ -258,17 +324,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       setEditData(emptyRecord);
       setIsEditing(true);
       setLoading(false);
-    }
-  }, [modeProp]);
+  }, [effectiveMode, windowSearchParams]);
 
   // Update isEditing when modeProp changes (for inline usage)
   useEffect(() => {
-    if (modeProp === "edit") {
+    if (effectiveMode === "edit") {
       setIsEditing(true);
-    } else if (modeProp === "view") {
+    } else if (effectiveMode === "view") {
       setIsEditing(false);
     }
-  }, [modeProp]);
+  }, [effectiveMode]);
 
   // Track unsaved changes
   useEffect(() => {
@@ -301,7 +366,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   useEffect(() => {
     // Skip fetch for "add" mode - handled by the add mode effect
-    if (modeProp === "add") {
+    if (effectiveMode === "add") {
       return;
     }
 
@@ -357,7 +422,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     typeLabel,
     fetchData,
     dataProp,
-    modeProp,
+    effectiveMode,
     refreshKey,
     initialDataPropUsed,
   ]);

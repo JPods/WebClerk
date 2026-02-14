@@ -111,6 +111,9 @@ interface CreateTransactionDropdownProps {
   customerName?: string;
   contactId?: number | null;
   contactName?: string;
+  attention?: string | null;
+  email?: string | null;
+  phone?: string | null;
   ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
 }
 
@@ -119,6 +122,9 @@ function CreateTransactionDropdown({
   customerName,
   contactId,
   contactName,
+  attention,
+  email,
+  phone,
   ensureWindow,
 }: CreateTransactionDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -142,6 +148,9 @@ function CreateTransactionDropdown({
     if (customerName) qs.set("customer_name", customerName);
     if (contactId) qs.set("contact_id", String(contactId));
     if (contactName) qs.set("contact_name", contactName);
+    if (attention) qs.set("attention", attention);
+    if (email) qs.set("email", email);
+    if (phone) qs.set("phone", phone);
     const query = qs.toString();
     const path = `${opt.path}${query ? `?${query}` : ""}`;
     ensureWindow(path, `New ${opt.label}`, { maximized: false });
@@ -693,6 +702,68 @@ export default function ContactDetail({
   );
 
   // ---------------------------------------------------------------------------
+  // Set Primary Communication Item
+  // Saves the *_id field on the contact record (email_id, phone_id, etc.)
+  // and also denormalizes the value into the scalar field (email, phone, etc.)
+  // ---------------------------------------------------------------------------
+
+  const handleSetPrimaryItem = useCallback(
+    async (type: "email" | "phone" | "address" | "domain", id: number) => {
+      if (!data?.id) return;
+
+      const fieldMap: Record<string, string> = {
+        email: "email_id",
+        phone: "phone_id",
+        address: "address_id",
+        domain: "domain_id",
+      };
+      const idField = fieldMap[type];
+      if (!idField) return;
+
+      // Build a minimal update payload
+      const payload: Record<string, any> = { id: data.id, [idField]: id };
+
+      // Also denormalize the scalar value from the communications list
+      if (type === "email") {
+        const match = communications?.emails?.find((e: any) => e.id === id);
+        if (match) payload.email = match.email || match.value || match.address || "";
+      } else if (type === "phone") {
+        const match = communications?.phones?.find((p: any) => p.id === id);
+        if (match) payload.phone = match.number || match.value || "";
+      } else if (type === "address") {
+        const match = communications?.addresses?.find((a: any) => a.id === id);
+        if (match) {
+          payload.address_full =
+            match.full ||
+            [match.address1, [match.city, match.state, match.zip].filter(Boolean).join(", "), match.country]
+              .filter(Boolean)
+              .join(", ");
+        }
+      } else if (type === "domain") {
+        const match = communications?.domains?.find((d: any) => d.id === id);
+        if (match) payload.domain = match.domain || match.value || "";
+      }
+
+      try {
+        await updateContact(payload as any);
+        // Refresh the record from the server
+        const res = await getRecord("contact", data.id);
+        const rec = (res as any)?.record ?? res;
+        if (rec) setFetchedData(rec);
+        dispatch(
+          showToast({ message: `Primary ${type} updated`, type: "success" }),
+        );
+      } catch (err) {
+        console.error(`[ContactDetail.handleSetPrimaryItem] failed:`, err);
+        dispatch(
+          showToast({ message: `Failed to set primary ${type}`, type: "error" }),
+        );
+      }
+    },
+    [data?.id, communications, dispatch, updateContact],
+  );
+
+  // ---------------------------------------------------------------------------
   // Form Submission
   // ---------------------------------------------------------------------------
 
@@ -876,6 +947,9 @@ export default function ContactDetail({
           customerName={data?.company ?? parentCustomerName}
           contactId={data?.id}
           contactName={displayName !== "New Contact" ? displayName : undefined}
+          attention={data?.attention}
+          email={data?.email}
+          phone={data?.phone}
           ensureWindow={windowManager.ensureWindow}
         />,
       );
@@ -1055,6 +1129,9 @@ export default function ContactDetail({
               <InfoRow label="name_first" value={data.name_first} />
               <InfoRow label="name_last" value={data.name_last} />
               <InfoRow label="email" value={data.email} />
+              <InfoRow label="phone" value={data.phone} />
+              <InfoRow label="address_full" value={data.address_full} />
+              <InfoRow label="domain" value={data.domain} />
               <InfoRow label="attention" value={data.attention} />
               <InfoRow label="name_prefix" value={data.name_prefix} />
               <InfoRow label="name_middle" value={data.name_middle} />
@@ -1141,6 +1218,42 @@ export default function ContactDetail({
                     {...register("email")}
                     error={!!errors.email?.message}
                     disabled={isFieldDisabled("email")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("phone") && (
+                <HorizontalField label="phone" htmlFor="phone">
+                  <Input
+                    type="text"
+                    id="phone"
+                    placeholder="Primary phone"
+                    {...register("phone" as any)}
+                    disabled={isFieldDisabled("phone")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("address_full") && (
+                <HorizontalField label="address_full" htmlFor="address_full">
+                  <Input
+                    type="text"
+                    id="address_full"
+                    placeholder="Full address"
+                    {...register("address_full" as any)}
+                    disabled={isFieldDisabled("address_full")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("domain") && (
+                <HorizontalField label="domain" htmlFor="domain">
+                  <Input
+                    type="text"
+                    id="domain"
+                    placeholder="Primary domain"
+                    {...register("domain" as any)}
+                    disabled={isFieldDisabled("domain")}
                   />
                 </HorizontalField>
               )}
@@ -1507,6 +1620,11 @@ export default function ContactDetail({
                   contactId={activeContactId}
                   data={communications}
                   onChange={(comms) => setCommunications(comms)}
+                  primaryEmailId={data?.email_id}
+                  primaryPhoneId={data?.phone_id}
+                  primaryAddressId={data?.address_id}
+                  primaryDomainId={data?.domain_id}
+                  onSetPrimaryItem={handleSetPrimaryItem}
                 />
               )}
 

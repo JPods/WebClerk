@@ -62,6 +62,13 @@ interface CommunicationsPanelProps
   contactId?: number;
   /** Show only specific types */
   showTypes?: ("email" | "phone" | "address" | "domain")[];
+  /** Primary record IDs from the parent contact record */
+  primaryEmailId?: number | null;
+  primaryPhoneId?: number | null;
+  primaryAddressId?: number | null;
+  primaryDomainId?: number | null;
+  /** Callback when a record is set as primary – receives the type and the record id */
+  onSetPrimaryItem?: (type: "email" | "phone" | "address" | "domain", id: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +147,8 @@ const EmailItem: React.FC<EmailItemProps> = ({
 interface PhoneItemProps {
   phone: PhoneLink;
   canEdit: boolean;
+  isPrimary?: boolean;
+  onSetPrimary?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -147,22 +156,38 @@ interface PhoneItemProps {
 const PhoneItem: React.FC<PhoneItemProps> = ({
   phone,
   canEdit,
+  isPrimary,
+  onSetPrimary,
   onEdit,
   onDelete,
 }) => (
   <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
     <FaPhone size={12} className="text-slate-400 flex-shrink-0" />
     <div className="flex-1 min-w-0">
-      <a
-        href={`tel:${phone.number}`}
-        className="text-sm text-blue-600 hover:underline"
-      >
-        {phone.format || phone.number}
-      </a>
+      <div className="flex items-center gap-2">
+        <a
+          href={`tel:${phone.number}`}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          {phone.format || phone.number}
+        </a>
+        {isPrimary && (
+          <FaStar size={10} className="text-amber-400" title="Primary" />
+        )}
+      </div>
       {phone.name && <p className="text-xs text-slate-400">{phone.name}</p>}
     </div>
     {canEdit && (
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!isPrimary && onSetPrimary && (
+          <button
+            onClick={onSetPrimary}
+            className="p-1 text-slate-400 hover:text-amber-500"
+            title="Set primary"
+          >
+            <FaRegStar size={10} />
+          </button>
+        )}
         {onEdit && (
           <button
             onClick={onEdit}
@@ -189,6 +214,8 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
 interface AddressItemProps {
   address: AddressLink;
   canEdit: boolean;
+  isPrimary?: boolean;
+  onSetPrimary?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -196,6 +223,8 @@ interface AddressItemProps {
 const AddressItem: React.FC<AddressItemProps> = ({
   address,
   canEdit,
+  isPrimary,
+  onSetPrimary,
   onEdit,
   onDelete,
 }) => {
@@ -220,9 +249,14 @@ const AddressItem: React.FC<AddressItemProps> = ({
         className="text-slate-400 flex-shrink-0 mt-0.5"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-700 dark:text-slate-300">
-          {address.address1}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            {address.address1}
+          </p>
+          {isPrimary && (
+            <FaStar size={10} className="text-amber-400 shrink-0" title="Primary" />
+          )}
+        </div>
         <p className="text-xs text-slate-500">
           {[address.city, address.state, address.zip]
             .filter(Boolean)
@@ -244,6 +278,15 @@ const AddressItem: React.FC<AddressItemProps> = ({
         </a>
         {canEdit && (
           <>
+            {!isPrimary && onSetPrimary && (
+              <button
+                onClick={onSetPrimary}
+                className="p-1 text-slate-400 hover:text-amber-500"
+                title="Set primary"
+              >
+                <FaRegStar size={10} />
+              </button>
+            )}
             {onEdit && (
               <button
                 onClick={onEdit}
@@ -650,6 +693,11 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   title = "Contact Info",
   defaultCollapsed = false,
   showTypes = ["email", "phone", "address", "domain"],
+  primaryEmailId,
+  primaryPhoneId,
+  primaryAddressId,
+  primaryDomainId,
+  onSetPrimaryItem,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isSaving, setIsSaving] = useState(false);
@@ -767,8 +815,83 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         is_primary: i === index,
       }));
       onChange({ ...data, emails: newEmails });
+      // Notify parent to update contact.email_id
+      if (onSetPrimaryItem && emailToUpdate.id) {
+        onSetPrimaryItem("email", emailToUpdate.id);
+      }
     } catch (err) {
       console.error("Failed to set primary email:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSetPhonePrimary = async (index: number) => {
+    if (!onChange) return;
+    const phoneToUpdate = phones[index];
+    if (!phoneToUpdate?.id) return;
+
+    setIsSaving(true);
+    try {
+      const newPhones = phones.map((_p, i) => ({
+        ..._p,
+      }));
+      onChange({ ...data, phones: newPhones });
+      // Notify parent to update contact.phone_id
+      if (onSetPrimaryItem && phoneToUpdate.id) {
+        onSetPrimaryItem("phone", phoneToUpdate.id);
+      }
+    } catch (err) {
+      console.error("Failed to set primary phone:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSetAddressPrimary = async (index: number) => {
+    if (!onChange) return;
+    const addressToUpdate = addresses[index];
+    if (!addressToUpdate?.id) return;
+
+    setIsSaving(true);
+    try {
+      onChange({ ...data }); // trigger re-render
+      // Notify parent to update contact.address_id
+      if (onSetPrimaryItem && addressToUpdate.id) {
+        onSetPrimaryItem("address", addressToUpdate.id);
+      }
+    } catch (err) {
+      console.error("Failed to set primary address:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSetDomainPrimary = async (index: number) => {
+    if (!onChange) return;
+    const domainToUpdate = domains[index];
+    if (!domainToUpdate?.id) return;
+
+    setIsSaving(true);
+    try {
+      // Update the domain to be primary via wcapi
+      await saveRecord("domain", {
+        id: domainToUpdate.id,
+        is_primary: true,
+        contact_id: contactId,
+      });
+      // On success, update all domains locally
+      const newDomains = domains.map((d, i) => ({
+        ...d,
+        is_primary: i === index,
+      }));
+      onChange({ ...data, domains: newDomains });
+      // Notify parent to update contact.domain_id
+      if (onSetPrimaryItem && domainToUpdate.id) {
+        onSetPrimaryItem("domain", domainToUpdate.id);
+      }
+    } catch (err) {
+      console.error("Failed to set primary domain:", err);
     } finally {
       setIsSaving(false);
     }
@@ -962,7 +1085,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                   emails.map((email, idx) => (
                     <EmailItem
                       key={email.id || idx}
-                      email={email}
+                      email={{...email, is_primary: primaryEmailId ? email.id === primaryEmailId : email.is_primary}}
                       canEdit={canEdit}
                       onSetPrimary={() => handleSetPrimary(idx)}
                       onEdit={() => handleEdit("email", email, idx)}
@@ -1006,6 +1129,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       key={phone.id || idx}
                       phone={phone}
                       canEdit={canEdit}
+                      isPrimary={!!primaryPhoneId && phone.id === primaryPhoneId}
+                      onSetPrimary={() => handleSetPhonePrimary(idx)}
                       onEdit={() => handleEdit("phone", phone, idx)}
                       onDelete={() => handleDelete("phone", idx)}
                     />
@@ -1047,6 +1172,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       key={addr.id || idx}
                       address={addr}
                       canEdit={canEdit}
+                      isPrimary={!!primaryAddressId && addr.id === primaryAddressId}
+                      onSetPrimary={() => handleSetAddressPrimary(idx)}
                       onEdit={() => handleEdit("address", addr, idx)}
                       onDelete={() => handleDelete("address", idx)}
                     />
@@ -1086,8 +1213,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                   domains.map((domain, idx) => (
                     <DomainItem
                       key={domain.domain || idx}
-                      domain={domain}
+                      domain={{...domain, is_primary: primaryDomainId ? domain.id === primaryDomainId : domain.is_primary}}
                       canEdit={canEdit}
+                      onSetPrimary={() => handleSetDomainPrimary(idx)}
                       onEdit={() => handleEdit("domain", domain, idx)}
                       onDelete={() => handleDelete("domain", idx)}
                     />

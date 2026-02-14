@@ -20,7 +20,6 @@ import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { 
-  FinancialsPanel, 
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
@@ -33,6 +32,7 @@ import {
   RefsPanel,
   PrefsPanel,
 } from "@/apps/common/components/panels";
+import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
@@ -53,12 +53,28 @@ const TRANSACTION_OPTIONS = [
 interface CreateTransactionDropdownProps {
   customerId?: number | null;
   customerName?: string;
+  priceLevel?: string | null;
+  attention?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  terms?: string | null;
+  termsId?: number | null;
+  contactId?: number | null;
+  addressFull?: string | null;
   ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
 }
 
 function CreateTransactionDropdown({
   customerId,
   customerName,
+  priceLevel,
+  attention,
+  phone,
+  email,
+  terms,
+  termsId,
+  contactId,
+  addressFull,
   ensureWindow,
 }: CreateTransactionDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -80,6 +96,14 @@ function CreateTransactionDropdown({
     const qs = new URLSearchParams();
     if (customerId) qs.set("customer_id", String(customerId));
     if (customerName) qs.set("customer_name", customerName);
+    if (priceLevel) qs.set("price_level", priceLevel);
+    if (attention) qs.set("attention", attention);
+    if (phone) qs.set("phone", phone);
+    if (email) qs.set("email", email);
+    if (terms) qs.set("terms", terms);
+    if (termsId) qs.set("terms_id", String(termsId));
+    if (contactId) qs.set("contact_id", String(contactId));
+    if (addressFull) qs.set("address_full", addressFull);
     const query = qs.toString();
     const path = `${opt.path}${query ? `?${query}` : ""}`;
     ensureWindow(path, `New ${opt.label}`, { maximized: false });
@@ -134,6 +158,9 @@ interface Customer {
   email?: string | null;
   phone?: string | null;
   price_level?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  address_full?: string | null;
   // JSON aspect fields
   contacts?: any;
   addresses?: any;
@@ -177,6 +204,24 @@ const ORG_TYPE_OPTIONS = [
   { value: "vendor", label: "Vendor" },
   { value: "partner", label: "Partner" },
   { value: "internal", label: "Internal" },
+];
+
+const TERMS_OPTIONS = [
+  { value: "Net 30", label: "Net 30" },
+  { value: "Net 60", label: "Net 60" },
+  { value: "Net 90", label: "Net 90" },
+  { value: "Due on Receipt", label: "Due on Receipt" },
+  { value: "COD", label: "COD" },
+  { value: "Prepaid", label: "Prepaid" },
+  { value: "2/10 Net 30", label: "2/10 Net 30" },
+];
+
+const PRICE_LEVEL_OPTIONS = [
+  { value: "A", label: "A - Retail" },
+  { value: "B", label: "B - Wholesale" },
+  { value: "C", label: "C - Distributor" },
+  { value: "D", label: "D - Volume" },
+  { value: "E", label: "E - Special" },
 ];
 
 /* ----------------------------------
@@ -346,6 +391,8 @@ export default function CustomerDetail({
   }, [resolvedCustomerId, routeMode, fetchFkContacts, fkRefreshTrigger]);
 
   // Window management - only when NOT rendered inline
+  // Use a stable path derived from customer data rather than location.pathname
+  // to avoid re-triggering when other windows change the browser URL.
   useEffect(() => {
     if (inline) return; // Skip window management for inline rendering
     const record = dataProp || fetchedRecord;
@@ -353,8 +400,12 @@ export default function CustomerDetail({
     const title = record?.display_name || record?.name || 
       (routeMode === 'add' ? 'New Customer' : `Customer ${record?.id ?? customerId}`);
     const prefix = routeMode === 'edit' ? 'Edit ' : '';
-    ensureWindow(location.pathname, `${prefix}${title}`, { maximized: false });
-  }, [inline, dataProp, fetchedRecord, ensureWindow, location.pathname, customerId, routeMode]);
+    const custId = record?.id ?? customerId;
+    const stablePath = routeMode === 'add'
+      ? '/org/customer/add'
+      : `/org/customer/detail/${custId}`;
+    ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
+  }, [inline, dataProp, fetchedRecord, ensureWindow, customerId, routeMode]);
 
   // List navigation (prev/next)
   const listOrder = useMemo(() => {
@@ -619,6 +670,9 @@ export default function CustomerDetail({
         email: formData.email || null,
         phone: formData.phone || null,
         price_level: formData.price_level || null,
+        terms: formData.terms || null,
+        terms_id: formData.terms_id || null,
+        address_full: formData.address_full || null,
         ...jsonPayload,
       };
       const res =
@@ -743,6 +797,69 @@ export default function CustomerDetail({
     await saveCustomer(formData);
   };
 
+  // ---------------------------------------------------------------------------
+  // Set Primary Contact – saves contact_id + denormalized fields on the org
+  // ---------------------------------------------------------------------------
+  const handleSetPrimary = useCallback(
+    async (contact: { contact_id: number; attention?: string; email?: string | any[]; phone?: string | any[] }) => {
+      const custId = data?.id;
+      if (!custId) return;
+
+      // Extract scalar values from possibly polymorphic email/phone
+      const emailStr =
+        typeof contact.email === "string"
+          ? contact.email
+          : Array.isArray(contact.email) && contact.email.length > 0
+            ? (typeof contact.email[0] === "object" ? contact.email[0].value ?? "" : String(contact.email[0]))
+            : "";
+      const phoneStr =
+        typeof contact.phone === "string"
+          ? contact.phone
+          : Array.isArray(contact.phone) && contact.phone.length > 0
+            ? (typeof contact.phone[0] === "object" ? contact.phone[0].value ?? "" : String(contact.phone[0]))
+            : "";
+
+      try {
+        await updateCustomer({
+          id: custId,
+          contact_id: contact.contact_id,
+          attention: contact.attention || null,
+          email: emailStr || null,
+          phone: phoneStr || null,
+        } as any);
+
+        // Update local form state so UI reflects the change immediately
+        setValue("contact_id" as keyof CustomerFormValues, contact.contact_id);
+        if (contact.attention) setValue("attention" as keyof CustomerFormValues, contact.attention);
+        if (emailStr) setValue("email" as keyof CustomerFormValues, emailStr);
+        if (phoneStr) setValue("phone" as keyof CustomerFormValues, phoneStr);
+
+        // Refresh the parent record from the server
+        const res = await getRecord("customer", custId);
+        const rec = res?.record ?? res;
+        if (rec) {
+          setFetchedRecord(rec);
+        }
+
+        dispatch(
+          showToast({
+            message: `Contact #${contact.contact_id} set as primary`,
+            type: "success",
+          }),
+        );
+      } catch (err) {
+        console.error("[CustomerDetail.handleSetPrimary] failed:", err);
+        dispatch(
+          showToast({
+            message: "Failed to set primary contact",
+            type: "error",
+          }),
+        );
+      }
+    },
+    [data?.id, dispatch, setValue],
+  );
+
   // Action buttons configuration based on mode
   const getActionButtons = () => {
     const buttons = [];
@@ -754,6 +871,14 @@ export default function CustomerDetail({
           key="create-txn"
           customerId={data?.id}
           customerName={data?.display_name || data?.name}
+          priceLevel={data?.price_level}
+          attention={data?.attention}
+          phone={data?.phone}
+          email={data?.email}
+          terms={data?.terms}
+          termsId={data?.terms_id}
+          contactId={data?.contact_id}
+          addressFull={data?.address_full}
           ensureWindow={ensureWindow}
         />,
       );
@@ -866,6 +991,9 @@ export default function CustomerDetail({
         email: data.email,
         phone: data.phone,
         price_level: data.price_level,
+        terms: data.terms,
+        terms_id: data.terms_id,
+        address_full: data.address_full,
         financial: data.financial,
       }
     : {
@@ -1004,53 +1132,83 @@ export default function CustomerDetail({
       ) : (
         /* Editable Basic Information - Horizontal Layout */
         <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
-          <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
+          <HorizontalField label="display_name" htmlFor="display_name" required error={errors.display_name?.message}>
             <Input
               type="text"
               id="display_name"
-              placeholder="Enter company name"
+              placeholder="display_name"
               {...register("display_name")}
               error={errors.display_name && errors.display_name.message ? true : false}
             />
           </HorizontalField>
 
-          <HorizontalField label="Email" htmlFor="email">
+          <HorizontalField label="email" htmlFor="email">
             <Input
               type="email"
               id="email"
-              placeholder="Primary email"
+              placeholder="email"
               {...register("email")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Attention" htmlFor="attention">
+          <HorizontalField label="attention" htmlFor="attention">
             <Input
               type="text"
               id="attention"
-              placeholder="Attn: line"
+              placeholder="attention"
               {...register("attention")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Phone" htmlFor="phone">
+          <HorizontalField label="phone" htmlFor="phone">
             <Input
               type="tel"
               id="phone"
-              placeholder="Primary phone"
+              placeholder="phone"
               {...register("phone")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Price Level" htmlFor="price_level">
-            <Input
-              type="text"
-              id="price_level"
-              placeholder="retail, wholesale"
-              {...register("price_level")}
+          <HorizontalField label="price_level" htmlFor="price_level">
+            <Controller
+              name="price_level"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={PRICE_LEVEL_OPTIONS}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="price_level"
+                />
+              )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Status" htmlFor="status" required>
+          <HorizontalField label="terms" htmlFor="terms">
+            <Controller
+              name="terms"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={TERMS_OPTIONS}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="terms"
+                />
+              )}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="address_full" htmlFor="address_full">
+            <Input
+              type="text"
+              id="address_full"
+              placeholder="address_full"
+              {...register("address_full")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="status" htmlFor="status" required>
             <Controller
               name="status"
               control={control}
@@ -1059,13 +1217,13 @@ export default function CustomerDetail({
                   options={STATUS_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select status"
+                  placeholder="status"
                 />
               )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Org Type" htmlFor="org_type">
+          <HorizontalField label="org_type" htmlFor="org_type">
             <Controller
               name="org_type"
               control={control}
@@ -1074,13 +1232,13 @@ export default function CustomerDetail({
                   options={ORG_TYPE_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select type"
+                  placeholder="org_type"
                 />
               )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Version" htmlFor="version">
+          <HorizontalField label="version" htmlFor="version">
             <Input
               type="number"
               id="version"
@@ -1099,7 +1257,7 @@ export default function CustomerDetail({
                   id="is_active"
                   checked={field.value ?? false}
                   onChange={field.onChange}
-                  label="Active"
+                  label="is_active"
                 />
               )}
             />
@@ -1200,6 +1358,8 @@ export default function CustomerDetail({
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  primaryContactId={data?.contact_id}
+                  onSetPrimary={handleSetPrimary}
                   onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onSaveSuccess={() => {
                     // Bump the trigger to re-fetch FK contacts
@@ -1228,8 +1388,9 @@ export default function CustomerDetail({
 
               {/* Financial tab */}
               {activeTab === "financial" && (
-                <FinancialsPanel
-                  totals={customerData.financial?.customer}
+                <OrgFinancialsPanel
+                  financial={customerData.financial}
+                  orgType="customer"
                   currency="USD"
                 />
               )}
@@ -1247,6 +1408,8 @@ export default function CustomerDetail({
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  primaryContactId={data?.contact_id}
+                  onSetPrimary={handleSetPrimary}
                   onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onChange={(newContacts) => {
                     const currentRefs = safeParseJson(formData.refs as unknown as string | undefined, { links: {} });

@@ -19,6 +19,7 @@ import {
   FaPhone,
   FaPlus,
   FaSpinner,
+  FaStar,
   FaSyncAlt,
   FaTimes,
   FaUser,
@@ -62,6 +63,10 @@ interface ContactPanelProps {
   loading?: boolean;
   /** Allow Create Contact button even when isEditing is false */
   allowCreate?: boolean;
+  /** The contact_id currently set as primary on the parent record */
+  primaryContactId?: number | null;
+  /** Callback when user clicks "Set as Primary" on a contact row */
+  onSetPrimary?: (contact: RefContact) => void;
   /** Panel title override */
   title?: string;
   /** Start collapsed */
@@ -134,10 +139,12 @@ interface ContactRowComms {
 const ContactRow: React.FC<{
   contact: RefContact;
   isEditing?: boolean;
+  isPrimary?: boolean;
   onRemove?: () => void;
   onEdit?: () => void;
   onOpen?: () => void;
-}> = ({ contact, isEditing, onRemove, onEdit, onOpen }) => {
+  onSetPrimary?: () => void;
+}> = ({ contact, isEditing, isPrimary, onRemove, onEdit, onOpen, onSetPrimary }) => {
   const [comms, setComms] = useState<ContactRowComms | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -230,6 +237,24 @@ const ContactRow: React.FC<{
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        {onSetPrimary && (
+          <button
+            type="button"
+            title={isPrimary ? "Primary contact" : "Set as primary contact"}
+            className={`p-1 rounded transition-colors ${
+              isPrimary
+                ? "text-amber-500"
+                : "text-slate-300 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isPrimary) onSetPrimary();
+            }}
+            disabled={isPrimary}
+          >
+            <FaStar size={10} />
+          </button>
+        )}
         {isEditing && onEdit && (
           <button
             type="button"
@@ -291,6 +316,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   onRefresh,
   loading: externalLoading,
   allowCreate,
+  primaryContactId,
+  onSetPrimary,
   title = "Contacts",
   defaultCollapsed = false,
 }) => {
@@ -450,9 +477,11 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
                   key={`${contact.contact_id}-${contact.purpose}-${idx}`}
                   contact={contact}
                   isEditing={isEditing}
+                  isPrimary={!!primaryContactId && contact.contact_id === primaryContactId}
                   onRemove={() => handleRemoveContact(contact.contact_id)}
                   onEdit={() => handleEditContact(contact)}
                   onOpen={() => handleOpen(contact)}
+                  onSetPrimary={onSetPrimary ? () => onSetPrimary(contact) : undefined}
                 />
               ))}
             </div>

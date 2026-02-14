@@ -261,6 +261,87 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </dd>
               )}
             </div>
+            {/* Denormalized contact fields */}
+            {data.attention && (
+              <div className="flex justify-between items-center">
+                <FieldLabel
+                  label="Attention"
+                  className="text-slate-500 dark:text-slate-400"
+                />
+                {isEditing && onChange ? (
+                  <Input
+                    type="text"
+                    value={data.attention ?? ""}
+                    onChange={(e) => onChange("attention", e.target.value)}
+                    className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <dd className="text-slate-900 dark:text-white">
+                    {data.attention ?? "--"}
+                  </dd>
+                )}
+              </div>
+            )}
+            {data.email && (
+              <div className="flex justify-between items-center">
+                <FieldLabel
+                  label="Email"
+                  className="text-slate-500 dark:text-slate-400"
+                />
+                {isEditing && onChange ? (
+                  <Input
+                    type="email"
+                    value={data.email ?? ""}
+                    onChange={(e) => onChange("email", e.target.value)}
+                    className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <dd className="text-slate-900 dark:text-white">
+                    {data.email ?? "--"}
+                  </dd>
+                )}
+              </div>
+            )}
+            {data.phone && (
+              <div className="flex justify-between items-center">
+                <FieldLabel
+                  label="Phone"
+                  className="text-slate-500 dark:text-slate-400"
+                />
+                {isEditing && onChange ? (
+                  <Input
+                    type="text"
+                    value={data.phone ?? ""}
+                    onChange={(e) => onChange("phone", e.target.value)}
+                    className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <dd className="text-slate-900 dark:text-white">
+                    {data.phone ?? "--"}
+                  </dd>
+                )}
+              </div>
+            )}
+            {data.address_full && (
+              <div className="flex justify-between items-center">
+                <FieldLabel
+                  label="Address"
+                  className="text-slate-500 dark:text-slate-400"
+                />
+                {isEditing && onChange ? (
+                  <Input
+                    type="text"
+                    value={data.address_full ?? ""}
+                    onChange={(e) => onChange("address_full", e.target.value)}
+                    className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <dd className="text-slate-900 dark:text-white truncate max-w-[200px]" title={data.address_full}>
+                    {data.address_full ?? "--"}
+                  </dd>
+                )}
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <FieldLabel
                 label="Status"
