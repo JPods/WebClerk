@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
+import { FaBoxes } from "react-icons/fa";
 import { GridIcon } from "../icons";
 import { useWindowManager } from "../context/WindowManagerContext";
 import { logout as logoutRequest } from "../api/auth";
@@ -9,6 +10,7 @@ import { useAppSelector } from "../store/hooks";
 import { clearTokens } from "../api/axios";
 import { clearUser } from "../store/slices/authSlice";
 import TaskManagerIndicator from "../components/header/TaskManagerIndicator";
+import InventoryMonitor from "../components/header/InventoryMonitor";
 
 type Props = {
   activePath: string;
@@ -21,6 +23,7 @@ export default function MacTopBar({ activePath }: Props) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showInventoryMonitor, setShowInventoryMonitor] = useState(false);
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
 
@@ -79,6 +82,21 @@ export default function MacTopBar({ activePath }: Props) {
 
       <div className="flex items-center gap-3 text-xs">
         <TaskManagerIndicator />
+        <button
+          onClick={() => setShowInventoryMonitor((v) => !v)}
+          className={`flex h-8 w-8 items-center justify-center rounded-full border transition ${
+            showInventoryMonitor
+              ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-emerald-500"
+          }`}
+          title="Inventory Monitor"
+          aria-label="Inventory Monitor"
+        >
+          <FaBoxes className="h-4 w-4" />
+        </button>
+        {showInventoryMonitor && (
+          <InventoryMonitor onClose={() => setShowInventoryMonitor(false)} />
+        )}
         <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
             src="/images/user/owner.jpg"

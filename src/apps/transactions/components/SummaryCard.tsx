@@ -352,6 +352,16 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 <StatusBadge status={data.status} />
               </dd>
             </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel
+                label="Customer IDA"
+                locked
+                className="text-slate-500 dark:text-slate-400"
+              />
+              <dd className="font-mono text-slate-600 dark:text-slate-300">
+                {data.customer_ida ?? data.refs?.links?.customer?.[0]?.ida ?? "--"}
+              </dd>
+            </div>
             {data.is_locked && (
               <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-slate-700">
                 <FieldLabel
