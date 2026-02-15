@@ -34,20 +34,16 @@ const readStoredUser = (): User | null => {
   }
 };
 
-const hasStoredToken = (): boolean => {
-  if (typeof localStorage === "undefined") return false;
-  const token = localStorage.getItem("accessToken");
-  return typeof token === "string" && token.trim() !== "" && token !== "undefined" && token !== "null";
-};
-
 const initialUser = readStoredUser();
-const tokenExists = hasStoredToken();
 
 const initialState: AuthState = {
   user: initialUser,
-  isAuthenticated: Boolean(initialUser) && tokenExists,
-  // Start loading if we have a token that needs verification
-  isLoading: tokenExists,
+  // Access tokens live in memory only — we cannot check on module load.
+  // Optimistically treat a cached user profile as "likely authenticated".
+  // AuthInitializer will confirm via bootstrapAuth() and update these.
+  isAuthenticated: Boolean(initialUser),
+  // Always start loading so AuthInitializer has time to call bootstrapAuth.
+  isLoading: true,
   error: null,
 };
 

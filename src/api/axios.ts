@@ -21,20 +21,10 @@ const isValidToken = (val: any): val is string =>
   val !== "undefined" &&
   val !== "null";
 
-// Access tokens are short-lived; keep latest in memory for fast access
-let accessToken: string | null = (() => {
-  const raw =
-    typeof localStorage !== "undefined"
-      ? localStorage.getItem("accessToken")
-      : null;
-  if (!isValidToken(raw)) {
-    // Clean up any bad leftovers to avoid gating UI with a bogus token
-    if (typeof localStorage !== "undefined")
-      localStorage.removeItem("accessToken");
-    return null;
-  }
-  return raw;
-})();
+// Access token lives in memory only — no localStorage exposure to XSS.
+// On page reload, bootstrapAuth() acquires a fresh token from the httpOnly
+// refresh-token cookie via /wcapi/token_refresh/.
+let accessToken: string | null = null;
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
 
@@ -161,17 +151,15 @@ const processQueue = (token: string | null) => {
   refreshQueue = [];
 };
 
-export const persistTokens = (access: string, refresh?: string | null) => {
+export const persistTokens = (access: string, _refresh?: string | null) => {
+  // Access token is memory-only; refresh token is an httpOnly cookie set by the server.
   accessToken = access;
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("accessToken", access);
-    if (refresh) localStorage.setItem("refreshToken", refresh);
-  }
 };
 
 export const clearTokens = () => {
   accessToken = null;
   if (typeof localStorage !== "undefined") {
+    // Clean up any legacy localStorage tokens from before the cookie migration
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   }
@@ -193,12 +181,13 @@ export const notionClient = axios.create({
   baseURL: NetworkInfo.NOTION_URL,
 });
 
-// Separate instance for auth endpoints (login, signup, refresh)
+// Auth client sends httpOnly refresh cookie via withCredentials
 export const authClient = axios.create({
   baseURL:
     typeof window !== "undefined" && window.location.protocol === "http:"
       ? ""
       : NetworkInfo.AUTH_URL,
+  withCredentials: true,
 });
 
 const attachAuthInterceptors = (client: AxiosInstance) => {
@@ -210,9 +199,6 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
     (config as any)._requestTrackId = tracking.id;
     (config as any)._requestCancel = tracking.cancel;
     config.signal = tracking.signal;
-    if (!accessToken && typeof localStorage !== "undefined") {
-      accessToken = localStorage.getItem("accessToken");
-    }
     if (isValidToken(accessToken)) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -251,30 +237,19 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
         originalRequest._retry = true;
         isRefreshing = true;
         try {
-          const refreshToken =
-            typeof localStorage !== "undefined"
-              ? localStorage.getItem("refreshToken")
-              : null;
-          if (!refreshToken) throw new Error("No refresh token");
-
-          const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, {
-            refresh: refreshToken,
-          });
+          // Refresh token is sent automatically as httpOnly cookie via withCredentials
+          const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, {});
           // Backend wraps JSON responses in an envelope: { status, code, message, data: { access } }
           const body: any = (refreshResponse as any).data ?? {};
-          const fromEnvelope = body?.data?.access;
-          const fromTopLevel = body?.access; // fallback for non-enveloped
-          const newToken: string | null = isValidToken(fromEnvelope)
-            ? fromEnvelope
-            : isValidToken(fromTopLevel)
-            ? fromTopLevel
+          const newToken: string | null = isValidToken(body?.data?.access)
+            ? body.data.access
+            : isValidToken(body?.access)   // fallback for flat SimpleJWT response
+            ? body.access
             : null;
           if (!newToken)
             throw new Error("Invalid refresh response: missing access token");
 
           accessToken = newToken;
-          if (typeof localStorage !== "undefined")
-            localStorage.setItem("accessToken", newToken);
           processQueue(newToken);
           originalRequest.headers = originalRequest.headers ?? {};
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -365,5 +340,37 @@ attachAuthInterceptors(notionClient);
 attachLoadingOnly(authClient);
 wrapGetWithCache(apiClient);
 wrapGetWithCache(notionClient);
+
+/**
+ * Bootstrap authentication on page load.
+ *
+ * Since access tokens live in memory only (not localStorage), a page reload
+ * loses the token.  This function calls /wcapi/token_refresh/ (which sends
+ * the httpOnly refresh cookie automatically) to obtain a fresh access token.
+ *
+ * Returns the access token string on success, or null if the user is not
+ * authenticated (no cookie, expired, etc.).
+ */
+/** Return the current in-memory access token (for diagnostics / dev tools). */
+export const getAccessToken = (): string | null => accessToken;
+
+export const bootstrapAuth = async (): Promise<string | null> => {
+  try {
+    const res = await authClient.post(AuthURL.REFRESH_TOKEN, {});
+    const body: any = res?.data ?? {};
+    const token: string | null = isValidToken(body?.data?.access)
+      ? body.data.access
+      : isValidToken(body?.access)
+      ? body.access
+      : null;
+    if (token) {
+      accessToken = token;
+    }
+    return token;
+  } catch {
+    // No valid refresh cookie — user is not authenticated
+    return null;
+  }
+};
 
 export default apiClient;

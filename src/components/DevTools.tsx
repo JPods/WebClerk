@@ -140,6 +140,13 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     }
   }, [isDev, fetchConfig]);
 
+  // Poll config periodically to keep badge in sync (e.g. after runserver.sh restart)
+  useEffect(() => {
+    if (!isDev) return;
+    const timer = setInterval(fetchConfig, 10000);
+    return () => clearInterval(timer);
+  }, [isDev, fetchConfig]);
+
   // Also refresh when panel opens
   useEffect(() => {
     if (isOpen) {
@@ -151,9 +158,15 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     if (!isOpen) return;
 
     let cancelled = false;
+    let wasOffline = false;
     const poll = async () => {
       const isLive = await checkBackendHealth();
       if (cancelled) return;
+      // Re-fetch config when server comes back online (mode may have changed)
+      if (isLive && wasOffline) {
+        fetchConfig();
+      }
+      wasOffline = !isLive;
       setBackendStatus((prev) => {
         if (prev === 'restarting' && !isLive) {
           return 'restarting';
@@ -196,15 +209,6 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
   const handleSwitchMode = async (newMode: string) => {
     setIsSwitching(true);
     setMessage(null);
-    setSyncProgress(0);
-    if (newMode === 'local') {
-      setSyncDirection('remote-to-local');
-      setSyncMessage('Starting remote → local sync...');
-      setIsSyncing(true);
-    } else {
-      setSyncDirection(null);
-      setIsSyncing(false);
-    }
     
     try {
       const response = await fetch('/wcapi/dev/switch/', {
@@ -219,35 +223,52 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
       
       if (response.ok) {
         setMessage({ type: 'success', text: json.message || data.message || `Switched to ${newMode}` });
-        if (data?.changed && data?.restarting) {
-          setMessage({
-            type: 'success',
-            text:
-              newMode === 'local'
-                ? 'Switching to local, syncing remote data if reachable, and restarting servers...'
-                : 'Switching mode and restarting servers...',
-          });
-          waitForServerAndReload(3000);
-        } else if (data?.changed && data?.same_console_required) {
-          setMessage({
-            type: 'success',
-            text: data?.instructions?.note || json.message || 'Switch completed.',
-          });
+        if (data?.changed && data?.same_console_required) {
           waitForServerAndRefresh(300);
         } else if (data?.changed) {
           await fetchConfig();
         }
       } else {
         setMessage({ type: 'error', text: data.message });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to switch mode' });
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  const handleSync = async (direction: 'download' | 'upload') => {
+    const label = direction === 'download' ? 'remote → local' : 'local → remote';
+    if (direction === 'upload' && !confirm(`Upload local data to remote? This will overwrite the shared team database. Continue?`)) {
+      return;
+    }
+    setMessage(null);
+    setSyncProgress(0);
+    setSyncDirection(direction === 'download' ? 'remote-to-local' : 'local-to-remote');
+    setSyncMessage(`Starting ${label} sync...`);
+    setIsSyncing(true);
+
+    try {
+      const response = await fetch('/wcapi/dev/sync/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      });
+
+      const json = await response.json();
+      if (response.ok) {
+        setMessage({ type: 'success', text: json.message || `Sync started (${label})` });
+      } else {
+        const data = json.data?.data || json.data || json;
+        setMessage({ type: 'error', text: data.message || 'Failed to start sync' });
         setIsSyncing(false);
         setSyncDirection(null);
       }
     } catch {
-      setMessage({ type: 'error', text: 'Failed to switch mode' });
+      setMessage({ type: 'error', text: 'Failed to start sync' });
       setIsSyncing(false);
       setSyncDirection(null);
-    } finally {
-      setIsSwitching(false);
     }
   };
 
@@ -451,6 +472,60 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                   </div>
                 </button>
               ))}
+            </div>
+
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>
+                DATA SYNC
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid #334155',
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    opacity: isPendingSwitch ? 0.6 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => handleSync('download')}
+                  disabled={isPendingSwitch}
+                  title="Copy remote database into local"
+                >
+                  ⬇ Download
+                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '2px' }}>
+                    Remote → Local
+                  </div>
+                </button>
+                <button
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid #334155',
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    opacity: isPendingSwitch ? 0.6 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => handleSync('upload')}
+                  disabled={isPendingSwitch}
+                  title="Copy local database into remote (overwrites team data)"
+                >
+                  ⬆ Upload
+                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '2px' }}>
+                    Local → Remote
+                  </div>
+                </button>
+              </div>
             </div>
 
             {message && (

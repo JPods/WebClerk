@@ -5,6 +5,8 @@
  * Use this to debug connectivity issues between frontend and backend.
  */
 
+import { getAccessToken } from "../api/axios";
+
 export interface DiagnosticReport {
   timestamp: string;
   frontend: {
@@ -115,8 +117,7 @@ export async function runNetworkDiagnostics(
  * Get the current authentication token
  */
 function getAuthToken(): string | null {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  return getAccessToken();
 }
 
 /**

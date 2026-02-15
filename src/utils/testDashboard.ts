@@ -42,7 +42,8 @@ window.testDashboardEndpoint = async function () {
 
     // Test 3: With Authorization header
     console.log("\nTest 3: GET request with Authorization header...");
-    const token = localStorage.getItem("accessToken");
+    const { getAccessToken } = await import("../api/axios");
+    const token = getAccessToken();
     console.log(`  Token found: ${token ? "✅ Yes" : "❌ No"}`);
 
     if (token) {

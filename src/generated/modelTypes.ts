@@ -3,7 +3,7 @@
  *
  * TypeScript interfaces generated from Django model definitions.
  * Source: webClerk3 WCAPI_BLESSED_MODELS
- * Generated: 2026-02-15 16:55
+ * Generated: 2026-02-15 20:46
  *
  * Regenerate with:
  *   cd webClerk3 && python manage.py generate_ts_types \
@@ -243,6 +243,198 @@ export interface UpdateGlAccountRequest {
   type?: string | null;  // choices: , asset, liability, equity, revenue, expense, contra | max_length=255
   type_id?: string | null;  // max_length=255
   used_for?: string | null;  // choices: posting, reporting, tax, consolidation, other | max_length=255
+}
+
+// ── GlJournal ──
+// Django: accounts.GlJournal  table: gl_journals
+// wcapi model_name: "gl_journal"
+
+export interface GlJournalRecord {
+  id?: number;  // read-only
+  uuid?: string | null;  // read-only | max_length=32
+  ida?: string;  // max_length=40
+  account?: string | null;  // max_length=255
+  actions?: Record<string, any>;
+  comments: Record<string, any>;
+  credit?: number | null;
+  debit?: number | null;
+  dt_created: number;  // read-only
+  dt_modified: number;  // read-only
+  health_rating: number;
+  is_active: boolean;
+  is_archived: boolean;
+  is_deleted: boolean;
+  metadata: Record<string, any>;
+  prefs: Record<string, any>;
+  refs: Record<string, any>;
+  security_level?: number;
+  source?: string | null;  // choices: manual, import, automation, adjustment, integration | max_length=255
+  type?: string | null;  // choices: , general, sales, purchase, payroll, inventory, other | max_length=255
+  version: number;  // read-only
+}
+
+export interface CreateGlJournalRequest {
+  ida?: string;  // max_length=40
+  account?: string | null;  // max_length=255
+  credit?: number | null;
+  debit?: number | null;
+  is_active?: boolean;
+  source?: string | null;  // choices: manual, import, automation, adjustment, integration | max_length=255
+  type?: string | null;  // choices: , general, sales, purchase, payroll, inventory, other | max_length=255
+}
+
+export interface UpdateGlJournalRequest {
+  id: number | string;
+  ida?: string;  // max_length=40
+  account?: string | null;  // max_length=255
+  credit?: number | null;
+  debit?: number | null;
+  is_active?: boolean;
+  source?: string | null;  // choices: manual, import, automation, adjustment, integration | max_length=255
+  type?: string | null;  // choices: , general, sales, purchase, payroll, inventory, other | max_length=255
+}
+
+// ── Ledger ──
+// Django: accounts.Ledger  table: ledger
+// wcapi model_name: "ledger"
+
+export interface LedgerRecord {
+  id?: number;  // read-only
+  uuid?: string | null;  // read-only | max_length=32
+  ida?: string;  // max_length=40
+  actions?: Record<string, any>;
+  comments: Record<string, any>;
+  discount_potential?: number | null;
+  dt_created: number;  // read-only
+  dt_discount_due?: string | null;
+  dt_due?: string | null;
+  dt_modified: number;  // read-only
+  dt_posted?: string | null;
+  dt_recorded?: string | null;
+  dt_settled?: string | null;
+  gl_account_id?: number | null;  // FK → accounts.GlAccount
+  health_rating: number;
+  invoice_id?: number | null;  // FK → transactions.Invoice
+  is_active: boolean;
+  is_archived: boolean;
+  is_cleared: boolean;
+  is_deleted: boolean;
+  is_settled: boolean;
+  is_void: boolean;
+  metadata: Record<string, any>;
+  model_name?: string | null;  // choices: invoice, credit_memo, debit_memo, purchase_order, payment, other | max_length=255
+  parent_id?: number | null;
+  prefs: Record<string, any>;
+  refs: Record<string, any>;
+  security_level?: number;
+  source?: string | null;  // choices: invoice, payment, journal, adjustment, import, other | max_length=255
+  term_id?: number | null;  // FK → accounts.Term
+  value_available?: number | null;
+  value_original?: number | null;
+  version: number;  // read-only
+}
+
+export interface CreateLedgerRequest {
+  ida?: string;  // max_length=40
+  discount_potential?: number | null;
+  dt_discount_due?: string | null;
+  dt_due?: string | null;
+  dt_posted?: string | null;
+  dt_recorded?: string | null;
+  dt_settled?: string | null;
+  gl_account_id?: number | null;  // FK → accounts.GlAccount
+  invoice_id?: number | null;  // FK → transactions.Invoice
+  is_active?: boolean;
+  is_cleared?: boolean;
+  is_settled?: boolean;
+  is_void?: boolean;
+  model_name?: string | null;  // choices: invoice, credit_memo, debit_memo, purchase_order, payment, other | max_length=255
+  parent_id?: number | null;
+  source?: string | null;  // choices: invoice, payment, journal, adjustment, import, other | max_length=255
+  term_id?: number | null;  // FK → accounts.Term
+  value_available?: number | null;
+  value_original?: number | null;
+}
+
+export interface UpdateLedgerRequest {
+  id: number | string;
+  ida?: string;  // max_length=40
+  discount_potential?: number | null;
+  dt_discount_due?: string | null;
+  dt_due?: string | null;
+  dt_posted?: string | null;
+  dt_recorded?: string | null;
+  dt_settled?: string | null;
+  gl_account_id?: number | null;  // FK → accounts.GlAccount
+  invoice_id?: number | null;  // FK → transactions.Invoice
+  is_active?: boolean;
+  is_cleared?: boolean;
+  is_settled?: boolean;
+  is_void?: boolean;
+  model_name?: string | null;  // choices: invoice, credit_memo, debit_memo, purchase_order, payment, other | max_length=255
+  parent_id?: number | null;
+  source?: string | null;  // choices: invoice, payment, journal, adjustment, import, other | max_length=255
+  term_id?: number | null;  // FK → accounts.Term
+  value_available?: number | null;
+  value_original?: number | null;
+}
+
+// ── TaxJurisdiction ──
+// Django: accounts.TaxJurisdiction  table: tax_jurisdictions
+// wcapi model_name: "tax_jurisdiction"
+
+export interface TaxJurisdictionRecord {
+  id?: number;  // read-only
+  uuid?: string | null;  // read-only | max_length=32
+  ida?: string;  // max_length=40
+  actions?: Record<string, any>;
+  comments: Record<string, any>;
+  dt_created: number;  // read-only
+  dt_modified: number;  // read-only
+  gl_account_payable?: string | null;  // max_length=255
+  health_rating: number;
+  is_active: boolean;
+  is_archived: boolean;
+  is_deleted: boolean;
+  metadata: Record<string, any>;
+  prefs: Record<string, any>;
+  refs: Record<string, any>;
+  scripts?: Record<string, any>;
+  security_level?: number;
+  service_provider?: string | null;  // choices: , avalara, taxjar, vertex, custom | max_length=255
+  tax_jurisdiction?: string | null;  // max_length=255
+  tax_name?: string | null;  // max_length=255
+  tax_rate_cost?: number | null;
+  tax_rate_on_shipping?: number | null;
+  tax_rate_sales?: number | null;
+  version: number;  // read-only
+}
+
+export interface CreateTaxJurisdictionRequest {
+  ida?: string;  // max_length=40
+  gl_account_payable?: string | null;  // max_length=255
+  is_active?: boolean;
+  scripts?: Record<string, any>;
+  service_provider?: string | null;  // choices: , avalara, taxjar, vertex, custom | max_length=255
+  tax_jurisdiction?: string | null;  // max_length=255
+  tax_name?: string | null;  // max_length=255
+  tax_rate_cost?: number | null;
+  tax_rate_on_shipping?: number | null;
+  tax_rate_sales?: number | null;
+}
+
+export interface UpdateTaxJurisdictionRequest {
+  id: number | string;
+  ida?: string;  // max_length=40
+  gl_account_payable?: string | null;  // max_length=255
+  is_active?: boolean;
+  scripts?: Record<string, any>;
+  service_provider?: string | null;  // choices: , avalara, taxjar, vertex, custom | max_length=255
+  tax_jurisdiction?: string | null;  // max_length=255
+  tax_name?: string | null;  // max_length=255
+  tax_rate_cost?: number | null;
+  tax_rate_on_shipping?: number | null;
+  tax_rate_sales?: number | null;
 }
 
 // ── Term ──
@@ -567,7 +759,6 @@ export interface ActionRecord {
   uuid?: string | null;  // read-only | max_length=32
   ida?: string;  // max_length=40
   action?: Record<string, any>;
-  action_id_id?: number | null;  // FK → core.Action
   actions?: Record<string, any>;
   assigned_to?: Record<string, any>;
   burndown: number;
@@ -598,6 +789,7 @@ export interface ActionRecord {
   languages?: Record<string, any>;
   linkage: number;
   metadata: Record<string, any>;
+  parent_action_id?: number | null;  // FK → core.Action
   percent_complete: number;
   prefs: Record<string, any>;
   priority: number;
@@ -617,7 +809,6 @@ export interface ActionRecord {
 export interface CreateActionRequest {
   ida?: string;  // max_length=40
   action?: Record<string, any>;
-  action_id_id?: number | null;  // FK → core.Action
   assigned_to?: Record<string, any>;
   burndown?: number;
   completed_by?: Record<string, any>;
@@ -640,6 +831,7 @@ export interface CreateActionRequest {
   kanban_column?: string;  // choices: , Backlog, Planning, InProcess, Review, Complete | max_length=50
   languages?: Record<string, any>;
   linkage?: number;
+  parent_action_id?: number | null;  // FK → core.Action
   percent_complete?: number;
   priority?: number;
   project_id?: number;
@@ -656,7 +848,6 @@ export interface UpdateActionRequest {
   id: number | string;
   ida?: string;  // max_length=40
   action?: Record<string, any>;
-  action_id_id?: number | null;  // FK → core.Action
   assigned_to?: Record<string, any>;
   burndown?: number;
   completed_by?: Record<string, any>;
@@ -679,6 +870,7 @@ export interface UpdateActionRequest {
   kanban_column?: string;  // choices: , Backlog, Planning, InProcess, Review, Complete | max_length=50
   languages?: Record<string, any>;
   linkage?: number;
+  parent_action_id?: number | null;  // FK → core.Action
   percent_complete?: number;
   priority?: number;
   project_id?: number;
@@ -718,7 +910,7 @@ export interface AuditRecord {
   refs: Record<string, any>;
   security_level?: number;
   user_agent?: string;
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
   version: number;  // read-only
 }
 
@@ -732,7 +924,7 @@ export interface CreateAuditRequest {
   model_name: string;  // max_length=100
   record_id: number;
   user_agent?: string;
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
 }
 
 export interface UpdateAuditRequest {
@@ -746,7 +938,7 @@ export interface UpdateAuditRequest {
   model_name?: string;  // max_length=100
   record_id?: number;
   user_agent?: string;
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
 }
 
 // ── Contact ──
@@ -1281,7 +1473,7 @@ export interface QuestionAnswerRecord {
   search_vector?: any;  // read-only
   security_level?: number;
   sequence: number;
-  setting_id_id?: number | null;  // FK → core.Setting
+  setting_id?: number | null;  // FK → core.Setting
   status?: string | null;  // max_length=100
   version: number;  // read-only
 }
@@ -1298,7 +1490,7 @@ export interface CreateQuestionAnswerRequest {
   question?: string | null;  // max_length=500
   question_id?: number | null;
   sequence?: number;
-  setting_id_id?: number | null;  // FK → core.Setting
+  setting_id?: number | null;  // FK → core.Setting
   status?: string | null;  // max_length=100
 }
 
@@ -1315,7 +1507,7 @@ export interface UpdateQuestionAnswerRequest {
   question?: string | null;  // max_length=500
   question_id?: number | null;
   sequence?: number;
-  setting_id_id?: number | null;  // FK → core.Setting
+  setting_id?: number | null;  // FK → core.Setting
   status?: string | null;  // max_length=100
 }
 
@@ -1396,7 +1588,7 @@ export interface CustomerRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1441,7 +1633,7 @@ export interface CreateCustomerRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1475,7 +1667,7 @@ export interface UpdateCustomerRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -1516,7 +1708,7 @@ export interface EmployeeRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1561,7 +1753,7 @@ export interface CreateEmployeeRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1595,7 +1787,7 @@ export interface UpdateEmployeeRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -1636,7 +1828,7 @@ export interface ManufacturerRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1681,7 +1873,7 @@ export interface CreateManufacturerRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1715,7 +1907,7 @@ export interface UpdateManufacturerRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -1756,7 +1948,7 @@ export interface OrgRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1801,7 +1993,7 @@ export interface CreateOrgRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1835,7 +2027,7 @@ export interface UpdateOrgRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -1876,7 +2068,7 @@ export interface RepRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1921,7 +2113,7 @@ export interface CreateRepRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -1955,7 +2147,7 @@ export interface UpdateRepRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -1996,7 +2188,7 @@ export interface VendorRecord {
   attention?: string | null;  // max_length=255
   comments: Record<string, any>;
   connections: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts: Record<string, any>;
   data: Record<string, any>;
   display_name: string;  // max_length=255
@@ -2041,7 +2233,7 @@ export interface CreateVendorRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name: string;  // max_length=255
@@ -2075,7 +2267,7 @@ export interface UpdateVendorRequest {
   addresses?: Record<string, any>;
   attention?: string | null;  // max_length=255
   connections?: Record<string, any>;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   contacts?: Record<string, any>;
   data?: Record<string, any>;
   display_name?: string;  // max_length=255
@@ -2116,8 +2308,8 @@ export interface BillOfMaterialRecord {
   alternate_group?: string;  // max_length=40
   change_reason?: string;  // max_length=120
   child_description?: string;  // max_length=255
-  child_id_id: number | null;  // FK → products.Item
   child_ida?: string;  // max_length=120
+  child_item_id: number | null;  // FK → products.Item
   comments: Record<string, any>;
   cost_snapshot?: number | string | null;
   dt_created: number;  // read-only
@@ -2133,8 +2325,8 @@ export interface BillOfMaterialRecord {
   is_optional: boolean;
   metadata: Record<string, any>;
   op_data?: Record<string, any>;
-  parent_id_id: number | null;  // FK → products.Item
   parent_ida?: string;  // max_length=120
+  parent_item_id: number | null;  // FK → products.Item
   prefs: Record<string, any>;
   quantity: number | string;
   recalc_parent_cost_description?: string;  // max_length=255
@@ -2151,8 +2343,8 @@ export interface CreateBillOfMaterialRequest {
   alternate_group?: string;  // max_length=40
   change_reason?: string;  // max_length=120
   child_description?: string;  // max_length=255
-  child_id_id: number | null;  // FK → products.Item
   child_ida?: string;  // max_length=120
+  child_item_id: number | null;  // FK → products.Item
   cost_snapshot?: number | string | null;
   dt_effective_from?: string | null;
   dt_effective_to?: string | null;
@@ -2161,8 +2353,8 @@ export interface CreateBillOfMaterialRequest {
   is_alternate?: boolean;
   is_optional?: boolean;
   op_data?: Record<string, any>;
-  parent_id_id: number | null;  // FK → products.Item
   parent_ida?: string;  // max_length=120
+  parent_item_id: number | null;  // FK → products.Item
   quantity?: number | string;
   recalc_parent_cost_description?: string;  // max_length=255
   revision?: string;  // max_length=20
@@ -2176,8 +2368,8 @@ export interface UpdateBillOfMaterialRequest {
   alternate_group?: string;  // max_length=40
   change_reason?: string;  // max_length=120
   child_description?: string;  // max_length=255
-  child_id_id?: number | null;  // FK → products.Item
   child_ida?: string;  // max_length=120
+  child_item_id?: number | null;  // FK → products.Item
   cost_snapshot?: number | string | null;
   dt_effective_from?: string | null;
   dt_effective_to?: string | null;
@@ -2186,8 +2378,8 @@ export interface UpdateBillOfMaterialRequest {
   is_alternate?: boolean;
   is_optional?: boolean;
   op_data?: Record<string, any>;
-  parent_id_id?: number | null;  // FK → products.Item
   parent_ida?: string;  // max_length=120
+  parent_item_id?: number | null;  // FK → products.Item
   quantity?: number | string;
   recalc_parent_cost_description?: string;  // max_length=255
   revision?: string;  // max_length=20
@@ -2206,61 +2398,61 @@ export interface CatalogRecord {
   actions?: Record<string, any>;
   code: string;  // max_length=60
   comments: Record<string, any>;
-  connection_id_id?: number | null;  // FK → sync.Connection
+  connection_id?: number | null;  // FK → sync.Connection
   currency: string;  // max_length=8
-  customer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  customer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   dt_created: number;  // read-only
   dt_effective_end?: number | null;
   dt_effective_start: number;
   dt_modified: number;  // read-only
-  employee_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  employee_orgbase_id?: number | null;  // FK → orgs.OrgBase
   health_rating: number;
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
-  manufacturer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  manufacturer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   metrics?: Record<string, any>;
   name: string;  // max_length=160
-  orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  orgbase_id?: number | null;  // FK → orgs.OrgBase
   prefs: Record<string, any>;
   refs: Record<string, any>;
-  rep_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  rep_orgbase_id?: number | null;  // FK → orgs.OrgBase
   security_level?: number;
   version: number;  // read-only
 }
 
 export interface CreateCatalogRequest {
   code: string;  // max_length=60
-  connection_id_id?: number | null;  // FK → sync.Connection
+  connection_id?: number | null;  // FK → sync.Connection
   currency?: string;  // max_length=8
-  customer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  customer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   dt_effective_end?: number | null;
   dt_effective_start: number;
-  employee_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  employee_orgbase_id?: number | null;  // FK → orgs.OrgBase
   is_active?: boolean;
-  manufacturer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  manufacturer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   metrics?: Record<string, any>;
   name: string;  // max_length=160
-  orgbase_id_id?: number | null;  // FK → orgs.OrgBase
-  rep_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  orgbase_id?: number | null;  // FK → orgs.OrgBase
+  rep_orgbase_id?: number | null;  // FK → orgs.OrgBase
 }
 
 export interface UpdateCatalogRequest {
   id: number | string;
   code?: string;  // max_length=60
-  connection_id_id?: number | null;  // FK → sync.Connection
+  connection_id?: number | null;  // FK → sync.Connection
   currency?: string;  // max_length=8
-  customer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  customer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   dt_effective_end?: number | null;
   dt_effective_start?: number;
-  employee_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  employee_orgbase_id?: number | null;  // FK → orgs.OrgBase
   is_active?: boolean;
-  manufacturer_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  manufacturer_orgbase_id?: number | null;  // FK → orgs.OrgBase
   metrics?: Record<string, any>;
   name?: string;  // max_length=160
-  orgbase_id_id?: number | null;  // FK → orgs.OrgBase
-  rep_orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  orgbase_id?: number | null;  // FK → orgs.OrgBase
+  rep_orgbase_id?: number | null;  // FK → orgs.OrgBase
 }
 
 // ── InventoryCheck ──
@@ -2271,7 +2463,7 @@ export interface InventoryCheckRecord {
   id?: number;  // read-only
   uuid?: string | null;  // read-only | max_length=32
   actions?: Record<string, any>;
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   comments: Record<string, any>;
   data?: Record<string, any>;
   dt_created: number;  // read-only
@@ -2283,36 +2475,36 @@ export interface InventoryCheckRecord {
   is_deleted: boolean;
   metadata: Record<string, any>;
   notes?: string;
-  orgbase_id_id: number | null;  // FK → orgs.OrgBase
+  orgbase_id: number | null;  // FK → orgs.OrgBase
   prefs: Record<string, any>;
   refs: Record<string, any>;
   security_level?: number;
   status: string;  // choices: planned, in_progress, completed, canceled | max_length=20
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
   version: number;  // read-only
 }
 
 export interface CreateInventoryCheckRequest {
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   data?: Record<string, any>;
   dt_performed: number;
   is_active?: boolean;
   notes?: string;
-  orgbase_id_id: number | null;  // FK → orgs.OrgBase
+  orgbase_id: number | null;  // FK → orgs.OrgBase
   status?: string;  // choices: planned, in_progress, completed, canceled | max_length=20
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
 }
 
 export interface UpdateInventoryCheckRequest {
   id: number | string;
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   data?: Record<string, any>;
   dt_performed?: number;
   is_active?: boolean;
   notes?: string;
-  orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  orgbase_id?: number | null;  // FK → orgs.OrgBase
   status?: string;  // choices: planned, in_progress, completed, canceled | max_length=20
-  user_id_id?: number | null;  // FK → core.Contact
+  user_id?: number | null;  // FK → core.Contact
 }
 
 // ── InventoryLayer ──
@@ -2332,7 +2524,7 @@ export interface InventoryLayerRecord {
   is_archived: boolean;
   is_deleted: boolean;
   is_locked: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   lot?: string;  // max_length=80
   metadata: Record<string, any>;
   prefs: Record<string, any>;
@@ -2346,14 +2538,14 @@ export interface InventoryLayerRecord {
   source_doc_type?: string;  // max_length=40
   status?: string;  // max_length=30
   version: number;  // read-only
-  warehouse_id_id: number | null;  // FK → products.Warehouse
+  warehouse_id: number | null;  // FK → products.Warehouse
 }
 
 export interface CreateInventoryLayerRequest {
   cost?: Record<string, any>;
   is_active?: boolean;
   is_locked?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   lot?: string;  // max_length=80
   quantity?: Record<string, any>;
   serial_batch?: string;  // max_length=80
@@ -2362,7 +2554,7 @@ export interface CreateInventoryLayerRequest {
   source_doc_id?: number | null;
   source_doc_type?: string;  // max_length=40
   status?: string;  // max_length=30
-  warehouse_id_id: number | null;  // FK → products.Warehouse
+  warehouse_id: number | null;  // FK → products.Warehouse
 }
 
 export interface UpdateInventoryLayerRequest {
@@ -2370,7 +2562,7 @@ export interface UpdateInventoryLayerRequest {
   cost?: Record<string, any>;
   is_active?: boolean;
   is_locked?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   lot?: string;  // max_length=80
   quantity?: Record<string, any>;
   serial_batch?: string;  // max_length=80
@@ -2379,7 +2571,7 @@ export interface UpdateInventoryLayerRequest {
   source_doc_id?: number | null;
   source_doc_type?: string;  // max_length=40
   status?: string;  // max_length=30
-  warehouse_id_id?: number | null;  // FK → products.Warehouse
+  warehouse_id?: number | null;  // FK → products.Warehouse
 }
 
 // ── InventoryReservation ──
@@ -2394,13 +2586,13 @@ export interface InventoryReservationRecord {
   dt_expires: string;
   dt_modified?: string;  // read-only
   dt_released?: string | null;
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
-  item_id_id: number | null;  // FK → products.Item
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   qty: number | string;
   reason?: string;  // max_length=80
   state: string;  // choices: pending, committed, canceled, expired | max_length=20
-  warehouse_id_id: number | null;  // FK → products.Warehouse
+  warehouse_id: number | null;  // FK → products.Warehouse
 }
 
 export interface CreateInventoryReservationRequest {
@@ -2409,13 +2601,13 @@ export interface CreateInventoryReservationRequest {
   dt_committed?: string | null;
   dt_expires: string;
   dt_released?: string | null;
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
-  item_id_id: number | null;  // FK → products.Item
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   qty: number | string;
   reason?: string;  // max_length=80
   state?: string;  // choices: pending, committed, canceled, expired | max_length=20
-  warehouse_id_id: number | null;  // FK → products.Warehouse
+  warehouse_id: number | null;  // FK → products.Warehouse
 }
 
 export interface UpdateInventoryReservationRequest {
@@ -2425,13 +2617,13 @@ export interface UpdateInventoryReservationRequest {
   dt_committed?: string | null;
   dt_expires?: string;
   dt_released?: string | null;
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
-  item_id_id?: number | null;  // FK → products.Item
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
+  item_id?: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   qty?: number | string;
   reason?: string;  // max_length=80
   state?: string;  // choices: pending, committed, canceled, expired | max_length=20
-  warehouse_id_id?: number | null;  // FK → products.Warehouse
+  warehouse_id?: number | null;  // FK → products.Warehouse
 }
 
 // ── Item ──
@@ -2533,7 +2725,7 @@ export interface ItemXrefRecord {
   is_archived: boolean;
   is_deleted: boolean;
   is_preferred: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   metadata: Record<string, any>;
   prefs: Record<string, any>;
   refs: Record<string, any>;
@@ -2552,7 +2744,7 @@ export interface CreateItemXrefRequest {
   external_uuid?: string | null;  // max_length=32
   is_active?: boolean;
   is_preferred?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   source: string;  // choices: manufacturer, wholesaler, other | max_length=40
   source_id?: number | null;
   source_model_name?: string;  // max_length=40
@@ -2567,7 +2759,7 @@ export interface UpdateItemXrefRequest {
   external_uuid?: string | null;  // max_length=32
   is_active?: boolean;
   is_preferred?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   source?: string;  // choices: manufacturer, wholesaler, other | max_length=40
   source_id?: number | null;
   source_model_name?: string;  // max_length=40
@@ -2618,7 +2810,7 @@ export interface OrgItemRecord {
   uuid?: string | null;  // read-only | max_length=32
   actions?: Record<string, any>;
   availability_state?: string;  // choices: enabled, paused, retired | max_length=20
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   comments: Record<string, any>;
   data?: Record<string, any>;
   description?: string;  // max_length=255
@@ -2631,11 +2823,11 @@ export interface OrgItemRecord {
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metadata: Record<string, any>;
   metrics?: Record<string, any>;
-  orgbase_id_id: number | null;  // FK → orgs.OrgBase
+  orgbase_id: number | null;  // FK → orgs.OrgBase
   prefs: Record<string, any>;
   quantity_maximum?: number | string | null;
   quantity_minimum?: number | string | null;
@@ -2647,17 +2839,17 @@ export interface OrgItemRecord {
 
 export interface CreateOrgItemRequest {
   availability_state?: string;  // choices: enabled, paused, retired | max_length=20
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   data?: Record<string, any>;
   description?: string;  // max_length=255
   dt_last_checked?: number | null;
   dt_next_check?: number | null;
   inventory_frequency?: string;  // choices: daily, weekly, monthly, 30d | max_length=30
   is_active?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metrics?: Record<string, any>;
-  orgbase_id_id: number | null;  // FK → orgs.OrgBase
+  orgbase_id: number | null;  // FK → orgs.OrgBase
   quantity_maximum?: number | string | null;
   quantity_minimum?: number | string | null;
   status?: string;  // max_length=30
@@ -2666,17 +2858,17 @@ export interface CreateOrgItemRequest {
 export interface UpdateOrgItemRequest {
   id: number | string;
   availability_state?: string;  // choices: enabled, paused, retired | max_length=20
-  catalog_id_id?: number | null;  // FK → products.Catalog
+  catalog_id?: number | null;  // FK → products.Catalog
   data?: Record<string, any>;
   description?: string;  // max_length=255
   dt_last_checked?: number | null;
   dt_next_check?: number | null;
   inventory_frequency?: string;  // choices: daily, weekly, monthly, 30d | max_length=30
   is_active?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metrics?: Record<string, any>;
-  orgbase_id_id?: number | null;  // FK → orgs.OrgBase
+  orgbase_id?: number | null;  // FK → orgs.OrgBase
   quantity_maximum?: number | string | null;
   quantity_minimum?: number | string | null;
   status?: string;  // max_length=30
@@ -2769,11 +2961,11 @@ export interface SerialRecord {
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metadata: Record<string, any>;
   model_ida?: string;  // max_length=120
@@ -2791,9 +2983,9 @@ export interface SerialRecord {
 export interface CreateSerialRequest {
   data?: Record<string, any>;
   description?: string;  // max_length=255
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
   is_active?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   model_ida?: string;  // max_length=120
   qr_code?: string;  // max_length=255
@@ -2807,9 +2999,9 @@ export interface UpdateSerialRequest {
   id: number | string;
   data?: Record<string, any>;
   description?: string;  // max_length=255
-  inventorylayer_id_id?: number | null;  // FK → products.InventoryLayer
+  inventory_layer_id?: number | null;  // FK → products.InventoryLayer
   is_active?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   model_ida?: string;  // max_length=120
   qr_code?: string;  // max_length=255
@@ -2841,7 +3033,7 @@ export interface ServiceRecord {
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   metadata: Record<string, any>;
   prefs: Record<string, any>;
   process?: Record<string, any>;
@@ -2863,7 +3055,7 @@ export interface CreateServiceRequest {
   description?: string;  // max_length=255
   display?: string;
   is_active?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   process?: Record<string, any>;
   purpose?: string;  // max_length=255
   row_version?: number;
@@ -2881,12 +3073,74 @@ export interface UpdateServiceRequest {
   description?: string;  // max_length=255
   display?: string;
   is_active?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   process?: Record<string, any>;
   purpose?: string;  // max_length=255
   row_version?: number;
   status?: string;  // max_length=30
   travel?: Record<string, any>;
+}
+
+// ── Specification ──
+// Django: products.Specification  table: products_specification
+// wcapi model_name: "specification"
+
+export interface SpecificationRecord {
+  id?: number;  // read-only
+  uuid?: string | null;  // read-only | max_length=32
+  ida?: string;  // max_length=40
+  actions?: Record<string, any>;
+  applies_to?: Record<string, any>;
+  comments: Record<string, any>;
+  description?: string;  // max_length=255
+  description_long?: string;
+  details?: Record<string, any>;
+  docs?: Record<string, any>;
+  dt_created: number;  // read-only
+  dt_modified: number;  // read-only
+  health_rating: number;
+  is_active: boolean;
+  is_archived: boolean;
+  is_deleted: boolean;
+  item_id: number | null;  // FK → products.Item
+  metadata: Record<string, any>;
+  name: string;  // max_length=120
+  prefs: Record<string, any>;
+  refs: Record<string, any>;
+  security_level?: number;
+  stats?: Record<string, any>;
+  status?: string;  // max_length=30
+  unit?: string;  // max_length=30
+  version: number;  // read-only
+}
+
+export interface CreateSpecificationRequest {
+  ida?: string;  // max_length=40
+  applies_to?: Record<string, any>;
+  description?: string;  // max_length=255
+  description_long?: string;
+  details?: Record<string, any>;
+  docs?: Record<string, any>;
+  is_active?: boolean;
+  item_id: number | null;  // FK → products.Item
+  name: string;  // max_length=120
+  status?: string;  // max_length=30
+  unit?: string;  // max_length=30
+}
+
+export interface UpdateSpecificationRequest {
+  id: number | string;
+  ida?: string;  // max_length=40
+  applies_to?: Record<string, any>;
+  description?: string;  // max_length=255
+  description_long?: string;
+  details?: Record<string, any>;
+  docs?: Record<string, any>;
+  is_active?: boolean;
+  item_id?: number | null;  // FK → products.Item
+  name?: string;  // max_length=120
+  status?: string;  // max_length=30
+  unit?: string;  // max_length=30
 }
 
 // ── Usage ──
@@ -2905,7 +3159,7 @@ export interface UsageRecord {
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metadata: Record<string, any>;
   metrics?: Record<string, any>;
@@ -2921,7 +3175,7 @@ export interface UsageRecord {
 export interface CreateUsageRequest {
   description?: string;  // max_length=255
   is_active?: boolean;
-  item_id_id: number | null;  // FK → products.Item
+  item_id: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metrics?: Record<string, any>;
   month: number;
@@ -2933,7 +3187,7 @@ export interface UpdateUsageRequest {
   id: number | string;
   description?: string;  // max_length=255
   is_active?: boolean;
-  item_id_id?: number | null;  // FK → products.Item
+  item_id?: number | null;  // FK → products.Item
   item_ida?: string;  // max_length=120
   metrics?: Record<string, any>;
   month?: number;
@@ -3062,7 +3316,7 @@ export interface BundleRecord {
   comments: Record<string, any>;
   config: Record<string, any>;
   conflicts?: Record<string, any>;
-  connection_id_id: number | null;  // FK → sync.Connection
+  connection_id: number | null;  // FK → sync.Connection
   direction: string;  // choices: , push, pull, sync | max_length=255
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
@@ -3090,7 +3344,7 @@ export interface CreateBundleRequest {
   alert?: string | null;  // choices: , none, info, warning, critical | max_length=255
   config: Record<string, any>;
   conflicts?: Record<string, any>;
-  connection_id_id: number | null;  // FK → sync.Connection
+  connection_id: number | null;  // FK → sync.Connection
   direction: string;  // choices: , push, pull, sync | max_length=255
   duration?: number;
   encryption?: Record<string, any>;
@@ -3109,7 +3363,7 @@ export interface UpdateBundleRequest {
   alert?: string | null;  // choices: , none, info, warning, critical | max_length=255
   config?: Record<string, any>;
   conflicts?: Record<string, any>;
-  connection_id_id?: number | null;  // FK → sync.Connection
+  connection_id?: number | null;  // FK → sync.Connection
   direction?: string;  // choices: , push, pull, sync | max_length=255
   duration?: number;
   encryption?: Record<string, any>;
@@ -3386,7 +3640,7 @@ export interface PaymentRecord {
   actions?: Record<string, any>;
   amount: number | string;
   comments: Record<string, any>;
-  contact_id_id: number | null;  // FK → core.Contact
+  contact_id: number | null;  // FK → core.Contact
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   dt_payment: string;
@@ -3398,14 +3652,14 @@ export interface PaymentRecord {
   health_rating: number;
   id_gateway_payment_intent?: string;  // max_length=255
   id_gateway_transaction?: string;  // max_length=255
-  invoice_id_id?: number | null;  // FK → transactions.Invoice
+  invoice_id?: number | null;  // FK → transactions.Invoice
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
   metadata?: Record<string, any>;
   notes?: string;
-  paymentmethod_id_id?: number | null;  // FK → transactions.PaymentMethod
-  paymentterm_id_id?: number | null;  // FK → transactions.PaymentTerm
+  payment_method_id?: number | null;  // FK → transactions.PaymentMethod
+  payment_term_id?: number | null;  // FK → transactions.PaymentTerm
   prefs: Record<string, any>;
   reconciled: boolean;
   reference_number?: string;  // max_length=100
@@ -3418,7 +3672,7 @@ export interface PaymentRecord {
 export interface CreatePaymentRequest {
   ida?: string;  // max_length=40
   amount: number | string;
-  contact_id_id: number | null;  // FK → core.Contact
+  contact_id: number | null;  // FK → core.Contact
   dt_payment: string;
   dt_processed?: string | null;
   dt_reconciliation?: string | null;
@@ -3427,11 +3681,11 @@ export interface CreatePaymentRequest {
   gateway_response?: Record<string, any>;
   id_gateway_payment_intent?: string;  // max_length=255
   id_gateway_transaction?: string;  // max_length=255
-  invoice_id_id?: number | null;  // FK → transactions.Invoice
+  invoice_id?: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
-  paymentmethod_id_id?: number | null;  // FK → transactions.PaymentMethod
-  paymentterm_id_id?: number | null;  // FK → transactions.PaymentTerm
+  payment_method_id?: number | null;  // FK → transactions.PaymentMethod
+  payment_term_id?: number | null;  // FK → transactions.PaymentTerm
   reconciled?: boolean;
   reference_number?: string;  // max_length=100
   status?: string;  // choices: , pending, processing, completed, failed, cancelled, refunded, partially_refunded | max_length=20
@@ -3441,7 +3695,7 @@ export interface UpdatePaymentRequest {
   id: number | string;
   ida?: string;  // max_length=40
   amount?: number | string;
-  contact_id_id?: number | null;  // FK → core.Contact
+  contact_id?: number | null;  // FK → core.Contact
   dt_payment?: string;
   dt_processed?: string | null;
   dt_reconciliation?: string | null;
@@ -3450,11 +3704,11 @@ export interface UpdatePaymentRequest {
   gateway_response?: Record<string, any>;
   id_gateway_payment_intent?: string;  // max_length=255
   id_gateway_transaction?: string;  // max_length=255
-  invoice_id_id?: number | null;  // FK → transactions.Invoice
+  invoice_id?: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
-  paymentmethod_id_id?: number | null;  // FK → transactions.PaymentMethod
-  paymentterm_id_id?: number | null;  // FK → transactions.PaymentTerm
+  payment_method_id?: number | null;  // FK → transactions.PaymentMethod
+  payment_term_id?: number | null;  // FK → transactions.PaymentTerm
   reconciled?: boolean;
   reference_number?: string;  // max_length=100
   status?: string;  // choices: , pending, processing, completed, failed, cancelled, refunded, partially_refunded | max_length=20
@@ -3475,13 +3729,13 @@ export interface PaymentApplicationRecord {
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
-  invoice_id_id: number | null;  // FK → transactions.Invoice
+  invoice_id: number | null;  // FK → transactions.Invoice
   is_active: boolean;
   is_archived: boolean;
   is_deleted: boolean;
   metadata: Record<string, any>;
   notes?: string;
-  payment_id_id: number | null;  // FK → transactions.Payment
+  payment_id: number | null;  // FK → transactions.Payment
   prefs: Record<string, any>;
   refs: Record<string, any>;
   security_level?: number;
@@ -3491,20 +3745,20 @@ export interface PaymentApplicationRecord {
 export interface CreatePaymentApplicationRequest {
   ida?: string;  // max_length=40
   amount: number | string;
-  invoice_id_id: number | null;  // FK → transactions.Invoice
+  invoice_id: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
-  payment_id_id: number | null;  // FK → transactions.Payment
+  payment_id: number | null;  // FK → transactions.Payment
 }
 
 export interface UpdatePaymentApplicationRequest {
   id: number | string;
   ida?: string;  // max_length=40
   amount?: number | string;
-  invoice_id_id?: number | null;  // FK → transactions.Invoice
+  invoice_id?: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
-  payment_id_id?: number | null;  // FK → transactions.Payment
+  payment_id?: number | null;  // FK → transactions.Payment
 }
 
 // ── PaymentMethod ──
@@ -4218,7 +4472,7 @@ export interface RequisitionLineRecord {
   price_level?: string | null;  // max_length=50
   quantity?: Record<string, any>;
   refs: Record<string, any>;
-  requisition_id_id: number | null;  // FK → transactions.Requisition
+  requisition_id: number | null;  // FK → transactions.Requisition
   security_level?: number;
   status?: string | null;  // max_length=50
   tax?: Record<string, any>;
@@ -4234,7 +4488,7 @@ export interface CreateRequisitionLineRequest {
   physical?: Record<string, any>;
   price_level?: string | null;  // max_length=50
   quantity?: Record<string, any>;
-  requisition_id_id: number | null;  // FK → transactions.Requisition
+  requisition_id: number | null;  // FK → transactions.Requisition
   status?: string | null;  // max_length=50
   tax?: Record<string, any>;
 }
@@ -4249,7 +4503,7 @@ export interface UpdateRequisitionLineRequest {
   physical?: Record<string, any>;
   price_level?: string | null;  // max_length=50
   quantity?: Record<string, any>;
-  requisition_id_id?: number | null;  // FK → transactions.Requisition
+  requisition_id?: number | null;  // FK → transactions.Requisition
   status?: string | null;  // max_length=50
   tax?: Record<string, any>;
 }

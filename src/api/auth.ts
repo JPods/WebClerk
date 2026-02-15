@@ -130,15 +130,15 @@ export const mapApiProfileToUser = (input: any): User => {
 export const login = async (credentials:any) => {
   try {
     const res = await authClient.post(AuthURL.LOGIN, credentials);
+    // Canonical envelope: { status, code, data: { user, access } }
+    // Refresh token is set as httpOnly cookie by the server — not in the body.
     const payload = res?.data?.data ?? res?.data ?? {};
 
-    // Extract tokens and user, then reset caches before storing new identity
-    const access = payload?.access ?? payload?.token ?? payload?.access_token ?? payload?.tokens?.access;
-    const refresh = payload?.refresh ?? payload?.refresh_token ?? payload?.tokens?.refresh;
+    const access = payload?.access;
     const user = mapApiProfileToUser(payload?.user ?? payload);
 
     resetClientState();
-    if (access) persistTokens(access, refresh ?? null);
+    if (access) persistTokens(access);
     if (hasUserIdentity(user)) {
       persistUserProfile(user);
       try {
@@ -160,10 +160,8 @@ export const signup = async (userData: RegisterFormData) => {
 
 export const logout = async () => {
   try {
-    const refreshToken = typeof localStorage !== "undefined" ? localStorage.getItem("refreshToken") : null;
-    const res = await authClient.post(AuthURL.LOGOUT, {
-      refresh: refreshToken,
-    });
+    // Server clears the httpOnly refresh cookie on this call
+    const res = await authClient.post(AuthURL.LOGOUT, {});
     return res.data;
   } catch (error:any) {
     return error.response?.status || error.message
