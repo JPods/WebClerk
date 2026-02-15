@@ -149,6 +149,7 @@ class ReadOnlyOrAuthenticated(BasePermission):
 field including `is_deleted`, `version`, `dt_modified`, `refs`, and other
 internal columns. This bypasses the `RoleAwareModelSerializer` system
 designed for field-level access control.
+QQQ we need to expose fields based on role as soon as we get functional. QQQDUE 2026-03-04
 
 **Affected files (13 of the 19 are in products):**
 
@@ -538,24 +539,106 @@ full inventory. Summary:
 
 ## R25 Frontend Alignment
 
-### 17. Type Generation from Django Models
+### 17. Type Generation from Django Models — ✅ Implemented
 
-**Problem:** TypeScript interfaces in r25 (`src/apps/*/types/`) are
-manually maintained copies of Django model fields. They drift as fields
-are added, renamed, or removed on the backend.
+**Status:** Completed 2026-02-15
 
-**Options:**
+**Problem:** 68 hand-written TypeScript type files in r25
+(`src/apps/*/models/*/types/*.ts`) are manually maintained copies of
+Django model fields. They drift as fields are added, renamed, or removed
+on the backend.
 
-| Approach | Effort | Accuracy |
-|---|---|---|
-| **drf-spectacular** → OpenAPI → `openapi-typescript` | Medium | Auto-generated from serializers |
-| **django-typer** or custom management command | Low | Generates TS from model `_meta` |
-| **Manual + lint rule** | Low | JSDoc `@see` comments + code-review discipline (current approach) |
+**Solution implemented:** Custom Django management command that reads
+model `_meta` from all `WCAPI_BLESSED_MODELS` and generates TypeScript
+interfaces directly.
 
-**Recommended:** Use `drf-spectacular` (already partially configured for
-schema generation at `/wcapi/schema/`) to produce an OpenAPI spec, then
-run `openapi-typescript` in r25's build pipeline to generate types. This
-eliminates manual drift.
+**What was built:**
+
+| Artifact | Location |
+|---|---|
+| Management command | `apps/core/management/commands/generate_ts_types.py` |
+| Generated output | `React2025/src/generated/modelTypes.ts` |
+| npm script | `npm run generate:types` (in r25 `package.json`) |
+
+**Output stats:** 64 models → 192 interfaces → 4,707 lines across 8 apps
+(accounts, communications, core, docs, orgs, products, sync, transactions).
+
+**Three interfaces per model:**
+
+| Interface | Purpose |
+|---|---|
+| `{Model}Record` | Full record shape — all fields including read-only |
+| `Create{Model}Request` | Writable fields only (system fields excluded) |
+| `Update{Model}Request` | Writable fields + `id` required, all others optional |
+
+**Key design features:**
+
+- **SYSTEM_ONLY_FIELDS** — excludes `refs`, `metadata`, `prefs`,
+  `actions`, `is_deleted`, `is_archived`, `version`, timestamps, and
+  other backend-managed JSONB envelopes from Create/Update interfaces
+- **MODEL_ALIASES** — resolves 8 naming mismatches between
+  `WCAPI_BLESSED_MODELS` keys and actual Django class names (e.g.,
+  `SalesOrder` → `Order`, `PurchaseOrder` → `Purchase`)
+- **FK handling** — FK fields emit `attname` (e.g., `customer_id: number`)
+  matching WCAPI save payload convention
+- **Comments** — each field carries inline TS comments: FK targets,
+  choices, max_length, read-only status
+
+**Relationship to hand-written types:** The 68 existing type files in
+`src/apps/*/models/*/types/*.ts` remain in use. They contain:
+
+- Component props (`CustomerAddProps`, `OrderAddProps`, etc.)
+- Rich JSONB sub-types (`OrgFinancial`, `TransactionTotals`, etc.)
+- Domain-specific interfaces (`ItemSearchType`, `TransactionFlow`, etc.)
+- Extended response types (`CustomerApiTask`, `OrderApiTask`)
+
+The generated `modelTypes.ts` provides **scalar-field ground truth** —
+the canonical list of every column on every model with correct types,
+nullability, and optionality. Hand-written types reference these or
+extend them for UI-specific needs.
+
+**7 models skipped** (in `WCAPI_BLESSED_MODELS` but no Django class
+exists yet): Campaign, Flow, GlJournal, Ledger, LinkageIndex,
+Specification, TaxJurisdiction.
+
+**Usage:**
+
+```bash
+# Regenerate all types
+npm run generate:types
+
+# Or directly:
+cd webClerk3 && python manage.py generate_ts_types \
+  --out ../React2025/src/generated/modelTypes.ts
+
+# Single model preview (stdout)
+python manage.py generate_ts_types --model customer
+
+# List available models
+python manage.py generate_ts_types --list
+
+# Filter by app
+python manage.py generate_ts_types --app transactions
+```
+
+**Why management command over drf-spectacular?** The original
+recommendation was drf-spectacular → OpenAPI → `openapi-typescript`.
+The management command approach was chosen because:
+
+1. **Serializer coverage is incomplete** — 19 serializers use
+   `fields = "__all__"` and many models have no serializer at all
+2. **WCAPI bypasses serializers** — `SaveWcapiView` writes directly
+   via services, so serializer-generated types wouldn't match the
+   actual API surface
+3. **Model `_meta` is the single source of truth** — every field that
+   exists in the database is captured, regardless of which serializer
+   or view exposes it
+4. **Zero dependencies** — no additional packages needed; works with
+   the existing Django + WCAPI_BLESSED_MODELS infrastructure
+
+**Future enhancement:** When hand-written types are migrated to import
+from `modelTypes.ts`, the generated file becomes the single source and
+hand-written files shrink to component props and JSONB sub-types only.
 
 ---
 
@@ -613,7 +696,7 @@ Suggested sequence for the team to tackle these:
 | **Next sprint** | #3 AllowAny audit, #7 ReadOnlyModelViewSet, #9 rate limiting | 4 hours |
 | **Following** | #4 serializer fields, #5 soft-delete filtering, #6 ViewEditPermission | 1 day |
 | **Backlog** | #10 signals refactor, #11 Celery, #12 middleware split, #13 admin, #14 tests | 2–3 days |
-| **R25 alignment** | #17 type generation, #18 envelope consistency, #19 token storage | 1 day |
+| **R25 alignment** | ~~#17 type generation~~ ✅, #18 envelope consistency, #19 token storage | 1 day |
 | **Ongoing** | #16 FK naming rollout (batch per app) | 30 min/batch |
 
 ---
