@@ -17,6 +17,4 @@ include/
 /Scripts
 venv/
 logs/
-tools/.pids/django.pid
-tools/.pids/vite.pid
-tools/.pids/django.log
+tools/.pids/
