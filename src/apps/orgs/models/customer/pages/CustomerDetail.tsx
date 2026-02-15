@@ -1463,7 +1463,7 @@ export default function CustomerDetail({
                     }
                   }}
                 />
-              </SingleWindowSection>
+              )}
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 <SingleWindowSection title="Financial">
