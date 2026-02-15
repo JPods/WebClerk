@@ -46,6 +46,8 @@ import FinancialsCard from "./FinancialsCard";
 import { DocumentsPanel, PrefsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
+import TransactionTabs from "@/components/common/TransactionTabs";
+import ItemTabs from "@/components/common/ItemTabs";
 
 // Import types
 import type {
@@ -1212,6 +1214,40 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       <div className="pb-8 overflow-y-scroll max-h-[400px]">
         {renderTabContent()}
       </div>
+
+      {/* TransactionTabs - show related transactions for the linked org */}
+      {(() => {
+        const customerTypes = ['order', 'invoice', 'proposal'];
+        const vendorTypes = ['purchaseorder', 'receipt'];
+        let orgType: 'customer' | 'vendor' | null = null;
+        let orgId: number | null = null;
+        if (customerTypes.includes(transactionType) && currentData?.customer_id) {
+          orgType = 'customer';
+          orgId = currentData.customer_id;
+        } else if (vendorTypes.includes(transactionType) && currentData?.vendor_id) {
+          orgType = 'vendor';
+          orgId = currentData.vendor_id;
+        } else if (currentData?.customer_id) {
+          orgType = 'customer';
+          orgId = currentData.customer_id;
+        } else if (currentData?.vendor_id) {
+          orgType = 'vendor';
+          orgId = currentData.vendor_id;
+        }
+        if (orgType && orgId) {
+          return (
+            <>
+              <div>
+                <TransactionTabs orgType={orgType} orgId={orgId} />
+              </div>
+              <div>
+                <ItemTabs orgType={orgType} orgId={orgId} />
+              </div>
+            </>
+          );
+        }
+        return null;
+      })()}
     </div>
   );
 };

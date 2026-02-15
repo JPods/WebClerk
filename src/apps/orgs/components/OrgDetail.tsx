@@ -16,6 +16,8 @@ import OrgFinancialsPanel from './OrgFinancialsPanel';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
 import { QAPanel } from '@/apps/common/components/panels';
+import TransactionTabs from '@/components/common/TransactionTabs';
+import ItemTabs from '@/components/common/ItemTabs';
 
 // --- Types ---
 type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'qa' | 'relations' | 'refs' | 'prefs' | 'metadata';
@@ -1059,6 +1061,16 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
           {/* Tab Content */}
           <div className="min-h-50">{renderTabContent()}</div>
         </ComponentCard>
+        {(orgType === 'customer' || orgType === 'vendor') && org.id && (
+          <>
+            <div>
+              <TransactionTabs orgType={orgType} orgId={org.id} />
+            </div>
+            <div>
+              <ItemTabs orgType={orgType} orgId={org.id} />
+            </div>
+          </>
+        )}
       </DetailShell>
     );
   }
@@ -1111,6 +1123,16 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         {/* Tab Content */}
         <div className="min-h-75">{renderTabContent()}</div>
       </ComponentCard>
+      {(orgType === 'customer' || orgType === 'vendor') && org.id && (
+        <>
+          <div>
+            <TransactionTabs orgType={orgType} orgId={org.id} />
+          </div>
+          <div>
+            <ItemTabs orgType={orgType} orgId={org.id} />
+          </div>
+        </>
+      )}
     </DetailShell>
   );
 };

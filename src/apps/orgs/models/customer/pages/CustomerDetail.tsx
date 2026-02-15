@@ -32,6 +32,8 @@ import {
   RefsPanel,
   PrefsPanel,
 } from "@/apps/common/components/panels";
+import TransactionTabs from "@/components/common/TransactionTabs";
+import ItemTabs from "@/components/common/ItemTabs";
 import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
@@ -1266,22 +1268,23 @@ export default function CustomerDetail({
       )}
     </div>
 
-    {/* Tab Navigation - Using DetailTabs component */}
-    <DetailTabs
-      entityType="customer"
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
-      standardTabs={['actions', 'comments', 'documents', 'raw']}
-      additionalTabs={additionalTabs}
-      badges={tabBadges}
-      showColumnSelector={true}
-      columnCount={columnCount}
-      onColumnCountChange={handleColumnChange}
-    />
-
-    {/* Tab Content */}
+    {/* Scrollable content: detail panels · transactions · items */}
     <div className="flex-1 overflow-y-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+
+      {/* ── DetailTabs ────────────────────────────────────────── */}
+      <div>
+        <DetailTabs
+          entityType="customer"
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          standardTabs={['actions', 'comments', 'documents', 'raw']}
+          additionalTabs={additionalTabs}
+          badges={tabBadges}
+          showColumnSelector={true}
+          columnCount={columnCount}
+          onColumnCountChange={handleColumnChange}
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
         <div className="p-4">
           {/* Standard Tabs - Comments */}
           {activeTab === "comments" && (
@@ -1476,7 +1479,29 @@ export default function CustomerDetail({
             </div>
           )}
         </div>
-      </form>
+        </form>
+      </div>
+
+      {/* ── TransactionTabs ────────────────────────────────────── */}
+      {!!customerData.id && (
+        <div>
+          <TransactionTabs
+            orgType="customer"
+            orgId={customerData.id!}
+          />
+        </div>
+      )}
+
+      {/* ── ItemTabs ─────────────────────────────────────────── */}
+      {!!customerData.id && (
+        <div>
+          <ItemTabs
+            orgType="customer"
+            orgId={customerData.id!}
+          />
+        </div>
+      )}
+
     </div>
   </div>
   );

@@ -194,39 +194,80 @@ Core/Docs (Bundle, Campaign, Connection, Document, Report, Setting, Template).
 
 ### Tier 2 — Org Tabs (Customer & Vendor)
 
-Orgs extend the base with five `additionalTabs`:
+Orgs use **three peer tab bars**, each in its own `<div>`, rendered as equal
+siblings inside a shared scrollable container:
+
+```
+┌─ Header ────────────────────────────┐
+├─ BasicInformationPanel (persistent) ┤
+│                                      │
+│  ┌─ scrollable area ─────────────┐  │
+│  │                                │  │
+│  │  ┌─ DetailTabs ────────────┐  │  │
+│  │  │  tab bar + panel        │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  │  ┌─ TransactionTabs ──────┐  │  │
+│  │  │  tab bar + list         │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  │  ┌─ ItemTabs ─────────────┐  │  │
+│  │  │  tab bar + list         │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  └────────────────────────────────┘  │
+└──────────────────────────────────────┘
+```
+
+#### DetailTabs — model panels
+
+Extends the base with `additionalTabs`:
 
 | Tab | Panel | Notes |
 |-----|-------|-------|
 | `contacts` | ContactPanel | linked contacts |
-| `financials` | FinancialsPanel | totals, cost, sell, currency |
-| `items` | *ItemsPanel* | lines from transactions + serials (see below) |
+| `financial` | OrgFinancialsPanel | stacked category cards |
 | `qa` | QAPanel | question groups |
-| `transactions` | *TransactionsPanel* | sub-tables per org type (see below) |
 
-#### `transactions` tab — contents by org type
+#### TransactionTabs — standalone component
 
-| Org type | Sub-tables |
-|----------|------------|
-| Customer | proposals, orders, invoices, ledgers, payments |
-| Vendor | purchases, receipts |
+`src/components/common/TransactionTabs.tsx`
 
-The TransactionsPanel renders a filterable list grouped by sub-table type.
-Each row links to its transaction detail page.
+Self-contained tab bar for transaction sub-types. Fetches all sub-tables in
+parallel and renders a filterable list with clickable rows.
 
-#### `items` tab
+| Org type | Sub-tabs |
+|----------|----------|
+| Customer | All · Proposals · Orders · Invoices · Ledgers · Payments |
+| Vendor | All · Purchases · Receipts |
 
-Shows line items sourced from the org's transactions plus any linked serials.
-Provides a consolidated view of every product the org has interacted with.
+#### ItemTabs — standalone component
+
+`src/components/common/ItemTabs.tsx`
+
+Self-contained tab bar for items and serials. Fetches lines and serials in
+parallel and renders a filterable list with clickable rows.
+
+| Sub-tabs |
+|----------|
+| All · Line Items · Serials |
 
 ### Tier 3 — Transaction Tabs (via TransactionDetailBase)
 
-Transactions use their own tab system within `TransactionDetailBase`:
+Transactions use their own tab system within `TransactionDetailBase`, plus
+TransactionTabs and ItemTabs for the linked org:
 
 | Tabs | Details |
-|------|---------|
+|------|--------|
 | Built-in | actions, comments, contacts, documents, financials, qa, raw |
 | Custom per type | receiving (Purchase), shipping (Order/Invoice), tax (Invoice) |
+| TransactionTabs | Shows related transactions for the linked customer or vendor |
+| ItemTabs | Shows line items and serials for the linked customer or vendor |
+
+Org context is determined automatically from `transactionType`:
+- order / invoice / proposal → customer (`customer_id`)
+- purchaseorder / receipt → vendor (`vendor_id`)
+- requisition / project / workorder → whichever org ID is present
 
 ### Tier 4 — Communications
 
@@ -240,7 +281,8 @@ Transactions use their own tab system within `TransactionDetailBase`:
 | Page | Mechanism |
 |------|-----------|
 | OrgDetail (Employee wrapper) | Custom tab bar, 17 defaultTabs — not using DetailTabs |
-
+OrgDetail also renders TransactionTabs + ItemTabs below its ComponentCard
+when `orgType` is `'customer'` or `'vendor'` (both inline and standalone modes).
 ---
 
 ## Tab Tier Summary
@@ -252,11 +294,18 @@ Transactions use their own tab system within `TransactionDetailBase`:
 │                                                     │
 │  ┌───────────────────────────────────────────────┐  │
 │  │  Tier 2 — Orgs (Customer / Vendor)            │  │
-│  │  + contacts · financials · items · qa         │  │
-│  │  + transactions                               │  │
+│  │  Three peer tab bars:                         │  │
+│  │                                               │  │
+│  │  DetailTabs                                   │  │
+│  │    + contacts · financial · qa                │  │
+│  │                                               │  │
+│  │  TransactionTabs                              │  │
 │  │    Customer: proposals, orders, invoices,     │  │
 │  │              ledgers, payments                │  │
 │  │    Vendor:   purchases, receipts              │  │
+│  │                                               │  │
+│  │  ItemTabs                                     │  │
+│  │    all · line items · serials                 │  │
 │  └───────────────────────────────────────────────┘  │
 │                                                     │
 │  ┌───────────────────────────────────────────────┐  │
@@ -320,6 +369,7 @@ const { columnCount, setColumnCount } = useColumnCount("campaignDetail_columnCou
 | DetailTabs | `src/components/common/DetailTabs.tsx` | ✅ |
 | DocumentsPanel | `src/apps/common/components/panels/DocumentsPanel.tsx` | ✅ |
 | FinancialsPanel | `src/apps/common/components/panels/FinancialsPanel.tsx` | ✅ |
+| ItemTabs | `src/components/common/ItemTabs.tsx` | ✅ |
 | ItemsPanel | `src/apps/common/components/panels/ItemsPanel.tsx` | ✅ |
 | JsonFieldEditor | `src/apps/common/components/JsonFieldEditor.tsx` | ✅ |
 | LinkagesPanel | `src/apps/common/components/panels/LinkagesPanel.tsx` | ✅ |
@@ -332,6 +382,7 @@ const { columnCount, setColumnCount } = useColumnCount("campaignDetail_columnCou
 | SerialPanel | `src/apps/common/components/panels/SerialPanel.tsx` | ✅ |
 | ShippingPanel | `src/apps/common/components/panels/ShippingPanel.tsx` | ✅ |
 | TemplateQAPanel | `src/apps/common/components/panels/TemplateQAPanel.tsx` | ✅ |
+| TransactionTabs | `src/components/common/TransactionTabs.tsx` | ✅ |
 | TransactionsPanel | `src/apps/common/components/panels/TransactionsPanel.tsx` | ✅ |
 | Panel barrel export | `src/apps/common/components/panels/index.ts` | ✅ |
 | Panel types | `src/apps/common/components/panels/types.ts` | ✅ |

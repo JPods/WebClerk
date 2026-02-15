@@ -36,6 +36,8 @@ import {
   RefsPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
+import TransactionTabs from "@/components/common/TransactionTabs";
+import ItemTabs from "@/components/common/ItemTabs";
 import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
@@ -478,22 +480,23 @@ export default function VendorDetail({
           )}
         </div>
 
-        {/* Tab Navigation */}
-        <DetailTabs
-          entityType="vendor"
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          standardTabs={['actions', 'comments', 'documents', 'overview', 'raw']}
-          additionalTabs={additionalTabs}
-          badges={tabBadges}
-          showColumnSelector={true}
-          columnCount={columnCount}
-          onColumnCountChange={handleColumnChange}
-        />
-
-        {/* Tab Content */}
+        {/* Scrollable content: detail panels · transactions · items */}
         <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+
+          {/* ── DetailTabs ──────────────────────────────────────── */}
+          <div>
+            <DetailTabs
+              entityType="vendor"
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              standardTabs={['actions', 'comments', 'documents', 'overview', 'raw']}
+              additionalTabs={additionalTabs}
+              badges={tabBadges}
+              showColumnSelector={true}
+              columnCount={columnCount}
+              onColumnCountChange={handleColumnChange}
+            />
+            <form onSubmit={handleSubmit(onSubmit)}>
             <div className="p-4">
               {/* Overview Tab - Additional fields */}
               {activeTab === "overview" && (
@@ -651,7 +654,29 @@ export default function VendorDetail({
                 </div>
               )}
             </div>
-          </form>
+            </form>
+          </div>
+
+          {/* ── TransactionTabs ──────────────────────────────────── */}
+          {vendorId && (
+            <div>
+              <TransactionTabs
+                orgType="vendor"
+                orgId={vendorId}
+              />
+            </div>
+          )}
+
+          {/* ── ItemTabs ───────────────────────────────────────── */}
+          {vendorId && (
+            <div>
+              <ItemTabs
+                orgType="vendor"
+                orgId={vendorId}
+              />
+            </div>
+          )}
+
         </div>
       </div>
     </>
