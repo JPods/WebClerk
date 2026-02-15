@@ -18,6 +18,7 @@ import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import { createAddress, updateAddress } from "../services/addressApi";
+import { FinancialsPanel } from "../../../../common/components/panels";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
@@ -166,11 +167,14 @@ export default function AddressDetail({
           />
         );
 
-      case "history":
+      case "financials":
         return (
-          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
-            <p>History log will appear here</p>
-          </div>
+          <FinancialsPanel
+            totals={data?.financial?.totals}
+            cost={data?.financial?.cost}
+            sell={data?.financial?.sell}
+            currency="USD"
+          />
         );
 
       case "raw":
@@ -389,7 +393,7 @@ export default function AddressDetail({
         entityType="address"
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        standardTabs={["contacts", "comments", "actions", "documents", "history", "raw"]}
+        standardTabs={["contacts", "comments", "actions", "documents", "financials", "raw"]}
       />
 
       {/* Tab Content */}

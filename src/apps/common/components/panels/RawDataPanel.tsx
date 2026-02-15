@@ -13,7 +13,7 @@
  * />
  */
 import React, { useState, useMemo } from 'react';
-import { FaCode, FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaDownload } from 'react-icons/fa';
+import { FaCode, FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaDownload, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps } from './types';
 
@@ -26,6 +26,8 @@ interface RawDataPanelProps extends BasePanelProps<unknown> {
   highlightSections?: string[];
   /** Max height for JSON display */
   maxHeight?: string;
+  /** Callback when data is saved in edit mode (admin only) */
+  onSave?: (updatedData: unknown) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,17 +99,21 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   defaultCollapsed = true,
   highlightSections = ['metadata', 'refs', 'prefs', 'comments', 'financials'],
   maxHeight = '400px',
+  onSave,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Check permissions (admin only by default)
-  const { canView } = usePermissions({
+  const { canView, canEdit } = usePermissions({
     panelType: 'rawData',
     viewRoles,
     editRoles,
-    forceReadOnly: true,
+    forceReadOnly: false,
   });
 
   // Don't render if user can't view
@@ -185,6 +191,29 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
     setSearchTerm(`"${section}":`);
   };
 
+  const handleStartEdit = () => {
+    setEditValue(jsonString);
+    setEditError(null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditValue('');
+    setEditError(null);
+  };
+
+  const handleSaveEdit = () => {
+    try {
+      const parsed = JSON.parse(editValue);
+      setEditError(null);
+      setIsEditing(false);
+      onSave?.(parsed);
+    } catch (err: any) {
+      setEditError(`Invalid JSON: ${err.message}`);
+    }
+  };
+
   return (
     <div className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600 ${className}`}>
       {/* Header */}
@@ -205,6 +234,42 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
         <div className="flex items-center gap-2">
           {!isCollapsed && (
             <>
+              {canEdit && onSave && !isEditing && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartEdit();
+                  }}
+                  className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  title="Edit JSON (Admin)"
+                >
+                  <FaEdit size={12} />
+                </button>
+              )}
+              {isEditing && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSaveEdit();
+                    }}
+                    className="p-1 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
+                    title="Save changes"
+                  >
+                    <FaSave size={12} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelEdit();
+                    }}
+                    className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                    title="Cancel editing"
+                  >
+                    <FaTimes size={12} />
+                  </button>
+                </>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -249,15 +314,35 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
           </div>
 
           {/* JSON Display */}
-          <div
-            className="overflow-auto rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
-            style={{ maxHeight }}
-          >
-            <pre
-              className="p-3 text-xs font-mono leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: highlightedJson }}
-            />
-          </div>
+          {isEditing ? (
+            <div className="rounded border border-blue-300 dark:border-blue-600">
+              <textarea
+                value={editValue}
+                onChange={(e) => {
+                  setEditValue(e.target.value);
+                  setEditError(null);
+                }}
+                className="w-full p-3 text-xs font-mono leading-relaxed bg-white dark:bg-slate-900 rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                style={{ minHeight: '200px', maxHeight }}
+                spellCheck={false}
+              />
+              {editError && (
+                <div className="px-3 py-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
+                  {editError}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="overflow-auto rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+              style={{ maxHeight }}
+            >
+              <pre
+                className="p-3 text-xs font-mono leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: highlightedJson }}
+              />
+            </div>
+          )}
 
           {/* Stats */}
           <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">

@@ -189,13 +189,6 @@ export default function DomainDetail({
           />
         );
 
-      case "history":
-        return (
-          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
-            <p>History log will appear here</p>
-          </div>
-        );
-
       case "raw":
         return (
           <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
@@ -299,7 +292,7 @@ export default function DomainDetail({
         entityType="domain"
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        standardTabs={["contacts", "comments", "actions", "documents", "history", "raw"]}
+        standardTabs={["contacts", "comments", "actions", "documents", "raw"]}
       />
 
       {/* Tab Content */}

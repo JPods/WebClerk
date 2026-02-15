@@ -15,7 +15,7 @@
 |-----------|------|--------|
 | TypeScript Types | `types/transactionTypes.ts` | ✅ Complete |
 | FieldLabel | `components/FieldLabel.tsx` | ✅ Complete |
-| RefsLinksContactPanel | `components/RefsLinksContactPanel.tsx` | ✅ Complete |
+| ContactPanel | `components/ContactPanel.tsx` | ✅ Complete |
 | RefsLinksTable | `components/RefsLinksTable.tsx` | ✅ Complete |
 | CommentsPanel | `components/CommentsPanel.tsx` | ✅ Complete |
 | ActionsCard | `components/ActionsCard.tsx` | ✅ Complete |
@@ -606,12 +606,12 @@ The `refs.links.*` arrays contain **denormalized copies** for display convenienc
 
 **Important**: When saving, update the primary `customer_id`/`vendor_id`/`manufacturer_id` fields. The `refs.links.*` are refreshed by the backend.
 
-### RefsLinksContactPanel Component
+### ContactPanel Component
 
 Display `refs.links.contact` grouped by **purpose** as separate text blocks:
 
 ```tsx
-interface RefsLinksContactPanelProps {
+interface ContactPanelProps {
   contacts: ContactDenorm[];
   isEditing?: boolean;
   onAdd?: (purpose: string) => void;
@@ -802,7 +802,7 @@ Each shared component has a minimum role requirement:
 | Component | Min Role | Restricted Data |
 |-----------|----------|-----------------|
 | `FieldLabel` | `public` | None (display only) |
-| `RefsLinksContactPanel` | `user` | Contact details |
+| `ContactPanel` | `user` | Contact details |
 | `RefsLinksTable` | `user` | Link records |
 | `CommentsPanel` | `user` | `process` tab requires `sales` |
 | `ActionsCard` | `sales` | Action assignments |
@@ -1071,7 +1071,7 @@ it('shows cost section to manager', () => {
 ### Phase 1: Shared Infrastructure
 - [x] Create `src/apps/transactions/types/transactionTypes.ts`
 - [x] Create `src/apps/transactions/components/FieldLabel.tsx`
-- [x] Create `src/apps/transactions/components/RefsLinksContactPanel.tsx`
+- [x] Create `src/apps/transactions/components/ContactPanel.tsx`
 - [x] Create `src/apps/transactions/components/RefsLinksTable.tsx`
 - [x] Create `src/apps/transactions/components/CommentsPanel.tsx`
 - [x] Create `src/apps/transactions/components/ActionsCard.tsx`

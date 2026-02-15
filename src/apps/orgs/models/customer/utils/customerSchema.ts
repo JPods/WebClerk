@@ -12,6 +12,9 @@ export const customerSchema = z.object({
   email: z.string().email().nullable().optional().or(z.literal("")),
   phone: z.string().nullable().optional(),
   price_level: z.string().nullable().optional(),
+  terms: z.string().nullable().optional(),
+  terms_id: z.number().nullable().optional(),
+  address_full: z.string().nullable().optional(),
   // JSON aspect fields
   contacts: z.string().optional(),
   addresses: z.string().optional(),

@@ -167,6 +167,15 @@ export async function saveRecord(model_name: string, payload: any) {
     console.log('[wcapi.saveRecord] Response:', res.data);
     return res.data.data;
   } catch (err: any) {
+    // Log the full error response so we can diagnose 400/500 errors
+    if (err?.response) {
+      console.error('[wcapi.saveRecord] Error response:', {
+        status: err.response.status,
+        data: err.response.data,
+        model_name,
+        body,
+      });
+    }
     if (err?.response?.status === 404) {
       const res2 = await apiClient.post<ApiEnvelope<any>>(
         "/api/wcapi/save/",
@@ -457,5 +466,25 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
       return res2.data.data;
     }
     throw err;
+  }
+}
+
+/**
+ * Log a FK ↔ refs.links mismatch to the backend audit log.
+ * Fire-and-forget — errors are logged but never thrown.
+ */
+export async function logRefsMismatch(payload: {
+  parent_model: string;
+  parent_id: number;
+  related_model: string;
+  fk_field: string;
+  fk_ids: number[];
+  refs_ids: number[];
+  caller: string;
+}) {
+  try {
+    await apiClient.post("/wcapi/refs-mismatch/", payload);
+  } catch (err) {
+    console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
   }
 }

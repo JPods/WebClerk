@@ -93,12 +93,6 @@ export default function CurrencyDetail({
             isEditing={currentMode === "edit"}
           />
         );
-      case "history":
-        return (
-          <div className="text-slate-500 dark:text-slate-400 py-8 text-center">
-            <p>History log will appear here</p>
-          </div>
-        );
       case "raw":
         return (
           <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
@@ -292,7 +286,7 @@ export default function CurrencyDetail({
         entityType="currency"
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        standardTabs={["comments", "actions", "history", "raw"]}
+        standardTabs={["comments", "actions", "raw"]}
       />
 
       {/* Tab Content */}

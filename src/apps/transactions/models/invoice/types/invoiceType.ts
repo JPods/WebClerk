@@ -54,6 +54,16 @@ export interface CreateInvoiceRequest {
   parent_model?: TransactionParentType | null;
   total?: number | null;
   balance?: number | null;
+  // Denormalized fields from org
+  contact_id?: number | null;
+  attention?: string | null;
+  address_full?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  conditions_id?: number | null;
+  conditions_description?: string | null;
   // CoreModel
   ida?: string;
   is_active?: boolean;
@@ -88,6 +98,16 @@ export interface InvoiceApiTask {
   parent_model?: TransactionParentType | null;
   total?: number | null;
   balance?: number | null;
+  // Denormalized fields from org
+  contact_id?: number | null;
+  attention?: string | null;
+  address_full?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  conditions_id?: number | null;
+  conditions_description?: string | null;
   // Timestamps & lifecycle
   dt_created?: number;
   dt_modified?: number;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,12 +7,12 @@ import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaUserPlus, FaQuestionCircle, FaLink, FaSlidersH } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaQuestionCircle, FaLink, FaSlidersH, FaPlus, FaFileInvoiceDollar, FaShoppingCart, FaClipboardList } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
@@ -20,19 +20,21 @@ import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { 
-  TransactionFinancialsPanel, 
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
   DocumentsPanel,
   MetadataPanel,
   RawDataPanel,
-  RefsLinksContactPanel,
+  ContactPanel,
   normalizeRefsLinksContact,
   QAPanel,
   RefsPanel,
   PrefsPanel,
 } from "@/apps/common/components/panels";
+import TransactionTabs from "@/components/common/TransactionTabs";
+import ItemTabs from "@/components/common/ItemTabs";
+import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
@@ -40,6 +42,107 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
 
+// ---------------------------------------------------------------------------
+// Create Transaction Dropdown
+// ---------------------------------------------------------------------------
+
+const TRANSACTION_OPTIONS = [
+  { value: "proposal", label: "Proposal", icon: FaClipboardList, path: "/transactions/proposal/detail/" },
+  { value: "order",    label: "Order",    icon: FaShoppingCart,   path: "/transactions/order/detail/" },
+  { value: "invoice",  label: "Invoice",  icon: FaFileInvoiceDollar, path: "/transactions/invoice/detail/" },
+] as const;
+
+interface CreateTransactionDropdownProps {
+  customerId?: number | null;
+  customerName?: string;
+  priceLevel?: string | null;
+  attention?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  terms?: string | null;
+  termsId?: number | null;
+  contactId?: number | null;
+  addressFull?: string | null;
+  ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
+}
+
+function CreateTransactionDropdown({
+  customerId,
+  customerName,
+  priceLevel,
+  attention,
+  phone,
+  email,
+  terms,
+  termsId,
+  contactId,
+  addressFull,
+  ensureWindow,
+}: CreateTransactionDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const handleSelect = (opt: typeof TRANSACTION_OPTIONS[number]) => {
+    setOpen(false);
+    const qs = new URLSearchParams();
+    if (customerId) qs.set("customer_id", String(customerId));
+    if (customerName) qs.set("customer_name", customerName);
+    if (priceLevel) qs.set("price_level", priceLevel);
+    if (attention) qs.set("attention", attention);
+    if (phone) qs.set("phone", phone);
+    if (email) qs.set("email", email);
+    if (terms) qs.set("terms", terms);
+    if (termsId) qs.set("terms_id", String(termsId));
+    if (contactId) qs.set("contact_id", String(contactId));
+    if (addressFull) qs.set("address_full", addressFull);
+    const query = qs.toString();
+    const path = `${opt.path}${query ? `?${query}` : ""}`;
+    ensureWindow(path, `New ${opt.label}`, { maximized: false });
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+        title="Create transaction for this customer"
+      >
+        <FaPlus size={10} />
+        Create
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 py-1">
+          {TRANSACTION_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelect(opt)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+              >
+                <Icon size={14} className="text-slate-400" />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -57,6 +160,9 @@ interface Customer {
   email?: string | null;
   phone?: string | null;
   price_level?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  address_full?: string | null;
   // JSON aspect fields
   contacts?: any;
   addresses?: any;
@@ -100,6 +206,24 @@ const ORG_TYPE_OPTIONS = [
   { value: "vendor", label: "Vendor" },
   { value: "partner", label: "Partner" },
   { value: "internal", label: "Internal" },
+];
+
+const TERMS_OPTIONS = [
+  { value: "Net 30", label: "Net 30" },
+  { value: "Net 60", label: "Net 60" },
+  { value: "Net 90", label: "Net 90" },
+  { value: "Due on Receipt", label: "Due on Receipt" },
+  { value: "COD", label: "COD" },
+  { value: "Prepaid", label: "Prepaid" },
+  { value: "2/10 Net 30", label: "2/10 Net 30" },
+];
+
+const PRICE_LEVEL_OPTIONS = [
+  { value: "A", label: "A - Retail" },
+  { value: "B", label: "B - Wholesale" },
+  { value: "C", label: "C - Distributor" },
+  { value: "D", label: "D - Volume" },
+  { value: "E", label: "E - Special" },
 ];
 
 /* ----------------------------------
@@ -167,6 +291,11 @@ export default function CustomerDetail({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // FK-based contact loading (replaces refs.links.contact)
+  const [fkContacts, setFkContacts] = useState<ReturnType<typeof normalizeRefsLinksContact>>([]);
+  const [fkContactsLoading, setFkContactsLoading] = useState(false);
+  const [fkRefreshTrigger, setFkRefreshTrigger] = useState(0);
+
   // Detect mode from route if modeProp not provided
   const routeMode = useMemo(() => {
     const path = location.pathname;
@@ -177,6 +306,14 @@ export default function CustomerDetail({
   }, [location.pathname]);
   
   const customerId = Number(id);
+
+  // Resolved customer ID — useParams may be empty in floating windows,
+  // so fall back to the record's own id from dataProp or fetchedRecord.
+  const resolvedCustomerId = useMemo(() => {
+    if (Number.isFinite(customerId) && customerId > 0) return customerId;
+    const fromData = dataProp?.id ?? fetchedRecord?.id;
+    return fromData ? Number(fromData) : 0;
+  }, [customerId, dataProp, fetchedRecord]);
 
   // Fetch data when in view/edit mode and no dataProp provided
   useEffect(() => {
@@ -197,7 +334,67 @@ export default function CustomerDetail({
       .finally(() => setLoading(false));
   }, [customerId, dataProp, routeMode]);
 
+  /**
+   * FK-based contact fetching:
+   * Query contacts by customer_id FK instead of reading refs.links.contact.
+   * Also compares FK result with refs.links and logs any mismatches.
+   */
+  const fetchFkContacts = useCallback(async (custId: number) => {
+    if (!Number.isFinite(custId) || custId <= 0) {
+      console.log("[CustomerDetail.fetchFkContacts] skipped – invalid custId:", custId);
+      return;
+    }
+    console.log(`[CustomerDetail.fetchFkContacts] fetching contacts for customer_id=${custId}`);
+    setFkContactsLoading(true);
+    try {
+      const res = await getRecords("contact", { customer_id: custId });
+      console.log("[CustomerDetail.fetchFkContacts] API response:", res);
+      const results = res?.results ?? [];
+      console.log(`[CustomerDetail.fetchFkContacts] got ${results.length} contact(s)`);
+      // Map raw contact records to RefContact shape
+      const mapped = results.map((r: any) => ({
+        contact_id: r.id,
+        purpose: r.purpose || "",
+        attention: r.attention || "",
+        email: r.email || "",
+        phone: r.phone || "",
+        full: r.display_name || r.full || "",
+      }));
+      console.log("[CustomerDetail.fetchFkContacts] mapped contacts:", mapped);
+      setFkContacts(mapped);
+
+      // --- Mismatch detection (FK vs refs.links.contact) ---
+      // Use a snapshot; don't depend on fetchedRecord to avoid dep loops
+      const fkIds = mapped.map((c: any) => c.contact_id).sort();
+      logRefsMismatch({
+        parent_model: "customer",
+        parent_id: custId,
+        related_model: "contact",
+        fk_field: "customer_id",
+        fk_ids: fkIds,
+        refs_ids: [], // refs comparison deferred – avoids dep loop
+        caller: "CustomerDetail.fetchFkContacts",
+      });
+    } catch (err) {
+      console.error("[CustomerDetail] FK contact fetch failed:", err);
+    } finally {
+      setFkContactsLoading(false);
+    }
+  }, []); // no deps — stable function reference
+
+  // Trigger FK contact fetch when customer id or refresh trigger changes
+  useEffect(() => {
+    if (routeMode === "add") return;
+    if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
+      console.log("[CustomerDetail] FK fetch skipped – resolvedCustomerId:", resolvedCustomerId, "useParams id:", id);
+      return;
+    }
+    fetchFkContacts(resolvedCustomerId);
+  }, [resolvedCustomerId, routeMode, fetchFkContacts, fkRefreshTrigger]);
+
   // Window management - only when NOT rendered inline
+  // Use a stable path derived from customer data rather than location.pathname
+  // to avoid re-triggering when other windows change the browser URL.
   useEffect(() => {
     if (inline) return; // Skip window management for inline rendering
     const record = dataProp || fetchedRecord;
@@ -205,8 +402,12 @@ export default function CustomerDetail({
     const title = record?.display_name || record?.name || 
       (routeMode === 'add' ? 'New Customer' : `Customer ${record?.id ?? customerId}`);
     const prefix = routeMode === 'edit' ? 'Edit ' : '';
-    ensureWindow(location.pathname, `${prefix}${title}`, { maximized: false });
-  }, [inline, dataProp, fetchedRecord, ensureWindow, location.pathname, customerId, routeMode]);
+    const custId = record?.id ?? customerId;
+    const stablePath = routeMode === 'add'
+      ? '/org/customer/add'
+      : `/org/customer/detail/${custId}`;
+    ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
+  }, [inline, dataProp, fetchedRecord, ensureWindow, customerId, routeMode]);
 
   // List navigation (prev/next)
   const listOrder = useMemo(() => {
@@ -297,10 +498,7 @@ export default function CustomerDetail({
   const additionalTabs = [
     { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} /> },
     { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { id: 'metadata', label: 'Metadata', icon: <FaFileAlt size={14} /> },
-    { id: 'prefs', label: 'Prefs', icon: <FaSlidersH size={14} /> },
     { id: 'qa', label: 'Q&A', icon: <FaQuestionCircle size={14} /> },
-    { id: 'refs', label: 'Refs', icon: <FaLink size={14} /> },
   ];
 
   const {
@@ -340,7 +538,7 @@ export default function CustomerDetail({
     comments: getCommentCount(),
     actions: getActionCount(),
     documents: getDocumentCount(),
-    contacts: data?.refs?.links?.contact?.length || 0,
+    contacts: fkContacts.length,
   };
 
   useEffect(() => {
@@ -474,6 +672,9 @@ export default function CustomerDetail({
         email: formData.email || null,
         phone: formData.phone || null,
         price_level: formData.price_level || null,
+        terms: formData.terms || null,
+        terms_id: formData.terms_id || null,
+        address_full: formData.address_full || null,
         ...jsonPayload,
       };
       const res =
@@ -598,33 +799,92 @@ export default function CustomerDetail({
     await saveCustomer(formData);
   };
 
-  // Handler to create a contact from customer information (view/edit mode)
-  const handleCreateContact = useCallback(async () => {
-    const record = dataProp || fetchedRecord;
-    if (!record || !record.id) {
-      dispatch(showToast({ message: "Save the customer first before creating a contact", type: "error" }));
-      return;
-    }
+  // ---------------------------------------------------------------------------
+  // Set Primary Contact – saves contact_id + denormalized fields on the org
+  // ---------------------------------------------------------------------------
+  const handleSetPrimary = useCallback(
+    async (contact: { contact_id: number; attention?: string; email?: string | any[]; phone?: string | any[] }) => {
+      const custId = data?.id;
+      if (!custId) return;
 
-    try {
-      await autoCreateContactForCustomer(
-        record.id,
-        record.display_name || "",
-        record.attention || "",
-        record.email || "",
-        record.phone || "",
-      );
-    } catch (err: any) {
-      dispatch(showToast({ message: err?.message || "Failed to create contact", type: "error" }));
-    }
-  }, [dataProp, fetchedRecord, dispatch, autoCreateContactForCustomer]);
+      // Extract scalar values from possibly polymorphic email/phone
+      const emailStr =
+        typeof contact.email === "string"
+          ? contact.email
+          : Array.isArray(contact.email) && contact.email.length > 0
+            ? (typeof contact.email[0] === "object" ? contact.email[0].value ?? "" : String(contact.email[0]))
+            : "";
+      const phoneStr =
+        typeof contact.phone === "string"
+          ? contact.phone
+          : Array.isArray(contact.phone) && contact.phone.length > 0
+            ? (typeof contact.phone[0] === "object" ? contact.phone[0].value ?? "" : String(contact.phone[0]))
+            : "";
+
+      try {
+        await updateCustomer({
+          id: custId,
+          contact_id: contact.contact_id,
+          attention: contact.attention || null,
+          email: emailStr || null,
+          phone: phoneStr || null,
+        } as any);
+
+        // Update local form state so UI reflects the change immediately
+        setValue("contact_id" as keyof CustomerFormValues, contact.contact_id);
+        if (contact.attention) setValue("attention" as keyof CustomerFormValues, contact.attention);
+        if (emailStr) setValue("email" as keyof CustomerFormValues, emailStr);
+        if (phoneStr) setValue("phone" as keyof CustomerFormValues, phoneStr);
+
+        // Refresh the parent record from the server
+        const res = await getRecord("customer", custId);
+        const rec = res?.record ?? res;
+        if (rec) {
+          setFetchedRecord(rec);
+        }
+
+        dispatch(
+          showToast({
+            message: `Contact #${contact.contact_id} set as primary`,
+            type: "success",
+          }),
+        );
+      } catch (err) {
+        console.error("[CustomerDetail.handleSetPrimary] failed:", err);
+        dispatch(
+          showToast({
+            message: "Failed to set primary contact",
+            type: "error",
+          }),
+        );
+      }
+    },
+    [data?.id, dispatch, setValue],
+  );
 
   // Action buttons configuration based on mode
   const getActionButtons = () => {
     const buttons = [];
 
     if (baseMode === "view" && !isEditing) {
-      // View mode - show Edit button to switch to edit mode
+      // View mode - Create Transaction dropdown
+      buttons.push(
+        <CreateTransactionDropdown
+          key="create-txn"
+          customerId={data?.id}
+          customerName={data?.display_name || data?.name}
+          priceLevel={data?.price_level}
+          attention={data?.attention}
+          phone={data?.phone}
+          email={data?.email}
+          terms={data?.terms}
+          termsId={data?.terms_id}
+          contactId={data?.contact_id}
+          addressFull={data?.address_full}
+          ensureWindow={ensureWindow}
+        />,
+      );
+      // Edit button to switch to edit mode
       buttons.push(
         <button
           key="edit-local"
@@ -664,19 +924,6 @@ export default function CustomerDetail({
           </button>
         );
       }
-      // Create Contact button - secondary action, after primary buttons
-      buttons.push(
-        <button
-          key="create-contact"
-          type="button"
-          onClick={handleCreateContact}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-          title="Create Contact from Customer"
-        >
-          <FaUserPlus size={14} />
-          Create Contact
-        </button>
-      );
       if (onDelete) {
         buttons.push(
           <button
@@ -692,21 +939,7 @@ export default function CustomerDetail({
         );
       }
     } else {
-      // Add/Edit mode - Create Contact button (only for edit mode with saved record)
-      if (mode === "edit" && data?.id) {
-        buttons.push(
-          <button
-            key="create-contact"
-            type="button"
-            onClick={handleCreateContact}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-            title="Create Contact from Customer"
-          >
-            <FaUserPlus size={14} />
-            Create Contact
-          </button>
-        );
-      }
+      // Add/Edit mode — no Create Contact here (use ContactPanel's "+Add" instead)
     }
 
     // Navigation buttons (always available if callbacks provided)
@@ -760,6 +993,9 @@ export default function CustomerDetail({
         email: data.email,
         phone: data.phone,
         price_level: data.price_level,
+        terms: data.terms,
+        terms_id: data.terms_id,
+        address_full: data.address_full,
         financial: data.financial,
       }
     : {
@@ -898,53 +1134,83 @@ export default function CustomerDetail({
       ) : (
         /* Editable Basic Information - Horizontal Layout */
         <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
-          <HorizontalField label="Company" htmlFor="display_name" required error={errors.display_name?.message}>
+          <HorizontalField label="display_name" htmlFor="display_name" required error={errors.display_name?.message}>
             <Input
               type="text"
               id="display_name"
-              placeholder="Enter company name"
+              placeholder="display_name"
               {...register("display_name")}
               error={errors.display_name && errors.display_name.message ? true : false}
             />
           </HorizontalField>
 
-          <HorizontalField label="Email" htmlFor="email">
+          <HorizontalField label="email" htmlFor="email">
             <Input
               type="email"
               id="email"
-              placeholder="Primary email"
+              placeholder="email"
               {...register("email")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Attention" htmlFor="attention">
+          <HorizontalField label="attention" htmlFor="attention">
             <Input
               type="text"
               id="attention"
-              placeholder="Attn: line"
+              placeholder="attention"
               {...register("attention")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Phone" htmlFor="phone">
+          <HorizontalField label="phone" htmlFor="phone">
             <Input
               type="tel"
               id="phone"
-              placeholder="Primary phone"
+              placeholder="phone"
               {...register("phone")}
             />
           </HorizontalField>
 
-          <HorizontalField label="Price Level" htmlFor="price_level">
-            <Input
-              type="text"
-              id="price_level"
-              placeholder="retail, wholesale"
-              {...register("price_level")}
+          <HorizontalField label="price_level" htmlFor="price_level">
+            <Controller
+              name="price_level"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={PRICE_LEVEL_OPTIONS}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="price_level"
+                />
+              )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Status" htmlFor="status" required>
+          <HorizontalField label="terms" htmlFor="terms">
+            <Controller
+              name="terms"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={TERMS_OPTIONS}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="terms"
+                />
+              )}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="address_full" htmlFor="address_full">
+            <Input
+              type="text"
+              id="address_full"
+              placeholder="address_full"
+              {...register("address_full")}
+            />
+          </HorizontalField>
+
+          <HorizontalField label="status" htmlFor="status" required>
             <Controller
               name="status"
               control={control}
@@ -953,13 +1219,13 @@ export default function CustomerDetail({
                   options={STATUS_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select status"
+                  placeholder="status"
                 />
               )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Org Type" htmlFor="org_type">
+          <HorizontalField label="org_type" htmlFor="org_type">
             <Controller
               name="org_type"
               control={control}
@@ -968,13 +1234,13 @@ export default function CustomerDetail({
                   options={ORG_TYPE_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select type"
+                  placeholder="org_type"
                 />
               )}
             />
           </HorizontalField>
 
-          <HorizontalField label="Version" htmlFor="version">
+          <HorizontalField label="version" htmlFor="version">
             <Input
               type="number"
               id="version"
@@ -993,7 +1259,7 @@ export default function CustomerDetail({
                   id="is_active"
                   checked={field.value ?? false}
                   onChange={field.onChange}
-                  label="Active"
+                  label="is_active"
                 />
               )}
             />
@@ -1002,22 +1268,23 @@ export default function CustomerDetail({
       )}
     </div>
 
-    {/* Tab Navigation - Using DetailTabs component */}
-    <DetailTabs
-      entityType="customer"
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
-      standardTabs={['actions', 'comments', 'documents', 'history', 'raw']}
-      additionalTabs={additionalTabs}
-      badges={tabBadges}
-      showColumnSelector={true}
-      columnCount={columnCount}
-      onColumnCountChange={handleColumnChange}
-    />
-
-    {/* Tab Content */}
+    {/* Scrollable content: detail panels · transactions · items */}
     <div className="flex-1 overflow-y-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+
+      {/* ── DetailTabs ────────────────────────────────────────── */}
+      <div>
+        <DetailTabs
+          entityType="customer"
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          standardTabs={['actions', 'comments', 'documents', 'raw']}
+          additionalTabs={additionalTabs}
+          badges={tabBadges}
+          showColumnSelector={true}
+          columnCount={columnCount}
+          onColumnCountChange={handleColumnChange}
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
         <div className="p-4">
           {/* Standard Tabs - Comments */}
           {activeTab === "comments" && (
@@ -1062,49 +1329,12 @@ export default function CustomerDetail({
             />
           )}
 
-          {/* Standard Tabs - History (Admin) */}
-          {activeTab === "history" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-              isEditing={false}
-            />
-          )}
-
-          {/* Metadata tab */}
-          {activeTab === "metadata" && (
-            <MetadataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.metadata}
-            />
-          )}
-
-          {/* Prefs tab */}
-          {activeTab === "prefs" && (
-            <PrefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.prefs}
-            />
-          )}
-
           {/* Q&A tab */}
           {activeTab === "qa" && (
             <QAPanel
               parent_model="customer"
               parentId={data?.id || 0}
               data={data?.qa}
-            />
-          )}
-
-          {/* Refs tab */}
-          {activeTab === "refs" && (
-            <RefsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.refs}
             />
           )}
 
@@ -1120,24 +1350,30 @@ export default function CustomerDetail({
           {/* Model-Specific Tabs */}
           {mode === "view" ? (
             <>
-              {/* Contacts tab – RefsLinksContactPanel (same as transactions) */}
+              {/* Contacts tab – ContactPanel (same as transactions) */}
               {activeTab === "contacts" && (
-                <RefsLinksContactPanel
-                  contacts={normalizeRefsLinksContact(
-                    data?.refs?.links?.contact ?? []
-                  )}
+                <ContactPanel
+                  contacts={fkContacts}
                   isEditing={false}
+                  loading={fkContactsLoading}
                   allowCreate={true}
                   parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  primaryContactId={data?.contact_id}
+                  onSetPrimary={handleSetPrimary}
+                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onSaveSuccess={() => {
+                    // Bump the trigger to re-fetch FK contacts
+                    setFkRefreshTrigger((n) => n + 1);
+                    // Also refresh the parent record
                     if (customerData.id) {
                       getRecord("customer", customerData.id)
                         .then((res: any) => {
                           const rec = res?.record ?? res;
                           if (rec) {
+                            setFetchedRecord(rec);
                             Object.keys(rec).forEach((key) => {
                               if (key in JSON_DEFAULTS) {
                                 setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
@@ -1155,8 +1391,9 @@ export default function CustomerDetail({
 
               {/* Financial tab */}
               {activeTab === "financial" && (
-                <TransactionFinancialsPanel
-                  totals={customerData.financial?.customer}
+                <OrgFinancialsPanel
+                  financial={customerData.financial}
+                  orgType="customer"
                   currency="USD"
                 />
               )}
@@ -1164,17 +1401,19 @@ export default function CustomerDetail({
           ) : (
             /* Edit mode - JSON editors for model-specific tabs */
             <div className="space-y-4">
-              {/* Contacts tab in edit mode – still uses RefsLinksContactPanel */}
+              {/* Contacts tab in edit mode */}
               {activeTab === "contacts" && (
-                <RefsLinksContactPanel
-                  contacts={normalizeRefsLinksContact(
-                    data?.refs?.links?.contact ?? []
-                  )}
+                <ContactPanel
+                  contacts={fkContacts}
                   isEditing={true}
+                  loading={fkContactsLoading}
                   parent_model="customer"
                   parentId={customerData.id}
                   customer_id={customerData.id}
                   customer_name={customerData.display_name}
+                  primaryContactId={data?.contact_id}
+                  onSetPrimary={handleSetPrimary}
+                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
                   onChange={(newContacts) => {
                     const currentRefs = safeParseJson(formData.refs as unknown as string | undefined, { links: {} });
                     setValue(
@@ -1187,11 +1426,13 @@ export default function CustomerDetail({
                     );
                   }}
                   onSaveSuccess={() => {
+                    setFkRefreshTrigger((n) => n + 1);
                     if (customerData.id) {
                       getRecord("customer", customerData.id)
                         .then((res: any) => {
                           const rec = res?.record ?? res;
                           if (rec) {
+                            setFetchedRecord(rec);
                             Object.keys(rec).forEach((key) => {
                               if (key in JSON_DEFAULTS) {
                                 setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
@@ -1238,7 +1479,29 @@ export default function CustomerDetail({
             </div>
           )}
         </div>
-      </form>
+        </form>
+      </div>
+
+      {/* ── TransactionTabs ────────────────────────────────────── */}
+      {!!customerData.id && (
+        <div>
+          <TransactionTabs
+            orgType="customer"
+            orgId={customerData.id!}
+          />
+        </div>
+      )}
+
+      {/* ── ItemTabs ─────────────────────────────────────────── */}
+      {!!customerData.id && (
+        <div>
+          <ItemTabs
+            orgType="customer"
+            orgId={customerData.id!}
+          />
+        </div>
+      )}
+
     </div>
   </div>
   );

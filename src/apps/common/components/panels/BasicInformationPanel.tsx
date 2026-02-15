@@ -18,6 +18,10 @@ export interface BasicInformationData {
   email?: string | null;
   phone?: string | null;
   price_level?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  address_full?: string | null;
+  contact_id?: number | null;
   status?: string;
   org_type?: string;
   version?: number;
@@ -89,15 +93,19 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
         </h3>
       )}
       <dl className={`grid grid-cols-1 ${gridCols} gap-x-6 gap-y-2 text-sm`}>
-        <Row label="Company" value={data.display_name} />
-        <Row label="Email" value={data.email} />
-        <Row label="Attention" value={data.attention} />
-        <Row label="Phone" value={data.phone} />
-        <Row label="Price Level" value={data.price_level} />
-        <Row label="Status" value={data.status ? <span className="capitalize">{data.status}</span> : null} />
-        <Row label="Org Type" value={data.org_type ? <span className="capitalize">{data.org_type}</span> : null} />
-        <Row label="Version" value={data.version?.toString()} />
-        <Row label="Active" value={<ActiveBadge isActive={data.is_active ?? false} />} />
+        <Row label="display_name" value={data.display_name} />
+        <Row label="email" value={data.email} />
+        <Row label="attention" value={data.attention} />
+        <Row label="phone" value={data.phone} />
+        <Row label="price_level" value={data.price_level} />
+        <Row label="terms" value={data.terms} />
+        <Row label="terms_id" value={data.terms_id?.toString()} />
+        <Row label="address_full" value={data.address_full} />
+        <Row label="contact_id" value={data.contact_id?.toString()} />
+        <Row label="status" value={data.status ? <span className="capitalize">{data.status}</span> : null} />
+        <Row label="org_type" value={data.org_type ? <span className="capitalize">{data.org_type}</span> : null} />
+        <Row label="version" value={data.version?.toString()} />
+        <Row label="is_active" value={<ActiveBadge isActive={data.is_active ?? false} />} />
       </dl>
     </div>
   );
