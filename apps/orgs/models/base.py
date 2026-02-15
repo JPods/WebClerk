@@ -42,12 +42,12 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
 	# FK-first: proper ForeignKey to Contact for primary contact reference.
-	contact = models.ForeignKey(
+	contact_id = models.ForeignKey(
 		'core.Contact', on_delete=models.SET_NULL,
 		blank=True, null=True,
 		db_column='contact_id', related_name='orgs_as_contact',
 	)
-	contact
+
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
 	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address
 	address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
