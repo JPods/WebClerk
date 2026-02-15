@@ -17,3 +17,4 @@ include/
 /Scripts
 venv/
 logs/
+tools/.pids/
