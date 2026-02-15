@@ -532,15 +532,6 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
               {isEditing && (
                 <td className="py-2 px-2">
                   <div className="flex items-center gap-1">
-                    {onComplete && action.status !== "completed" && (
-                      <button
-                        onClick={() => onComplete(action)}
-                        className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded"
-                        title="Complete"
-                      >
-                        <FaCheck size={10} />
-                      </button>
-                    )}
                     {onEdit && (
                       <button
                         onClick={() => onEdit(action)}
@@ -615,6 +606,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 }) => {
   console.log("[ActionEditModal] assigneeOptions:", assigneeOptions);
   console.log("[ActionEditModal] projectOptions:", projectOptions);
+
   const [assigneeSelection, setAssigneeSelection] = useState<string>("");
   const [formData, setFormData] = useState<ExtendedActionEntry>(
     action || {
@@ -630,10 +622,11 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
   React.useEffect(() => {
     if (action) {
+      const extAction = action as ExtendedActionEntry;
       setFormData({
         ...action,
-        progress: (action as ExtendedActionEntry).progress || 0,
-        difficulty: (action as ExtendedActionEntry).difficulty || 30,
+        progress: extAction.progress || 0,
+        difficulty: extAction.difficulty || 30,
       });
     } else {
       setFormData({
@@ -1383,13 +1376,15 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
     let newActions: ActionEntry[];
 
     if (editingAction?.id !== undefined) {
-      // Update existing
-      const index =
-        typeof editingAction.id === "number"
-          ? editingAction.id
-          : actions.findIndex((a) => a.id === editingAction.id);
-      newActions = [...actions];
-      newActions[index] = { ...action, id: editingAction.id };
+      // Update existing - always use findIndex to locate by id
+      const index = actions.findIndex((a) => a.id === editingAction.id);
+      if (index !== -1) {
+        newActions = [...actions];
+        newActions[index] = { ...action, id: editingAction.id };
+      } else {
+        // Fallback: append if not found
+        newActions = [...actions, { ...action, id: editingAction.id }];
+      }
     } else {
       // Add new
       const newAction = {

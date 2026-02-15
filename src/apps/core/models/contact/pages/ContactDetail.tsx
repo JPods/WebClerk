@@ -77,12 +77,7 @@ import {
   FaShoppingCart,
   FaClipboardList,
 } from "react-icons/fa";
-import {
-  History,
-  Link,
-  Phone,
-  SlidersHorizontal,
-} from "lucide-react";
+import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
 
 // Panel Components
 import {
@@ -101,9 +96,24 @@ import {
 // ---------------------------------------------------------------------------
 
 const TRANSACTION_OPTIONS = [
-  { value: "proposal", label: "Proposal", icon: FaClipboardList, path: "/transactions/proposal/detail/" },
-  { value: "order",    label: "Order",    icon: FaShoppingCart,   path: "/transactions/order/detail/" },
-  { value: "invoice",  label: "Invoice",  icon: FaFileInvoiceDollar, path: "/transactions/invoice/detail/" },
+  {
+    value: "proposal",
+    label: "Proposal",
+    icon: FaClipboardList,
+    path: "/transactions/proposal/detail/",
+  },
+  {
+    value: "order",
+    label: "Order",
+    icon: FaShoppingCart,
+    path: "/transactions/order/detail/",
+  },
+  {
+    value: "invoice",
+    label: "Invoice",
+    icon: FaFileInvoiceDollar,
+    path: "/transactions/invoice/detail/",
+  },
 ] as const;
 
 interface CreateTransactionDropdownProps {
@@ -114,7 +124,11 @@ interface CreateTransactionDropdownProps {
   attention?: string | null;
   email?: string | null;
   phone?: string | null;
-  ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
+  ensureWindow: (
+    path: string,
+    title: string,
+    opts?: { maximized?: boolean },
+  ) => void;
 }
 
 function CreateTransactionDropdown({
@@ -141,7 +155,7 @@ function CreateTransactionDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const handleSelect = (opt: typeof TRANSACTION_OPTIONS[number]) => {
+  const handleSelect = (opt: (typeof TRANSACTION_OPTIONS)[number]) => {
     setOpen(false);
     const qs = new URLSearchParams();
     if (customerId) qs.set("customer_id", String(customerId));
@@ -369,7 +383,8 @@ export default function ContactDetail({
   const parentCustomerId = effectiveSearchParams.get("customer_id")
     ? parseInt(effectiveSearchParams.get("customer_id")!, 10)
     : undefined;
-  const parentCustomerName = effectiveSearchParams.get("customer_name") || undefined;
+  const parentCustomerName =
+    effectiveSearchParams.get("customer_name") || undefined;
 
   // Which contact field to auto-populate (e.g. "customer_id" for parent_model=customer)
   const parentIdField = parentModel
@@ -435,23 +450,53 @@ export default function ContactDetail({
   // Communications local state
   // ---------------------------------------------------------------------------
 
+  // Helper to get non-empty array or fallback
+  const getCommsArray = (
+    primary: any[] | undefined,
+    fallback: any[] | undefined,
+  ) => {
+    if (primary && primary.length > 0) return primary;
+    return fallback || [];
+  };
+
   const [communications, setCommunications] = useState<CommunicationsData>({
-    emails: data?.communications?.emails || data?.refs?.links?.email || [],
-    phones: data?.communications?.phones || data?.refs?.links?.phone || [],
-    addresses:
-      data?.communications?.addresses || data?.refs?.links?.address || [],
-    domains: data?.communications?.domains || data?.refs?.links?.domain || [],
+    emails: getCommsArray(
+      data?.communications?.emails,
+      data?.refs?.links?.email,
+    ),
+    phones: getCommsArray(
+      data?.communications?.phones,
+      data?.refs?.links?.phone,
+    ),
+    addresses: getCommsArray(
+      data?.communications?.addresses,
+      data?.refs?.links?.location,
+    ),
+    domains: getCommsArray(
+      data?.communications?.domains,
+      data?.refs?.links?.domain,
+    ),
   });
 
   useEffect(() => {
     if (data?.communications || data?.refs?.links) {
       setCommunications({
-        emails: data.communications?.emails || data.refs?.links?.email || [],
-        phones: data.communications?.phones || data.refs?.links?.phone || [],
-        addresses:
-          data.communications?.addresses || data.refs?.links?.address || [],
-        domains:
-          data.communications?.domains || data.refs?.links?.domain || [],
+        emails: getCommsArray(
+          data.communications?.emails,
+          data.refs?.links?.email,
+        ),
+        phones: getCommsArray(
+          data.communications?.phones,
+          data.refs?.links?.phone,
+        ),
+        addresses: getCommsArray(
+          data.communications?.addresses,
+          data.refs?.links?.location,
+        ),
+        domains: getCommsArray(
+          data.communications?.domains,
+          data.refs?.links?.domain,
+        ),
       });
     }
   }, [data?.communications, data?.refs?.links]);
@@ -480,7 +525,17 @@ export default function ContactDetail({
 
   const tabBadges = useMemo(
     () => ({
-      comments: data?.comments?.length || 0,
+      comments:
+        (Array.isArray(data?.comments?.public)
+          ? data.comments.public.length
+          : 0) +
+        (Array.isArray(data?.comments?.process)
+          ? data.comments.process.length
+          : 0) +
+        (Array.isArray(data?.comments?.partner)
+          ? data.comments.partner.length
+          : 0) +
+        (Array.isArray(data?.comments?.notes) ? data.comments.notes.length : 0),
       documents: data?.refs?.links?.document?.length || 0,
       actions: Array.isArray(data?.actions) ? data.actions.length : 0,
     }),
@@ -623,9 +678,7 @@ export default function ContactDetail({
           project: [],
           vendor: [],
           // Seed the parent link so refs.links.<parent> = [parentId]
-          ...(parentModel && parentId
-            ? { [parentModel]: [parentId] }
-            : {}),
+          ...(parentModel && parentId ? { [parentModel]: [parentId] } : {}),
         },
       },
     },
@@ -688,7 +741,10 @@ export default function ContactDetail({
   const onValidationError = useCallback(
     (validationErrors: any) => {
       const messages = Object.entries(validationErrors)
-        .map(([field, err]: [string, any]) => `${field}: ${err?.message || "invalid"}`)
+        .map(
+          ([field, err]: [string, any]) =>
+            `${field}: ${err?.message || "invalid"}`,
+        )
         .join(", ");
       console.warn("[ContactDetail] Validation errors:", validationErrors);
       dispatch(
@@ -726,7 +782,8 @@ export default function ContactDetail({
       // Also denormalize the scalar value from the communications list
       if (type === "email") {
         const match = communications?.emails?.find((e: any) => e.id === id);
-        if (match) payload.email = match.email || match.value || match.address || "";
+        if (match)
+          payload.email = match.email || match.value || match.address || "";
       } else if (type === "phone") {
         const match = communications?.phones?.find((p: any) => p.id === id);
         if (match) payload.phone = match.number || match.value || "";
@@ -735,7 +792,11 @@ export default function ContactDetail({
         if (match) {
           payload.address_full =
             match.full ||
-            [match.address1, [match.city, match.state, match.zip].filter(Boolean).join(", "), match.country]
+            [
+              match.address1,
+              [match.city, match.state, match.zip].filter(Boolean).join(", "),
+              match.country,
+            ]
               .filter(Boolean)
               .join(", ");
         }
@@ -756,7 +817,10 @@ export default function ContactDetail({
       } catch (err) {
         console.error(`[ContactDetail.handleSetPrimaryItem] failed:`, err);
         dispatch(
-          showToast({ message: `Failed to set primary ${type}`, type: "error" }),
+          showToast({
+            message: `Failed to set primary ${type}`,
+            type: "error",
+          }),
         );
       }
     },
@@ -778,7 +842,11 @@ export default function ContactDetail({
           ? mapRefsFormToApi(formData.refs)
           : undefined;
 
-        console.log("[ContactDetail] Submitting:", { baseMode, formData, mappedRefs });
+        console.log("[ContactDetail] Submitting:", {
+          baseMode,
+          formData,
+          mappedRefs,
+        });
 
         const basePayload = {
           email: formData.email,
@@ -795,7 +863,8 @@ export default function ContactDetail({
           is_staff: formData.is_staff,
           // Disabled inputs are excluded by react-hook-form, so fall back to
           // parent-seeded values (query params) or fetched record values.
-          customer_id: formData.customer_id ?? parentCustomerId ?? data?.customer_id,
+          customer_id:
+            formData.customer_id ?? parentCustomerId ?? data?.customer_id,
           rep_id: formData.rep_id ?? data?.rep_id,
           vendor_id: formData.vendor_id ?? data?.vendor_id,
           employee_id: formData.employee_id ?? data?.employee_id,
@@ -826,7 +895,12 @@ export default function ContactDetail({
           // The ID is only known after wc3 saves the record and returns it.
           const newContactId =
             (res as any)?.record?.id ?? res?.id ?? (res as any)?.data?.id;
-          console.log("[ContactDetail] Save response:", res, "→ newContactId:", newContactId);
+          console.log(
+            "[ContactDetail] Save response:",
+            res,
+            "→ newContactId:",
+            newContactId,
+          );
 
           // ── Sync parent org's refs.links.contact[] ──
           // When a new contact is created from an org detail page,
@@ -858,7 +932,9 @@ export default function ContactDetail({
 
           dispatch(
             showToast({
-              message: `Contact ${baseMode === "add" ? "created" : "updated"} successfully`,
+              message: `Contact ${
+                baseMode === "add" ? "created" : "updated"
+              } successfully`,
               type: "success",
             }),
           );
@@ -882,12 +958,14 @@ export default function ContactDetail({
         const backendMsg =
           axiosErr?.response?.data?.error ||
           axiosErr?.response?.data?.message ||
-          (typeof axiosErr?.response?.data === "string" ? axiosErr.response.data : null);
+          (typeof axiosErr?.response?.data === "string"
+            ? axiosErr.response.data
+            : null);
         const displayMsg = backendMsg
           ? `Save failed: ${backendMsg}`
           : error instanceof Error
-            ? error.message
-            : "Save failed";
+          ? error.message
+          : "Save failed";
         console.error("[ContactDetail] Save error:", {
           status: axiosErr?.response?.status,
           data: axiosErr?.response?.data,
@@ -896,7 +974,21 @@ export default function ContactDetail({
         dispatch(showToast({ message: displayMsg, type: "error" }));
       }
     },
-    [baseMode, data?.id, dispatch, onSaved, parentModel, parentId, parentCustomerId, data?.customer_id, data?.rep_id, data?.vendor_id, data?.employee_id, data?.manufacturer_id, data?.other_id],
+    [
+      baseMode,
+      data?.id,
+      dispatch,
+      onSaved,
+      parentModel,
+      parentId,
+      parentCustomerId,
+      data?.customer_id,
+      data?.rep_id,
+      data?.vendor_id,
+      data?.employee_id,
+      data?.manufacturer_id,
+      data?.other_id,
+    ],
   );
 
   // ---------------------------------------------------------------------------
@@ -1124,7 +1216,9 @@ export default function ContactDetail({
               Basic Information
             </h3>
             <dl
-              className={`grid grid-cols-1 ${columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-x-6 gap-y-2 text-sm`}
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-2 text-sm`}
             >
               <InfoRow label="name_first" value={data.name_first} />
               <InfoRow label="name_last" value={data.name_last} />
@@ -1164,9 +1258,14 @@ export default function ContactDetail({
           </div>
         ) : (
           /* ── Editable form ── */
-          <form id="contact-form" onSubmit={handleSubmit(onSubmit, onValidationError)}>
+          <form
+            id="contact-form"
+            onSubmit={handleSubmit(onSubmit, onValidationError)}
+          >
             <div
-              className={`grid grid-cols-1 ${columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-x-6 gap-y-0`}
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-0`}
             >
               {shouldRenderField("name_first") && (
                 <HorizontalField
@@ -1410,7 +1509,10 @@ export default function ContactDetail({
               )}
 
               {shouldRenderField("manufacturer_id") && (
-                <HorizontalField label="manufacturer_id" htmlFor="manufacturer_id">
+                <HorizontalField
+                  label="manufacturer_id"
+                  htmlFor="manufacturer_id"
+                >
                   <Input
                     type="number"
                     id="manufacturer_id"
@@ -1528,9 +1630,7 @@ export default function ContactDetail({
                 <ActionsPanel
                   entityType="contact"
                   entityId={data.id}
-                  data={
-                    Array.isArray(data.actions) ? data.actions : undefined
-                  }
+                  data={Array.isArray(data.actions) ? data.actions : undefined}
                   actionIds={
                     data.actions &&
                     typeof data.actions === "object" &&
@@ -1591,7 +1691,7 @@ export default function ContactDetail({
                     try {
                       await updateContact({
                         id: data.id,
-                        comments,
+                        comments: { mode: "update", value: comments },
                       } as any);
                       dispatch(
                         showToast({
@@ -1619,7 +1719,30 @@ export default function ContactDetail({
                   entityId={activeContactId}
                   contactId={activeContactId}
                   data={communications}
-                  onChange={(comms) => setCommunications(comms)}
+                  onChange={(comms) => {
+                    setCommunications(comms);
+                    // Also sync back to refs.links AND communications so useEffect doesn't overwrite
+                    setFetchedData((prev: any) => ({
+                      ...(prev || data),
+                      communications: {
+                        ...(prev?.communications || data?.communications || {}),
+                        emails: comms.emails || [],
+                        phones: comms.phones || [],
+                        addresses: comms.addresses || [],
+                        domains: comms.domains || [],
+                      },
+                      refs: {
+                        ...(prev?.refs || data?.refs || {}),
+                        links: {
+                          ...(prev?.refs?.links || data?.refs?.links || {}),
+                          email: comms.emails || [],
+                          phone: comms.phones || [],
+                          location: comms.addresses || [],
+                          domain: comms.domains || [],
+                        },
+                      },
+                    }));
+                  }}
                   primaryEmailId={data?.email_id}
                   primaryPhoneId={data?.phone_id}
                   primaryAddressId={data?.address_id}

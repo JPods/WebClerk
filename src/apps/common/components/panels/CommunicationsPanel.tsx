@@ -41,7 +41,7 @@ import type {
 } from "./types";
 
 // WCAPI for save/delete operations
-import { saveRecord, deleteRecord } from "../../../../api/wcapi";
+import { saveRecord } from "../../../../api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,7 +68,10 @@ interface CommunicationsPanelProps
   primaryAddressId?: number | null;
   primaryDomainId?: number | null;
   /** Callback when a record is set as primary – receives the type and the record id */
-  onSetPrimaryItem?: (type: "email" | "phone" | "address" | "domain", id: number) => void;
+  onSetPrimaryItem?: (
+    type: "email" | "phone" | "address" | "domain",
+    id: number,
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,60 +92,65 @@ const EmailItem: React.FC<EmailItemProps> = ({
   onSetPrimary,
   onEdit,
   onDelete,
-}) => (
-  <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
-    <FaEnvelope size={12} className="text-slate-400 flex-shrink-0" />
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2">
-        <a
-          href={`mailto:${email.email}`}
-          className="text-sm text-blue-600 hover:underline truncate"
-        >
-          {email.email}
-        </a>
-        {email.is_primary && (
-          <FaStar size={10} className="text-amber-400" title="Primary" />
+}) => {
+  // Try multiple field names: email, value, address
+  const emailValue = email.email || email.value || email.address || "";
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
+      <FaEnvelope size={12} className="text-slate-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <a
+            href={`mailto:${emailValue}`}
+            className="text-sm text-blue-600 hover:underline truncate"
+          >
+            {emailValue}
+          </a>
+          {email.is_primary && (
+            <FaStar size={10} className="text-amber-400" title="Primary" />
+          )}
+        </div>
+        {(email.name || email.type) && (
+          <p className="text-xs text-slate-400">
+            {[email.name, email.type].filter(Boolean).join(" • ")}
+          </p>
         )}
       </div>
-      {(email.name || email.type) && (
-        <p className="text-xs text-slate-400">
-          {[email.name, email.type].filter(Boolean).join(" • ")}
-        </p>
+      {canEdit && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!email.is_primary && onSetPrimary && (
+            <button
+              onClick={onSetPrimary}
+              className="p-1 text-slate-400 hover:text-amber-500"
+              title="Set primary"
+            >
+              <FaRegStar size={10} />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1 text-slate-400 hover:text-blue-500"
+              title="Edit"
+            >
+              <FaEdit size={10} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1 text-slate-400 hover:text-red-500"
+              title="Delete"
+            >
+              <FaTrash size={10} />
+            </button>
+          )}
+        </div>
       )}
     </div>
-    {canEdit && (
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!email.is_primary && onSetPrimary && (
-          <button
-            onClick={onSetPrimary}
-            className="p-1 text-slate-400 hover:text-amber-500"
-            title="Set primary"
-          >
-            <FaRegStar size={10} />
-          </button>
-        )}
-        {onEdit && (
-          <button
-            onClick={onEdit}
-            className="p-1 text-slate-400 hover:text-blue-500"
-            title="Edit"
-          >
-            <FaEdit size={10} />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="p-1 text-slate-400 hover:text-red-500"
-            title="Delete"
-          >
-            <FaTrash size={10} />
-          </button>
-        )}
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 interface PhoneItemProps {
   phone: PhoneLink;
@@ -160,56 +168,62 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
   onSetPrimary,
   onEdit,
   onDelete,
-}) => (
-  <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
-    <FaPhone size={12} className="text-slate-400 flex-shrink-0" />
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2">
-        <a
-          href={`tel:${phone.number}`}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          {phone.format || phone.number}
-        </a>
-        {isPrimary && (
-          <FaStar size={10} className="text-amber-400" title="Primary" />
-        )}
+}) => {
+  // Try multiple field names: number, value, format
+  const phoneNumber = phone.number || (phone as any).value || "";
+  const phoneDisplay = phone.format || phoneNumber;
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
+      <FaPhone size={12} className="text-slate-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <a
+            href={`tel:${phoneNumber}`}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {phoneDisplay}
+          </a>
+          {isPrimary && (
+            <FaStar size={10} className="text-amber-400" title="Primary" />
+          )}
+        </div>
+        {phone.name && <p className="text-xs text-slate-400">{phone.name}</p>}
       </div>
-      {phone.name && <p className="text-xs text-slate-400">{phone.name}</p>}
+      {canEdit && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!isPrimary && onSetPrimary && (
+            <button
+              onClick={onSetPrimary}
+              className="p-1 text-slate-400 hover:text-amber-500"
+              title="Set primary"
+            >
+              <FaRegStar size={10} />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1 text-slate-400 hover:text-blue-500"
+              title="Edit"
+            >
+              <FaEdit size={10} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1 text-slate-400 hover:text-red-500"
+              title="Delete"
+            >
+              <FaTrash size={10} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
-    {canEdit && (
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!isPrimary && onSetPrimary && (
-          <button
-            onClick={onSetPrimary}
-            className="p-1 text-slate-400 hover:text-amber-500"
-            title="Set primary"
-          >
-            <FaRegStar size={10} />
-          </button>
-        )}
-        {onEdit && (
-          <button
-            onClick={onEdit}
-            className="p-1 text-slate-400 hover:text-blue-500"
-            title="Edit"
-          >
-            <FaEdit size={10} />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="p-1 text-slate-400 hover:text-red-500"
-            title="Delete"
-          >
-            <FaTrash size={10} />
-          </button>
-        )}
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 interface AddressItemProps {
   address: AddressLink;
@@ -244,17 +258,18 @@ const AddressItem: React.FC<AddressItemProps> = ({
 
   return (
     <div className="flex items-start gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
-      <FaMapMarkerAlt
-        size={12}
-        className="text-slate-400 flex-shrink-0 mt-0.5"
-      />
+      <FaMapMarkerAlt size={12} className="text-slate-400 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm text-slate-700 dark:text-slate-300">
             {address.address1}
           </p>
           {isPrimary && (
-            <FaStar size={10} className="text-amber-400 shrink-0" title="Primary" />
+            <FaStar
+              size={10}
+              className="text-amber-400 shrink-0"
+              title="Primary"
+            />
           )}
         </div>
         <p className="text-xs text-slate-500">
@@ -329,59 +344,64 @@ const DomainItem: React.FC<DomainItemProps> = ({
   onSetPrimary,
   onEdit,
   onDelete,
-}) => (
-  <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
-    <FaGlobe size={12} className="text-slate-400 flex-shrink-0" />
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2">
-        <a
-          href={`https://${domain.domain}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline truncate"
-        >
-          {domain.domain}
-        </a>
-        {domain.is_primary && (
-          <FaStar size={10} className="text-amber-400" title="Primary" />
-        )}
-        {domain.verified && <span className="text-xs text-green-500">✓</span>}
+}) => {
+  // Try multiple field names: domain, value
+  const domainValue = domain.domain || (domain as any).value || "";
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
+      <FaGlobe size={12} className="text-slate-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <a
+            href={`https://${domainValue}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:underline truncate"
+          >
+            {domainValue}
+          </a>
+          {domain.is_primary && (
+            <FaStar size={10} className="text-amber-400" title="Primary" />
+          )}
+          {domain.verified && <span className="text-xs text-green-500">✓</span>}
+        </div>
+        {domain.name && <p className="text-xs text-slate-400">{domain.name}</p>}
       </div>
-      {domain.name && <p className="text-xs text-slate-400">{domain.name}</p>}
+      {canEdit && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!domain.is_primary && onSetPrimary && (
+            <button
+              onClick={onSetPrimary}
+              className="p-1 text-slate-400 hover:text-amber-500"
+              title="Set primary"
+            >
+              <FaRegStar size={10} />
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1 text-slate-400 hover:text-blue-500"
+              title="Edit"
+            >
+              <FaEdit size={10} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1 text-slate-400 hover:text-red-500"
+              title="Delete"
+            >
+              <FaTrash size={10} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
-    {canEdit && (
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!domain.is_primary && onSetPrimary && (
-          <button
-            onClick={onSetPrimary}
-            className="p-1 text-slate-400 hover:text-amber-500"
-            title="Set primary"
-          >
-            <FaRegStar size={10} />
-          </button>
-        )}
-        {onEdit && (
-          <button
-            onClick={onEdit}
-            className="p-1 text-slate-400 hover:text-blue-500"
-            title="Edit"
-          >
-            <FaEdit size={10} />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="p-1 text-slate-400 hover:text-red-500"
-            title="Delete"
-          >
-            <FaTrash size={10} />
-          </button>
-        )}
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Add/Edit Modals
@@ -412,11 +432,29 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
 
   React.useEffect(() => {
     if (data) {
-      setFormData(data as Record<string, string | boolean>);
+      // Normalize field names from backend to form field names
+      const normalized: Record<string, string | boolean> = {
+        ...data,
+      } as Record<string, string | boolean>;
+      if (type === "email") {
+        // Backend may use "value" or "address" instead of "email"
+        normalized.email =
+          (data as any).email ||
+          (data as any).value ||
+          (data as any).address ||
+          "";
+      } else if (type === "phone") {
+        // Backend may use "value" instead of "number"
+        normalized.number = (data as any).number || (data as any).value || "";
+      } else if (type === "domain") {
+        // Backend may use "value" instead of "domain"
+        normalized.domain = (data as any).domain || (data as any).value || "";
+      }
+      setFormData(normalized);
     } else {
       setFormData({});
     }
-  }, [data, isOpen]);
+  }, [data, isOpen, type]);
 
   if (!isOpen) return null;
 
@@ -690,13 +728,13 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   editRoles,
   className = "",
   compact = false,
-  title = "Contact Info",
+  title = "Communications Info",
   defaultCollapsed = false,
   showTypes = ["email", "phone", "address", "domain"],
-  primaryEmailId,
+  primaryEmailId: _primaryEmailId,
   primaryPhoneId,
   primaryAddressId,
-  primaryDomainId,
+  primaryDomainId: _primaryDomainId,
   onSetPrimaryItem,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -745,75 +783,84 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
     type: "email" | "phone" | "address" | "domain",
     index: number,
   ) => {
-    if (!onChange) return;
+    if (!onChange || !contactId) return;
 
-    const ok = window.confirm(
-      `Delete this ${type}? This cannot be undone.`,
-    );
+    const ok = window.confirm(`Delete this ${type}? This cannot be undone.`);
     if (!ok) return;
 
-    // Get the item to delete
-    let itemToDelete: { id?: number } | undefined;
-    if (type === "email") itemToDelete = emails[index];
-    else if (type === "phone") itemToDelete = phones[index];
-    else if (type === "address") itemToDelete = addresses[index];
-    else if (type === "domain") itemToDelete = domains[index];
-
-    // If item has an id, delete from backend first
-    if (itemToDelete?.id) {
-      setIsSaving(true);
-      try {
-        await deleteRecord(type, itemToDelete.id);
-        // On success, update local state
-        const newData = { ...data };
-        if (type === "email")
-          newData.emails = emails.filter((_, i) => i !== index);
-        if (type === "phone")
-          newData.phones = phones.filter((_, i) => i !== index);
-        if (type === "address")
-          newData.addresses = addresses.filter((_, i) => i !== index);
-        if (type === "domain")
-          newData.domains = domains.filter((_, i) => i !== index);
-        onChange(newData);
-      } catch (err) {
-        console.error(`Failed to delete ${type}:`, err);
-        // Could show toast here
-      } finally {
-        setIsSaving(false);
+    setIsSaving(true);
+    try {
+      // Build the updated array without the deleted item
+      let updatedArray: any[];
+      if (type === "email") {
+        updatedArray = emails.filter((_, i) => i !== index);
+      } else if (type === "phone") {
+        updatedArray = phones.filter((_, i) => i !== index);
+      } else if (type === "address") {
+        updatedArray = addresses.filter((_, i) => i !== index);
+      } else if (type === "domain") {
+        updatedArray = domains.filter((_, i) => i !== index);
+      } else {
+        return;
       }
-    } else {
-      // No id means it's a new unsaved item, just remove from local state
+
+      // Map link type to refs.links key (address -> location)
+      const linksKey = type === "address" ? "location" : type;
+
+      // Save to contact's refs.links.{type} via /wcapi/save/
+      await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              [linksKey]: updatedArray,
+            },
+          },
+        },
+      });
+
+      // Update local state
       const newData = { ...data };
-      if (type === "email")
-        newData.emails = emails.filter((_, i) => i !== index);
-      if (type === "phone")
-        newData.phones = phones.filter((_, i) => i !== index);
-      if (type === "address")
-        newData.addresses = addresses.filter((_, i) => i !== index);
-      if (type === "domain")
-        newData.domains = domains.filter((_, i) => i !== index);
+      if (type === "email") newData.emails = updatedArray;
+      else if (type === "phone") newData.phones = updatedArray;
+      else if (type === "address") newData.addresses = updatedArray;
+      else if (type === "domain") newData.domains = updatedArray;
       onChange(newData);
+    } catch (err) {
+      console.error(`Failed to delete ${type}:`, err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSetPrimary = async (index: number) => {
-    if (!onChange) return;
+    if (!onChange || !contactId) return;
     const emailToUpdate = emails[index];
-    if (!emailToUpdate?.id) return;
 
     setIsSaving(true);
     try {
-      // Update the email to be primary via wcapi - always include contact_id
-      await saveRecord("email", {
-        id: emailToUpdate.id,
-        is_primary: true,
-        contact_id: contactId,
-      });
-      // On success, update all emails locally
+      // Update all emails - mark selected as primary, others as not primary
       const newEmails = emails.map((e, i) => ({
         ...e,
         is_primary: i === index,
       }));
+
+      // Save to contact's refs.links.email
+      await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              email: newEmails,
+            },
+          },
+        },
+      });
+
       onChange({ ...data, emails: newEmails });
       // Notify parent to update contact.email_id
       if (onSetPrimaryItem && emailToUpdate.id) {
@@ -827,16 +874,26 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   };
 
   const handleSetPhonePrimary = async (index: number) => {
-    if (!onChange) return;
+    if (!onChange || !contactId) return;
     const phoneToUpdate = phones[index];
-    if (!phoneToUpdate?.id) return;
 
     setIsSaving(true);
     try {
-      const newPhones = phones.map((_p, i) => ({
-        ..._p,
-      }));
-      onChange({ ...data, phones: newPhones });
+      // Save to contact's refs.links.phone
+      await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              phone: phones,
+            },
+          },
+        },
+      });
+
+      onChange({ ...data, phones: phones });
       // Notify parent to update contact.phone_id
       if (onSetPrimaryItem && phoneToUpdate.id) {
         onSetPrimaryItem("phone", phoneToUpdate.id);
@@ -849,13 +906,26 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   };
 
   const handleSetAddressPrimary = async (index: number) => {
-    if (!onChange) return;
+    if (!onChange || !contactId) return;
     const addressToUpdate = addresses[index];
-    if (!addressToUpdate?.id) return;
 
     setIsSaving(true);
     try {
-      onChange({ ...data }); // trigger re-render
+      // Save to contact's refs.links.location
+      await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              location: addresses,
+            },
+          },
+        },
+      });
+
+      onChange({ ...data, addresses: addresses });
       // Notify parent to update contact.address_id
       if (onSetPrimaryItem && addressToUpdate.id) {
         onSetPrimaryItem("address", addressToUpdate.id);
@@ -868,23 +938,31 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   };
 
   const handleSetDomainPrimary = async (index: number) => {
-    if (!onChange) return;
+    if (!onChange || !contactId) return;
     const domainToUpdate = domains[index];
-    if (!domainToUpdate?.id) return;
 
     setIsSaving(true);
     try {
-      // Update the domain to be primary via wcapi
-      await saveRecord("domain", {
-        id: domainToUpdate.id,
-        is_primary: true,
-        contact_id: contactId,
-      });
-      // On success, update all domains locally
+      // Update all domains - mark selected as primary, others as not primary
       const newDomains = domains.map((d, i) => ({
         ...d,
         is_primary: i === index,
       }));
+
+      // Save to contact's refs.links.domain
+      await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              domain: newDomains,
+            },
+          },
+        },
+      });
+
       onChange({ ...data, domains: newDomains });
       // Notify parent to update contact.domain_id
       if (onSetPrimaryItem && domainToUpdate.id) {
@@ -905,98 +983,93 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
     setIsSaving(true);
     try {
-      // Build the payload for wcapi - always include contact_id
-      const payload: any = { ...item };
-      if (contactId) {
-        payload.contact_id = contactId;
-      } else {
+      if (!contactId) {
         console.warn("[CommunicationsPanel] No contactId provided!");
+        return;
       }
+
+      // Build the updated refs.links.{type} array
+      // For edit: replace the item at index; for add: append new item
+      let updatedArray: any[];
+      const newItem = { ...item };
+      // Ensure item has an id (use negative temp id for new items, backend will assign real id)
+      if (!newItem.id) {
+        newItem.id = -Date.now(); // Temp id for new items
+      }
+
+      if (type === "email") {
+        updatedArray = [...emails];
+        if (index !== undefined) updatedArray[index] = newItem as EmailLink;
+        else updatedArray.push(newItem as EmailLink);
+        // Ensure only one email is primary - clear others when this one is set as primary
+        if ((newItem as EmailLink).is_primary) {
+          const primaryIndex =
+            index !== undefined ? index : updatedArray.length - 1;
+          updatedArray = updatedArray.map((e, i) => ({
+            ...e,
+            is_primary: i === primaryIndex,
+          }));
+        }
+      } else if (type === "phone") {
+        updatedArray = [...phones];
+        if (index !== undefined) updatedArray[index] = newItem as PhoneLink;
+        else updatedArray.push(newItem as PhoneLink);
+      } else if (type === "address") {
+        updatedArray = [...addresses];
+        if (index !== undefined) updatedArray[index] = newItem as AddressLink;
+        else updatedArray.push(newItem as AddressLink);
+      } else if (type === "domain") {
+        updatedArray = [...domains];
+        if (index !== undefined) updatedArray[index] = newItem as DomainLink;
+        else updatedArray.push(newItem as DomainLink);
+        // Ensure only one domain is primary - clear others when this one is set as primary
+        if ((newItem as DomainLink).is_primary) {
+          const primaryIndex =
+            index !== undefined ? index : updatedArray.length - 1;
+          updatedArray = updatedArray.map((d, i) => ({
+            ...d,
+            is_primary: i === primaryIndex,
+          }));
+        }
+      } else {
+        return;
+      }
+
+      // Map link type to refs.links key (address -> location)
+      const linksKey = type === "address" ? "location" : type;
 
       console.log("[CommunicationsPanel] handleSave:", {
         type,
+        linksKey,
         contactId,
-        "payload.contact_id": payload.contact_id,
-        fullPayload: JSON.stringify(payload),
+        updatedArray: JSON.stringify(updatedArray),
       });
 
-      // Save via wcapi - it handles create vs update based on presence of id
-      const result = await saveRecord(type, payload);
+      // Save to contact's refs.links.{type} - send refs field with nested structure
+      const result = await saveRecord("contact", {
+        id: contactId,
+        mode: "update",
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              [linksKey]: updatedArray,
+            },
+          },
+        },
+      });
       console.log("[CommunicationsPanel] saveRecord result:", result);
 
-      // On success (200), format the data for refs.links structure
-      // Format: {id, value, name} for email/phone/domain, or full object for address
-      const returnedId = result?.record?.id || result?.id || item.id;
-
-      let linkItem: any;
-      if (type === "email") {
-        // refs.links.email: [{id, value, name, is_primary}]
-        linkItem = {
-          id: returnedId,
-          value: (item as EmailLink).email || payload.email,
-          name: (item as EmailLink).name || payload.name || "",
-          is_primary: (item as EmailLink).is_primary || false,
-          // Keep original fields for display
-          email: (item as EmailLink).email || payload.email,
-        };
-      } else if (type === "phone") {
-        // refs.links.phone: [{id, value, name}]
-        linkItem = {
-          id: returnedId,
-          value: (item as PhoneLink).number || payload.number,
-          name: (item as PhoneLink).name || payload.name || "",
-          number: (item as PhoneLink).number || payload.number,
-        };
-      } else if (type === "domain") {
-        // refs.links.domain: [{id, value, name, is_primary}]
-        linkItem = {
-          id: returnedId,
-          value: (item as DomainLink).domain || payload.domain,
-          name: (item as DomainLink).name || payload.name || "",
-          is_primary: (item as DomainLink).is_primary || false,
-          domain: (item as DomainLink).domain || payload.domain,
-        };
-      } else if (type === "address") {
-        // refs.links.address: [{id, name, full, address1, city, state, zip, country}]
-        const addr = item as AddressLink;
-        linkItem = {
-          id: returnedId,
-          name: addr.name || payload.name || "",
-          full:
-            addr.full ||
-            `${addr.address1 || ""}\n${addr.city || ""}, ${addr.state || ""} ${
-              addr.zip || ""
-            }`.trim(),
-          address1: addr.address1 || payload.address1 || "",
-          city: addr.city || payload.city || "",
-          state: addr.state || payload.state || "",
-          zip: addr.zip || payload.zip || "",
-          country: addr.country || payload.country || "",
-        };
-      }
-
-      // Update local state with the formatted link item
+      // Update local state with the array we already built
       const newData = { ...data };
       if (type === "email") {
-        const arr = [...emails];
-        if (index !== undefined) arr[index] = linkItem as EmailLink;
-        else arr.push(linkItem as EmailLink);
-        newData.emails = arr;
+        newData.emails = updatedArray as EmailLink[];
       } else if (type === "phone") {
-        const arr = [...phones];
-        if (index !== undefined) arr[index] = linkItem as PhoneLink;
-        else arr.push(linkItem as PhoneLink);
-        newData.phones = arr;
+        newData.phones = updatedArray as PhoneLink[];
       } else if (type === "address") {
-        const arr = [...addresses];
-        if (index !== undefined) arr[index] = linkItem as AddressLink;
-        else arr.push(linkItem as AddressLink);
-        newData.addresses = arr;
+        newData.addresses = updatedArray as AddressLink[];
       } else if (type === "domain") {
-        const arr = [...domains];
-        if (index !== undefined) arr[index] = linkItem as DomainLink;
-        else arr.push(linkItem as DomainLink);
-        newData.domains = arr;
+        newData.domains = updatedArray as DomainLink[];
       }
 
       onChange(newData);
@@ -1085,7 +1158,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                   emails.map((email, idx) => (
                     <EmailItem
                       key={email.id || idx}
-                      email={{...email, is_primary: primaryEmailId ? email.id === primaryEmailId : email.is_primary}}
+                      email={email}
                       canEdit={canEdit}
                       onSetPrimary={() => handleSetPrimary(idx)}
                       onEdit={() => handleEdit("email", email, idx)}
@@ -1129,7 +1202,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       key={phone.id || idx}
                       phone={phone}
                       canEdit={canEdit}
-                      isPrimary={!!primaryPhoneId && phone.id === primaryPhoneId}
+                      isPrimary={
+                        !!primaryPhoneId && phone.id === primaryPhoneId
+                      }
                       onSetPrimary={() => handleSetPhonePrimary(idx)}
                       onEdit={() => handleEdit("phone", phone, idx)}
                       onDelete={() => handleDelete("phone", idx)}
@@ -1172,7 +1247,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       key={addr.id || idx}
                       address={addr}
                       canEdit={canEdit}
-                      isPrimary={!!primaryAddressId && addr.id === primaryAddressId}
+                      isPrimary={
+                        !!primaryAddressId && addr.id === primaryAddressId
+                      }
                       onSetPrimary={() => handleSetAddressPrimary(idx)}
                       onEdit={() => handleEdit("address", addr, idx)}
                       onDelete={() => handleDelete("address", idx)}
@@ -1213,7 +1290,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                   domains.map((domain, idx) => (
                     <DomainItem
                       key={domain.domain || idx}
-                      domain={{...domain, is_primary: primaryDomainId ? domain.id === primaryDomainId : domain.is_primary}}
+                      domain={domain}
                       canEdit={canEdit}
                       onSetPrimary={() => handleSetDomainPrimary(idx)}
                       onEdit={() => handleEdit("domain", domain, idx)}
