@@ -3,6 +3,34 @@
 from django.db import migrations
 
 
+def _table_names(schema_editor) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        return set(connection.introspection.table_names(cursor))
+
+
+def _column_names(schema_editor, table_name: str) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        description = connection.introspection.get_table_description(cursor, table_name)
+    return {col.name for col in description}
+
+
+def _forward_compat_docs_0012(apps, schema_editor):
+    tables = _table_names(schema_editor)
+
+    if 'linkage_index' in tables:
+        cols = _column_names(schema_editor, 'linkage_index')
+        if 'linkage_id_id' in cols:
+            schema_editor.execute('ALTER TABLE linkage_index DROP COLUMN linkage_id_id')
+        elif 'linkage_id' in cols:
+            schema_editor.execute('ALTER TABLE linkage_index DROP COLUMN linkage_id')
+
+    for table_name in ('linkage_index', 'linkages'):
+        if table_name in _table_names(schema_editor):
+            schema_editor.execute(f'DROP TABLE {schema_editor.quote_name(table_name)}')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,14 +38,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='linkageindex',
-            name='linkage_id',
-        ),
-        migrations.DeleteModel(
-            name='Linkage',
-        ),
-        migrations.DeleteModel(
-            name='LinkageIndex',
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_forward_compat_docs_0012, migrations.RunPython.noop),
+            ],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='linkageindex',
+                    name='linkage_id',
+                ),
+                migrations.DeleteModel(
+                    name='Linkage',
+                ),
+                migrations.DeleteModel(
+                    name='LinkageIndex',
+                ),
+            ],
         ),
     ]

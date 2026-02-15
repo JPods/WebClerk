@@ -105,6 +105,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
 
         # User-level scope: own or explicitly assigned records
         ownership_clauses = []
+        model_name = getattr(qs.model._meta, 'model_name', '')
 
         if 'created_by' in fields:
             ownership_clauses.append(Q(created_by=getattr(user, 'id', None)))
@@ -123,14 +124,11 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         
         # Transaction models: allow access via customer_id relationship
         # (Proposal, Order, Invoice, Purchase, WorkOrder, etc.)
-        if 'customer_id' in fields:
+        # NOTE: Skip customer_id ownership scoping for Contact model —
+        # customer_id on Contact is the FK to the parent customer, not the "owner".
+        if 'customer_id' in fields and model_name.lower() != 'contact':
             ownership_clauses.append(Q(customer_id=getattr(user, 'id', None)))
 
-        # Special-case: Contact model (no ownership fields) -> allow self only
-        model_name = getattr(qs.model._meta, 'model_name', '')
-        if model_name.lower() == 'contact':
-            constraints &= Q(pk=getattr(user, 'id', None))
-        
         # Transaction models without ownership fields: allow all for authenticated users
         # These are business documents that employees need to access
         transaction_models = {
@@ -146,19 +144,24 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
             'rep',
             'employee',
         }
+        # Contact records are business data that employees need to look up
+        # by FK (customer_id, vendor_id, etc.) — treat like transaction models.
+        contact_models = {'contact'}
+
         is_transaction_model = model_name.lower() in transaction_models
         is_org_model = model_name.lower() in org_models
+        is_contact_model = model_name.lower() in contact_models
 
         if ownership_clauses:
             scope = ownership_clauses[0]
             for clause in ownership_clauses[1:]:
                 scope |= clause
             constraints &= scope
-        elif is_transaction_model or is_org_model:
-            # Transaction models: authenticated users can access all records
+        elif is_transaction_model or is_org_model or is_contact_model:
+            # Transaction/org/contact models: authenticated users can access all records
             # (org-level scoping already applied above if enabled)
             pass
-        elif model_name.lower() != 'contact':
+        elif not is_contact_model:
             # No ownership-related fields and not contact/transaction; safest default is no access
             constraints &= Q(pk__in=[])
 

@@ -7,6 +7,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine, Order, OrderLine, Purchase, PurchaseLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
+from apps.orgs.models import OrgBase
 
 
 class ProposalLineSerializer(RoleAwareModelSerializer):
@@ -46,19 +47,19 @@ class ProposalSerializer(RoleAwareModelSerializer):
     def get_customer_name(self, obj):
         if obj.customer_id:
             try:
-                contact = Contact.objects.get(id=obj.customer_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.customer_id}"
+                org = OrgBase.objects.get(id=obj.customer_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.customer_id}"
         return None
 
     def get_vendor_name(self, obj):
         if obj.vendor_id:
             try:
-                contact = Contact.objects.get(id=obj.vendor_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.vendor_id}"
+                org = OrgBase.objects.get(id=obj.vendor_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.vendor_id}"
         return None
 
     def to_representation(self, instance):
@@ -100,17 +101,17 @@ class ProposalSerializer(RoleAwareModelSerializer):
     def validate_customer_id(self, value):
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Customer contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Customer organization does not exist.")
         return value
 
     def validate_vendor_id(self, value):
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Vendor contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Vendor organization does not exist.")
         return value
 
     def validate(self, data):
@@ -160,23 +161,23 @@ class OrderSerializer(RoleAwareModelSerializer):
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
 
     def get_customer_name(self, obj):
-        """Get customer name from Contact model."""
+        """Get customer name from OrgBase model."""
         if obj.customer_id:
             try:
-                contact = Contact.objects.get(id=obj.customer_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.customer_id}"
+                org = OrgBase.objects.get(id=obj.customer_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.customer_id}"
         return None
 
     def get_vendor_name(self, obj):
-        """Get vendor name from Contact model."""
+        """Get vendor name from OrgBase model."""
         if obj.vendor_id:
             try:
-                contact = Contact.objects.get(id=obj.vendor_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.vendor_id}"
+                org = OrgBase.objects.get(id=obj.vendor_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.vendor_id}"
         return None
 
     def to_representation(self, instance):
@@ -217,18 +218,18 @@ class OrderSerializer(RoleAwareModelSerializer):
         """Validate customer exists."""
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Customer contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Customer organization does not exist.")
         return value
 
     def validate_vendor_id(self, value):
         """Validate vendor exists."""
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Vendor contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Vendor organization does not exist.")
         return value
 
     def validate(self, data):

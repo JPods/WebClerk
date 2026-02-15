@@ -3,6 +3,38 @@
 from django.db import migrations, models
 
 
+def _table_names(schema_editor) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        return set(connection.introspection.table_names(cursor))
+
+
+def _column_names(schema_editor, table_name: str) -> set[str]:
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        description = connection.introspection.get_table_description(cursor, table_name)
+    return {col.name for col in description}
+
+
+def _forward_compat_0005(apps, schema_editor):
+    tables = _table_names(schema_editor)
+
+    if 'actions' in tables:
+        action_cols = _column_names(schema_editor, 'actions')
+        if 'parent_id' in action_cols and 'action_id_id' not in action_cols:
+            schema_editor.execute('ALTER TABLE actions RENAME COLUMN parent_id TO action_id_id')
+
+    if 'core_softdeleteledger' in tables:
+        schema_editor.execute('DROP INDEX IF EXISTS core_softde_content_b722e6_idx')
+        soft_cols = _column_names(schema_editor, 'core_softdeleteledger')
+        if 'content_type_id' in soft_cols and 'contenttype_id_id' not in soft_cols:
+            schema_editor.execute('ALTER TABLE core_softdeleteledger RENAME COLUMN content_type_id TO contenttype_id_id')
+        schema_editor.execute(
+            'CREATE INDEX IF NOT EXISTS core_softde_content_dc3d5f_idx '
+            'ON core_softdeleteledger (contenttype_id_id, object_id)'
+        )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,26 +43,33 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='softdeleteledger',
-            name='core_softde_content_b722e6_idx',
-        ),
-        migrations.RenameField(
-            model_name='action',
-            old_name='parent',
-            new_name='action_id',
-        ),
-        migrations.RenameField(
-            model_name='softdeleteledger',
-            old_name='content_type',
-            new_name='contenttype_id',
-        ),
-        migrations.AlterUniqueTogether(
-            name='softdeleteledger',
-            unique_together={('contenttype_id', 'object_id')},
-        ),
-        migrations.AddIndex(
-            model_name='softdeleteledger',
-            index=models.Index(fields=['contenttype_id', 'object_id'], name='core_softde_content_dc3d5f_idx'),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_forward_compat_0005, migrations.RunPython.noop),
+            ],
+            state_operations=[
+                migrations.RemoveIndex(
+                    model_name='softdeleteledger',
+                    name='core_softde_content_b722e6_idx',
+                ),
+                migrations.RenameField(
+                    model_name='action',
+                    old_name='parent',
+                    new_name='action_id',
+                ),
+                migrations.RenameField(
+                    model_name='softdeleteledger',
+                    old_name='content_type',
+                    new_name='contenttype_id',
+                ),
+                migrations.AlterUniqueTogether(
+                    name='softdeleteledger',
+                    unique_together={('contenttype_id', 'object_id')},
+                ),
+                migrations.AddIndex(
+                    model_name='softdeleteledger',
+                    index=models.Index(fields=['contenttype_id', 'object_id'], name='core_softde_content_dc3d5f_idx'),
+                ),
+            ],
         ),
     ]
