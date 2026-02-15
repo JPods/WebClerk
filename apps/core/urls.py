@@ -9,6 +9,7 @@ from apps.core.views.wcapi import WCAPIGetView, WCAPIGetViewWithModel, WCAPIDele
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status
+from apps.core.views.refs_mismatch_view import RefsMismatchView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -44,4 +45,6 @@ urlpatterns = [
     path("wcapi/dev/sync-status/", dev_sync_status, name="dev-sync-status"),
     path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch"),
     path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart"),
+    # Refs mismatch audit
+    path("wcapi/refs-mismatch/", RefsMismatchView.as_view(), name="refs-mismatch"),
 ]

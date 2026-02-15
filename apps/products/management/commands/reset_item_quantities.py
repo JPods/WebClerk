@@ -10,7 +10,8 @@ Sets all items to:
 - on_po: 0
 - on_wo: 0
 - on_so: 0
-- invoiced: 0
+- on_in: 0
+- on_p: 0
 
 Usage:
     python manage.py reset_item_quantities
@@ -74,7 +75,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Showing {total} items with quantity in logical order:\n")
             for item in qs[:20]:  # Limit to 20 for readability
                 self.stdout.write(f"  Item #{item.pk} ({item.sku or item.name}):")
-                self.stdout.write(f"    {json.dumps(item.quantity_display, indent=None)}")
+                self.stdout.write(f"    {json.dumps(item.quantity, indent=None)}")
             if total > 20:
                 self.stdout.write(f"  ... and {total - 20} more")
             return
@@ -107,7 +108,8 @@ class Command(BaseCommand):
             ("on_po", 0),
             ("on_wo", 0),
             ("on_so", 0),
-            ("invoiced", 0),
+            ("on_in", 0),
+            ("on_p", 0),
         ])
 
         updated = 0
@@ -126,7 +128,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Reset {updated} items: on_hand={on_hand}, "
-                f"on_so=0, on_po=0, on_wo=0, invoiced=0"
+                f"on_so=0, on_po=0, on_wo=0, on_in=0, on_p=0"
             )
         )
         if errors:

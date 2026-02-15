@@ -41,13 +41,31 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
-	contact_id = models.IntegerField(blank=True, null=True)  # optional pointer to primary contact (could be denormalized from contacts aspect)
+	# FK-first: proper ForeignKey to Contact for primary contact reference.
+	contact_id = models.ForeignKey(
+		'core.Contact', on_delete=models.SET_NULL,
+		blank=True, null=True,
+		db_column='contact_id', related_name='orgs_as_contact',
+	)
+
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
+	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address
+	address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
 	email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
+	email_id = models.IntegerField(blank=True, null=True)  # optional FK to an Email record for the primary email
+	phone_id = models.IntegerField(blank=True, null=True)  # optional FK to a Phone record for the primary phone
 	phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
 	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
 	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
+	domain = models.CharField(max_length=255, blank=True, null=True)  # optional primary domain (could be denormalized from domains aspect)
+	domain_id = models.IntegerField(blank=True, null=True)  # optional FK to a Domain record for the primary domain
 	price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+	terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+	terms_fk = models.ForeignKey(
+		'transactions.PaymentTerm', on_delete=models.SET_NULL,
+		blank=True, null=True,
+		db_column='terms_id', related_name='orgs_with_terms',
+	)
 	status = models.CharField(
 		max_length=30,
 		blank=True,
