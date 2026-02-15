@@ -156,6 +156,8 @@ with existing helpers if you must touch them.
 
 ## Related Documentation
 
+- [FK Naming Conventions](fk-naming-conventions.md) — field naming rules
+  (`model` vs `model_id` vs `model_fk`) and rename inventory
 - [relationships.md](relationships.md) — original link strategy (JSON-based)
 - [refs_policies.md](refs_policies.md) — materialized graph index design
 - [refs_setting.md](refs_setting.md) — keyword/refs configuration

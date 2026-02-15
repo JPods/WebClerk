@@ -44,6 +44,7 @@ class ContactAdmin(BaseUserAdmin):
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
     readonly_fields = ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version')
+    raw_id_fields = ('customer', 'vendor', 'manufacturer', 'rep', 'employee')
     ordering = ('name_last', 'name_first')
     object_fields = (
         'actions',

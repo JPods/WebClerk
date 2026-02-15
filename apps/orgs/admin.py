@@ -46,6 +46,7 @@ class OrgBaseAdmin(admin.ModelAdmin):
     list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
     search_fields = ("display_name", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")
+    raw_id_fields = ("contact_id", "terms_fk")
     
     # Scalar fields alphabetical, then JSONB fields alphabetical
     fieldsets = (
