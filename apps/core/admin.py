@@ -43,7 +43,7 @@ class ContactAdmin(BaseUserAdmin):
     list_display = scalar_fields
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
-    readonly_fields = ('dt_joined', 'uuid')
+    readonly_fields = ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version')
     ordering = ('name_last', 'name_first')
     object_fields = (
         'actions',
@@ -89,12 +89,23 @@ class ContactAdmin(BaseUserAdmin):
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')}),
-        ('Company info', {'fields': ('company', 'title', 'department')}),
-        ('Org relationships', {'fields': ('employee', 'customer', 'vendor', 'manufacturer', 'rep', 'other_id')}),
-        ('Permissions', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('dt_joined',)}),
-        ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
+        ('Scalar fields', {'fields': (
+            'address_full', 'address_id', 'attention', 'company',
+            'customer', 'department', 'domain', 'domain_id',
+            'email_id', 'employee', 'health_rating',
+            'is_active', 'is_archived', 'is_deleted', 'is_staff', 'is_superuser',
+            'manufacturer', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
+            'other_id', 'phone', 'phone_id',
+            'rep', 'role', 'security_level', 'title', 'vendor',
+        )}),
+        ('JSONB fields', {
+            'fields': ('actions', 'comment', 'comments', 'groups', 'metadata', 'prefs', 'refs', 'user_permissions'),
+            'classes': ('collapse',),
+        }),
+        ('System (read-only)', {
+            'fields': ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version'),
+            'classes': ('collapse',),
+        }),
     )
     
     # Override the get_fieldsets method to use our custom fieldsets

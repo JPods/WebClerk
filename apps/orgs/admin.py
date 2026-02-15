@@ -49,17 +49,20 @@ class OrgBaseAdmin(admin.ModelAdmin):
     
     # Scalar fields alphabetical, then JSONB fields alphabetical
     fieldsets = (
-        ("Identity", {"fields": (
-            "attention", "contact_id", "display_name", "email", "org_type", "phone", "price_level", "status",
+        ("Scalar fields", {"fields": (
+            "address_full", "address_id", "attention",
+            "contact_id", "display_name", "domain", "domain_id",
+            "email", "email_id", "health_rating",
+            "is_active", "is_archived", "is_deleted",
+            "org_type", "phone", "phone_id", "price_level",
+            "security_level", "status", "terms", "terms_fk",
         )}),
-        ("Lifecycle", {"fields": (
-            "health_rating", "is_active", "is_archived", "is_deleted", "security_level",
-        )}),
-        ("Aspects (JSONB)", {
+        ("JSONB fields", {
             "fields": (
-                "actions", "addresses", "comments", "connections", "contacts", "data", 
-                "docs", "domains", "emails", "financial", "gl_accounts", "metadata",
-                "metrics", "phones", "prefs", "refs", "relations", "relationship_stats", "stats",
+                "actions", "addresses", "comments", "connections", "contacts",
+                "data", "docs", "domains", "emails", "financial",
+                "gl_accounts", "metadata", "metrics", "phones", "prefs",
+                "refs", "relations", "relationship_stats", "stats",
             ),
             "classes": ("collapse",),
         }),
