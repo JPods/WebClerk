@@ -330,6 +330,7 @@ export interface Organization {
   uuid?: string;
   org_type: OrgType;
   display_name: string;
+  ida?: string; // Alternate identifier (from API)
   display_id?: string; // Optional secondary identifier
   company?: string; // alias for display_name
   contact_id?: number | null; // optional pointer to primary contact
