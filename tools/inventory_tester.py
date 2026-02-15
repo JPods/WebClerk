@@ -269,7 +269,7 @@ def get_transaction_details():
             details.append({
                 "type": "invoice_line",
                 "line_id": line.pk,
-                "header_id": line.invoice_id_id if hasattr(line, 'invoice_id_id') else None,
+                # "header_id": line.invoice_id_id if hasattr(line, 'invoice_id_id') else None,  # Legacy support removed for consistency
                 "status": getattr(line, 'status', None),
                 "quantity": qty_data.get('invoiced', 0),
                 "quantity_raw": qty_data,
@@ -284,7 +284,7 @@ def get_transaction_details():
             details.append({
                 "type": "proposal_line",
                 "line_id": line.pk,
-                "header_id": line.proposal_id_id if hasattr(line, 'proposal_id_id') else None,
+                # "header_id": line.proposal_id_id if hasattr(line, 'proposal_id_id') else None,  # Legacy support removed for consistency
                 "status": getattr(line, 'status', None),
                 "quantity": qty_data.get('quoted', 0),
                 "quantity_raw": qty_data,
