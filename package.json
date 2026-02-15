@@ -12,7 +12,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "sass": "sass ./src:./src/",
-    "sass-min": "sass ./src:./src --style compressed"
+    "sass-min": "sass ./src:./src --style compressed",
+    "generate:types": "cd ../webClerk3 && python manage.py generate_ts_types --out ../React2025/src/generated/modelTypes.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",
