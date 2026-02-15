@@ -57,7 +57,7 @@ import {
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
 
-import { CheckSquare, MessageSquare, FileIcon, History, Link, Code, FileText, SlidersHorizontal } from "lucide-react";
+import { CheckSquare, MessageSquare, FileIcon, Code } from "lucide-react";
 
 // Tab navigation
 import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
@@ -66,12 +66,8 @@ import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/Detail
 import {
   CommentsPanel,
   DocumentsPanel,
-  MetadataPanel,
-  RefsPanel,
-  PrefsPanel,
   RawDataPanel,
   ActionsPanel,
-  LinkagesPanel,
 } from "@/apps/common/components/panels";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
@@ -1263,7 +1259,7 @@ export default function ItemDetail({
   
   // Tab navigation
   const { activeTab, setActiveTab } = useDetailTabs("item_detail", "actions", [
-    "actions", "comments", "documents", "history", "metadata", "prefs", "raw", "refs",
+    "actions", "comments", "documents", "raw",
   ]);
 
   const tabs: TabConfig[] = useMemo(
@@ -1271,11 +1267,7 @@ export default function ItemDetail({
       { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
       { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: data?.comments?.length },
       { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: data?.refs?.links?.document?.length },
-      { id: "history", label: "History", icon: <History size={14} /> },
-      { id: "metadata", label: "Metadata", icon: <FileText size={14} /> },
-      { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
       { id: "raw", label: "Raw", icon: <Code size={14} /> },
-      { id: "refs", label: "Refs", icon: <Link size={14} /> },
     ],
     [data],
   );
@@ -1456,20 +1448,8 @@ export default function ItemDetail({
               {activeTab === "documents" && (
                 <DocumentsPanel parent_model="item" parentId={data.id} data={data?.refs?.links?.document} isEditing={false} />
               )}
-              {activeTab === "history" && (
-                <MetadataPanel entityType="item" entityId={data.id} data={data?.metadata} />
-              )}
-              {activeTab === "metadata" && (
-                <MetadataPanel entityType="item" entityId={data.id} data={data?.metadata} />
-              )}
-              {activeTab === "prefs" && (
-                <PrefsPanel entityType="item" entityId={data.id} data={data?.prefs} />
-              )}
               {activeTab === "raw" && (
                 <JsonFieldEditor label="Full Item JSON" value={data} readonly defaultExpanded maxHeight="600px" />
-              )}
-              {activeTab === "refs" && (
-                <RefsPanel entityType="item" entityId={data.id} data={data?.refs} isEditing={false} />
               )}
             </div>
           </>
@@ -1592,20 +1572,8 @@ export default function ItemDetail({
             {activeTab === "documents" && (
               <DocumentsPanel parent_model="item" parentId={activeItemId} data={data?.refs?.links?.document} isEditing={effectiveMode !== "view"} />
             )}
-            {activeTab === "history" && (
-              <MetadataPanel entityType="item" entityId={activeItemId} data={data?.metadata} />
-            )}
-            {activeTab === "metadata" && (
-              <MetadataPanel entityType="item" entityId={activeItemId} data={data?.metadata} />
-            )}
-            {activeTab === "prefs" && (
-              <PrefsPanel entityType="item" entityId={activeItemId} data={data?.prefs} />
-            )}
             {activeTab === "raw" && (
               <JsonFieldEditor label="Full Item JSON" value={data} readonly defaultExpanded maxHeight="600px" />
-            )}
-            {activeTab === "refs" && (
-              <RefsPanel entityType="item" entityId={activeItemId} data={data?.refs} isEditing={effectiveMode !== "view"} onChange={(refs: any) => console.log('Refs updated:', refs)} />
             )}
           </div>
         </>

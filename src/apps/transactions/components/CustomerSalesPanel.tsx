@@ -447,7 +447,7 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
               const selected: SelectedCustomer = {
                 id: customer.id,
                 display_name: customer.display_name || "",
-                display_id: customer.display_id,
+                display_id: (customer as any).ida || customer.display_id,
                 price_level: customer.price_level,
                 status: customer.status,
                 phone: customer.phone,
@@ -580,7 +580,7 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
     const customer: SelectedCustomer = {
       id: org.id,
       display_name: org.display_name || "",
-      display_id: org.display_id,
+      display_id: org.ida || org.display_id,
       price_level: org.price_level,
       status: org.status,
       phone: org.phone,

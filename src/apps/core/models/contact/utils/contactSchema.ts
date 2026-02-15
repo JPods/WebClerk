@@ -24,36 +24,47 @@ export const addressRefSchema = z.object({
 
 /* -----------------------------
    REFS
+   The refs object is semi-structured: the API may return extra keys or
+   object-typed entries in link arrays (e.g. customer:[{id,name}]).
+   We keep validation loose here — mapping to the API payload shape
+   happens in mapRefsFormToApi().
 ----------------------------- */
 
 export const refsSchema = z.object({
-  tags: z.array(z.string()).default([]),
-  categories: z.array(z.string()).default([]),
-  keywords: z.array(z.string()).default([]),
-  related_ids: z.array(z.string()).default([]),
+  tags: z.array(z.any()).default([]),
+  categories: z.array(z.any()).default([]),
+  keywords: z.array(z.any()).default([]),
+  related_ids: z.array(z.any()).default([]),
   depends_on: z.record(z.any()).default({}),
   links: z
     .object({
-      rep: z.array(z.string()).default([]),
-      item: z.array(z.string()).default([]),
-      email: z.array(emailRefSchema).default([]),
-      phone: z.array(phoneRefSchema).default([]),
-      order: z.array(z.string()).default([]),
-      domain: z.array(z.string()).default([]),
-      contact: z.array(z.string()).default([]),
-      customer: z.array(z.string()).default([]),
-      document: z.array(z.string()).default([]),
-      address: z.array(addressRefSchema).default([]),
-      manufacturer: z.array(z.string()).default([]),
-      project: z.array(z.string()).default([]),
-      vendor: z.array(z.string()).default([]),
+      rep: z.array(z.any()).default([]),
+      item: z.array(z.any()).default([]),
+      email: z.array(z.any()).default([]),
+      phone: z.array(z.any()).default([]),
+      order: z.array(z.any()).default([]),
+      domain: z.array(z.any()).default([]),
+      contact: z.array(z.any()).default([]),
+      customer: z.array(z.any()).default([]),
+      document: z.array(z.any()).default([]),
+      address: z.array(z.any()).default([]),
+      manufacturer: z.array(z.any()).default([]),
+      project: z.array(z.any()).default([]),
+      vendor: z.array(z.any()).default([]),
     })
+    .passthrough()
     .default({}),
-});
+}).passthrough();
 
 /* -----------------------------
    CREATE
 ----------------------------- */
+
+/* Helper: valueAsNumber returns NaN for empty inputs — normalise to undefined */
+const optionalNumber = z.preprocess(
+  (v) => (v === "" || v === null || (typeof v === "number" && isNaN(v)) ? undefined : v),
+  z.number().optional(),
+);
 
 export const contactSchema = z
   .object({
@@ -66,16 +77,19 @@ export const contactSchema = z
     name_prefix: z.string().optional(),
     name_suffix: z.string().optional(),
     attention: z.string().optional(),
+    phone: z.string().optional().nullable(),
+    address_full: z.string().optional().nullable(),
+    domain: z.string().optional().nullable(),
     role: z.string().optional(),
     company: z.string().optional(),
     title: z.string().optional(),
     department: z.string().optional(),
-    customer_id: z.number().optional(),
-    rep_id: z.number().optional(),
-    vendor_id: z.number().optional(),
-    employee_id: z.number().optional(),
-    manufacturer_id: z.number().optional(),
-    other_id: z.number().optional(),
+    customer_id: optionalNumber,
+    rep_id: optionalNumber,
+    vendor_id: optionalNumber,
+    employee_id: optionalNumber,
+    manufacturer_id: optionalNumber,
+    other_id: optionalNumber,
     is_active: z.boolean().default(false),
     is_staff: z.boolean().default(false),
     refs: refsSchema.optional(),
@@ -97,16 +111,19 @@ export const updateContactSchema = z.object({
   name_prefix: z.string().optional(),
   name_suffix: z.string().optional(),
   attention: z.string().optional(),
+  phone: z.string().optional().nullable(),
+  address_full: z.string().optional().nullable(),
+  domain: z.string().optional().nullable(),
   role: z.string().optional(),
   company: z.string().optional(),
   title: z.string().optional(),
   department: z.string().optional(),
-  customer_id: z.number().optional(),
-  rep_id: z.number().optional(),
-  vendor_id: z.number().optional(),
-  employee_id: z.number().optional(),
-  manufacturer_id: z.number().optional(),
-  other_id: z.number().optional(),
+  customer_id: optionalNumber,
+  rep_id: optionalNumber,
+  vendor_id: optionalNumber,
+  employee_id: optionalNumber,
+  manufacturer_id: optionalNumber,
+  other_id: optionalNumber,
   is_active: z.boolean().default(false),
   is_staff: z.boolean().default(false),
   refs: refsSchema.optional(),

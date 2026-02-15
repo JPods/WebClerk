@@ -42,6 +42,16 @@ export interface CreateProposalRequest {
   parent_model?: TransactionParentType | null;
   total?: number | null;
   balance?: number | null;
+  // Denormalized fields from org
+  contact_id?: number | null;
+  attention?: string | null;
+  address_full?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  conditions_id?: number | null;
+  conditions_description?: string | null;
   ida?: string;
   is_active?: boolean;
   totals?: TransactionTotals;
@@ -71,6 +81,16 @@ export interface ProposalApiTask {
   parent_model?: TransactionParentType | null;
   total?: number | null;
   balance?: number | null;
+  // Denormalized fields from org
+  contact_id?: number | null;
+  attention?: string | null;
+  address_full?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  conditions_id?: number | null;
+  conditions_description?: string | null;
   dt_created?: number;
   dt_modified?: number;
   version?: number;

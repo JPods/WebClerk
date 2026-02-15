@@ -509,7 +509,6 @@ import {
   DocumentsPanel,
   QAPanel,
   ContactPanel,
-  RefsLinksContactPanel,  // deprecated alias for ContactPanel
   FinancialsPanel,
   TransactionFinancialsPanel,
   LinkagesPanel,

@@ -32,11 +32,13 @@ import {
   PrefsPanel,
   QAPanel,
   RawDataPanel,
-  RefsLinksContactPanel,
+  ContactPanel,
   RefsPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
-import { FinancialsPanel } from "@/apps/common/components/panels";
+import TransactionTabs from "@/components/common/TransactionTabs";
+import ItemTabs from "@/components/common/ItemTabs";
+import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
 
@@ -294,10 +296,7 @@ export default function VendorDetail({
     () => [
       { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
       { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-      { id: "metadata", label: "Metadata", icon: <FaFileAlt size={14} /> },
-      { id: "prefs", label: "Prefs", icon: <FaSlidersH size={14} /> },
       { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
-      { id: "refs", label: "Refs", icon: <FaLink size={14} /> },
     ],
     [],
   );
@@ -416,6 +415,8 @@ export default function VendorDetail({
               <div><span className="text-sm text-slate-500">Name:</span> <span className="font-medium">{vendorData.display_name}</span></div>
               <div><span className="text-sm text-slate-500">Email:</span> <span className="font-medium">{vendorData.email || '—'}</span></div>
               <div><span className="text-sm text-slate-500">Phone:</span> <span className="font-medium">{vendorData.phone || '—'}</span></div>
+              <div><span className="text-sm text-slate-500">Attention:</span> <span className="font-medium">{vendorData.attention || '—'}</span></div>
+              <div><span className="text-sm text-slate-500">Address:</span> <span className="font-medium">{vendorData.address_full || '—'}</span></div>
             </div>
           ) : (
             <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
@@ -455,26 +456,47 @@ export default function VendorDetail({
                   className="mt-1"
                 />
               </div>
+              <div>
+                <Label htmlFor="attention">Attention</Label>
+                <Input
+                  type="text"
+                  id="attention"
+                  placeholder="Attention"
+                  {...register("attention" as any)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="address_full">Address</Label>
+                <Input
+                  type="text"
+                  id="address_full"
+                  placeholder="Full address"
+                  {...register("address_full" as any)}
+                  className="mt-1"
+                />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Tab Navigation */}
-        <DetailTabs
-          entityType="vendor"
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          standardTabs={['actions', 'comments', 'documents', 'history', 'overview', 'raw']}
-          additionalTabs={additionalTabs}
-          badges={tabBadges}
-          showColumnSelector={true}
-          columnCount={columnCount}
-          onColumnCountChange={handleColumnChange}
-        />
-
-        {/* Tab Content */}
+        {/* Scrollable content: detail panels · transactions · items */}
         <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+
+          {/* ── DetailTabs ──────────────────────────────────────── */}
+          <div>
+            <DetailTabs
+              entityType="vendor"
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              standardTabs={['actions', 'comments', 'documents', 'overview', 'raw']}
+              additionalTabs={additionalTabs}
+              badges={tabBadges}
+              showColumnSelector={true}
+              columnCount={columnCount}
+              onColumnCountChange={handleColumnChange}
+            />
+            <form onSubmit={handleSubmit(onSubmit)}>
             <div className="p-4">
               {/* Overview Tab - Additional fields */}
               {activeTab === "overview" && (
@@ -573,7 +595,7 @@ export default function VendorDetail({
                       Save vendor to manage linked contacts
                     </div>
                   )}
-                  <RefsLinksContactPanel
+                  <ContactPanel
                     parent_model="vendor"
                     parentId={vendorId}
                     contacts={normalizeRefsLinksContact(
@@ -600,38 +622,10 @@ export default function VendorDetail({
 
               {/* Financial Tab */}
               {activeTab === "financial" && data?.financial && (
-                <FinancialsPanel
-                  totals={data.financial?.totals}
-                  cost={data.financial?.cost}
-                  sell={data.financial?.sell}
+                <OrgFinancialsPanel
+                  financial={data.financial}
+                  orgType="vendor"
                   currency="USD"
-                />
-              )}
-
-              {/* History Tab */}
-              {activeTab === "history" && data?.id && (
-                <MetadataPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data.metadata}
-                />
-              )}
-
-              {/* Metadata Tab */}
-              {activeTab === "metadata" && data?.id && (
-                <MetadataPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data.metadata}
-                />
-              )}
-
-              {/* Prefs Tab */}
-              {activeTab === "prefs" && (
-                <PrefsPanel
-                  entityType="vendor"
-                  entityId={Number(vendorId ?? 0)}
-                  data={panelRecord?.prefs}
                 />
               )}
 
@@ -653,15 +647,6 @@ export default function VendorDetail({
                 />
               )}
 
-              {/* Refs Tab */}
-              {activeTab === "refs" && (
-                <RefsPanel
-                  entityType="vendor"
-                  entityId={Number(vendorId ?? 0)}
-                  data={panelRecord?.refs}
-                />
-              )}
-
               {/* Empty state for tabs without data */}
               {!data?.id && activeTab !== "overview" && (
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -669,7 +654,29 @@ export default function VendorDetail({
                 </div>
               )}
             </div>
-          </form>
+            </form>
+          </div>
+
+          {/* ── TransactionTabs ──────────────────────────────────── */}
+          {vendorId && (
+            <div>
+              <TransactionTabs
+                orgType="vendor"
+                orgId={vendorId}
+              />
+            </div>
+          )}
+
+          {/* ── ItemTabs ───────────────────────────────────────── */}
+          {vendorId && (
+            <div>
+              <ItemTabs
+                orgType="vendor"
+                orgId={vendorId}
+              />
+            </div>
+          )}
+
         </div>
       </div>
     </>

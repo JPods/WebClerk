@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckSquare, MessageSquare, FileIcon, History, Link, Code, FileText, SlidersHorizontal } from "lucide-react";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
@@ -19,11 +18,7 @@ import { auditSchema } from "../utils/auditSchema";
 import { AuditAddProps } from "../types/auditType";
 
 // Tab navigation
-import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/DetailTabs";
-
-// Panels
-import { ActionsPanel, CommentsPanel, DocumentsPanel, MetadataPanel, PrefsPanel, RefsPanel } from "@/apps/common/components/panels";
-import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
 
 export default function AuditDetail({
   modeProp,
@@ -57,22 +52,8 @@ export default function AuditDetail({
 
   // Tab navigation
   const { activeTab, setActiveTab } = useDetailTabs("audit_detail", "actions", [
-    "actions", "comments", "documents", "history", "metadata", "prefs", "raw", "refs",
+    "actions", "comments", "documents", "raw",
   ]);
-
-  const tabs: TabConfig[] = useMemo(
-    () => [
-      { id: "actions", label: "Actions", icon: <CheckSquare size={14} /> },
-      { id: "comments", label: "Comments", icon: <MessageSquare size={14} />, badge: recordData?.comments?.length },
-      { id: "documents", label: "Documents", icon: <FileIcon size={14} />, badge: recordData?.refs?.links?.document?.length },
-      { id: "history", label: "History", icon: <History size={14} /> },
-      { id: "metadata", label: "Metadata", icon: <FileText size={14} /> },
-      { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
-      { id: "raw", label: "Raw", icon: <Code size={14} /> },
-      { id: "refs", label: "Refs", icon: <Link size={14} /> },
-    ],
-    [recordData],
-  );
 
   const handleEdit = () => setCurrentMode("edit");
   const handleCancel = () => {
@@ -224,35 +205,17 @@ export default function AuditDetail({
             entityType="audit_detail"
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            standardTabs={[]}
-            additionalTabs={tabs}
+            standardTabs={["actions", "comments", "documents", "raw"]}
+            badges={{
+              comments: recordData?.comments?.length,
+              documents: recordData?.refs?.links?.document?.length,
+            }}
+            panelEntityType="audit"
+            entityId={recordData.id}
+            recordData={recordData}
+            isEditing={currentMode !== "view"}
+            onRecordChange={setRecordData}
           />
-          <div className="mt-4">
-            {activeTab === "actions" && (
-              <ActionsPanel entityType="audit" entityId={recordData.id} data={recordData?.actions?.items} actionIds={recordData?.actions?.ids} isEditing={currentMode !== "view"} onChange={(actions: any) => setRecordData({ ...recordData, actions: { ...recordData.actions, items: actions } })} />
-            )}
-            {activeTab === "comments" && (
-              <CommentsPanel comments={recordData?.comments} isEditing={currentMode !== "view"} entityType="audit" entityId={recordData.id} onChange={(comments: any) => setRecordData({ ...recordData, comments })} />
-            )}
-            {activeTab === "documents" && (
-              <DocumentsPanel parent_model="audit" parentId={recordData.id} data={recordData?.refs?.links?.document} isEditing={currentMode !== "view"} onChange={(docs: any) => setRecordData({ ...recordData, refs: { ...recordData.refs, links: { ...recordData.refs?.links, document: docs } } })} />
-            )}
-            {activeTab === "history" && (
-              <MetadataPanel entityType="audit" entityId={recordData.id} data={recordData?.metadata} />
-            )}
-            {activeTab === "metadata" && (
-              <MetadataPanel entityType="audit" entityId={recordData.id} data={recordData?.metadata} />
-            )}
-            {activeTab === "prefs" && (
-              <PrefsPanel entityType="audit" entityId={recordData.id} data={recordData?.prefs} />
-            )}
-            {activeTab === "raw" && (
-              <JsonFieldEditor label="Full Audit JSON" value={recordData} readonly defaultExpanded maxHeight="600px" />
-            )}
-            {activeTab === "refs" && (
-              <RefsPanel entityType="audit" entityId={recordData.id} data={recordData?.refs} isEditing={currentMode !== "view"} onChange={(refs: any) => setRecordData({ ...recordData, refs })} />
-            )}
-          </div>
         </>
       )}
     </>

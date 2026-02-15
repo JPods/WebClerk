@@ -11,16 +11,34 @@
  */
 import React, { useState, useCallback } from 'react';
 import {
-  FaInfoCircle,
-  FaComments,
-  FaTasks,
-  FaFile,
-  FaHistory,
   FaCode,
   FaColumns,
+  FaComments,
+  FaDollarSign,
+  FaFile,
+  FaInfoCircle,
+  FaTasks,
   FaUsers,
 } from 'react-icons/fa';
 import { useAppSelector } from '@/store/hooks';
+
+// Standard panels for automatic rendering
+// DetailTabs auto-renders these 5 panels when `recordData` is provided:
+//   - ActionsPanel        (tab: actions)
+//   - CommentsPanel       (tab: comments)
+//   - DocumentsPanel      (tab: documents)
+//   - FinancialsPanel     (tab: financials)
+//   - JsonFieldEditor     (tab: raw)
+//
+// Additional panels available via `additionalTabs[].content` (manual render):
+//   - BasicInformationPanel, CommunicationsPanel, ContactPanel,
+//     LinkagesPanel, MetadataPanel, PrefsPanel, QAPanel,
+//     RawDataPanel, ShippingPanel
+// Full inventory: src/apps/common/components/panels/index.ts
+import { ActionsPanel, CommentsPanel, DocumentsPanel } from '@/apps/common/components/panels';
+import type { EntityType } from '@/apps/common/components/panels/types';
+import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
+import JsonFieldEditor from '@/apps/common/components/JsonFieldEditor';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,6 +55,8 @@ export interface TabConfig {
   roles?: string[];
   /** Hide this tab */
   hidden?: boolean;
+  /** Custom panel content rendered when this tab is active (for additional tabs) */
+  content?: React.ReactNode;
 }
 
 export interface DetailTabsProps {
@@ -47,7 +67,7 @@ export interface DetailTabsProps {
   /** Tab change handler */
   onTabChange: (tabId: string) => void;
   /** Standard tabs to include (default: all standard) */
-  standardTabs?: ('overview' | 'contacts' | 'comments' | 'actions' | 'documents' | 'history' | 'raw')[];
+  standardTabs?: ('actions' | 'comments' | 'contacts' | 'documents' | 'financials' | 'overview' | 'raw')[];
   /** Additional model-specific tabs (inserted before admin tabs) */
   additionalTabs?: TabConfig[];
   /** Badges for standard tabs (e.g., { comments: 5, actions: 2 }) */
@@ -60,6 +80,17 @@ export interface DetailTabsProps {
   onColumnCountChange?: (count: 2 | 3) => void;
   /** Custom class for tab bar */
   className?: string;
+  // ---- Panel rendering (when provided, DetailTabs auto-renders tab content) ----
+  /** Entity ID passed to panel components */
+  entityId?: string | number;
+  /** Full record data – presence triggers automatic panel rendering */
+  recordData?: any;
+  /** Entity type used for panels (defaults to entityType) */
+  panelEntityType?: string;
+  /** Whether panels are in edit mode */
+  isEditing?: boolean;
+  /** Callback when a standard panel updates the record */
+  onRecordChange?: (data: any) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,36 +98,35 @@ export interface DetailTabsProps {
 // ---------------------------------------------------------------------------
 
 const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
-  overview: {
-    id: 'overview',
-    label: 'Overview',
-    icon: <FaInfoCircle size={14} />,
-  },
-  contacts: {
-    id: 'contacts',
-    label: 'Contacts',
-    icon: <FaUsers size={14} />,
+  actions: {
+    id: 'actions',
+    label: 'Actions',
+    icon: <FaTasks size={14} />,
   },
   comments: {
     id: 'comments',
     label: 'Comments',
     icon: <FaComments size={14} />,
   },
-  actions: {
-    id: 'actions',
-    label: 'Actions',
-    icon: <FaTasks size={14} />,
+  contacts: {
+    id: 'contacts',
+    label: 'Contacts',
+    icon: <FaUsers size={14} />,
   },
   documents: {
     id: 'documents',
     label: 'Documents',
     icon: <FaFile size={14} />,
   },
-  history: {
-    id: 'history',
-    label: 'History',
-    icon: <FaHistory size={14} />,
-    adminOnly: true,
+  financials: {
+    id: 'financials',
+    label: 'Financials',
+    icon: <FaDollarSign size={14} />,
+  },
+  overview: {
+    id: 'overview',
+    label: 'Overview',
+    icon: <FaInfoCircle size={14} />,
   },
   raw: {
     id: 'raw',
@@ -107,11 +137,9 @@ const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
 };
 
 const DEFAULT_STANDARD_TABS: (keyof typeof STANDARD_TAB_CONFIGS)[] = [
-  'overview',
-  'comments',
   'actions',
+  'comments',
   'documents',
-  'history',
   'raw',
 ];
 
@@ -192,12 +220,29 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
   columnCount = 3,
   onColumnCountChange,
   className = '',
+  entityId,
+  recordData,
+  panelEntityType,
+  isEditing = false,
+  onRecordChange,
 }) => {
   // Get current user role for admin tab visibility
   const user = useAppSelector((state) => state.auth.user);
   // Normalize role to string for comparison (handle both string and string[])
   const userRole = Array.isArray(user?.role) ? user?.role[0] : user?.role;
   const isAdmin = userRole && ['admin', 'superadmin', 'super_admin', 'administrator'].includes(userRole);
+
+  // Panel configuration
+  const effectiveEntityType = (panelEntityType || entityType) as EntityType;
+  const numericEntityId = typeof entityId === 'string' ? parseInt(entityId, 10) : entityId;
+  const rawLabel = React.useMemo(
+    () =>
+      `Full ${effectiveEntityType
+        .split('_')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')} JSON`,
+    [effectiveEntityType]
+  );
 
   // Build tab list
   const tabs = React.useMemo(() => {
@@ -266,25 +311,104 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
   );
 
   return (
-    <div className={`shrink-0 border-b border-slate-200 dark:border-slate-700 ${className}`}>
-      <nav className="px-4">
-        <div className="flex items-center justify-between py-2 gap-4">
-          <div className="flex gap-1 overflow-x-auto">
-            {tabs.map((tab) => (
-              <TabButton
-                key={tab.id}
-                tab={tab}
-                isActive={activeTab === tab.id}
-                onClick={() => handleTabChange(tab.id)}
-              />
-            ))}
+    <>
+      <div className={`shrink-0 border-b border-slate-200 dark:border-slate-700 ${className}`}>
+        <nav className="px-4">
+          <div className="flex items-center justify-between py-2 gap-4">
+            <div className="flex gap-1 overflow-x-auto">
+              {tabs.map((tab) => (
+                <TabButton
+                  key={tab.id}
+                  tab={tab}
+                  isActive={activeTab === tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                />
+              ))}
+            </div>
+            {showColumnSelector && onColumnCountChange && (
+              <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+            )}
           </div>
-          {showColumnSelector && onColumnCountChange && (
-            <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+        </nav>
+      </div>
+
+      {/* ---- Standard Panel Content (auto-rendered when recordData is provided) ---- */}
+      {recordData !== undefined && (
+        <div className="mt-4">
+          {activeTab === 'actions' && standardTabs.includes('actions') && (
+            <ActionsPanel
+              entityType={effectiveEntityType}
+              entityId={numericEntityId as number}
+              data={recordData?.actions?.items}
+              actionIds={recordData?.actions?.ids}
+              isEditing={isEditing}
+              onChange={(actions: any) =>
+                onRecordChange?.({
+                  ...recordData,
+                  actions: { ...recordData?.actions, items: actions },
+                })
+              }
+            />
+          )}
+
+          {activeTab === 'comments' && standardTabs.includes('comments') && (
+            <CommentsPanel
+              comments={recordData?.comments}
+              isEditing={isEditing}
+              entityType={effectiveEntityType}
+              entityId={numericEntityId as number}
+              onChange={(comments: any) =>
+                onRecordChange?.({ ...recordData, comments })
+              }
+            />
+          )}
+
+          {activeTab === 'documents' && standardTabs.includes('documents') && (
+            <DocumentsPanel
+              parent_model={effectiveEntityType}
+              parentId={numericEntityId}
+              data={recordData?.refs?.links?.document}
+              isEditing={isEditing}
+              onChange={(docs: any) =>
+                onRecordChange?.({
+                  ...recordData,
+                  refs: {
+                    ...recordData?.refs,
+                    links: { ...recordData?.refs?.links, document: docs },
+                  },
+                })
+              }
+            />
+          )}
+
+          {activeTab === 'financials' && standardTabs.includes('financials') && (
+            <FinancialsPanel
+              totals={recordData?.financial?.totals}
+              cost={recordData?.financial?.cost}
+              sell={recordData?.financial?.sell}
+              currency={recordData?.financial?.currency}
+            />
+          )}
+
+          {activeTab === 'raw' && standardTabs.includes('raw') && (
+            <JsonFieldEditor
+              label={rawLabel}
+              value={recordData}
+              readonly
+              defaultExpanded
+              maxHeight="600px"
+            />
+          )}
+
+          {/* Custom tab content from additionalTabs */}
+          {additionalTabs.map((tab) =>
+            activeTab === tab.id && tab.content ? (
+              <React.Fragment key={tab.id}>{tab.content}</React.Fragment>
+            ) : null
           )}
         </div>
-      </nav>
-    </div>
+      )}
+    </>
   );
 };
 

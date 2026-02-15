@@ -1,262 +1,391 @@
 # Tab Navigation Reference
 
-Which tabs appear on each Detail page, grouped by layout pattern.
+How tab navigation works across Detail and Display pages.
 
 ---
 
-## Tab Layouts
+## Architecture
 
-### Layout A — Full Org (CustomerDetail)
+`DetailTabs` is the single source of truth for tab navigation. It lives at
+`src/components/common/DetailTabs.tsx` and handles:
 
-**standardTabs**: actions, comments, documents, history, raw  
-**additionalTabs**: contacts, financial, metadata, prefs, qa, refs
+1. **Tab bar rendering** — tab buttons with icons, badges, role-based visibility
+2. **Standard panel rendering** — when `recordData` is provided, DetailTabs auto-renders
+   the correct panel (ActionsPanel, CommentsPanel, DocumentsPanel, FinancialsPanel,
+   or JsonFieldEditor) for the active standard tab
+3. **Custom tab content** — model-specific tabs inject their own `content: ReactNode`
+   via `additionalTabs`
 
-| Page | File | Notes |
-|------|------|-------|
-| Customer | `orgs/models/customer/pages/CustomerDetail.tsx` | Badges: actions, comments, contacts, documents |
+### Standard Tabs
 
-### Layout B — Vendor Org
+These tab IDs are built-in with pre-configured icons and behavior (alphabetical):
 
-**standardTabs**: actions, comments, documents, history, overview, raw  
-**additionalTabs**: contacts, financial, metadata, prefs, qa, refs
+| Tab ID | Icon | Auto-renders | Admin-only |
+|--------|------|:------------:|:----------:|
+| `actions` | FaTasks | ActionsPanel | — |
+| `comments` | FaComments | CommentsPanel | — |
+| `contacts` | FaUsers | — | — |
+| `documents` | FaFile | DocumentsPanel | — |
+| `financials` | FaDollarSign | FinancialsPanel | — |
+| `overview` | FaInfoCircle | — | — |
+| `raw` | FaCode | JsonFieldEditor | ✓ |
 
-| Page | File | Notes |
-|------|------|-------|
-| Vendor | `orgs/models/vendor/pages/VendorDetail.tsx` | Adds `overview` tab for extra form fields. Badges: comments, contacts |
+> `overview` is not in `DEFAULT_STANDARD_TABS` — the overview section is rendered
+> persistently above the tab bar. Pass it explicitly in `standardTabs` only if needed.
+>
+> `contacts` provides a tab button only — its content varies per page and should be
+> rendered via `additionalTabs[].content`.
 
-### Layout C — Admin Org (OrgDetail)
+### Removed Tabs
 
-**defaultTabs** (own tab bar, not `DetailTabs`):  
-addresses, connections, contacts, data, docs, domains, emails, financial, gl_accounts, info, metadata, metrics, phones, prefs, qa, refs, relations
+The following tabs were removed from the standard set. Their data is accessible
+through the **Raw** tab, which has an admin-only edit button:
 
-| Page | File | Notes |
-|------|------|-------|
-| Employee | `orgs/models/employee/pages/EmployeeDetail.tsx` | Thin wrapper → `OrgDetail` with `additionalTabs={[]}` |
-| OrgDetail base | `orgs/components/OrgDetail.tsx` | Admin-only. All 17 tabs always visible |
-
-### Layout D — Transaction (TransactionDetailBase)
-
-**defaultTabs**: actions, comments, contacts, documents, financials, prefs, qa, raw  
-**admin-only**: metadata, refs  
-Extension points: `customTabsBefore`, `customTabsAfter` / `getCustomTabsAfter`
-
-| Page | File | Custom Tabs After |
-|------|------|-------------------|
-| Order | `transactions/models/order/pages/OrderDetail.tsx` | shipping |
-| Invoice | `transactions/models/invoice/pages/InvoiceDetail.tsx` | shipping, tax |
-| Purchase | `transactions/models/purchase/pages/PurchaseDetail.tsx` | receiving |
-| Proposal | `transactions/models/proposal/pages/ProposalDetail.tsx` | — |
-| Receipt | `transactions/models/receipt/pages/ReceiptDetail.tsx` | — |
-| Project | `transactions/models/project/pages/ProjectDetail.tsx` | — |
-| Workorder | `transactions/models/workorder/pages/WorkorderDetail.tsx` | — |
-| Requisition | `transactions/models/requisition/pages/RequisitionDetail.tsx` | — |
-
-> Note: Transaction tabs use `financials` (plural). Org tabs use `financial` (singular).
-
-### Layout E — Product Standard
-
-**additionalTabs**: actions, comments, documents, history, refs, raw
-
-| Page | File | Notes |
-|------|------|-------|
-| Catalog | `products/models/catalog/pages/CatalogDetail.tsx` | |
-| Flow | `products/models/flow/pages/FlowDetail.tsx` | |
-| Matrics | `products/models/matrics/pages/MatricsDetail.tsx` | |
-| Service | `products/models/service/pages/ServiceDetail.tsx` | |
-| Serial | `products/models/serial/pages/SerialDetail.tsx` | |
-| Variant | `products/models/variant/pages/VariantDetail.tsx` | |
-| Warehouse | `products/models/warehouse/pages/WarehouseDetail.tsx` | |
-| Specification | `products/models/specification/pages/SpecificationDetail.tsx` | |
-| Usage | `products/models/usage/pages/UsageDetail.tsx` | |
-| Item Xref | `products/models/item_xref/pages/ItemXrefDetail.tsx` | |
-| Org Item | `products/models/org_item/pages/OrgItemDetail.tsx` | |
-| **Item** | `products/models/item/pages/ItemDetail.tsx` | Panels extracted from inline to tabs. Both view + edit paths |
-
-**Exception — Bill of Material**: actions, comments, documents, history, raw (no `refs`)
-
-### Layout F — Accounts
-
-**standardTabs**: comments, actions, history, raw
-
-| Page | File |
-|------|------|
-| Currency | `accounts/models/currency/pages/CurrencyDetail.tsx` |
-| GL Account | `accounts/models/gl_account/pages/GLAccountDetail.tsx` |
-| Exchange Rate | `accounts/models/exchange_rate/pages/ExchangeRateDetail.tsx` |
-| Exchange Transaction | `accounts/models/exchange_transaction/pages/ExchangeTransactionDetail.tsx` |
-| GL Journal | `accounts/models/gl_journal/pages/GLJournalDetail.tsx` |
-
-### Layout G — Communications
-
-**standardTabs**: contacts, comments, actions, documents, history, raw
-
-| Page | File |
-|------|------|
-| Address | `communications/models/address/pages/AddressDetail.tsx` |
-| Phone | `communications/models/phone/pages/PhoneDetail.tsx` |
-| Email | `communications/models/email/pages/EmailDetail.tsx` |
-| Domain | `communications/models/domain/pages/DomainDetail.tsx` |
-
-### Layout H — Core / Docs (unique per model)
-
-| Page | File | Tabs |
-|------|------|------|
-| Action | `core/models/action/pages/ActionDetail.tsx` | comments, documents, qa, contacts |
-| API Log | `core/models/api_log/pages/APILogDetail.tsx` | Custom toggle (request/response) — modal overlay |
-| Contact | `core/models/contact/pages/ContactDetail.tsx` | actions, comments, communications, documents, history, metadata, prefs, raw, refs |
-| Document | `docs/models/document/pages/DocumentDetail.tsx` | actions, comments, documents, history, refs, raw |
-
-### Layout I — Simple Detail (Standard 8-Tab)
-
-**additionalTabs**: actions, comments, documents, history, metadata, prefs, raw, refs
-
-All use the same `useDetailTabs` + `DetailTabs` pattern with `standardTabs=[]`.
-
-| Page | File | Notes |
-|------|------|-------|
-| Setting | `core/models/setting/pages/SettingDetail.tsx` | |
-| Report | `core/models/report/pages/ReportDetail.tsx` | |
-| Template | `core/models/template/pages/TemplateDetail.tsx` | |
-| Audit | `accounts/models/audit/pages/AuditDetail.tsx` | Older Label-based layout |
-| Campaign | `support/models/campaign/pages/CampaignDetail.tsx` | |
-| Bundle | `sync/models/bundle/pages/BundleDetail.tsx` | |
-| Connection | `sync/models/connection/pages/ConnectionDetail.tsx` | HorizontalField layout |
-| Connection (legacy) | `sync/connection/pages/ConnectionDetail.tsx` | Older Label-based layout |
+- ~~history~~ — viewable in Raw
+- ~~metadata~~ — viewable in Raw
+- ~~prefs~~ — viewable in Raw
+- ~~refs~~ — viewable in Raw
 
 ---
 
-## Pages Without Standard Tab Navigation
+## Usage Patterns
 
-These are **not** standalone model Detail pages — they are inline line-item editors
-embedded within their parent transaction's detail view:
+### Pattern 1 — Standard Tabs (recommended)
 
-| Page | File | Notes |
-|------|------|-------|
-| Invoice Line | `transactions/models/invoice_line/pages/InvoiceLineDetail.tsx` | Inline editor |
-| Order Line | `transactions/models/order_line/pages/OrderLineDetail.tsx` | Inline editor |
-| Purchase Line | `transactions/models/purchase_line/pages/PurchaseLineDetail.tsx` | Inline editor |
-| Proposal Line | `transactions/models/proposal_line/pages/ProposalLineDetail.tsx` | Inline editor |
-| Proposal Line (alt) | `transactions/models/proposal/pages/ProposalLineDetail.tsx` | Duplicate inline editor |
-| Workorder Line | `transactions/models/workorder_line/pages/WorkOrderLineDetail.tsx` | Inline editor |
+The simplest approach. Pass standard tab IDs and record data — DetailTabs
+handles everything:
 
----
+```tsx
+import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
 
-## Tab Availability Matrix
+// In component:
+const { activeTab, setActiveTab } = useDetailTabs("campaign_detail", "actions", [
+  "actions", "comments", "documents", "raw",
+]);
 
-Which standard tabs appear in which layout:
-
-| Tab | A (Customer) | B (Vendor) | C (Admin Org) | D (Transaction) | E (Product) | F (Accounts) | G (Comms) | H (Core) | I (Simple) |
-|-----|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| actions | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | varies | ✓ |
-| comments | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| communications | — | — | — | — | — | — | — | Contact | — |
-| contacts | ✓ | ✓ | ✓ | ✓ | — | — | ✓ | varies | — |
-| documents | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | varies | ✓ |
-| financial | ✓ | ✓ | ✓ | ✓* | — | — | — | — | — |
-| history | ✓ | ✓ | — | — | ✓ | ✓ | ✓ | varies | ✓ |
-| metadata | ✓ | ✓ | ✓ | ✓† | ✓‡ | — | — | Contact | ✓ |
-| overview | — | ✓ | — | — | — | — | — | — | — |
-| prefs | ✓ | ✓ | ✓ | ✓ | ✓‡ | — | — | Contact | ✓ |
-| qa | ✓ | ✓ | ✓ | ✓ | — | — | — | Action | — |
-| raw | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | varies | ✓ |
-| refs | ✓ | ✓ | ✓ | ✓† | ✓ | — | — | varies | ✓ |
-
-\* Transactions use `financials` (plural)  
-† Admin-only in transactions  
-‡ Item + Contact only (extracted from inline panels)
-
----
-
-## Component Architecture
-
-```
-DetailTabs (src/components/common/DetailTabs.tsx)
-├── standardTabs — built-in tab configs (overview, contacts, comments, actions, documents, history, raw)
-├── additionalTabs — model-specific TabConfig[] injected by each Detail page
-└── badges — Record<string, number> for tab badge counts
-
-OrgDetail (src/apps/orgs/components/OrgDetail.tsx)
-├── Own custom tab bar (does not use DetailTabs)
-├── defaultTabs — 17 admin-level tabs
-└── additionalTabs — passed in from wrappers (EmployeeDetail passes [])
-
-TransactionDetailBase (src/apps/transactions/components/TransactionDetailBase.tsx)
-├── defaultTabs — 8 standard + 2 admin-only
-├── customTabsBefore — injected before defaults
-├── customTabsAfter / getCustomTabsAfter — injected after defaults
-└── renderCustomTab — callback for custom tab content
+<DetailTabs
+  entityType="campaign_detail"
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  standardTabs={["actions", "comments", "documents", "raw"]}
+  badges={{
+    comments: recordData?.comments?.length,
+    documents: recordData?.refs?.links?.document?.length,
+  }}
+  panelEntityType="campaign"
+  entityId={recordData.id}
+  recordData={recordData}
+  isEditing={currentMode !== "view"}
+  onRecordChange={setRecordData}
+/>
 ```
 
-All file paths are relative to `src/apps/`.
+No panel imports needed. No render blocks. DetailTabs renders the active panel
+automatically.
+
+### Pattern 2 — Standard + Custom Tabs
+
+When a page needs model-specific tabs alongside standard ones:
+
+```tsx
+<DetailTabs
+  entityType="customer"
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  standardTabs={["actions", "comments", "documents", "raw"]}
+  additionalTabs={[
+    {
+      id: "contacts",
+      label: "Contacts",
+      icon: <FaUsers size={14} />,
+      content: <ContactsPanel parentModel="customer" parentId={data.id} />,
+    },
+    {
+      id: "financial",
+      label: "Financial",
+      icon: <FaDollarSign size={14} />,
+      content: <FinancialsPanel totals={data?.financial?.totals} />,
+    },
+  ]}
+  panelEntityType="customer"
+  entityId={data.id}
+  recordData={data}
+  isEditing={mode !== "view"}
+  onRecordChange={setData}
+/>
+```
+
+### Pattern 3 — Tab Bar Only (legacy)
+
+If `recordData` is not provided, DetailTabs renders only the tab bar.
+The page handles panel rendering manually. This is the legacy pattern —
+migrate to Pattern 1 or 2 when possible.
+
+```tsx
+<DetailTabs
+  entityType="currency"
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  standardTabs={["comments", "actions", "raw"]}
+/>
+{/* Manual panel rendering below */}
+{activeTab === "comments" && <CommentsPanel ... />}
+```
 
 ---
 
-## Complete Inventory (52 Detail Files)
+## Props Reference
 
-Every `*Detail.tsx` file in `src/apps/`, with its tab mechanism:
+### DetailTabsProps
 
-| # | File | Has Tabs | Mechanism |
-|---|------|:--------:|----------|
-| 1 | `orgs/components/OrgDetail.tsx` | ✓ | Custom tab bar (17 `defaultTabs`) |
-| 2 | `orgs/models/employee/pages/EmployeeDetail.tsx` | ✓ | OrgDetail wrapper |
-| 3 | `orgs/models/customer/pages/CustomerDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 4 | `orgs/models/vendor/pages/VendorDetail.tsx` | ✓ | `DetailTabs` + `useState` |
-| 5 | `transactions/models/order/pages/OrderDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 6 | `transactions/models/invoice/pages/InvoiceDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 7 | `transactions/models/purchase/pages/PurchaseDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 8 | `transactions/models/proposal/pages/ProposalDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 9 | `transactions/models/receipt/pages/ReceiptDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 10 | `transactions/models/workorder/pages/WorkorderDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 11 | `transactions/models/project/pages/ProjectDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 12 | `transactions/models/requisition/pages/RequisitionDetail.tsx` | ✓ | `TransactionDetailBase` |
-| 13 | `transactions/models/invoice_line/pages/InvoiceLineDetail.tsx` | — | Inline line editor |
-| 14 | `transactions/models/order_line/pages/OrderLineDetail.tsx` | — | Inline line editor |
-| 15 | `transactions/models/purchase_line/pages/PurchaseLineDetail.tsx` | — | Inline line editor |
-| 16 | `transactions/models/proposal_line/pages/ProposalLineDetail.tsx` | — | Inline line editor |
-| 17 | `transactions/models/proposal/pages/ProposalLineDetail.tsx` | — | Inline line editor (alt) |
-| 18 | `transactions/models/workorder_line/pages/WorkOrderLineDetail.tsx` | — | Inline line editor |
-| 19 | `core/models/contact/pages/ContactDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 20 | `core/models/api_log/pages/APILogDetail.tsx` | ✓ | Custom toggle (request/response) |
-| 21 | `core/models/action/pages/ActionDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 22 | `core/models/setting/pages/SettingDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 23 | `core/models/report/pages/ReportDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 24 | `core/models/template/pages/TemplateDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 25 | `accounts/models/audit/pages/AuditDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 26 | `accounts/models/currency/pages/CurrencyDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 27 | `accounts/models/exchange_rate/pages/ExchangeRateDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 28 | `accounts/models/exchange_transaction/pages/ExchangeTransactionDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 29 | `accounts/models/gl_account/pages/GLAccountDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 30 | `accounts/models/gl_journal/pages/GLJournalDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 31 | `products/models/item/pages/ItemDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 32 | `products/models/catalog/pages/CatalogDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 33 | `products/models/flow/pages/FlowDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 34 | `products/models/serial/pages/SerialDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 35 | `products/models/service/pages/ServiceDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 36 | `products/models/warehouse/pages/WarehouseDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 37 | `products/models/item_xref/pages/ItemXrefDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 38 | `products/models/specification/pages/SpecificationDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 39 | `products/models/bill_of_material/pages/BillOfMaterialDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 40 | `products/models/usage/pages/UsageDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 41 | `products/models/variant/pages/VariantDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 42 | `products/models/matrics/pages/MatricsDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 43 | `products/models/org_item/pages/OrgItemDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 44 | `communications/models/email/pages/EmailDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 45 | `communications/models/phone/pages/PhoneDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 46 | `communications/models/domain/pages/DomainDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 47 | `communications/models/address/pages/AddressDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 48 | `sync/models/bundle/pages/BundleDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 49 | `sync/models/connection/pages/ConnectionDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 50 | `sync/connection/pages/ConnectionDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 51 | `support/models/campaign/pages/CampaignDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
-| 52 | `docs/models/document/pages/DocumentDetail.tsx` | ✓ | `DetailTabs` + `useDetailTabs` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `activeTab` | `string` | — | Currently active tab ID |
+| `additionalTabs` | `TabConfig[]` | `[]` | Custom tabs with optional `content` |
+| `badges` | `Record<string, number \| string>` | `{}` | Badge counts for tabs |
+| `className` | `string` | `''` | CSS class for the tab bar |
+| `columnCount` | `2 \| 3` | `3` | Current column count |
+| `entityId` | `string \| number` | — | Entity ID for panel components |
+| `entityType` | `string` | — | localStorage key prefix for tab persistence |
+| `isEditing` | `boolean` | `false` | Whether panels are in edit mode |
+| `onColumnCountChange` | `(count: 2 \| 3) => void` | — | Column change callback |
+| `onRecordChange` | `(data: any) => void` | — | Callback when panels update record data |
+| `onTabChange` | `(tabId: string) => void` | — | Tab change callback |
+| `panelEntityType` | `string` | `entityType` | Entity type for panels (e.g., "campaign") |
+| `recordData` | `any` | — | Full record data (triggers auto panel rendering) |
+| `showColumnSelector` | `boolean` | `false` | Show 2/3 column layout selector |
+| `standardTabs` | `StandardTabId[]` | `['actions','comments','documents','raw']` | Which built-in tabs to show |
 
-**Summary**: 46 of 52 have tab navigation. The 6 without are all `*LineDetail.tsx` inline editors.
+### TabConfig
 
-| Mechanism | Count |
-|-----------|------:|
-| `DetailTabs` + `useDetailTabs` | 36 |
-| `TransactionDetailBase` | 8 |
-| Custom tab bar | 2 |
-| OrgDetail wrapper | 1 |
-| `DetailTabs` + `useState` | 1 |
-| None (line editors) | 6 |
+| Field | Type | Description |
+|-------|------|-------------|
+| `adminOnly` | `boolean` | Only visible to admin users |
+| `badge` | `number \| string` | Optional badge count |
+| `content` | `ReactNode` | Panel content rendered when tab is active |
+| `hidden` | `boolean` | Hide this tab |
+| `icon` | `ReactNode` | Optional icon element |
+| `id` | `string` | Unique tab identifier |
+| `label` | `string` | Display label |
+| `roles` | `string[]` | Only visible to these roles |
+
+---
+
+## Tab Tiers
+
+### Tier 1 — Base (every model)
+
+Every detail page receives these four tabs by default via `DEFAULT_STANDARD_TABS`:
+
+| Tab | Panel | Notes |
+|-----|-------|-------|
+| `actions` | ActionsPanel | auto-rendered |
+| `comments` | CommentsPanel | auto-rendered |
+| `documents` | DocumentsPanel | auto-rendered |
+| `raw` | JsonFieldEditor | auto-rendered, admin-only |
+
+Pages that need nothing beyond these four pass no `additionalTabs` at all.
+
+**Models using base only:**
+Accounts (Audit, Currency, Exchange Rate, Exchange Transaction, GL Account, GL Journal),
+Products (Bill of Material, Catalog, Flow, Item, ItemXref, Matrics, OrgItem, Serial,
+Service, Spec, Usage, Variant, Warehouse),
+Core/Docs (Bundle, Campaign, Connection, Document, Report, Setting, Template).
+
+### Tier 2 — Org Tabs (Customer & Vendor)
+
+Orgs use **three peer tab bars**, each in its own `<div>`, rendered as equal
+siblings inside a shared scrollable container:
+
+```
+┌─ Header ────────────────────────────┐
+├─ BasicInformationPanel (persistent) ┤
+│                                      │
+│  ┌─ scrollable area ─────────────┐  │
+│  │                                │  │
+│  │  ┌─ DetailTabs ────────────┐  │  │
+│  │  │  tab bar + panel        │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  │  ┌─ TransactionTabs ──────┐  │  │
+│  │  │  tab bar + list         │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  │  ┌─ ItemTabs ─────────────┐  │  │
+│  │  │  tab bar + list         │  │  │
+│  │  └─────────────────────────┘  │  │
+│  │                                │  │
+│  └────────────────────────────────┘  │
+└──────────────────────────────────────┘
+```
+
+#### DetailTabs — model panels
+
+Extends the base with `additionalTabs`:
+
+| Tab | Panel | Notes |
+|-----|-------|-------|
+| `contacts` | ContactPanel | linked contacts |
+| `financial` | OrgFinancialsPanel | stacked category cards |
+| `qa` | QAPanel | question groups |
+
+#### TransactionTabs — standalone component
+
+`src/components/common/TransactionTabs.tsx`
+
+Self-contained tab bar for transaction sub-types. Fetches all sub-tables in
+parallel and renders a filterable list with clickable rows.
+
+| Org type | Sub-tabs |
+|----------|----------|
+| Customer | All · Proposals · Orders · Invoices · Ledgers · Payments |
+| Vendor | All · Purchases · Receipts |
+
+#### ItemTabs — standalone component
+
+`src/components/common/ItemTabs.tsx`
+
+Self-contained tab bar for items and serials. Fetches lines and serials in
+parallel and renders a filterable list with clickable rows.
+
+| Sub-tabs |
+|----------|
+| All · Line Items · Serials |
+
+### Tier 3 — Transaction Tabs (via TransactionDetailBase)
+
+Transactions use their own tab system within `TransactionDetailBase`, plus
+TransactionTabs and ItemTabs for the linked org:
+
+| Tabs | Details |
+|------|--------|
+| Built-in | actions, comments, contacts, documents, financials, qa, raw |
+| Custom per type | receiving (Purchase), shipping (Order/Invoice), tax (Invoice) |
+| TransactionTabs | Shows related transactions for the linked customer or vendor |
+| ItemTabs | Shows line items and serials for the linked customer or vendor |
+
+Org context is determined automatically from `transactionType`:
+- order / invoice / proposal → customer (`customer_id`)
+- purchaseorder / receipt → vendor (`vendor_id`)
+- requisition / project / workorder → whichever org ID is present
+
+### Tier 4 — Communications
+
+| Page | standardTabs | additionalTabs |
+|------|-------------|----------------|
+| Address | actions, comments, documents, raw | contacts, financials |
+| Domain, Email, Phone | actions, comments, documents, raw | contacts |
+
+### Admin-Only
+
+| Page | Mechanism |
+|------|-----------|
+| OrgDetail (Employee wrapper) | Custom tab bar, 17 defaultTabs — not using DetailTabs |
+OrgDetail also renders TransactionTabs + ItemTabs below its ComponentCard
+when `orgType` is `'customer'` or `'vendor'` (both inline and standalone modes).
+---
+
+## Tab Tier Summary
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Tier 1 — Base (all models)                         │
+│  actions · comments · documents · raw               │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 2 — Orgs (Customer / Vendor)            │  │
+│  │  Three peer tab bars:                         │  │
+│  │                                               │  │
+│  │  DetailTabs                                   │  │
+│  │    + contacts · financial · qa                │  │
+│  │                                               │  │
+│  │  TransactionTabs                              │  │
+│  │    Customer: proposals, orders, invoices,     │  │
+│  │              ledgers, payments                │  │
+│  │    Vendor:   purchases, receipts              │  │
+│  │                                               │  │
+│  │  ItemTabs                                     │  │
+│  │    all · line items · serials                 │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 3 — Transactions (own tab system)       │  │
+│  │  + contacts · financials · qa                 │  │
+│  │  + type-specific: receiving, shipping, tax    │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  Tier 4 — Communications                     │  │
+│  │  + contacts (all) · financials (Address only) │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## Migration Status
+
+Pages migrated to auto-rendering (Pattern 1):
+
+| Status | Pages |
+|--------|-------|
+| ✅ Migrated | AuditDetail, BundleDetail, CampaignDetail, ConnectionDetail, ReportDetail, SettingDetail |
+| ⬜ Pending | Accounts, Communications, Core/Docs, Customer, Item, Products (Detail + Display), Vendor |
+| N/A | TransactionDetailBase (own tab system), OrgDetail (own tab system), Line editors (no tabs) |
+
+---
+
+## Hooks
+
+### `useDetailTabs(entityType, defaultTab, validTabs?)`
+
+Manages active tab state with localStorage persistence.
+
+```tsx
+const { activeTab, setActiveTab } = useDetailTabs("campaign_detail", "actions", [
+  "actions", "comments", "documents", "raw",
+]);
+```
+
+### `useColumnCount(entityType, defaultCount?)`
+
+Manages 2/3 column layout state with localStorage persistence.
+
+```tsx
+const { columnCount, setColumnCount } = useColumnCount("campaignDetail_columnCount", 3);
+```
+
+---
+
+## File Locations
+
+| Component | Path | Status |
+|-----------|------|--------|
+| ActionsPanel | `src/apps/common/components/panels/ActionsPanel.tsx` | ✅ |
+| BasicInformationPanel | `src/apps/common/components/panels/BasicInformationPanel.tsx` | ✅ |
+| CommentsPanel | `src/apps/common/components/panels/CommentsPanel.tsx` | ✅ |
+| CommunicationsPanel | `src/apps/common/components/panels/CommunicationsPanel.tsx` | ✅ |
+| ContactPanel | `src/apps/common/components/panels/ContactPanel.tsx` | ✅ |
+| DetailTabs | `src/components/common/DetailTabs.tsx` | ✅ |
+| DocumentsPanel | `src/apps/common/components/panels/DocumentsPanel.tsx` | ✅ |
+| FinancialsPanel | `src/apps/common/components/panels/FinancialsPanel.tsx` | ✅ |
+| ItemTabs | `src/components/common/ItemTabs.tsx` | ✅ |
+| ItemsPanel | `src/apps/common/components/panels/ItemsPanel.tsx` | ✅ |
+| JsonFieldEditor | `src/apps/common/components/JsonFieldEditor.tsx` | ✅ |
+| LinkagesPanel | `src/apps/common/components/panels/LinkagesPanel.tsx` | ✅ |
+| MetadataPanel | `src/apps/common/components/panels/MetadataPanel.tsx` | ✅ |
+| ModelDataPanel | `src/apps/common/components/panels/ModelDataPanel.tsx` | ✅ |
+| PrefsPanel | `src/apps/common/components/panels/PrefsPanel.tsx` | ✅ |
+| QAPanel | `src/apps/common/components/panels/QAPanel.tsx` | ✅ |
+| RawDataPanel | `src/apps/common/components/panels/RawDataPanel.tsx` | ✅ |
+| RefsPanel | `src/apps/common/components/panels/RefsPanel.tsx` | ✅ |
+| SerialPanel | `src/apps/common/components/panels/SerialPanel.tsx` | ✅ |
+| ShippingPanel | `src/apps/common/components/panels/ShippingPanel.tsx` | ✅ |
+| TemplateQAPanel | `src/apps/common/components/panels/TemplateQAPanel.tsx` | ✅ |
+| TransactionTabs | `src/components/common/TransactionTabs.tsx` | ✅ |
+| TransactionsPanel | `src/apps/common/components/panels/TransactionsPanel.tsx` | ✅ |
+| Panel barrel export | `src/apps/common/components/panels/index.ts` | ✅ |
+| Panel types | `src/apps/common/components/panels/types.ts` | ✅ |
+| Document upload utils | `src/apps/common/components/panels/documentUpload.ts` | ✅ |
+| QA utilities | `src/apps/common/components/panels/qaUtils.ts` | ✅ |
+| Permissions hook | `src/apps/common/components/panels/usePermissions.ts` | ✅ |

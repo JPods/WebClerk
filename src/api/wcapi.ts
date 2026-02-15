@@ -155,23 +155,37 @@ export async function getRecord(model_name: string, id: number) {
 
 export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
-  // Extract id from payload if present for updates
-  const { id, ...data } = payload;
+  // Extract id and mode from payload if present (they go at root level, not in data)
+  const { id, mode, ...data } = payload;
   const body: any = { model_name: resolved, data };
   if (id !== undefined) {
     body.id = id;
   }
-  console.log('[wcapi.saveRecord] Sending:', { model_name, resolved, payload, body });
+  if (mode !== undefined) {
+    body.mode = mode;
+  }
+  console.log("[wcapi.saveRecord] Sending:", {
+    model_name,
+    resolved,
+    payload,
+    body,
+  });
   try {
     const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
-    console.log('[wcapi.saveRecord] Response:', res.data);
+    console.log("[wcapi.saveRecord] Response:", res.data);
     return res.data.data;
   } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>(
-        "/api/wcapi/save/",
+    // Log the full error response so we can diagnose 400/500 errors
+    if (err?.response) {
+      console.error("[wcapi.saveRecord] Error response:", {
+        status: err.response.status,
+        data: err.response.data,
+        model_name,
         body,
-      );
+      });
+    }
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
       return res2.data.data;
     }
     throw err;
@@ -406,7 +420,7 @@ export async function saveDetailFieldSetting(
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
         ...setting,
         model_name: "setting",
       });
@@ -450,12 +464,32 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
         ...setting,
         model_name: "setting",
       });
       return res2.data.data;
     }
     throw err;
+  }
+}
+
+/**
+ * Log a FK ↔ refs.links mismatch to the backend audit log.
+ * Fire-and-forget — errors are logged but never thrown.
+ */
+export async function logRefsMismatch(payload: {
+  parent_model: string;
+  parent_id: number;
+  related_model: string;
+  fk_field: string;
+  fk_ids: number[];
+  refs_ids: number[];
+  caller: string;
+}) {
+  try {
+    await apiClient.post("/wcapi/refs-mismatch/", payload);
+  } catch (err) {
+    console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
   }
 }
