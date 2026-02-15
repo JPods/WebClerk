@@ -13,7 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
-from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
+from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report
 
 
 @admin.register(Contact)
@@ -137,7 +137,7 @@ class ActionAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
     # Keep scalar then object fields alphabetical for detail view coherence.
     scalar_fields = (
-        'action_id',
+        'parent_action',
         'burndown',
         'difficulty',
         'dt_completed',
@@ -248,9 +248,27 @@ class PendingAdmin(admin.ModelAdmin):
 class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
     list_display = ('id', 'target', 'dt_purge', 'dt_created')
-    list_filter = ('contenttype_id', 'dt_purge')
-    search_fields = ('contenttype_id__model', 'object_id')
+    list_filter = ('content_type', 'dt_purge')
+    search_fields = ('content_type__model', 'object_id')
     readonly_fields = ('dt_created',)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """Admin interface for Notification model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    """Admin interface for Report model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 def _threepane_redirect(self, request, extra_context=None):
     if not self.has_permission(request):

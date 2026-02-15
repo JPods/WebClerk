@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
+
+logger = logging.getLogger(__name__)
 
 from common.models import BaseModel
 from common.link_mixins import StandardLinksMixin
@@ -42,7 +45,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
 	# FK-first: proper ForeignKey to Contact for primary contact reference.
-	contact_id = models.ForeignKey(
+	contact = models.ForeignKey(
 		'core.Contact', on_delete=models.SET_NULL,
 		blank=True, null=True,
 		db_column='contact_id', related_name='orgs_as_contact',
@@ -312,5 +315,5 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				self.validate_aspects(partial=True)
 		except Exception as e:
 			# Log validation errors but continue with save for admin
-			print(f"Validation error during save (continuing anyway): {e}")
+			logger.warning("Validation error during save (continuing): %s", e)
 		super().save(*args, **kwargs)

@@ -26,7 +26,7 @@ class QuestionAnswer(BaseModel):
     question = models.CharField(max_length=500, blank=True, null=True, db_index=True)
     answer = models.CharField(max_length=500, blank=True, null=True)
     # Link to configured question definition (Setting) if available
-    setting_id = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
+    setting = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions', db_column='setting_id')
     question_id = models.IntegerField(blank=True, null=True, 
                                       help_text="ID of the question from Setting.data.questions[].id")
     answer_id = models.IntegerField(blank=True, null=True, 

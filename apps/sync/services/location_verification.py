@@ -57,7 +57,7 @@ def verify_location_via_connection(location_payload: Dict[str, Any], connection_
     bundle_id = None
     try:
         e = Bundle.objects.create(
-            connection_id=cast(Any, conn),
+            connection=cast(Any, conn),
             direction="outbound",
             config=masked_cfg,
             status=status,

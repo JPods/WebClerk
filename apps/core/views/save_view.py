@@ -245,7 +245,7 @@ class SaveWcapiView(APIView):
         actor_role = str(getattr(actor, 'role', '')).lower() if actor else None
         actor_id = getattr(actor, 'id', None)
         # Constrain queryset by role before any DB fetch
-        base_qs = model_cls.objects.all()
+        base_qs = model_cls.objects.active()
         constrained_qs = policy.inject_constraints(base_qs, request=request, model_key=model_key)
         # Create or update
         is_update = bool(record_id)
@@ -323,6 +323,15 @@ class SaveWcapiView(APIView):
                     raise ValueError('Pre-save hook failed')
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
+        # ── Role-based write-field filtering ──
+        from apps.core.utils.model_policies import enforce_write_policy
+        parsed_data, denied_fields = enforce_write_policy(model_cls, parsed_data, request=request)
+        if denied_fields:
+            console_logger.info(
+                "[SAVE_VIEW] Write-policy stripped fields from %s: %s",
+                model_key, ", ".join(denied_fields),
+            )
+
         # Assign fields
         field_size_errors = []
         raw_password = None
@@ -1568,6 +1577,15 @@ class SaveWcapiView(APIView):
                     return api_response(success=False, status_code=400, message='Pre-save hook failed', error={'code':'hook_failed','details': hook_result['errors']})
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
+
+        # ── Role-based write-field filtering ──
+        from apps.core.utils.model_policies import enforce_write_policy
+        data, denied_fields = enforce_write_policy(model_cls, data, request=request)
+        if denied_fields:
+            console_logger.info(
+                "[SAVE_VIEW] Write-policy stripped fields from %s: %s",
+                model_key, ", ".join(denied_fields),
+            )
 
         # Assign fields
         field_size_errors = []

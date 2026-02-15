@@ -1,8 +1,11 @@
 from django.apps import apps
 from django.utils import timezone
 from pathlib import Path
+import logging
 import subprocess
 import os
+
+logger = logging.getLogger(__name__)
 
 from .models import BaseModel
 from .stats_mixin import StatsMixin
@@ -129,7 +132,7 @@ def docs_staleness_reminder(days: int = 3):
     """Emit a periodic reminder to review docs and registry for staleness.
 
     In a more advanced setup this could create a Ticket/Notification or post to Slack.
-    For now, it logs a notice (print) which will surface in worker logs/monitoring.
+    For now, it logs a notice which will surface in worker logs/monitoring.
     """
-    print(f"[docs] Reminder: review project READMEs and MODEL_REGISTRY for freshness (every {days} days)")
+    logger.info("Reminder: review project READMEs and MODEL_REGISTRY for freshness (every %d days)", days)
     return {'reminder': True, 'period_days': days}

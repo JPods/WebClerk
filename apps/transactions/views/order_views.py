@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from common.api_responses import api_response
 
 # Prefer project BaseJSONAPIView; fallback to DRF APIView
@@ -29,65 +29,11 @@ except Exception:
     PurchaseLine = None
 
 
-class OrderViewSet(viewsets.ModelViewSet):
-    """
-    REST API viewset for Order management.
-    Uses WCAPI for all save operations to maintain consistency and security.
-    """
-    queryset = Order.objects.all()
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Order. Writes go through /wcapi/save/."""
+
+    queryset = Order.objects.active()
     serializer_class = OrderSerializer
-
-    def get_queryset(self):
-        """Filter queryset based on user permissions."""
-        return self.queryset
-
-    def perform_create(self, serializer):
-        """Create order using WCAPI save."""
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'order'
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('order', request=self.request, data=data)
-        if result[1] == 'created':
-            # Set the created instance on serializer for response
-            instance = Order.objects.get(pk=result[0])
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to create order")
-
-    def perform_update(self, serializer):
-        """Update order using WCAPI save."""
-        instance = self.get_object()
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'order'
-        data['id'] = instance.id
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('order', request=self.request, data=data, id=instance.id)
-        if result[1] == 'updated':
-            # Refresh instance
-            instance.refresh_from_db()
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to update order")
-
-    @action(detail=True, methods=['post'])
-    def convert_to_invoice(self, request, pk=None):
-        """Convert order to invoice."""
-        order = self.get_object()
-        try:
-            from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
-            result = transfer_order_to_invoice(
-                order=order,
-                line_ids=request.data.get('line_ids'),
-                transfer_all=request.data.get('transfer_all', True),
-                invoice_status=request.data.get('invoice_status', 'pending'),
-                preserve_order=request.data.get('preserve_order', True),
-                invoice_type=request.data.get('invoice_type', 'standard'),
-            )
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
@@ -97,12 +43,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(totals)
 
 
-class OrderLineViewSet(viewsets.ModelViewSet):
-    """
-    REST API viewset for Order Line management.
-    Uses WCAPI for all save operations.
-    """
-    queryset = OrderLine.objects.all()
+class OrderLineViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for OrderLine. Writes go through /wcapi/save/."""
+
+    queryset = OrderLine.objects.active()
     serializer_class = OrderLineSerializer
 
     def get_queryset(self):
@@ -113,43 +57,13 @@ class OrderLineViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(order_id=order_id)
         return queryset
 
-    def perform_create(self, serializer):
-        """Create order line using WCAPI save."""
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'order_line'
-
-        result = wcapi.save_item('order_line', request=self.request, data=data)
-        if result[1] == 'created':
-            instance = OrderLine.objects.get(pk=result[0])
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to create order line")
-
-    def perform_update(self, serializer):
-        """Update order line using WCAPI save."""
-        instance = self.get_object()
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'order_line'
-        data['id'] = instance.id
-
-        result = wcapi.save_item('order_line', request=self.request, data=data, id=instance.id)
-        if result[1] == 'updated':
-            instance.refresh_from_db()
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to update order line")
-
-    def perform_destroy(self, instance):
-        """Delete order line using WCAPI."""
-        wcapi.delete_item('order_line', request=self.request, id=instance.id)
-
 
 class OrderToInvoiceView(BaseJSONAPIView):
     """
     POST /tx/orders/<pk>/convert-to-invoice/
     """
     _allow_write = True
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):
@@ -228,7 +142,7 @@ class OrderToPurchaseView(BaseJSONAPIView):
     POST /tx/orders/<pk>/convert-to-purchase-order/
     """
     _allow_write = True
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):

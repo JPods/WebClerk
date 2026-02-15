@@ -81,7 +81,7 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
 @allow_write
 class ProposalToOrderView(APIView):
     permission_classes = [BasePermission]
-    queryset = Proposal.objects.all()
+    queryset = Proposal.objects.active()
 
     @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Order created")})
     def post(self, request, *args, **kwargs):
@@ -96,7 +96,7 @@ class ProposalToOrderView(APIView):
 @allow_write
 class OrderToInvoiceView(APIView):
     permission_classes = [BasePermission]
-    queryset = Order.objects.all()
+    queryset = Order.objects.active()
 
     @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Invoice created")})
     def post(self, request, *args, **kwargs):
@@ -111,7 +111,7 @@ class OrderToInvoiceView(APIView):
 @allow_write
 class OrderToPurchaseView(APIView):
     permission_classes = [BasePermission]
-    queryset = Order.objects.all()
+    queryset = Order.objects.active()
 
     @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Purchase order created")})
     def post(self, request, *args, **kwargs):
@@ -180,7 +180,7 @@ class LinkageCommentsAggregateView(APIView):
 @allow_write
 class ReceivePurchaseView(APIView):
     permission_classes = [BasePermission]
-    queryset = Purchase.objects.all()
+    queryset = Purchase.objects.active()
 
     @extend_schema(request=ReceivePurchaseSerializer, responses={201: OpenApiResponse(description="Receipt posted & inventory updated")})
     def post(self, request, *args, **kwargs):
@@ -201,7 +201,7 @@ class ReceivePurchaseView(APIView):
 @allow_write
 class WorkOrderTransitionView(APIView):
     permission_classes = [BasePermission]
-    queryset = WorkOrder.objects.all()
+    queryset = WorkOrder.objects.active()
 
     @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="WorkOrder transitioned")})
     def post(self, request, *args, **kwargs):
@@ -283,7 +283,7 @@ class WorkOrderTransitionView(APIView):
 @allow_write
 class WorkOrderLineTransitionView(APIView):
     permission_classes = [BasePermission]
-    queryset = WorkOrderLine.objects.all()
+    queryset = WorkOrderLine.objects.active()
 
     @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="WorkOrder line transitioned")})
     def post(self, request, *args, **kwargs):

@@ -8,7 +8,7 @@ class QuestionAnswerSerializer(serializers.ModelSerializer):
     """Serializer for QuestionAnswer model."""
     
     # Include the setting name for display
-    setting_name = serializers.CharField(source='setting_id.name', read_only=True, allow_null=True)
+    setting_name = serializers.CharField(source='setting.name', read_only=True, allow_null=True)
     
     class Meta:
         model = QuestionAnswer

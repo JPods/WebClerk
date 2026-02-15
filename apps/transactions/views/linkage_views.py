@@ -1,5 +1,5 @@
 from typing import List
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from common.api_responses import api_response
 
 # Prefer project BaseJSONAPIView; fallback to DRF APIView
@@ -36,7 +36,7 @@ class LinkageCommentsView(BaseJSONAPIView):
     Aggregate 'public' comments from any line whose refs.links.linkage contains linkage_id.
     """
     _allow_write = False
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["get", "options", "head"]
 
     def get(self, request, linkage_id: int, *args, **kwargs):

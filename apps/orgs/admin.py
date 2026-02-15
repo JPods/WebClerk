@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib import admin
+import logging
 from .models import OrgBase, Customer, Vendor, Rep, Employee, Manufacturer
+
+logger = logging.getLogger(__name__)
 
 
 class OrgBaseAdminForm(forms.ModelForm):
@@ -34,7 +37,7 @@ class OrgBaseAdminForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        print(f"Form cleaned_data: {cleaned_data}")
+        logger.debug("OrgBaseAdminForm.clean: %s", list(cleaned_data.keys()))
         return cleaned_data
 
 
@@ -46,13 +49,13 @@ class OrgBaseAdmin(admin.ModelAdmin):
     list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
     search_fields = ("display_name", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")
-    raw_id_fields = ("contact_id", "terms_fk")
+    raw_id_fields = ("contact", "terms_fk")
     
     # Scalar fields alphabetical, then JSONB fields alphabetical
     fieldsets = (
         ("Scalar fields", {"fields": (
             "address_full", "address_id", "attention",
-            "contact_id", "display_name", "domain", "domain_id",
+            "contact", "display_name", "domain", "domain_id",
             "email", "email_id", "health_rating",
             "is_active", "is_archived", "is_deleted",
             "org_type", "phone", "phone_id", "price_level",
@@ -75,13 +78,10 @@ class OrgBaseAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Ensure org_type is set correctly based on the admin model being used."""
-        # Log for debugging
-        print(f"save_model called: {obj.__class__.__name__}, proxy={getattr(obj._meta, 'proxy', False)}, change={change}")
-        
         # For proxy models, always set the correct org_type (override form data)
         if getattr(obj._meta, 'proxy', False):
             model_name = obj.__class__.__name__
-            print(f"Detected proxy model: {model_name}")
+            logger.debug("save_model: proxy model %s", model_name)
             if model_name == 'Customer':
                 obj.org_type = 'customer'
             elif model_name == 'Vendor':
@@ -90,15 +90,14 @@ class OrgBaseAdmin(admin.ModelAdmin):
                 obj.org_type = 'rep'
             elif model_name == 'Employee':
                 obj.org_type = 'employee'
-                print("Setting org_type to 'employee'")
             elif model_name == 'Manufacturer':
                 obj.org_type = 'manufacturer'
         
         try:
             super().save_model(request, obj, form, change)
-            print(f"Successfully saved {obj.__class__.__name__} with ID {obj.id}")
+            logger.info("Saved %s id=%s", obj.__class__.__name__, obj.id)
         except Exception as e:
-            print(f"Error saving {obj.__class__.__name__}: {e}")
+            logger.error("Error saving %s: %s", obj.__class__.__name__, e)
             raise
 
 

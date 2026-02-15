@@ -94,19 +94,19 @@ class QuestionAnswerAdmin(admin.ModelAdmin):
         'prefs',
         'question',
         'refs',
-        'setting_id',
+        'setting',
     )
     list_display = ('id', 'question', 'answer', 'parent_model', 'parent_id', 'status', 'sequence', 'dt_created')
     list_filter = ('status', 'parent_model', 'is_active')
     search_fields = ('question', 'answer', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
     ordering = ('-dt_created',)
-    raw_id_fields = ('setting_id',)
+    raw_id_fields = ('setting',)
     
     fieldsets = (
         ('Identification', {'fields': ('id', 'ida', 'uuid')}),
         ('Question & Answer', {'fields': ('question', 'answer', 'status')}),
-        ('Template Link', {'fields': ('setting_id', 'question_id', 'answer_id')}),
+        ('Template Link', {'fields': ('setting', 'question_id', 'answer_id')}),
         ('Parent Link', {'fields': ('parent_model', 'parent_id')}),
         ('Attribution', {'fields': ('answered_by', 'security_level')}),
         ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),

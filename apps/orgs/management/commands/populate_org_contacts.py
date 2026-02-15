@@ -104,7 +104,7 @@ class Command(BaseCommand):
                 # Also set org.contact_id if not already set
                 if org.id not in matched_orgs:
                     matched_orgs.add(org.id)
-                    if org.contact_id_id != contact.id:
+                    if org.contact_id != contact.id:
                         org_updates.append((org, contact))
 
         # Report
@@ -137,8 +137,8 @@ class Command(BaseCommand):
                 contact.save(update_fields=[f"{field_name}_id"])
 
             for org, contact in org_updates:
-                org.contact_id = contact
-                org.save(update_fields=["contact_id"])
+                org.contact = contact
+                org.save(update_fields=["contact"])
 
         self.stdout.write(self.style.SUCCESS(
             f"\nDone. Applied {len(contact_updates)} contact FK updates "
@@ -153,5 +153,5 @@ class Command(BaseCommand):
         for field in fk_fields:
             updated = Contact.objects.filter(**{f"{field}__isnull": False}).update(**{field: None})
             count += updated
-        org_count = OrgBase.objects.filter(contact_id__isnull=False).update(contact_id=None)
+        org_count = OrgBase.objects.filter(contact__isnull=False).update(contact=None)
         self.stdout.write(f"  Cleared {count} contact FK values, {org_count} org contact_id values.")

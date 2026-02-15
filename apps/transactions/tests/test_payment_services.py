@@ -31,8 +31,8 @@ class PaymentApplicationServiceTest(TestCase):
             totals={'total': 100.00, 'received': 0.00, 'balance': 100.00}
         )
         self.payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=50.00,
             status="completed"
         )
@@ -78,8 +78,8 @@ class PaymentApplicationServiceTest(TestCase):
     def test_apply_payment_to_invoice_full_invoice_payment(self):
         """Test applying payment that fully pays the invoice."""
         small_payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=100.00,
             status="completed"
         )
@@ -99,8 +99,8 @@ class PaymentApplicationServiceTest(TestCase):
     def test_apply_payment_to_invoice_pending_payment(self):
         """Test applying payment that is not completed."""
         pending_payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=25.00,
             status="pending"
         )
@@ -127,8 +127,8 @@ class PaymentApplicationServiceTest(TestCase):
 
         # Get the application
         application = PaymentApplication.objects.get(
-            payment_id=self.payment,
-            invoice_id=self.invoice
+            payment=self.payment,
+            invoice=self.invoice
         )
 
         # Unapply
@@ -150,14 +150,14 @@ class PaymentApplicationServiceTest(TestCase):
         """Test getting comprehensive payment status for invoice."""
         # Apply some payments
         payment1 = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=30.00,
             status="completed"
         )
         payment2 = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=20.00,
             status="completed"
         )
@@ -191,8 +191,8 @@ class StripeServiceTest(TestCase):
             totals={'total': 100.00}
         )
         self.payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=50.00,
             gateway="stripe"
         )
@@ -262,8 +262,8 @@ class PayPalServiceTest(TestCase):
             totals={'total': 100.00}
         )
         self.payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=50.00,
             gateway="paypal"
         )
@@ -310,8 +310,8 @@ class PaymentReconciliationServiceTest(TestCase):
         mock_verify.return_value = True
 
         payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=50.00,
             status="completed",
             reconciled=False

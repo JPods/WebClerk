@@ -14,7 +14,7 @@ class BOMComponentSerializer(serializers.ModelSerializer):
 
 class BOMChildSerializer(serializers.ModelSerializer):
     """Lightweight serializer for nested BOM children (one level deep)."""
-    component = BOMComponentSerializer(source='component_id', read_only=True)
+    component = BOMComponentSerializer(source='child_item', read_only=True)
     extended_cost = serializers.SerializerMethodField()
 
     class Meta:
@@ -33,15 +33,15 @@ class BOMChildSerializer(serializers.ModelSerializer):
 class BillOfMaterialSerializer(serializers.ModelSerializer):
     # Write fields - accept IDs
     parent_id = serializers.PrimaryKeyRelatedField(
-        queryset=Item.objects.all(), source="item_id", write_only=True, required=False
+        queryset=Item.objects.all(), source="parent_item", write_only=True, required=False
     )
     component_id_write = serializers.PrimaryKeyRelatedField(
-        queryset=Item.objects.all(), source="component_id", write_only=True, required=False
+        queryset=Item.objects.all(), source="child_item", write_only=True, required=False
     )
     
     # Read fields - return nested details
-    parent_item = BOMComponentSerializer(source='item_id', read_only=True)
-    component = BOMComponentSerializer(source='component_id', read_only=True)
+    parent_item = BOMComponentSerializer(source='parent_item', read_only=True)
+    component = BOMComponentSerializer(source='child_item', read_only=True)
     
     # Computed fields
     extended_cost = serializers.SerializerMethodField()
@@ -74,17 +74,17 @@ class BillOfMaterialSerializer(serializers.ModelSerializer):
 
     def get_component_child_count(self, obj) -> int:
         """Return count of BOM children for this component (0 if not a subassembly)."""
-        if obj.component_id_id:
-            return BillOfMaterial.objects.filter(item_id=obj.component_id_id).count()
+        if obj.child_item_id:
+            return BillOfMaterial.objects.filter(parent_item_id=obj.child_item_id).count()
         return 0
 
     def get_refs(self, obj) -> dict:
         """Return nested references including BOM children of this component."""
         refs: dict = {'links': {'bom': []}}
-        if obj.component_id_id:
+        if obj.child_item_id:
             children = BillOfMaterial.objects.filter(
-                item_id=obj.component_id_id
-            ).select_related('component_id').order_by('sequence', 'id')
+                parent_item_id=obj.child_item_id
+            ).select_related('child_item').order_by('sequence', 'id')
             if children.exists():
                 refs['links']['bom'] = BOMChildSerializer(children, many=True).data
         return refs

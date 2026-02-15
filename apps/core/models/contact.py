@@ -309,15 +309,11 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     
     def save_before(self, data):
         # Custom logic before save
-        print("Pre-save logic here")
-        # return False  # Return False to abort save
-        return True  # Return False to abort save
+        return True
 
     def save_after(self, data):
         # Custom logic after fields are set, before save
-        print("Post-save logic here")
-        # return False  # Return False to abort save
-        return True  # Return False to abort save
+        return True
 
     def update_keywords(self):
         """Update keywords for this contact record."""

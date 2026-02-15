@@ -12,7 +12,7 @@ class BillOfMaterial(BaseModel):
 
     parent_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
     recalc_parent_cost_description = models.CharField(max_length=255, blank=True, help_text="Description for this parent item (denormalized from Item.description for convenience)")
-    parent_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent")
+    parent_item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent", db_column='parent_id')
 
     @property
     def ida(self):
@@ -24,7 +24,7 @@ class BillOfMaterial(BaseModel):
 
     @property
     def description_value(self):
-        return self.description or str(self.component_id) if hasattr(self, 'component_id') else ""
+        return self.description or str(self.child_item) if hasattr(self, 'child_item') else ""
 
     """Single component line for an assembled/bundle item.
 
@@ -39,7 +39,7 @@ class BillOfMaterial(BaseModel):
     """
 
 
-    child_id = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_child")
+    child_item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_child", db_column='child_id')
     child_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM child item (denormalized from Item.ida for convenience)")
     child_description = models.CharField(max_length=255, blank=True, help_text="Description for this child item (denormalized from Item.description for convenience)")
 
@@ -69,14 +69,14 @@ class BillOfMaterial(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["parent_id", "child_id"], name="uniq_bom_parent_component"),
-            models.CheckConstraint(check=~models.Q(parent_id=models.F('child_id')), name='ck_bom_parent_ne_component'),
+            models.UniqueConstraint(fields=["parent_item", "child_item"], name="uniq_bom_parent_component"),
+            models.CheckConstraint(check=~models.Q(parent_item=models.F('child_item')), name='ck_bom_parent_ne_component'),
             models.CheckConstraint(check=models.Q(scrap_factor__gte=0) & models.Q(scrap_factor__lt=1), name='ck_bom_scrap_range'),
         ]
         indexes = [
-            models.Index(fields=("parent_id",), name="bom_parent_idx"),
-            models.Index(fields=("child_id",), name="bom_component_idx"),
-            models.Index(fields=("parent_id", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
+            models.Index(fields=("parent_item",), name="bom_parent_idx"),
+            models.Index(fields=("child_item",), name="bom_component_idx"),
+            models.Index(fields=("parent_item", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
         ]
 
     def clean(self):  # pragma: no cover - simple validations
@@ -84,8 +84,8 @@ class BillOfMaterial(BaseModel):
             raise ValidationError({"quantity": "Quantity must be > 0"})
         if self.scrap_factor is None or self.scrap_factor < 0 or self.scrap_factor >= 1:
             raise ValidationError({"scrap_factor": "Scrap factor must be between 0 (inclusive) and 1 (exclusive)"})
-        parent_pk = self.item_id.pk if self.item_id else None
-        component_pk = self.component_id.pk if self.component_id else None
+        parent_pk = self.parent_item.pk if self.parent_item else None
+        component_pk = self.child_item.pk if self.child_item else None
         if parent_pk and component_pk and parent_pk == component_pk:
             raise ValidationError("Parent and component cannot be the same item")
         # Recursive cycle detection: ensure adding parent->component line will not introduce a cycle
@@ -105,9 +105,9 @@ class BillOfMaterial(BaseModel):
             except Exception:
                 pass
         # Capture cost snapshot on create
-        component_pk = self.component_id.pk if self.component_id else None
+        component_pk = self.child_item.pk if self.child_item else None
         if creating and self.cost_snapshot is None and component_pk:
-            val = getattr(self.component_id, 'cost', None)
+            val = getattr(self.child_item, 'cost', None)
             if isinstance(val, dict):
                 # Cost precedence order:
                 # We intentionally probe keys in this fixed sequence so the first
@@ -152,7 +152,7 @@ class BillOfMaterial(BaseModel):
         except Exception:
             return
         from decimal import Decimal as _D
-        lines = BillOfMaterial.objects.filter(item_id=parent_item_id)
+        lines = BillOfMaterial.objects.filter(parent_item_id=parent_item_id)
         total = _D("0")
         for line in lines:
             try:
@@ -161,7 +161,7 @@ class BillOfMaterial(BaseModel):
                 unit_cost = line.cost_snapshot
                 if unit_cost is None:
                     # Fallback probe of live component.cost JSON (same precedence as snapshot capture)
-                    comp_cost = getattr(line.component_id, 'cost', None)
+                    comp_cost = getattr(line.child_item, 'cost', None)
                     if isinstance(comp_cost, dict):
                         for key in ("avg", "standard", "last", "landed"):
                             raw = comp_cost.get(key)
@@ -209,7 +209,7 @@ class BillOfMaterial(BaseModel):
             current_parent_id, depth = queue.popleft()
             if depth >= max_depth:
                 continue
-            child_lines = BillOfMaterial.objects.filter(item_id=current_parent_id).values_list('component_id', flat=True)
+            child_lines = BillOfMaterial.objects.filter(parent_item_id=current_parent_id).values_list('child_item_id', flat=True)
             for comp_id in child_lines:
                 if comp_id in visited:
                     continue

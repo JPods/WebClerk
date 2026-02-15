@@ -181,14 +181,27 @@ REST_FRAMEWORK = {
         "apps.core.auth.RoleValidatingJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "120/minute",
+        "anon": "30/minute",
+    },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -445,26 +458,51 @@ WCAPI_BLESSED_MODELS = {
 }
 
 # WCAPI per-model policies (opt-in, safe by default)
+# ─────────────────────────────────────────────────────────────────────
+# Each entry maps a model key (lowercase) to read/write field lists.
+# `by_role` is checked first-match-wins in role order
+#   (admin → employee → <group names> → user).
+# A value of ["*"] means unrestricted.
+# Models not listed here get NO write filtering (unrestricted).
+# ─────────────────────────────────────────────────────────────────────
+
+# Shared field lists to avoid repetition
+_TX_HEADER_WRITE_EMPLOYEE = [
+    "status", "priority", "price_level",
+    "customer_id", "manufacturer_id", "vendor_id",
+    "contact_id", "attention", "address_full", "email", "phone",
+    "terms", "terms_fk_id",
+    "conditions_id", "conditions_description",
+    "cost", "sell", "totals", "finance", "flow", "source",
+    "parent_id", "parent_model",
+    "comments",
+]
+
+_TX_HEADER_WRITE_USER = [
+    "status", "comments",
+]
+
+_TX_LINE_WRITE_EMPLOYEE = [
+    "status", "price_level",
+    "item_fk_id", "item",
+    "quantity", "cost", "tax", "physical", "price",
+    "comments",
+]
+
+_TX_LINE_WRITE_USER = [
+    "status", "quantity", "comments",
+]
+
 WCAPI_MODEL_POLICIES = {
+    # ── Core ──────────────────────────────────────────────────────────
     "contact": {
         "fields": {
             "read": {
                 "default": [
-                    "id",
-                    "email",
-                    "name_first",
-                    "name_last",
-                    "name_middle",
-                    "name_prefix",
-                    "name_suffix",
-                    "company",
-                    "title",
-                    "department",
-                    "customer_id",
-                    "vendor_id",
-                    "role",
-                    "is_active",
-                    "dt_joined",
+                    "id", "email", "name_first", "name_last", "name_middle",
+                    "name_prefix", "name_suffix", "company", "title",
+                    "department", "customer_id", "vendor_id", "role",
+                    "is_active", "dt_joined",
                 ],
                 "by_role": {
                     "admin": ["*"],
@@ -472,21 +510,206 @@ WCAPI_MODEL_POLICIES = {
             },
             "write": {
                 "default": [
-                    "email",
-                    "name_first",
-                    "name_last",
-                    "name_middle",
-                    "name_prefix",
-                    "name_suffix",
-                    "company",
-                    "title",
-                    "department",
-                    "customer_id",
-                    "vendor_id",
-                    "comment",
+                    "email", "name_first", "name_last", "name_middle",
+                    "name_prefix", "name_suffix", "company", "title",
+                    "department", "customer_id", "vendor_id", "comment",
                 ],
                 "by_role": {
                     "admin": ["*"],
+                },
+            },
+        },
+    },
+
+    # ── Orgs ──────────────────────────────────────────────────────────
+    "orgbase": {
+        "fields": {
+            "write": {
+                "default": [],
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": [
+                        "display_name", "org_type", "status",
+                        "contact_id", "attention",
+                        "address_id", "address_full",
+                        "email", "email_id", "phone", "phone_id",
+                        "domain", "domain_id",
+                        "price_level", "terms", "terms_fk_id",
+                        "financial", "data", "gl_accounts",
+                        "comments",
+                    ],
+                },
+            },
+        },
+    },
+
+    # ── Products ──────────────────────────────────────────────────────
+    "item": {
+        "fields": {
+            "write": {
+                "default": [],
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": [
+                        "name", "sku", "qr_code", "kind", "uom", "base_uom",
+                        "description", "gls", "flags",
+                        "price", "cost", "tax_code",
+                        "specification_id", "catalog", "quantity",
+                        "comments",
+                    ],
+                },
+            },
+        },
+    },
+
+    # ── Transactions — Headers ────────────────────────────────────────
+    "order": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+    "salesorder": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+    "invoice": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+    "proposal": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+    "purchase": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+    "purchaseorder": {
+        "fields": {
+            "write": {
+                "default": _TX_HEADER_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_HEADER_WRITE_EMPLOYEE,
+                },
+            },
+        },
+    },
+
+    # ── Transactions — Lines ──────────────────────────────────────────
+    "orderline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["order_id"],
+                },
+            },
+        },
+    },
+    "salesorderline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["order_id"],
+                },
+            },
+        },
+    },
+    "invoiceline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["invoice_id"],
+                },
+            },
+        },
+    },
+    "proposalline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["proposal_id"],
+                },
+            },
+        },
+    },
+    "purchaseline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["purchase_id"],
+                },
+            },
+        },
+    },
+    "purchaseorderline": {
+        "fields": {
+            "write": {
+                "default": _TX_LINE_WRITE_USER,
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["purchase_id"],
+                },
+            },
+        },
+    },
+
+    # ── Payments ──────────────────────────────────────────────────────
+    "payment": {
+        "fields": {
+            "write": {
+                "default": [],
+                "by_role": {
+                    "admin": ["*"],
+                    "employee": [
+                        "status", "contact_id", "customer_id",
+                        "amount", "payment_method_id", "reference",
+                        "comments",
+                    ],
                 },
             },
         },

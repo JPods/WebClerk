@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional
 from django.forms.models import model_to_dict
 import logging
 from django.db.models import QuerySet, Model
+
+logger = logging.getLogger(__name__)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -238,7 +240,7 @@ class WCAPIGetView(APIView):
         if not ModelCls:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
 
-        qs: QuerySet = ModelCls.objects.all()
+        qs: QuerySet = ModelCls.objects.active()
         qs = inject_constraints(qs, request, str(model_key))
 
         if record_id is not None:
@@ -313,14 +315,11 @@ class WCAPISaveView(APIView):
         record_id = body.get("id")
         data = body.get("data") or {}
 
-        # DEBUG: Print to stdout to see in runserver terminal
-        print(f"\n{'='*60}")
-        print(f"WCAPISaveView DEBUG:")
-        print(f"  model_key: {model_key}")
-        print(f"  record_id: {record_id}")
-        print(f"  data keys: {list(data.keys()) if isinstance(data, dict) else None}")
-        print(f"  contact_id from data: {data.get('contact_id') if isinstance(data, dict) else None}")
-        print(f"{'='*60}\n")
+        logger.debug(
+            "WCAPISaveView: model_key=%s record_id=%s data_keys=%s",
+            model_key, record_id,
+            list(data.keys()) if isinstance(data, dict) else None,
+        )
 
         ModelCls = registry.resolve(model_key or "")
         if not ModelCls or not isinstance(data, dict):
@@ -402,7 +401,7 @@ class WCAPISyncView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
             # Apply constraints to ensure user can access this model
-            qs = ModelCls.objects.all()
+            qs = ModelCls.objects.active()
             qs = inject_constraints(qs, request, str(model_key))
             
             # Route to appropriate sync operation
@@ -643,4 +642,4 @@ class WCAPISyncView(APIView):
             transformed_data.append(transformed_record)
             
         # Process transformed data using bulk operations
-        return self._bulk_create(ModelCls, transformed_data, ModelCls.objects.all())
+        return self._bulk_create(ModelCls, transformed_data, ModelCls.objects.active())

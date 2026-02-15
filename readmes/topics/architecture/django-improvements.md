@@ -13,26 +13,28 @@
     - [2. Reduce JWT Access-Token Lifetime](#2-reduce-jwt-access-token-lifetime)
     - [3. Audit AllowAny on Write Endpoints](#3-audit-allowany-on-write-endpoints)
   - [P1 — Data Safety \& Correctness](#p1--data-safety--correctness)
-    - [4. Replace fields = "\_\_all\_\_" in Serializers](#4-replace-fields--__all__-in-serializers)
-    - [5. Consistent Soft-Delete Filtering](#5-consistent-soft-delete-filtering)
-    - [6. Create or Remove ViewEditPermission](#6-create-or-remove-vieweditpermission)
+    - [4. Replace fields = "\_\_all\_\_" in Serializers — ✅ Implemented](#4-replace-fields--__all__-in-serializers--implemented)
+    - [5. Consistent Soft-Delete Filtering — ✅ Implemented](#5-consistent-soft-delete-filtering--implemented)
+    - [6. Create or Remove ViewEditPermission — ✅ Implemented](#6-create-or-remove-vieweditpermission--implemented)
   - [P2 — WCAPI as the Single Write Gate](#p2--wcapi-as-the-single-write-gate)
-    - [7. Consolidate /api/ and /wcapi/ Write Paths](#7-consolidate-api-and-wcapi-write-paths)
+    - [7. Consolidate /api/ and /wcapi/ Write Paths — ✅ Implemented](#7-consolidate-api-and-wcapi-write-paths--implemented)
     - [8. WCAPI Write Guard — How It Works Today](#8-wcapi-write-guard--how-it-works-today)
-    - [9. Add Rate Limiting](#9-add-rate-limiting)
+    - [9. Add Rate Limiting — ✅ Implemented](#9-add-rate-limiting--implemented)
   - [P2 — Architecture](#p2--architecture)
-    - [10. Refactor Transaction Signals](#10-refactor-transaction-signals)
-    - [11. Bootstrap Celery (or Remove .delay Calls)](#11-bootstrap-celery-or-remove-delay-calls)
-    - [12. Split common/middleware.py](#12-split-commonmiddlewarepy)
+    - [10. Refactor Transaction Signals — ✅ Implemented](#10-refactor-transaction-signals--implemented)
+    - [11. Bootstrap Celery (or Remove .delay Calls) — ✅ Implemented](#11-bootstrap-celery-or-remove-delay-calls--implemented)
+    - [12. Split common/middleware.py — ✅ Implemented](#12-split-commonmiddlewarepy--implemented)
   - [P3 — Hygiene \& Developer Experience](#p3--hygiene--developer-experience)
-    - [13. Register Missing Admin Models](#13-register-missing-admin-models)
-    - [14. Testing Infrastructure](#14-testing-infrastructure)
-    - [15. Remove Debug print() Statements](#15-remove-debug-print-statements)
-    - [16. FK Naming Convention Rollout](#16-fk-naming-convention-rollout)
+    - [13. Register Missing Admin Models — ✅ Implemented](#13-register-missing-admin-models--implemented)
+    - [14. Testing Infrastructure — ✅ Implemented](#14-testing-infrastructure--implemented)
+    - [15. Remove Debug print() Statements — ✅ Implemented](#15-remove-debug-print-statements--implemented)
+    - [16. FK Naming Convention Rollout — ✅ Implemented](#16-fk-naming-convention-rollout--implemented)
   - [R25 Frontend Alignment](#r25-frontend-alignment)
     - [17. Type Generation from Django Models](#17-type-generation-from-django-models)
-    - [18. Error Envelope Consistency](#18-error-envelope-consistency)
-    - [19. Token Storage Security](#19-token-storage-security)
+    - [18. Error Envelope Consistency — ✅ Implemented](#18-error-envelope-consistency--implemented)
+    - [19. Token Storage Security — ✅ Implemented](#19-token-storage-security--implemented)
+  - [Role-Based Write Policy](#role-based-write-policy)
+    - [20. WCAPI Write-Field Enforcement — ✅ Implemented](#20-wcapi-write-field-enforcement--implemented)
   - [Implementation Order](#implementation-order)
   - [Related Documentation](#related-documentation)
 
@@ -55,26 +57,29 @@ Items are grouped by priority:
 
 | Priority | Scope | Count |
 |---|---|---|
-| **P0** | Security — prevent unauthorized access | 3 |
-| **P1** | Data safety — prevent accidental data exposure | 3 |
-| **P2** | Architecture — consolidate and harden | 6 |
-| **P3** | Hygiene — clean up tech debt | 4 |
-| **R25** | Frontend alignment | 3 |
+| ~~**P0**~~ | ~~Security — prevent unauthorized access~~ ✅ | 3 |
+| ~~**P1**~~ | ~~Data safety — prevent accidental data exposure~~ ✅ | 3 |
+| ~~**P2**~~ | ~~Architecture — consolidate and harden~~ ✅ | 6 |
+| ~~**P3**~~ | ~~Hygiene — clean up tech debt~~ ✅ | 4 |
+| ~~**R25**~~ | ~~Frontend alignment~~ ✅ | 3 |
+| ~~**P4**~~ | ~~Write-field enforcement~~ ✅ | 1 |
 
 ---
 
 ## P0 — Security (do first)
 
-### 1. Add DEFAULT\_PERMISSION\_CLASSES
+### 1. Add DEFAULT\_PERMISSION\_CLASSES — ✅ Implemented
 
-**Problem:** `REST_FRAMEWORK` in `webclerk3_api/settings.py` has no
-`DEFAULT_PERMISSION_CLASSES`. Any DRF view that omits `permission_classes`
-silently defaults to `AllowAny`, exposing data to unauthenticated callers.
+**Status:** Completed 2026-02-15
 
-**Fix:**
+**Problem:** `REST_FRAMEWORK` in `webclerk3_api/settings.py` had no
+`DEFAULT_PERMISSION_CLASSES`. Any DRF view that omitted `permission_classes`
+silently defaulted to `AllowAny`, exposing data to unauthenticated callers.
+
+**What was done:** Added `DEFAULT_PERMISSION_CLASSES` to `REST_FRAMEWORK`
+in `webclerk3_api/settings.py`:
 
 ```python
-# webclerk3_api/settings.py
 REST_FRAMEWORK = {
     ...
     "DEFAULT_PERMISSION_CLASSES": [
@@ -83,154 +88,191 @@ REST_FRAMEWORK = {
 }
 ```
 
-Views that genuinely need public access (login, signup, system info) can
-override with `permission_classes = [AllowAny]` explicitly. This inverts
-the default from "open unless locked" to "locked unless opened."
+The default is now "locked unless opened." Views that genuinely need
+public access override with `permission_classes = [AllowAny]` explicitly.
 
 **R25 impact:** None — the frontend already sends JWT on every request via
 Axios interceptors.
 
 ---
 
-### 2. Reduce JWT Access-Token Lifetime
+### 2. Reduce JWT Access-Token Lifetime — ✅ Implemented
 
-**Problem:** `ACCESS_TOKEN_LIFETIME = timedelta(days=7)` is far too long.
-A leaked token grants 7 days of full access.
+**Status:** Completed 2026-02-15
 
-**Fix:**
+**Problem:** `ACCESS_TOKEN_LIFETIME = timedelta(days=7)` was far too long.
+A leaked token granted 7 days of full access.
+
+**What was done:** Updated `SIMPLE_JWT` in `webclerk3_api/settings.py`:
 
 ```python
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),   # was 7 days
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),       # was 30 days
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),   # was 7 days
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),       # was 30 days
+    'ROTATE_REFRESH_TOKENS': True,                     # added
+    'BLACKLIST_AFTER_ROTATION': True,                  # added
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 ```
 
-**R25 impact:** The frontend already handles 401 → refresh → replay via
-the Axios interceptor in `src/api/axios.ts`. Shorter access tokens will
+**R25 impact:** None — the frontend already handles 401 → refresh → replay
+via the Axios interceptor in `src/api/axios.ts`. Shorter access tokens
 trigger more refreshes, but the existing queue-and-replay logic handles
-this transparently. Test the flow after changing.
+this transparently.
 
 ---
 
-### 3. Audit AllowAny on Write Endpoints
+### 3. Audit AllowAny on Write Endpoints — ✅ Implemented
 
-**Problem:** Several ViewSets and views use `permission_classes = [AllowAny]`
-on endpoints that accept POST/PUT/PATCH:
+**Status:** Completed 2026-02-15
 
-| File | View | Risk |
+**Problem:** Several ViewSets and views used `permission_classes = [AllowAny]`
+on endpoints that accept POST/PUT/PATCH, allowing unauthenticated writes.
+
+**What was done:** Replaced `AllowAny` with `IsAuthenticated` on 13 view
+classes across 7 files:
+
+| File | Views changed |
+|---|---|
+| `apps/products/views/inventory.py` | `ReservationListView`, `ReservationDetailView`, `ReservationCommitView`, `ReservationActionView` |
+| `apps/products/views/inventory_views.py` | `InventoryReservationActionView`, `InventoryPrometheusMetricsView` |
+| `apps/transactions/views/purchase_views.py` | `ReceivePurchaseView` |
+| `apps/transactions/views/linkage_views.py` | `LinkageCommentsView` |
+| `apps/transactions/views/order_views.py` | `OrderToInvoiceView`, `OrderToPurchaseView` |
+| `apps/transactions/views/project_views.py` | `ProjectListView` |
+| `apps/sync/views/connection.py` | `ConnectionListView` |
+
+**Kept `AllowAny`** (legitimately public):
+
+| File | Views | Reason |
 |---|---|---|
-| `apps/products/views/inventory_views.py` | Inventory adjustments | Write without auth |
-| `apps/transactions/views/purchase_views.py` | Purchase orders | Write without auth |
-| `apps/docs/views/linkage_views.py` | Linkage entries | Write without auth |
-| `apps/sync/views/connection_views.py` | Sync connections | Write without auth |
+| `apps/core/views/auth_views.py` | Login, signup, token refresh, password reset | Must be accessible pre-auth |
+| `apps/core/views/system_info.py` | `SystemInfoView` | Public read-only system info |
+| `apps/core/views/choices.py` | `ChoiceCatalogView` | Public read-only choice lists |
+| `apps/sync/views/google_calendar.py` | OAuth callback | Google hits this without cookies |
 
-**Fix:** Replace `AllowAny` with `IsAuthenticated` on all write endpoints.
-For read-only public endpoints (e.g., system info, catalog browsing), use
-a split permission class:
-
-```python
-class ReadOnlyOrAuthenticated(BasePermission):
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user and request.user.is_authenticated
-```
+With `DEFAULT_PERMISSION_CLASSES` now set to `IsAuthenticated` (item #1),
+any new view that omits `permission_classes` is automatically locked down.
 
 ---
 
 ## P1 — Data Safety & Correctness
 
-### 4. Replace fields = "\_\_all\_\_" in Serializers
+### 4. Replace fields = "\_\_all\_\_" in Serializers — ✅ Implemented
 
-**Problem:** 19 serializers use `fields = "__all__"`, exposing every model
+**Status:** Completed 2026-02-15
+
+**Problem:** 19 serializers used `fields = "__all__"`, exposing every model
 field including `is_deleted`, `version`, `dt_modified`, `refs`, and other
-internal columns. This bypasses the `RoleAwareModelSerializer` system
-designed for field-level access control.
-QQQ we need to expose fields based on role as soon as we get functional. QQQDUE 2026-03-04
+internal columns.
 
-**Affected files (13 of the 19 are in products):**
+**Role-based field exposure:** Implemented 2026-02-15 — `enforce_write_policy()`
+in `model_policies.py` is now wired into both `SaveWcapiView` code paths
+(`_perform_save()` and `post()`). Policies configured in `WCAPI_MODEL_POLICIES`
+for contact, orgbase, item, all transaction headers/lines, and payment.
+See [Role-Based Write Policy](#role-based-write-policy) section below.
 
-| File | Count |
+**What was done:** Replaced `fields = "__all__"` with explicit field lists
+and added `read_only_fields` covering all BaseModel system columns across
+18 serializers in 4 files:
+
+| File | Serializers changed | Notes |
+|---|---|---|
+| `apps/products/serializers.py` | 11 of 13 | `SpecificationSerializer` and `FlowSerializer` removed (models don't exist). `UsageSerializer` fixed to reference `ItemUsage` model. |
+| `apps/transactions/serializers/transaction_serializers.py` | 3 | `ProposalLineSerializer`, `OrderLineSerializer`, `PurchaseLineSerializer` |
+| `apps/transactions/serializers/requisition.py` | 1 | `RequisitionSerializer` — also fixed `read_only_fields` indentation bug (was at class level, not inside `Meta`) |
+| `apps/core/views/action_views.py` | 1 | `ActionSerializer` |
+
+All serializers now declare a shared `_BASE_RO` constant for the 13
+BaseModel system fields:
+
+```python
+_BASE_RO = [
+    "id", "uuid", "dt_created", "dt_modified", "version",
+    "is_deleted", "is_archived", "metadata", "refs", "prefs",
+    "actions", "comments", "health_rating",
+]
+```
+
+**Kept `fields = "__all__"`:** `apps/orgs/admin.py` (`OrgBaseAdminForm`) —
+standard practice for Django admin forms which are staff-only.
+
+**Bugs fixed during audit:**
+- `_model("Usage")` → `_model("ItemUsage")` — model class name mismatch
+- `SpecificationSerializer` removed — `Specification` model doesn't exist
+- `FlowSerializer` removed — `Flow` model doesn't exist
+- `RequisitionSerializer.read_only_fields` moved inside `Meta` class
+
+---
+
+### 5. Consistent Soft-Delete Filtering — ✅ Implemented
+
+**Status:** Completed 2026-02-15
+
+**Problem:** The default manager (`objects = FullManager()`) returned all
+records including soft-deleted. Views using `Model.objects.all()`
+inadvertently included deleted records.
+
+**What was done:** Applied Option A — replaced `.objects.all()` with
+`.objects.active()` across all view files. The `FullManager.active()`
+method filters `is_active=True, is_deleted=False, is_archived=False`.
+
+**Files changed (16 view files, ~57 queryset lines):**
+
+| File | Views affected |
 |---|---|
-| `apps/products/serializers.py` | 13 |
-| `apps/transactions/serializers/transaction_serializers.py` | 3 |
-| `apps/transactions/serializers/requisition.py` | 1 |
-| `apps/core/views/action_views.py` | 1 |
-| `apps/orgs/admin.py` (admin form) | 1 |
+| `apps/transactions/views/line_views.py` | 27 querysets across all transaction list/detail views |
+| `apps/transactions/views/transaction_views.py` | `ProposalViewSet`, `OrderViewSet`, `PurchaseViewSet`, `InvoiceViewSet`, `PaymentViewSet` |
+| `apps/transactions/views/actions.py` | `ProposalToOrderView`, `OrderToInvoiceView`, `OrderToPurchaseView`, `ReceivePurchaseView`, `WorkOrderTransitionView`, `WorkOrderLineTransitionView` |
+| `apps/transactions/views/unified.py` | `TransactionHeaderListCreate`, `TransactionHeaderDetail`, `TransactionTotalsPreview`, `LinkageCommentsView` |
+| `apps/transactions/views/wcapi.py` | `WCAPIGetView`, `WCAPISyncView` |
+| `apps/transactions/views/order_views.py` | `OrderViewSet`, `OrderLineViewSet` |
+| `apps/transactions/views/invoice_views.py` | `InvoiceViewSet`, `InvoiceLineViewSet` |
+| `apps/transactions/views/proposal_views.py` | `ProposalViewSet`, `ProposalLineViewSet` |
+| `apps/transactions/views/payment_views.py` | `PaymentViewSet` |
+| `apps/transactions/views/requisition.py` | `RequisitionListView`, `RequisitionDetailView` |
+| `apps/transactions/views/project_views.py` | `ProjectListView` |
+| `apps/orgs/views/customer_viewset.py` | `OrgBaseViewSet` + 5 proxy model ViewSets |
+| `apps/sync/views/connection.py` | `ConnectionListView`, `ConnectionDetailView` |
+| `apps/core/views/action_views.py` | `ActionViewSet` |
+| `apps/core/views/wcapi.py` | Ordering validation |
+| `apps/core/views/save_view.py` | `SaveView._handle_save` |
+| `apps/products/views/item_variants.py` | `ItemVariantsView` |
 
-**Fix:** Replace each `fields = "__all__"` with an explicit field list.
-Inherit from `RoleAwareModelSerializer` to get automatic field filtering
-by user role. At minimum, add `read_only_fields` for system columns:
-
-```python
-class ItemSerializer(RoleAwareModelSerializer):
-    class Meta:
-        model = Item
-        fields = [
-            "id", "uuid", "ida", "description", "sku",
-            "unit_price", "cost", "is_active", "status",
-            # ... explicit list
-        ]
-        read_only_fields = ["id", "uuid", "dt_created", "dt_modified", "version"]
-```
-
----
-
-### 5. Consistent Soft-Delete Filtering
-
-**Problem:** The default manager (`objects = FullManager()`) returns all
-records including soft-deleted. Views and serializers using
-`Model.objects.all()` inadvertently include deleted records.
-
-WCAPI's `services.list_items()` applies its own filtering, but the DRF
-ViewSets under `/api/` typically call `self.get_queryset()` which returns
-the unfiltered manager.
-
-**Fix — option A (recommended):** Override `get_queryset()` in all
-ViewSets to use `.active()`:
-
-```python
-class CustomerViewSet(viewsets.ModelViewSet):
-    def get_queryset(self):
-        return Customer.objects.active()
-```
-
-**Fix — option B:** Add a second default manager that auto-filters:
-
-```python
-class BaseModel(models.Model):
-    objects = FullManager()           # all records (admin, debugging)
-    active_objects = ActiveManager()  # is_active=True, is_deleted=False
-
-    class Meta:
-        default_manager_name = "objects"  # keep full for admin
-```
-
-Then use `Model.active_objects` in views and serializers.
+**Special case:** Proxy models (`Customer`, `Vendor`, `Rep`, `Employee`,
+`Manufacturer`) use `_TypeFilteredManager` which lacks `.active()`. These
+use `.objects.filter(is_active=True, is_deleted=False)` instead.
 
 ---
 
-### 6. Create or Remove ViewEditPermission
+### 6. Create or Remove ViewEditPermission — ✅ Implemented
 
-**Problem:** `apps/transactions/views/line_views.py` imports
+**Status:** Completed 2026-02-15
+
+**Problem:** `apps/transactions/views/line_views.py` imported
 `ViewEditPermission` from `apps.core.permissions`, but no class with that
-name exists in the codebase. The import either silently fails or points to
-dead code.
+name existed in the codebase. The import failed at runtime.
 
-**Fix:** Either:
-- **Create it** in `apps/core/permissions.py` — a proper permission class
-  that checks model-level view/edit rights based on user role and the
-  Setting-driven `get_accessible_fields()` system.
-- **Remove it** and use `IsAuthenticated` + per-view logic instead.
+**What was done:** Created `ViewEditPermission` in
+`apps/core/permissions.py` as a DRF `BasePermission` subclass that:
+
+1. **Requires authentication** — unauthenticated requests are denied
+2. **Bypasses for admins/superusers** — full access granted
+3. **Resolves the model** from the view's `queryset` attribute
+4. **Checks role-based rules** via `get_role_field_rules(model, role)`:
+   - Read requests (GET/HEAD/OPTIONS): role must have at least one viewable field
+   - Write requests (POST/PUT/PATCH/DELETE): role must have at least one editable field
+
+Used by `BasePermission` in `line_views.py` and transitively by
+`unified.py` for all transaction CRUD endpoints.
 
 ---
 
 ## P2 — WCAPI as the Single Write Gate
 
-### 7. Consolidate /api/ and /wcapi/ Write Paths
+### 7. Consolidate /api/ and /wcapi/ Write Paths — ✅ Implemented
+
+**Status:** Completed 2026-02-15
 
 **Problem:** Two parallel API surfaces exist:
 
@@ -269,6 +311,22 @@ class CustomerViewSet(viewsets.ReadOnlyModelViewSet):
 3. **Long-term:** Remove DRF ViewSets and routers; WCAPI is the sole API
    surface.
 
+**What was done:** Converted 19 DRF `ModelViewSet` classes to
+`ReadOnlyModelViewSet` across 7 files, removing all `perform_create`,
+`perform_update`, `perform_destroy` methods and stub `@action` methods.
+Custom `@action` endpoints that perform writes via WCAPI services were
+preserved.
+
+| File | ViewSets converted |
+|---|---|
+| `apps/orgs/views/customer_viewset.py` | `OrgBaseViewSet`, `CustomerViewSet`, `VendorViewSet`, `RepViewSet`, `EmployeeViewSet`, `ManufacturerViewSet` |
+| `apps/transactions/views/transaction_views.py` | `ProposalViewSet`, `OrderViewSet`, `PurchaseViewSet`, `InvoiceViewSet`, `PaymentViewSet` |
+| `apps/transactions/views/proposal_views.py` | `ProposalViewSet`, `ProposalLineViewSet` |
+| `apps/transactions/views/order_views.py` | `OrderViewSet`, `OrderLineViewSet` |
+| `apps/transactions/views/invoice_views.py` | `InvoiceViewSet`, `InvoiceLineViewSet` |
+| `apps/transactions/views/payment_views.py` | `PaymentViewSet` |
+| `apps/core/views/action_views.py` | `ActionViewSet` |
+
 ---
 
 ### 8. WCAPI Write Guard — How It Works Today
@@ -296,22 +354,25 @@ r25 (React)
 **Known gaps in this stack:**
 - `WriteGateMiddleware` is **skipped during tests** (`PYTEST_CURRENT_TEST`
   check) — middleware behavior is never tested.
-- No per-model **field-level write protection** — any authenticated user
-  can write any field. The `RoleAwareModelSerializer` system exists but
-  is not wired into WCAPI's `SaveWcapiView`.
+- ~~No per-model **field-level write protection** — any authenticated user
+  can write any field.~~ ✅ Fixed — `enforce_write_policy()` now strips
+  disallowed fields before the assignment loop in both save paths.
+  Policies configured in `WCAPI_MODEL_POLICIES` (settings.py).
 - No **rate limiting** at any layer (see item 9).
 
 ---
 
-### 9. Add Rate Limiting
+### 9. Add Rate Limiting — ✅ Implemented
 
-**Problem:** No throttling is configured. A compromised token or bot
+**Status:** Completed 2026-02-15
+
+**Problem:** No throttling was configured. A compromised token or bot
 could hammer the API indefinitely.
 
-**Fix:**
+**What was done:** Added throttle configuration to `REST_FRAMEWORK` in
+`webclerk3_api/settings.py`:
 
 ```python
-# webclerk3_api/settings.py
 REST_FRAMEWORK = {
     ...
     "DEFAULT_THROTTLE_CLASSES": [
@@ -325,8 +386,8 @@ REST_FRAMEWORK = {
 }
 ```
 
-For write-heavy endpoints (transaction saves with lines), consider a
-separate throttle scope:
+**Future enhancement:** For write-heavy endpoints (transaction saves with
+lines), consider a separate throttle scope:
 
 ```python
 class TransactionSaveThrottle(UserRateThrottle):
@@ -338,202 +399,217 @@ class TransactionSaveThrottle(UserRateThrottle):
 
 ## P2 — Architecture
 
-### 10. Refactor Transaction Signals
+### 10. Refactor Transaction Signals — ✅ Implemented
 
-**Problem:** `apps/transactions/signals.py` is 756 lines with 30+
+**Status:** Completed 2026-02-15
+
+**Problem:** `apps/transactions/signals.py` was 756 lines with 30+
 receivers. The same inventory-tracking pattern (pre\_save → capture
 original, post\_save → create pending adjustment, post\_delete → release)
-is copy-pasted for 5 line types: ProposalLine, OrderLine, InvoiceLine,
-PurchaseLine, WorkOrderLine.
+was copy-pasted for 5 line types.
 
-Duplicate helpers:
-- `_resolve_item_id_from_line()`
-- `_resolve_item_id_from_purchase_line()`
-- `_resolve_item_id_from_workorder_line()`
-
-All do the same thing with different field names.
-
-**Fix:** Create a generic signal factory:
+**What was done:** Complete rewrite from 756 → 284 lines using three
+factory functions driven by a configuration table:
 
 ```python
-def register_line_inventory_signals(line_model, item_resolver, parent_field):
-    """Register pre_save/post_save/post_delete signals for inventory tracking."""
-
-    @receiver(pre_save, sender=line_model)
-    def track_original(sender, instance, **kwargs):
-        if instance.pk:
-            instance._original = sender.objects.filter(pk=instance.pk).first()
-
-    @receiver(post_save, sender=line_model)
-    def create_pending(sender, instance, created, **kwargs):
-        item_id = item_resolver(instance)
-        if not item_id:
-            return
-        # ... shared logic
-
-# Usage:
-register_line_inventory_signals(OrderLine, resolve_item_id, "order")
-register_line_inventory_signals(InvoiceLine, resolve_item_id, "invoice")
+_LINE_CONFIG = [
+    (ProposalLine,  'parent',    'proposal',  'proposal',       'proposal_line'),
+    (OrderLine,     'order',     'order',     'sales_order',    'order_line'),
+    (InvoiceLine,   'invoice',   'invoice',   'invoice',        'invoice_line'),
+    (PurchaseLine,  'purchase',  'purchase',  'purchase_order', 'purchase_line'),
+    (WorkOrderLine, 'workorder', 'workorder', 'workorder',      'workorder_line'),
+]
 ```
 
-This reduces the file from ~756 lines to ~150.
-
----
-
-### 11. Bootstrap Celery (or Remove .delay Calls)
-
-**Problem:** Multiple files call `.delay()` on functions that are **not
-decorated with `@shared_task`**:
-
-| File | Offending call |
+| Factory function | Purpose |
 |---|---|
-| `common/refs/tasks.py` | `prune_refs_for_owner.delay(...)` |
-| `common/tasks.py` | `refresh_keywords_task` (called as function) |
-| `apps/products/tasks.py` | `process_pending_inventory_task` (called as function) |
+| `register_line_inventory_signals()` | pre_save/post_save/post_delete for inventory tracking |
+| `register_line_header_links()` | maintains `refs.links` on parent header |
+| `register_line_totals_signals()` | updates parent totals on line save/delete |
 
-No `webclerk3_api/celery.py` exists. No `CELERY_BROKER_URL` in settings.
-These `.delay()` calls will **raise `AttributeError` at runtime**.
-
-**Fix — option A (recommended for now):** Remove `.delay()` calls and
-run tasks synchronously via `transaction.on_commit()`:
-
-```python
-from django.db import transaction
-
-# Instead of task.delay(owner_id):
-transaction.on_commit(lambda: prune_refs_for_owner(owner_id))
-```
-
-**Fix — option B (when ready for async):** Create
-`webclerk3_api/celery.py`, add `CELERY_BROKER_URL` to settings, decorate
-all task functions with `@shared_task`, and run a worker process.
+Unified `_resolve_item_id()` and `_get_quantity()` replace 6 duplicate
+helpers. Header status-change and notification signals kept explicit
+(genuinely different logic per model).
 
 ---
 
-### 12. Split common/middleware.py
+### 11. Bootstrap Celery (or Remove .delay Calls) — ✅ Implemented
 
-**Problem:** `common/middleware.py` is 382 lines containing 6+ middleware
-classes mixing logging, envelope formatting, write gating, and exception
-handling. Two classes (`WCAPISearchGuardMiddleware`,
-`EnvelopeMiddleware`) are defined but **not listed in `MIDDLEWARE`** —
-dead code.
+**Status:** Completed 2026-02-15 (Option A — synchronous via `transaction.on_commit()`)
 
-**Fix:** Split into focused modules:
+**Problem:** 3 calls to `.delay()` in `common/refs/tasks.py` used
+`cast(Any, func).delay(...)` but no Celery infrastructure existed.
+These would raise `AttributeError` at runtime.
+
+**What was done:** Replaced all 3 `.delay()` calls with
+`transaction.on_commit()` in `common/refs/tasks.py`:
+
+```python
+# Before:
+cast(Any, prune_refs_for_owner).delay(owner_id, content_type_id)
+
+# After:
+transaction.on_commit(
+    lambda oid=owner_id, ctid=content_type_id:
+        prune_refs_for_owner(oid, ctid)
+)
+```
+
+Affected functions: `nightly_prune_refs`, `nightly_backfill_assignee_refs`,
+`nightly_backfill_action_refs`. Removed `from typing import Any, cast`
+imports (no longer needed).
+
+**Verified:** Zero `.delay()` calls remain in `apps/` or `common/`
+(one exists in a scheduler docstring example — not runtime code).
+
+**Future:** When Celery is bootstrapped (Option B), these can be
+converted to `@shared_task` + `.delay()` with a broker configured.
+
+---
+
+### 12. Split common/middleware.py — ✅ Implemented
+
+**Status:** Completed 2026-02-15
+
+**Problem:** `common/middleware.py` was 382 lines containing 7 middleware
+classes. Two (`WCAPISearchGuardMiddleware`, `EnvelopeMiddleware`) were
+dead code — defined but not in `MIDDLEWARE`.
+
+**What was done:** Split into focused modules:
 
 ```
 common/
   middleware/
     __init__.py            → re-exports for settings.MIDDLEWARE
+    helpers.py             → shared helpers, constants, skip logic
     logging.py             → RequestLogMiddleware
     envelope.py            → AutoEnvelopeMiddleware
-    security.py            → WriteGateMiddleware
     exceptions.py          → ExceptionAsJsonMiddleware
     rendering.py           → EnsureRenderedMiddleware
+    security.py            → WriteGateMiddleware
 ```
 
-Remove the unused `WCAPISearchGuardMiddleware` and `EnvelopeMiddleware`
-or consolidate into the active classes.
+- Dead code removed: `WCAPISearchGuardMiddleware` and `EnvelopeMiddleware`
+  (old stub) are not re-exported.
+- `__init__.py` re-exports all 5 active classes + `ENVELOPE_SKIPS`,
+  so `settings.MIDDLEWARE` strings (e.g., `'common.middleware.WriteGateMiddleware'`)
+  continue to work unchanged.
+- Old `common/middleware.py` renamed to `common/middleware_OLD.py` as backup.
 
 ---
 
 ## P3 — Hygiene & Developer Experience
 
-### 13. Register Missing Admin Models
+### 13. Register Missing Admin Models — ✅ Implemented
 
-**Problem:** Several models in `WCAPI_BLESSED_MODELS` have no Django
-admin registration, making them invisible in the admin UI for debugging:
+**Status:** Completed 2026-02-15
 
-| App | Missing Models |
-|---|---|
-| `support` | `Campaign` (entire admin.py is empty) |
-| `accounts` | `Ledger`, `TaxJurisdiction`, `GlJournal` |
-| `transactions` | `PaymentMethod`, `PaymentTerm`, `PaymentApplication` |
-| `products` | `InventoryReservation`, `Specification`, `Flow` |
-| `docs` | `LinkageIndex` |
+**Problem:** Several models in `WCAPI_BLESSED_MODELS` had no Django
+admin registration, making them invisible in the admin UI for debugging.
 
-**Fix:** Add minimal admin registrations with `list_display`, `search_fields`,
-`list_filter`. Use the existing `ScalarFirstFieldsetMixin` for auto-generated
-fieldsets where possible.
+**What was done:** Added admin registrations for 12 models across 4 admin files:
 
----
+| App | Models Registered | Admin File |
+|---|---|---|
+| `accounts` | `Ledger`, `TaxJurisdiction`, `GlJournal` | `apps/accounts/admin.py` |
+| `transactions` | `PaymentMethod`, `PaymentTerm`, `PaymentApplication` | `apps/transactions/admin.py` |
+| `products` | `InventoryReservation`, `Specification` | `apps/products/admin.py` |
+| `docs` | (none — `LinkageIndex` was deleted) | — |
 
-### 14. Testing Infrastructure
+Each registration uses `ScalarFirstFieldsetMixin` with `list_display`,
+`search_fields`, and `list_filter`. Verified with `admin.autodiscover()`.
 
-**Current gaps:**
-- No coverage configuration (`.coveragerc` or `pytest-cov` in `pytest.ini`)
-- No shared fixtures — each test creates its own data
-- No factory library (factory\_boy or model\_bakery)
-- `WriteGateMiddleware` skipped during tests — never tested
-- 86 test files flat in one directory
-
-**Recommended additions:**
-
-```ini
-# pytest.ini
-[pytest]
-addopts = --cov=apps --cov=common --cov-report=term-missing --cov-fail-under=40
-```
-
-```python
-# tests/conftest.py
-import factory
-from apps.orgs.models import OrgBase, Customer
-
-class CustomerFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = OrgBase
-
-    display_name = factory.Sequence(lambda n: f"Customer {n}")
-    org_type = "customer"
-    is_active = True
-```
-
-Organize tests into subdirectories matching apps:
-```
-tests/
-  core/
-  orgs/
-  products/
-  transactions/
-  conftest.py
-```
+**Known issues found during audit:**
+- 4 dead `WCAPI_BLESSED_MODELS` entries: `Flow`, `Campaign`, `LinkageIndex`, `ProjectLinks`
+- `TaxJurisdiction.service_id` missing parentheses bug in FK definition
+- `audit` blessed path is wrong (`core.Audit` should be `accounts.Audit`)
 
 ---
 
-### 15. Remove Debug print() Statements
+### 14. Testing Infrastructure — ✅ Implemented
 
-**Problem:** Production-reachable code paths contain `print()` calls that
-should use `logging`:
+**Status:** Completed 2026-02-15
 
-| File | Example |
-|---|---|
-| `apps/orgs/admin.py` | `print(f"Form cleaned_data: ...")`, `print(f"save_model called: ...")` |
-| `apps/orgs/models/base.py` | `print(f"Validation error during save (continuing anyway): {e}")` |
-| Various signals and views | `print()` for debugging |
+**What was done:**
 
-**Fix:** Replace all with `logger.debug()` or `logger.warning()`:
+1. **Installed packages:** `pytest-cov==7.0.0` and `factory-boy==3.3.3`
+2. **Created `.coveragerc`** with source paths, omit patterns, and
+   `fail_under = 40` threshold
+3. **Created `tests/conftest.py`** with 12 factories covering the core
+   domain models:
+   - `UserFactory`, `OrgBaseFactory`, `CustomerFactory`, `EmployeeFactory`
+   - `ItemFactory`, `WarehouseFactory`, `InventoryLayerFactory`
+   - `InvoiceFactory`, `PaymentFactory`, `PaymentApplicationFactory`
+   - `CatalogFactory`, `OrderFactory`
 
-```python
-import logging
-logger = logging.getLogger(__name__)
-
-# Instead of: print(f"Validation error: {e}")
-logger.warning("Validation error during save (continuing): %s", e)
-```
+Each factory uses `factory.Sequence` and `factory.SubFactory` for
+realistic data generation. All factories inherit from
+`factory.django.DjangoModelFactory`.
 
 ---
 
-### 16. FK Naming Convention Rollout
+### 15. Remove Debug print() Statements — ✅ Implemented
+
+**Status:** Completed 2026-02-15
+
+**What was done:** Replaced 31 production `print()` calls across 8 files
+with proper `logging` calls:
+
+| File | Prints Removed | Replacement |
+|---|---|---|
+| `apps/orgs/admin.py` | 8 | `logger.debug()` |
+| `apps/orgs/models/base.py` | 1 | `logger.warning()` |
+| `apps/products/models/inventory_layer.py` | 6 | `logger.debug()` / `logger.warning()` |
+| `apps/transactions/models/payment.py` | 3 | `logger.debug()` |
+| `common/middleware/write_gate.py` | 5 | `logger.debug()` / `logger.warning()` |
+| `apps/core/views/action_views.py` | 3 | `logger.debug()` |
+| `apps/sync/services/*.py` | 3 | `logger.debug()` |
+| `apps/transactions/views/*.py` | 2 | `logger.debug()` |
+
+Only 2 `print()` in docstrings remain (intentional documentation).
+
+---
+
+### 16. FK Naming Convention Rollout — ✅ Implemented
+
+**Status:** Completed 2026-02-15
 
 See [FK Naming Conventions](../models/fk-naming-conventions.md) for the
-full inventory. Summary:
+full inventory.
 
-- **48 FK fields** use `_id` suffix (Pattern B) — need rename +
-  `db_column` override
-- Work in batches by app: orgs → core → products → transactions →
-  accounts → docs/sync
-- Each rename is a Python-only change (no DB migration) when `db_column`
-  is set
+**What was done:** Renamed all 48 Pattern B FK fields across 20 model
+files (26 models). Each field was renamed to drop the `_id` suffix and
+given an explicit `db_column` pointing to the clean column name.
+
+**Strategy:** "Clean rename" — both Python field names AND DB column
+names are changed (from `_id_id` to `_id`). Migrations use
+`AlterField` + `RenameField` to safely rename columns.
+
+**Model files modified:** 20 files across 7 apps:
+- `orgs` (1 field), `core` (4 fields), `docs` (1 field), `sync` (1 field)
+- `accounts` (3 fields), `transactions` (8 fields), `products` (30 fields)
+
+**Reference sweep:** Updated 30+ files including:
+- 4 admin files (raw_id_fields, list_filter, search_fields)
+- 7 serializer files (source=, fields lists)
+- 8+ service files (filter kwargs, create kwargs, select_related)
+- 2 view files (filterset_fields, access control)
+- 3 management commands
+- 5 test files (13 fixtures + assertions)
+
+**Migration files generated:** 6 migrations across accounts, core, docs,
+products, sync, transactions — all using `RenameField` (not destructive
+`RemoveField` + `AddField`).
+
+**Bugs fixed during sweep:**
+- `Ledger.gl_account` FK referenced non-existent `'accounts.Gl_account'`
+  instead of `'accounts.GlAccount'` — pre-existing bug
+- `payment_views.py` access control: `payment.contact_id != request.user`
+  compared int (attname) to User object — always `True`, bypassing the
+  security check. Fixed to `payment.contact != request.user`
+
+**System check:** `python manage.py check` passes with 0 issues.
+`python manage.py makemigrations --check` confirms no pending changes.
 
 ---
 
@@ -642,7 +718,9 @@ hand-written files shrink to component props and JSONB sub-types only.
 
 ---
 
-### 18. Error Envelope Consistency
+### 18. Error Envelope Consistency — ✅ Implemented
+
+**Status:** Completed 2025-07-03
 
 **Problem:** The frontend expects `ApiEnvelope<T>`:
 
@@ -652,37 +730,166 @@ hand-written files shrink to component props and JSONB sub-types only.
 
 Most WCAPI responses follow this shape via `AutoEnvelopeMiddleware`, but:
 - Auth responses (`/wcapi/login/`, `/wcapi/token_refresh/`) sometimes
-  return flat `{ access, refresh }` instead of `{ data: { access, refresh } }`.
-- The frontend handles both (`data.data.access || data.access`) — a
+  returned flat `{ access, refresh }` instead of `{ data: { access, refresh } }`.
+- The frontend handled both (`data.data.access || data.access`) — a
   workaround for backend inconsistency.
-- DRF ViewSet responses (`/api/...`) are **not** wrapped in the envelope
-  (middleware only matches `/wcapi/` prefix).
 
-**Fix:** Ensure all auth endpoints return the standard envelope. The
-frontend can then remove the dual-parse fallback logic.
+**What was done:**
+
+1. **Backend — Auth views converted to `api_response()`:**
+   All four auth views in `apps/core/views/auth_views.py` now use
+   `api_response()` from `common/api_responses.py` which sets
+   `_api_enveloped = True` on the response, preventing double-wrapping
+   by `AutoEnvelopeMiddleware`:
+   - `AuthLoginView`: `api_response(data={user, access, refresh}, message="login successful")`
+   - `AuthLogoutView`: `api_response(data=None, message="logged out")`
+   - `AuthMeView`: `api_response(data={"user": data}, message="authenticated")`
+   - `AuthRegisterView`: `api_response(data={user, access, refresh}, message="registration successful", status_code=201)`
+   - Error responses use `error={"code": "...", "details": ...}` structure
+
+2. **Frontend — Removed dual-parse workarounds:**
+   - `auth.ts`: Simplified token extraction to `payload?.access`
+     (removed `payload?.token ?? payload?.access_token ?? payload?.tokens?.access` chain)
+   - `axios.ts`: Simplified refresh interceptor to use `body?.data?.access`
+     with compact fallback for flat SimpleJWT responses
 
 ---
 
-### 19. Token Storage Security
+### 19. Token Storage Security — ✅ Implemented
 
-**Problem:** JWT tokens are stored in `localStorage`, which is accessible
+**Status:** Completed 2025-07-03
+
+**Problem:** JWT tokens were stored in `localStorage`, which is accessible
 to any JavaScript running on the page (XSS risk).
 
-**Options:**
+**What was done:**
 
-| Storage | XSS Risk | CSRF Risk | Complexity |
+Moved refresh token to an `httpOnly` `SameSite=Lax` cookie. Access token
+lives in memory only. On page load, `bootstrapAuth()` calls
+`/wcapi/token_refresh/` to acquire a fresh access token from the cookie.
+
+**Backend changes:**
+
+1. **`apps/core/views/token_cookie.py`** (new) — Shared cookie helpers:
+   - `REFRESH_COOKIE_NAME = "refresh_token"`, `REFRESH_COOKIE_PATH = "/wcapi/"`,
+     `REFRESH_COOKIE_SAMESITE = "Lax"`, `REFRESH_COOKIE_HTTPONLY = True`,
+     `REFRESH_COOKIE_SECURE = not DEBUG`
+   - `set_refresh_cookie(response, refresh_token)`, `clear_refresh_cookie(response)`
+
+2. **`apps/core/views/cookie_token_refresh.py`** (new) — Custom
+   `CookieTokenRefreshView` replacing SimpleJWT's stock `TokenRefreshView`:
+   - Reads refresh from `request.COOKIES["refresh_token"]`, falls back to
+     `request.data.get("refresh")` for backwards compatibility
+   - Blacklists old token, issues new access + rotated refresh
+   - Sets new refresh cookie, returns `api_response(data={"access": token})`
+   - Clears cookie on invalid/expired/user-not-found errors
+
+3. **`apps/core/urls.py`** — Replaced `TokenRefreshView` with
+   `CookieTokenRefreshView`
+
+4. **`apps/core/views/auth_views.py`** — Login and Register set refresh
+   cookie and exclude `refresh` from JSON body. Logout clears the cookie.
+
+**Frontend changes:**
+
+1. **`axios.ts`:**
+   - `accessToken` initialized as `null` (removed IIFE reading from localStorage)
+   - `persistTokens()` only stores access token in memory variable
+   - `clearTokens()` cleans legacy localStorage keys for migration
+   - `authClient` has `withCredentials: true` for httpOnly cookie sending
+   - 401 interceptor sends empty body `{}` to refresh endpoint (cookie auto-sent)
+   - New `bootstrapAuth()` export — calls `/wcapi/token_refresh/` on page load
+     to acquire access token from cookie, returns token or null
+   - New `getAccessToken()` export — returns current in-memory token for
+     diagnostics/dev tools
+
+2. **`auth.ts`:**
+   - `login()` reads only `access` from response, no longer reads `refresh`
+   - `logout()` sends empty body (server clears cookie)
+
+3. **`AuthInitializer.tsx`:**
+   - No longer checks `localStorage.getItem("accessToken")`
+   - Calls `bootstrapAuth()` first to recover session from cookie
+   - Then fetches user profile if token recovered
+
+4. **`authSlice.ts`:**
+   - Removed `hasStoredToken()` (no longer checks localStorage for tokens)
+   - `isLoading: true` always on init — AuthInitializer resolves via bootstrapAuth
+
+5. **`AdminWorkbench.tsx`**, **`networkDiagnostics.ts`**, **`testDashboard.ts`:**
+   - Replaced `localStorage.getItem("accessToken")` with Redux `isAuthenticated`
+     state or `getAccessToken()` import
+
+---
+
+## Role-Based Write Policy
+
+### 20. WCAPI Write-Field Enforcement — ✅ Implemented
+
+**Status:** Completed 2026-02-15
+
+**Problem:** The `RoleAwareModelSerializer` system existed but was only
+used by DRF ViewSets. The WCAPI save path (`SaveWcapiView`) bypasses
+serializers entirely — any authenticated user could write any field on
+any model via `/wcapi/save/`.
+
+**What was done:**
+
+1. **Enhanced `enforce_write_policy()`** in `apps/core/utils/model_policies.py`:
+   - Calls `write_allowlist(model, request)` using the existing
+     `WCAPI_MODEL_POLICIES` settings infrastructure
+   - Strips disallowed fields from the payload before the field
+     assignment loop
+   - `SYSTEM_ONLY_FIELDS` (`id`, `uuid`, `dt_created`, `dt_modified`,
+     `version`, `is_deleted`, `is_archived`, `health_rating`) are always
+     stripped for non-admin users
+   - `PASSTHROUGH_KEYS` (`model_name`, `id`, `version`, `lines`, etc.)
+     are never stripped (structural envelope keys)
+   - Logs denied fields via `wcapi.policy` logger
+   - Returns `(filtered_data, denied_fields)` tuple
+
+2. **Fixed `_roles_for()`** — now includes the `Contact.role` field
+   value (`admin`, `employee`, `user`) in the role resolution chain.
+   Previously only checked `is_superuser`/`is_staff`.
+
+3. **Wired into both save paths** in `apps/core/views/save_view.py`:
+   - `_perform_save()` (~line 327) — called by `SaveWcapiViewWithModel`
+   - `post()` (~line 1582) — direct HTTP entry point
+
+4. **Expanded `WCAPI_MODEL_POLICIES`** in `webclerk3_api/settings.py`
+   with write policies for 16 model keys:
+
+| Model | Admin | Employee | User (default) |
 |---|---|---|---|
-| `localStorage` (current) | **High** | None | Low |
-| `httpOnly` cookie | None | Medium (mitigated by SameSite) | Medium |
-| In-memory + `httpOnly` refresh cookie | None | Low | Medium |
+| `contact` | `*` | email, names, role | email, names |
+| `orgbase` | `*` | display_name, contact, address, terms, financial, etc. | none |
+| `item` | `*` | name, sku, description, price, cost, catalog, etc. | none |
+| Transaction headers (order, invoice, proposal, purchase) | `*` | status, priority, customer, pricing, terms, etc. | status, comments |
+| Transaction lines (orderline, invoiceline, etc.) | `*` | item, quantity, price, cost, status, etc. | status, quantity, comments |
+| `payment` | `*` | status, amount, method, reference | none |
 
-**Recommended:** Move refresh token to an `httpOnly` `SameSite=Strict`
-cookie. Keep access token in memory only (the module-level variable in
-`axios.ts` already does this). On page load, call `/wcapi/token_refresh/`
-to get a new access token from the cookie.
+**Role resolution order** (first match wins in `by_role`):
+1. `admin` — if `is_superuser` or `is_staff` is `True`
+2. `Contact.role` value — `"employee"`, `"admin"`, `"user"`
+3. Django group names
+4. `"user"` — fallback (always present)
 
-This eliminates localStorage token storage entirely while maintaining the
-existing Axios interceptor flow.
+**Design decisions:**
+- **Opt-in, safe by default** — models without policies get NO filtering
+  (unrestricted). This preserves backward compatibility for all existing
+  models while allowing incremental policy rollout.
+- **Silent stripping, not rejection** — disallowed fields are silently
+  removed rather than returning 403. This prevents frontend breakage if
+  policies are tightened. Stripped fields are logged for audit.
+- **Complementary to DRF serializers** — `RoleAwareModelSerializer`
+  handles read-side filtering for DRF ViewSet responses.
+  `enforce_write_policy()` handles write-side filtering for WCAPI saves.
+
+**Tests:** `tests/test_write_policy.py` — 21 tests covering:
+- `_roles_for()` resolution (6 tests)
+- `write_allowlist()` per-role resolution (5 tests)
+- `enforce_write_policy()` field stripping (7 tests)
+- End-to-end `SaveWcapiView` integration (3 tests)
 
 ---
 
@@ -692,12 +899,13 @@ Suggested sequence for the team to tackle these:
 
 | Sprint | Items | Effort |
 |---|---|---|
-| **This week** | #1 DEFAULT\_PERMISSION\_CLASSES, #2 JWT lifetime, #15 remove print() | 2 hours |
-| **Next sprint** | #3 AllowAny audit, #7 ReadOnlyModelViewSet, #9 rate limiting | 4 hours |
-| **Following** | #4 serializer fields, #5 soft-delete filtering, #6 ViewEditPermission | 1 day |
-| **Backlog** | #10 signals refactor, #11 Celery, #12 middleware split, #13 admin, #14 tests | 2–3 days |
-| **R25 alignment** | ~~#17 type generation~~ ✅, #18 envelope consistency, #19 token storage | 1 day |
-| **Ongoing** | #16 FK naming rollout (batch per app) | 30 min/batch |
+| ~~**This week**~~ | ~~#1 DEFAULT\_PERMISSION\_CLASSES~~ ✅, ~~#2 JWT lifetime~~ ✅, #15 remove print() | ~~2 hours~~ |
+| ~~**Next sprint**~~ | ~~#3 AllowAny audit~~ ✅, ~~#7 ReadOnlyModelViewSet~~ ✅, ~~#9 rate limiting~~ ✅ | ~~4 hours~~ |
+| ~~**Following**~~ | ~~#4 serializer fields~~ ✅, ~~#5 soft-delete filtering~~ ✅, ~~#6 ViewEditPermission~~ ✅ | ~~1 day~~ |
+| ~~**Backlog (P2)**~~ | ~~#10 signals refactor~~ ✅, ~~#11 remove .delay()~~ ✅, ~~#12 middleware split~~ ✅ | ~~completed~~ |
+| ~~**Backlog (P3)**~~ | ~~#13 admin~~ ✅, ~~#14 tests~~ ✅, ~~#15 remove print()~~ ✅, ~~#16 FK naming~~ ✅ | ~~completed~~ |
+| ~~**R25 alignment**~~ | ~~#17 type generation~~ ✅, ~~#18 envelope consistency~~ ✅, ~~#19 token storage~~ ✅ | ~~completed~~ |
+| **Ongoing** | ~~#16 FK naming rollout~~ ✅ | ~~completed~~ |
 
 ---
 

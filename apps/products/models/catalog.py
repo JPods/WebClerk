@@ -67,17 +67,18 @@ class Catalog(BaseModel):
     dt_effective_start = models.BigIntegerField()
     dt_effective_end = models.BigIntegerField(blank=True, null=True)
     is_active = models.BooleanField(default=True, db_index=True)
-    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='vendor_catalogs', help_text='Owning / publishing vendor organization (optional)')
-    customer_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='customer_catalogs', help_text='Target customer organization scope (optional)')
-    manufacturer_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='manufacturer_catalogs', help_text='Manufacturer associated with this catalog (optional)')
-    rep_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='rep_catalogs', help_text='Representative / agent organization (optional)')
-    employee_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='employee_catalogs', help_text='Internal employee / corporate organizational context (optional)')
-    connection_id = models.ForeignKey(
+    orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='vendor_catalogs', db_column='orgbase_id', help_text='Owning / publishing vendor organization (optional)')
+    customer_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='customer_catalogs', db_column='customer_orgbase_id', help_text='Target customer organization scope (optional)')
+    manufacturer_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='manufacturer_catalogs', db_column='manufacturer_orgbase_id', help_text='Manufacturer associated with this catalog (optional)')
+    rep_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='rep_catalogs', db_column='rep_orgbase_id', help_text='Representative / agent organization (optional)')
+    employee_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.SET_NULL, null=True, blank=True, related_name='employee_catalogs', db_column='employee_orgbase_id', help_text='Internal employee / corporate organizational context (optional)')
+    connection = models.ForeignKey(
         'sync.Connection',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='catalogs',
+        db_column='connection_id',
         help_text='Sync connection managing external catalog integration (optional)'
     )
     metrics = models.JSONField(default=default_catalog_metrics, blank=True, null=True, help_text="Operational & performance metrics (plan vs actual, sync stats, counts)")
@@ -85,16 +86,16 @@ class Catalog(BaseModel):
     class Meta:
         indexes = [
             models.Index(fields=("is_active", "dt_effective_start"), name="catalog_active_idx"),
-            models.Index(fields=("orgbase_id",), name="catalog_vendor_idx"),
-            models.Index(fields=("customer_orgbase_id",), name="catalog_customer_idx"),
-            models.Index(fields=("manufacturer_orgbase_id",), name="catalog_manufacturer_idx"),
-            models.Index(fields=("rep_orgbase_id",), name="catalog_rep_idx"),
-            models.Index(fields=("employee_orgbase_id",), name="catalog_employee_idx"),
-            models.Index(fields=("connection_id",), name="catalog_connection_idx"),
+            models.Index(fields=("orgbase",), name="catalog_vendor_idx"),
+            models.Index(fields=("customer_orgbase",), name="catalog_customer_idx"),
+            models.Index(fields=("manufacturer_orgbase",), name="catalog_manufacturer_idx"),
+            models.Index(fields=("rep_orgbase",), name="catalog_rep_idx"),
+            models.Index(fields=("employee_orgbase",), name="catalog_employee_idx"),
+            models.Index(fields=("connection",), name="catalog_connection_idx"),
         ]
         constraints = [
             # Allow same code across different vendors, but enforce uniqueness per vendor.
-            models.UniqueConstraint(fields=("code", "orgbase_id"), name="uniq_catalog_code_vendor"),
+            models.UniqueConstraint(fields=("code", "orgbase"), name="uniq_catalog_code_vendor"),
             # Enforce temporal validity (end >= start when end present)
             models.CheckConstraint(
                 check=(models.Q(dt_effective_end__isnull=True) | models.Q(dt_effective_end__gte=models.F("dt_effective_start"))),
@@ -152,11 +153,11 @@ class CatalogLine(ItemLinkedBase):
 
     @property
     def description(self):
-        return str(self.catalog_id) if hasattr(self, 'catalog_id') else ""
+        return str(self.catalog) if hasattr(self, 'catalog') else ""
 
     """Item entry in a catalog with specific pricing overrides."""
 
-    catalog_id = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name="lines")
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name="lines", db_column='catalog_id')
     price_unit = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     discount_percent = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -166,7 +167,7 @@ class CatalogLine(ItemLinkedBase):
     metrics = models.JSONField(default=default_catalog_metrics, blank=True, help_text="Line-level metrics snapshot (plan/actual/value deltas)")
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["catalog_id", "item_id"], name="uniq_catalog_item"),
+            models.UniqueConstraint(fields=["catalog", "item"], name="uniq_catalog_item"),
         ]
 
     # Lightweight metric helpers

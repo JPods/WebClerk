@@ -12,56 +12,49 @@ from apps.orgs.serializers import (
 )
 
 
-class OrgBaseViewSet(viewsets.ModelViewSet):
-    """ViewSet for OrgBase model operations."""
+class OrgBaseViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for OrgBase. Writes go through /wcapi/save/."""
 
-    queryset = OrgBase.objects.all()
+    queryset = OrgBase.objects.active()
     serializer_class = OrgBaseSerializer
     permission_classes = [IsAuthenticated]
 
 
-class CustomerViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Customer model operations.
+class CustomerViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Customer. Writes go through /wcapi/save/."""
 
-    Provides CRUD operations for customers with proper authentication.
-    """
-    queryset = Customer.objects.all()
+    queryset = Customer.objects.filter(is_active=True, is_deleted=False)
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """Filter queryset based on user permissions if needed."""
-        return super().get_queryset()
 
+class VendorViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Vendor. Writes go through /wcapi/save/."""
 
-class VendorViewSet(viewsets.ModelViewSet):
-    """ViewSet for Vendor model operations."""
-
-    queryset = Vendor.objects.all()
+    queryset = Vendor.objects.filter(is_active=True, is_deleted=False)
     serializer_class = VendorSerializer
     permission_classes = [IsAuthenticated]
 
 
-class RepViewSet(viewsets.ModelViewSet):
-    """ViewSet for Rep model operations."""
+class RepViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Rep. Writes go through /wcapi/save/."""
 
-    queryset = Rep.objects.all()
+    queryset = Rep.objects.filter(is_active=True, is_deleted=False)
     serializer_class = RepSerializer
     permission_classes = [IsAuthenticated]
 
 
-class EmployeeViewSet(viewsets.ModelViewSet):
-    """ViewSet for Employee model operations."""
+class EmployeeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Employee. Writes go through /wcapi/save/."""
 
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.filter(is_active=True, is_deleted=False)
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticated]
 
 
-class ManufacturerViewSet(viewsets.ModelViewSet):
-    """ViewSet for Manufacturer model operations."""
+class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Manufacturer. Writes go through /wcapi/save/."""
 
-    queryset = Manufacturer.objects.all()
+    queryset = Manufacturer.objects.filter(is_active=True, is_deleted=False)
     serializer_class = ManufacturerSerializer
     permission_classes = [IsAuthenticated]

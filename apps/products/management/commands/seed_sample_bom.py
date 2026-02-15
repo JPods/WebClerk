@@ -115,8 +115,8 @@ class Command(BaseCommand):
 
                 if not dry_run:
                     BillOfMaterial.objects.create(
-                        item_id=parent_item,
-                        component_id=child_item,
+                        parent_item=parent_item,
+                        child_item=child_item,
                         quantity=Decimal(str(bom_data["qty"])),
                         cost_snapshot=Decimal(bom_data["plan_cost"]),
                         description=bom_data["description"],

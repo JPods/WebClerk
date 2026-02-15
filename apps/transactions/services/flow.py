@@ -399,7 +399,7 @@ def complete_workorder(wo: WorkOrder,
 
     for cl in lines:
         try:
-            wol = WorkOrderLine.objects.select_related('workorder_id').get(pk=cl.wo_line_id, workorder_id=wo)
+            wol = WorkOrderLine.objects.select_related('workorder').get(pk=cl.wo_line_id, workorder_id=wo)
         except WorkOrderLine.DoesNotExist:
             raise ValidationError({'lines': f'wo_line_id {cl.wo_line_id} not found for this WorkOrder'})
         

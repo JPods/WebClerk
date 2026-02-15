@@ -18,27 +18,27 @@ class ItemLinkedBase(BaseModel):
 		remain stable to minimize migration churn.
 
 	Design note on identity:
-	- We deliberately DO NOT duplicate `item_id.uuid` or `item_id.ida` here (or on any
+	- We deliberately DO NOT duplicate `item.uuid` or `item.ida` here (or on any
 		extension tables). The canonical identity facets live only on the primary
 		`Item` row: `id` (PK, internal), `uuid` (stable cross‑database global id),
 		and optional `ida` (human/source declared soft id). This keeps referential
 		updates trivial (no fan‑out sync) and prevents divergence if an upstream
 		source changes a soft identifier. Extensions should always resolve through
-		`item_id_id` and, when needed externally, fetch the item's uuid/ida via join.
+		`item_id` (the raw FK integer) and, when needed externally, fetch the item's uuid/ida via join.
 	"""
 
-	item_id = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name="%(class)s_related")
+	item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name="%(class)s_related", db_column='item_id')
 	status = models.CharField(max_length=30, blank=True, db_index=True, help_text="Optional lifecycle / state label")
 
 	class Meta:
 		abstract = True
 		indexes = [
-			models.Index(fields=("item_id",), name="itemlinked_item_idx"),
+			models.Index(fields=("item",), name="itemlinked_item_idx"),
 		]
 
 	def __str__(self):  # pragma: no cover - simple representation
 		base = getattr(self, 'id', None)
-		item_pk = self.item_id.pk if self.item_id else '?'
+		item_pk = self.item.pk if self.item else '?'
 		return f"{self.__class__.__name__}#{base or 'unsaved'} for Item {item_pk}"
 
 # NOTE:

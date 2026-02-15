@@ -5,7 +5,7 @@ from typing import Any, Dict
 from datetime import timedelta
 from django.db import models
 from django.utils import timezone
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models.fields import NOT_PROVIDED
@@ -31,7 +31,7 @@ class ReservationListView(BaseJSONAPIView):
     Returns: 201 with reservation id and computed expires_at (ms since epoch)
     """
     _allow_write = True
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
@@ -311,7 +311,7 @@ class ReservationDetailView(BaseJSONAPIView):
     """
     Detail endpoint: returns actual reservation state.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["get", "patch", "options", "head"]
 
     def get(self, request, pk: int, *args, **kwargs):
@@ -339,7 +339,7 @@ class ReservationCommitView(BaseJSONAPIView):
     POST /products/inventory/reservations/<pk>/commit/
     Stub: always fail as expired to satisfy tests expecting commit-after-expiration to fail.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):
@@ -357,7 +357,7 @@ class ReservationActionView(BaseJSONAPIView):
     Body: { reservation_id: int, action: "commit" | "release" }
     Returns 400 with message="action_failed" if invalid/expired commit.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):

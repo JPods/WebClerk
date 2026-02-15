@@ -10,6 +10,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.authentication import BaseAuthentication  # NEW
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 
+from common.api_responses import api_response
+from apps.core.views.token_cookie import set_refresh_cookie, clear_refresh_cookie
+
 User = get_user_model()
 
 # Request/Response schemas
@@ -84,7 +87,7 @@ class AuthLoginView(APIView):
         username = (body.get("username") or body.get("email") or "").strip()
         password = (body.get("password") or "").strip()
         if not username or not password:
-            return Response({"ok": False, "code": 400, "message": "username/email and password required"}, status=400)
+            return api_response(data=None, message="username/email and password required", status_code=400)
 
         user = authenticate(request, username=username, password=password)
         if user is None:
@@ -96,7 +99,10 @@ class AuthLoginView(APIView):
                 pass
 
         if user is None or not getattr(user, "is_active", True):
-            return Response({"ok": False, "code": 401, "message": "invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return api_response(
+                data=None, message="invalid credentials", status_code=401,
+                error={"code": "invalid_credentials", "details": None},
+            )
 
         # Optional: create a session for browser clients; ignore errors in API contexts
         try:
@@ -118,9 +124,10 @@ class AuthLoginView(APIView):
                 "role": getattr(user, "role", None),
             },
             "access": str(access),
-            "refresh": str(refresh),
         }
-        return Response({"ok": True, "data": data}, status=200)
+        resp = api_response(data=data, message="login successful")
+        set_refresh_cookie(resp, str(refresh))
+        return resp
 
 
 @extend_schema(
@@ -143,7 +150,9 @@ class AuthLogoutView(APIView):
         except Exception:
             # Ignore backend/session logout errors to keep response deterministic
             pass
-        return Response({"ok": True})
+        resp = api_response(data=None, message="logged out")
+        clear_refresh_cookie(resp)
+        return resp
 
 
 @extend_schema(
@@ -159,7 +168,7 @@ class AuthMeView(APIView):
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return Response({"ok": False, "code": 401, "message": "unauthenticated"}, status=401)
+            return api_response(data=None, message="unauthenticated", status_code=401)
         
         # Get user data with proper error handling
         user = request.user
@@ -174,7 +183,7 @@ class AuthMeView(APIView):
             "is_active": getattr(user, "is_active", False),
             "date_joined": getattr(user, "date_joined", None),
         }
-        return Response({"ok": True, "data": {"user": data}})
+        return api_response(data={"user": data}, message="authenticated")
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -203,17 +212,20 @@ class AuthRegisterView(APIView):
 
         # Validate required fields
         if not email or not password:
-            return Response({"ok": False, "code": 400, "message": "email and password are required"}, status=400)
+            return api_response(data=None, message="email and password are required", status_code=400)
 
         # Check if email already exists
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"ok": False, "code": 409, "message": "email already registered"}, status=409)
+            return api_response(data=None, message="email already registered", status_code=409)
 
         # Validate password strength
         try:
             validate_password(password)
         except ValidationError as e:
-            return Response({"ok": False, "code": 400, "message": "invalid password", "errors": list(e.messages)}, status=400)
+            return api_response(
+                data=None, message="invalid password", status_code=400,
+                error={"code": "validation_error", "details": list(e.messages)},
+            )
 
         # Create user
         try:
@@ -227,7 +239,10 @@ class AuthRegisterView(APIView):
                 role='user'  # Default role is user; admin/employee must be set by admin
             )
         except Exception as e:
-            return Response({"ok": False, "code": 400, "message": "failed to create user", "error": str(e)}, status=400)
+            return api_response(
+                data=None, message="failed to create user", status_code=400,
+                error={"code": "create_failed", "details": str(e)},
+            )
 
         # Auto-login user and issue JWT tokens
         try:
@@ -249,10 +264,17 @@ class AuthRegisterView(APIView):
                         "role": getattr(user, "role", None),
                     },
                     "access": str(access),
-                    "refresh": str(refresh),
                 }
-                return Response({"ok": True, "data": data}, status=201)
+                resp = api_response(data=data, message="registration successful", status_code=201)
+                set_refresh_cookie(resp, str(refresh))
+                return resp
         except Exception as e:
-            return Response({"ok": False, "code": 500, "message": "authentication failed after registration", "error": str(e)}, status=500)
+            return api_response(
+                data=None, message="authentication failed after registration", status_code=500,
+                error={"code": "post_register_auth_failed", "details": str(e)},
+            )
 
-        return Response({"ok": False, "code": 500, "message": "registration completed but login failed"}, status=500)
+        return api_response(
+            data=None, message="registration completed but login failed", status_code=500,
+            error={"code": "post_register_login_failed", "details": None},
+        )

@@ -6,7 +6,7 @@ from apps.core.services.keywords import build_keywords_for_record
 
 class Action(BaseModel):
     # Parent-child relationship
-    action_id = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
+    parent_action = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE, db_column='action_id')
     
     # Multilingual titles and descriptions
     action = models.JSONField(default=dict, blank=True, null=True)

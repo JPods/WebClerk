@@ -45,7 +45,7 @@ def trigger_safety_alert(event_type: str, details: Dict[str, Any] | None = None,
     }
     try:
         ex = Bundle.objects.create(
-            connection_id=conn,
+            connection=conn,
             direction="outbound",
             config=masked_cfg,
             status="ok",

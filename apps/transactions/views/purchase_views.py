@@ -1,4 +1,4 @@
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from common.api_responses import api_response
 
 # Prefer project BaseJSONAPIView; fallback to DRF APIView
@@ -12,7 +12,7 @@ class ReceivePurchaseView(BaseJSONAPIView):
     Stub: /tx/purchases/<pk>/receive/
     """
     _allow_write = True
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):

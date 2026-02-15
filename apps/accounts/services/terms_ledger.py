@@ -280,8 +280,8 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
             model_name='invoice',                  # Source document type
             source='AR',                           # Accounts Receivable
             parent_id=getattr(invoice_id, 'id'),   # Source document ID
-            invoice_id=invoice_id,                 # FK for joins
-            term_id=term_id,                       # FK for audit trail
+            invoice=invoice_id,                    # FK for joins
+            term=term_id,                          # FK for audit trail
             value_original=float(value),           # Initial amount (immutable)
             value_available=float(value),          # Current unpaid (mutable)
             refs=refs,                             # Additional metadata
@@ -425,12 +425,12 @@ def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_i
         model_name='payment',                      # Source document type
         source=source,                             # Usually 'AR'
         parent_id=pid,                             # Payment record ID
-        invoice_id=invoice,                        # FK to Invoice for allocation
+        invoice=invoice,                           # FK to Invoice for allocation
         term_id=None,                              # Payments don't have terms
         value_original=float(-abs(val)),           # Original amount (NEGATIVE, immutable)
         value_available=float(-abs(val)),          # Current unallocated (NEGATIVE)
         refs=refs,                                 # Additional metadata
-        gl_account_id=gl_account_id,               # GL account for FX variance
+        gl_account=gl_account_id,                  # GL account for FX variance
     )
     obj.save()
     return obj
