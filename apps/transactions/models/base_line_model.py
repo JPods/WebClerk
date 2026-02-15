@@ -268,6 +268,15 @@ class BaseLineCore(BaseModel):
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)
 
+    # FK-first: proper ForeignKey to Item for referential integrity.
+    # The `item` JSONField below holds denormalized item details (description, etc.)
+    # for fast reads; the FK is the source of truth for the relationship.
+    item_fk = models.ForeignKey(
+        'products.Item', on_delete=models.PROTECT,
+        blank=True, null=True,
+        db_column='item_id_fk', related_name='%(class)s_lines',
+    )
+
     # Common JSON fields (do NOT redeclare action/flow/source here; provided by BaseModel mixins)
     item = models.JSONField(default=dict, blank=True, null=True)
     quantity = models.JSONField(default=dict, blank=True, null=True)
