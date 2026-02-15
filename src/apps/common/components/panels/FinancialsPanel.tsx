@@ -1,7 +1,7 @@
 /**
- * TransactionFinancialsPanel - Summary of totals, cost, sell with margin calculation
+ * FinancialsPanel - Summary of totals, cost, sell with margin calculation
  *
- * Shared/common version used by transaction detail pages.
+ * Shared/common version used by detail pages.
  */
 import React from "react";
 import {
@@ -17,7 +17,7 @@ import type {
   TransactionSell,
 } from "@/apps/transactions/types/transactionTypes";
 
-interface TransactionFinancialsPanelProps {
+interface FinancialsPanelProps {
   totals?: TransactionTotals;
   cost?: TransactionCost;
   sell?: TransactionSell;
@@ -88,7 +88,7 @@ const StatBox: React.FC<{
   </div>
 );
 
-const TransactionFinancialsPanel: React.FC<TransactionFinancialsPanelProps> = ({
+const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   totals = {},
   cost = {},
   sell = {},
@@ -244,4 +244,4 @@ const TransactionFinancialsPanel: React.FC<TransactionFinancialsPanelProps> = ({
   );
 };
 
-export default TransactionFinancialsPanel;
+export default FinancialsPanel;

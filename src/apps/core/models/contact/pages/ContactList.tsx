@@ -35,10 +35,10 @@ const ContactList = () => {
   const [loading, setLoading] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<ContactData[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactData | null>(
-    null
+    null,
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [searchDatabase, setSearchDatabase] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
@@ -46,7 +46,7 @@ const ContactList = () => {
   const getTranslatedText = useCallback(
     (
       translations: Record<string, string> | undefined,
-      languages: string[] | undefined
+      languages: string[] | undefined,
     ): string => {
       if (!translations || typeof translations !== "object") return "";
 
@@ -65,7 +65,7 @@ const ContactList = () => {
 
       return Object.values(translations)[0] || "";
     },
-    []
+    [],
   );
 
   // Format date
@@ -90,7 +90,7 @@ const ContactList = () => {
         return "-";
       }
     },
-    []
+    [],
   );
 
   // Fetch actions
@@ -99,9 +99,10 @@ const ContactList = () => {
     try {
       const response = await fetchContacts();
 
-      if (response) {
-        const apiData = Array.isArray(response?.data?.results)
-          ? response.data.results
+      if (response.status === 200) {
+        console.log("response.data.results", response.data.items);
+        const apiData = Array.isArray(response?.data?.items)
+          ? response.data.items
           : [];
 
         // Extract actions array from various possible structures
@@ -110,12 +111,12 @@ const ContactList = () => {
         if (Array.isArray(apiData)) {
           contacts = apiData;
         } else if (apiData && typeof apiData === "object") {
-          if (Array.isArray(apiData.results)) {
-            contacts = apiData.results;
-          } else if (Array.isArray(apiData.data)) {
-            contacts = apiData.data;
-          } else if (Array.isArray(apiData.contacts)) {
-            contacts = apiData.contacts;
+          if (Array.isArray(apiData)) {
+            contacts = apiData;
+          } else if (Array.isArray(apiData)) {
+            contacts = apiData;
+          } else if (Array.isArray(apiData)) {
+            contacts = apiData;
           }
         }
 
@@ -131,7 +132,7 @@ const ContactList = () => {
         showToast({
           message: "Failed to load actions. Please try again.",
           type: "error",
-        })
+        }),
       );
       setData([]);
     } finally {
@@ -144,24 +145,28 @@ const ContactList = () => {
   }, [fetchActions]);
 
   // Handle database search
-  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
-    const query = terms.join(' ');
-    setLoading(true);
-    try {
-      const response = await fetchContacts({ search: query });
-      if (response) {
-        const apiData = Array.isArray(response?.data?.results)
-          ? response.data.results
-          : [];
-        setData(apiData);
+  const handleDatabaseSearch = useCallback(
+    async (terms: string[]) => {
+      const query = terms.join(" ");
+      setLoading(true);
+      try {
+        const response = await fetchContacts({ search: query });
+        if (response) {
+          console.log("response.data", response.data.items);
+          const apiData = Array.isArray(response?.data?.items)
+            ? response.data.items
+            : [];
+          setData(apiData);
+        }
+      } catch (error) {
+        console.error("Database search error:", error);
+        dispatch(showToast({ message: "Search failed", type: "error" }));
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Database search error:", error);
-      dispatch(showToast({ message: "Search failed", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+    },
+    [dispatch],
+  );
 
   // Handle delete
   const handleDelete = useCallback(
@@ -182,7 +187,7 @@ const ContactList = () => {
           showToast({
             message: "Action deleted successfully",
             type: "success",
-          })
+          }),
         );
 
         // Refresh data
@@ -193,11 +198,11 @@ const ContactList = () => {
           showToast({
             message: "Failed to delete action",
             type: "error",
-          })
+          }),
         );
       }
     },
-    [dispatch, fetchActions]
+    [dispatch, fetchActions],
   );
 
   // Define table columns
@@ -327,7 +332,7 @@ const ContactList = () => {
         ),
       },
     ],
-    [handleDelete]
+    [handleDelete],
   );
 
   // Define filters
@@ -374,7 +379,7 @@ const ContactList = () => {
       //   type: "text",
       // },
     ],
-    []
+    [],
   );
 
   // Handle bulk operations
@@ -384,14 +389,14 @@ const ContactList = () => {
         showToast({
           message: "Please select actions to delete",
           type: "error",
-        })
+        }),
       );
       return;
     }
 
     if (
       !window.confirm(
-        `Are you sure you want to delete ${selectedContacts.length} action(s)?`
+        `Are you sure you want to delete ${selectedContacts.length} action(s)?`,
       )
     ) {
       return;
@@ -405,15 +410,15 @@ const ContactList = () => {
             model_name: "action",
             id: action.id,
             method: "delete",
-          })
-        )
+          }),
+        ),
       );
 
       dispatch(
         showToast({
           message: `${selectedContacts.length} action(s) deleted successfully`,
           type: "success",
-        })
+        }),
       );
 
       fetchActions();
@@ -424,7 +429,7 @@ const ContactList = () => {
         showToast({
           message: "Failed to delete some actions",
           type: "error",
-        })
+        }),
       );
     }
   }, [selectedContacts, dispatch, fetchActions]);
@@ -475,7 +480,7 @@ const ContactList = () => {
 
   const emptyStateMessage = useMemo(
     () => `There are no records to display for Role: ${roleLabel}`,
-    [roleLabel]
+    [roleLabel],
   );
 
   return (

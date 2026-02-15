@@ -282,7 +282,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     },
     [onImportFile],
   );
-  console.log("showGlobalMenuState", showGlobalMenuState);
+
   const getColumnPersistKey = useCallback(
     (col: TableColumn<T>, index: number) => {
       if (col.id != null) return `id:${String(col.id)}`;

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import RefsLinksContactPanel, { RefContact } from "./components/ContactPanel";
+import ContactPanel, { RefContact } from "./components/ContactPanel";
 
 const initialContacts: RefContact[] = [
   {
@@ -18,7 +18,7 @@ export default function ContactsDemo() {
   const [contacts, setContacts] = useState<RefContact[]>(initialContacts);
 
   return (
-    <RefsLinksContactPanel
+    <ContactPanel
       contacts={contacts}
       isEditing={true}
       onChange={setContacts}

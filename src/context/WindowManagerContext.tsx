@@ -32,6 +32,8 @@ type WindowManagerCtx = {
   maximizeWindow: (path: string, maximized?: boolean) => void;
   updateWindowSize: (path: string, width: number, height: number) => void;
   setNavigate: (nav: (path: string) => void) => void;
+  /** Base pathname that ensureWindow just navigated to — AppLayout checks this to avoid creating a duplicate auto-window. */
+  skipAutoCreateForPathRef: React.MutableRefObject<string | null>;
 };
 
 const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
@@ -41,12 +43,15 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activePath, setActivePath] = useState<string | null>(null);
   const openedCounter = useRef(0);
   const navigateRef = useRef<((path: string) => void) | null>(null);
+  const skipAutoCreateForPathRef = useRef<string | null>(null);
   
   const setNavigate = useCallback((nav: (path: string) => void) => {
     navigateRef.current = nav;
   }, []);
 
   const ensureWindow = useCallback((path: string, title = path, options?: EnsureWindowOptions) => {
+    // Record the base pathname so AppLayout's useEffect skips duplicate auto-creation
+    skipAutoCreateForPathRef.current = path.split('?')[0];
     if (navigateRef.current) {
       navigateRef.current(path);
     }
@@ -144,7 +149,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const api = useMemo<WindowManagerCtx>(
-    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate }),
+    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate, skipAutoCreateForPathRef }),
     [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate]
   );
 

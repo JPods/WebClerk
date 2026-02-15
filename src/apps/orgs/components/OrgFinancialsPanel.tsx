@@ -364,16 +364,47 @@ const ManufacturerTab: React.FC<{ data?: OrgFinancialManufacturer; currency: str
 };
 
 // ---------------------------------------------------------------------------
-// Tab Configuration
+// Category Configuration
 // ---------------------------------------------------------------------------
 
-const TAB_CONFIG: Record<FinancialTabKey, { label: string; icon: React.ReactNode; orgTypes: OrgType[] }> = {
+const CATEGORY_CONFIG: Record<FinancialTabKey, { label: string; icon: React.ReactNode; orgTypes: OrgType[] }> = {
   common: { label: 'Common', icon: <FaIdBadge size={12} />, orgTypes: [] }, // Always shown
   customer: { label: 'Customer', icon: <FaUser size={12} />, orgTypes: ['customer'] },
   vendor: { label: 'Vendor', icon: <FaBuilding size={12} />, orgTypes: ['vendor'] },
   rep: { label: 'Rep', icon: <FaUserTie size={12} />, orgTypes: ['rep'] },
   employee: { label: 'Employee', icon: <FaIdBadge size={12} />, orgTypes: ['employee'] },
   manufacturer: { label: 'Manufacturer', icon: <FaIndustry size={12} />, orgTypes: ['manufacturer'] },
+};
+
+// ---------------------------------------------------------------------------
+// Category Card Wrapper
+// ---------------------------------------------------------------------------
+
+interface CategoryCardProps {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const CategoryCard: React.FC<CategoryCardProps> = ({ label, icon, children, defaultOpen = true }) => {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-t-lg text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-green-500">{icon}</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</span>
+        </div>
+        {open ? <FaChevronUp size={10} className="text-slate-400" /> : <FaChevronDown size={10} className="text-slate-400" />}
+      </button>
+      {open && <div className="p-3">{children}</div>}
+    </div>
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -393,48 +424,60 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
   className = '',
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const [activeTab, setActiveTab] = useState<FinancialTabKey>('common');
   
-  // Determine which tabs to show based on org type(s)
+  // Determine which categories to show based on org type(s)
   const allOrgTypes = orgType ? [orgType, ...orgTypes] : orgTypes;
   const displayCurrency = financial?.common?.currency || currency;
   
-  // Build list of visible tabs
-  const visibleTabs: FinancialTabKey[] = ['common'];
-  (Object.keys(TAB_CONFIG) as FinancialTabKey[]).forEach((tabKey) => {
-    if (tabKey === 'common') return;
-    const tabOrgTypes = TAB_CONFIG[tabKey].orgTypes;
-    // Show tab if org has that type OR if financial data exists for it
+  // Build list of visible categories
+  const visibleCategories: FinancialTabKey[] = ['common'];
+  (Object.keys(CATEGORY_CONFIG) as FinancialTabKey[]).forEach((catKey) => {
+    if (catKey === 'common') return;
+    const catOrgTypes = CATEGORY_CONFIG[catKey].orgTypes;
+    // Show category if org has that type OR if financial data exists for it
     if (
-      tabOrgTypes.some(t => allOrgTypes.includes(t)) ||
-      (financial && financial[tabKey as keyof OrgFinancial] && Object.keys(financial[tabKey as keyof OrgFinancial] as object).length > 0)
+      catOrgTypes.some(t => allOrgTypes.includes(t)) ||
+      (financial && financial[catKey as keyof OrgFinancial] && Object.keys(financial[catKey as keyof OrgFinancial] as object).length > 0)
     ) {
-      visibleTabs.push(tabKey);
+      visibleCategories.push(catKey);
     }
   });
-  
-  // Default to first relevant tab if current tab not visible
-  if (!visibleTabs.includes(activeTab)) {
-    setActiveTab(visibleTabs[1] || 'common');
-  }
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  const renderCategory = (catKey: FinancialTabKey) => {
+    const config = CATEGORY_CONFIG[catKey];
+    let content: React.ReactNode = null;
+
+    switch (catKey) {
       case 'common':
-        return <CommonTab data={financial?.common} currency={displayCurrency} />;
+        content = <CommonTab data={financial?.common} currency={displayCurrency} />;
+        break;
       case 'customer':
-        return <CustomerTab data={financial?.customer} currency={displayCurrency} />;
+        content = <CustomerTab data={financial?.customer} currency={displayCurrency} />;
+        break;
       case 'vendor':
-        return <VendorTab data={financial?.vendor} currency={displayCurrency} />;
+        content = <VendorTab data={financial?.vendor} currency={displayCurrency} />;
+        break;
       case 'rep':
-        return <RepTab data={financial?.rep} currency={displayCurrency} />;
+        content = <RepTab data={financial?.rep} currency={displayCurrency} />;
+        break;
       case 'employee':
-        return <EmployeeTab data={financial?.employee} currency={displayCurrency} />;
+        content = <EmployeeTab data={financial?.employee} currency={displayCurrency} />;
+        break;
       case 'manufacturer':
-        return <ManufacturerTab data={financial?.manufacturer} currency={displayCurrency} />;
-      default:
-        return null;
+        content = <ManufacturerTab data={financial?.manufacturer} currency={displayCurrency} />;
+        break;
     }
+
+    return (
+      <CategoryCard
+        key={catKey}
+        label={config.label}
+        icon={config.icon}
+        defaultOpen={catKey !== 'common'}
+      >
+        {content}
+      </CategoryCard>
+    );
   };
 
   return (
@@ -458,37 +501,10 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content — all categories stacked */}
       {!isCollapsed && (
-        <div className={compact ? 'p-2' : 'p-3'}>
-          {/* Tabs */}
-          {visibleTabs.length > 1 && (
-            <div className="flex gap-1 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2 overflow-x-auto">
-              {visibleTabs.map((tabKey) => {
-                const config = TAB_CONFIG[tabKey];
-                const isActive = activeTab === tabKey;
-                return (
-                  <button
-                    key={tabKey}
-                    onClick={() => setActiveTab(tabKey)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                      isActive
-                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {config.icon}
-                    {config.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Tab Content */}
-          <div className="max-h-[500px] overflow-y-auto">
-            {renderTabContent()}
-          </div>
+        <div className={`${compact ? 'p-2' : 'p-3'} space-y-3 max-h-[700px] overflow-y-auto`}>
+          {visibleCategories.map((catKey) => renderCategory(catKey))}
         </div>
       )}
     </div>

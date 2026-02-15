@@ -316,6 +316,16 @@ export interface ActionEntry {
   notes?: string;
   created_at?: string;
   completed_at?: string;
+  // Extended fields
+  progress?: number;
+  difficulty?: number;
+  project_id?: number | string;
+  project_name?: string;
+  dt_start?: number | string;
+  dt_deadline?: number | string;
+  dt_completed?: number | string;
+  assigned_to?: Array<{ id: string; name: string }>;
+  is_active?: boolean;
 }
 
 // ---------------------------------------------------------------------------

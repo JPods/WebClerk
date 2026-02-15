@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { useAppSelector } from "../store/hooks";
 import { useWindowManager } from "../context/WindowManagerContext";
+import { WindowPathProvider } from "../context/WindowPathContext";
 import { useDraggable } from "../hooks/useDraggable";
 import { useResizable } from "../hooks/useResizable";
 
@@ -98,7 +99,9 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
         <span className="truncate text-xs font-semibold text-slate-700">{title}</span>
       </div>
       <div className="relative flex-1 overflow-auto bg-white p-4 text-slate-900">
+        <WindowPathProvider value={path}>
         {children}
+        </WindowPathProvider>
         {showSpinner && (
           <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-white/30">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-transparent" aria-label="Loading" />
