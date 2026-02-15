@@ -318,8 +318,11 @@ class Action(BaseModel):
                 name = f.name
                 if name in {'dt_modified', 'version'}:
                     continue
-                old = self._original_state.get(name)
-                new = getattr(self, name)
+                # Use f.attname to compare raw DB column values (e.g. contact_id)
+                # to avoid triggering lazy-load queries on FK fields.
+                attr = f.attname
+                old = self._original_state.get(attr)
+                new = getattr(self, attr)
                 if old != new:
                     changed_fields.append(name)
         

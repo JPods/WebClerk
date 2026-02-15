@@ -1291,7 +1291,9 @@ class BaseModel(
         self._original_state: Dict[str, Any] = {}
         for f in self._meta.fields:  # type: ignore[attr-defined]
             try:
-                self._original_state[f.name] = getattr(self, f.name)
+                # Use f.attname (e.g. 'contact_id') for FK fields to avoid
+                # triggering lazy-load queries on the related object.
+                self._original_state[f.attname] = getattr(self, f.attname)
             except Exception:  # pragma: no cover
                 pass
     # Note: formerly captured a separate _original_dt_created to enforce immutability.
@@ -1306,8 +1308,11 @@ class BaseModel(
             name = f.name
             if name in auto_exclude:
                 continue
-            old = self._original_state.get(name)
-            new = getattr(self, name)
+            # Use f.attname to compare raw DB column values (e.g. contact_id)
+            # to avoid triggering lazy-load queries on FK fields.
+            attr = f.attname
+            old = self._original_state.get(attr)
+            new = getattr(self, attr)
             if old != new:
                 changed.append(name)
         return changed
