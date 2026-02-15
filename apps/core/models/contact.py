@@ -105,12 +105,38 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     domain_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary domain record if needed")
     
     
-    # Business Fields a person can be associated with multiple orgs. A vendor may be a manufaucturer, customer, and a rep. Tranaction differ but the contact and relationship with the person is the same.
-    employee_id = models.BigIntegerField(null=True, blank=True, help_text="Associated employee ID if applicable")
-    customer_id = models.BigIntegerField(null=True, blank=True, help_text="Associated customer ID if applicable")
-    vendor_id = models.BigIntegerField(null=True, blank=True, help_text="Associated vendor ID if applicable")
-    manufacturer_id = models.BigIntegerField(null=True, blank=True, help_text="Associated manufacturer ID if applicable")
-    rep_id = models.BigIntegerField(null=True, blank=True, help_text="Associated sales rep ID if applicable")
+    # Business Fields — FK-first: proper ForeignKey for all org references.
+    # A person can be associated with multiple orgs (vendor, manufacturer, customer, rep).
+    employee = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='employee_id', related_name='contacts_as_employee',
+        help_text="Associated employee org",
+    )
+    customer = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='customer_id', related_name='contacts_as_customer',
+        help_text="Associated customer org",
+    )
+    vendor = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='vendor_id', related_name='contacts_as_vendor',
+        help_text="Associated vendor org",
+    )
+    manufacturer = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='manufacturer_id', related_name='contacts_as_manufacturer',
+        help_text="Associated manufacturer org",
+    )
+    rep = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='rep_id', related_name='contacts_as_rep',
+        help_text="Associated sales rep org",
+    )
     other_id = models.BigIntegerField(null=True, blank=True, help_text="Other associated ID if applicable")
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
