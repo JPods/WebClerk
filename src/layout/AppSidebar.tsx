@@ -20,6 +20,24 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
+const keyModelNavItems: NavItem[] = [
+  {
+    icon: <GridIcon />,
+    name: "Contact",
+    path: "/core/contact/list",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Customer",
+    path: "/org/customer/list",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Order",
+    path: "/transactions/order/list",
+  },
+];
+
 const navItems: NavItem[] = [
   // {
   //   icon: <CalenderIcon />,
@@ -448,6 +466,24 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
+            {/* Key Models Section */}
+            <div>
+              <h2
+                className={`mb-2 text-xs uppercase flex leading-[20px] text-blue-500 font-bold ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Key Models"
+                ) : (
+                  <HorizontaLDots className="size-6" />
+                )}
+              </h2>
+              {renderMenuItems(keyModelNavItems, "main")}
+            </div>
+            {/* Main Menu Section */}
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
