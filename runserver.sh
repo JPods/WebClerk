@@ -68,6 +68,36 @@ free_port_8000() {
 ensure_default_mode
 free_port_8000
 
+# ── Start Celery worker+beat in the background ──────────────────
+start_celery() {
+  # Kill any existing celery processes for this project
+  pkill -f "celery -A webclerk3_api" 2>/dev/null || true
+  sleep 1
+
+  echo "Starting Celery worker+beat in background..."
+  "$PY_BIN" -m celery -A webclerk3_api worker \
+    -l info \
+    --concurrency=2 \
+    -P solo \
+    --without-heartbeat \
+    -B \
+    -s /tmp/celerybeat-webclerk3-schedule \
+    >> "$WC3_DIR/logs/celery.log" 2>&1 &
+  CELERY_PID=$!
+  echo "Celery PID: $CELERY_PID (log: logs/celery.log)"
+}
+
+stop_celery() {
+  pkill -f "celery -A webclerk3_api" 2>/dev/null || true
+}
+
+# Ensure log directory exists
+mkdir -p "$WC3_DIR/logs"
+start_celery
+
+# Stop celery on script exit
+trap stop_celery EXIT
+
 while true; do
   free_port_8000
   set +e

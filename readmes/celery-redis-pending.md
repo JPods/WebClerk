@@ -31,13 +31,15 @@ to `Item.data.quantity` buckets (`on_so`, `on_po`, `on_wo`, etc.).
 **Two paths trigger pending processing:**
 
 1. **On-save dispatch** — After lines are saved in `save_view.py` or
-   `transaction_save.py`, the view calls
-   `process_pending_inventory_adaptive_task.apply_async(countdown=2)`.
-   If Celery is unreachable, it falls back to inline synchronous processing.
+   `transaction_save.py`, the view calls `dispatch_pending_processing()`.
+   This helper checks for a live Celery worker (via `inspector.ping()` with
+   a 60 s cache). If a worker is alive, it dispatches via `apply_async()`;
+   otherwise it processes inline synchronously — guaranteeing records are
+   always drained regardless of Celery's state.
 
-2. **Beat schedule** — Celery Beat kicks the same task every 30 seconds as a
-   safety net. The task self-reschedules with an adaptive delay that backs off
-   when idle.
+2. **Beat schedule** — Celery Beat kicks the same task every **30 seconds** as
+   a safety net. The task does **not** self-reschedule; Beat is the sole
+   cycle driver.
 
 ---
 
@@ -53,9 +55,11 @@ to `Item.data.quantity` buckets (`on_so`, `on_po`, `on_wo`, etc.).
 | `apps/core/models/pending.py` | `Pending` model — ephemeral queue records |
 | `apps/transactions/services/pending_inventory_processor.py` | `process_line_item_pending()` — reads Pending, groups by item, applies deltas |
 | `apps/transactions/services/line_item_service.py` | Creates Pending records when lines are added/changed/deleted |
-| `apps/core/views/save_view.py` | Generic `/wcapi/save/` endpoint — dispatches Celery task after lines saved |
-| `apps/transactions/services/transaction_save.py` | Transaction-specific save service — dispatches Celery task after lines saved |
+| `apps/products/dispatch_pending.py` | Centralized dispatch helper — checks worker liveness, chooses Celery vs inline |
+| `apps/core/views/save_view.py` | Generic `/wcapi/save/` endpoint — calls `dispatch_pending_processing()` after lines saved |
+| `apps/transactions/services/transaction_save.py` | Transaction-specific save service — calls `dispatch_pending_processing()` after lines saved |
 | `start_celery.sh` | Convenience script to start/stop worker and beat |
+| `runserver.sh` | Dev server startup — auto-starts Celery worker+beat in background |
 
 ---
 
@@ -145,16 +149,20 @@ cycle. If it remains unprocessed for more than 5 minutes (configurable via
 
 ---
 
-## Adaptive Delay
+## Scheduling
 
-The `process_pending_inventory_adaptive_task` self-reschedules with an
-adaptive countdown:
+Celery Beat fires `process_pending_inventory_adaptive_task` every **30 seconds**.
+The task itself **does not self-reschedule** — Beat is the sole driver. This
+avoids duplicate chains and broken loops when the worker restarts.
 
-| Condition | Delay Behavior |
-|-----------|---------------|
-| Records processed | Reset to `BASE_DELAY` (5 s) |
-| No records, < IDLE_CYCLES | Stay at current delay |
-| No records, idle cycles exhausted | Increase by `DELAY_INCREMENT` (5 s), max `MAX_DELAY` (120 s) |
+The adaptive delay settings below are used internally by the processor but
+no longer control rescheduling:
+
+| Condition | Behavior |
+|-----------|----------|
+| Records processed | Delay resets to `BASE_DELAY` (5 s) |
+| No records, < IDLE_CYCLES | Stays at current delay |
+| No records, idle cycles exhausted | Increases by `DELAY_INCREMENT` (5 s), max `MAX_DELAY` (120 s) |
 
 Settings (overridable in Django settings or env):
 
@@ -208,25 +216,52 @@ environment variables or `.env` file.
 
 ## On-Save Dispatch Pattern
 
-Both `transaction_save.py` and `save_view.py` use the same pattern after
-lines are saved:
+Both `transaction_save.py` and `save_view.py` call a single centralized
+helper after lines are saved:
 
 ```python
 if lines_saved > 0:
-    try:
-        from apps.products.tasks import process_pending_inventory_adaptive_task
-        process_pending_inventory_adaptive_task.apply_async(
-            kwargs={'limit': 200},
-            countdown=2,   # 2 s delay so the DB transaction commits first
-        )
-    except Exception:
-        # Celery unavailable — fall back to inline processing
-        from apps.transactions.services.pending_inventory_processor import process_line_item_pending
-        process_line_item_pending(limit=200)
+    from apps.products.dispatch_pending import dispatch_pending_processing
+    dispatch_pending_processing(limit=200, caller='save_view')
 ```
 
-The 2-second countdown ensures the database transaction has committed before
-the worker tries to read the new `Pending` rows.
+### How `dispatch_pending_processing()` works
+
+1. **Worker-alive check** — calls `_is_worker_alive()` which probes
+   `inspector.ping(timeout=1.0)` and caches the result in Redis for 60 s.
+   The task itself calls `mark_worker_alive()` on every execution to refresh
+   the cache, so subsequent checks within 60 s skip the probe.
+
+2. **Celery path** — if a worker is alive, dispatches via `apply_async()`
+   with a 2 s countdown (so the DB transaction commits first).
+
+3. **Inline fallback** — if no worker is detected (or `apply_async` fails),
+   calls `process_line_item_pending(limit)` directly in the request thread.
+   This guarantees pending records are always drained, even without Celery.
+
+### Why the old pattern was broken
+
+The original `try: apply_async() / except: inline` pattern failed silently
+because `apply_async()` always succeeds as long as Redis is running — it
+just pushes a message to the queue. If no worker is consuming the queue,
+tasks sit there indefinitely and the `except` inline fallback never fires.
+The new approach explicitly checks for a live worker first.
+
+---
+
+## `runserver.sh` Auto-Start
+
+`runserver.sh` now automatically starts a Celery worker+beat process in the
+background when the Django dev server launches:
+
+```bash
+# From runserver.sh:
+start_celery()   # kills old celery, starts worker+beat, logs to logs/celery.log
+trap stop_celery EXIT   # stops celery when the dev server exits
+```
+
+This means `start_celery.sh` is still available for standalone use, but in
+normal development you get Celery automatically.
 
 ---
 

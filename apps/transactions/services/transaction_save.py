@@ -401,23 +401,10 @@ def save_transaction_with_lines(
                 except Exception as pending_err:
                     logger.warning(f"Failed to create pending for line {new_line.pk}: {pending_err}")
     
-    # ── Pending inventory processing (Celery → inline fallback) ────
+    # ── Pending inventory processing (Celery if worker alive, else inline) ──
     if result['lines_saved'] > 0:
-        try:
-            from apps.products.tasks import process_pending_inventory_adaptive_task
-            process_pending_inventory_adaptive_task.apply_async(
-                kwargs={'limit': 200},
-                countdown=2,  # short delay so the transaction commits first
-            )
-            logger.info("Dispatched pending inventory task to Celery (countdown=2s)")
-        except Exception as celery_err:
-            logger.warning("Celery dispatch failed, falling back to inline: %s", celery_err)
-            try:
-                from apps.transactions.services.pending_inventory_processor import process_line_item_pending
-                pending_summary = process_line_item_pending(limit=200)
-                logger.info("Inline pending processing: %s", pending_summary)
-            except Exception as proc_err:
-                logger.warning("Inline pending processing failed (non-fatal): %s", proc_err)
+        from apps.products.dispatch_pending import dispatch_pending_processing
+        dispatch_pending_processing(limit=200, caller='transaction_save')
 
     logger.info(
         "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s",

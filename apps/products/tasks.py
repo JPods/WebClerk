@@ -264,15 +264,15 @@ try:
     def process_pending_inventory_adaptive_task(self, limit: int = 200):
         """
         Celery task for adaptive inventory processing.
-        
-        Self-scheduling: reschedules itself with the computed delay.
+
+        Beat kicks this every 30 s. The task itself no longer self-reschedules
+        to avoid duplicate chains and broken loops when the worker restarts.
         """
+        # Let the dispatch helper know the worker is alive
+        from apps.products.dispatch_pending import mark_worker_alive
+        mark_worker_alive()
+
         result = process_pending_inventory_adaptive(limit=limit)
-        
-        # Schedule next run with adaptive delay
-        next_delay = result.get('next_delay', INVENTORY_CLEAR_BASE_DELAY)
-        self.apply_async(args=[limit], countdown=next_delay)
-        
         return result
     
 except ImportError:
