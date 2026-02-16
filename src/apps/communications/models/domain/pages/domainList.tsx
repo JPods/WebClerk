@@ -241,59 +241,57 @@ export default function DomainList() {
       <PageBreadcrumb pageTitle="Domain List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-              {formMode ? (
-                <DomainListMob
-                  dataProp={data}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                />
-              ) : (
-                <AdvancedDataTable
-                  data={data}
-                  columns={userColumns}
-                  title="Domains"
-                  storageKey="communications.domain.list"
-                  loading={loading}
-                  filters={filters}
-                  enableExport={true}
-                  enableSelection={true}
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  onSelectionChange={setSelectedDomains}
-                  exportFileName="domains_export"
-                  searchPlaceholder="Search domains..."
-                  noDataMessage="No domains found"
-                  customActions={
-                    <div className="flex gap-2">
-                      {selectedDomains.length > 0 && (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                          Delete ({selectedDomains.length})
-                        </button>
-                      )}
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <DomainListMob
+                dataProp={data}
+                handleView={handleView}
+                handleEdit={handleEdit}
+              />
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={userColumns}
+                title="Domains"
+                storageKey="communications.domain.list"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
+                onSelectionChange={setSelectedDomains}
+                exportFileName="domains_export"
+                searchPlaceholder="Search domains..."
+                noDataMessage="No domains found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedDomains.length > 0 && (
                       <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                       >
-                        <FaPlus className="w-4 h-4" />
-                        New Domain
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedDomains.length})
                       </button>
-                    </div>
-                  }
-                  onRowClicked={handleEdit}
-                  rowClickMode="onlyIdAndActions"
-                  rowClickAllowedColumnNames={["id", "action", "actions"]}
-                  rowKeyField="id"
-                />
-              )}
-            </div>
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Domain
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+                rowClickMode="onlyIdAndActions"
+                rowClickAllowedColumnNames={["id", "action", "actions"]}
+                rowKeyField="id"
+              />
+            )}
           </ComponentCard>
         </div>
         {formMode && (

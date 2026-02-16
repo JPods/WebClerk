@@ -52,27 +52,6 @@ export default function PhoneListMob({
                   )}
                 </div>
               </div>
-
-              {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
-                <button
-                  onClick={() => handleView(contact)}
-                  title="View"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-green-600"
-                >
-                  <FaEye className="text-green-600 hover:scale-110" />
-                </button>
-
-                <button
-                  onClick={() => handleEdit(contact)}
-                  title="Edit"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-blue-600"
-                >
-                  <FaEdit className="text-blue-600 hover:scale-110" />
-                </button>
-              </div>
             </div>
           </AccordionItem>
         ))
