@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
 interface ActionData {
@@ -16,6 +15,7 @@ interface ActionData {
 
 interface ContactListMobProps {
   dataProp: ActionData[];
+  selectedContact?: ActionData | null;
   handleView: (row: ActionData) => void;
   handleEdit: (row: ActionData) => void;
   emptyMessage?: string;
@@ -23,11 +23,23 @@ interface ContactListMobProps {
 
 export default function ContactListMob({
   dataProp,
+  selectedContact,
   handleView,
   handleEdit,
   emptyMessage,
 }: ContactListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedContact?.id && dataProp?.length) {
+      const idx = dataProp.findIndex(
+        (item) => String(item.id) === String(selectedContact.id),
+      );
+      setOpenIndex(idx >= 0 ? idx : null);
+    } else {
+      setOpenIndex(null);
+    }
+  }, [selectedContact, dataProp]);
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (
@@ -81,27 +93,6 @@ export default function ContactListMob({
                     <p className="text-red-500">No</p>
                   )}
                 </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
-                <button
-                  onClick={() => handleView(contact)}
-                  title="View"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-green-600"
-                >
-                  <FaEye className="text-green-600 hover:scale-110" />
-                </button>
-
-                <button
-                  onClick={() => handleEdit(contact)}
-                  title="Edit"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-blue-600"
-                >
-                  <FaEdit className="text-blue-600 hover:scale-110" />
-                </button>
               </div>
             </div>
           </AccordionItem>
