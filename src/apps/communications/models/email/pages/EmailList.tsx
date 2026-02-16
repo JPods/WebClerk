@@ -254,48 +254,58 @@ export default function EmailList() {
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-              <AdvancedDataTable
-                data={data}
-                columns={userColumns}
-                title="Emails"
-                storageKey="communications.email.list"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={true}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedEmails}
-                exportFileName="emails_export"
-                searchPlaceholder="Search emails, names, attention..."
-                noDataMessage="No emails found"
-                customActions={
-                  <div className="flex gap-2">
-                    {selectedEmails.length > 0 && (
+              {formMode ? (
+                <div className="flex flex-col">
+                  <EmailListMobile
+                    dataProp={data}
+                    handleView={handleView}
+                    handleEdit={handleEdit}
+                  />
+                </div>
+              ) : (
+                <AdvancedDataTable
+                  data={data}
+                  columns={userColumns}
+                  title="Emails"
+                  storageKey="communications.email.list"
+                  loading={loading}
+                  filters={filters}
+                  enableExport={true}
+                  enableSelection={true}
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
+                  onSelectionChange={setSelectedEmails}
+                  exportFileName="emails_export"
+                  searchPlaceholder="Search emails, names, attention..."
+                  noDataMessage="No emails found"
+                  customActions={
+                    <div className="flex gap-2">
+                      {selectedEmails.length > 0 && (
+                        <button
+                          onClick={handleBulkDelete}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                          Delete ({selectedEmails.length})
+                        </button>
+                      )}
                       <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={handleAdd}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        <FaTrash className="w-4 h-4" />
-                        Delete ({selectedEmails.length})
+                        <FaPlus className="w-4 h-4" />
+                        New Email
                       </button>
-                    )}
-                    <button
-                      onClick={handleAdd}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      New Email
-                    </button>
-                  </div>
-                }
-                onRowClicked={handleEdit}
-                rowClickMode="onlyIdAndActions"
-                rowClickAllowedColumnNames={["id", "action", "actions"]}
-                rowKeyField="id"
-              />
+                    </div>
+                  }
+                  onRowClicked={handleEdit}
+                  rowClickMode="onlyIdAndActions"
+                  rowClickAllowedColumnNames={["id", "action", "actions"]}
+                  rowKeyField="id"
+                />
+              )}
             </div>
           </ComponentCard>
         </div>
