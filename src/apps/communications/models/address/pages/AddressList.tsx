@@ -243,61 +243,59 @@ export default function AddressList() {
       <PageBreadcrumb pageTitle="Address List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light h-[calc(100vh-265px)]">
-              {formMode ? (
-                <div className="flex flex-col">
-                  <AddressListMob
-                    dataProp={data}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                  />
-                </div>
-              ) : (
-                <AdvancedDataTable
-                  data={data}
-                  columns={userColumns}
-                  title="Addresses"
-                  storageKey="communications.address.list"
-                  loading={loading}
-                  filters={filters}
-                  enableExport={true}
-                  enableSelection={true}
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  onSelectionChange={setSelectedAddresses}
-                  exportFileName="addresses_export"
-                  searchPlaceholder="Search addresses..."
-                  noDataMessage="No addresses found"
-                  customActions={
-                    <div className="flex gap-2">
-                      {selectedAddresses.length > 0 && (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                          Delete ({selectedAddresses.length})
-                        </button>
-                      )}
-                      <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <FaPlus className="w-4 h-4" />
-                        New Address
-                      </button>
-                    </div>
-                  }
-                  onRowClicked={handleEdit}
-                  rowClickMode="onlyIdAndActions"
-                  rowClickAllowedColumnNames={["id", "action", "actions"]}
-                  rowKeyField="id"
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <div className="flex flex-col">
+                <AddressListMob
+                  dataProp={data}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={userColumns}
+                title="Addresses"
+                storageKey="communications.address.list"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
+                onSelectionChange={setSelectedAddresses}
+                exportFileName="addresses_export"
+                searchPlaceholder="Search addresses..."
+                noDataMessage="No addresses found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedAddresses.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedAddresses.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Address
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+                rowClickMode="onlyIdAndActions"
+                rowClickAllowedColumnNames={["id", "action", "actions"]}
+                rowKeyField="id"
+              />
+            )}
           </ComponentCard>
         </div>
         {formMode && (
