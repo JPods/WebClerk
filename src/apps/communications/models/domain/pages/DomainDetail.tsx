@@ -1,68 +1,164 @@
-import { useEffect, useState } from "react";
+/**
+ * DomainDetail.tsx
+ *
+ * Standard Domain Detail page following the enterprise UI pattern (matches ContactDetail):
+ *
+ * ┌────────────────────────────────────────┐
+ * │  Header (Title, ID, Status, Actions)   │
+ * ├────────────────────────────────────────┤
+ * │  Toolbar (Save, Cancel) — edit/add     │
+ * ├────────────────────────────────────────┤
+ * │  Basic Information (PERSISTENT)        │
+ * ├────────────────────────────────────────┤
+ * │  Tab Navigation                        │
+ * ├────────────────────────────────────────┤
+ * │  Tab Content (scrollable)              │
+ * └────────────────────────────────────────┘
+ *
+ * @see ui-form-layout-research.md for design rationale
+ */
+
+import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { Globe, Link, Hash } from "lucide-react";
+import { FaEdit, FaGlobe } from "react-icons/fa";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import HorizontalField from "../../../../../components/form/HorizontalField";
-import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
-import { Input, DropDown } from "../../../../../components/wrapper";
+// UI primitives
+import Label from "@/components/form/Label";
+import Input from "@/components/form/input/InputField";
+import DropDown from "@/components/form/input/DropDown";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
-import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
-import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
-import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
-import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
-import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
-import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
+// Tab navigation
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+} from "@/components/common/DetailTabs";
+
+// Toolbar
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
+
+// Panel Components
+import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+
+// API & State
 import { createDomain, updateDomain } from "../services/domainApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
+import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
 
-const STORAGE_KEY = "domainDetail_columnCount";
+// ---------------------------------------------------------------------------
+// HorizontalField — label-left for edit mode
+// ---------------------------------------------------------------------------
+
+interface HorizontalFieldProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  required?: boolean;
+}
+
+function HorizontalField({
+  label,
+  htmlFor,
+  children,
+  error,
+  required,
+}: HorizontalFieldProps) {
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      <Label
+        htmlFor={htmlFor}
+        className="w-32 shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400"
+      >
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </Label>
+      <div className="flex-1 min-w-0">
+        {children}
+        {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// InfoRow — read-only horizontal label/value pair
+// ---------------------------------------------------------------------------
+
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
+  <div className="flex items-center gap-2">
+    <dt className="w-32 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">
+      {label}
+    </dt>
+    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+      {value || "—"}
+    </dd>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
 
 export default function DomainDetail({
   modeProp,
   dataProp,
-  hideBreadcrumb,
+  hideBreadcrumb: _hideBreadcrumb,
   onSaved,
-  inline = false,
+  inline: _inline = false,
   onCancelInline,
 }: DomainAddProps) {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = (location.state as any) || {};
+
+  // ---------------------------------------------------------------------------
+  // Mode
+  // ---------------------------------------------------------------------------
+
+  const initialMode: "add" | "edit" | "view" =
+    modeProp || routeState.mode || "add";
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(
+    initialMode,
+  );
+  const isEditing = effectiveMode === "edit" || effectiveMode === "add";
+
+  // ---------------------------------------------------------------------------
+  // Data
+  // ---------------------------------------------------------------------------
+
+  const data = dataProp || routeState.data || null;
+  const activeDomainId = data?.id || null;
+
+  // ---------------------------------------------------------------------------
+  // Form
+  // ---------------------------------------------------------------------------
 
   const {
     register,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty, isSubmitting },
     reset,
     watch,
   } = useForm<z.infer<typeof domainSchema>>({
     resolver: zodResolver(domainSchema),
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const routeState = (location.state as any) || {};
-  const [isSaving, setIsSaving] = useState(false);
-  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
-  const data = dataProp || routeState.data || null;
-
-  // Tab state - default to contacts since overview is persistent
-  const { activeTab, setActiveTab } = useDetailTabs("domain", "contacts");
-  
-  // Column count for responsive layout
-  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
-
   useEffect(() => {
-    if (currentMode === "add") {
+    if (effectiveMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -73,23 +169,33 @@ export default function DomainDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, currentMode]);
+  }, [data, reset, setValue, effectiveMode]);
+
+  // ---------------------------------------------------------------------------
+  // Tab Navigation
+  // ---------------------------------------------------------------------------
+
+  const { activeTab, setActiveTab } = useDetailTabs("domain", "contacts");
+  const { columnCount, setColumnCount } = useColumnCount("domain", 3);
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
 
   const onSubmit = async (formData: z.infer<typeof domainSchema>) => {
-    setIsSaving(true);
     try {
       const res =
-        currentMode === "add"
+        effectiveMode === "add"
           ? await createDomain({ ...formData })
           : await updateDomain({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Domain ${
-              currentMode === "add" ? "created" : "updated"
+              effectiveMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
-          })
+          }),
         );
         if (onSaved) {
           onSaved();
@@ -97,17 +203,11 @@ export default function DomainDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  const handleEdit = () => {
-    setCurrentMode("edit");
-  };
-
-  const handleCancel = () => {
-    if (inline && onCancelInline) {
+  const handleCancel = useCallback(() => {
+    if (onCancelInline) {
       onCancelInline();
     } else if (initialMode === "add") {
       navigate(-1);
@@ -119,9 +219,9 @@ export default function DomainDetail({
           }
         });
       }
-      setCurrentMode("view");
+      setEffectiveMode("view");
     }
-  };
+  }, [onCancelInline, initialMode, navigate, data, setValue]);
 
   const typeOptions = [
     { value: "website", label: "Website" },
@@ -141,11 +241,62 @@ export default function DomainDetail({
         | "facebook"
         | "twitter"
         | "github"
-        | "other"
+        | "other",
     );
   };
 
-  // Render tab content
+  // ---------------------------------------------------------------------------
+  // Action Buttons (header)
+  // ---------------------------------------------------------------------------
+
+  const getActionButtons = () => {
+    const buttons: React.ReactNode[] = [];
+
+    if (effectiveMode === "view") {
+      buttons.push(
+        <button
+          key="edit"
+          type="button"
+          onClick={() => setEffectiveMode("edit")}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          title="Edit Domain"
+        >
+          <FaEdit size={14} />
+          Edit
+        </button>,
+      );
+      if (onCancelInline) {
+        buttons.push(
+          <button
+            key="close"
+            type="button"
+            onClick={onCancelInline}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+            title="Close"
+          >
+            Close
+          </button>,
+        );
+      }
+    }
+
+    return buttons;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Derived display values
+  // ---------------------------------------------------------------------------
+
+  const displayName = data
+    ? data.path || data.name || `Domain #${data.id}`
+    : "New Domain";
+
+  const domainType = watch("type") || data?.type;
+
+  // ---------------------------------------------------------------------------
+  // Render Tab Content
+  // ---------------------------------------------------------------------------
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "contacts":
@@ -154,7 +305,7 @@ export default function DomainDetail({
             entityType="domain"
             entityId={data?.id}
             data={data?.refs?.links?.contact}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -164,7 +315,7 @@ export default function DomainDetail({
             entityType="domain"
             entityId={data?.id}
             comments={data?.comments}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
             currentUser="Current User"
           />
         );
@@ -175,7 +326,7 @@ export default function DomainDetail({
             entityType="domain"
             entityId={data?.id}
             data={data?.actions?.items}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -185,7 +336,7 @@ export default function DomainDetail({
             parent_model="domain"
             parentId={data?.id}
             data={data?.refs?.links?.document}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -201,104 +352,154 @@ export default function DomainDetail({
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
-    <>
-      {/* Breadcrumb */}
-      {!hideBreadcrumb && (
-        <PageBreadcrumb
-          pageTitle={
-            currentMode === "edit"
-              ? "Edit Domain"
-              : currentMode === "view"
-              ? "View Domain"
-              : "Domain Detail"
-          }
-        />
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* ─── HEADER ─── */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
+                Domain
+              </span>
+              {displayName}
+              {activeDomainId && (
+                <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                  #{activeDomainId}
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+              {domainType && (
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 capitalize">
+                  {domainType}
+                </span>
+              )}
+              {isEditing && isDirty && (
+                <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            {getActionButtons()}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TOOLBAR (edit/add only) ─── */}
+      {isEditing && (
+        <div className="sticky top-0 z-20 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+          <TransactionToolbar
+            transactionType="order"
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            isEditing
+            onSave={handleSubmit(onSubmit)}
+            onSaveAndClose={handleSubmit(async (fd) => {
+              await onSubmit(fd);
+              handleCancel();
+            })}
+            onCancel={handleCancel}
+            canClone={false}
+            canTransfer={false}
+            canDelete={false}
+            showTaskButton={false}
+          />
+        </div>
       )}
 
-      {/* Header */}
-      <SimpleDetailHeader
-        entityName="Domain"
-        recordId={data?.id}
-        recordName={data?.path || data?.name}
-        mode={currentMode}
-        backUrl="/communications/domains"
-      />
-
-      {/* Toolbar */}
-      <SimpleDetailToolbar
-        mode={currentMode}
-        isSaving={isSaving}
-        onSave={handleSubmit(onSubmit)}
-        onCancel={handleCancel}
-        onEdit={handleEdit}
-      />
-
-      {/* Persistent Overview Form */}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {currentMode === "edit"
-                ? "Edit Domain"
-                : currentMode === "view"
-                ? "View Domain"
-                : "Add New Domain"}
+      {/* ─── BASIC INFORMATION (PERSISTENT) ─── */}
+      <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+        {effectiveMode === "view" && data ? (
+          /* ── Read-only view ── */
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+              <FaGlobe size={16} />
+              Basic Information
             </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            <dl
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-2 text-sm`}
+            >
+              <InfoRow label="path" value={data.path} />
+              <InfoRow label="type" value={data.type} />
+            </dl>
+          </div>
+        ) : (
+          /* ── Editable form ── */
+          <form id="domain-form" onSubmit={handleSubmit(onSubmit)}>
+            <div
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-0`}
+            >
+              <HorizontalField
+                label="path"
+                htmlFor="path"
+                required
+                error={errors.path?.message}
               >
-                &times;
-              </button>
-            )}
-          </div>
+                <Input
+                  type="text"
+                  id="path"
+                  placeholder="https://example.com"
+                  {...register("path")}
+                  error={!!errors.path?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="type"
+                htmlFor="type"
+                error={errors.type?.message}
+              >
+                <DropDown
+                  id="type"
+                  options={typeOptions}
+                  placeholder="Select Type"
+                  value={watch("type")}
+                  onChange={handleTypeChange}
+                  className="dark:bg-dark-900"
+                />
+              </HorizontalField>
+            </div>
+          </form>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex justify-end mb-4">
-            <ColumnSelector value={columnCount} onChange={setColumnCount} />
-          </div>
-          <div className={getGridClassName(columnCount)}>
-            <HorizontalField label="Path / URL" htmlFor="path" error={errors.path?.message} icon={<Link size={14} />}>
-              <Input
-                type="text"
-                id="path"
-                placeholder="https://example.com"
-                {...register("path")}
-                error={errors.path?.message ? true : false}
-                hint={errors.path?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Type" htmlFor="type" error={errors.type?.message} icon={<Hash size={14} />}>
-              <DropDown
-                id="type"
-                options={typeOptions}
-                placeholder="Select Type"
-                value={watch("type")}
-                onChange={handleTypeChange}
-                className="dark:bg-dark-900"
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-          </div>
-        </form>
-      </ComponentCard>
+      </div>
 
-      {/* Tab Navigation (below persistent overview) */}
-      <DetailTabs
-        entityType="domain"
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        standardTabs={["contacts", "comments", "actions", "documents", "raw"]}
-      />
+      {/* ─── TAB NAVIGATION ─── */}
+      {activeDomainId && data?.id && (
+        <>
+          <DetailTabs
+            entityType="domain"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[
+              "contacts",
+              "comments",
+              "actions",
+              "documents",
+              "raw",
+            ]}
+            showColumnSelector
+            columnCount={columnCount}
+            onColumnCountChange={setColumnCount}
+          />
 
-      {/* Tab Content */}
-      <ComponentCard>
-        {renderTabContent()}
-      </ComponentCard>
-    </>
+          {/* ─── TAB CONTENT (scrollable) ─── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">{renderTabContent()}</div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

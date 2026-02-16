@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
@@ -28,12 +28,12 @@ export default function DomainListMob({
               setOpenIndex(willOpen ? index : null);
 
               if (willOpen) {
-                handleView(contact);
+                handleView(contact); // 👈 FIXED
               }
             }}
           >
             {/* Accordion Content */}
-            <div className="flex flex-col min-h-[220px]">
+            <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
@@ -65,7 +65,7 @@ export default function DomainListMob({
           </AccordionItem>
         ))
       ) : (
-        <p className="text-center text-gray-500">No email found.</p>
+        <p className="text-center text-gray-500">No domain found.</p>
       )}
     </div>
   );

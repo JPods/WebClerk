@@ -11,13 +11,13 @@ import type {
 const MODEL_NAME = "phone";
 
 export const createPhone = async (
-  payload: CreatePhoneRequest
+  payload: CreatePhoneRequest,
 ): Promise<PhoneApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
 
 export const updatePhone = async (
-  payload: UpdatePhoneRequest
+  payload: UpdatePhoneRequest,
 ): Promise<PhoneApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
@@ -26,9 +26,7 @@ export const deletePhone = async (id: number) => {
   return deleteRecord(MODEL_NAME, id);
 };
 
-export const fetchPhones = async (id?: number | string) => {
-  if (id) {
-    return getRecord(MODEL_NAME, Number(id));
-  }
-  return getRecords(MODEL_NAME);
+export const fetchPhones = async (params?: any) => {
+  const res = await getRecords("phone", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
