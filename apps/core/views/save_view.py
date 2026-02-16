@@ -955,16 +955,23 @@ class SaveWcapiView(APIView):
             
             console_logger.debug(f"[SAVE_VIEW] Lines saved: {len(lines_results)} success, {len(lines_errors)} errors")
 
-            # ── Inline pending processing ──────────────────────────────────
-            # Process pending inventory records synchronously after lines are saved
-            # since Celery Beat is not configured.
+            # ── Pending inventory processing (Celery → inline fallback) ───
             if lines_results:
                 try:
-                    from apps.transactions.services.pending_inventory_processor import process_line_item_pending
-                    pending_summary = process_line_item_pending(limit=200)
-                    console_logger.info(f"[SAVE_VIEW] Inline pending processing: {pending_summary}")
-                except Exception as proc_err:
-                    console_logger.warning(f"[SAVE_VIEW] Inline pending processing failed (non-fatal): {proc_err}")
+                    from apps.products.tasks import process_pending_inventory_adaptive_task
+                    process_pending_inventory_adaptive_task.apply_async(
+                        kwargs={'limit': 200},
+                        countdown=2,  # short delay so the transaction commits first
+                    )
+                    console_logger.info("[SAVE_VIEW] Dispatched pending inventory task to Celery (countdown=2s)")
+                except Exception as celery_err:
+                    console_logger.warning(f"[SAVE_VIEW] Celery dispatch failed, falling back to inline: {celery_err}")
+                    try:
+                        from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+                        pending_summary = process_line_item_pending(limit=200)
+                        console_logger.info(f"[SAVE_VIEW] Inline pending processing: {pending_summary}")
+                    except Exception as proc_err:
+                        console_logger.warning(f"[SAVE_VIEW] Inline pending processing failed (non-fatal): {proc_err}")
         
         # Auto-link communication records to a Contact
         linked = False
@@ -1960,6 +1967,23 @@ class SaveWcapiView(APIView):
                             console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
                         except Exception as e:
                             console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
+
+                        # ── Pending inventory processing (Celery → inline fallback) ───
+                        try:
+                            from apps.products.tasks import process_pending_inventory_adaptive_task
+                            process_pending_inventory_adaptive_task.apply_async(
+                                kwargs={'limit': 200},
+                                countdown=2,
+                            )
+                            console_logger.info("[SAVE_VIEW] Dispatched pending inventory task to Celery (lines_from_payload path)")
+                        except Exception as celery_err:
+                            console_logger.warning(f"[SAVE_VIEW] Celery dispatch failed (lines_from_payload), inline fallback: {celery_err}")
+                            try:
+                                from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+                                pending_summary = process_line_item_pending(limit=200)
+                                console_logger.info(f"[SAVE_VIEW] Inline pending processing: {pending_summary}")
+                            except Exception as proc_err:
+                                console_logger.warning(f"[SAVE_VIEW] Inline pending processing failed (non-fatal): {proc_err}")
 
         # Auto-link communication records to a Contact
         linked = False

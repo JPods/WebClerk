@@ -799,6 +799,72 @@ PAYMENT_SUCCESS_URL = config('PAYMENT_SUCCESS_URL', default='http://localhost:51
 PAYMENT_CANCEL_URL = config('PAYMENT_CANCEL_URL', default='http://localhost:5173/payment/cancel')
 PAYMENT_WEBHOOK_URL = config('PAYMENT_WEBHOOK_URL', default='http://localhost:8000/api/payments/webhook/')
 
+# =============================================================================
+# Celery Configuration  (Redis broker)
+# =============================================================================
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60          # 30 minutes hard limit
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60     # 25 minutes soft limit
+
+# Beat schedule — periodic background tasks
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    # ── Inventory pending drain (adaptive, self-re-scheduling) ──────
+    # Runs every 30 s; the task adjusts its own delay based on workload.
+    'inventory-pending-drain': {
+        'task': 'apps.products.tasks.process_pending_inventory_adaptive_task',
+        'schedule': 30.0,                       # seconds between kicks
+        'kwargs': {'limit': 200},
+    },
+
+    # ── Search keywords refresh ─────────────────────────────────────
+    'refresh-keywords-every-15-min': {
+        'task': 'apps.support.scheduler.tasks.task_refresh_keywords',
+        'schedule': crontab(minute='*/15'),
+        'kwargs': {'limit': 500, 'batch_size': 200},
+    },
+
+    # ── Relationship counts ─────────────────────────────────────────
+    'recompute-relationship-counts-hourly': {
+        'task': 'apps.support.scheduler.tasks.task_recompute_relationship_counts',
+        'schedule': crontab(minute=0),
+        'kwargs': {'limit': 5000, 'batch_size': 500},
+    },
+
+    # ── Model defaults (daily 2 AM) ────────────────────────────────
+    'ensure-model-defaults-daily': {
+        'task': 'apps.support.scheduler.tasks.task_ensure_model_defaults',
+        'schedule': crontab(hour=2, minute=0),
+    },
+
+    # ── Data backup (daily 3 AM) ────────────────────────────────────
+    'export-data-backup-daily': {
+        'task': 'apps.support.scheduler.tasks.task_export_data',
+        'schedule': crontab(hour=3, minute=0),
+    },
+
+    # ── Registry docs (daily 5 AM) ─────────────────────────────────
+    'refresh-model-registry-docs-daily': {
+        'task': 'apps.support.scheduler.tasks.task_refresh_model_registry_docs',
+        'schedule': crontab(hour=5, minute=0),
+    },
+
+    # ── Stats normalization (weekly Sun 4 AM) ───────────────────────
+    'recompute-basic-stats-weekly': {
+        'task': 'apps.support.scheduler.tasks.task_recompute_basic_stats',
+        'schedule': crontab(hour=4, minute=0, day_of_week='sunday'),
+        'kwargs': {'limit': 50000, 'batch_size': 500},
+    },
+}
+
 # --- Inventory Pending Processing ---
 # Controls how often the background processor checks for unprocessed inventory pending records
 INVENTORY_PENDING_PROCESS_DELAY = int(config('INVENTORY_PENDING_PROCESS_DELAY', default=5))  # seconds
