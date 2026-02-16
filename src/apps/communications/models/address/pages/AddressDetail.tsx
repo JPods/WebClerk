@@ -1,68 +1,164 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+/**
+ * AddressDetail.tsx
+ *
+ * Standard Address Detail page following the enterprise UI pattern (matches ContactDetail):
+ *
+ * ┌────────────────────────────────────────┐
+ * │  Header (Title, ID, Status, Actions)   │
+ * ├────────────────────────────────────────┤
+ * │  Toolbar (Save, Cancel) — edit/add     │
+ * ├────────────────────────────────────────┤
+ * │  Basic Information (PERSISTENT)        │
+ * ├────────────────────────────────────────┤
+ * │  Tab Navigation                        │
+ * ├────────────────────────────────────────┤
+ * │  Tab Content (scrollable)              │
+ * └────────────────────────────────────────┘
+ *
+ * @see ui-form-layout-research.md for design rationale
+ */
+
+import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Home, Building2, Map, Navigation, Hash, Globe, Compass } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { FaEdit, FaMapMarkerAlt } from "react-icons/fa";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import HorizontalField from "../../../../../components/form/HorizontalField";
-import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
-import { Input, CustTextArea } from "../../../../../components/wrapper";
+// UI primitives
+import Label from "@/components/form/Label";
+import Input from "@/components/form/input/InputField";
+import { CustTextArea } from "@/components/wrapper";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
-import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
-import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
-import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
-import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
-import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
-import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
+// Tab navigation
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+} from "@/components/common/DetailTabs";
+
+// Toolbar
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
+
+// Panel Components
+import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import { FinancialsPanel } from "@/apps/common/components/panels";
+
+// API & State
 import { createAddress, updateAddress } from "../services/addressApi";
-import { FinancialsPanel } from "../../../../common/components/panels";
-import { showToast } from "../../../../../store/slices/toastSlice";
+import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
 
-const STORAGE_KEY = "addressDetail_columnCount";
+// ---------------------------------------------------------------------------
+// HorizontalField — label-left for edit mode
+// ---------------------------------------------------------------------------
+
+interface HorizontalFieldProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  required?: boolean;
+}
+
+function HorizontalField({
+  label,
+  htmlFor,
+  children,
+  error,
+  required,
+}: HorizontalFieldProps) {
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      <Label
+        htmlFor={htmlFor}
+        className="w-32 shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400"
+      >
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </Label>
+      <div className="flex-1 min-w-0">
+        {children}
+        {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// InfoRow — read-only horizontal label/value pair
+// ---------------------------------------------------------------------------
+
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
+  <div className="flex items-center gap-2">
+    <dt className="w-32 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">
+      {label}
+    </dt>
+    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+      {value || "—"}
+    </dd>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
 
 export default function AddressDetail({
   modeProp,
   dataProp,
-  hideBreadcrumb,
+  hideBreadcrumb: _hideBreadcrumb,
   onSaved,
-  inline = false,
+  inline: _inline = false,
   onCancelInline,
 }: AddressAddProps) {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = (location.state as any) || {};
+
+  // ---------------------------------------------------------------------------
+  // Mode
+  // ---------------------------------------------------------------------------
+
+  const initialMode: "add" | "edit" | "view" =
+    modeProp || routeState.mode || "add";
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(
+    initialMode,
+  );
+  const isEditing = effectiveMode === "edit" || effectiveMode === "add";
+
+  // ---------------------------------------------------------------------------
+  // Data
+  // ---------------------------------------------------------------------------
+
+  const data = dataProp || routeState.data || null;
+  const activeAddressId = data?.id || null;
+
+  // ---------------------------------------------------------------------------
+  // Form
+  // ---------------------------------------------------------------------------
 
   const {
     register,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty, isSubmitting },
     reset,
   } = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const routeState = (location.state as any) || {};
-  const [isSaving, setIsSaving] = useState(false);
-  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
-  const data = dataProp || routeState.data || null;
-
-  // Tab state - default to contacts since overview is persistent
-  const { activeTab, setActiveTab } = useDetailTabs("address", "contacts");
-  
-  // Column count for responsive layout
-  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
-
   useEffect(() => {
-    if (currentMode === "add") {
+    if (effectiveMode === "add") {
       reset();
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
@@ -73,23 +169,33 @@ export default function AddressDetail({
     } else {
       reset({});
     }
-  }, [data, reset, setValue, currentMode]);
+  }, [data, reset, setValue, effectiveMode]);
+
+  // ---------------------------------------------------------------------------
+  // Tab Navigation
+  // ---------------------------------------------------------------------------
+
+  const { activeTab, setActiveTab } = useDetailTabs("address", "contacts");
+  const { columnCount, setColumnCount } = useColumnCount("address", 3);
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
 
   const onSubmit = async (formData: z.infer<typeof addressSchema>) => {
-    setIsSaving(true);
     try {
       const res =
-        currentMode === "add"
+        effectiveMode === "add"
           ? await createAddress(formData)
           : await updateAddress({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
             message: `Address ${
-              currentMode === "add" ? "created" : "updated"
+              effectiveMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
-          })
+          }),
         );
         if (onSaved) {
           onSaved();
@@ -97,17 +203,11 @@ export default function AddressDetail({
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  const handleEdit = () => {
-    setCurrentMode("edit");
-  };
-
-  const handleCancel = () => {
-    if (inline && onCancelInline) {
+  const handleCancel = useCallback(() => {
+    if (onCancelInline) {
       onCancelInline();
     } else if (initialMode === "add") {
       navigate(-1);
@@ -119,11 +219,60 @@ export default function AddressDetail({
           }
         });
       }
-      setCurrentMode("view");
+      setEffectiveMode("view");
     }
+  }, [onCancelInline, initialMode, navigate, data, setValue]);
+
+  // ---------------------------------------------------------------------------
+  // Action Buttons (header)
+  // ---------------------------------------------------------------------------
+
+  const getActionButtons = () => {
+    const buttons: React.ReactNode[] = [];
+
+    if (effectiveMode === "view") {
+      buttons.push(
+        <button
+          key="edit"
+          type="button"
+          onClick={() => setEffectiveMode("edit")}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          title="Edit Address"
+        >
+          <FaEdit size={14} />
+          Edit
+        </button>,
+      );
+      if (onCancelInline) {
+        buttons.push(
+          <button
+            key="close"
+            type="button"
+            onClick={onCancelInline}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+            title="Close"
+          >
+            Close
+          </button>,
+        );
+      }
+    }
+
+    return buttons;
   };
 
-  // Render tab content (no overview - it's persistent above)
+  // ---------------------------------------------------------------------------
+  // Derived display values
+  // ---------------------------------------------------------------------------
+
+  const displayName = data
+    ? data.name || data.address1 || data.full || `Address #${data.id}`
+    : "New Address";
+
+  // ---------------------------------------------------------------------------
+  // Render Tab Content
+  // ---------------------------------------------------------------------------
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "contacts":
@@ -132,7 +281,7 @@ export default function AddressDetail({
             entityType="address"
             entityId={data?.id}
             data={data?.refs?.links?.contact}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -142,7 +291,7 @@ export default function AddressDetail({
             entityType="address"
             entityId={data?.id}
             comments={data?.comments}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
             currentUser="Current User"
           />
         );
@@ -153,7 +302,7 @@ export default function AddressDetail({
             entityType="address"
             entityId={data?.id}
             data={data?.actions?.items}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -163,7 +312,7 @@ export default function AddressDetail({
             parent_model="address"
             parentId={data?.id}
             data={data?.refs?.links?.document}
-            isEditing={currentMode === "edit"}
+            isEditing={isEditing}
           />
         );
 
@@ -189,217 +338,286 @@ export default function AddressDetail({
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
-    <>
-      {/* Breadcrumb */}
-      {!hideBreadcrumb && (
-        <PageBreadcrumb
-          pageTitle={
-            currentMode === "edit"
-              ? "Edit Address"
-              : currentMode === "view"
-              ? "View Address"
-              : "Address Detail"
-          }
-        />
-      )}
-
-      {/* Header */}
-      <SimpleDetailHeader
-        entityName="Address"
-        recordId={data?.id}
-        recordName={data?.name || data?.address1 || data?.full}
-        mode={currentMode}
-        backUrl="/communications/addresses"
-      />
-
-      {/* Toolbar */}
-      <SimpleDetailToolbar
-        mode={currentMode}
-        isSaving={isSaving}
-        onSave={handleSubmit(onSubmit)}
-        onCancel={handleCancel}
-        onEdit={handleEdit}
-      />
-
-      {/* Persistent Overview Form */}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {currentMode === "edit"
-                ? "Edit Address"
-                : currentMode === "view"
-                ? "View Address"
-                : "Add New Address"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex justify-end mb-4">
-            <ColumnSelector value={columnCount} onChange={setColumnCount} />
-          </div>
-          <div className={getGridClassName(columnCount)}>
-            <HorizontalField label="Address 1" htmlFor="address1" error={errors.address1?.message} icon={<Home size={14} />}>
-              <Input
-                type="text"
-                id="address1"
-                placeholder="Street address"
-                {...register("address1")}
-                error={errors.address1?.message ? true : false}
-                hint={errors.address1?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Address 2" htmlFor="address2" error={errors.address2?.message} icon={<Building2 size={14} />}>
-              <Input
-                type="text"
-                id="address2"
-                placeholder="Apt, suite, unit"
-                {...register("address2")}
-                error={errors.address2?.message ? true : false}
-                hint={errors.address2?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Type" htmlFor="address_type" error={errors.address_type?.message} icon={<Hash size={14} />}>
-              <Input
-                type="text"
-                id="address_type"
-                placeholder="Billing, Shipping, etc."
-                {...register("address_type")}
-                error={errors.address_type?.message ? true : false}
-                hint={errors.address_type?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="City" htmlFor="city" error={errors.city?.message} icon={<MapPin size={14} />}>
-              <Input
-                type="text"
-                id="city"
-                placeholder="City"
-                {...register("city")}
-                error={errors.city?.message ? true : false}
-                hint={errors.city?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="State" htmlFor="state" error={errors.state?.message} icon={<Map size={14} />}>
-              <Input
-                type="text"
-                id="state"
-                placeholder="State / Province"
-                {...register("state")}
-                error={errors.state?.message ? true : false}
-                hint={errors.state?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="ZIP" htmlFor="zip" error={errors.zip?.message} icon={<Navigation size={14} />}>
-              <Input
-                type="text"
-                id="zip"
-                placeholder="ZIP / Postal Code"
-                {...register("zip")}
-                error={errors.zip?.message ? true : false}
-                hint={errors.zip?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Country" htmlFor="country" error={errors.country?.message} icon={<Globe size={14} />}>
-              <Input
-                type="text"
-                id="country"
-                placeholder="Country"
-                {...register("country")}
-                error={errors.country?.message ? true : false}
-                hint={errors.country?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Latitude" htmlFor="latitude" error={errors.latitude?.message} icon={<Compass size={14} />}>
-              <Input
-                type="text"
-                id="latitude"
-                placeholder="e.g. 40.7128"
-                {...register("latitude")}
-                error={errors.latitude?.message ? true : false}
-                hint={errors.latitude?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Longitude" htmlFor="longitude" error={errors.longitude?.message} icon={<Compass size={14} />}>
-              <Input
-                type="text"
-                id="longitude"
-                placeholder="e.g. -74.0060"
-                {...register("longitude")}
-                error={errors.longitude?.message ? true : false}
-                hint={errors.longitude?.message}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-          </div>
-
-          {/* Full Address - spans full width */}
-          <div className="mt-4">
-            <HorizontalField label="Full Address" htmlFor="full" error={errors.full?.message} icon={<MapPin size={14} />}>
-              <CustTextArea
-                id="full"
-                placeholder="Complete formatted address"
-                {...register("full")}
-                error={errors.full?.message ? true : false}
-                hint={errors.full?.message}
-                disabled={currentMode === "view"}
-                rows={2}
-              />
-            </HorizontalField>
-          </div>
-
-          {/* Inline mode buttons */}
-          {currentMode !== "view" && inline && (
-            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {currentMode === "edit" ? "Update" : "Submit"}
-              </button>
-              {onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* ─── HEADER ─── */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
+                Address
+              </span>
+              {displayName}
+              {activeAddressId && (
+                <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                  #{activeAddressId}
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+              {data?.address_type && (
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                  {data.address_type}
+                </span>
+              )}
+              {data?.city && (
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  {data.city}
+                  {data.state && `, ${data.state}`}
+                </span>
+              )}
+              {isEditing && isDirty && (
+                <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                  Unsaved changes
+                </span>
               )}
             </div>
-          )}
-        </form>
-      </ComponentCard>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            {getActionButtons()}
+          </div>
+        </div>
+      </div>
 
-      {/* Tab Navigation (below persistent overview) */}
-      <DetailTabs
-        entityType="address"
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        standardTabs={["contacts", "comments", "actions", "documents", "financials", "raw"]}
-      />
+      {/* ─── TOOLBAR (edit/add only) ─── */}
+      {isEditing && (
+        <div className="sticky top-0 z-20 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+          <TransactionToolbar
+            transactionType="order"
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            isEditing
+            onSave={handleSubmit(onSubmit)}
+            onSaveAndClose={handleSubmit(async (fd) => {
+              await onSubmit(fd);
+              handleCancel();
+            })}
+            onCancel={handleCancel}
+            canClone={false}
+            canTransfer={false}
+            canDelete={false}
+            showTaskButton={false}
+          />
+        </div>
+      )}
 
-      {/* Tab Content */}
-      <ComponentCard>
-        {renderTabContent()}
-      </ComponentCard>
-    </>
+      {/* ─── BASIC INFORMATION (PERSISTENT) ─── */}
+      <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+        {effectiveMode === "view" && data ? (
+          /* ── Read-only view ── */
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+              <FaMapMarkerAlt size={16} />
+              Basic Information
+            </h3>
+            <dl
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-2 text-sm`}
+            >
+              <InfoRow label="address1" value={data.address1} />
+              <InfoRow label="address2" value={data.address2} />
+              <InfoRow label="type" value={data.address_type} />
+              <InfoRow label="city" value={data.city} />
+              <InfoRow label="state" value={data.state} />
+              <InfoRow label="zip" value={data.zip} />
+              <InfoRow label="country" value={data.country} />
+              <InfoRow label="latitude" value={data.latitude} />
+              <InfoRow label="longitude" value={data.longitude} />
+            </dl>
+            {data.full && (
+              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <InfoRow label="full" value={data.full} />
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── Editable form ── */
+          <form id="address-form" onSubmit={handleSubmit(onSubmit)}>
+            <div
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-0`}
+            >
+              <HorizontalField
+                label="address1"
+                htmlFor="address1"
+                error={errors.address1?.message}
+              >
+                <Input
+                  type="text"
+                  id="address1"
+                  placeholder="Street address"
+                  {...register("address1")}
+                  error={!!errors.address1?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="address2"
+                htmlFor="address2"
+                error={errors.address2?.message}
+              >
+                <Input
+                  type="text"
+                  id="address2"
+                  placeholder="Apt, suite, unit"
+                  {...register("address2")}
+                  error={!!errors.address2?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="type"
+                htmlFor="address_type"
+                error={errors.address_type?.message}
+              >
+                <Input
+                  type="text"
+                  id="address_type"
+                  placeholder="Billing, Shipping, etc."
+                  {...register("address_type")}
+                  error={!!errors.address_type?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="city"
+                htmlFor="city"
+                error={errors.city?.message}
+              >
+                <Input
+                  type="text"
+                  id="city"
+                  placeholder="City"
+                  {...register("city")}
+                  error={!!errors.city?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="state"
+                htmlFor="state"
+                error={errors.state?.message}
+              >
+                <Input
+                  type="text"
+                  id="state"
+                  placeholder="State / Province"
+                  {...register("state")}
+                  error={!!errors.state?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="zip"
+                htmlFor="zip"
+                error={errors.zip?.message}
+              >
+                <Input
+                  type="text"
+                  id="zip"
+                  placeholder="ZIP / Postal Code"
+                  {...register("zip")}
+                  error={!!errors.zip?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="country"
+                htmlFor="country"
+                error={errors.country?.message}
+              >
+                <Input
+                  type="text"
+                  id="country"
+                  placeholder="Country"
+                  {...register("country")}
+                  error={!!errors.country?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="latitude"
+                htmlFor="latitude"
+                error={errors.latitude?.message}
+              >
+                <Input
+                  type="text"
+                  id="latitude"
+                  placeholder="e.g. 40.7128"
+                  {...register("latitude")}
+                  error={!!errors.latitude?.message}
+                />
+              </HorizontalField>
+
+              <HorizontalField
+                label="longitude"
+                htmlFor="longitude"
+                error={errors.longitude?.message}
+              >
+                <Input
+                  type="text"
+                  id="longitude"
+                  placeholder="e.g. -74.0060"
+                  {...register("longitude")}
+                  error={!!errors.longitude?.message}
+                />
+              </HorizontalField>
+            </div>
+
+            {/* Full Address - spans full width */}
+            <div className="mt-4">
+              <HorizontalField
+                label="full"
+                htmlFor="full"
+                error={errors.full?.message}
+              >
+                <CustTextArea
+                  id="full"
+                  placeholder="Complete formatted address"
+                  {...register("full")}
+                  error={errors.full?.message ? true : false}
+                  rows={2}
+                />
+              </HorizontalField>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* ─── TAB NAVIGATION ─── */}
+      {activeAddressId && data?.id && (
+        <>
+          <DetailTabs
+            entityType="address"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[
+              "contacts",
+              "comments",
+              "actions",
+              "documents",
+              "financials",
+              "raw",
+            ]}
+            showColumnSelector
+            columnCount={columnCount}
+            onColumnCountChange={setColumnCount}
+          />
+
+          {/* ─── TAB CONTENT (scrollable) ─── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">{renderTabContent()}</div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

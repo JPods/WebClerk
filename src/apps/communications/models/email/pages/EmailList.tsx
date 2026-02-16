@@ -20,7 +20,7 @@ export default function EmailList() {
   const [selectedEmails, setSelectedEmails] = useState<dynamicData[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
@@ -29,8 +29,10 @@ export default function EmailList() {
   const getEmailData = useCallback(async (emailId?: number) => {
     setLoading(true);
     try {
-      const res = await fetchEmails();
-      setData(res.data.data.results);
+      const response = await fetchEmails();
+      if (response.status === 200) {
+        setData(response?.data?.items);
+      }
       if (emailId) {
         const contactRes = await getRecord("contact", emailId);
         setSelectedEmail(contactRes.record);
@@ -45,19 +47,22 @@ export default function EmailList() {
   }, [getEmailData]);
 
   // Handle database search
-  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
-    const query = terms.join(' ');
-    setLoading(true);
-    try {
-      const res = await fetchEmails(undefined, { search: query });
-      setData(res.data.data.results);
-    } catch (error) {
-      console.error("Database search error:", error);
-      dispatch(showToast({ message: "Search failed", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+  const handleDatabaseSearch = useCallback(
+    async (terms: string[]) => {
+      const query = terms.join(" ");
+      setLoading(true);
+      try {
+        const res = await fetchEmails({ search: query });
+        setData(res?.data?.items);
+      } catch (error) {
+        console.error("Database search error:", error);
+        dispatch(showToast({ message: "Search failed", type: "error" }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const handleView = (row: dynamicData) => {
     setSelectedEmail(row);
@@ -67,7 +72,7 @@ export default function EmailList() {
   const handleEdit = async (row: dynamicData) => {
     try {
       const res = await fetchEmails(row.id);
-      if (res.status === 200) setSelectedEmail(res.data.data.record);
+      if (res.status === 200) setSelectedEmail(res.data.items);
       else setSelectedEmail(row);
     } catch (error) {
       setSelectedEmail(row);
@@ -88,7 +93,7 @@ export default function EmailList() {
           showToast({
             message: "Email deleted successfully",
             type: "success",
-          })
+          }),
         );
         getEmailData(); // Refresh data
         if (selectedEmail && selectedEmail.id === row.id) {
@@ -100,7 +105,7 @@ export default function EmailList() {
           showToast({
             message: "Failed to delete email",
             type: "error",
-          })
+          }),
         );
       }
     }
@@ -138,7 +143,7 @@ export default function EmailList() {
         ],
       },
     ],
-    []
+    [],
   );
 
   const handleBulkDelete = async () => {
@@ -147,13 +152,13 @@ export default function EmailList() {
 
     try {
       await Promise.all(
-        selectedEmails.map((row) => deleteEmail("email", row.id))
+        selectedEmails.map((row) => deleteEmail("email", row.id)),
       );
       dispatch(
         showToast({
           message: "Emails deleted successfully",
           type: "success",
-        })
+        }),
       );
       setSelectedEmails([]);
       getEmailData();
@@ -162,7 +167,7 @@ export default function EmailList() {
         showToast({
           message: "Failed to delete emails",
           type: "error",
-        })
+        }),
       );
     }
   };
@@ -239,7 +244,7 @@ export default function EmailList() {
         button: true,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleDelete, handleEdit, handleView],
   );
 
   return (
@@ -249,58 +254,48 @@ export default function EmailList() {
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-                  {formMode ? ( 
-                <div className="flex flex-col">
-                  <EmailListMobile
-                    dataProp={data}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                  />
-                </div>
-              ) : (
-                <AdvancedDataTable
-                  data={data}
-                  columns={userColumns}
-                  title="Emails"
-                  storageKey="communications.email.list"
-                  loading={loading}
-                  filters={filters}
-                  enableExport={true}
-                  enableSelection={true}
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  onSelectionChange={setSelectedEmails}
-                  exportFileName="emails_export"
-                  searchPlaceholder="Search emails, names, attention..."
-                  noDataMessage="No emails found"
-                  customActions={
-                    <div className="flex gap-2">
-                      {selectedEmails.length > 0 && (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                          Delete ({selectedEmails.length})
-                        </button>
-                      )}
+              <AdvancedDataTable
+                data={data}
+                columns={userColumns}
+                title="Emails"
+                storageKey="communications.email.list"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
+                onSelectionChange={setSelectedEmails}
+                exportFileName="emails_export"
+                searchPlaceholder="Search emails, names, attention..."
+                noDataMessage="No emails found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedEmails.length > 0 && (
                       <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                       >
-                        <FaPlus className="w-4 h-4" />
-                        New Email
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedEmails.length})
                       </button>
-                    </div>
-                  }
-                  onRowClicked={handleEdit}
-                  rowClickMode="onlyIdAndActions"
-                  rowClickAllowedColumnNames={["id", "action", "actions"]}
-                  rowKeyField="id"
-                />
-              )}
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Email
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+                rowClickMode="onlyIdAndActions"
+                rowClickAllowedColumnNames={["id", "action", "actions"]}
+                rowKeyField="id"
+              />
             </div>
           </ComponentCard>
         </div>

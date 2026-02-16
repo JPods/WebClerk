@@ -11,13 +11,13 @@ import type {
 const MODEL_NAME = "address";
 
 export const createAddress = async (
-  payload: CreateAddressRequest
+  payload: CreateAddressRequest,
 ): Promise<AddressApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
 
 export const updateAddress = async (
-  payload: UpdateAddressRequest
+  payload: UpdateAddressRequest,
 ): Promise<AddressApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
@@ -26,9 +26,7 @@ export const deleteAddress = async (id: number) => {
   return deleteRecord(MODEL_NAME, id);
 };
 
-export const fetchAddresses = async (id?: number | string) => {
-  if (id) {
-    return getRecord(MODEL_NAME, Number(id));
-  }
-  return getRecords(MODEL_NAME);
+export const fetchAddresses = async (params?: any) => {
+  const res = await getRecords("address", params);
+  return { status: 200, data: { items: res.results || [] } };
 };
