@@ -1,20 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
 interface DomainListMobProps {
   dataProp: dynamicData[];
+  selectedDomain?: dynamicData | null;
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
 }
 
 export default function DomainListMob({
   dataProp,
+  selectedDomain,
   handleView,
   handleEdit,
 }: DomainListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedDomain?.id && dataProp?.length) {
+      const idx = dataProp.findIndex(
+        (item) => String(item.id) === String(selectedDomain.id),
+      );
+      setOpenIndex(idx >= 0 ? idx : null);
+    } else {
+      setOpenIndex(null);
+    }
+  }, [selectedDomain, dataProp]);
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (

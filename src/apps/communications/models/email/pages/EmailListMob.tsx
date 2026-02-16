@@ -1,20 +1,31 @@
-import { useState } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
 interface ContactListMobProps {
   dataProp: dynamicData[];
+  selectedEmail?: dynamicData | null;
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
 }
 
 export default function EmailListMob({
   dataProp,
+  selectedEmail,
   handleView,
-  handleEdit,
 }: ContactListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedEmail?.id && dataProp?.length) {
+      const idx = dataProp.findIndex(
+        (item) => String(item.id) === String(selectedEmail.id),
+      );
+      setOpenIndex(idx >= 0 ? idx : null);
+    } else {
+      setOpenIndex(null);
+    }
+  }, [selectedEmail, dataProp]);
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (

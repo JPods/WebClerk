@@ -82,14 +82,23 @@ export default function DomainList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
+    // Set selected item immediately using row data
+    setSelectedEmail(row);
+    setFormMode("edit");
+
+    // Optionally fetch fresh data
     try {
       const res = await fetchDomains(row.id);
-      if (res.status === 200) setSelectedEmail(res?.data?.items);
-      else setSelectedEmail(row);
+      if (res.status === 200 && res?.data?.items) {
+        const items = res.data.items;
+        const item = Array.isArray(items)
+          ? items.find((i: dynamicData) => String(i.id) === String(row.id))
+          : items;
+        if (item) setSelectedEmail(item);
+      }
     } catch (error) {
-      setSelectedEmail(row);
+      // Keep using row data on error
     }
-    setFormMode("edit");
   };
 
   const handleAdd = () => {
@@ -245,6 +254,7 @@ export default function DomainList() {
             {formMode ? (
               <DomainListMob
                 dataProp={data}
+                selectedDomain={selectedEmail}
                 handleView={handleView}
                 handleEdit={handleEdit}
               />
