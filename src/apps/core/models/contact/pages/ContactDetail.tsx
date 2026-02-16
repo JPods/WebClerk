@@ -716,9 +716,14 @@ export default function ContactDetail({
       manufacturer_id: normalizeNumber(data.manufacturer_id),
       other_id: normalizeNumber(data.other_id),
       refs: {
-        ...data.refs,
+        tags: data.refs?.tags ?? [],
+        categories: data.refs?.categories ?? [],
+        keywords: data.refs?.keywords ?? [],
+        related_ids: data.refs?.related_ids ?? [],
+        depends_on: data.refs?.depends_on ?? {},
         links: {
-          ...data.refs?.links,
+          rep: data.refs?.links?.rep ?? [],
+          item: data.refs?.links?.item ?? [],
           email: (data.refs?.links?.email ?? []).map((e: any) => ({
             id: e.id ?? 0,
             name: e.name ?? "",
@@ -729,6 +734,15 @@ export default function ContactDetail({
             name: p.name ?? "",
             number: p.number ?? "",
           })),
+          order: data.refs?.links?.order ?? [],
+          domain: (data.refs?.links?.domain ?? []).map((d: any) => ({
+            id: d.id ?? 0,
+            name: d.name ?? "",
+            domain: d.domain ?? "",
+          })),
+          contact: data.refs?.links?.contact ?? [],
+          customer: data.refs?.links?.customer ?? [],
+          document: data.refs?.links?.document ?? [],
           address: (data.refs?.links?.address ?? []).map((a: any) => ({
             id: a.id ?? 0,
             name: a.name ?? "",
@@ -739,11 +753,9 @@ export default function ContactDetail({
             postal_code: a.postal_code ?? "",
             country: a.country ?? "",
           })),
-          domain: (data.refs?.links?.domain ?? []).map((d: any) => ({
-            id: d.id ?? 0,
-            name: d.name ?? "",
-            domain: d.domain ?? "",
-          })),
+          manufacturer: data.refs?.links?.manufacturer ?? [],
+          project: data.refs?.links?.project ?? [],
+          vendor: data.refs?.links?.vendor ?? [],
         },
       },
     });

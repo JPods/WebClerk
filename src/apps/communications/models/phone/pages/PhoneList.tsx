@@ -19,7 +19,7 @@ export default function PhoneList() {
   const [selectedPhones, setSelectedPhones] = useState<dynamicData[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
@@ -29,7 +29,7 @@ export default function PhoneList() {
     setLoading(true);
     try {
       const res = await fetchPhones();
-      setData(res.data.data.results);
+      setData(res.data.items);
       if (phoneId) {
         const contactRes = await getRecord("contact", phoneId);
         setSelectedPhone(contactRes.record);
@@ -44,19 +44,22 @@ export default function PhoneList() {
   }, [getPhoneData]);
 
   // Handle database search
-  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
-    const query = terms.join(' ');
-    setLoading(true);
-    try {
-      const res = await fetchPhones(undefined, { search: query });
-      setData(res.data.data.results);
-    } catch (error) {
-      console.error("Database search error:", error);
-      dispatch(showToast({ message: "Search failed", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+  const handleDatabaseSearch = useCallback(
+    async (terms: string[]) => {
+      const query = terms.join(" ");
+      setLoading(true);
+      try {
+        const res = await fetchPhones({ search: query });
+        setData(res.data.items);
+      } catch (error) {
+        console.error("Database search error:", error);
+        dispatch(showToast({ message: "Search failed", type: "error" }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const handleView = (row: dynamicData) => {
     setSelectedPhone(row);
@@ -65,7 +68,7 @@ export default function PhoneList() {
 
   const handleEdit = async (row: dynamicData) => {
     const res = await fetchPhones(row.id);
-    if (res.status === 200) setSelectedPhone(res.data.data.record);
+    if (res.status === 200) setSelectedPhone(res.data.items);
     else setSelectedPhone(row);
     setFormMode("edit");
   };
@@ -83,7 +86,7 @@ export default function PhoneList() {
           showToast({
             message: "Phone deleted successfully",
             type: "success",
-          })
+          }),
         );
         getPhoneData();
         if (selectedPhone && selectedPhone.id === row.id) {
@@ -95,7 +98,7 @@ export default function PhoneList() {
           showToast({
             message: "Failed to delete phone",
             type: "error",
-          })
+          }),
         );
       }
     }
@@ -114,7 +117,9 @@ export default function PhoneList() {
 
   const filters: ColumnFilter[] = useMemo(() => {
     const countryCodes = Array.from(
-      new Set(data.map((row) => (row.country_code ? String(row.country_code) : "")))
+      new Set(
+        data.map((row) => (row.country_code ? String(row.country_code) : "")),
+      ),
     )
       .filter(Boolean)
       .map((value) => ({ value, label: value }));
@@ -152,7 +157,7 @@ export default function PhoneList() {
         showToast({
           message: "Phones deleted successfully",
           type: "success",
-        })
+        }),
       );
       setSelectedPhones([]);
       getPhoneData();
@@ -161,7 +166,7 @@ export default function PhoneList() {
         showToast({
           message: "Failed to delete phones",
           type: "error",
-        })
+        }),
       );
     }
   };
@@ -187,8 +192,7 @@ export default function PhoneList() {
       {
         name: "country_code",
         selector: (row) => row.country_code || "--",
-        cell: (row) =>
-          row.country_code ? row.country_code.toString() : "--",
+        cell: (row) => (row.country_code ? row.country_code.toString() : "--"),
         sortable: true,
         width: "15%",
       },
@@ -221,7 +225,7 @@ export default function PhoneList() {
         button: true,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleDelete, handleEdit, handleView],
   );
 
   return (
@@ -231,7 +235,7 @@ export default function PhoneList() {
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-              {formMode ? (
+              {!formMode ? (
                 <div className="flex flex-col">
                   <PhoneListMob
                     dataProp={data}

@@ -11,13 +11,13 @@ import type {
 const MODEL_NAME = "email";
 
 export const createEmail = async (
-  payload: CreateEmailRequest
+  payload: CreateEmailRequest,
 ): Promise<EmailApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
 
 export const updateEmail = async (
-  payload: UpdateEmailRequest
+  payload: UpdateEmailRequest,
 ): Promise<EmailApiTask> => {
   return saveRecord(MODEL_NAME, payload);
 };
@@ -26,9 +26,13 @@ export const deleteEmail = async (_model_name: string, id: number) => {
   return deleteRecord(MODEL_NAME, id);
 };
 
-export const fetchEmails = async (id?: number) => {
-  if (id) {
-    return getRecord(MODEL_NAME, id);
-  }
-  return getRecords(MODEL_NAME);
+// export const fetchEmails = async (id?: number) => {
+//   if (id) {
+//     return getRecord(MODEL_NAME, id);
+//   }
+//   return getRecords(MODEL_NAME);
+// };
+export const fetchEmails = async (params?: any) => {
+  const res = await getRecords("email", params);
+  return { status: 200, data: { items: res.results || [] } };
 };

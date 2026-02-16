@@ -84,15 +84,15 @@ const navItems: NavItem[] = [
       { name: "Pending", path: "/core/pending/list" },
       { name: "Report", path: "/core/report/list" },
       { name: "Setting", path: "/core/setting/list" },
-      { name: "Template", path: "/core/template/list" }
-    ]
+      { name: "Template", path: "/core/template/list" },
+    ],
   },
 
   {
     icon: <GridIcon />,
     name: "Communications",
     subItems: [
-      { name: "Addresss", path: "/communications/location/list" },
+      { name: "Addresss", path: "/communications/address/list" },
       { name: "Domains", path: "/communications/domain/list" },
       { name: "Email Addresss", path: "/communications/email/list" },
       { name: "Phone Numbers", path: "/communications/phone/list" },
@@ -121,7 +121,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <GridIcon />, 
+    icon: <GridIcon />,
     name: "Orgs",
     subItems: [
       { name: "Customer", path: "/org/customer/list" },
@@ -243,7 +243,15 @@ const navItems: NavItem[] = [
 // ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, isVisible, setIsHovered, toggleSidebar, toggleVisibility } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    isVisible,
+    setIsHovered,
+    toggleSidebar,
+    toggleVisibility,
+  } = useSidebar();
   const { ensureWindow, activateWindow, activePath } = useWindowManager();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
@@ -251,14 +259,14 @@ const AppSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => activePath === path,
-    [activePath]
+    [activePath],
   );
 
   // useEffect(() => {
@@ -446,7 +454,12 @@ const AppSidebar: React.FC = () => {
       className={`fixed top-[60px] left-0 flex h-[calc(100vh-60px)] flex-col px-5 bg-white text-gray-900 transition-all duration-300 ease-in-out z-50 border-r border-gray-200 ${translateClass}`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{ pointerEvents: isVisible ? "auto" : "none", width: isVisible ? `${targetWidth}px` : 0, paddingLeft: isVisible ? "20px" : 0, paddingRight: isVisible ? "20px" : 0 }}
+      style={{
+        pointerEvents: isVisible ? "auto" : "none",
+        width: isVisible ? `${targetWidth}px` : 0,
+        paddingLeft: isVisible ? "20px" : 0,
+        paddingRight: isVisible ? "20px" : 0,
+      }}
     >
       <div className="py-2" />
       <div className="flex items-center justify-end">

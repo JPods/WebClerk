@@ -18,6 +18,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
+import DomainListMob from "./DomainListMob";
 
 type DomainColumnConfig = {
   key: string;
@@ -33,7 +34,7 @@ export default function DomainList() {
   const [selectedDomains, setSelectedDomains] = useState<dynamicData[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
@@ -43,7 +44,7 @@ export default function DomainList() {
     setLoading(true);
     try {
       const res = await fetchDomains();
-      setData(res.data.data.results);
+      setData(res?.data?.items);
       if (emailId) {
         const contactRes = await getRecord("contact", emailId);
         setSelectedEmail(contactRes.record);
@@ -58,19 +59,22 @@ export default function DomainList() {
   }, [getEmailData]);
 
   // Handle database search
-  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
-    const query = terms.join(' ');
-    setLoading(true);
-    try {
-      const res = await fetchDomains(undefined, { search: query });
-      setData(res.data.data.results);
-    } catch (error) {
-      console.error("Database search error:", error);
-      dispatch(showToast({ message: "Search failed", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+  const handleDatabaseSearch = useCallback(
+    async (terms: string[]) => {
+      const query = terms.join(" ");
+      setLoading(true);
+      try {
+        const res = await fetchDomains({ search: query });
+        setData(res?.data?.items);
+      } catch (error) {
+        console.error("Database search error:", error);
+        dispatch(showToast({ message: "Search failed", type: "error" }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const handleView = (row: dynamicData) => {
     setSelectedEmail(row);
@@ -80,7 +84,7 @@ export default function DomainList() {
   const handleEdit = async (row: dynamicData) => {
     try {
       const res = await fetchDomains(row.id);
-      if (res.status === 200) setSelectedEmail(res.data.data.record);
+      if (res.status === 200) setSelectedEmail(res?.data?.items);
       else setSelectedEmail(row);
     } catch (error) {
       setSelectedEmail(row);
@@ -101,7 +105,7 @@ export default function DomainList() {
           showToast({
             message: "Domain deleted successfully",
             type: "success",
-          })
+          }),
         );
         getEmailData(); // Refresh data
         if (selectedEmail && selectedEmail.id === row.id) {
@@ -113,7 +117,7 @@ export default function DomainList() {
           showToast({
             message: "Failed to delete domain",
             type: "error",
-          })
+          }),
         );
       }
     }
@@ -132,7 +136,7 @@ export default function DomainList() {
 
   const filters: ColumnFilter[] = useMemo(() => {
     const types = Array.from(
-      new Set(data.map((row) => (row.type ? String(row.type) : "")))
+      new Set(data.map((row) => (row.type ? String(row.type) : ""))),
     )
       .filter(Boolean)
       .map((value) => ({ value, label: value }));
@@ -159,7 +163,7 @@ export default function DomainList() {
         showToast({
           message: "Domains deleted successfully",
           type: "success",
-        })
+        }),
       );
       setSelectedDomains([]);
       getEmailData();
@@ -168,7 +172,7 @@ export default function DomainList() {
         showToast({
           message: "Failed to delete domains",
           type: "error",
-        })
+        }),
       );
     }
   };
@@ -197,7 +201,7 @@ export default function DomainList() {
         getValue: (row) => (row.type ? String(row.type) : "--"),
       },
     ],
-    []
+    [],
   );
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
@@ -229,7 +233,7 @@ export default function DomainList() {
         button: true,
       },
     ],
-    [columnConfig, handleDelete, handleEdit, handleView]
+    [columnConfig, handleDelete, handleEdit, handleView],
   );
 
   return (
@@ -240,11 +244,10 @@ export default function DomainList() {
           <ComponentCard>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
               {formMode ? (
-                <DomainListCards
-                  data={data}
-                  columns={columnConfig}
-                  onView={handleView}
-                  onEdit={handleEdit}
+                <DomainListMob
+                  dataProp={data}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
                 />
               ) : (
                 <AdvancedDataTable
@@ -316,7 +319,12 @@ type DomainListCardsProps = {
   onEdit: (row: dynamicData) => void;
 };
 
-function DomainListCards({ data, columns, onView, onEdit }: DomainListCardsProps) {
+function DomainListCards({
+  data,
+  columns,
+  onView,
+  onEdit,
+}: DomainListCardsProps) {
   return (
     <div className="flex flex-col">
       {data.map((row, index) => (
@@ -328,7 +336,9 @@ function DomainListCards({ data, columns, onView, onEdit }: DomainListCardsProps
             {columns.map((column) => (
               <p key={`${column.key}-${row.id ?? index}`}>
                 <strong>{column.label}:</strong>{" "}
-                {column.renderCell ? column.renderCell(row) : column.getValue(row)}
+                {column.renderCell
+                  ? column.renderCell(row)
+                  : column.getValue(row)}
               </p>
             ))}
           </div>

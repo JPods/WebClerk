@@ -18,10 +18,10 @@ export default function AddressList() {
   const [data, setData] = useState<dynamicData[]>([]);
   const [selectedAddresses, setSelectedAddresses] = useState<dynamicData[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<dynamicData | null>(
-    null
+    null,
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
@@ -31,7 +31,7 @@ export default function AddressList() {
     setLoading(true);
     try {
       const res = await fetchAddresses();
-      setData(res.data.data.results);
+      setData(res.data.items);
       if (addressId) {
         const contactRes = await getRecord("address", addressId);
         setSelectedAddress(contactRes.record);
@@ -46,19 +46,22 @@ export default function AddressList() {
   }, [getAddressData]);
 
   // Handle database search
-  const handleDatabaseSearch = useCallback(async (terms: string[]) => {
-    const query = terms.join(' ');
-    setLoading(true);
-    try {
-      const res = await fetchAddresses(undefined, { search: query });
-      setData(res.data.data.results);
-    } catch (error) {
-      console.error("Database search error:", error);
-      dispatch(showToast({ message: "Search failed", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+  const handleDatabaseSearch = useCallback(
+    async (terms: string[]) => {
+      const query = terms.join(" ");
+      setLoading(true);
+      try {
+        const res = await fetchAddresses({ search: query });
+        setData(res.data.data.results);
+      } catch (error) {
+        console.error("Database search error:", error);
+        dispatch(showToast({ message: "Search failed", type: "error" }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const handleView = (row: dynamicData) => {
     setSelectedAddress(row);
@@ -67,7 +70,7 @@ export default function AddressList() {
 
   const handleEdit = async (row: dynamicData) => {
     const res = await fetchAddresses(row.id);
-    if (res.status === 200) setSelectedAddress(res.data.data.record);
+    if (res.status === 200) setSelectedAddress(res.data.items);
     else setSelectedAddress(row);
     setFormMode("edit");
   };
@@ -85,7 +88,7 @@ export default function AddressList() {
           showToast({
             message: "Address deleted successfully",
             type: "success",
-          })
+          }),
         );
         getAddressData();
         if (selectedAddress && selectedAddress.id === row.id) {
@@ -97,7 +100,7 @@ export default function AddressList() {
           showToast({
             message: "Failed to delete address",
             type: "error",
-          })
+          }),
         );
       }
     }
@@ -116,29 +119,42 @@ export default function AddressList() {
 
   const filters: ColumnFilter[] = useMemo(() => {
     const countries = Array.from(
-      new Set(data.map((row) => (row.country ? String(row.country) : "")))
+      new Set(data.map((row) => (row.country ? String(row.country) : ""))),
     )
       .filter(Boolean)
       .map((value) => ({ value, label: value }));
     const types = Array.from(
-      new Set(data.map((row) => (row.address_type ? String(row.address_type) : "")))
+      new Set(
+        data.map((row) => (row.address_type ? String(row.address_type) : "")),
+      ),
     )
       .filter(Boolean)
       .map((value) => ({ value, label: value }));
 
     const next: ColumnFilter[] = [];
     if (countries.length) {
-      next.push({ key: "country", label: "Country", type: "select", options: countries });
+      next.push({
+        key: "country",
+        label: "Country",
+        type: "select",
+        options: countries,
+      });
     }
     if (types.length) {
-      next.push({ key: "address_type", label: "Type", type: "select", options: types });
+      next.push({
+        key: "address_type",
+        label: "Type",
+        type: "select",
+        options: types,
+      });
     }
     return next;
   }, [data]);
 
   const handleBulkDelete = async () => {
     if (!selectedAddresses.length) return;
-    if (!window.confirm(`Delete ${selectedAddresses.length} addresses?`)) return;
+    if (!window.confirm(`Delete ${selectedAddresses.length} addresses?`))
+      return;
 
     try {
       await Promise.all(selectedAddresses.map((row) => deleteAddress(row.id)));
@@ -146,7 +162,7 @@ export default function AddressList() {
         showToast({
           message: "Addresses deleted successfully",
           type: "success",
-        })
+        }),
       );
       setSelectedAddresses([]);
       getAddressData();
@@ -155,18 +171,24 @@ export default function AddressList() {
         showToast({
           message: "Failed to delete addresses",
           type: "error",
-        })
+        }),
       );
     }
   };
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      { name: "id", selector: (row: dynamicData) => row.id, sortable: true, width: "5%" },
+      {
+        name: "id",
+        selector: (row: dynamicData) => row.id,
+        sortable: true,
+        width: "5%",
+      },
       {
         name: "address1",
         selector: (row: dynamicData) => row.address1 || "--",
-        cell: (row: dynamicData) => (row.address1 ? row.address1.toString() : "--"),
+        cell: (row: dynamicData) =>
+          row.address1 ? row.address1.toString() : "--",
         sortable: true,
         width: "30%",
       },
@@ -180,7 +202,8 @@ export default function AddressList() {
       {
         name: "country",
         selector: (row: dynamicData) => row.country || "--",
-        cell: (row: dynamicData) => (row.country ? row.country.toString() : "--"),
+        cell: (row: dynamicData) =>
+          row.country ? row.country.toString() : "--",
         sortable: true,
         width: "15%",
       },
@@ -212,7 +235,7 @@ export default function AddressList() {
         button: true,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleDelete, handleEdit, handleView],
   );
 
   return (
