@@ -401,6 +401,17 @@ def save_transaction_with_lines(
                 except Exception as pending_err:
                     logger.warning(f"Failed to create pending for line {new_line.pk}: {pending_err}")
     
+    # ── Inline pending processing ──────────────────────────────────
+    # Celery Beat is not configured, so process pending inventory
+    # records synchronously after lines are saved.
+    if result['lines_saved'] > 0:
+        try:
+            from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+            pending_summary = process_line_item_pending(limit=200)
+            logger.info("Inline pending processing: %s", pending_summary)
+        except Exception as proc_err:
+            logger.warning("Inline pending processing failed (non-fatal): %s", proc_err)
+
     logger.info(
         "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s",
         model_key, header_id, result['lines_saved'], result['lines_skipped']

@@ -954,6 +954,17 @@ class SaveWcapiView(APIView):
                     lines_errors.append(f"Line {idx}: {str(e)}")
             
             console_logger.debug(f"[SAVE_VIEW] Lines saved: {len(lines_results)} success, {len(lines_errors)} errors")
+
+            # ── Inline pending processing ──────────────────────────────────
+            # Process pending inventory records synchronously after lines are saved
+            # since Celery Beat is not configured.
+            if lines_results:
+                try:
+                    from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+                    pending_summary = process_line_item_pending(limit=200)
+                    console_logger.info(f"[SAVE_VIEW] Inline pending processing: {pending_summary}")
+                except Exception as proc_err:
+                    console_logger.warning(f"[SAVE_VIEW] Inline pending processing failed (non-fatal): {proc_err}")
         
         # Auto-link communication records to a Contact
         linked = False
