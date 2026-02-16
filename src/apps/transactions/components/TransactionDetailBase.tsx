@@ -35,6 +35,7 @@ import {
 
 // Import toolbar
 import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
+import OrgSearchDialog, { type SearchableOrgType, type OrgSearchResult } from "@/apps/common/components/OrgSearchDialog";
 
 // Import shared components
 import ContactPanel from "./ContactPanel";
@@ -178,6 +179,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   customTabsAfter = [],
   getCustomTabsAfter,
   renderCustomTab,
+  // ...existing props
   renderHeader,
   isAdmin = false,
   canEdit = () => true,
@@ -300,9 +302,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
       const emptyRecord: Transaction = {
         id: 0,
-        customer_id: qsCustomerId ? Number(qsCustomerId) : 0,
-        vendor_id: 0,
-        manufacturer_id: 0,
+        customer_id: qsCustomerId ? Number(qsCustomerId) : null,
+        vendor_id: null,
+        manufacturer_id: null,
         status: "planned",
         ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
         ...(qsTerms ? { terms: qsTerms } : {}),
@@ -579,6 +581,32 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   }, [editData, performSave, onSaved, dispatch, typeLabel]);
 
   // Toolbar handlers
+  // --- OrgSearchDialog state ---
+  const [showOrgDialog, setShowOrgDialog] = useState(false);
+  const [orgDialogType, setOrgDialogType] = useState<SearchableOrgType>("customer");
+
+  // Determine which org type to assign for this transaction
+  // (could be customer, vendor, manufacturer, etc. based on transactionType)
+  const getOrgFieldForType = (type: string): { field: string, orgType: SearchableOrgType } => {
+    if (["order", "invoice", "proposal", "workorder"].includes(type)) return { field: "customer_id", orgType: "customer" };
+    if (["purchase"].includes(type)) return { field: "vendor_id", orgType: "vendor" };
+    // Extend as needed for other types
+    return { field: "customer_id", orgType: "customer" };
+  };
+
+  // Handler for Assign Org button
+  const handleAssignOrgClick = () => {
+    const { orgType } = getOrgFieldForType(transactionType);
+    setOrgDialogType(orgType);
+    setShowOrgDialog(true);
+  };
+
+  // Handler for org selection
+  const handleOrgSelected = (org: OrgSearchResult) => {
+    const { field } = getOrgFieldForType(transactionType);
+    handleFieldChange(field, org.id);
+    setShowOrgDialog(false);
+  };
   const handleSaveAndClose = useCallback(async () => {
     if (!editData) return;
 
@@ -1070,7 +1098,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       </div>
       {/* Transaction Toolbar (when editing) - Sticky */}
       {isEditing && (
-        <div className="sticky top-0 z-20 -mx-4 px-4 py-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6">
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6 flex items-center gap-2">
           <TransactionToolbar
             transactionType={transactionType as TransactionType}
             transactionId={data?.id}
@@ -1091,6 +1119,24 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             onAddTask={onAddTask}
             showTaskButton={showTaskButton}
             taskCount={taskCount}
+          />
+          {/* Assign Org Button */}
+          <button
+            type="button"
+            className="ml-2 px-3 py-1 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={handleAssignOrgClick}
+            title="Assign Organization (Customer/Vendor)"
+          >
+            Assign Org
+          </button>
+          {/* OrgSearchDialog Modal */}
+          <OrgSearchDialog
+            open={showOrgDialog}
+            orgType={orgDialogType}
+            allowTypeSwitch={true}
+            onSelect={handleOrgSelected}
+            onClose={() => setShowOrgDialog(false)}
+            title={`Assign ${orgDialogType.charAt(0).toUpperCase() + orgDialogType.slice(1)}`}
           />
         </div>
       )}

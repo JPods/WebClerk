@@ -74,6 +74,7 @@ import {
   FaUser,
   FaPlus,
   FaFileInvoiceDollar,
+  FaSearch,
   FaShoppingCart,
   FaClipboardList,
 } from "react-icons/fa";
@@ -90,6 +91,13 @@ import {
   RawDataPanel,
   RefsPanel,
 } from "@/apps/common/components/panels";
+
+// Org search dialog
+import OrgSearchDialog from "@/apps/common/components/OrgSearchDialog";
+import type {
+  OrgSearchResult,
+  SearchableOrgType,
+} from "@/apps/common/components/OrgSearchDialog";
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -258,6 +266,16 @@ const PARENT_MODEL_TO_ID_FIELD: Record<string, string> = {
   rep: "rep_id",
   employee: "employee_id",
   manufacturer: "manufacturer_id",
+};
+
+/** Maps FK field name → org type for the search dialog */
+const ID_FIELD_TO_ORG_TYPE: Record<string, SearchableOrgType> = {
+  customer_id: "customer",
+  vendor_id: "vendor",
+  rep_id: "rep",
+  employee_id: "employee",
+  manufacturer_id: "manufacturer",
+  other_id: "organization",
 };
 
 // ---------------------------------------------------------------------------
@@ -612,17 +630,13 @@ export default function ContactDetail({
    */
   const parentPopulatedFields = useMemo(() => {
     const fields = new Set<string>();
-    // From query params
+    // Only lock fields that were explicitly set via parent-context URL params
+    // (e.g. ?parent_model=customer&parent_id=42 from an org detail page).
+    // Existing values on the record should remain editable.
     if (parentIdField && parentId) fields.add(parentIdField);
     if (parentCustomerId) fields.add("customer_id");
-    // From fetched record — if the record already has the org ID, keep it read-only
-    if (data?.customer_id) fields.add("customer_id");
-    if (data?.vendor_id) fields.add("vendor_id");
-    if (data?.rep_id) fields.add("rep_id");
-    if (data?.employee_id) fields.add("employee_id");
-    if (data?.manufacturer_id) fields.add("manufacturer_id");
     return fields;
-  }, [parentIdField, parentId, parentCustomerId, data]);
+  }, [parentIdField, parentId, parentCustomerId]);
 
   const isFieldDisabled = (fieldName: string) => {
     if (effectiveMode === "view") return true;
@@ -645,6 +659,7 @@ export default function ContactDetail({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
@@ -745,6 +760,62 @@ export default function ContactDetail({
       },
     });
   }, [data, reset]);
+
+  // ---------------------------------------------------------------------------
+  // Org Search Dialog State
+  // ---------------------------------------------------------------------------
+
+  /** Which FK field is being searched — null when dialog is closed */
+  const [orgSearchField, setOrgSearchField] = useState<string | null>(null);
+
+  /** Handle org selection from the search dialog */
+  const handleOrgSelect = useCallback(
+    (org: OrgSearchResult, fieldName: string) => {
+      // When opened from toolbar ("other_id" with allowTypeSwitch), resolve
+      // the actual FK field based on the selected org's type.
+      let targetField = fieldName;
+      if (fieldName === "other_id" && org.org_type) {
+        const resolved = PARENT_MODEL_TO_ID_FIELD[org.org_type];
+        if (resolved) targetField = resolved;
+      }
+
+      // 1. Set the scalar FK field value via react-hook-form's setValue
+      setValue(targetField as any, org.id, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
+      // 2. Update refs.links.<org_type> with selected record data
+      const orgType =
+        org.org_type || ID_FIELD_TO_ORG_TYPE[targetField];
+      if (orgType && orgType !== "organization") {
+        setFetchedData((prev: any) => {
+          const existing = prev || data;
+          const currentLinks = existing?.refs?.links || {};
+          const linkEntry = {
+            id: org.id,
+            display_name: org.display_name,
+            ida: org.ida,
+            email: org.email,
+            phone: org.phone,
+          };
+          return {
+            ...existing,
+            refs: {
+              ...(existing?.refs || {}),
+              links: {
+                ...currentLinks,
+                [orgType]: [linkEntry],
+              },
+            },
+          };
+        });
+      }
+
+      setOrgSearchField(null);
+    },
+    [data, setValue],
+  );
 
   // ---------------------------------------------------------------------------
   // Validation error handler — surfaces errors that handleSubmit swallows
@@ -1197,7 +1268,7 @@ export default function ContactDetail({
 
       {/* ─── TOOLBAR (edit/add only) ─── */}
       {isEditing && (
-        <div className="sticky top-0 z-20 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="sticky top-0 z-20 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
           <TransactionToolbar
             transactionType="order"
             transactionId={data?.id}
@@ -1215,6 +1286,16 @@ export default function ContactDetail({
             canDelete={false}
             showTaskButton={false}
           />
+          {/* ── Assign Org button ── */}
+          <button
+            type="button"
+            onClick={() => setOrgSearchField("other_id")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
+            title="Search and assign an organization"
+          >
+            <FaSearch size={12} />
+            Assign&nbsp;Org
+          </button>
         </div>
       )}
 
@@ -1472,79 +1553,38 @@ export default function ContactDetail({
               )}
 
               {/* System IDs */}
-              {shouldRenderField("customer_id") && (
-                <HorizontalField label="customer_id" htmlFor="customer_id">
-                  <Input
-                    type="number"
-                    id="customer_id"
-                    placeholder="Customer ID"
-                    {...register("customer_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("customer_id")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("vendor_id") && (
-                <HorizontalField label="vendor_id" htmlFor="vendor_id">
-                  <Input
-                    type="number"
-                    id="vendor_id"
-                    placeholder="Vendor ID"
-                    {...register("vendor_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("vendor_id")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("rep_id") && (
-                <HorizontalField label="rep_id" htmlFor="rep_id">
-                  <Input
-                    type="number"
-                    id="rep_id"
-                    placeholder="Rep ID"
-                    {...register("rep_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("rep_id")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("employee_id") && (
-                <HorizontalField label="employee_id" htmlFor="employee_id">
-                  <Input
-                    type="number"
-                    id="employee_id"
-                    placeholder="Employee ID"
-                    {...register("employee_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("employee_id")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("manufacturer_id") && (
-                <HorizontalField
-                  label="manufacturer_id"
-                  htmlFor="manufacturer_id"
-                >
-                  <Input
-                    type="number"
-                    id="manufacturer_id"
-                    placeholder="Manufacturer ID"
-                    {...register("manufacturer_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("manufacturer_id")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("other_id") && (
-                <HorizontalField label="other_id" htmlFor="other_id">
-                  <Input
-                    type="number"
-                    id="other_id"
-                    placeholder="Other ID"
-                    {...register("other_id", { valueAsNumber: true })}
-                    disabled={isFieldDisabled("other_id")}
-                  />
-                </HorizontalField>
+              {/* ── Org Association ID Fields with Search ── */}
+              {(["customer_id", "vendor_id", "rep_id", "employee_id", "manufacturer_id", "other_id"] as const).map(
+                (fieldName) =>
+                  shouldRenderField(fieldName) && (
+                    <HorizontalField
+                      key={fieldName}
+                      label={fieldName}
+                      htmlFor={fieldName}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          id={fieldName}
+                          placeholder={`${fieldName.replace("_id", "").replace(/^./, (c) => c.toUpperCase())} ID`}
+                          {...register(fieldName as any, {
+                            valueAsNumber: true,
+                          })}
+                          disabled={isFieldDisabled(fieldName)}
+                        />
+                        {effectiveMode !== "view" && (
+                          <button
+                            type="button"
+                            onClick={() => setOrgSearchField(fieldName)}
+                            className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title={`Search ${fieldName.replace("_id", "")}s`}
+                          >
+                            <FaSearch size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </HorizontalField>
+                  ),
               )}
 
               {/* Passwords — add mode only */}
@@ -1821,6 +1861,21 @@ export default function ContactDetail({
           </div>
         </>
       )}
+
+      {/* ─── Org Search Dialog ─── */}
+      <OrgSearchDialog
+        open={!!orgSearchField}
+        orgType={
+          orgSearchField
+            ? ID_FIELD_TO_ORG_TYPE[orgSearchField] || "organization"
+            : "customer"
+        }
+        allowTypeSwitch={orgSearchField === "other_id"}
+        onSelect={(org) => {
+          if (orgSearchField) handleOrgSelect(org, orgSearchField);
+        }}
+        onClose={() => setOrgSearchField(null)}
+      />
     </div>
   );
 }

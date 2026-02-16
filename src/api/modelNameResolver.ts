@@ -58,8 +58,8 @@ const MODEL_NAME_MAP: Record<string, string> = {
   manufacturer: 'manufacturer',
   rep: 'rep',
   employee: 'employee',
-  organization: 'organization',
-  org: 'organization',
+  organization: 'org',
+  org: 'org',
   
   // Products
   item: 'item',
