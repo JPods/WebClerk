@@ -13,7 +13,7 @@ import { useDispatch } from "react-redux";
 import EmailDetail from "./EmailDetail";
 import Badge from "@/components/ui/badge/Badge";
 import { dynamicData } from "../../../../../model/dynamicData";
-import EmailListMobile from "../components/EmailListMobile";
+import EmailListMob from "./EmailListMob";
 
 export default function EmailList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -70,14 +70,23 @@ export default function EmailList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
+    // Set selected item immediately using row data
+    setSelectedEmail(row);
+    setFormMode("edit");
+
+    // Optionally fetch fresh data
     try {
       const res = await fetchEmails(row.id);
-      if (res.status === 200) setSelectedEmail(res.data.items);
-      else setSelectedEmail(row);
+      if (res.status === 200 && res.data.items) {
+        const items = res.data.items;
+        const item = Array.isArray(items)
+          ? items.find((i: dynamicData) => String(i.id) === String(row.id))
+          : items;
+        if (item) setSelectedEmail(item);
+      }
     } catch (error) {
-      setSelectedEmail(row);
+      // Keep using row data on error
     }
-    setFormMode("edit");
   };
 
   const handleAdd = () => {
@@ -255,8 +264,9 @@ export default function EmailList() {
           <ComponentCard className=" cus-bg-purple-light rounded-md">
             {formMode ? (
               <div className="flex flex-col">
-                <EmailListMobile
+                <EmailListMob
                   dataProp={data}
+                  selectedEmail={selectedEmail}
                   handleView={handleView}
                   handleEdit={handleEdit}
                 />

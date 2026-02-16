@@ -69,10 +69,23 @@ export default function AddressList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchAddresses(row.id);
-    if (res.status === 200) setSelectedAddress(res.data.items);
-    else setSelectedAddress(row);
+    // Set selected item immediately using row data
+    setSelectedAddress(row);
     setFormMode("edit");
+
+    // Optionally fetch fresh data
+    try {
+      const res = await fetchAddresses(row.id);
+      if (res.status === 200 && res.data.items) {
+        const items = res.data.items;
+        const item = Array.isArray(items)
+          ? items.find((i: dynamicData) => String(i.id) === String(row.id))
+          : items;
+        if (item) setSelectedAddress(item);
+      }
+    } catch (error) {
+      // Keep using row data on error
+    }
   };
 
   const handleAdd = () => {
@@ -248,6 +261,7 @@ export default function AddressList() {
               <div className="flex flex-col">
                 <AddressListMob
                   dataProp={data}
+                  selectedAddress={selectedAddress}
                   handleView={handleView}
                   handleEdit={handleEdit}
                 />
