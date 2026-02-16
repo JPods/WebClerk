@@ -101,7 +101,6 @@ const AdminWorkbench: React.FC = () => {
   const [workbenchSetting, setWorkbenchSetting] = useState<WorkbenchFieldsSetting | null>(null);
   const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, WorkbenchFieldsSetting>>({});
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const previousModelParam = useRef<string | null>(null);
@@ -174,10 +173,9 @@ const AdminWorkbench: React.FC = () => {
     }
   }, [modelParam, searchParams, selectedModel, setSearchParams]);
 
-  // Load model names only when a token is present (avoids 401s pre-login)
+  // Load model names only when authenticated (avoids 401s pre-login)
   useEffect(() => {
-    const hasToken = !!(typeof window !== 'undefined' && localStorage.getItem('accessToken'));
-    if (!hasToken) return;
+    if (!isAuthenticated) return;
     (async () => {
       try {
         setLoadingModels(true);
@@ -201,7 +199,7 @@ const AdminWorkbench: React.FC = () => {
         setLoadingModels(false);
       }
     })();
-  }, [token]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!selectedModel) return;
