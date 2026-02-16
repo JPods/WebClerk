@@ -52,7 +52,7 @@ export default function AddressList() {
       setLoading(true);
       try {
         const res = await fetchAddresses({ search: query });
-        setData(res.data.data.results);
+        setData(res.data.items);
       } catch (error) {
         console.error("Database search error:", error);
         dispatch(showToast({ message: "Search failed", type: "error" }));
