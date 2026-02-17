@@ -76,7 +76,7 @@ Once implemented, verify:
 - [ ] Updating an existing line WITHOUT changing `item_id` succeeds
 - [ ] Updating an existing line WITH a changed `item_id` returns 400 error
 - [ ] Error message matches: `"Item_id cannot be changed for any line..."`
-- [ ] Works for all line types: ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
+- [ ] Works for all line types: ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine, RequisitionLine
 
 ---
 

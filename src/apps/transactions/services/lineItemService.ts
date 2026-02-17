@@ -67,7 +67,7 @@ export function isSalesTransaction(transactionType: string): boolean {
  */
 export function isExecTransaction(transactionType: string): boolean {
   const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  return ['purchase', 'purchaseorder', 'workorder'].includes(kind);
+  return ['purchase', 'workorder'].includes(kind);
 }
 
 /**
@@ -119,7 +119,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
     };
   }
   
-  if (['purchase', 'purchaseorder', 'workorder'].includes(kind)) {
+  if (['purchase', 'workorder'].includes(kind)) {
     return {
       placed: quantity,
       received: 0,

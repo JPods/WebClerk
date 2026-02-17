@@ -29,7 +29,7 @@ const TRANSACTION_TYPES = [
   { value: "invoice", label: "Invoice" },
   { value: "order", label: "Order" },
   { value: "proposal", label: "Proposal" },
-  { value: "purchase_order", label: "Purchase Order" },
+  { value: "purchase", label: "Purchase" },
   { value: "workorder", label: "Work Order" },
 ] as const;
 

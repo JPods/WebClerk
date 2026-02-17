@@ -21,10 +21,10 @@ import { VendorSelector } from '../../../components/PartySelector';
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
 
-// Purchase Order specific fields that extend base Transaction
-interface PurchaseOrder extends Transaction {
+// Purchase-specific fields that extend base Transaction
+interface Purchase extends Transaction {
   ida?: string;
-  purchase_order_no?: string;
+  purchase_no?: string;
   receipt_id?: string;
   vendor_pack_list?: string;
   vendor_pack_date?: string;
@@ -66,11 +66,11 @@ const formatCurrency = (value?: number | null): string => {
   }).format(value);
 };
 
-// Custom Purchase Order Header Component
-const PurchaseOrderHeader: React.FC<{
-  data: PurchaseOrder;
+// Custom Purchase Header Component
+const PurchaseHeader: React.FC<{
+  data: Purchase;
   isEditing: boolean;
-  onChange?: (field: keyof PurchaseOrder, value: unknown) => void;
+  onChange?: (field: keyof Purchase, value: unknown) => void;
 }> = ({ data, isEditing, onChange }) => {
   // Extract vendor info from refs.links
   const vendorInfo = data.refs?.links?.vendor?.[0];
@@ -88,7 +88,7 @@ const PurchaseOrderHeader: React.FC<{
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between items-center">
               <FieldLabel label="PO No" mandatory locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? data.purchase_order_no ?? '--'}</dd>
+              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? data.purchase_no ?? '--'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
@@ -269,9 +269,9 @@ const PurchaseOrderHeader: React.FC<{
   );
 };
 
-// Purchase Order Lines Tab Content
-const PurchaseOrderLinesContent: React.FC<{
-  data: PurchaseOrder;
+// Purchase Lines Tab Content
+const PurchaseLinesContent: React.FC<{
+  data: Purchase;
   lines: TransactionLine[];  // Use lines prop directly from renderLines
   isEditing: boolean;
   onLinesChange?: (lines: TransactionLine[]) => void;
@@ -375,9 +375,9 @@ const PurchaseOrderLinesContent: React.FC<{
 };
 
 // Props interface
-interface PurchaseOrderDetailProps {
+interface PurchaseDetailProps {
   modeProp?: 'view' | 'edit' | 'add';
-  dataProp?: PurchaseOrder;
+  dataProp?: Purchase;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -397,7 +397,7 @@ const getPurchaseTabsAfter = (_data: Transaction): TransactionTab[] => {
 };
 
 // Main Component
-const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
+const PurchaseDetail: React.FC<PurchaseDetailProps> = (props) => {
   // Resolve ID from various prop names
   const resolvedId = props.idProp ?? props.id ?? props.recordId;
 
@@ -409,7 +409,7 @@ const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
       isEditing: boolean,
       _onFieldChange?: (field: string, value: unknown) => void,
     ) => {
-      const purchaseData = data as PurchaseOrder;
+      const purchaseData = data as Purchase;
 
       switch (tabId) {
         case "actions":
@@ -546,11 +546,11 @@ const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
 
   return (
     <TransactionDetailBase
-      transactionType="purchaseorder"
+      transactionType="purchase"
       typeLabel="Purchase Order"
       modelName="purchase"
       renderHeader={(data, isEditing, onChange) => (
-        <PurchaseOrderHeader data={data as PurchaseOrder} isEditing={isEditing} onChange={onChange as any} />
+        <PurchaseHeader data={data as Purchase} isEditing={isEditing} onChange={onChange as any} />
       )}
       renderLines={renderLines}
       getCustomTabsAfter={getPurchaseTabsAfter}

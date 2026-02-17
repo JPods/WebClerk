@@ -1,6 +1,6 @@
 # Transaction Models Alignment to Proposal Advanced Behavior
 
-This document outlines the comprehensive alignment of `order`, `invoice`, and `purchase_order` models to match the advanced behavior implemented in the `proposal` model. The alignment focuses on audit trail integration, schema enhancements with financial structures, and status workflow management.
+This document outlines the comprehensive alignment of `order`, `invoice`, and `purchase` models to match the advanced behavior implemented in the `proposal` model. The alignment focuses on audit trail integration, schema enhancements with financial structures, and status workflow management.
 
 ## Investigation Findings
 
@@ -77,18 +77,18 @@ planned → sent → accepted (final)
 
 ### Schema Files
 - `src/apps/transactions/models/order/utils/orderSchema.ts` - Enhanced with financial structures
-- `src/apps/transactions/models/purchase_order/utils/purchaseOrderSchema.ts` - Added financial fields and approval validation
+- `src/apps/transactions/models/purchase/utils/purchaseOrderSchema.ts` - Added financial fields and approval validation
 - `src/apps/transactions/models/invoice/utils/invoiceSchema.ts` - Extended base schema with invoice-specific rules
 
 ### Hook Files
 - `src/apps/transactions/models/order/hooks/useOrderStatus.ts` - Status workflow implementation
 - `src/apps/transactions/models/invoice/hooks/useInvoiceStatus.ts` - Status workflow implementation
-- `src/apps/transactions/models/purchase_order/hooks/usePurchaseOrderStatus.ts` - Status workflow implementation
+- `src/apps/transactions/models/purchase/hooks/usePurchaseStatus.ts` - Status workflow implementation
 
 ### Component Files
 - `src/apps/transactions/models/order/components/OrderStatus.tsx` - Status management UI
 - `src/apps/transactions/models/invoice/components/InvoiceStatus.tsx` - Status management UI
-- `src/apps/transactions/models/purchase_order/components/PurchaseOrderStatus.tsx` - Status management UI
+- `src/apps/transactions/models/purchase/components/PurchaseStatus.tsx` - Status management UI
 
 ### Type Files
 - Updated type definitions in respective `types/` directories to support new financial fields

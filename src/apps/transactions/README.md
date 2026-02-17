@@ -124,7 +124,7 @@ type TransactionParentType =
   | "order"
   | "invoice"
   | "proposal"
-  | "purchase_order"
+  | "purchase"
   | "workorder"
   | "requisition"
   | "project";

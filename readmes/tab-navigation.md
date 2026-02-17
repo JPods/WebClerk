@@ -266,7 +266,7 @@ TransactionTabs and ItemTabs for the linked org:
 
 Org context is determined automatically from `transactionType`:
 - order / invoice / proposal → customer (`customer_id`)
-- purchaseorder / receipt → vendor (`vendor_id`)
+- purchase / receipt → vendor (`vendor_id`)
 - requisition / project / workorder → whichever org ID is present
 
 ### Tier 4 — Communications

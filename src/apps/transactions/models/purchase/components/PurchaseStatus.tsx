@@ -1,28 +1,28 @@
 import { FaChevronRight, FaClock, FaCheck, FaTruck, FaArchive, FaBan } from 'react-icons/fa';
-import { usePurchaseOrderStatus, STATUS_CONFIG, PURCHASE_ORDER_STATUSES, normalizePurchaseOrderStatus } from '../hooks/usePurchaseOrderStatus';
-import type { PurchaseOrderStatus, StatusTransition } from '../hooks/usePurchaseOrderStatus';
+import { usePurchaseStatus, STATUS_CONFIG, PURCHASE_STATUSES, normalizePurchaseStatus } from '../hooks/usePurchaseStatus';
+import type { PurchaseStatus, StatusTransition } from '../hooks/usePurchaseStatus';
 
-interface PurchaseOrderStatusProps {
+interface PurchaseStatusProps {
   currentStatus?: string | null;
-  onStatusChange?: (newStatus: PurchaseOrderStatus) => void;
+  onStatusChange?: (newStatus: PurchaseStatus) => void;
   readonly?: boolean;
   showHistory?: boolean;
 }
 
-export default function PurchaseOrderStatus({
+export default function PurchaseStatus({
   currentStatus,
   onStatusChange,
   readonly = false,
   showHistory = false
-}: PurchaseOrderStatusProps) {
-  const safeStatus = normalizePurchaseOrderStatus(currentStatus);
-  const { getStatusConfig, getAvailableTransitions, getStatusHistory } = usePurchaseOrderStatus(safeStatus);
+}: PurchaseStatusProps) {
+  const safeStatus = normalizePurchaseStatus(currentStatus);
+  const { getStatusConfig, getAvailableTransitions, getStatusHistory } = usePurchaseStatus(safeStatus);
 
   const config = getStatusConfig(safeStatus);
   const transitions = getAvailableTransitions(safeStatus);
   const history = getStatusHistory();
 
-  const getStatusIcon = (status: PurchaseOrderStatus) => {
+  const getStatusIcon = (status: PurchaseStatus) => {
     switch (status) {
       case 'draft':
         return <FaClock className="text-gray-500" />;
@@ -67,10 +67,10 @@ export default function PurchaseOrderStatus({
 
       {/* Status Workflow Visualization */}
       <div className="flex items-center space-x-2 text-sm">
-        {PURCHASE_ORDER_STATUSES.map((status, index) => {
+        {PURCHASE_STATUSES.map((status, index) => {
           const statusConfig = STATUS_CONFIG[status];
           const isActive = status === safeStatus;
-          const isPast = PURCHASE_ORDER_STATUSES.indexOf(status) < PURCHASE_ORDER_STATUSES.indexOf(safeStatus);
+          const isPast = PURCHASE_STATUSES.indexOf(status) < PURCHASE_STATUSES.indexOf(safeStatus);
 
           return (
             <div key={status} className="flex items-center space-x-2">
@@ -82,7 +82,7 @@ export default function PurchaseOrderStatus({
                 {getStatusIcon(status)}
                 <span className="text-xs font-medium">{statusConfig.label}</span>
               </div>
-              {index < PURCHASE_ORDER_STATUSES.length - 1 && (
+              {index < PURCHASE_STATUSES.length - 1 && (
                 <FaChevronRight className={`text-xs ${
                   isPast ? 'text-green-500' : 'text-gray-400'
                 }`} />

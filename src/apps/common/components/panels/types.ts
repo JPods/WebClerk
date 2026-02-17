@@ -56,7 +56,6 @@ export type EntityType =
   | "order"
   | "invoice"
   | "purchase"
-  | "purchase_order"
   | "proposal"
   | "workorder"
   | "work_order"

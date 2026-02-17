@@ -16,7 +16,7 @@ All transaction types share common behaviors that must be implemented consistent
 | Category | Models | Primary Value | Customer-Facing |
 |----------|--------|---------------|-----------------|
 | **Sales** | `order`, `proposal`, `invoice` | Price | Yes |
-| **Purchase** | `purchase_order`, `work_order` | Cost | No (internal/vendor) |
+| **Purchase** | `purchase`, `work_order` | Cost | No (internal/vendor) |
 
 ### Architecture Principle
 
@@ -98,7 +98,7 @@ When line items change, instead of immediately updating the Item record (which c
 | Code | Transaction Type | Affects |
 |------|------------------|---------|
 | `SO` | order | `qty_on_so` |
-| `PO` | purchase_order | `qty_on_po` |
+| `PO` | purchase | `qty_on_po` |
 | `WO` | work_order | `qty_on_wo` |
 | `IV` | invoice | `qty_invoiced` (decreases on-hand) |
 | `PP` | proposal | None (quotes don't affect inventory) |
@@ -977,9 +977,9 @@ const OrderDetail: React.FC = () => {
 ### In Purchase Order Detail
 
 ```typescript
-// src/apps/transactions/models/purchase_order/pages/PurchaseOrderDetail.tsx
+// src/apps/transactions/models/purchase/pages/PurchaseDetail.tsx
 
-const PurchaseOrderDetail: React.FC = () => {
+const PurchaseDetail: React.FC = () => {
   const services = useMemo(() => createTransactionServices({
     transactionType: 'purchase',
     useCost: true,

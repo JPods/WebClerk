@@ -102,7 +102,7 @@ apps/transactions/models/order/pages/
 ### Model Name Mapping
 API endpoints use specific model names (may differ from directory names):
 - `order` (not `salesOrder`)
-- `purchase_order` (not `purchaseOrder`)
+- `purchase` (not `purchaseOrder`)
 - `work_order` (not `workOrder`)
 
 ## 🎨 UI Patterns

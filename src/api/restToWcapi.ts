@@ -55,7 +55,6 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'transactions/purchase': 'purchase',
   'transactions/purchases': 'purchase',
   'transactions/purchase-order': 'purchase',
-  'transactions/purchaseorder': 'purchase',
   'transactions/proposal': 'proposal',
   'transactions/proposals': 'proposal',
   'transactions/quote': 'proposal',

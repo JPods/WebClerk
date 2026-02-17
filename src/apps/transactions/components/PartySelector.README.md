@@ -67,7 +67,7 @@ Automatically selects the correct party type based on transaction category:
 import { TransactionPartySelector } from '@/apps/transactions/components';
 
 // For sales transactions (proposal, order, invoice) → selects Customer
-// For purchase transactions (purchase_order, work_order) → selects Vendor
+// For purchase transactions (purchase, work_order) → selects Vendor
 <TransactionPartySelector
   transactionType="sales"  // or "purchase"
   value={partyId}

@@ -12,7 +12,7 @@
  *   resolveModelName('order')           -> 'order'
  *   resolveModelName('order')            -> 'order'
  *   resolveModelName('order')            -> 'order'
- *   resolveModelName('purchase-order')  -> 'purchase'
+ *   resolveModelName('purchase')        -> 'purchase'
  *   resolveModelName('invoice')         -> 'invoice'
  */
 
@@ -22,7 +22,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   // Transactions - canonical names match Django model._meta.model_name
   order: 'order',
   invoice: 'invoice',
-  purchaseorder: 'purchase',
   purchase: 'purchase',
   po: 'purchase',
   proposal: 'proposal',
@@ -39,7 +38,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   // Transaction Lines
   orderline: 'order_line',
   invoiceline: 'invoice_line',
-  purchaseorderline: 'purchase_line',
   purchaseline: 'purchase_line',
   poline: 'purchase_line',
   proposalline: 'proposal_line',
@@ -130,7 +128,6 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   'transactions/order': 'order',
   'transactions/invoice': 'invoice',
   'transactions/purchase-order': 'purchase',
-  'transactions/purchaseorder': 'purchase',
   'transactions/purchase': 'purchase',
   'transactions/proposal': 'proposal',
   'transactions/quote': 'proposal',
@@ -290,8 +287,8 @@ export function parseRestfulPath(path: string): { modelName: string; id?: number
  * Convert a URL path segment to wcapi model_name format.
  * Used for URL-based routing to API calls.
  * 
- * @param urlSegment - URL segment like "sales-order" or "purchase-order"
- * @returns wcapi model_name like "order" or "purchaseorder"
+ * @param urlSegment - URL segment like "order" or "purchase"
+ * @returns wcapi model_name like "order" or "purchase"
  */
 export function urlToModelName(urlSegment: string): string {
   return resolveModelName(urlSegment);
