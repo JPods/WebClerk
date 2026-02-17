@@ -50,8 +50,6 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   // Transactions
   'transactions/order': 'order',
   'transactions/orders': 'order',
-  'transactions/sales-order': 'order',
-  'transactions/salesorder': 'order',
   'transactions/invoice': 'invoice',
   'transactions/invoices': 'invoice',
   'transactions/purchase': 'purchase',

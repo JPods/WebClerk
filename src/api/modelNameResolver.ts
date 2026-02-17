@@ -10,8 +10,8 @@
  * 
  * Usage:
  *   resolveModelName('order')           -> 'order'
- *   resolveModelName('sales_order')     -> 'order'
- *   resolveModelName('SalesOrder')      -> 'order'
+ *   resolveModelName('order')            -> 'order'
+ *   resolveModelName('order')            -> 'order'
  *   resolveModelName('purchase-order')  -> 'purchase'
  *   resolveModelName('invoice')         -> 'invoice'
  */
@@ -20,9 +20,7 @@
 // Keys are normalized (lowercase, no separators), values are the wcapi model_name
 const MODEL_NAME_MAP: Record<string, string> = {
   // Transactions - canonical names match Django model._meta.model_name
-  salesorder: 'order',
   order: 'order',
-  sales: 'order',
   invoice: 'invoice',
   purchaseorder: 'purchase',
   purchase: 'purchase',
@@ -39,7 +37,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   purchasereceipt: 'receipt',
   
   // Transaction Lines
-  salesorderline: 'order_line',
   orderline: 'order_line',
   invoiceline: 'invoice_line',
   purchaseorderline: 'purchase_line',
@@ -127,11 +124,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
 };
 
 // RESTful path patterns to model name
-// Handles paths like /api/transactions/salesorder/22
+// Handles paths like /api/transactions/order/22
 const PATH_PATTERN_MAP: Record<string, string> = {
   // Transactions
-  'transactions/sales-order': 'order',
-  'transactions/salesorder': 'order',
   'transactions/order': 'order',
   'transactions/invoice': 'invoice',
   'transactions/purchase-order': 'purchase',
@@ -262,9 +257,9 @@ export function resolveModelName(input: string): string {
  * Extract model name and ID from a RESTful path.
  * 
  * Handles patterns like:
- *   /api/transactions/salesorder/22
- *   /transactions/sales-order/detail/22
- *   /api/salesorder/22
+ *   /api/transactions/order/22
+ *   /transactions/order/detail/22
+ *   /api/order/22
  * 
  * @param path - URL path
  * @returns Object with modelName and optional id
@@ -296,7 +291,7 @@ export function parseRestfulPath(path: string): { modelName: string; id?: number
  * Used for URL-based routing to API calls.
  * 
  * @param urlSegment - URL segment like "sales-order" or "purchase-order"
- * @returns wcapi model_name like "salesorder" or "purchaseorder"
+ * @returns wcapi model_name like "order" or "purchaseorder"
  */
 export function urlToModelName(urlSegment: string): string {
   return resolveModelName(urlSegment);
@@ -306,17 +301,15 @@ export function urlToModelName(urlSegment: string): string {
  * Convert a wcapi model_name to URL-friendly format.
  * Used for building navigation URLs.
  * 
- * @param modelName - wcapi model_name like "salesorder"
+ * @param modelName - wcapi model_name like "order"
  * @returns URL segment like "sales-order"
  */
 export function modelNameToUrl(modelName: string): string {
   // Special cases with hyphens in URL
   const URL_MAP: Record<string, string> = {
-    sales_order: 'sales-order',
     order: 'order',
     purchase: 'purchase',
     workorder: 'workorder',
-    sales_order_line: 'sales-order-line',
     order_line: 'order-line',
     purchase_line: 'purchase-line',
     workorderline: 'workorderline',
@@ -335,11 +328,10 @@ export function modelNameToUrl(modelName: string): string {
  * Get the transaction type for routing purposes from a model name.
  * 
  * @param modelName - wcapi model_name
- * @returns Transaction type for routing (e.g., "sales_order", "invoice")
+ * @returns Transaction type for routing (e.g., "order", "invoice")
  */
 export function getTransactionType(modelName: string): string {
   const TYPE_MAP: Record<string, string> = {
-    sales_order: 'sales_order',
     order: 'order',
     invoice: 'invoice',
     purchase: 'purchase',

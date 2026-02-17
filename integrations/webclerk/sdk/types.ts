@@ -1555,7 +1555,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["tx_proposals_convert_to_sales_order_create"];
+        post: operations["tx_proposals_convert_to_order_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1792,10 +1792,10 @@ export interface paths {
             cookie?: never;
         };
         /** List/Create sales order lines */
-        get: operations["tx_sales_order_lines_list"];
+        get: operations["tx_order_lines_list"];
         put?: never;
         /** List/Create sales order lines */
-        post: operations["tx_sales_order_lines_create"];
+        post: operations["tx_order_lines_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1809,13 +1809,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["tx_sales_order_lines_retrieve"];
-        put: operations["tx_sales_order_lines_update"];
+        get: operations["tx_order_lines_retrieve"];
+        put: operations["tx_order_lines_update"];
         post?: never;
-        delete: operations["tx_sales_order_lines_destroy"];
+        delete: operations["tx_order_lines_destroy"];
         options?: never;
         head?: never;
-        patch: operations["tx_sales_order_lines_partial_update"];
+        patch: operations["tx_order_lines_partial_update"];
         trace?: never;
     };
     "/tx/sales-orders/": {
@@ -1825,9 +1825,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["tx_sales_orders_list"];
+        get: operations["tx_orders_list"];
         put?: never;
-        post: operations["tx_sales_orders_create"];
+        post: operations["tx_orders_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1841,13 +1841,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["tx_sales_orders_retrieve"];
-        put: operations["tx_sales_orders_update"];
+        get: operations["tx_orders_retrieve"];
+        put: operations["tx_orders_update"];
         post?: never;
-        delete: operations["tx_sales_orders_destroy"];
+        delete: operations["tx_orders_destroy"];
         options?: never;
         head?: never;
-        patch: operations["tx_sales_orders_partial_update"];
+        patch: operations["tx_orders_partial_update"];
         trace?: never;
     };
     "/tx/sales-orders/{id}/convert-to-invoice/": {
@@ -1859,7 +1859,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["tx_sales_orders_convert_to_invoice_create"];
+        post: operations["tx_orders_convert_to_invoice_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1875,7 +1875,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["tx_sales_orders_convert_to_purchase_order_create"];
+        post: operations["tx_orders_convert_to_purchase_order_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2994,7 +2994,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Requisition"][];
         };
-        PaginatedSalesOrderLineList: {
+        PaginatedOrderLineList: {
             /** @example 123 */
             count: number;
             /**
@@ -3007,9 +3007,9 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["SalesOrderLine"][];
+            results: components["schemas"]["OrderLine"][];
         };
-        PaginatedSalesOrderList: {
+        PaginatedOrderList: {
             /** @example 123 */
             count: number;
             /**
@@ -3022,7 +3022,7 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["SalesOrder"][];
+            results: components["schemas"]["Order"][];
         };
         PaginatedSettingList: {
             /** @example 123 */
@@ -3620,12 +3620,12 @@ export interface components {
             dt_modified?: number;
             parent?: number;
         };
-        PatchedSalesOrder: {
+        PatchedOrder: {
             readonly id?: number;
             order_no?: string;
             readonly dt_created?: number;
         };
-        PatchedSalesOrderLine: {
+        PatchedOrderLine: {
             readonly id?: number;
             /**
              * Format: int64
@@ -3992,12 +3992,12 @@ export interface components {
          * @enum {string}
          */
         RoleEnum: "user" | "admin" | "manager" | "staff" | "guest";
-        SalesOrder: {
+        Order: {
             readonly id: number;
             order_no: string;
             readonly dt_created: number;
         };
-        SalesOrderLine: {
+        OrderLine: {
             readonly id: number;
             /**
              * Format: int64
@@ -8400,7 +8400,7 @@ export interface operations {
             };
         };
     };
-    tx_proposals_convert_to_sales_order_create: {
+    tx_proposals_convert_to_order_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -9215,7 +9215,7 @@ export interface operations {
             };
         };
     };
-    tx_sales_order_lines_list: {
+    tx_order_lines_list: {
         parameters: {
             query?: {
                 /** @description Which field to use when ordering the results. */
@@ -9240,12 +9240,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedSalesOrderLineList"];
+                    "application/json": components["schemas"]["PaginatedOrderLineList"];
                 };
             };
         };
     };
-    tx_sales_order_lines_create: {
+    tx_order_lines_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -9254,9 +9254,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SalesOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["SalesOrderLine"];
-                "multipart/form-data": components["schemas"]["SalesOrderLine"];
+                "application/json": components["schemas"]["OrderLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrderLine"];
+                "multipart/form-data": components["schemas"]["OrderLine"];
             };
         };
         responses: {
@@ -9265,12 +9265,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrderLine"];
+                    "application/json": components["schemas"]["OrderLine"];
                 };
             };
         };
     };
-    tx_sales_order_lines_retrieve: {
+    tx_order_lines_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -9286,12 +9286,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrderLine"];
+                    "application/json": components["schemas"]["OrderLine"];
                 };
             };
         };
     };
-    tx_sales_order_lines_update: {
+    tx_order_lines_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -9302,9 +9302,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SalesOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["SalesOrderLine"];
-                "multipart/form-data": components["schemas"]["SalesOrderLine"];
+                "application/json": components["schemas"]["OrderLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrderLine"];
+                "multipart/form-data": components["schemas"]["OrderLine"];
             };
         };
         responses: {
@@ -9313,12 +9313,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrderLine"];
+                    "application/json": components["schemas"]["OrderLine"];
                 };
             };
         };
     };
-    tx_sales_order_lines_destroy: {
+    tx_order_lines_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -9338,7 +9338,7 @@ export interface operations {
             };
         };
     };
-    tx_sales_order_lines_partial_update: {
+    tx_order_lines_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -9349,9 +9349,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedSalesOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedSalesOrderLine"];
-                "multipart/form-data": components["schemas"]["PatchedSalesOrderLine"];
+                "application/json": components["schemas"]["PatchedOrderLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrderLine"];
+                "multipart/form-data": components["schemas"]["PatchedOrderLine"];
             };
         };
         responses: {
@@ -9360,12 +9360,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrderLine"];
+                    "application/json": components["schemas"]["OrderLine"];
                 };
             };
         };
     };
-    tx_sales_orders_list: {
+    tx_orders_list: {
         parameters: {
             query?: {
                 /** @description Which field to use when ordering the results. */
@@ -9388,12 +9388,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedSalesOrderList"];
+                    "application/json": components["schemas"]["PaginatedOrderList"];
                 };
             };
         };
     };
-    tx_sales_orders_create: {
+    tx_orders_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -9402,9 +9402,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SalesOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["SalesOrder"];
-                "multipart/form-data": components["schemas"]["SalesOrder"];
+                "application/json": components["schemas"]["Order"];
+                "application/x-www-form-urlencoded": components["schemas"]["Order"];
+                "multipart/form-data": components["schemas"]["Order"];
             };
         };
         responses: {
@@ -9413,12 +9413,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrder"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
         };
     };
-    tx_sales_orders_retrieve: {
+    tx_orders_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -9434,12 +9434,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrder"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
         };
     };
-    tx_sales_orders_update: {
+    tx_orders_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -9450,9 +9450,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SalesOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["SalesOrder"];
-                "multipart/form-data": components["schemas"]["SalesOrder"];
+                "application/json": components["schemas"]["Order"];
+                "application/x-www-form-urlencoded": components["schemas"]["Order"];
+                "multipart/form-data": components["schemas"]["Order"];
             };
         };
         responses: {
@@ -9461,12 +9461,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrder"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
         };
     };
-    tx_sales_orders_destroy: {
+    tx_orders_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -9486,7 +9486,7 @@ export interface operations {
             };
         };
     };
-    tx_sales_orders_partial_update: {
+    tx_orders_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -9497,9 +9497,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedSalesOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedSalesOrder"];
-                "multipart/form-data": components["schemas"]["PatchedSalesOrder"];
+                "application/json": components["schemas"]["PatchedOrder"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrder"];
+                "multipart/form-data": components["schemas"]["PatchedOrder"];
             };
         };
         responses: {
@@ -9508,12 +9508,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesOrder"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
         };
     };
-    tx_sales_orders_convert_to_invoice_create: {
+    tx_orders_convert_to_invoice_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -9539,7 +9539,7 @@ export interface operations {
             };
         };
     };
-    tx_sales_orders_convert_to_purchase_order_create: {
+    tx_orders_convert_to_purchase_order_create: {
         parameters: {
             query?: never;
             header?: never;

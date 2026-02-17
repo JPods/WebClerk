@@ -1,6 +1,6 @@
 # Transaction Models Alignment to Proposal Advanced Behavior
 
-This document outlines the comprehensive alignment of `sales_order`, `invoice`, and `purchase_order` models to match the advanced behavior implemented in the `proposal` model. The alignment focuses on audit trail integration, schema enhancements with financial structures, and status workflow management.
+This document outlines the comprehensive alignment of `order`, `invoice`, and `purchase_order` models to match the advanced behavior implemented in the `proposal` model. The alignment focuses on audit trail integration, schema enhancements with financial structures, and status workflow management.
 
 ## Investigation Findings
 
@@ -76,17 +76,17 @@ planned → sent → accepted (final)
 ## Modified and Created Files
 
 ### Schema Files
-- `src/apps/transactions/models/sales_order/utils/salesOrderSchema.ts` - Enhanced with financial structures
+- `src/apps/transactions/models/order/utils/orderSchema.ts` - Enhanced with financial structures
 - `src/apps/transactions/models/purchase_order/utils/purchaseOrderSchema.ts` - Added financial fields and approval validation
 - `src/apps/transactions/models/invoice/utils/invoiceSchema.ts` - Extended base schema with invoice-specific rules
 
 ### Hook Files
-- `src/apps/transactions/models/sales_order/hooks/useSalesOrderStatus.ts` - Status workflow implementation
+- `src/apps/transactions/models/order/hooks/useOrderStatus.ts` - Status workflow implementation
 - `src/apps/transactions/models/invoice/hooks/useInvoiceStatus.ts` - Status workflow implementation
 - `src/apps/transactions/models/purchase_order/hooks/usePurchaseOrderStatus.ts` - Status workflow implementation
 
 ### Component Files
-- `src/apps/transactions/models/sales_order/components/SalesOrderStatus.tsx` - Status management UI
+- `src/apps/transactions/models/order/components/OrderStatus.tsx` - Status management UI
 - `src/apps/transactions/models/invoice/components/InvoiceStatus.tsx` - Status management UI
 - `src/apps/transactions/models/purchase_order/components/PurchaseOrderStatus.tsx` - Status management UI
 
@@ -98,10 +98,10 @@ planned → sent → accepted (final)
 
 ### Status Workflow Usage
 ```typescript
-import { useSalesOrderStatus } from '../hooks/useSalesOrderStatus';
+import { useOrderStatus } from '../hooks/useOrderStatus';
 
 const MyComponent = () => {
-  const { currentStatus, getAvailableTransitions, transitionTo } = useSalesOrderStatus('draft');
+  const { currentStatus, getAvailableTransitions, transitionTo } = useOrderStatus('draft');
 
   const handleStatusChange = (newStatus) => {
     if (transitionTo(newStatus)) {
@@ -110,7 +110,7 @@ const MyComponent = () => {
   };
 
   return (
-    <SalesOrderStatus
+    <OrderStatus
       currentStatus={currentStatus}
       onStatusChange={handleStatusChange}
       showHistory={true}

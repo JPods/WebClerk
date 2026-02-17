@@ -41,7 +41,7 @@
 |-------|------|--------|
 | Invoice | `invoice/pages/InvoiceDetailNew.tsx` | ✅ Refactored (new pattern) |
 | Invoice (legacy) | `invoice/pages/InvoiceDetail.tsx` | ⚠️ Keep for reference |
-| SalesOrder | `sales_order/pages/SalesOrderDetail.tsx` | ❌ Needs refactor |
+| Order | `order/pages/OrderDetail.tsx` | ❌ Needs refactor |
 | PurchaseOrder | `purchase_order/pages/PurchaseOrderDetail.tsx` | ❌ Needs refactor |
 | Proposal | `proposal/pages/ProposalDetail.tsx` | ❌ Needs refactor |
 | WorkOrder | `work_order/pages/WorkOrderDetail.tsx` | ❌ Needs refactor |
@@ -52,7 +52,7 @@
 
 ## Problem Statement
 
-Current transaction detail pages (InvoiceDetail, SalesOrderDetail, etc.) do not fully display all JSONB fields from the wc3 schema. The wc3 backend uses a rich composition of mixins that provide nested JSON structures like:
+Current transaction detail pages (InvoiceDetail, OrderDetail, etc.) do not fully display all JSONB fields from the wc3 schema. The wc3 backend uses a rich composition of mixins that provide nested JSON structures like:
 
 ```json
 {
@@ -88,7 +88,7 @@ These nested structures need consistent UI components for viewing and editing.
 | Model | File | Status |
 |-------|------|--------|
 | Invoice | `invoice/pages/InvoiceDetail.tsx` | ⚠️ Partial implementation |
-| SalesOrder | `sales_order/pages/SalesOrderDetail.tsx` | ⚠️ Needs update |
+| Order | `order/pages/OrderDetail.tsx` | ⚠️ Needs update |
 | PurchaseOrder | `purchase_order/pages/PurchaseOrderDetail.tsx` | ⚠️ Needs update |
 | Proposal | `proposal/pages/ProposalDetail.tsx` | ⚠️ Needs update |
 | WorkOrder | `work_order/pages/WorkOrderDetail.tsx` | ⚠️ Needs update |
@@ -100,7 +100,7 @@ These nested structures need consistent UI components for viewing and editing.
 | Model | File | Status |
 |-------|------|--------|
 | InvoiceLine | `invoice_line/pages/InvoiceLineDetail.tsx` | ❌ Needs creation |
-| SalesOrderLine | `sales_order_line/pages/SalesOrderLineDetail.tsx` | ❌ Needs creation |
+| OrderLine | `order_line/pages/OrderLineDetail.tsx` | ❌ Needs creation |
 | PurchaseOrderLine | `purchase_order_line/pages/PurchaseOrderLineDetail.tsx` | ❌ Needs creation |
 | ProposalLine | `proposal_line/pages/ProposalLineDetail.tsx` | ❌ Needs creation |
 | WorkOrderLine | `work_order_line/pages/WorkOrderLineDetail.tsx` | ❌ Needs creation |
@@ -505,7 +505,7 @@ interface LinePhysical {
 - [ ] Add flow diagram
 - [ ] Test all JSONB fields
 
-#### 2.2 SalesOrderDetail.tsx Update
+#### 2.2 OrderDetail.tsx Update
 - [ ] Apply same pattern as Invoice
 - [ ] Add quantity tracking (placed vs invoiced vs remaining)
 - [ ] Add `refs.depends_on` display
@@ -549,7 +549,7 @@ interface LinePhysical {
 
 #### 3.2 Implement Line Detail Pages
 - [ ] InvoiceLineDetail.tsx
-- [ ] SalesOrderLineDetail.tsx
+- [ ] OrderLineDetail.tsx
 - [ ] PurchaseOrderLineDetail.tsx
 - [ ] ProposalLineDetail.tsx
 - [ ] WorkOrderLineDetail.tsx
@@ -731,7 +731,7 @@ interface FinancialsCardProps {
 
 ## Tab Structure per Model
 
-### Invoice/SalesOrder/Proposal (Sell-Side)
+### Invoice/Order/Proposal (Sell-Side)
 
 | Tab | Content |
 |-----|---------|
@@ -1093,7 +1093,7 @@ it('shows cost section to manager', () => {
 
 ### Phase 2: Header Detail Pages
 - [x] Refactor `InvoiceDetail.tsx` → `InvoiceDetailNew.tsx`
-- [ ] Refactor `SalesOrderDetail.tsx`
+- [ ] Refactor `OrderDetail.tsx`
 - [ ] Update `PurchaseOrderDetail.tsx`
 - [ ] Update `ProposalDetail.tsx`
 - [ ] Update `WorkOrderDetail.tsx`
@@ -1103,7 +1103,7 @@ it('shows cost section to manager', () => {
 ### Phase 3: Line Detail Pages
 - [ ] Create `BaseLineDetail.tsx`
 - [ ] Create `InvoiceLineDetail.tsx`
-- [ ] Create `SalesOrderLineDetail.tsx`
+- [ ] Create `OrderLineDetail.tsx`
 - [ ] Create `PurchaseOrderLineDetail.tsx`
 - [ ] Create `ProposalLineDetail.tsx`
 - [ ] Create `WorkOrderLineDetail.tsx`

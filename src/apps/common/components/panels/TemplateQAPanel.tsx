@@ -32,7 +32,7 @@ import {
 interface TemplateQAPanelProps extends Omit<BasePanelProps<unknown>, 'data' | 'onChange' | 'entityType' | 'entityId'> {
   /** Question group name (e.g., "Planning", "Prepress") */
   questionGroup: string;
-  /** Parent record type (e.g., "sales_order", "project") */
+  /** Parent record type (e.g., "order", "project") */
   parent_model: string;
   /** Parent record ID */
   parentId: number;

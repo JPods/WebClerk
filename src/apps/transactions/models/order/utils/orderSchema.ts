@@ -56,7 +56,7 @@ const quantitySchema = z.union([
 ]);
 
 // Sales Order Line schema - permissive to allow any line data
-export const salesOrderLineSchema = z.record(z.any()).optional();
+export const orderLineSchema = z.record(z.any()).optional();
 
 // Sales Order schema with comprehensive validation
 export const salesOrderSchema = z
@@ -150,9 +150,9 @@ export const salesOrderSchema = z
     prefs: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     refs: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
-    // Sales order specific fields
+    // Order specific fields
     ida: z.string().optional(),
-    sales_order_no: z.string().optional(),
+    order_no: z.string().optional(),
     status: z
       .enum(validStatuses, {
         errorMap: () => ({
@@ -196,7 +196,7 @@ export const salesOrderSchema = z
     source: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
     // Line items
-    lines: z.array(salesOrderLineSchema).optional(),
+    lines: z.array(orderLineSchema).optional(),
 
     // Date fields
     dt_modified: z.union([z.string(), z.number()]).optional(),
@@ -223,5 +223,5 @@ export const salesOrderSchema = z
   );
 
 // Type exports
-export type SalesOrderFormData = z.infer<typeof salesOrderSchema>;
-export type SalesOrderLineFormData = z.infer<typeof salesOrderLineSchema>;
+export type OrderFormData = z.infer<typeof salesOrderSchema>;
+export type OrderLineFormData = z.infer<typeof orderLineSchema>;

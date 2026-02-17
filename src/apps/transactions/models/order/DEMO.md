@@ -1,28 +1,28 @@
-# Sales Order Model
+# Order Model
 
-This model represents sales orders in the transaction system.
+This model represents orders in the transaction system.
 
 ## Fields
 
 - `id`: Unique identifier (readonly)
-- `sales_order_no`: Sales order number (required)
+- `order_no`: Order number (required)
 - `dt_created`: Creation timestamp (readonly)
 
 ## API Endpoints
 
-- `GET /tx/sales-orders/` - List sales orders
-- `POST /tx/sales-orders/` - Create sales order
-- `GET /tx/sales-orders/{id}/` - Get sales order details
-- `PUT /tx/sales-orders/{id}/` - Update sales order
-- `DELETE /tx/sales-orders/{id}/` - Delete sales order
+- `GET /tx/orders/` - List orders
+- `POST /tx/orders/` - Create order
+- `GET /tx/orders/{id}/` - Get order details
+- `PUT /tx/orders/{id}/` - Update order
+- `DELETE /tx/orders/{id}/` - Delete order
 
 ## Usage
 
 ```typescript
-import { fetchSalesOrders, createSalesOrder } from './services/salesOrderApi';
+import { fetchOrders, createOrder } from './services/orderApi';
 
-// Fetch all sales orders
-const salesOrders = await fetchSalesOrders();
+// Fetch all orders
+const orders = await fetchOrders();
 
-// Create new sales order
-const newSalesOrder = await createSalesOrder({ sales_order_no: 'SO-001' });
+// Create new order
+const newOrder = await createOrder({ order_no: 'SO-001' });

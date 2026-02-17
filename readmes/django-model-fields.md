@@ -872,7 +872,7 @@ Plus ALL BaseModel fields.
 `""`, `"planned"`, `"released"`, `"in_progress"`, `"hold"`, `"complete"`, `"canceled"`
 
 ### TRANSACTION_PARENT_MODEL_CHOICES
-`"proposal"`, `"sales_order"`, `"invoice"`, `"purchase_order"`, `"workorder"`, `"requisition"`
+`"proposal"`, `"order"`, `"invoice"`, `"purchase_order"`, `"workorder"`, `"requisition"`
 
 ### PAYMENT_GATEWAY_CHOICES
 `""`, `"manual"`, `"stripe"`, `"paypal"`

@@ -13,7 +13,7 @@ interface QA {
 }
 
 interface QAListProps {
-  entityType?: string; // 'contact', 'sales_order', etc.
+  entityType?: string; // 'contact', 'order', etc.
   entityId?: number;
 }
 

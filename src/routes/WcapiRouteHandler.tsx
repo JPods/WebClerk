@@ -26,8 +26,6 @@ const MODEL_DETAIL_MAP: Record<string, React.LazyExoticComponent<React.Component
   "purchase_order": PurchaseDetail,
   "purchaseorder": PurchaseDetail,
   "order": OrderDetail,
-  "sales_order": OrderDetail,
-  "salesorder": OrderDetail,
   "invoice": InvoiceDetail,
   "proposal": ProposalDetail,
   "quote": ProposalDetail,

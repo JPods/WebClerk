@@ -198,7 +198,7 @@ saveRecord(model_name, payload)  // POST /wcapi/save/
 
 | Context | Convention | Example | 4D Equivalent |
 |---------|------------|---------|---------------|
-| Django models | PascalCase | `SalesOrder`, `Contact` | Table name |
+| Django models | PascalCase | `Order`, `Contact` | Table name |
 | Django fields | snake_case | `is_active`, `created_at` | Field name (was camelCase) |
 | React components | PascalCase | `KanbanBoardPage`, `ProjectContactManager` | N/A |
 | React files | PascalCase.tsx | `KanbanTaskModal.tsx` | N/A |

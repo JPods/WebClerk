@@ -22,7 +22,6 @@ type OrderStatus =
 type OrderRow = {
   id: number | string;
   order_no?: string;
-  sales_order_no?: string;
   status?: string;
   customer_name?: string;
   id_customer?: string | number;
@@ -167,7 +166,7 @@ export default function OrderList() {
   const handle_delete = useCallback(
     async (row: any) => {
       if (
-        window.confirm(`Delete order ${row.order_no || row.sales_order_no}?`)
+        window.confirm(`Delete order ${row.order_no}?`)
       ) {
         try {
           await deleteAction(row.id);
@@ -212,7 +211,7 @@ export default function OrderList() {
       },
       {
         name: "Order No",
-        selector: (row: OrderRow) => row.order_no || row.sales_order_no || "--",
+        selector: (row: OrderRow) => row.order_no || "--",
         sortable: true,
         width: "14%",
       },

@@ -129,7 +129,7 @@ export async function getRecord(model_name: string, id: number) {
       res.data,
     );
     const record = res.data.data?.record;
-    if (record && ["order", "salesorder"].includes(resolved)) {
+    if (record && ["order"].includes(resolved)) {
       console.log(`[wcapi.getRecord] lines in response:`, record.lines);
       console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
       console.log(

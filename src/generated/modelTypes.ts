@@ -3486,7 +3486,7 @@ export interface InvoiceRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata?: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -3520,7 +3520,7 @@ export interface CreateInvoiceRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -3551,7 +3551,7 @@ export interface UpdateInvoiceRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4044,7 +4044,7 @@ export interface ProposalRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -4078,7 +4078,7 @@ export interface CreateProposalRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4109,7 +4109,7 @@ export interface UpdateProposalRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4217,7 +4217,7 @@ export interface PurchaseOrderRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -4251,7 +4251,7 @@ export interface CreatePurchaseOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4282,7 +4282,7 @@ export interface UpdatePurchaseOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4508,11 +4508,11 @@ export interface UpdateRequisitionLineRequest {
   tax?: Record<string, any>;
 }
 
-// ── SalesOrder ──
+// ── Order ──
 // Django: transactions.Order  table: orders
-// wcapi model_name: "sales_order"
+// wcapi model_name: "order"
 
-export interface SalesOrderRecord {
+export interface OrderRecord {
   id?: number;  // read-only
   uuid?: string | null;  // read-only | max_length=32
   ida?: string;  // max_length=40
@@ -4538,7 +4538,7 @@ export interface SalesOrderRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -4556,7 +4556,7 @@ export interface SalesOrderRecord {
   version: number;  // read-only
 }
 
-export interface CreateSalesOrderRequest {
+export interface CreateOrderRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
@@ -4572,7 +4572,7 @@ export interface CreateSalesOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4586,7 +4586,7 @@ export interface CreateSalesOrderRequest {
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
 
-export interface UpdateSalesOrderRequest {
+export interface UpdateOrderRequest {
   id: number | string;
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
@@ -4603,7 +4603,7 @@ export interface UpdateSalesOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4617,11 +4617,11 @@ export interface UpdateSalesOrderRequest {
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
 
-// ── SalesOrderLine ──
+// ── OrderLine ──
 // Django: transactions.OrderLine  table: order_lines
-// wcapi model_name: "sales_order_line"
+// wcapi model_name: "order_line"
 
-export interface SalesOrderLineRecord {
+export interface OrderLineRecord {
   id?: number;  // read-only
   uuid?: string | null;  // read-only | max_length=32
   ida?: string;  // max_length=40
@@ -4650,7 +4650,7 @@ export interface SalesOrderLineRecord {
   version: number;  // read-only
 }
 
-export interface CreateSalesOrderLineRequest {
+export interface CreateOrderLineRequest {
   ida?: string;  // max_length=40
   cost?: Record<string, any>;
   is_active?: boolean;
@@ -4665,7 +4665,7 @@ export interface CreateSalesOrderLineRequest {
   tax?: Record<string, any>;
 }
 
-export interface UpdateSalesOrderLineRequest {
+export interface UpdateOrderLineRequest {
   id: number | string;
   ida?: string;  // max_length=40
   cost?: Record<string, any>;
@@ -4711,7 +4711,7 @@ export interface TransactionRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -4745,7 +4745,7 @@ export interface CreateTransactionRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4776,7 +4776,7 @@ export interface UpdateTransactionRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4820,7 +4820,7 @@ export interface WorkOrderRecord {
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   metadata: Record<string, any>;
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   prefs: Record<string, any>;
   price_level?: string | null;  // max_length=30
@@ -4854,7 +4854,7 @@ export interface CreateWorkOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32
@@ -4885,7 +4885,7 @@ export interface UpdateWorkOrderRequest {
   is_active?: boolean;
   manufacturer_id?: number | null;  // FK → orgs.OrgBase
   parent_id?: number | null;
-  parent_model?: string | null;  // choices: proposal, sales_order, invoice, purchase_order, workorder, requisition | max_length=20
+  parent_model?: string | null;  // choices: proposal, order, invoice, purchase_order, workorder, requisition | max_length=20
   phone?: string | null;  // max_length=50
   price_level?: string | null;  // max_length=30
   priority?: string | null;  // max_length=32

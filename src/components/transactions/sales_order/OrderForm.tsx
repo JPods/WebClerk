@@ -44,7 +44,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
   const [lines, setLines] = useState<TransactionLine[]>([]);
   const totals = useRealTimeCalculations(lines, 0.08, 0, 0);
-  const { addEntry } = useAuditTrail(order_id || 0, 'sales_order');
+  const { addEntry } = useAuditTrail(order_id || 0, 'order');
 
   useEffect(() => {
     if (order_id) {
@@ -62,8 +62,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     setLoading(true);
     try {
       const [orderRes, linesRes] = await Promise.all([
-        get('sales_order', { id: order_id }),
-        get('sales_order_line', { parent: order_id }),
+        get('order', { id: order_id }),
+        get('order_line', { parent: order_id }),
       ]);
 
       if (orderRes?.record) {
@@ -93,11 +93,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     try {
       let savedOrder;
       if (order_id) {
-        const response = await update('sales_order', order_id, order);
+        const response = await update('order', order_id, order);
         savedOrder = response?.record;
         await addEntry('updated', { status: order.status });
       } else {
-        const response = await create('sales_order', order);
+        const response = await create('order', order);
         savedOrder = response?.record;
         await addEntry('created', { status: order.status });
       }
@@ -106,12 +106,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         // Save lines
         for (const line of lines) {
           if (line.id) {
-            await update('sales_order_line', line.id, {
+            await update('order_line', line.id, {
               ...line,
               parent: savedOrder.id,
             });
           } else {
-            await create('sales_order_line', {
+            await create('order_line', {
               ...line,
               parent: savedOrder.id,
             });
@@ -160,7 +160,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       </div>
 
       <TransactionHeader
-        model="sales_order"
+        model="order"
         transactionId={order_id}
         data={order}
         onChange={handleHeaderChange}
@@ -205,7 +205,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       {order_id && (
         <AuditTrail
           transactionId={order_id}
-          model="sales_order"
+          model="order"
           className="mt-6"
         />
       )}

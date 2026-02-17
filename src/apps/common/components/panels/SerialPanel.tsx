@@ -82,7 +82,6 @@ const getFilterField = (entityType: EntityType): string => {
     case "vendor":
       return "vendor_id";
     case "order":
-    case "sales_order":
       return "order_id";
     case "invoice":
       return "invoice_id";

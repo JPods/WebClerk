@@ -1,8 +1,8 @@
 // Canonical mapping of domain terms used in UI → backend model_name
 export const Model = {
   product: 'item',
-  order: 'sales_order',
-  orderLine: 'sales_order_line',
+  order: 'order',
+  orderLine: 'order_line',
   invoice: 'invoice',
   invoiceLine: 'invoice_line',
   proposal: 'proposal',

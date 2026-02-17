@@ -32,7 +32,7 @@ const NEVER_CACHE_PATTERNS = [
 ```
 
 This includes:
-- `/wcapi/get/?model_name=salesorder` - Fetching orders
+- `/wcapi/get/?model_name=order` - Fetching orders
 - `/wcapi/get/?model_name=customer&id=123` - Fetching a customer
 - `/wcapi/save/` - Saving records
 - `/wcapi/model_name/list/` - Even model lists

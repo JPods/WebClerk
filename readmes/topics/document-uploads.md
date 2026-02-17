@@ -147,7 +147,7 @@ import { uploadDocument } from '@/apps/common/components/panels';
 
 const result = await uploadDocument({
   file: selectedFile,
-  parentType: 'sales_order',
+  parentType: 'order',
   parentId: 123,
   purpose: 'spec_sheet',
   description: 'Product specifications',
@@ -201,7 +201,7 @@ const result = await uploadDocument({
 import { DocumentsPanel } from '@/apps/common/components/panels';
 
 <DocumentsPanel
-  parentType="sales_order"
+  parentType="order"
   parentId={orderId}
   data={salesOrder.refs?.links?.document || []}
   onChange={(docs) => updateRefs({ links: { document: docs } })}
@@ -223,7 +223,7 @@ const {
   progress, 
   error 
 } = useDocumentUpload({
-  parentType: 'sales_order',
+  parentType: 'order',
   parentId: orderId,
   purpose: 'attachment',
   maxSizeBytes: 10 * 1024 * 1024,
@@ -244,7 +244,7 @@ POST /wcapi/upload/
 Content-Type: multipart/form-data
 
 file: <binary>
-model_name: sales_order
+model_name: order
 parent_id: 123
 purpose: attachment
 

@@ -90,7 +90,7 @@ export const TransactionHeader: React.FC<TransactionHeaderProps> = ({
   const getNumberField = () => {
     switch (model) {
       case 'proposal': return 'proposal_no';
-      case 'sales_order': return 'order_no';
+      case 'order': return 'order_no';
       case 'invoice': return 'invoice_no';
       case 'payment': return 'payment_no';
       default: return 'ida';
@@ -242,7 +242,7 @@ export const TransactionHeader: React.FC<TransactionHeaderProps> = ({
           </div>
         )}
 
-        {model === 'sales_order' && (
+        {model === 'order' && (
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Ship Date</label>
             <input

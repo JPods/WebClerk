@@ -54,7 +54,6 @@ export type EntityType =
   | "other"
   // Transactions
   | "order"
-  | "sales_order"
   | "invoice"
   | "purchase"
   | "purchase_order"
