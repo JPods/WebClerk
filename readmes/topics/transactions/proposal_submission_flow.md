@@ -21,7 +21,7 @@
 
 <!-- TOC END -->
 
-End-to-end flow for a contact/user associated with a customer creating a Proposal with three lines, then converting it to a Sales Order. Includes involved layers (models, serializers, views, services, URLs) and extension points.
+End-to-end flow for a contact/user associated with a customer creating a Proposal with three lines, then converting it to an Order. Includes involved layers (models, serializers, views, services, URLs) and extension points.
 
 ## Overview
 
@@ -29,8 +29,8 @@ End-to-end flow for a contact/user associated with a customer creating a Proposa
 2. POST header (`/tx/proposals/`).
 3. POST three lines (`/tx/proposal-lines/`).
 4. (Optional) GET aggregate totals.
-5. POST convert to Sales Order.
-6. Work with created Sales Order & copied lines.
+5. POST convert to Order.
+6. Work with created Order & copied lines.
 
 ## Models
 
@@ -50,14 +50,14 @@ End-to-end flow for a contact/user associated with a customer creating a Proposa
 - `GET/PUT/PATCH/DELETE /tx/proposals/{id}/` → detail/update.
 - `GET/POST /tx/proposal-lines/?parent_ref_id={id}` → list/create lines for a proposal.
 - `GET/PUT/PATCH/DELETE /tx/proposal-lines/{id}/` → line detail.
-- `POST /tx/proposals/{id}/convert-to-sales-order/` → conversion action.
+- `POST /tx/proposals/{id}/convert-to-order/` → conversion action.
 - `GET /tx/lines/aggregate/?parent_ref_id={id}&model=proposal-line` → totals.
 
 ## Flow Service
 
-`transactions.services.flow.proposal_to_sales_order(proposal)`:
+`transactions.services.flow.proposal_to_order(proposal)`:
 
-1. Create `SalesOrder` (order_no synthesized if not supplied).
+1. Create `Order` (order_no synthesized if not supplied).
 2. Load `ProposalLine` rows and iterate.
 3. Copy standard line fields via `_copy_common_line_fields` (item, qty, cost/price, refs/links, metadata JSON).
 4. Normalize / adjust where schema diverges (qty, pricing).
@@ -68,7 +68,7 @@ End-to-end flow for a contact/user associated with a customer creating a Proposa
 ```text
 /tx/proposals/
 /tx/proposals/<id>/
-/tx/proposals/<id>/convert-to-sales-order/
+/tx/proposals/<id>/convert-to-order/
 /tx/proposal-lines/
 /tx/proposal-lines/<id>/
 /tx/lines/aggregate/
@@ -112,12 +112,12 @@ End-to-end flow for a contact/user associated with a customer creating a Proposa
   GET /tx/lines/aggregate/?parent_ref_id=42&model=proposal-line
   → { "proposal-line": { "lines": 3, "price_extended": "300.00", ... } }
 
-1. Convert to sales order:
+1. Convert to order:
 
   POST /tx/proposals/42/convert-to-sales-order/
-  → 201 Created { "sales_order_id": 77, ... }
+  → 201 Created { "order_id": 77, ... }
 
-1. Inspect sales order & lines.
+1. Inspect order & lines.
 
 ## Field / Permission Considerations
 

@@ -2,10 +2,10 @@
 
 Scope
 
-- Sell-side headers: Proposal, SalesOrder, Invoice
-  - Lines: ProposalLine, SalesOrderLine, InvoiceLine → inherit BaseSellLineModel (has price JSON)
-- Exec-side headers: PurchaseOrder, WorkOrder
-  - Lines: PurchaseOrderLine, WorkOrderLine → inherit BaseExecLineModel (no price JSON)
+- Sell-side headers: Proposal, Order, Invoice
+  - Lines: ProposalLine, OrderLine, InvoiceLine → inherit BaseSellLineModel (has price JSON)
+- Exec-side headers: Purchase, WorkOrder
+  - Lines: PurchaseLine, WorkOrderLine → inherit BaseExecLineModel (no price JSON)
 
 Line JSON
 
@@ -18,7 +18,7 @@ Line JSON
 Header rollups
 
 - Proposal: compute_proposal_sell_cost_totals + Proposal.update_sell_cost_totals()
-- SalesOrder: compute_sales_order_sell_cost_totals + SalesOrder.update_sell_cost_totals()
+- Order: compute_order_sell_cost_totals + Order.update_sell_cost_totals()
 - Invoice: compute_invoice_sell_cost_totals + Invoice.update_sell_cost_totals()
 
 Shapes returned
@@ -30,7 +30,7 @@ Shapes returned
 Refs links (singular model keys)
 
 - invoice.refs.links.invoice_line
-- sales_order.refs.links.sales_order_line
+- order.refs.links.order_line
 - proposal.refs.links.proposal_line
 
 WCAPI saves
@@ -41,9 +41,9 @@ WCAPI saves
 Tests
 
 - tests/test_line_model_inheritance.py: sell vs exec price field presence
-- tests/test_sales_order_totals.py: order rollup
+- tests/test_order_totals.py: order rollup
 - tests/test_proposal_totals.py: proposal rollup
 
 Next
 
-- Add header fields (sell, cost, totals) and functional index on totals.total for Proposal/SalesOrder/Invoice.
+- Add header fields (sell, cost, totals) and functional index on totals.total for Proposal/Order/Invoice.

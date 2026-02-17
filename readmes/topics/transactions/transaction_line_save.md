@@ -33,10 +33,10 @@ This ensures atomicity and consistency across the transaction and its lines.
 
 | Transaction Type | Model Name(s) | Line Model | FK Field | Pending Type |
 |-----------------|---------------|------------|----------|--------------|
-| Sales Order | `order`, `salesorder`, `sales_order` | `OrderLine` | `order` | `SO` |
+| Order | `order` | `OrderLine` | `order` | `SO` |
 | Invoice | `invoice` | `InvoiceLine` | `invoice` | `IN` |
 | Proposal | `proposal` | `ProposalLine` | `proposal` | `PP` |
-| Purchase Order | `purchase`, `purchaseorder`, `purchase_order` | `PurchaseLine` | `purchase` | `PO` |
+| Purchase | `purchase` | `PurchaseLine` | `purchase` | `PO` |
 | Work Order | `workorder`, `work_order` | `WorkOrderLine` | `workorder` | `WO` |
 
 ---
@@ -108,12 +108,8 @@ The save view uses a unified mapping to determine the line model:
 ```python
 line_model_map = {
     'order': ('OrderLine', 'order'),
-    'salesorder': ('OrderLine', 'order'),
-    'sales_order': ('OrderLine', 'order'),
     'invoice': ('InvoiceLine', 'invoice'),
     'purchase': ('PurchaseLine', 'purchase'),
-    'purchaseorder': ('PurchaseLine', 'purchase'),
-    'purchase_order': ('PurchaseLine', 'purchase'),
     'workorder': ('WorkOrderLine', 'workorder'),
     'work_order': ('WorkOrderLine', 'workorder'),
     'proposal': ('ProposalLine', 'proposal'),
@@ -181,10 +177,10 @@ When a new line is created, a Pending record is generated to track the inventory
 
 | Type Code | Transaction | Quantity Bucket | Description |
 |-----------|-------------|-----------------|-------------|
-| `SO` | Sales Order | `on_so` | Reserved for customer orders |
+| `SO` | Order | `on_so` | Reserved for customer orders |
 | `IN` | Invoice | `on_in` | Issued/shipped (reduces on_hand) |
 | `PP` | Proposal | `on_p` | Forecast/pipeline (probability-weighted) |
-| `PO` | Purchase Order | `on_po` | On order from vendor |
+| `PO` | Purchase | `on_po` | On order from vendor |
 | `WO` | Work Order | `on_wo` | Committed to work orders |
 | `RC` | Receipt | `on_r` | Received into inventory (increases on_hand) |
 
@@ -323,7 +319,7 @@ except Exception as pending_err:
 
 ## Examples
 
-### Creating a Purchase Order with Lines
+### Creating a Purchase with Lines
 
 **Request:**
 ```http
