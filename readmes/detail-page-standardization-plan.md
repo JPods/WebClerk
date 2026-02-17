@@ -104,7 +104,7 @@ interface EntityRefs {
     document?: RefLink[];     // Attached documents
     email?: RefLink[];        // Email addresses
     phone?: RefLink[];        // Phone numbers
-    location?: RefLink[];     // Addresses
+    address?: RefLink[];       // Addresses
     domain?: RefLink[];       // Web domains
     linkage?: RefLink[];      // Flow/audit trail links
     question_answer?: RefLink[]; // Q&A items

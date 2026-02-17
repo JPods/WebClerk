@@ -58,7 +58,7 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
 
   const record = (data ?? {}) as AnyRecord;
   const contacts: AnyRecord[] = record.refs?.links?.contact ?? [];
-  const locations: AnyRecord[] = record.refs?.links?.location ?? [];
+  const locations: AnyRecord[] = record.refs?.links?.address ?? [];
 
   const shippingContact = contacts.find((c) => c.purpose === "shipto");
   const shippingLocation = locations.find((l) => l.type === "shipto");

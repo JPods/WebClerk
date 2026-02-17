@@ -118,10 +118,8 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'communications/phones': 'phone',
   'communications/domain': 'domain',
   'communications/domains': 'domain',
-  'communications/address': 'location',
-  'communications/addresses': 'location',
-  'communications/location': 'location',
-  'communications/locations': 'location',
+  'communications/address': 'address',
+  'communications/addresses': 'address',
   
   // Accounts
   'accounts/gl-account': 'gl_account',

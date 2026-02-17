@@ -70,7 +70,7 @@ const MODEL_CONFIGS = {
   'bundle': { title: 'Bundle', fields: ['id', 'name', 'items', 'status'] },
   
   // Communications
-  'location': { title: 'Location', fields: ['id', 'name', 'address', 'city', 'country'] },
+  'address': { title: 'Address', fields: ['id', 'name', 'address', 'city', 'country'] },
   'phone': { title: 'Phone', fields: ['id', 'number', 'type', 'is_primary'] },
   'domain': { title: 'Domain', fields: ['id', 'name', 'status'] },
   'email': { title: 'Email', fields: ['id', 'address', 'type', 'is_primary'] },

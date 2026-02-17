@@ -8,7 +8,7 @@ NOT: email.address
 
 DO:  refs.links.email=[{“id": 6, "name": "work", "address": "samirbiswas47@gmail.com”},{“id": 63, "name": “home”, "address": "samir@gmail.com"}]
 
-refs.links.location=[{"id":223, "name": "home", address_full:"
+refs.links.address=[{"id":223, "name": "home", address_full:"
 3939 E 60th Pl
 Tulsa, OK 74135
 US"}]

@@ -413,7 +413,7 @@ export interface PhoneLink extends RefLink {
   format?: string;
 }
 
-/** Address link - matches Django LINK_DENORMALIZE_FIELDS.location */
+/** Address link - matches Django LINK_DENORMALIZE_FIELDS.address */
 export interface AddressLink extends RefLink {
   address1?: string;
   address2?: string;

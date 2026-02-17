@@ -22,7 +22,7 @@ export const modelRegistry: ModelRegistration[] = [
   // communications
   { app: "communications", model: "domain", label: kebabCaseToTitle("domain") },
   { app: "communications", model: "email", label: kebabCaseToTitle("email") },
-  { app: "communications", model: "location", label: kebabCaseToTitle("location") },
+  { app: "communications", model: "address", label: kebabCaseToTitle("address") },
   { app: "communications", model: "phone", label: kebabCaseToTitle("phone") },
 
   // core

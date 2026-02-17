@@ -298,7 +298,7 @@ Plus ALL BaseModel inherited fields (id, uuid, ida, metadata, refs, prefs, comme
   "description": "",
   "description_text": "",
   "time_lead": null,
-  "locations": [],
+  "addresses": [],
   "unit_measure": "",
   "sequence": 0,
   "line_number": 0,

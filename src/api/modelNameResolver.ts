@@ -78,7 +78,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
 
   // Core
   contact: "contact",
-  location: "location",
   address: "address",
   setting: "setting",
   report: "report",
@@ -166,7 +165,7 @@ const PATH_PATTERN_MAP: Record<string, string> = {
 
   // Core
   "core/contact": "contact",
-  "core/location": "location",
+  "core/address": "address",
   "core/setting": "setting",
   "core/action": "action",
   "core/template": "template",

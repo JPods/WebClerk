@@ -488,7 +488,7 @@ export default function ContactDetail({
     ),
     addresses: getCommsArray(
       data?.communications?.addresses,
-      data?.refs?.links?.location,
+      data?.refs?.links?.address,
     ),
     domains: getCommsArray(
       data?.communications?.domains,
@@ -509,7 +509,7 @@ export default function ContactDetail({
         ),
         addresses: getCommsArray(
           data.communications?.addresses,
-          data.refs?.links?.location,
+          data.refs?.links?.address,
         ),
         domains: getCommsArray(
           data.communications?.domains,
@@ -1789,7 +1789,7 @@ export default function ContactDetail({
                           ...(prev?.refs?.links || data?.refs?.links || {}),
                           email: comms.emails || [],
                           phone: comms.phones || [],
-                          location: comms.addresses || [],
+                          address: comms.addresses || [],
                           domain: comms.domains || [],
                         },
                       },

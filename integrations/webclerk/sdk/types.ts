@@ -311,7 +311,7 @@ export interface paths {
         patch: operations["comm_emails_partial_update"];
         trace?: never;
     };
-    "/comm/locations/": {
+    "/comm/addresses/": {
         parameters: {
             query?: never;
             header?: never;
@@ -319,23 +319,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Locationes
-         * @description Retrieve a list of locations, filtered by user role permissions from settings.
+         * List Addresses
+         * @description Retrieve a list of addresses, filtered by user role permissions from settings.
          */
-        get: operations["comm_locations_list"];
+        get: operations["comm_addresses_list"];
         put?: never;
         /**
-         * Create Location
-         * @description Create a new location and link to a contact, restricted by role-based editable fields.
+         * Create Address
+         * @description Create a new address and link to a contact, restricted by role-based editable fields.
          */
-        post: operations["comm_locations_create"];
+        post: operations["comm_addresses_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/comm/locations/{id}/": {
+    "/comm/addresses/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -343,25 +343,25 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Location
-         * @description Retrieve a specific location by ID, filtered by user role permissions from settings.
+         * Get Address
+         * @description Retrieve a specific address by ID, filtered by user role permissions from settings.
          */
-        get: operations["comm_locations_retrieve"];
-        /** @description Handles retrieving, updating, and deleting a location with role-based field access. */
-        put: operations["comm_locations_update"];
+        get: operations["comm_addresses_retrieve"];
+        /** @description Handles retrieving, updating, and deleting an address with role-based field access. */
+        put: operations["comm_addresses_update"];
         post?: never;
         /**
-         * Delete Location
-         * @description Delete a location and remove from contact refs, restricted by role-based permissions.
+         * Delete Address
+         * @description Delete an address and remove from contact refs, restricted by role-based permissions.
          */
-        delete: operations["comm_locations_destroy"];
+        delete: operations["comm_addresses_destroy"];
         options?: never;
         head?: never;
         /**
-         * Update Location
-         * @description Update a location (partial update), restricted by role-based editable fields.
+         * Update Address
+         * @description Update an address (partial update), restricted by role-based editable fields.
          */
-        patch: operations["comm_locations_partial_update"];
+        patch: operations["comm_addresses_partial_update"];
         trace?: never;
     };
     "/comm/phones/": {
@@ -2633,11 +2633,11 @@ export interface components {
             readonly version: number;
             readonly link_counts: string;
         };
-        /** @description Serializer for Location model with role-based field filtering.
+        /** @description Serializer for Address model with role-based field filtering.
          *
          *     Removed legacy/non-existent fields: 'comment', 'dt_verified'. Added standard
          *     audit + active/version fields for parity with other serializers. */
-        Location: {
+        Address: {
             readonly id: number;
             /** Format: uuid */
             readonly uuid: string | null;
@@ -2829,7 +2829,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Linkage"][];
         };
-        PaginatedLocationList: {
+        PaginatedAddressList: {
             /** @example 123 */
             count: number;
             /**
@@ -2842,7 +2842,7 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["Location"][];
+            results: components["schemas"]["Address"][];
         };
         PaginatedPendingList: {
             /** @example 123 */
@@ -3382,11 +3382,11 @@ export interface components {
             readonly version?: number;
             readonly link_counts?: string;
         };
-        /** @description Serializer for Location model with role-based field filtering.
+        /** @description Serializer for Address model with role-based field filtering.
          *
          *     Removed legacy/non-existent fields: 'comment', 'dt_verified'. Added standard
          *     audit + active/version fields for parity with other serializers. */
-        PatchedLocation: {
+        PatchedAddress: {
             readonly id?: number;
             /** Format: uuid */
             readonly uuid?: string | null;
@@ -5035,7 +5035,7 @@ export interface operations {
             };
         };
     };
-    comm_locations_list: {
+    comm_addresses_list: {
         parameters: {
             query?: {
                 /** @description Which field to use when ordering the results. */
@@ -5058,7 +5058,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedLocationList"];
+                    "application/json": components["schemas"]["PaginatedAddressList"];
                 };
             };
             /** @description Unauthorized */
@@ -5077,7 +5077,7 @@ export interface operations {
             };
         };
     };
-    comm_locations_create: {
+    comm_addresses_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -5086,9 +5086,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Location"];
-                "application/x-www-form-urlencoded": components["schemas"]["Location"];
-                "multipart/form-data": components["schemas"]["Location"];
+                "application/json": components["schemas"]["Address"];
+                "application/x-www-form-urlencoded": components["schemas"]["Address"];
+                "multipart/form-data": components["schemas"]["Address"];
             };
         };
         responses: {
@@ -5097,7 +5097,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Address"];
                 };
             };
             /** @description Invalid data */
@@ -5123,7 +5123,7 @@ export interface operations {
             };
         };
     };
-    comm_locations_retrieve: {
+    comm_addresses_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -5139,7 +5139,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Address"];
                 };
             };
             /** @description Unauthorized */
@@ -5165,7 +5165,7 @@ export interface operations {
             };
         };
     };
-    comm_locations_update: {
+    comm_addresses_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5176,9 +5176,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Location"];
-                "application/x-www-form-urlencoded": components["schemas"]["Location"];
-                "multipart/form-data": components["schemas"]["Location"];
+                "application/json": components["schemas"]["Address"];
+                "application/x-www-form-urlencoded": components["schemas"]["Address"];
+                "multipart/form-data": components["schemas"]["Address"];
             };
         };
         responses: {
@@ -5187,12 +5187,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Address"];
                 };
             };
         };
     };
-    comm_locations_destroy: {
+    comm_addresses_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -5233,7 +5233,7 @@ export interface operations {
             };
         };
     };
-    comm_locations_partial_update: {
+    comm_addresses_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -5244,9 +5244,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedLocation"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedLocation"];
-                "multipart/form-data": components["schemas"]["PatchedLocation"];
+                "application/json": components["schemas"]["PatchedAddress"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAddress"];
+                "multipart/form-data": components["schemas"]["PatchedAddress"];
             };
         };
         responses: {
@@ -5255,7 +5255,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Address"];
                 };
             };
             /** @description Invalid data */

@@ -7,7 +7,7 @@
  * Data sources:
  * - refs.links.email: [{id, email, name, type, is_primary}]
  * - refs.links.phone: [{id, number, format, name}]
- * - refs.links.location: [{id, address1, city, state, zip, country, full}]
+ * - refs.links.address: [{id, address1, city, state, zip, country, full}]
  * - refs.links.domain: [{id, domain, name, is_primary}]
  *
  * Role-based access:
@@ -804,8 +804,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         return;
       }
 
-      // Map link type to refs.links key (address -> location)
-      const linksKey = type === "address" ? "location" : type;
+      // Map link type to refs.links key
+      const linksKey = type;
 
       // Save to contact's refs.links.{type} via /wcapi/save/
       await saveRecord("contact", {
@@ -911,7 +911,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
     setIsSaving(true);
     try {
-      // Save to contact's refs.links.location
+      // Save to contact's refs.links.address
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
@@ -1035,8 +1035,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         return;
       }
 
-      // Map link type to refs.links key (address -> location)
-      const linksKey = type === "address" ? "location" : type;
+      // Map link type to refs.links key
+      const linksKey = type;
 
       console.log("[CommunicationsPanel] handleSave:", {
         type,

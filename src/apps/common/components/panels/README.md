@@ -99,7 +99,7 @@ These should appear as tabs on every model that supports them:
 | Linkage | `LinkagesPanel` | Linkage API | Cross-table record flow tracking |
 | Shipping | `ShippingPanel` | `.shipping` | Carrier, tracking, weight, FOB |
 | Basic Info | `BasicInformationPanel` | Org scalars | Name, email, phone, company, title |
-| Communications | `CommunicationsPanel` | `.refs.links.{email,phone,location,domain}` | Email/phone/address/domain CRUD |
+| Communications | `CommunicationsPanel` | `.refs.links.{email,phone,address,domain}` | Email/phone/address/domain CRUD |
 
 ### Contact Sub-Panels (accessed via CommunicationsPanel)
 
@@ -109,7 +109,7 @@ These are managed through `CommunicationsPanel` with direct API persistence:
 |-------------|-----------|----------------|--------|
 | Email | `email` | `.refs.links.email` | address, name, type, is_primary |
 | Phone | `phone` | `.refs.links.phone` | number, format, name, type |
-| Address | `address` | `.refs.links.location` | address1/2, city, state, zip, country |
+| Address | `address` | `.refs.links.address` | address1/2, city, state, zip, country |
 | Domain | `domain` | `.refs.links.domain` | domain, name, type, is_primary |
 
 ### Admin / Developer Panels

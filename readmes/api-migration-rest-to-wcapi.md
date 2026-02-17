@@ -217,7 +217,7 @@ buildDeleteBody('customer', 42);
 | `/api/products/warehouse/*` | `warehouse` |
 | `/api/communications/email/*` | `email` |
 | `/api/communications/phone/*` | `phone` |
-| `/api/communications/address/*` | `location` |
+| `/api/communications/address/*` | `address` |
 | `/api/accounts/gl-account/*` | `gl_account` |
 | `/api/accounts/currency/*` | `currency` |
 | `/api/docs/document/*` | `document` |

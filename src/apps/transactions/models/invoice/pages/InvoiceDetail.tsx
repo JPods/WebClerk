@@ -559,8 +559,8 @@ const ShippingTab: React.FC<{
   const shippingContact = data.refs?.links?.contact?.find(
     (c) => c.purpose === "shipto",
   );
-  // Get shipping location if available
-  const shippingLocation = data.refs?.links?.location?.find(
+  // Get shipping address if available
+  const shippingLocation = data.refs?.links?.address?.find(
     (l) => l.type === "shipto",
   );
 

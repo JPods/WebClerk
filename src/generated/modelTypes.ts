@@ -621,11 +621,11 @@ export interface UpdateEmailRequest {
   type?: string;  // choices: , work, personal, support, billing, other | max_length=50
 }
 
-// ── Location ──
+// ── Address ──
 // Django: communications.Address  table: locations
-// wcapi model_name: "location"
+// wcapi model_name: "address"
 
-export interface LocationRecord {
+export interface AddressRecord {
   id?: number;  // read-only
   uuid?: string | null;  // read-only | max_length=32
   ida?: string;  // max_length=40
@@ -656,7 +656,7 @@ export interface LocationRecord {
   zip?: string;  // max_length=255
 }
 
-export interface CreateLocationRequest {
+export interface CreateAddressRequest {
   ida?: string;  // max_length=40
   address1?: string;  // max_length=255
   address2?: string;  // max_length=255
@@ -673,7 +673,7 @@ export interface CreateLocationRequest {
   zip?: string;  // max_length=255
 }
 
-export interface UpdateLocationRequest {
+export interface UpdateAddressRequest {
   id: number | string;
   ida?: string;  // max_length=40
   address1?: string;  // max_length=255
