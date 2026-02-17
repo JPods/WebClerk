@@ -38,13 +38,11 @@ import {
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
 // Panel Components
-import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
-
 // API & State
 import { createDomain, updateDomain } from "../services/domainApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -52,7 +50,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
-
+//import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -174,8 +172,7 @@ export default function DomainDetail({
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
-
-  const { activeTab, setActiveTab } = useDetailTabs("domain", "contacts");
+  const { activeTab, setActiveTab } = useDetailTabs("domain", "comments");
   const { columnCount, setColumnCount } = useColumnCount("domain", 3);
 
   // ---------------------------------------------------------------------------
@@ -292,23 +289,12 @@ export default function DomainDetail({
     : "New Domain";
 
   const domainType = watch("type") || data?.type;
-
   // ---------------------------------------------------------------------------
   // Render Tab Content
   // ---------------------------------------------------------------------------
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "contacts":
-        return (
-          <ContactLinksPanel
-            entityType="domain"
-            entityId={data?.id}
-            data={data?.refs?.links?.contact}
-            isEditing={isEditing}
-          />
-        );
-
       case "comments":
         return (
           <CommentsPanel
@@ -355,7 +341,6 @@ export default function DomainDetail({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* ─── HEADER ─── */}
@@ -475,6 +460,7 @@ export default function DomainDetail({
         )}
       </div>
 
+      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
       {/* ─── TAB NAVIGATION ─── */}
       {activeDomainId && data?.id && (
         <>
@@ -482,13 +468,7 @@ export default function DomainDetail({
             entityType="domain"
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            standardTabs={[
-              "contacts",
-              "comments",
-              "actions",
-              "documents",
-              "raw",
-            ]}
+            standardTabs={["comments", "actions", "documents", "raw"]}
             showColumnSelector
             columnCount={columnCount}
             onColumnCountChange={setColumnCount}

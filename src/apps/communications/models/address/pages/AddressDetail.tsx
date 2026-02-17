@@ -38,14 +38,12 @@ import {
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
 // Panel Components
-import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import { FinancialsPanel } from "@/apps/common/components/panels";
-
 // API & State
 import { createAddress, updateAddress } from "../services/addressApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -53,7 +51,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
-
+//import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -174,8 +172,7 @@ export default function AddressDetail({
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
-
-  const { activeTab, setActiveTab } = useDetailTabs("address", "contacts");
+  const { activeTab, setActiveTab } = useDetailTabs("address", "comments");
   const { columnCount, setColumnCount } = useColumnCount("address", 3);
 
   // ---------------------------------------------------------------------------
@@ -268,23 +265,12 @@ export default function AddressDetail({
   const displayName = data
     ? data.name || data.address1 || data.full || `Address #${data.id}`
     : "New Address";
-
   // ---------------------------------------------------------------------------
   // Render Tab Content
   // ---------------------------------------------------------------------------
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "contacts":
-        return (
-          <ContactLinksPanel
-            entityType="address"
-            entityId={data?.id}
-            data={data?.refs?.links?.contact}
-            isEditing={isEditing}
-          />
-        );
-
       case "comments":
         return (
           <CommentsPanel
@@ -393,11 +379,13 @@ export default function AddressDetail({
             isDirty={isDirty}
             isSaving={isSubmitting}
             isEditing
-            onSave={handleSubmit(onSubmit)}
-            onSaveAndClose={handleSubmit(async (fd) => {
-              await onSubmit(fd);
-              handleCancel();
-            })}
+            onSave={() => handleSubmit(onSubmit)()}
+            onSaveAndClose={async () => {
+              await handleSubmit(async (fd) => {
+                await onSubmit(fd);
+                handleCancel();
+              })();
+            }}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -592,6 +580,7 @@ export default function AddressDetail({
         )}
       </div>
 
+      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
       {/* ─── TAB NAVIGATION ─── */}
       {activeAddressId && data?.id && (
         <>
@@ -600,7 +589,6 @@ export default function AddressDetail({
             activeTab={activeTab}
             onTabChange={setActiveTab}
             standardTabs={[
-              "contacts",
               "comments",
               "actions",
               "documents",
