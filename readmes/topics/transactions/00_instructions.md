@@ -260,8 +260,12 @@ Background dispatch via Celery — see `readmes/topics/infrastructure/celery-red
 
 Documented in `readmes/09-transaction-calc-status.md`:
 
-1. **Quantity key mismatch**: React2025 sends `ordered`, backend reads `placed` — extended = 0
-2. **Header totals signal gap**: Only `ProposalLine` has a post-save signal for totals recalculation; Order/Invoice/Purchase lines do not
+1. **Quantity key mismatch**: React2025 sends `ordered`, backend reads `placed` — extended = 0.
+   Transfer services also use legacy keys (`ordered`, `invoiced`, `packed`).
+   Canonical keys are `placed` / `actioned` / `remaining` per `default_quantity()`.
+   See `transaction_flow_test_plan.md` §8 for the alignment action items.
+2. **Header totals signal gap**: Only `ProposalLine` has a post-save signal for totals recalculation; Order/Invoice/Purchase lines do not.
+   See `transaction_flow_test_plan.md` §4b for status.
 
 ---
 
@@ -281,6 +285,7 @@ Documented in `readmes/09-transaction-calc-status.md`:
 | `proposal_submission_flow.md` | Proposal-specific submission workflow |
 | `currency-updates.md` | Multi-currency handling |
 | `commissions.md` | Commission calculation (stub) |
+| `transaction_flow_test_plan.md` | Test plan: FK, lineage, quantity flow, totals, e2e |
 
 ### Elsewhere
 
@@ -301,7 +306,7 @@ Documented in `readmes/09-transaction-calc-status.md`:
         ┌───────┴───────┐
         ▼               ▼
    ┌─────────┐    ┌──────────┐
-   │  Order  │    │ Purchase │
+   │  Order  │ -> │ Purchase │
    └────┬────┘    └─────┬────┘
         │               │
         ▼               ▼

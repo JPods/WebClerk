@@ -181,7 +181,18 @@ def register_line_header_links(line_model, parent_attr: str, link_key: str):
 
 
 def register_line_totals_signals(line_model, parent_attr: str):
-    """Register post_save/post_delete signals that update parent totals."""
+    """Register post_save/post_delete signals that auto-recalculate parent totals.
+
+    When a line is saved or deleted, calls parent.update_sell_cost_totals(persist=True)
+    which triggers the matching compute_*_sell_cost_totals() aggregation.
+
+    IMPORTANT: Currently only wired for ProposalLine (see bottom of this file).
+    OrderLine, InvoiceLine, PurchaseLine, and WorkOrderLine do NOT auto-recalc
+    totals — callers must invoke header.update_sell_cost_totals(persist=True)
+    explicitly after modifying lines.
+
+    See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
+    """
 
     @receiver(post_save, sender=line_model)
     def update_totals_on_save(sender, instance, **kwargs):
@@ -198,6 +209,10 @@ def register_line_totals_signals(line_model, parent_attr: str):
 
 # =============================================================================
 # REGISTER ALL 5 LINE TYPES
+#
+# All 5 line types get inventory tracking + header-link maintenance signals.
+# Only ProposalLine gets the totals auto-recalc signal.
+# See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
 # =============================================================================
 
 _LINE_CONFIG = [
@@ -213,7 +228,8 @@ for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
     register_line_inventory_signals(_model, _parent, _key, _txn)
     register_line_header_links(_model, _parent, _link)
 
-# ProposalLine also triggers parent totals recalculation
+# ProposalLine also triggers parent totals recalculation.
+# TODO: Wire totals signals for OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine.
 register_line_totals_signals(ProposalLine, 'parent')
 
 

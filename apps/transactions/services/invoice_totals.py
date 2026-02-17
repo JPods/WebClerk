@@ -10,12 +10,25 @@ def _d(x: Any, places: int = 2) -> Decimal:
         return Decimal(0)
 
 def compute_invoice_sell_cost_totals(invoice) -> Dict[str, Dict[str, float]]:
+    """Aggregate sell and cost totals from all invoice lines.
+
+    Same pattern as compute_order_sell_cost_totals — iterates invoice.lines.all()
+    and sums price.extended → sell.total, cost.* → cost.total, then computes
+    margin = sell.total − cost.total.
+
+    Called by Invoice.update_sell_cost_totals(persist=True).
+    NOTE: No post_save signal is wired for InvoiceLine yet — must be called
+    explicitly by the save view or transfer service.
+
+    See: readmes/topics/transactions/transactions-totals.md §3
+    """
     sell_goods = Decimal(0); sell_discount = Decimal(0)
     cost_goods = Decimal(0); cost_tax = Decimal(0); cost_shipping = Decimal(0)
     cost_handling = Decimal(0); cost_freight = Decimal(0); cost_commissions = Decimal(0)
 
+    # --- Iterate all lines and accumulate sell + cost components ---
     for ln in invoice.lines.all():
-        p = ln.price or {}; c = ln.cost or {}
+        p = ln.price or {}; c = ln.cost or {}  # sell + cost envelopes
         sell_goods += _d(p.get("extended", 0))
         sell_discount += _d(p.get("discount_amount", 0))
         cost_goods += _d(c.get("extended", 0))
