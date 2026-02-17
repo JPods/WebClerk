@@ -1,20 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
 interface AddressListMobProps {
   dataProp: dynamicData[];
+  selectedAddress?: dynamicData | null;
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
 }
 
 export default function AddressListMob({
   dataProp,
+  selectedAddress,
   handleView,
   handleEdit,
 }: AddressListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedAddress?.id && dataProp?.length) {
+      const idx = dataProp.findIndex(
+        (item) => String(item.id) === String(selectedAddress.id),
+      );
+      setOpenIndex(idx >= 0 ? idx : null);
+    } else {
+      setOpenIndex(null);
+    }
+  }, [selectedAddress, dataProp]);
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (
@@ -33,7 +46,7 @@ export default function AddressListMob({
             }}
           >
             {/* Accordion Content */}
-            <div className="flex flex-col min-h-[220px]">
+            <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
@@ -45,27 +58,6 @@ export default function AddressListMob({
                 <p>
                   <strong>Type:</strong> {address.address_type || "--"}
                 </p>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
-                <button
-                  onClick={() => handleView(address)}
-                  title="View"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-green-600"
-                >
-                  <FaEye className="text-green-600 hover:scale-110" />
-                </button>
-
-                <button
-                  onClick={() => handleEdit(address)}
-                  title="Edit"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-blue-600"
-                >
-                  <FaEdit className="text-blue-600 hover:scale-110" />
-                </button>
               </div>
             </div>
           </AccordionItem>

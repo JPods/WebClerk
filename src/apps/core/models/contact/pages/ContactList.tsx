@@ -442,13 +442,17 @@ const ContactList = () => {
 
   // Handle edit action
   const handleEdit = async (row: ContactData) => {
+    // Set selected item immediately using row data
+    setSelectedContact(row);
+    setFormMode("edit");
+
+    // Optionally fetch fresh data
     try {
       const res = await getRecord("contact", Number(row.id));
-      setSelectedContact(res.record);
+      if (res.record) setSelectedContact(res.record);
     } catch {
-      setSelectedContact(row);
+      // Keep using row data on error
     }
-    setFormMode("edit");
   };
 
   // Handle add new action - navigate to separate page
@@ -493,6 +497,7 @@ const ContactList = () => {
               <div className="flex flex-col">
                 <ContactListMob
                   dataProp={data}
+                  selectedContact={selectedContact}
                   handleView={handleView}
                   handleEdit={handleEdit}
                   emptyMessage={emptyStateMessage}

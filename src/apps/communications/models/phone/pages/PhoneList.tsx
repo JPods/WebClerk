@@ -67,10 +67,23 @@ export default function PhoneList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchPhones(row.id);
-    if (res.status === 200) setSelectedPhone(res.data.items);
-    else setSelectedPhone(row);
+    // Set selected item immediately using row data
+    setSelectedPhone(row);
     setFormMode("edit");
+
+    // Optionally fetch fresh data
+    try {
+      const res = await fetchPhones(row.id);
+      if (res.status === 200 && res.data.items) {
+        const items = res.data.items;
+        const item = Array.isArray(items)
+          ? items.find((i: dynamicData) => String(i.id) === String(row.id))
+          : items;
+        if (item) setSelectedPhone(item);
+      }
+    } catch (error) {
+      // Keep using row data on error
+    }
   };
 
   const handleAdd = () => {
@@ -233,61 +246,60 @@ export default function PhoneList() {
       <PageBreadcrumb pageTitle="Phone List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-              {!formMode ? (
-                <div className="flex flex-col">
-                  <PhoneListMob
-                    dataProp={data}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                  />
-                </div>
-              ) : (
-                <AdvancedDataTable
-                  data={data}
-                  columns={userColumns}
-                  title="Phones"
-                  storageKey="communications.phone.list"
-                  loading={loading}
-                  filters={filters}
-                  enableExport={true}
-                  enableSelection={true}
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  onSelectionChange={setSelectedPhones}
-                  exportFileName="phones_export"
-                  searchPlaceholder="Search phones..."
-                  noDataMessage="No phones found"
-                  customActions={
-                    <div className="flex gap-2">
-                      {selectedPhones.length > 0 && (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                          Delete ({selectedPhones.length})
-                        </button>
-                      )}
-                      <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <FaPlus className="w-4 h-4" />
-                        New Phone
-                      </button>
-                    </div>
-                  }
-                  onRowClicked={handleEdit}
-                  rowClickMode="onlyIdAndActions"
-                  rowClickAllowedColumnNames={["id", "action", "actions"]}
-                  rowKeyField="id"
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <div className="flex flex-col">
+                <PhoneListMob
+                  dataProp={data}
+                  selectedPhone={selectedPhone}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={userColumns}
+                title="Phones"
+                storageKey="communications.phone.list"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
+                onSelectionChange={setSelectedPhones}
+                exportFileName="phones_export"
+                searchPlaceholder="Search phones..."
+                noDataMessage="No phones found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedPhones.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedPhones.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Phone
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+                rowClickMode="onlyIdAndActions"
+                rowClickAllowedColumnNames={["id", "action", "actions"]}
+                rowKeyField="id"
+              />
+            )}
           </ComponentCard>
         </div>
         {formMode && (

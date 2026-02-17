@@ -8,6 +8,6 @@ export const emailSchema = z.object({
   name: z.string().min(1, "Name is required"),
   attention: z.string().optional(),
   opt_out: z.string().optional(),
-  is_primary: z.boolean().default(false),
-  is_verified: z.boolean().default(false),
+  is_primary: z.boolean(),
+  is_verified: z.boolean(),
 });

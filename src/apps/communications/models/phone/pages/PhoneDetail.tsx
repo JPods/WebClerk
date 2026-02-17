@@ -38,13 +38,11 @@ import {
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
 // Panel Components
-import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
-
 // API & State
 import { createPhone, updatePhone } from "../services/phoneApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -52,7 +50,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
-
+//import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -159,6 +157,11 @@ export default function PhoneDetail({
     defaultValues: { opt_out: false },
   });
 
+  // Strongly type handleSubmit to use the correct form data type
+  const typedHandleSubmit = handleSubmit as unknown as (
+    onValid: (data: z.infer<typeof phoneSchema>) => void | Promise<void>,
+  ) => (e?: React.BaseSyntheticEvent) => Promise<void>;
+
   useEffect(() => {
     if (effectiveMode === "add") {
       reset();
@@ -176,8 +179,7 @@ export default function PhoneDetail({
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
-
-  const { activeTab, setActiveTab } = useDetailTabs("phone", "contacts");
+  const { activeTab, setActiveTab } = useDetailTabs("phone", "comments");
   const { columnCount, setColumnCount } = useColumnCount("phone", 3);
 
   // ---------------------------------------------------------------------------
@@ -272,23 +274,12 @@ export default function PhoneDetail({
     : "New Phone";
 
   const optOut = watch("opt_out") ?? data?.opt_out;
-
   // ---------------------------------------------------------------------------
   // Render Tab Content
   // ---------------------------------------------------------------------------
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "contacts":
-        return (
-          <ContactLinksPanel
-            entityType="phone"
-            entityId={data?.id}
-            data={data?.refs?.links?.contact}
-            isEditing={isEditing}
-          />
-        );
-
       case "comments":
         return (
           <CommentsPanel
@@ -335,7 +326,6 @@ export default function PhoneDetail({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* ─── HEADER ─── */}
@@ -428,7 +418,7 @@ export default function PhoneDetail({
           </div>
         ) : (
           /* ── Editable form ── */
-          <form id="phone-form" onSubmit={handleSubmit(onSubmit)}>
+          <form id="phone-form" onSubmit={typedHandleSubmit(onSubmit)}>
             <div
               className={`grid grid-cols-1 ${
                 columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
@@ -524,6 +514,7 @@ export default function PhoneDetail({
         )}
       </div>
 
+      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
       {/* ─── TAB NAVIGATION ─── */}
       {activePhoneId && data?.id && (
         <>
@@ -531,13 +522,7 @@ export default function PhoneDetail({
             entityType="phone"
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            standardTabs={[
-              "contacts",
-              "comments",
-              "actions",
-              "documents",
-              "raw",
-            ]}
+            standardTabs={["comments", "actions", "documents", "raw"]}
             showColumnSelector
             columnCount={columnCount}
             onColumnCountChange={setColumnCount}

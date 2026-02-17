@@ -27,6 +27,6 @@ export const deleteAddress = async (id: number) => {
 };
 
 export const fetchAddresses = async (params?: any) => {
-  const res = await getRecords("address", params);
+  const res = await getRecords(MODEL_NAME, params);
   return { status: 200, data: { items: res.results || [] } };
 };

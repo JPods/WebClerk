@@ -16,8 +16,8 @@ export interface CreateAddressRequest {
   state: string;
   zip: string;
   country: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | string;
+  longitude: number | string;
 }
 
 export interface AddressApiTask {
@@ -29,8 +29,8 @@ export interface AddressApiTask {
   state: string;
   zip: string;
   country: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | string;
+  longitude: number | string;
 }
 
 export interface UpdateAddressRequest {
@@ -43,6 +43,6 @@ export interface UpdateAddressRequest {
   state: string;
   zip: string;
   country: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | string;
+  longitude: number | string;
 }

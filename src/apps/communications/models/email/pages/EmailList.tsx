@@ -13,7 +13,7 @@ import { useDispatch } from "react-redux";
 import EmailDetail from "./EmailDetail";
 import Badge from "@/components/ui/badge/Badge";
 import { dynamicData } from "../../../../../model/dynamicData";
-import EmailListMobile from "../components/EmailListMobile";
+import EmailListMob from "./EmailListMob";
 
 export default function EmailList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -70,14 +70,23 @@ export default function EmailList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
+    // Set selected item immediately using row data
+    setSelectedEmail(row);
+    setFormMode("edit");
+
+    // Optionally fetch fresh data
     try {
       const res = await fetchEmails(row.id);
-      if (res.status === 200) setSelectedEmail(res.data.items);
-      else setSelectedEmail(row);
+      if (res.status === 200 && res.data.items) {
+        const items = res.data.items;
+        const item = Array.isArray(items)
+          ? items.find((i: dynamicData) => String(i.id) === String(row.id))
+          : items;
+        if (item) setSelectedEmail(item);
+      }
     } catch (error) {
-      setSelectedEmail(row);
+      // Keep using row data on error
     }
-    setFormMode("edit");
   };
 
   const handleAdd = () => {
@@ -252,61 +261,60 @@ export default function EmailList() {
       <PageBreadcrumb pageTitle="Email List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-[#1e2636] h-[calc(100vh-265px)]">
-              {formMode ? (
-                <div className="flex flex-col">
-                  <EmailListMobile
-                    dataProp={data}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                  />
-                </div>
-              ) : (
-                <AdvancedDataTable
-                  data={data}
-                  columns={userColumns}
-                  title="Emails"
-                  storageKey="communications.email.list"
-                  loading={loading}
-                  filters={filters}
-                  enableExport={true}
-                  enableSelection={true}
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  onSelectionChange={setSelectedEmails}
-                  exportFileName="emails_export"
-                  searchPlaceholder="Search emails, names, attention..."
-                  noDataMessage="No emails found"
-                  customActions={
-                    <div className="flex gap-2">
-                      {selectedEmails.length > 0 && (
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                          Delete ({selectedEmails.length})
-                        </button>
-                      )}
-                      <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <FaPlus className="w-4 h-4" />
-                        New Email
-                      </button>
-                    </div>
-                  }
-                  onRowClicked={handleEdit}
-                  rowClickMode="onlyIdAndActions"
-                  rowClickAllowedColumnNames={["id", "action", "actions"]}
-                  rowKeyField="id"
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <div className="flex flex-col">
+                <EmailListMob
+                  dataProp={data}
+                  selectedEmail={selectedEmail}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={userColumns}
+                title="Emails"
+                storageKey="communications.email.list"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                enableDatabaseSearch={true}
+                searchDatabase={searchDatabase}
+                onSearchModeChange={setSearchDatabase}
+                onDatabaseSearch={handleDatabaseSearch}
+                onSelectionChange={setSelectedEmails}
+                exportFileName="emails_export"
+                searchPlaceholder="Search emails, names, attention..."
+                noDataMessage="No emails found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedEmails.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedEmails.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Email
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+                rowClickMode="onlyIdAndActions"
+                rowClickAllowedColumnNames={["id", "action", "actions"]}
+                rowKeyField="id"
+              />
+            )}
           </ComponentCard>
         </div>
         {formMode && (
