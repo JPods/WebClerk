@@ -55,7 +55,7 @@
 ### Line Model Fields
 
 ```python
-# BaseSellLineModel (Proposal, SalesOrder, Invoice)
+# BaseSellLineModel (Proposal, Order, Invoice)
 line.quantity = {
     "placed": 10,        # User-entered quantity
     "ordered": 10,       # Original (proposals)
@@ -526,7 +526,7 @@ invoice_line.quantity = {
 
 ```python
 def convert_to_order(proposal):
-    order = SalesOrder.create_from(proposal)
+    order = Order.create_from(proposal)
     for line in order.lines:
         line.price.is_fixed = True  # Lock prices
     return order
@@ -1128,7 +1128,7 @@ blanket_line.quantity = {
 ```python
 def create_release(blanket_order, release_lines):
     """Create a release order from blanket."""
-    release = SalesOrder.objects.create(
+    release = Order.objects.create(
         parent_id=blanket_order.id,
         parent_type='blanket',
         is_release=True,

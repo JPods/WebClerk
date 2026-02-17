@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     PurchaseOrder, PurchaseOrderLine,
 )
 from apps.products.models.item import Item
@@ -19,7 +19,7 @@ def _auth(user):
 
 
 @pytest.mark.django_db
-def test_proposal_to_sales_order_action(django_user_model):
+def test_proposal_to_order_action(django_user_model):
     # Minimal permission rules for Proposal (header) actions
     Setting.objects.create(
         purpose='view_edit', model_target='proposal', is_active=True,
@@ -33,29 +33,29 @@ def test_proposal_to_sales_order_action(django_user_model):
     ProposalLine.objects.create(parent=proposal, parent_ref_id=proposal.pk, status='OPEN',
                                 item={"id_num": 1}, quantity={"ordered": 1}, price={"extended": 1})
 
-    resp = client.post(f'/tx/proposals/{proposal.pk}/convert-to-sales-order/', {}, format='json')
+    resp = client.post(f'/tx/proposals/{proposal.pk}/convert-to-order/', {}, format='json')
     assert resp.status_code == 201  # type: ignore[attr-defined]
     body = resp.data  # type: ignore[attr-defined]
     payload = body.get('data') if isinstance(body, dict) else None
     assert isinstance(payload, dict)
-    assert 'sales_order_id' in payload and 'order_no' in payload
+    assert 'order_id' in payload and 'order_no' in payload
 
 
 @pytest.mark.django_db
-def test_sales_order_to_invoice_action(django_user_model):
-    # Permission for SalesOrder header
+def test_order_to_invoice_action(django_user_model):
+    # Permission for Order header
     Setting.objects.create(
-        purpose='view_edit', model_target='sales_order', is_active=True,
+        purpose='view_edit', model_target='order', is_active=True,
         data={"USER": {"view": ["id"], "edit": ["id"]}}
     )
     user = django_user_model.objects.create_user(email='flow2@example.com', password='pass12345', role='USER')
     client = _auth(user)
 
-    so = SalesOrder.objects.create(order_no="SO-T1")
-    SalesOrderLine.objects.create(parent=so, parent_ref_id=so.pk, status='OPEN',
+    so = Order.objects.create(order_no="SO-T1")
+    OrderLine.objects.create(parent=so, parent_ref_id=so.pk, status='OPEN',
                                   price={"extended": 2}, cost={"extended": 1})
 
-    resp = client.post(f'/tx/sales-orders/{so.pk}/convert-to-invoice/', {}, format='json')
+    resp = client.post(f'/tx/orders/{so.pk}/convert-to-invoice/', {}, format='json')
     assert resp.status_code == 201  # type: ignore[attr-defined]
     body = resp.data  # type: ignore[attr-defined]
     payload = body.get('data') if isinstance(body, dict) else None

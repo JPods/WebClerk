@@ -24,7 +24,7 @@ GET /wcapi/get/?model_name=invoice&limit=20
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `model_name` | string | Yes | Model identifier (e.g., 'invoice', 'salesorder', 'contact') |
+| `model_name` | string | Yes | Model identifier (e.g., 'invoice', 'order', 'contact') |
 | `id` | integer | No | Retrieve single record by ID |
 | `fields` | string | No | Comma-separated list of fields to return |
 | `limit` | integer | No | Maximum records to return (default: 500, max: 1000) |
@@ -74,7 +74,7 @@ GET /wcapi/get/?model_name=invoice&status=complete&limit=20
 ### Get sales orders for customer
 
 ```bash
-GET /wcapi/get/?model_name=salesorder&customer_id=456&order_by=-dt_created
+GET /wcapi/get/?model_name=order&customer_id=456&order_by=-dt_created
 ```
 
 ## Response Format
@@ -135,7 +135,7 @@ Response:
   "code": 200,
   "message": "OK",
   "data": {
-    "model_names": ["invoice", "salesorder", "contact", "product"],
+    "model_names": ["invoice", "order", "contact", "product"],
     "count": 4
   }
 }

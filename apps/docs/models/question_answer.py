@@ -32,7 +32,7 @@ class QuestionAnswer(BaseModel):
     answer_id = models.IntegerField(blank=True, null=True, 
                                     help_text="ID of selected answer from Setting.data.questions[].answers[].id - set when user responds")
     
-    # Parent record linkage (e.g., sales_order, project, etc.)
+    # Parent record linkage (e.g., order, project, etc.)
     parent_model = models.CharField(max_length=100, blank=True, null=True, db_index=True,
                                    help_text="Model name of the parent record (e.g., 'order', 'customer')")
     parent_id = models.IntegerField(blank=True, null=True, db_index=True,

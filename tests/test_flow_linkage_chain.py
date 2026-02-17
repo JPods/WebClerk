@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
-from apps.transactions.models import Proposal, ProposalLine, SalesOrderLine, SalesOrder, InvoiceLine, Invoice, PurchaseOrderLine, PurchaseOrder
+from apps.transactions.models import Proposal, ProposalLine, OrderLine, Order, InvoiceLine, Invoice, PurchaseOrderLine, PurchaseOrder
 
 
 def _auth(user):
@@ -13,7 +13,7 @@ def _auth(user):
 @pytest.mark.django_db
 def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     # Minimal permissions for involved models
-    for model in ('proposal', 'sales_order', 'invoice', 'purchase_order'):
+    for model in ('proposal', 'order', 'invoice', 'purchase_order'):
         Setting.objects.create(purpose='view_edit', model_target=model, is_active=True, data={'USER': {'view': ['id'], 'edit': ['id']}})
     user = django_user_model.objects.create_user(email='linkage1@example.com', password='pass12345', role='USER')
     client = _auth(user)
@@ -22,12 +22,12 @@ def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     pl = ProposalLine.objects.create(parent=proposal, parent_ref_id=proposal.pk, status='OPEN', comments={'public':'from proposal'}, price={'extended':1})
 
     # Convert proposal -> sales order
-    resp1 = client.post(f'/tx/proposals/{proposal.pk}/convert-to-sales-order/', {}, format='json')
+    resp1 = client.post(f'/tx/proposals/{proposal.pk}/convert-to-order/', {}, format='json')
     assert resp1.status_code == 201  # type: ignore[attr-defined]
 
-    so_id = resp1.data['data']['sales_order_id']  # type: ignore[attr-defined]
-    so = SalesOrder.objects.get(pk=so_id)
-    sol = SalesOrderLine.objects.filter(parent=so).first()
+    so_id = resp1.data['data']['order_id']  # type: ignore[attr-defined]
+    so = Order.objects.get(pk=so_id)
+    sol = OrderLine.objects.filter(parent=so).first()
     assert sol is not None
     # Linkage id should now exist
     linkage_ids = (sol.refs or {}).get('links', {}).get('linkage', []) if sol.refs else []
@@ -35,7 +35,7 @@ def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     linkage_id = linkage_ids[0]
 
     # Convert sales order -> invoice
-    resp2 = client.post(f'/tx/sales-orders/{so_id}/convert-to-invoice/', {}, format='json')
+    resp2 = client.post(f'/tx/orders/{so_id}/convert-to-invoice/', {}, format='json')
     assert resp2.status_code == 201  # type: ignore[attr-defined]
     inv_id = resp2.data['data']['invoice_id']  # type: ignore[attr-defined]
     inv = Invoice.objects.get(pk=inv_id)
@@ -45,7 +45,7 @@ def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     assert inv_linkage_ids and inv_linkage_ids[0] == linkage_id
 
     # Also convert sales order -> purchase order
-    resp3 = client.post(f'/tx/sales-orders/{so_id}/convert-to-purchase-order/', {}, format='json')
+    resp3 = client.post(f'/tx/orders/{so_id}/convert-to-purchase-order/', {}, format='json')
     assert resp3.status_code == 201  # type: ignore[attr-defined]
     po_id = resp3.data['data']['purchase_order_id']  # type: ignore[attr-defined]
     po = PurchaseOrder.objects.get(pk=po_id)

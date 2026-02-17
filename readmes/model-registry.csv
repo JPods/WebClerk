@@ -44,8 +44,8 @@ purchase_receipt,transactions,apps.transactions.models.purchase_receipt.Purchase
 report,core,apps.core.models.report.Report,reports,support,reports
 requisition,transactions,apps.transactions.models.Requisition,requisitions,header,requisitions
 requisition_line,transactions,apps.transactions.models.RequisitionLine,requisition-lines,line,requisition_lines
-sales_order,transactions,apps.transactions.models.SalesOrder,sales-orders,header,sales_orders
-sales_order_line,transactions,apps.transactions.models.SalesOrderLine,sales-order-lines,line,sales_order_lines
+order,transactions,apps.transactions.models.Order,orders,header,orders
+order_line,transactions,apps.transactions.models.OrderLine,order-lines,line,order_lines
 serial_log,products,apps.products.models.serial.SerialLog,serial-logs,support,serial_logs
 setting,core,apps.core.models.setting.Setting,settings,support,settings
 tax_jurisdiction,accounts,apps.accounts.models.tax_jurisdiction.TaxJurisdiction,tax-jurisdictions,support,tax_jurisdictions

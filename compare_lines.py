@@ -107,7 +107,7 @@ print('-' * 50)
 
 test_inputs = [
     'proposal', 'proposal_line', 'proposalline', 'Proposal',
-    'order', 'order_line', 'sales_order_line', 'salesorderline',
+    'order', 'order_line',
     'invoice', 'invoice_line', 'invoiceline',
     'purchase', 'purchase_order', 'purchase_order_line', 'purchaseorderline',
     'work_order', 'work_order_line', 'workorderline',

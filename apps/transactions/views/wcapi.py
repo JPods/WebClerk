@@ -99,7 +99,7 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
 
 TRANSACTION_MODELS_WITH_LINES = {
     "proposal",
-    "salesorder",
+    "order",
     "invoice",
     "purchaseorder",
     "workorder",

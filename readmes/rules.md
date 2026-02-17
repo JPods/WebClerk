@@ -62,9 +62,9 @@ Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es
 | model_name (singular) | table key (registry, plural) | db_table (actual) |
 |-----------------------|-------------------------------|-------------------|
 | contact               | contacts                      | contacts          |
-| sales_order           | sales_orders                  | sales_orders      |
+| order                 | orders                        | orders            |
 | purchase_order        | purchase_orders               | purchase_orders   |
-| sales_order_line      | sales_order_lines             | sales_order_lines |
+| order_line            | order_lines                   | order_lines       |
 | invoice_line          | invoice_line                  | invoice_line      |
 | address               | locations                     | locations         |
 

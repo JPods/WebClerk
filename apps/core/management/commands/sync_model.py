@@ -147,7 +147,7 @@ def _resolve_model(model_name):
     Resolve a model name to a Django model class.
 
     Accepted formats:
-      - WCAPI blessed key: 'contact', 'action', 'sales_order', etc.
+      - WCAPI blessed key: 'contact', 'action', 'order', etc.
       - app_label.ModelName: 'core.Contact', 'products.Item'
     """
     blessed = getattr(settings, 'WCAPI_BLESSED_MODELS', {})

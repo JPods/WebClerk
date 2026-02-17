@@ -12,8 +12,8 @@ To facilitate transfer/rewrite, here's a mapping of common WebClerk2 table names
 |-----------------|-----------------|----------|
 | Customers | Customer | `apps/orgs/models/base_org_model.py` |
 | Contacts | Contact | `apps/core/models/contact.py` |
-| Orders | SalesOrder | `apps/transactions/models/sales_order.py` |
-| OrderLines | SalesOrderLine | `apps/transactions/models/sales_order.py` |
+| Orders | Order | `apps/transactions/models/order.py` |
+| OrderLines | OrderLine | `apps/transactions/models/order.py` |
 | Items/Products | Item | `apps/products/models/item.py` |
 | Invoices | Invoice | `apps/accounts/models/invoice.py` (if exists) |
 | Payments | Payment | `apps/transactions/models/payment.py` |

@@ -648,8 +648,6 @@ class SaveWcapiView(APIView):
             line_model_map = {
                 'proposal': 'proposalline',
                 'order': 'orderline',
-                'salesorder': 'orderline',  # backwards compatibility alias
-                'sales_order': 'orderline',  # underscore variant
                 'purchase': 'purchaseline',
                 'purchaseorder': 'purchaseline',  # backwards compatibility alias
                 'purchase_order': 'purchaseline',  # underscore variant
@@ -665,10 +663,8 @@ class SaveWcapiView(APIView):
                 # FK field name without _id suffix (Django field name, not column name)
                 # e.g., 'proposal' for ProposalLine, 'order' for OrderLine
                 fk_field_name = model_key.lower()
-                # Handle aliases like 'salesorder' -> 'order', 'purchase_order' -> 'purchase'
+                # Handle aliases like 'purchase_order' -> 'purchase'
                 fk_field_aliases = {
-                    'salesorder': 'order',
-                    'sales_order': 'order',
                     'purchaseorder': 'purchase',
                     'purchase_order': 'purchase',
                     'workorder': 'workorder',
@@ -1844,7 +1840,7 @@ class SaveWcapiView(APIView):
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'proposal'}
+        header_models = {'order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
@@ -1854,8 +1850,6 @@ class SaveWcapiView(APIView):
             # Dynamically determine line model and FK field based on parent model
             line_model_map = {
                 'order': ('OrderLine', 'order'),
-                'salesorder': ('OrderLine', 'order'),
-                'sales_order': ('OrderLine', 'order'),
                 'invoice': ('InvoiceLine', 'invoice'),
                 'purchase': ('PurchaseLine', 'purchase'),
                 'purchaseorder': ('PurchaseLine', 'purchase'),

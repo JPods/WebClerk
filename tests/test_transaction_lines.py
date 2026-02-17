@@ -5,7 +5,7 @@ import pytest
 from rest_framework.test import APIClient
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
     WorkOrder, WorkOrderLine,
@@ -26,9 +26,8 @@ def test_line_aggregation_simple(django_user_model):
     # Allow minimal view for aggregation auth (proposal_line & order_line)
     Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
-    Setting.objects.create(purpose='view_edit', model_target='sales_order_lines', is_active=True,
+    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
-    user = django_user_model.objects.create_user(email='agg@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name="P1")
     # Create two lines under the same parent with mixed numeric/string extended values
     ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN',
@@ -50,12 +49,12 @@ def test_line_aggregation_simple(django_user_model):
 
 
 @pytest.mark.django_db
-def test_multi_model_permission_sales_order_line(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='sales_order_lines', is_active=True,
+def test_multi_model_permission_order_line(django_user_model):
+    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='orderrole@example.com', password='pass12345', role='USER')
-    parent = SalesOrder.objects.create(order_no="O2")
-    SalesOrderLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN')
+    parent = Order.objects.create(order_no="O2")
+    OrderLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN')
     client = _auth(user)
     resp = client.get(f'/tx/sales-order-lines/?parent_ref_id={parent.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
@@ -165,7 +164,7 @@ def test_aggregation_invalid_model(django_user_model):
 
 @pytest.mark.django_db
 def test_unscoped_aggregation_breakdown(django_user_model):
-    for tbl in ['proposal_line','sales_order_lines']:
+    for tbl in ['proposal_line','order_lines']:
         Setting.objects.create(
             purpose='view_edit',
             model_target=tbl,
@@ -174,9 +173,9 @@ def test_unscoped_aggregation_breakdown(django_user_model):
         )
     user = django_user_model.objects.create_user(email='breakdown@example.com', password='pass12345', role='USER')
     proposal = Proposal.objects.create(name='BD')
-    order = SalesOrder.objects.create(order_no='BD1')
+    order = Order.objects.create(order_no='BD1')
     ProposalLine.objects.create(parent=proposal, parent_ref_id=proposal.pk, status='OPEN', price={'extended':'2'}, cost={'extended':'1'})
-    SalesOrderLine.objects.create(parent=order, parent_ref_id=order.pk, status='OPEN', price={'extended':'3'}, cost={'extended':'2'})
+    OrderLine.objects.create(parent=order, parent_ref_id=order.pk, status='OPEN', price={'extended':'3'}, cost={'extended':'2'})
     client = _auth(user)
     # Use proposal parent_ref_id so only proposal line counts; breakdown should reflect just that model
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={proposal.pk}')
@@ -208,15 +207,15 @@ def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
 def test_field_auth_matrix_batch(django_user_model):
     Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id","status"], "edit": ["status"]}})
-    Setting.objects.create(purpose='view_edit', model_target='sales_order_lines', is_active=True,
+    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='batch@example.com', password='pass12345', role='USER')
     client = _auth(user)
-    resp = client.get('/tx/auth/fields/batch/?models=proposal-line,sales-order-line,missing-line')
+    resp = client.get('/tx/auth/fields/batch/?models=proposal-line,order-line,missing-line')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
     models_block = data['data']['models']
-    assert 'proposal-line' in models_block and 'sales-order-line' in models_block
+    assert 'proposal-line' in models_block and 'order-line' in models_block
     assert models_block['missing-line']['error'] == 'invalid-model'
 
 @pytest.mark.django_db

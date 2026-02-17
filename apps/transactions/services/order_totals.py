@@ -72,7 +72,3 @@ def compute_order_sell_cost_totals(order) -> Dict[str, Dict[str, float]]:
     }
 
     return {"sell": sell, "cost": cost, "totals": totals}
-
-
-# Backwards compatibility alias
-compute_sales_order_sell_cost_totals = compute_order_sell_cost_totals

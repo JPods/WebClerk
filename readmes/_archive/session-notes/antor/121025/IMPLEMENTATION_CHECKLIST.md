@@ -10,14 +10,14 @@
 ### Backend Infrastructure
 - [x] **TransactionBaseModel** - Abstract base with all JSONB fields
 - [x] **Totals Field** - Persistent header-level totals (new Dec 2025)
-- [x] **All 8 Core Models** - Proposal, SalesOrder, Invoice, PurchaseOrder, Payment, WorkOrder, Requisition, Project
-- [x] **All Line Models** - ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
+- [x] **All 8 Core Models** - Proposal, Order, Invoice, PurchaseOrder, Payment, WorkOrder, Requisition, Project
+- [x] **All Line Models** - ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
 - [x] **Status Workflow** - Planned → Released → In Progress → Complete/Canceled
 
 ### Data Transfer Services
-- [x] **Proposal → SalesOrder** - `proposal_to_order.py` with line conversion
-- [x] **SalesOrder → Invoice** - `order_to_invoice.py` with tax calc
-- [x] **SalesOrder → PurchaseOrder** - `order_to_purchase.py` with vendor linking
+- [x] **Proposal → Order** - `proposal_to_order.py` with line conversion
+- [x] **Order → Invoice** - `order_to_invoice.py` with tax calc
+- [x] **Order → PurchaseOrder** - `order_to_purchase.py` with vendor linking
 - [x] **Proposal → PurchaseOrder** - `proposal_to_purchase.py` direct transfer
 - [x] **Core Flow Utilities** - `flow.py` with inventory receiving
 - [x] **Line Copy Parity** - `_copy_common_line_fields()` with JSON field handling
@@ -25,7 +25,7 @@
 
 ### Calculations & Validation
 - [x] **Proposal Totals** - `proposal_totals.py`
-- [x] **SalesOrder Totals** - `sales_order_totals.py`
+- [x] **Order Totals** - `order_totals.py`
 - [x] **Invoice Totals** - `invoice_totals.py`
 - [x] **PurchaseOrder Totals** - `purchase_order_totals.py`
 - [x] **WorkOrder Totals** - `wo_totals.py`
@@ -36,11 +36,11 @@
 
 ### API Layer
 - [x] **ProposalViewSet** - Full CRUD with conversions
-- [x] **SalesOrderViewSet** - Full CRUD with conversions
+- [x] **OrderViewSet** - Full CRUD with conversions
 - [x] **PurchaseOrderViewSet** - Full CRUD
 - [x] **InvoiceViewSet** - Full CRUD
 - [x] **PaymentViewSet** - Full CRUD
-- [x] **All Line ViewSets** - ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
+- [x] **All Line ViewSets** - ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
 - [x] **Serializers** - All transaction and line serializers with computed fields
 - [x] **Validation** - Discount, quantity, price validation in serializers
 
@@ -58,9 +58,9 @@
 
 ### URL Routing
 - [x] **Legacy Routes** - Backward-compatible conversion URLs
-  - `/proposals/{id}/convert-to-sales-order/`
-  - `/sales-orders/{id}/convert-to-invoice/`
-  - `/sales-orders/{id}/convert-to-purchase-order/`
+  - `/proposals/{id}/convert-to-order/`
+  - `/orders/{id}/convert-to-invoice/`
+  - `/orders/{id}/convert-to-purchase-order/`
 - [x] **RESTful Routes** - Standard ViewSet URL patterns
 
 ### System Health
@@ -194,7 +194,7 @@ curl -X POST http://localhost:8000/api/tx/proposals/ \
   -d '{"customer_id": 1, "status": "planned"}'
 
 # Convert to order
-curl -X POST http://localhost:8000/api/tx/proposals/1/convert-to-sales-order/ \
+curl -X POST http://localhost:8000/api/tx/proposals/1/convert-to-order/ \
   -H "Content-Type: application/json" \
   -d '{}'
 ```

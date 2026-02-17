@@ -143,7 +143,7 @@ def execute_transfer(request):
             response_data = {
                 'success': result['success'],
                 'target_id': target_id,
-                'source_id': result['sales_order_id'],
+                'source_id': result['order_id'],
                 'lines_transferred': result['lines_transferred'],
                 'line_mapping': result['line_mapping'],
                 'source_preserved': result['order_preserved'],
@@ -306,7 +306,7 @@ def bulk_transfer_proposals(request):
             results.append({
                 'proposal_id': proposal_id,
                 'success': result['success'],
-                'order_id': result.get('sales_order_id'),
+                'order_id': result.get('order_id'),
                 'lines_transferred': result.get('lines_transferred')
             })
 

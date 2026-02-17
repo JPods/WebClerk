@@ -36,12 +36,6 @@ class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
         totals = proposal.update_sell_cost_totals(persist=False)
         return Response(totals)
 
-    # Backwards-compatible alias expected by external docs/tests
-    @action(detail=True, methods=['post'], url_path='convert-to-sales-order')
-    def convert_to_sales_order(self, request, pk=None):
-        """Alias for convert_to_order to support legacy route naming."""
-        return self.convert_to_order(request, pk)
-
 
 class ProposalLineViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for ProposalLine. Writes go through /wcapi/save/."""

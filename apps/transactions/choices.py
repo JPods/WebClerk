@@ -17,7 +17,7 @@ TRANSACTION_STATUS_CHOICES: Final[ChoiceList] = (
 
 TRANSACTION_PARENT_MODEL_CHOICES: Final[ChoiceList] = (
     ("proposal", "Proposal"),
-    ("sales_order", "Sales Order"),
+    ("order", "Order"),
     ("invoice", "Invoice"),
     ("purchase_order", "Purchase Order"),
     ("workorder", "Work Order"),

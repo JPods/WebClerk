@@ -71,7 +71,7 @@ def register_line_inventory_signals(
     parent_model_key : str
         Key passed to ``LineItemService``, e.g. ``"order"``
     transaction_type : str
-        Inventory bucket key, e.g. ``"sales_order"``
+        Inventory bucket key, e.g. ``"order"``
     """
 
     @receiver(pre_save, sender=line_model)
@@ -203,7 +203,7 @@ def register_line_totals_signals(line_model, parent_attr: str):
 _LINE_CONFIG = [
     # (model,         parent_attr,  model_key,    txn_type,         link_key)
     (ProposalLine,   'parent',     'proposal',   'proposal',       'proposal_line'),
-    (OrderLine,      'order',      'order',      'sales_order',    'order_line'),
+    (OrderLine,      'order',      'order',      'order',          'order_line'),
     (InvoiceLine,    'invoice',    'invoice',    'invoice',        'invoice_line'),
     (PurchaseLine,   'purchase',   'purchase',   'purchase_order', 'purchase_line'),
     (WorkOrderLine,  'workorder',  'workorder',  'workorder',      'workorder_line'),

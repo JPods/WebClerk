@@ -170,7 +170,7 @@ class OrderToPurchaseServiceTest(TestCase):
         po = Purchase.objects.get(id=result['purchase_order_ids'][0])
         self.assertEqual(po.status, "planned")
         self.assertEqual(po.customer_id, self.customer.id)
-        self.assertEqual(po.refs['source']['sales_order_id'], self.order.id)
+        self.assertEqual(po.refs['source']['order_id'], self.order.id)
 
         # Check PO line was created
         po_lines = po.lines.all()

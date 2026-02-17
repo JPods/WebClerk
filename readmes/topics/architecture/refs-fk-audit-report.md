@@ -79,18 +79,18 @@ These are the highest-priority findings — places where both a proper FK and a 
 ### 2.3 Purchase ← Order/Proposal/Invoice (DUPLICATE via source lineage)
 
 **FK exists:** `parent_id` + `parent_model` on `TransactionBaseModel`, plus `source` JSONField on base  
-**refs also stores:** `refs.source.sales_order_id`, `refs.source.proposal_id`, `refs.source.invoice_id`, `refs.source.purchase_order_id`
+**refs also stores:** `refs.source.order_id`, `refs.source.proposal_id`, `refs.source.invoice_id`, `refs.source.purchase_order_id`
 
 | File | Lines | Description |
 |------|-------|-------------|
-| `apps/transactions/services/order_to_purchase.py` | L52 | `refs={"source": {"sales_order_id": order.id}}` |
+| `apps/transactions/services/order_to_purchase.py` | L52 | `refs={"source": {"order_id": order.id}}` |
 | `apps/transactions/services/proposal_to_purchase.py` | L29 | `refs={"source": {"proposal_id": proposal.id}}` |
 | `apps/transactions/services/invoice_to_purchase.py` | L29 | `refs={"source": {"invoice_id": invoice.pk}}` |
 | `apps/transactions/services/purchase_to_invoice.py` | L29 | `refs={"source": {"purchase_order_id": purchase.id}}` |
 | `apps/transactions/services/purchase_to_order.py` | L29 | `refs={"source": {"purchase_order_id": purchase.id}}` |
 | `apps/transactions/services/purchase_to_proposal.py` | L29 | `refs={"source": {"purchase_order_id": purchase.id}}` |
 | `apps/transactions/services/proposal_to_order.py` | L168 | `"refs": {"source": {"proposal_id": proposal.id}}` |
-| `apps/transactions/tests/test_purchase_order_services.py` | L173 | Assert `po.refs['source']['sales_order_id'] == self.order.id` |
+| `apps/transactions/tests/test_purchase_order_services.py` | L173 | Assert `po.refs['source']['order_id'] == self.order.id` |
 
 **Analysis:** Every transfer service writes the source transaction ID into `refs.source.*_id`. The base model now has a dedicated `source = models.JSONField(...)` column **plus** `parent_id`/`parent_model`. The `refs.source` is clearly redundant with the `source` column. Transfer services should be migrated to write to the `source` field instead.
 

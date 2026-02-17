@@ -39,8 +39,7 @@ from django.db import models
 # ── doesn't match the actual Django model class name.          ──
 MODEL_ALIASES: dict[str, str] = {
     "core.Audit": "core.AuditLog",
-    "transactions.SalesOrder": "transactions.Order",
-    "transactions.SalesOrderLine": "transactions.OrderLine",
+
     "transactions.PurchaseOrder": "transactions.Purchase",
     "transactions.PurchaseOrderLine": "transactions.PurchaseLine",
     "transactions.PurchaseReceipt": "transactions.Receipt",

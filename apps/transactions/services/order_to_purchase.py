@@ -49,20 +49,20 @@ def transfer_order_to_purchase(
             status=purchase_status,
             vendor_id=vendor_id,
             customer_id=order.customer_id,
-            refs={"source": {"sales_order_id": order.id}},
+            refs={"source": {"order_id": order.id}},
             metadata={"expected_delivery": None},  # Can be set later
         )
 
         for sl in lines:
-            qty = convert_quantity_from_source(sl.quantity or {}, "sales_order")
+            qty = convert_quantity_from_source(sl.quantity or {}, "order")
             pol = PurchaseLine.objects.create(
                 purchase=po,
                 cost=getattr(sl, "cost", None) or {},
                 quantity=qty,
                 item=sl.item or {},
                 refs={
-                    "source": {"sales_order_line_id": sl.id},
-                    "xfer": build_line_payload(sl, "sales_order"),
+                    "source": {"order_line_id": sl.id},
+                    "xfer": build_line_payload(sl, "order"),
                 },
                 metadata={"expected_delivery": None},  # Per line if needed
             )
@@ -89,7 +89,7 @@ def transfer_order_to_purchase(
     return {
         "success": True,
         "purchase_order_ids": [po.id for po in purchase_orders],
-        "sales_order_id": order.id,
+        "order_id": order.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,
         "order_status": purchase_status,

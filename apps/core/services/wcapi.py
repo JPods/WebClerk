@@ -77,7 +77,7 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
 
     normalized_key = (model_key or "").replace("_", "").lower()
     # Prefetch lines for transaction models
-    if normalized_key in {'proposal', 'salesorder', 'invoice', 'purchaseorder', 'workorder'}:
+    if normalized_key in {'proposal', 'order', 'invoice', 'purchaseorder', 'workorder'}:
         qs = qs.prefetch_related('lines')
 
     qs = policy.inject_constraints(qs, request=request, model_key=model_key)

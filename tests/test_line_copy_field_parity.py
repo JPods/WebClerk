@@ -1,18 +1,18 @@
 import inspect
 import pytest
 from apps.transactions.services import flow
-from apps.transactions.models import SalesOrderLine
+from apps.transactions.models import OrderLine
 
 @pytest.mark.django_db
 def test_line_copy_field_parity():
-    """Ensure every JSON-ish field on SalesOrderLine is considered in copy list.
+    """Ensure every JSON-ish field on OrderLine is considered in copy list.
 
     This guards the review process: when new JSON fields are added to BaseLineModel
     (and thus appear on concrete line models), they must be appended to
     flow.LINE_JSON_FIELDS_TO_COPY. Scalar fields are ignored.
     """
     # Representative instance (not saved) just to introspect _meta
-    model = SalesOrderLine()
+    model = OrderLine()
     json_field_names = []
     for f in model._meta.get_fields():  # type: ignore[attr-defined]
         # We only care about JSONField declared directly on line models; heuristic: internal_type == 'JSONField'

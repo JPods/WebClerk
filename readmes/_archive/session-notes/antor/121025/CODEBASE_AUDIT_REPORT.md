@@ -25,7 +25,7 @@ The transaction flow system is **substantially implemented** with core models, s
 **Verified Implementations:**
 - ✅ `TransactionBaseModel` - Abstract base with JSONB fields (cost, sell, finance, flow, source, action, totals)
 - ✅ `Proposal` - with `ProposalLine` 
-- ✅ `SalesOrder` - with `SalesOrderLine`
+- ✅ `Order` - with `OrderLine`
 - ✅ `PurchaseOrder` - with `PurchaseOrderLine`
 - ✅ `Invoice` - with `InvoiceLine`
 - ✅ `Payment` - with `PaymentMethod`, `PaymentTerm`, `PaymentApplication`
@@ -59,9 +59,9 @@ STATUS_COMPLETE, STATUS_CANCELED
 
 | Flow | Service File | Status | Notes |
 |------|--------------|--------|-------|
-| Proposal → SalesOrder | `proposal_to_order.py` | ✅ Implemented | Full transfer with line conversion |
-| SalesOrder → Invoice | `order_to_invoice.py` | ✅ Implemented | Tax calculation included |
-| SalesOrder → PurchaseOrder | `order_to_purchase.py` | ✅ Implemented | Vendor linking included |
+| Proposal → Order | `proposal_to_order.py` | ✅ Implemented | Full transfer with line conversion |
+| Order → Invoice | `order_to_invoice.py` | ✅ Implemented | Tax calculation included |
+| Order → PurchaseOrder | `order_to_purchase.py` | ✅ Implemented | Vendor linking included |
 | Proposal → PurchaseOrder | `proposal_to_purchase.py` | ✅ Implemented | Direct transfer option |
 | Core Flow Logic | `flow.py` | ✅ Implemented | Centralized with inventory receiving |
 
@@ -88,7 +88,7 @@ STATUS_COMPLETE, STATUS_CANCELED
 | Service | File | Status |
 |---------|------|--------|
 | Proposal Totals | `proposal_totals.py` | ✅ |
-| SalesOrder Totals | `sales_order_totals.py` | ✅ |
+| Order Totals | `order_totals.py` | ✅ |
 | Invoice Totals | `invoice_totals.py` | ✅ |
 | PurchaseOrder Totals | `purchase_order_totals.py` | ✅ |
 | WorkOrder Totals | `wo_totals.py` | ✅ |
@@ -147,14 +147,14 @@ All documented endpoints implemented with proper mixins:
 | ViewSet | File | Response Envelope | Pagination | Status |
 |---------|------|-------------------|------------|--------|
 | Proposal | `proposal_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
-| SalesOrder | `sales_order_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
+| Order | `order_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | PurchaseOrder | `purchase_order_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | Invoice | `invoice_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | Payment | `payment_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 
 **Line Item Views:**
 - ✅ ProposalLineListCreate, ProposalLineRetrieveUpdate
-- ✅ SalesOrderLineListCreate, SalesOrderLineRetrieveUpdate
+- ✅ OrderLineListCreate, OrderLineRetrieveUpdate
 - ✅ InvoiceLineListCreate, InvoiceLineRetrieveUpdate
 - ✅ PurchaseOrderLineListCreate, PurchaseOrderLineRetrieveUpdate
 
@@ -197,8 +197,8 @@ Features:
 | `test_proposal_integration.py` | Integration | ✅ Exists (505 lines) |
 | `test_proposal_services.py` | Service | ✅ Exists |
 | `test_proposal_e2e_scenarios.py` | E2E | ✅ Exists |
-| `test_sales_order_models.py` | Unit | ✅ Exists |
-| `test_sales_order_services.py` | Service | ✅ Exists |
+| `test_order_models.py` | Unit | ✅ Exists |
+| `test_order_services.py` | Service | ✅ Exists |
 | `test_invoice_models.py` | Unit | ✅ Exists |
 | `test_invoice_services.py` | Service | ✅ Exists |
 | `test_purchase_order_models.py` | Unit | ✅ Exists |
@@ -287,9 +287,9 @@ React frontend components are developed in a separate workspace and are NOT part
 **File:** `apps/transactions/urls.py`
 
 Backward-compatible routes added:
-- ✅ `POST /tx/proposals/{id}/convert-to-sales-order/`
-- ✅ `POST /tx/sales-orders/{id}/convert-to-invoice/`
-- ✅ `POST /tx/sales-orders/{id}/convert-to-purchase-order/`
+- ✅ `POST /tx/proposals/{id}/convert-to-order/`
+- ✅ `POST /tx/orders/{id}/convert-to-invoice/`
+- ✅ `POST /tx/orders/{id}/convert-to-purchase-order/`
 
 ### Linkage Tracking ✅
 **Files:** `apps/docs/models/linkage.py`, `apps/docs/models/linkage_index.py`
@@ -353,7 +353,7 @@ Backward-compatible routes added:
 
 All models registered with Django admin:
 - ✅ Invoice, InvoiceLine
-- ✅ SalesOrder, SalesOrderLine
+- ✅ Order, OrderLine
 - ✅ PurchaseOrder, PurchaseOrderLine
 - ✅ Proposal, ProposalLine
 - ✅ Requisition, RequisitionLine
@@ -390,7 +390,7 @@ All models registered with Django admin:
 
 ### Import Fixes - COMPLETED ✅
 All broken imports from `common.http.mixins` fixed in 5 files:
-- ✅ `sales_order_views.py`
+- ✅ `order_views.py`
 - ✅ `purchase_order_views.py`
 - ✅ `linkage_views.py`
 - ✅ `apps/products/views/inventory.py`

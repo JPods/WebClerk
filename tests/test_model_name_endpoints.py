@@ -50,7 +50,7 @@ def test_settings_normalizes_plural_model_name(user):
 
     bad = {
         "purpose": "view_edit",
-        "model_name": "sales_order_lines",  # plural on purpose
+        "model_name": "order_lines",  # plural on purpose
         "is_active": True,
         "data": {"ADMIN": {"view": ["id"], "edit": []}},
     }
@@ -67,4 +67,4 @@ def test_settings_normalizes_plural_model_name(user):
     assert isinstance(resp.data, dict)
     got_data = resp.data.get('data')
     assert isinstance(got_data, dict)
-    assert got_data.get('model_name') == 'sales_order_line'
+    assert got_data.get('model_name') == 'order_line'

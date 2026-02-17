@@ -84,11 +84,10 @@ class WCAPIGetView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    LINE_MODEL_KEYS = {"proposal", "order", "salesorder", "invoice", "purchase", "purchaseorder", "workorder"}
+    LINE_MODEL_KEYS = {"proposal", "order", "invoice", "purchase", "purchaseorder", "workorder"}
     LINE_MODEL_MAP = {
         "proposal": "proposal_line",
         "order": "order_line",
-        "salesorder": "order_line",  # backwards compatibility alias
         "invoice": "invoice_line",
         "purchase": "purchase_line",
         "purchaseorder": "purchase_line",  # backwards compatibility alias
@@ -735,7 +734,7 @@ class WCAPIGetView(APIView):
 
         stats = []
         for label, model_key, filters in [
-            ("Sales Orders", "sales_order", None),
+            ("Orders", "order", None),
             ("Invoices", "invoice", None),
             ("Proposals", "proposal", None),
             ("Contacts", "contact", None),
@@ -745,7 +744,7 @@ class WCAPIGetView(APIView):
                 stats.append({"label": label, "value": count_val})
 
         # Activities: prefer transactional signals first
-        activities = safe_recent("sales_order", limit=5) or safe_recent("proposal", limit=5) or []
+        activities = safe_recent("order", limit=5) or safe_recent("proposal", limit=5) or []
 
         # Notifications: reuse activities but keep lightweight; can be swapped to a dedicated model if available
         notifications = safe_recent("communication", limit=5) or safe_recent("support_ticket", limit=5) or activities[:5]
@@ -813,7 +812,7 @@ Retrieve records from any configured model with comprehensive query support.
                 type=str,
                 required=True,
                 location=OpenApiParameter.QUERY,
-                description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'salesorder')",
+                description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'order')",
             ),
             OpenApiParameter(
                 name="id",

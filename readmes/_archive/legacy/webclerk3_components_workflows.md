@@ -116,7 +116,7 @@ MODEL_MAP = {
     'document': Document,
     # ... transaction models
     'proposal': Proposal,
-    'sales_order': SalesOrder,
+    'order': Order,
     'invoice': Invoice,
     # ... etc
 }
@@ -188,7 +188,7 @@ classDiagram
 ### Transaction Flow Engine
 **Key Components:**
 - **Flow Conversion Services** (`apps/transactions/services/`)
-  - `order_to_invoice.py`: Sales Order → Invoice conversion
+  - `order_to_invoice.py`: Order → Invoice conversion
   - `purchase_to_order.py`: Purchase Requisition → Purchase Order
   - `transfer_utils.py`: Cross-document data transfer
 

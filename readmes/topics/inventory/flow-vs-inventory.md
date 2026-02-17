@@ -90,7 +90,7 @@ The following write-once actions convert headers along the sales flow and are pa
 
 - POST `/transactions/proposals/<pk>/convert-to-sales-order/`
   - Body: `{ "confirm": true }` (optional)
-  - 201 Response: `{ "sales_order_id": <int>, "order_no": "SO-..." }`
+  - 201 Response: `{ "order_id": <int>, "order_no": "SO-..." }`
 
 - POST `/transactions/sales-orders/<pk>/convert-to-invoice/`
   - Body: `{ "confirm": true }` (optional)

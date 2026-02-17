@@ -13,10 +13,11 @@ from apps.core.utils.model_name_resolver import resolve_model_name, parse_restfu
 
 # Test various formats
 tests = [
-    ('sales-order', 'salesorder'),
-    ('sales_order', 'salesorder'),
-    ('SalesOrder', 'salesorder'),
-    ('salesorder', 'salesorder'),
+    ('sales-order', 'order'),
+    ('sales_order', 'order'),
+    ('SalesOrder', 'order'),
+    ('salesorder', 'order'),
+    ('order', 'order'),
     ('purchase-order', 'purchaseorder'),
     ('invoice', 'invoice'),
     ('PurchaseOrder', 'purchaseorder'),

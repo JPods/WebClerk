@@ -107,7 +107,7 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
     [
       {
         'version': 1,
-        'source': { 'kind': 'proposal'|'sales_order'|'purchase_order'|'invoice', 'parent_id': int, 'line_id': int },
+        'source': { 'kind': 'proposal'|'order'|'purchase_order'|'invoice', 'parent_id': int, 'line_id': int },
         'item':   { 'id': int|None, 'sku': str|None, 'name': str|None, 'uom': str|None },
         'qty':    { 'base': Decimal, 'placed': any, 'ordered': any, 'remaining': any, 'precision': int|None },
         'price':  { 'unit': Decimal, 'extended': Decimal, 'currency': str|None, 'precision': int|None },

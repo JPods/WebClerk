@@ -58,7 +58,7 @@ Items track multiple quantity buckets in the `Item.quantity` JSON field:
 # When a sales order is created
 _create_inventory_delta(
     item_id=item_id,
-    source_type='sales_order_line',
+    source_type='order_line',
     source_id=order.id,
     quantity_on_order_delta=+qty_ordered,  # Increases committed quantity
     notes=f"Sales order {order.id} - ordered {qty_ordered} units"

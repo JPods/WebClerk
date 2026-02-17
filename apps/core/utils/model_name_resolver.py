@@ -11,14 +11,12 @@ This provides a single point of control for authentication, authorization, and a
 Usage:
     from apps.core.utils.model_name_resolver import resolve_model_name, parse_restful_path
     
-    resolve_model_name('sales-order')     -> 'salesorder'
-    resolve_model_name('sales_order')     -> 'salesorder'
-    resolve_model_name('SalesOrder')      -> 'salesorder'
+    resolve_model_name('order')           -> 'order'
     resolve_model_name('purchase-order')  -> 'purchaseorder'
     resolve_model_name('invoice')         -> 'invoice'
     
-    parse_restful_path('/api/transactions/salesorder/22')
-    -> {'model_name': 'salesorder', 'id': 22}
+    parse_restful_path('/api/transactions/order/22')
+    -> {'model_name': 'order', 'id': 22}
 """
 
 import re
@@ -31,8 +29,6 @@ from django.apps import apps
 MODEL_NAME_MAP: Dict[str, str] = {
     # Transactions
     'order': 'order',
-    'salesorder': 'order',  # legacy alias
-    'sales': 'order',  # legacy alias
     'invoice': 'invoice',
     'purchaseorder': 'purchaseorder',
     'purchase': 'purchaseorder',
@@ -47,7 +43,6 @@ MODEL_NAME_MAP: Dict[str, str] = {
     
     # Transaction Lines
     'orderline': 'order_line',
-    'salesorderline': 'order_line',  # legacy alias
     'invoiceline': 'invoice_line',
     'purchaseorderline': 'purchase_order_line',
     'poline': 'purchase_order_line',
@@ -110,12 +105,10 @@ MODEL_NAME_MAP: Dict[str, str] = {
 }
 
 # RESTful path patterns to model name
-# Handles paths like /api/transactions/salesorder/22
+# Handles paths like /api/transactions/order/22
 PATH_PATTERN_MAP: Dict[str, str] = {
     'transactions/order': 'order',
     'transactions/orders': 'order',
-    'transactions/sales-order': 'order',  # legacy
-    'transactions/salesorder': 'order',  # legacy
     'transactions/invoice': 'invoice',
     'transactions/purchase-order': 'purchaseorder',
     'transactions/purchaseorder': 'purchaseorder',
@@ -149,11 +142,9 @@ PATH_PATTERN_MAP: Dict[str, str] = {
 # URL-friendly format mappings (model_name -> url_segment)
 URL_MAP: Dict[str, str] = {
     'order': 'order',
-    'salesorder': 'order',  # legacy
     'purchaseorder': 'purchase-order',
     'workorder': 'work-order',
     'order_line': 'order-line',
-    'sales_order_line': 'order-line',  # legacy
     'purchase_order_line': 'purchase-order-line',
     'work_order_line': 'work-order-line',
     'invoice_line': 'invoice-line',
@@ -167,7 +158,6 @@ URL_MAP: Dict[str, str] = {
 # Transaction type mappings for routing
 TRANSACTION_TYPE_MAP: Dict[str, str] = {
     'order': 'order',
-    'salesorder': 'order',  # legacy
     'invoice': 'invoice',
     'purchaseorder': 'purchase_order',
     'proposal': 'proposal',
@@ -208,8 +198,6 @@ def resolve_model_name(input_str: str, strict: bool = False) -> str:
         
     Examples:
         resolve_model_name('order')          -> 'order'
-        resolve_model_name('sales_order')    -> 'order'  # legacy
-        resolve_model_name('SalesOrder')     -> 'order'  # legacy
         resolve_model_name('purchase-order') -> 'purchaseorder'
         resolve_model_name('invoice')        -> 'invoice'
     """
@@ -244,9 +232,9 @@ def parse_restful_path(path: str) -> Dict[str, Any]:
     Extract model name and ID from a RESTful path.
     
     Handles patterns like:
-        /api/transactions/salesorder/22
-        /transactions/sales-order/detail/22
-        /api/salesorder/22
+        /api/transactions/order/22
+        /transactions/purchase-order/detail/22
+        /api/invoice/22
     
     Args:
         path: URL path
@@ -255,11 +243,11 @@ def parse_restful_path(path: str) -> Dict[str, Any]:
         Dict with 'model_name' and optional 'id'
         
     Examples:
-        parse_restful_path('/api/transactions/salesorder/22')
-        -> {'model_name': 'salesorder', 'id': 22}
+        parse_restful_path('/api/transactions/order/22')
+        -> {'model_name': 'order', 'id': 22}
         
-        parse_restful_path('/transactions/sales-order/detail/22')
-        -> {'model_name': 'salesorder', 'id': 22}
+        parse_restful_path('/transactions/purchase-order/detail/22')
+        -> {'model_name': 'purchaseorder', 'id': 22}
     """
     # Remove leading slash and split
     segments = [s for s in path.strip('/').split('/') if s]
@@ -291,10 +279,10 @@ def url_to_model_name(url_segment: str) -> str:
     Used for URL-based routing to API calls.
     
     Args:
-        url_segment: URL segment like "sales-order" or "purchase-order"
+        url_segment: URL segment like "order" or "purchase-order"
         
     Returns:
-        wcapi model_name like "salesorder" or "purchaseorder"
+        wcapi model_name like "order" or "purchaseorder"
     """
     return resolve_model_name(url_segment)
 
@@ -305,10 +293,10 @@ def model_name_to_url(model_name: str) -> str:
     Used for building navigation URLs.
     
     Args:
-        model_name: wcapi model_name like "salesorder"
+        model_name: wcapi model_name like "order"
         
     Returns:
-        URL segment like "sales-order"
+        URL segment like "order"
     """
     if model_name in URL_MAP:
         return URL_MAP[model_name]
@@ -323,7 +311,7 @@ def get_transaction_type(model_name: str) -> str:
         model_name: wcapi model_name
         
     Returns:
-        Transaction type for routing (e.g., "sales_order", "invoice")
+        Transaction type for routing (e.g., "order", "invoice")
     """
     resolved = resolve_model_name(model_name)
     return TRANSACTION_TYPE_MAP.get(resolved, resolved)

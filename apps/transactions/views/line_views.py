@@ -209,7 +209,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
             if old_qty > 0:
                 service._create_pending_for_line_delete(
                     transaction=instance.order,
-                    transaction_type='sales_order',
+                    transaction_type='order',
                     line=instance,
                     quantity_released=old_qty,
                 )
@@ -226,7 +226,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
             if qty_delta != 0:
                 service._create_pending_for_qty_change(
                     transaction=instance.order,
-                    transaction_type='sales_order',
+                    transaction_type='order',
                     line=instance,
                     quantity_delta=qty_delta,
                 )
@@ -241,7 +241,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
             service = LineItemService(create_pending=True)
             service._create_pending_for_line_delete(
                 transaction=instance.order,
-                transaction_type='sales_order',
+                transaction_type='order',
                 line=instance,
                 quantity_released=qty_to_release,
             )

@@ -50,7 +50,7 @@ def _normalize_line_kind(name: str | None) -> str:
     # collapse common variants
     aliases = {
         "proposal": "proposal", "proposal_line": "proposal", "proposalline": "proposal",
-        "order": "order", "order_line": "order", "sales_order_line": "order", "salesorderline": "order",
+        "order": "order", "order_line": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
         "workorder": "workorder", "workorderline": "workorder",
         "purchase": "purchase", "purchase_order": "purchase", "purchaseline": "purchase", "purchaseorderline": "purchase",

@@ -2,7 +2,7 @@
 Line Item Service - Single Point of Authority for transaction line management.
 
 Handles adding, updating, and managing transaction line items across all
-transaction types (sales_order, proposal, invoice, purchase_order, work_order).
+transaction types (order, proposal, invoice, purchase_order, work_order).
 
 Includes deferred inventory adjustment via Pending records to reduce lock contention
 on Item records. When quantity changes occur, a Pending record is created instead of
@@ -60,8 +60,6 @@ logger = logging.getLogger(__name__)
 
 # Model mapping for dynamic line creation
 LINE_MODEL_MAP = {
-    'sales_order': 'apps.transactions.models.OrderLine',
-    'salesorder': 'apps.transactions.models.OrderLine',
     'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
@@ -116,8 +114,6 @@ def _is_exec_transaction(transaction_type: str) -> bool:
 # Pending Inventory Type Codes (mirrors WebClerk2 DInventory.typeID)
 # -----------------------------------------------------------------------------
 PENDING_TYPE_MAP = {
-    'sales_order': 'SO',
-    'salesorder': 'SO',
     'order': 'SO',
     'proposal': 'PP',  # Proposals don't affect inventory until converted
     'invoice': 'IN',
@@ -166,7 +162,7 @@ class LineItemService:
     """
     Single Point of Authority for managing transaction line items.
     
-    Supports both sales transactions (proposal, sales_order, invoice) 
+    Supports both sales transactions (proposal, order, invoice) 
     and purchase transactions (purchase_order, work_order).
     
     Key behaviors:
@@ -920,7 +916,7 @@ class LineItemService:
         
         Args:
             transaction: Parent transaction
-            transaction_type: Type code (sales_order, invoice, etc.)
+            transaction_type: Type code (order, invoice, etc.)
             line: The created line
             item: The Item model
             quantity: Quantity being reserved/committed
@@ -1070,7 +1066,6 @@ class LineItemService:
         # Normalize transaction type
         tx_type_map = {
             'order': 'order',
-            'salesorder': 'order',
             'proposal': 'proposal',
             'quote': 'proposal',
             'invoice': 'invoice',

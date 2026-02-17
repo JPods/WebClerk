@@ -68,7 +68,7 @@ One record per model. Query by `purpose` + `model_target`:
 # Python
 setting = Setting.objects.filter(
     purpose='workbench_fields',
-    model_target='sales_order'
+    model_target='order'
 ).first()
 ```
 
@@ -76,7 +76,7 @@ setting = Setting.objects.filter(
 // TypeScript
 const setting = await fetchSetting({
   purpose: 'workbench_fields',
-  model_target: 'sales_order'
+  model_target: 'order'
 });
 ```
 
@@ -88,7 +88,7 @@ Per-model settings that vary by role:
 # Python
 setting = Setting.objects.filter(
     purpose='view_edit',
-    model_target='sales_order',
+    model_target='order',
     role='user'
 ).first()
 ```
@@ -117,7 +117,7 @@ Controls which columns appear in list/workbench views.
 
 ```json
 {
-  "model_target": "sales_order",
+  "model_target": "order",
   "purpose": "workbench_fields",
   "data": {
     "list": ["id", "customer_name", "order_date", "total", "status"],
@@ -136,7 +136,7 @@ Controls field visibility and editability in detail/edit views.
 
 ```json
 {
-  "model_target": "sales_order",
+  "model_target": "order",
   "purpose": "detail_field_access",
   "data": {
     "hidden": ["internal_notes", "legacy_id"],
@@ -155,7 +155,7 @@ Matrix defining field access by role. Supports row-level permissions.
 
 ```json
 {
-  "model_target": "sales_order",
+  "model_target": "order",
   "purpose": "view_edit",
   "role": "user",
   "data": {
@@ -319,7 +319,7 @@ const res = await apiClient.get('/wcapi/get/', {
   params: {
     model_name: 'setting',
     purpose: 'workbench_fields',
-    model_name_filter: 'sales_order'  // maps to model_target
+    model_name_filter: 'order'  // maps to model_target
   }
 });
 const setting = res.data.data.results[0];
@@ -332,7 +332,7 @@ await apiClient.post('/wcapi/save/', {
   model_name: 'setting',
   id: existingId,  // omit for create
   purpose: 'workbench_fields',
-  model_target: 'sales_order',
+  model_target: 'order',
   data: { list: [...], detail: [...] }
 });
 ```

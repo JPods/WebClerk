@@ -459,8 +459,8 @@ def forecast_component_demand(
 | Source | Demand/Supply | Date Field | Weight |
 |--------|---------------|------------|--------|
 | `Proposal` | Demand | `expected_close_date` | `probability` (0-1) |
-| `SalesOrder` | Demand | `ship_date` | 1.0 (firm) |
-| `SalesOrderLine` | Demand | Line-level ship date | 1.0 |
+| `Order` | Demand | `ship_date` | 1.0 (firm) |
+| `OrderLine` | Demand | Line-level ship date | 1.0 |
 | `PurchaseOrder` | Supply | `receive_date` | 1.0 |
 | `PurchaseOrderLine` | Supply | Line-level receive date | 1.0 |
 
@@ -512,7 +512,7 @@ def forecast_component_demand(
 - ✅ `BillOfMaterial` model
 - ⏳ BOM explosion service (Phase 1)
 - 🔗 `Proposal` model (apps.transactions)
-- 🔗 `SalesOrder` / `SalesOrderLine` models
+- 🔗 `Order` / `OrderLine` models
 - 🔗 `PurchaseOrder` / `PurchaseOrderLine` models
 
 ### Future Enhancements

@@ -123,7 +123,7 @@ are out of sync.
 
 | Argument | Required | Description |
 |---|---|---|
-| `model_name` | Yes (unless `--list`) | WCAPI blessed key (`contact`, `item`, `sales_order`) or `app.Model` format (`core.Contact`, `products.Item`) |
+| `model_name` | Yes (unless `--list`) | WCAPI blessed key (`contact`, `item`, `order`) or `app.Model` format (`core.Contact`, `products.Item`) |
 | `--direction` | Yes | `to-local` (remote → local) or `to-remote` (local → remote) |
 | `--dry-run` | No | Show row counts and plan without modifying any data |
 | `--list` | No | Print all available model names with their tables and exit |
@@ -255,7 +255,7 @@ python manage.py sync_model contact --direction to-local --no-confirm
 python manage.py sync_model item --direction to-local --no-confirm
 
 # Then sync child tables
-python manage.py sync_model sales_order --direction to-local --no-confirm
+python manage.py sync_model order --direction to-local --no-confirm
 python manage.py sync_model invoice --direction to-local --no-confirm
 ```
 
@@ -321,7 +321,7 @@ python manage.py sync_model item --direction to-local --no-confirm
 python manage.py sync_model warehouse --direction to-local --no-confirm
 
 # Transactions
-python manage.py sync_model sales_order --direction to-local --no-confirm
+python manage.py sync_model order --direction to-local --no-confirm
 python manage.py sync_model invoice --direction to-local --no-confirm
 ```
 

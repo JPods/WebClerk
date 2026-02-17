@@ -193,7 +193,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
     Get list of accessible fields for a model based on user role and mode.
 
     Args:
-        model_name: Name of the model (e.g., 'invoice', 'salesorder')
+        model_name: Name of the model (e.g., 'invoice', 'order')
         mode: 'view' or 'edit'
         user: Django user object
 
@@ -227,7 +227,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
     # Model-specific field allowances
     model_specific = {
         'invoice': ['amount', 'tax', 'total', 'sales_tax'],
-        'salesorder': ['order_no', 'total_amount'],
+        'order': ['order_no', 'total_amount'],
         'proposal': ['proposal_no', 'estimated_total'],
         'purchaseorder': ['po_number', 'vendor_id']
     }

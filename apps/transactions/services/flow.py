@@ -687,13 +687,4 @@ __all__ = [
     'complete_workorder',
     'adjust_inventory',
     'receive_inventory_changes',
-    # Legacy aliases (deprecated)
-    'proposal_to_sales_order',
-    'sales_order_to_invoice',
-    'sales_order_to_purchase_order',
 ]
-
-# Legacy aliases for backwards compatibility
-proposal_to_sales_order = proposal_to_order
-sales_order_to_invoice = order_to_invoice
-sales_order_to_purchase_order = order_to_purchase_order

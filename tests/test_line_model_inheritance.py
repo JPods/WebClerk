@@ -3,7 +3,7 @@ from django.core.exceptions import FieldDoesNotExist
 
 from apps.transactions.models import (
     ProposalLine,
-    SalesOrderLine,
+    OrderLine,
     InvoiceLine,
     PurchaseOrderLine,
 )

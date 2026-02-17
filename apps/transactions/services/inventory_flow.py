@@ -73,7 +73,7 @@ def reserve_inventory_for_order(order: Order) -> Dict[str, int]:
                     item=item,
                     warehouse=layer.warehouse,
                     quantity_reserved=float(reserve_qty),
-                    source_type='sales_order',
+                    source_type='order',
                     source_id=order.id,
                     source_line_id=line.id,
                     expires_at=None,  # No expiration for confirmed orders
@@ -132,7 +132,7 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
         order_id = _get_order_id_from_invoice_line(line)
         if order_id and qty_invoiced > 0:
             reservations = InventoryReservation.objects.filter(
-                source_type='sales_order',
+                source_type='order',
                 source_id=order_id,
                 source_line_id__in=_get_order_line_ids_from_invoice_line(line),
                 quantity_reserved__gt=0
@@ -601,7 +601,7 @@ def validate_inventory_delta(delta: Pending) -> Dict[str, Any]:
 
     # Source type validation
     valid_source_types = [
-        'sales_order_line', 'purchase_order_line', 'invoice_line',
+        'order_line', 'purchase_order_line', 'invoice_line',
         'purchase_receipt', 'inventory_adjustment'
     ]
     source_type = data.get('source_type')

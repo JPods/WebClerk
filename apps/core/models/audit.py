@@ -30,7 +30,7 @@ class AuditLog(BaseModel):
     # What was changed
     model_name = models.CharField(
         max_length=100,
-        help_text="Model that was changed (e.g., 'proposal', 'sales_order')"
+        help_text="Model that was changed (e.g., 'proposal', 'order')"
     )
     record_id = models.BigIntegerField(
         help_text="ID of the record that was changed"

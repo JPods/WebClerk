@@ -49,7 +49,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from decimal import Decimal
 from datetime import timedelta
-from apps.transactions.models import Proposal, ProposalLine, SalesOrder, SalesOrderLine, Invoice, InvoiceLine, Payment
+from apps.transactions.models import Proposal, ProposalLine, Order, OrderLine, Invoice, InvoiceLine, Payment
 from apps.core.models import Contact
 from apps.products.models import Item, Catalog, OrgItem
 
@@ -372,7 +372,7 @@ When a PO is received, inventory is updated via `receive_purchase_order()`:
 
 1. Verify PO lines match receipt quantities
 2. Create InventoryLayer entries with warehouse location
-3. Update linked SalesOrderLines with received quantities
+3. Update linked OrderLines with received quantities
 4. Calculate backorder quantities
 5. Update invoice line quantities based on received amounts
 

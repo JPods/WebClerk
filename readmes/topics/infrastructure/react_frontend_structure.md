@@ -115,7 +115,7 @@ export const ProposalForm: React.FC<ProposalFormProps> = ({
 ```tsx
 interface OrderFormProps {
   proposalId?: string; // For conversion from proposal
-  initialData?: Partial<SalesOrder>;
+  initialData?: Partial<Order>;
   onSubmit: (data: OrderFormData) => Promise<void>;
 }
 
