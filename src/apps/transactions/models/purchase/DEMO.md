@@ -1,28 +1,28 @@
-# Purchase Order Model
+# Purchase Model
 
-This model represents purchase orders in the transaction system.
+This model represents purchases in the transaction system.
 
 ## Fields
 
 - `id`: Unique identifier (readonly)
-- `purchase_no`: Purchase order number (required)
+- `purchase_no`: Purchase number (required)
 - `dt_created`: Creation timestamp (readonly)
 
 ## API Endpoints
 
-- `GET /tx/purchase-orders/` - List purchase orders
-- `POST /tx/purchase-orders/` - Create purchase order
-- `GET /tx/purchase-orders/{id}/` - Get purchase order details
-- `PUT /tx/purchase-orders/{id}/` - Update purchase order
-- `DELETE /tx/purchase-orders/{id}/` - Delete purchase order
+- `GET /tx/purchase/` - List purchases
+- `POST /tx/purchase/` - Create purchase
+- `GET /tx/purchase/{id}/` - Get purchase details
+- `PUT /tx/purchase/{id}/` - Update purchase
+- `DELETE /tx/purchase/{id}/` - Delete purchase
 
 ## Usage
 
 ```typescript
-import { fetchPurchases, createPurchase } from './services/purchaseOrderApi';
+import { fetchPurchases, createPurchase } from './services/purchaseApi';
 
-// Fetch all purchase orders
-const purchaseOrders = await fetchPurchases();
+// Fetch all purchases
+const purchases = await fetchPurchases();
 
-// Create new purchase order
+// Create new purchase
 const newPurchase = await createPurchase({ purchase_no: 'PO-001' });

@@ -55,11 +55,11 @@ const quantitySchema = z.union([
     ),
 ]);
 
-// Sales Order Line schema - permissive to allow any line data
+// Order Line schema - permissive to allow any line data
 export const orderLineSchema = z.record(z.any()).optional();
 
-// Sales Order schema with comprehensive validation
-export const salesOrderSchema = z
+// Order schema with comprehensive validation
+export const orderSchema = z
   .object({
     // Contact and address fields
     company: z
@@ -223,5 +223,5 @@ export const salesOrderSchema = z
   );
 
 // Type exports
-export type OrderFormData = z.infer<typeof salesOrderSchema>;
+export type OrderFormData = z.infer<typeof orderSchema>;
 export type OrderLineFormData = z.infer<typeof orderLineSchema>;

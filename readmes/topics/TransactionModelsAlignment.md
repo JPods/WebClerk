@@ -14,7 +14,7 @@ The `proposal` model serves as the reference implementation with the following a
 
 ### Comparative Analysis
 
-| Feature | Proposal | Sales Order | Invoice | Purchase Order |
+| Feature | Proposal | Order | Invoice | Purchase |
 |---------|----------|-------------|---------|----------------|
 | Audit Trail | ✅ Mock implementation | ✅ Mock implementation | ✅ Mock implementation | ✅ Mock implementation |
 | Financial Structures | ✅ Full (cost, sell, finance, flow, source, action) | ✅ Full alignment | ❌ Base schema only | ✅ Partial (finance, flow, source, action) |
@@ -41,12 +41,12 @@ const { getStatusHistory } = useProposalStatus(currentStatus);
 
 ### 2. Schema Enhancements with Financial Structures
 
-#### Sales Order Model
+#### Order Model
 - **Full Alignment**: Includes all financial JSON fields (`cost`, `sell`, `finance`, `flow`, `source`, `action`)
 - **Enhanced Validation**: Cross-field validation for customer/vendor separation
 - **Financial Summary**: `total`, `tax`, `discount`, `subtotal` fields with validation
 
-#### Purchase Order Model
+#### Purchase Model
 - **Partial Alignment**: Includes `finance`, `flow`, `source`, `action` fields adapted from proposal
 - **Cost-Focused Pricing**: Price schema emphasizes cost over sell pricing
 - **Approval Workflow**: Status-based validation requiring `approval_date` when status is 'approved'
@@ -77,7 +77,7 @@ planned → sent → accepted (final)
 
 ### Schema Files
 - `src/apps/transactions/models/order/utils/orderSchema.ts` - Enhanced with financial structures
-- `src/apps/transactions/models/purchase/utils/purchaseOrderSchema.ts` - Added financial fields and approval validation
+- `src/apps/transactions/models/purchase/utils/purchaseSchema.ts` - Added financial fields and approval validation
 - `src/apps/transactions/models/invoice/utils/invoiceSchema.ts` - Extended base schema with invoice-specific rules
 
 ### Hook Files
@@ -121,11 +121,11 @@ const MyComponent = () => {
 
 ### Schema Validation Example
 ```typescript
-import { salesOrderSchema } from '../utils/salesOrderSchema';
+import { orderSchema } from '../utils/orderSchema';
 
 const validateOrder = (data) => {
   try {
-    const validated = salesOrderSchema.parse(data);
+    const validated = orderSchema.parse(data);
     // Data is valid and includes financial structures
     return { success: true, data: validated };
   } catch (error) {
@@ -160,7 +160,7 @@ const orderData = {
 - **Balance Verification**: Invoice balance must equal total minus paid amount
 
 ### Status-Based Rules
-- **Approval Requirements**: Purchase orders require approval date when status is 'approved'
+- **Approval Requirements**: Purchases require approval date when status is 'approved'
 - **Final States**: Certain statuses prevent further transitions
 - **Transition Permissions**: Only defined transitions are allowed
 
@@ -189,7 +189,7 @@ const orderData = {
 ### 4. Integration with Accounting Module
 - **Missing**: Direct integration with GL accounts and journal entries
 - **Required**: Automatic posting of financial transactions
-- **Models Affected**: Invoice and sales order models primarily
+- **Models Affected**: Invoice and order models primarily
 
 ### 5. Document Generation
 - **Partial**: PDF generation for proposals

@@ -49,8 +49,8 @@ These files properly import from `@/api/wcapi`:
 - `src/apps/transactions/models/proposal/services/proposalApi.ts`
 - `src/apps/transactions/models/proposal_line/services/proposalLineApi.ts`
 - `src/apps/transactions/models/project/services/projectApi.ts`
-- `src/apps/transactions/models/purchase/services/purchaseOrderApi.ts`
-- `src/apps/transactions/models/purchase_line/services/purchaseOrderLineApi.ts`
+- `src/apps/transactions/models/purchase/services/purchaseApi.ts`
+- `src/apps/transactions/models/purchase_line/services/purchaseLineApi.ts`
 - `src/apps/transactions/models/receipt/services/purchaseReceiptApi.ts`
 - `src/apps/transactions/models/workorder/services/workorderApi.ts`
 - `src/apps/transactions/models/workorder_line/services/workOrderLineApi.ts`
@@ -208,10 +208,8 @@ buildDeleteBody('customer', 42);
 | `/api/orgs/vendor/*` | `vendor` |
 | `/api/orgs/employee/*` | `employee` |
 | `/api/transactions/order/*` | `order` |
-| `/api/transactions/sales-order/*` | `order` |
 | `/api/transactions/invoice/*` | `invoice` |
 | `/api/transactions/purchase/*` | `purchase` |
-| `/api/transactions/purchase-order/*` | `purchase` |
 | `/api/transactions/proposal/*` | `proposal` |
 | `/api/transactions/workorder/*` | `workorder` |
 | `/api/products/item/*` | `item` |

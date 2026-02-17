@@ -203,7 +203,7 @@ import { DocumentsPanel } from '@/apps/common/components/panels';
 <DocumentsPanel
   parentType="order"
   parentId={orderId}
-  data={salesOrder.refs?.links?.document || []}
+  data={order.refs?.links?.document || []}
   onChange={(docs) => updateRefs({ links: { document: docs } })}
   purpose="order_attachment"
   maxFileSize={10 * 1024 * 1024}  // 10MB

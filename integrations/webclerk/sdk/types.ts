@@ -2919,7 +2919,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Proposal"][];
         };
-        PaginatedPurchaseOrderLineList: {
+        PaginatedPurchaseLineList: {
             /** @example 123 */
             count: number;
             /**
@@ -2932,9 +2932,9 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["PurchaseOrderLine"][];
+            results: components["schemas"]["PurchaseLine"][];
         };
-        PaginatedPurchaseOrderList: {
+        PaginatedPurchaseList: {
             /** @example 123 */
             count: number;
             /**
@@ -2947,7 +2947,7 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["PurchaseOrder"][];
+            results: components["schemas"]["Purchase"][];
         };
         PaginatedQAList: {
             /** @example 123 */
@@ -3538,12 +3538,12 @@ export interface components {
             dt_modified?: number;
             parent?: number;
         };
-        PatchedPurchaseOrder: {
+        PatchedPurchase: {
             readonly id?: number;
             po_no?: string;
             readonly dt_created?: number;
         };
-        PatchedPurchaseOrderLine: {
+        PatchedPurchaseLine: {
             readonly id?: number;
             /**
              * Format: int64
@@ -3873,12 +3873,12 @@ export interface components {
             dt_modified?: number;
             parent: number;
         };
-        PurchaseOrder: {
+        Purchase: {
             readonly id: number;
             po_no: string;
             readonly dt_created: number;
         };
-        PurchaseOrderLine: {
+        PurchaseLine: {
             readonly id: number;
             /**
              * Format: int64
@@ -3934,7 +3934,7 @@ export interface components {
             lot?: string;
             serial_batch?: string;
         };
-        ReceivePurchaseOrder: {
+        ReceivePurchase: {
             receipt_id: string;
             lines: components["schemas"]["ReceiveLine"][];
         };
@@ -8451,7 +8451,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedPurchaseOrderLineList"];
+                    "application/json": components["schemas"]["PaginatedPurchaseLineList"];
                 };
             };
         };
@@ -8465,9 +8465,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PurchaseOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["PurchaseOrderLine"];
-                "multipart/form-data": components["schemas"]["PurchaseOrderLine"];
+                "application/json": components["schemas"]["PurchaseLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["PurchaseLine"];
+                "multipart/form-data": components["schemas"]["PurchaseLine"];
             };
         };
         responses: {
@@ -8476,7 +8476,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrderLine"];
+                    "application/json": components["schemas"]["PurchaseLine"];
                 };
             };
         };
@@ -8497,7 +8497,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrderLine"];
+                    "application/json": components["schemas"]["PurchaseLine"];
                 };
             };
         };
@@ -8513,9 +8513,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PurchaseOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["PurchaseOrderLine"];
-                "multipart/form-data": components["schemas"]["PurchaseOrderLine"];
+                "application/json": components["schemas"]["PurchaseLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["PurchaseLine"];
+                "multipart/form-data": components["schemas"]["PurchaseLine"];
             };
         };
         responses: {
@@ -8524,7 +8524,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrderLine"];
+                    "application/json": components["schemas"]["PurchaseLine"];
                 };
             };
         };
@@ -8560,9 +8560,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedPurchaseOrderLine"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPurchaseOrderLine"];
-                "multipart/form-data": components["schemas"]["PatchedPurchaseOrderLine"];
+                "application/json": components["schemas"]["PatchedPurchaseLine"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPurchaseLine"];
+                "multipart/form-data": components["schemas"]["PatchedPurchaseLine"];
             };
         };
         responses: {
@@ -8571,7 +8571,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrderLine"];
+                    "application/json": components["schemas"]["PurchaseLine"];
                 };
             };
         };
@@ -8599,7 +8599,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedPurchaseOrderList"];
+                    "application/json": components["schemas"]["PaginatedPurchaseList"];
                 };
             };
         };
@@ -8613,9 +8613,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PurchaseOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["PurchaseOrder"];
-                "multipart/form-data": components["schemas"]["PurchaseOrder"];
+                "application/json": components["schemas"]["Purchase"];
+                "application/x-www-form-urlencoded": components["schemas"]["Purchase"];
+                "multipart/form-data": components["schemas"]["Purchase"];
             };
         };
         responses: {
@@ -8624,7 +8624,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrder"];
+                    "application/json": components["schemas"]["Purchase"];
                 };
             };
         };
@@ -8645,7 +8645,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrder"];
+                    "application/json": components["schemas"]["Purchase"];
                 };
             };
         };
@@ -8661,9 +8661,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PurchaseOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["PurchaseOrder"];
-                "multipart/form-data": components["schemas"]["PurchaseOrder"];
+                "application/json": components["schemas"]["Purchase"];
+                "application/x-www-form-urlencoded": components["schemas"]["Purchase"];
+                "multipart/form-data": components["schemas"]["Purchase"];
             };
         };
         responses: {
@@ -8672,7 +8672,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrder"];
+                    "application/json": components["schemas"]["Purchase"];
                 };
             };
         };
@@ -8708,9 +8708,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedPurchaseOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPurchaseOrder"];
-                "multipart/form-data": components["schemas"]["PatchedPurchaseOrder"];
+                "application/json": components["schemas"]["PatchedPurchase"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPurchase"];
+                "multipart/form-data": components["schemas"]["PatchedPurchase"];
             };
         };
         responses: {
@@ -8719,7 +8719,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrder"];
+                    "application/json": components["schemas"]["Purchase"];
                 };
             };
         };
@@ -8735,9 +8735,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReceivePurchaseOrder"];
-                "application/x-www-form-urlencoded": components["schemas"]["ReceivePurchaseOrder"];
-                "multipart/form-data": components["schemas"]["ReceivePurchaseOrder"];
+                "application/json": components["schemas"]["ReceivePurchase"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReceivePurchase"];
+                "multipart/form-data": components["schemas"]["ReceivePurchase"];
             };
         };
         responses: {
