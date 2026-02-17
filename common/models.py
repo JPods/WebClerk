@@ -445,9 +445,10 @@ class CoreModel(models.Model):
         # Ensure ida is populated once a primary key exists. Avoids an extra version bump.
         try:
             if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
-                # Set ida to string form of primary key by default; project policy can override per-model later.
-                type(self).objects.filter(pk=self.pk, ida="").update(ida=str(self.pk))
-                self.ida = str(self.pk)  # reflect locally
+                # ida format: "ida-{pk}"  (project-wide convention)
+                ida_value = f"ida-{self.pk}"
+                type(self).objects.filter(pk=self.pk, ida="").update(ida=ida_value)
+                self.ida = ida_value  # reflect locally
         except Exception:  # pragma: no cover - never block save
             logger.debug("ida autogeneration failed", exc_info=True)
         self._pydantic_cache = None
