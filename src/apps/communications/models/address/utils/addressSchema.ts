@@ -9,6 +9,12 @@ export const addressSchema = z.object({
   state: z.string().min(1, "State is required"),
   zip: z.string().min(1, "ZIP code is required"),
   country: z.string().min(1, "Country is required"),
-  latitude: z.union([z.string(), z.number()]).transform((val) => String(val)),
-  longitude: z.union([z.string(), z.number()]).transform((val) => String(val)),
+  latitude: z.union([
+    z.string().min(1, "Latitude is required"),
+    z.number().min(1, "Latitude is required"),
+  ]),
+  longitude: z.union([
+    z.string().min(1, "Longitude is required"),
+    z.number().min(1, "Longitude is required"),
+  ]),
 });

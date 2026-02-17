@@ -1,15 +1,15 @@
 /**
  * DetailTabs - Reusable tab navigation component for Detail pages
- * 
+ *
  * Implements the standard tab layout from detail-page-standardization-plan.md:
  * - Overview, Comments, Actions, Documents, History (admin), Raw (admin)
  * - Model-specific tabs injected via additionalTabs prop
  * - Persists active tab to localStorage
  * - Role-based visibility for admin tabs
- * 
+ *
  * @see readmes/detail-page-standardization-plan.md
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   FaCode,
   FaColumns,
@@ -19,8 +19,8 @@ import {
   FaInfoCircle,
   FaTasks,
   FaUsers,
-} from 'react-icons/fa';
-import { useAppSelector } from '@/store/hooks';
+} from "react-icons/fa";
+import { useAppSelector } from "@/store/hooks";
 
 // Standard panels for automatic rendering
 // DetailTabs auto-renders these 5 panels when `recordData` is provided:
@@ -35,10 +35,14 @@ import { useAppSelector } from '@/store/hooks';
 //     LinkagesPanel, MetadataPanel, PrefsPanel, QAPanel,
 //     RawDataPanel, ShippingPanel
 // Full inventory: src/apps/common/components/panels/index.ts
-import { ActionsPanel, CommentsPanel, DocumentsPanel } from '@/apps/common/components/panels';
-import type { EntityType } from '@/apps/common/components/panels/types';
-import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
-import JsonFieldEditor from '@/apps/common/components/JsonFieldEditor';
+import {
+  ActionsPanel,
+  CommentsPanel,
+  DocumentsPanel,
+} from "@/apps/common/components/panels";
+import type { EntityType } from "@/apps/common/components/panels/types";
+import FinancialsPanel from "@/apps/common/components/panels/FinancialsPanel";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,7 +71,15 @@ export interface DetailTabsProps {
   /** Tab change handler */
   onTabChange: (tabId: string) => void;
   /** Standard tabs to include (default: all standard) */
-  standardTabs?: ('actions' | 'comments' | 'contacts' | 'documents' | 'financials' | 'overview' | 'raw')[];
+  standardTabs?: (
+    | "actions"
+    | "comments"
+    | "contacts"
+    | "documents"
+    | "financials"
+    | "overview"
+    | "raw"
+  )[];
   /** Additional model-specific tabs (inserted before admin tabs) */
   additionalTabs?: TabConfig[];
   /** Badges for standard tabs (e.g., { comments: 5, actions: 2 }) */
@@ -99,48 +111,48 @@ export interface DetailTabsProps {
 
 const STANDARD_TAB_CONFIGS: Record<string, TabConfig> = {
   actions: {
-    id: 'actions',
-    label: 'Actions',
+    id: "actions",
+    label: "Actions",
     icon: <FaTasks size={14} />,
   },
   comments: {
-    id: 'comments',
-    label: 'Comments',
+    id: "comments",
+    label: "Comments",
     icon: <FaComments size={14} />,
   },
   contacts: {
-    id: 'contacts',
-    label: 'Contacts',
+    id: "contacts",
+    label: "Contacts",
     icon: <FaUsers size={14} />,
   },
   documents: {
-    id: 'documents',
-    label: 'Documents',
+    id: "documents",
+    label: "Documents",
     icon: <FaFile size={14} />,
   },
   financials: {
-    id: 'financials',
-    label: 'Financials',
+    id: "financials",
+    label: "Financials",
     icon: <FaDollarSign size={14} />,
   },
   overview: {
-    id: 'overview',
-    label: 'Overview',
+    id: "overview",
+    label: "Overview",
     icon: <FaInfoCircle size={14} />,
   },
   raw: {
-    id: 'raw',
-    label: 'Raw',
+    id: "raw",
+    label: "Raw",
     icon: <FaCode size={14} />,
     adminOnly: true,
   },
 };
 
 const DEFAULT_STANDARD_TABS: (keyof typeof STANDARD_TAB_CONFIGS)[] = [
-  'actions',
-  'comments',
-  'documents',
-  'raw',
+  "actions",
+  "comments",
+  "documents",
+  "raw",
 ];
 
 // ---------------------------------------------------------------------------
@@ -152,7 +164,10 @@ interface ColumnSelectorProps {
   onChange: (count: 2 | 3) => void;
 }
 
-const ColumnSelector: React.FC<ColumnSelectorProps> = ({ value, onChange }) => (
+export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
+  value,
+  onChange,
+}) => (
   <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
     <FaColumns className="text-slate-500 dark:text-slate-400" size={12} />
     <span className="text-xs text-slate-500 dark:text-slate-400">Cols:</span>
@@ -164,8 +179,8 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({ value, onChange }) => (
           onClick={() => onChange(count as 2 | 3)}
           className={`px-2 py-0.5 text-xs font-medium transition-colors ${
             value === count
-              ? 'bg-blue-500 text-white'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              ? "bg-blue-500 text-white"
+              : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
           }`}
         >
           {count}
@@ -191,8 +206,8 @@ const TabButton: React.FC<TabButtonProps> = ({ tab, isActive, onClick }) => (
     onClick={onClick}
     className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
       isActive
-        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
-        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600"
+        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
     }`}
   >
     {tab.icon}
@@ -219,7 +234,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
   showColumnSelector = false,
   columnCount = 3,
   onColumnCountChange,
-  className = '',
+  className = "",
   entityId,
   recordData,
   panelEntityType,
@@ -230,18 +245,21 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
   const user = useAppSelector((state) => state.auth.user);
   // Normalize role to string for comparison (handle both string and string[])
   const userRole = Array.isArray(user?.role) ? user?.role[0] : user?.role;
-  const isAdmin = userRole && ['admin', 'superadmin', 'super_admin', 'administrator'].includes(userRole);
+  const isAdmin =
+    userRole &&
+    ["admin", "superadmin", "super_admin", "administrator"].includes(userRole);
 
   // Panel configuration
   const effectiveEntityType = (panelEntityType || entityType) as EntityType;
-  const numericEntityId = typeof entityId === 'string' ? parseInt(entityId, 10) : entityId;
+  const numericEntityId =
+    typeof entityId === "string" ? parseInt(entityId, 10) : entityId;
   const rawLabel = React.useMemo(
     () =>
       `Full ${effectiveEntityType
-        .split('_')
+        .split("_")
         .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ')} JSON`,
-    [effectiveEntityType]
+        .join(" ")} JSON`,
+    [effectiveEntityType],
   );
 
   // Build tab list
@@ -298,7 +316,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
       onTabChange(tabId);
       localStorage.setItem(`${entityType}Detail_activeTab`, tabId);
     },
-    [entityType, onTabChange]
+    [entityType, onTabChange],
   );
 
   // Handle column count change with localStorage persistence
@@ -307,12 +325,14 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
       onColumnCountChange?.(count);
       localStorage.setItem(`${entityType}Detail_columnCount`, String(count));
     },
-    [entityType, onColumnCountChange]
+    [entityType, onColumnCountChange],
   );
 
   return (
     <>
-      <div className={`shrink-0 border-b border-slate-200 dark:border-slate-700 ${className}`}>
+      <div
+        className={`shrink-0 border-b border-slate-200 dark:border-slate-700 ${className}`}
+      >
         <nav className="px-4">
           <div className="flex items-center justify-between py-2 gap-4">
             <div className="flex gap-1 overflow-x-auto">
@@ -326,7 +346,10 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
               ))}
             </div>
             {showColumnSelector && onColumnCountChange && (
-              <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+              <ColumnSelector
+                value={columnCount}
+                onChange={handleColumnChange}
+              />
             )}
           </div>
         </nav>
@@ -335,7 +358,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
       {/* ---- Standard Panel Content (auto-rendered when recordData is provided) ---- */}
       {recordData !== undefined && (
         <div className="mt-4">
-          {activeTab === 'actions' && standardTabs.includes('actions') && (
+          {activeTab === "actions" && standardTabs.includes("actions") && (
             <ActionsPanel
               entityType={effectiveEntityType}
               entityId={numericEntityId as number}
@@ -351,7 +374,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
             />
           )}
 
-          {activeTab === 'comments' && standardTabs.includes('comments') && (
+          {activeTab === "comments" && standardTabs.includes("comments") && (
             <CommentsPanel
               comments={recordData?.comments}
               isEditing={isEditing}
@@ -363,7 +386,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
             />
           )}
 
-          {activeTab === 'documents' && standardTabs.includes('documents') && (
+          {activeTab === "documents" && standardTabs.includes("documents") && (
             <DocumentsPanel
               parent_model={effectiveEntityType}
               parentId={numericEntityId}
@@ -381,16 +404,17 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
             />
           )}
 
-          {activeTab === 'financials' && standardTabs.includes('financials') && (
-            <FinancialsPanel
-              totals={recordData?.financial?.totals}
-              cost={recordData?.financial?.cost}
-              sell={recordData?.financial?.sell}
-              currency={recordData?.financial?.currency}
-            />
-          )}
+          {activeTab === "financials" &&
+            standardTabs.includes("financials") && (
+              <FinancialsPanel
+                totals={recordData?.financial?.totals}
+                cost={recordData?.financial?.cost}
+                sell={recordData?.financial?.sell}
+                currency={recordData?.financial?.currency}
+              />
+            )}
 
-          {activeTab === 'raw' && standardTabs.includes('raw') && (
+          {activeTab === "raw" && standardTabs.includes("raw") && (
             <JsonFieldEditor
               label={rawLabel}
               value={recordData}
@@ -404,7 +428,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
           {additionalTabs.map((tab) =>
             activeTab === tab.id && tab.content ? (
               <React.Fragment key={tab.id}>{tab.content}</React.Fragment>
-            ) : null
+            ) : null,
           )}
         </div>
       )}
@@ -418,8 +442,8 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
 
 export function useDetailTabs(
   entityType: string,
-  defaultTab: string = 'overview',
-  validTabs?: string[]
+  defaultTab: string = "overview",
+  validTabs?: string[],
 ) {
   const storageKey = `${entityType}Detail_activeTab`;
 
@@ -436,7 +460,7 @@ export function useDetailTabs(
       setActiveTab(tabId);
       localStorage.setItem(storageKey, tabId);
     },
-    [storageKey]
+    [storageKey],
   );
 
   return { activeTab, setActiveTab: handleTabChange };
@@ -451,7 +475,7 @@ export function useColumnCount(entityType: string, defaultCount: 2 | 3 = 3) {
 
   const [columnCount, setColumnCount] = useState<2 | 3>(() => {
     const stored = localStorage.getItem(storageKey);
-    return stored === '2' ? 2 : stored === '3' ? 3 : defaultCount;
+    return stored === "2" ? 2 : stored === "3" ? 3 : defaultCount;
   });
 
   const handleColumnChange = useCallback(
@@ -459,7 +483,7 @@ export function useColumnCount(entityType: string, defaultCount: 2 | 3 = 3) {
       setColumnCount(count);
       localStorage.setItem(storageKey, String(count));
     },
-    [storageKey]
+    [storageKey],
   );
 
   return { columnCount, setColumnCount: handleColumnChange };

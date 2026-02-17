@@ -30,20 +30,10 @@ import Input from "@/components/form/input/InputField";
 import Checkbox from "@/components/form/input/Checkbox";
 
 // Tab navigation
-import {
-  DetailTabs,
-  useDetailTabs,
-  useColumnCount,
-} from "@/components/common/DetailTabs";
+import { useColumnCount } from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
-// Panel Components
-import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
-import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
-import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
-import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 
 // API & State
 import { createPhone, updatePhone } from "../services/phoneApi";
@@ -52,7 +42,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
-
+import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -159,6 +149,11 @@ export default function PhoneDetail({
     defaultValues: { opt_out: false },
   });
 
+  // Strongly type handleSubmit to use the correct form data type
+  const typedHandleSubmit = handleSubmit as unknown as (
+    onValid: (data: z.infer<typeof phoneSchema>) => void | Promise<void>,
+  ) => (e?: React.BaseSyntheticEvent) => Promise<void>;
+
   useEffect(() => {
     if (effectiveMode === "add") {
       reset();
@@ -177,7 +172,6 @@ export default function PhoneDetail({
   // Tab Navigation
   // ---------------------------------------------------------------------------
 
-  const { activeTab, setActiveTab } = useDetailTabs("phone", "contacts");
   const { columnCount, setColumnCount } = useColumnCount("phone", 3);
 
   // ---------------------------------------------------------------------------
@@ -273,69 +267,6 @@ export default function PhoneDetail({
 
   const optOut = watch("opt_out") ?? data?.opt_out;
 
-  // ---------------------------------------------------------------------------
-  // Render Tab Content
-  // ---------------------------------------------------------------------------
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "contacts":
-        return (
-          <ContactLinksPanel
-            entityType="phone"
-            entityId={data?.id}
-            data={data?.refs?.links?.contact}
-            isEditing={isEditing}
-          />
-        );
-
-      case "comments":
-        return (
-          <CommentsPanel
-            entityType="phone"
-            entityId={data?.id}
-            comments={data?.comments}
-            isEditing={isEditing}
-            currentUser="Current User"
-          />
-        );
-
-      case "actions":
-        return (
-          <ActionsPanel
-            entityType="phone"
-            entityId={data?.id}
-            data={data?.actions?.items}
-            isEditing={isEditing}
-          />
-        );
-
-      case "documents":
-        return (
-          <DocumentsPanel
-            parent_model="phone"
-            parentId={data?.id}
-            data={data?.refs?.links?.document}
-            isEditing={isEditing}
-          />
-        );
-
-      case "raw":
-        return (
-          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* ─── HEADER ─── */}
@@ -428,7 +359,7 @@ export default function PhoneDetail({
           </div>
         ) : (
           /* ── Editable form ── */
-          <form id="phone-form" onSubmit={handleSubmit(onSubmit)}>
+          <form id="phone-form" onSubmit={typedHandleSubmit(onSubmit)}>
             <div
               className={`grid grid-cols-1 ${
                 columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
@@ -524,31 +455,7 @@ export default function PhoneDetail({
         )}
       </div>
 
-      {/* ─── TAB NAVIGATION ─── */}
-      {activePhoneId && data?.id && (
-        <>
-          <DetailTabs
-            entityType="phone"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            standardTabs={[
-              "contacts",
-              "comments",
-              "actions",
-              "documents",
-              "raw",
-            ]}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
-          />
-
-          {/* ─── TAB CONTENT (scrollable) ─── */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">{renderTabContent()}</div>
-          </div>
-        </>
-      )}
+      <ColumnSelector value={columnCount} onChange={setColumnCount} />
     </div>
   );
 }
