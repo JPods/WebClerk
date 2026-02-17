@@ -5,7 +5,7 @@ from apps.core.models.setting import Setting
 from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
 )
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
@@ -64,10 +64,10 @@ def test_order_to_invoice_action(django_user_model):
 
 
 @pytest.mark.django_db
-def test_receive_purchase_order_action(django_user_model):
-    # Permission for PurchaseOrder header
+def test_receive_purchase_action(django_user_model):
+    # Permission for Purchase header
     Setting.objects.create(
-        purpose='view_edit', model_target='purchase_order', is_active=True,
+        purpose='view_edit', model_target='purchase', is_active=True,
         data={"USER": {"view": ["id"], "edit": ["id"]}}
     )
     user = django_user_model.objects.create_user(email='flow3@example.com', password='pass12345', role='USER')
@@ -75,8 +75,8 @@ def test_receive_purchase_order_action(django_user_model):
 
     item = Item.objects.create(name='Widget', sku='W-1', description='Widget')
     wh = Warehouse.objects.create(code='MAIN', name='Main WH')
-    po = PurchaseOrder.objects.create(po_no='PO-T1')
-    pol = PurchaseOrderLine.objects.create(
+    po = Purchase.objects.create(po_no='PO-T1')
+    pol = PurchaseLine.objects.create(
         parent=po, parent_ref_id=po.pk, status='OPEN',
         item={"id_num": item.id}, cost={"unit": 12.34}
     )

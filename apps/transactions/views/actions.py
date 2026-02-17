@@ -16,8 +16,8 @@ from apps.transactions.serializers.actions import (
 from apps.transactions.services.flow import (
     proposal_to_order,
     order_to_invoice,
-    order_to_purchase_order,
-    receive_purchase_order,
+    order_to_purchase,
+    receive_purchase,
     ReceiveLine,
 )
 from apps.transactions.views.line_views import BasePermission
@@ -113,14 +113,14 @@ class OrderToPurchaseView(APIView):
     permission_classes = [BasePermission]
     queryset = Order.objects.active()
 
-    @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Purchase order created")})
+    @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Purchase created")})
     def post(self, request, *args, **kwargs):
         so_id = kwargs.get('pk')
         so = Order.objects.filter(pk=so_id).first()
         if not so:
             return response.Response({'detail': 'Order not found'}, status=404)
-        po = order_to_purchase_order(so)
-        return response.Response({'purchase_order_id': po.id, 'po_no': po.po_no}, status=status.HTTP_201_CREATED)  # type: ignore[attr-defined]
+        po = order_to_purchase(so)
+        return response.Response({'purchase_id': po.id, 'po_no': po.po_no}, status=status.HTTP_201_CREATED)  # type: ignore[attr-defined]
 
 
 class LinkageCommentsAggregateView(APIView):
@@ -194,7 +194,7 @@ class ReceivePurchaseView(APIView):
         receipt_id = str(vd['receipt_id'])
         line_payloads = list(vd['lines'])
         lines = [ReceiveLine(**ln) for ln in line_payloads]
-        summary = receive_purchase_order(po, receipt_id, lines)
+        summary = receive_purchase(po, receipt_id, lines)
         return response.Response(summary, status=status.HTTP_201_CREATED)
 
 

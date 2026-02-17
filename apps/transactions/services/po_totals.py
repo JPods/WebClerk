@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, Any
 if TYPE_CHECKING:  # pragma: no cover
     from apps.transactions.models.purchase import Purchase
 
-def compute_purchase_order_cost_totals(po: "Purchase") -> Dict[str, Any]:
+def compute_purchase_cost_totals(po: "Purchase") -> Dict[str, Any]:
     """Aggregate per-line cost fields into Purchase header totals.
     Returns a dict shaped for header totals (cost-side).
     - line_sum_goods: sum of line.cost.extended

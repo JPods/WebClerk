@@ -181,7 +181,7 @@ Works with any registered model:
 - ✅ Proposal
 - ✅ Order
 - ✅ Invoice
-- ✅ PurchaseOrder
+- ✅ Purchase
 - ✅ Contact
 - ✅ Organization
 - ✅ ... and any other registered model

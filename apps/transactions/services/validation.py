@@ -202,7 +202,7 @@ def validate_transaction_flow(
     Validate that a transaction can flow to the next stage.
 
     Args:
-        source_type: 'proposal', 'order', 'purchase_order'
+        source_type: 'proposal', 'order', 'purchase'
         source_id: ID of source transaction
         target_type: 'order', 'invoice', 'payment'
     """

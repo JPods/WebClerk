@@ -736,7 +736,7 @@ def create_receipt(quantity: float):
     """Create a Receipt with item 240 using LineItemService.
     
     Note: Receipts increase on_hand and track the informational on_r field.
-    Unlike the receive_purchase_order flow (which receives against a PO),
+    Unlike the receive_purchase flow (which receives against a PO),
     this creates a standalone receipt for testing the on_r pending flow.
     """
     from apps.transactions.models.receipt import Receipt

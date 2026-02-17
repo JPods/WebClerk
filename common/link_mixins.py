@@ -90,8 +90,6 @@ CANONICAL_MODEL_KEYS = {
     # Generic cross-type models
     'orders': 'order',
     'order': 'order',
-    'purchase_order': 'order',
-    'purchase_orders': 'order',
     
     'projects': 'project',
     'project': 'project',

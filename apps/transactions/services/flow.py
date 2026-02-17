@@ -185,7 +185,7 @@ def order_to_invoice(so: Order, invoice_no: Optional[str] = None) -> Invoice:
 
 
 @transaction.atomic
-def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> Purchase:
+def order_to_purchase(so: Order, po_no: Optional[str] = None) -> Purchase:
     """Create a supporting Purchase from an Order.
 
     Propagates / creates linkage id across involved lines to maintain unified
@@ -216,7 +216,7 @@ def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine | W
 
 
 @transaction.atomic
-def receive_purchase_order(po: Purchase,
+def receive_purchase(po: Purchase,
                            receipt_id: str,
                            lines: Sequence[ReceiveLine]) -> dict:
     """Post a receipt for a PO, create inventory stacks, and inventory deltas.
@@ -376,7 +376,7 @@ def complete_workorder(wo: WorkOrder,
     Returns a summary dict with created receipt id, stack ids, and deltas created.
 
     See also:
-        - receive_purchase_order: For receiving goods from vendors (PO)
+        - receive_purchase: For receiving goods from vendors (PO)
         - adjust_inventory: For manual inventory adjustments
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
@@ -521,7 +521,7 @@ def adjust_inventory(adjustment_id: str,
     Returns a summary dict with created receipt id, stack ids, and deltas created.
 
     See also:
-        - receive_purchase_order: For receiving goods from vendors (PO)
+        - receive_purchase: For receiving goods from vendors (PO)
         - complete_workorder: For workorder completion (manufacturing)
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
@@ -626,7 +626,7 @@ def receive_inventory_changes(source_type: str,
     """High-level dispatcher for inventory receiving operations.
 
     Routes to the appropriate handler based on source_type:
-    - 'purchase' -> receive_purchase_order()
+    - 'purchase' -> receive_purchase()
     - 'workorder' -> complete_workorder()
     - 'adjustment' -> adjust_inventory()
 
@@ -652,14 +652,14 @@ def receive_inventory_changes(source_type: str,
         receive_inventory_changes('adjustment', None, 'ADJ-001', adjustment_lines)
 
     See also:
-        - receive_purchase_order: Direct call for PO receiving
+        - receive_purchase: Direct call for PO receiving
         - complete_workorder: Direct call for workorder completion
         - adjust_inventory: Direct call for manual adjustments
     """
     if source_type == 'purchase':
         if not isinstance(source, Purchase):
             raise ValidationError({'source': 'Expected Purchase instance for source_type=purchase'})
-        return receive_purchase_order(source, receipt_id, lines)  # type: ignore[arg-type]
+        return receive_purchase(source, receipt_id, lines)  # type: ignore[arg-type]
     
     elif source_type == 'workorder':
         if not isinstance(source, WorkOrder):
@@ -681,9 +681,9 @@ __all__ = [
     # Transaction flow conversions
     'proposal_to_order',
     'order_to_invoice',
-    'order_to_purchase_order',
+    'order_to_purchase',
     # Inventory receiving functions
-    'receive_purchase_order',
+    'receive_purchase',
     'complete_workorder',
     'adjust_inventory',
     'receive_inventory_changes',

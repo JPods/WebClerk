@@ -262,7 +262,7 @@ classDiagram
         +shipped_by_id: IntegerField
     }
 
-    class PurchaseOrder {
+    class Purchase {
         +TransactionBaseModel+
         +approved_at: DateTimeField
         +approved_by_id: IntegerField
@@ -293,7 +293,7 @@ classDiagram
 
     TransactionBaseModel <|-- Proposal
     TransactionBaseModel <|-- Order
-    TransactionBaseModel <|-- PurchaseOrder
+    TransactionBaseModel <|-- Purchase
     TransactionBaseModel <|-- Invoice
     TransactionBaseModel <|-- WorkOrder
     TransactionBaseModel <|-- Requisition
@@ -335,7 +335,7 @@ classDiagram
         +backorder_quantity: DecimalField
     }
 
-    class PurchaseOrderLine {
+    class PurchaseLine {
         +TransactionLineBaseModel+
         +received_quantity: DecimalField
         +rejected_quantity: DecimalField
@@ -360,7 +360,7 @@ classDiagram
 
     TransactionLineBaseModel <|-- ProposalLine
     TransactionLineBaseModel <|-- OrderLine
-    TransactionLineBaseModel <|-- PurchaseOrderLine
+    TransactionLineBaseModel <|-- PurchaseLine
     TransactionLineBaseModel <|-- InvoiceLine
     TransactionLineBaseModel <|-- WorkOrderLine
     TransactionLineBaseModel <|-- RequisitionLine

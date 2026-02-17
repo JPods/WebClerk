@@ -18,9 +18,9 @@ tests = [
     ('SalesOrder', 'order'),
     ('salesorder', 'order'),
     ('order', 'order'),
-    ('purchase-order', 'purchaseorder'),
+    ('purchase-order', 'purchase'),
     ('invoice', 'invoice'),
-    ('PurchaseOrder', 'purchaseorder'),
+    ('PurchaseOrder', 'purchase'),
 ]
 
 print('Testing resolve_model_name:')

@@ -461,8 +461,8 @@ def forecast_component_demand(
 | `Proposal` | Demand | `expected_close_date` | `probability` (0-1) |
 | `Order` | Demand | `ship_date` | 1.0 (firm) |
 | `OrderLine` | Demand | Line-level ship date | 1.0 |
-| `PurchaseOrder` | Supply | `receive_date` | 1.0 |
-| `PurchaseOrderLine` | Supply | Line-level receive date | 1.0 |
+| `Purchase` | Supply | `receive_date` | 1.0 |
+| `PurchaseLine` | Supply | Line-level receive date | 1.0 |
 
 ### Output Example
 
@@ -513,7 +513,7 @@ def forecast_component_demand(
 - ⏳ BOM explosion service (Phase 1)
 - 🔗 `Proposal` model (apps.transactions)
 - 🔗 `Order` / `OrderLine` models
-- 🔗 `PurchaseOrder` / `PurchaseOrderLine` models
+- 🔗 `Purchase` / `PurchaseLine` models
 
 ### Future Enhancements
 

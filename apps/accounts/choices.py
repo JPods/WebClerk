@@ -70,7 +70,7 @@ LEDGER_MODEL_CHOICES: Final[ChoiceList] = (
     ("invoice", "Invoice"),
     ("credit_memo", "Credit Memo"),
     ("debit_memo", "Debit Memo"),
-    ("purchase_order", "Purchase Order"),
+    ("purchase", "Purchase"),
     ("payment", "Payment"),
     ("other", "Other"),
 )

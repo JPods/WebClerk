@@ -55,8 +55,8 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - project_association — app: `transactions`, endpoint: [`/wcapi/project-associations/`](/wcapi/project-associations/), kind: `support`, aliases: project_associations
 - proposal — app: `transactions`, endpoint: [`/wcapi/proposals/`](/wcapi/proposals/), kind: `header`, aliases: proposals
 - proposal_line — app: `transactions`, endpoint: [`/wcapi/proposal-lines/`](/wcapi/proposal-lines/), kind: `line`, aliases: proposal_lines
-- purchase_order — app: `transactions`, endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchase_orders
-- purchase_order_line — app: `transactions`, endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_order_lines
+- purchase — app: `transactions`, endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchases
+- purchase_line — app: `transactions`, endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_lines
 - purchase_receipt — app: `transactions`, endpoint: [`/wcapi/purchase-receipts/`](/wcapi/purchase-receipts/), kind: `support`, aliases: purchase_receipts
 - report — app: `core`, endpoint: [`/wcapi/reports/`](/wcapi/reports/), kind: `support`, aliases: reports
 - requisition — app: `transactions`, endpoint: [`/wcapi/requisitions/`](/wcapi/requisitions/), kind: `header`, aliases: requisitions
@@ -142,8 +142,8 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - project_association — endpoint: [`/wcapi/project-associations/`](/wcapi/project-associations/), kind: `support`, aliases: project_associations
 - proposal — endpoint: [`/wcapi/proposals/`](/wcapi/proposals/), kind: `header`, aliases: proposals
 - proposal_line — endpoint: [`/wcapi/proposal-lines/`](/wcapi/proposal-lines/), kind: `line`, aliases: proposal_lines
-- purchase_order — endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchase_orders
-- purchase_order_line — endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_order_lines
+- purchase — endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchases
+- purchase_line — endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_lines
 - purchase_receipt — endpoint: [`/wcapi/purchase-receipts/`](/wcapi/purchase-receipts/), kind: `support`, aliases: purchase_receipts
 - requisition — endpoint: [`/wcapi/requisitions/`](/wcapi/requisitions/), kind: `header`, aliases: requisitions
 - requisition_line — endpoint: [`/wcapi/requisition-lines/`](/wcapi/requisition-lines/), kind: `line`, aliases: requisition_lines
@@ -340,12 +340,12 @@ flowchart LR
     proposal_line["proposal_line"]
     app_transactions --> proposal_line
     class proposal_line line
-    purchase_order["purchase_order"]
-    app_transactions --> purchase_order
-    class purchase_order header
-    purchase_order_line["purchase_order_line"]
-    app_transactions --> purchase_order_line
-    class purchase_order_line line
+    purchase["purchase"]
+    app_transactions --> purchase
+    class purchase header
+    purchase_line["purchase_line"]
+    app_transactions --> purchase_line
+    class purchase_line line
     purchase_receipt["purchase_receipt"]
     app_transactions --> purchase_receipt
     class purchase_receipt support

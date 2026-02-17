@@ -2,7 +2,7 @@
 Line Item Service - Single Point of Authority for transaction line management.
 
 Handles adding, updating, and managing transaction line items across all
-transaction types (order, proposal, invoice, purchase_order, work_order).
+transaction types (order, proposal, invoice, purchase, work_order).
 
 Includes deferred inventory adjustment via Pending records to reduce lock contention
 on Item records. When quantity changes occur, a Pending record is created instead of
@@ -64,8 +64,6 @@ LINE_MODEL_MAP = {
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
     'purchase': 'apps.transactions.models.PurchaseLine',
-    'purchase_order': 'apps.transactions.models.PurchaseLine',
-    'purchaseorder': 'apps.transactions.models.PurchaseLine',
     'workorder': 'apps.transactions.models.WorkOrderLine',
     'receipt': 'apps.transactions.models.ReceiptLine',
 }
@@ -119,8 +117,6 @@ PENDING_TYPE_MAP = {
     'invoice': 'IN',
     'receipt': 'RC',
     'purchase': 'PO',
-    'purchase_order': 'PO',
-    'purchaseorder': 'PO',
     'workorder': 'WO',
 }
 
@@ -163,7 +159,7 @@ class LineItemService:
     Single Point of Authority for managing transaction line items.
     
     Supports both sales transactions (proposal, order, invoice) 
-    and purchase transactions (purchase_order, work_order).
+    and purchase transactions (purchase, work_order).
     
     Key behaviors:
     - Sales transactions: price.unit is the primary value
@@ -1070,7 +1066,6 @@ class LineItemService:
             'quote': 'proposal',
             'invoice': 'invoice',
             'purchase': 'purchase',
-            'purchaseorder': 'purchase',
             'workorder': 'workorder',
         }
         transaction_type = tx_type_map.get(parent_model_key.lower())

@@ -26,7 +26,7 @@ The transaction flow system is **substantially implemented** with core models, s
 - ✅ `TransactionBaseModel` - Abstract base with JSONB fields (cost, sell, finance, flow, source, action, totals)
 - ✅ `Proposal` - with `ProposalLine` 
 - ✅ `Order` - with `OrderLine`
-- ✅ `PurchaseOrder` - with `PurchaseOrderLine`
+- ✅ `Purchase` - with `PurchaseLine`
 - ✅ `Invoice` - with `InvoiceLine`
 - ✅ `Payment` - with `PaymentMethod`, `PaymentTerm`, `PaymentApplication`
 - ✅ `WorkOrder` - with `WorkOrderLine`
@@ -61,8 +61,8 @@ STATUS_COMPLETE, STATUS_CANCELED
 |------|--------------|--------|-------|
 | Proposal → Order | `proposal_to_order.py` | ✅ Implemented | Full transfer with line conversion |
 | Order → Invoice | `order_to_invoice.py` | ✅ Implemented | Tax calculation included |
-| Order → PurchaseOrder | `order_to_purchase.py` | ✅ Implemented | Vendor linking included |
-| Proposal → PurchaseOrder | `proposal_to_purchase.py` | ✅ Implemented | Direct transfer option |
+| Order → Purchase | `order_to_purchase.py` | ✅ Implemented | Vendor linking included |
+| Proposal → Purchase | `proposal_to_purchase.py` | ✅ Implemented | Direct transfer option |
 | Core Flow Logic | `flow.py` | ✅ Implemented | Centralized with inventory receiving |
 
 ### Validation Service ✅ COMPLETE
@@ -75,7 +75,7 @@ STATUS_COMPLETE, STATUS_CANCELED
 - Line copy utility (`_copy_common_line_fields()`) - properly handles JSON field cloning
 - `LINE_JSON_FIELDS_TO_COPY` constant - centralized maintenance list (item, quantity, cost, price, tax, physical, metadata, refs, prefs, comments)
 - Atomic transactions using `@transaction.atomic` decorator
-- Inventory receiving via `receive_purchase_order()` 
+- Inventory receiving via `receive_purchase()` 
 
 **Finding:** Transfer services are well-architected and production-ready.
 
@@ -90,7 +90,7 @@ STATUS_COMPLETE, STATUS_CANCELED
 | Proposal Totals | `proposal_totals.py` | ✅ |
 | Order Totals | `order_totals.py` | ✅ |
 | Invoice Totals | `invoice_totals.py` | ✅ |
-| PurchaseOrder Totals | `purchase_order_totals.py` | ✅ |
+| Purchase Totals | `purchase_totals.py` | ✅ |
 | WorkOrder Totals | `wo_totals.py` | ✅ |
 
 ### Totals Field Persistence ✅ COMPLETE
@@ -148,7 +148,7 @@ All documented endpoints implemented with proper mixins:
 |---------|------|-------------------|------------|--------|
 | Proposal | `proposal_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | Order | `order_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
-| PurchaseOrder | `purchase_order_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
+| Purchase | `purchase_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | Invoice | `invoice_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 | Payment | `payment_views.py` | ✅ EnvelopeResponseMixin | ✅ TransactionPagination | ✅ |
 
@@ -156,7 +156,7 @@ All documented endpoints implemented with proper mixins:
 - ✅ ProposalLineListCreate, ProposalLineRetrieveUpdate
 - ✅ OrderLineListCreate, OrderLineRetrieveUpdate
 - ✅ InvoiceLineListCreate, InvoiceLineRetrieveUpdate
-- ✅ PurchaseOrderLineListCreate, PurchaseOrderLineRetrieveUpdate
+- ✅ PurchaseLineListCreate, PurchaseLineRetrieveUpdate
 
 ### Serializers - COMPLETE ✅
 All transaction and line serializers implemented with:
@@ -201,8 +201,8 @@ Features:
 | `test_order_services.py` | Service | ✅ Exists |
 | `test_invoice_models.py` | Unit | ✅ Exists |
 | `test_invoice_services.py` | Service | ✅ Exists |
-| `test_purchase_order_models.py` | Unit | ✅ Exists |
-| `test_purchase_order_services.py` | Service | ✅ Exists |
+| `test_purchase_models.py` | Unit | ✅ Exists |
+| `test_purchase_services.py` | Service | ✅ Exists |
 | `test_payment_models.py` | Unit | ✅ Exists |
 | `test_payment_services.py` | Service | ✅ Exists |
 | `test_payment_integration.py` | Integration | ✅ Exists |
@@ -354,7 +354,7 @@ Backward-compatible routes added:
 All models registered with Django admin:
 - ✅ Invoice, InvoiceLine
 - ✅ Order, OrderLine
-- ✅ PurchaseOrder, PurchaseOrderLine
+- ✅ Purchase, PurchaseLine
 - ✅ Proposal, ProposalLine
 - ✅ Requisition, RequisitionLine
 - ✅ WorkOrder, WorkOrderLine
@@ -391,7 +391,7 @@ All models registered with Django admin:
 ### Import Fixes - COMPLETED ✅
 All broken imports from `common.http.mixins` fixed in 5 files:
 - ✅ `order_views.py`
-- ✅ `purchase_order_views.py`
+- ✅ `purchase_views.py`
 - ✅ `linkage_views.py`
 - ✅ `apps/products/views/inventory.py`
 - ✅ `apps/products/views/inventory_views.py`

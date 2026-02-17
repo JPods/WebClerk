@@ -30,7 +30,7 @@
         ]
     },
     "related_models": [
-        "purchase_order",
+        "purchase",
         "contact",
         "project",
         "item",

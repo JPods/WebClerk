@@ -19,7 +19,7 @@ TRANSACTION_PARENT_MODEL_CHOICES: Final[ChoiceList] = (
     ("proposal", "Proposal"),
     ("order", "Order"),
     ("invoice", "Invoice"),
-    ("purchase_order", "Purchase Order"),
+    ("purchase", "Purchase"),
     ("workorder", "Work Order"),
     ("requisition", "Requisition"),
 )

@@ -12,7 +12,7 @@ from apps.transactions.serializers import (
     InvoiceSerializer, PaymentSerializer
 )
 from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
-from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+from apps.transactions.services.flow import receive_purchase, ReceiveLine
 
 
 class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
@@ -128,7 +128,7 @@ class PurchaseViewSet(viewsets.ReadOnlyModelViewSet):
             ))
 
         try:
-            result = receive_purchase_order(purchase, receipt_id, lines)
+            result = receive_purchase(purchase, receipt_id, lines)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

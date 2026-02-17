@@ -229,7 +229,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
         'invoice': ['amount', 'tax', 'total', 'sales_tax'],
         'order': ['order_no', 'total_amount'],
         'proposal': ['proposal_no', 'estimated_total'],
-        'purchaseorder': ['po_number', 'vendor_id']
+        'purchase': ['po_number', 'vendor_id']
     }
 
     if model_name.lower() in model_specific:

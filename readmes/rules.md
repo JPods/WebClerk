@@ -63,7 +63,7 @@ Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es
 |-----------------------|-------------------------------|-------------------|
 | contact               | contacts                      | contacts          |
 | order                 | orders                        | orders            |
-| purchase_order        | purchase_orders               | purchase_orders   |
+| purchase        | purchases               | purchases   |
 | order_line            | order_lines                   | order_lines       |
 | invoice_line          | invoice_line                  | invoice_line      |
 | address               | locations                     | locations         |

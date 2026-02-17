@@ -12,7 +12,7 @@ Usage:
     from apps.core.utils.model_name_resolver import resolve_model_name, parse_restful_path
     
     resolve_model_name('order')           -> 'order'
-    resolve_model_name('purchase-order')  -> 'purchaseorder'
+    resolve_model_name('purchase')         -> 'purchase'
     resolve_model_name('invoice')         -> 'invoice'
     
     parse_restful_path('/api/transactions/order/22')
@@ -30,9 +30,8 @@ MODEL_NAME_MAP: Dict[str, str] = {
     # Transactions
     'order': 'order',
     'invoice': 'invoice',
-    'purchaseorder': 'purchaseorder',
-    'purchase': 'purchaseorder',
-    'po': 'purchaseorder',
+    'purchase': 'purchase',
+    'po': 'purchase',
     'proposal': 'proposal',
     'quote': 'proposal',
     'workorder': 'workorder',
@@ -44,8 +43,8 @@ MODEL_NAME_MAP: Dict[str, str] = {
     # Transaction Lines
     'orderline': 'order_line',
     'invoiceline': 'invoice_line',
-    'purchaseorderline': 'purchase_order_line',
-    'poline': 'purchase_order_line',
+    'purchaseline': 'purchase_line',
+    'poline': 'purchase_line',
     'proposalline': 'proposal_line',
     'quoteline': 'proposal_line',
     'workorderline': 'work_order_line',
@@ -110,8 +109,7 @@ PATH_PATTERN_MAP: Dict[str, str] = {
     'transactions/order': 'order',
     'transactions/orders': 'order',
     'transactions/invoice': 'invoice',
-    'transactions/purchase-order': 'purchaseorder',
-    'transactions/purchaseorder': 'purchaseorder',
+    'transactions/purchase': 'purchase',
     'transactions/proposal': 'proposal',
     'transactions/work-order': 'workorder',
     'transactions/workorder': 'workorder',
@@ -142,10 +140,10 @@ PATH_PATTERN_MAP: Dict[str, str] = {
 # URL-friendly format mappings (model_name -> url_segment)
 URL_MAP: Dict[str, str] = {
     'order': 'order',
-    'purchaseorder': 'purchase-order',
+    'purchase': 'purchase',
     'workorder': 'work-order',
     'order_line': 'order-line',
-    'purchase_order_line': 'purchase-order-line',
+    'purchase_line': 'purchase-line',
     'work_order_line': 'work-order-line',
     'invoice_line': 'invoice-line',
     'proposal_line': 'proposal-line',
@@ -159,7 +157,7 @@ URL_MAP: Dict[str, str] = {
 TRANSACTION_TYPE_MAP: Dict[str, str] = {
     'order': 'order',
     'invoice': 'invoice',
-    'purchaseorder': 'purchase_order',
+    'purchase': 'purchase',
     'proposal': 'proposal',
     'workorder': 'work_order',
     'requisition': 'requisition',
@@ -198,7 +196,7 @@ def resolve_model_name(input_str: str, strict: bool = False) -> str:
         
     Examples:
         resolve_model_name('order')          -> 'order'
-        resolve_model_name('purchase-order') -> 'purchaseorder'
+        resolve_model_name('purchase')        -> 'purchase'
         resolve_model_name('invoice')        -> 'invoice'
     """
     if not input_str:
@@ -246,8 +244,8 @@ def parse_restful_path(path: str) -> Dict[str, Any]:
         parse_restful_path('/api/transactions/order/22')
         -> {'model_name': 'order', 'id': 22}
         
-        parse_restful_path('/transactions/purchase-order/detail/22')
-        -> {'model_name': 'purchaseorder', 'id': 22}
+        parse_restful_path('/transactions/purchase/detail/22')
+        -> {'model_name': 'purchase', 'id': 22}
     """
     # Remove leading slash and split
     segments = [s for s in path.strip('/').split('/') if s]
@@ -279,10 +277,10 @@ def url_to_model_name(url_segment: str) -> str:
     Used for URL-based routing to API calls.
     
     Args:
-        url_segment: URL segment like "order" or "purchase-order"
+        url_segment: URL segment like "order" or "purchase"
         
     Returns:
-        wcapi model_name like "order" or "purchaseorder"
+        wcapi model_name like "order" or "purchase"
     """
     return resolve_model_name(url_segment)
 

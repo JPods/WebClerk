@@ -207,8 +207,8 @@ class OrderToPurchaseView(BaseJSONAPIView):
         data = {
             "order_id": order.pk,
             "order": {"id": order.pk},
-            "purchase_order_id": po.pk,
-            "purchase_order": {"id": po.pk},
+            "purchase_id": po.pk,
+            "purchase": {"id": po.pk},
             "po_no": f"PO-{po.pk}",
             "state": "created",
         }

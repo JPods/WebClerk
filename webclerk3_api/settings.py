@@ -444,8 +444,8 @@ WCAPI_BLESSED_MODELS = {
     "order_line": "transactions.OrderLine",
     "invoice": "transactions.Invoice",
     "invoice_line": "transactions.InvoiceLine",
-    "purchase_order": "transactions.PurchaseOrder",
-    "purchase_order_line": "transactions.PurchaseOrderLine",
+    "purchase": "transactions.Purchase",
+    "purchase_line": "transactions.PurchaseLine",
     "purchase_receipt": "transactions.PurchaseReceipt",
     "work_order": "transactions.WorkOrder",
     "work_order_line": "transactions.WorkOrderLine",
@@ -607,7 +607,7 @@ WCAPI_MODEL_POLICIES = {
             },
         },
     },
-    "purchaseorder": {
+    "purchase": {
         "fields": {
             "write": {
                 "default": _TX_HEADER_WRITE_USER,
@@ -675,7 +675,7 @@ WCAPI_MODEL_POLICIES = {
             },
         },
     },
-    "purchaseorderline": {
+    "purchase_line": {
         "fields": {
             "write": {
                 "default": _TX_LINE_WRITE_USER,

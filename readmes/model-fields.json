@@ -13714,8 +13714,8 @@
   },
   {
     "app": "transactions",
-    "model": "PurchaseOrder",
-    "db_table": "purchase_orders",
+    "model": "Purchase",
+    "db_table": "purchases",
     "fields": [
       {
         "name": "id",
@@ -13885,8 +13885,8 @@
   },
   {
     "app": "transactions",
-    "model": "PurchaseOrderLine",
-    "db_table": "purchase_order_lines",
+    "model": "PurchaseLine",
+    "db_table": "purchase_lines",
     "fields": [
       {
         "name": "id",
@@ -14181,7 +14181,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "PurchaseOrder"
+        "related_model": "Purchase"
       }
     ],
     "field_count": 29

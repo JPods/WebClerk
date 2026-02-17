@@ -101,7 +101,7 @@ TRANSACTION_MODELS_WITH_LINES = {
     "proposal",
     "order",
     "invoice",
-    "purchaseorder",
+    "purchase",
     "workorder",
 }
 

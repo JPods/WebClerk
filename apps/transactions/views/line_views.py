@@ -428,7 +428,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
             if old_qty > 0 and old_item_id:
                 service._create_pending_for_line_delete(
                     transaction=instance.purchase,
-                    transaction_type='purchase_order',
+                    transaction_type='purchase',
                     line=instance,
                     quantity_released=old_qty,
                 )
@@ -447,7 +447,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
             if qty_delta != 0:
                 service._create_pending_for_qty_change(
                     transaction=instance.purchase,
-                    transaction_type='purchase_order',
+                    transaction_type='purchase',
                     line=instance,
                     quantity_delta=qty_delta,
                 )
@@ -466,7 +466,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
             service = LineItemService(create_pending=True)
             service._create_pending_for_line_delete(
                 transaction=instance.purchase,
-                transaction_type='purchase_order',
+                transaction_type='purchase',
                 line=instance,
                 quantity_released=qty_to_release,
             )

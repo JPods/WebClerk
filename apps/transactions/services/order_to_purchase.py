@@ -40,7 +40,7 @@ def transfer_order_to_purchase(
         # All lines to one PO
         vendor_groups[order.vendor_id or 0] = selected
 
-    purchase_orders = []
+    purchases = []
     line_mapping: Dict[int, int] = {}
 
     for vendor_id, lines in vendor_groups.items():
@@ -73,7 +73,7 @@ def transfer_order_to_purchase(
             except Exception:
                 pass
 
-        purchase_orders.append(po)
+        purchases.append(po)
 
     if not preserve_order:
         try:
@@ -83,12 +83,12 @@ def transfer_order_to_purchase(
             pass
 
     # Update totals for created POs
-    for po in purchase_orders:
+    for po in purchases:
         po.update_sell_cost_totals(persist=True)
 
     return {
         "success": True,
-        "purchase_order_ids": [po.id for po in purchase_orders],
+        "purchase_ids": [po.id for po in purchases],
         "order_id": order.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,

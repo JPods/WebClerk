@@ -353,7 +353,7 @@ class PaymentApplication(BaseModel):
 
 ### Issue #9: Inventory Receiving Not Well Documented
 **Severity:** MEDIUM  
-**File:** `readmes/transaction_flows.md` needs section about `receive_purchase_order()`
+**File:** `readmes/transaction_flows.md` needs section about `receive_purchase()`
 
 **Problem:**
 Documentation doesn't explain inventory workflow:
@@ -368,7 +368,7 @@ Add section:
 
 ### Purchase Order Receiving
 
-When a PO is received, inventory is updated via `receive_purchase_order()`:
+When a PO is received, inventory is updated via `receive_purchase()`:
 
 1. Verify PO lines match receipt quantities
 2. Create InventoryLayer entries with warehouse location

@@ -8,7 +8,7 @@ This document captures the conventions used by the Universal API endpoints (e.g.
 
 ## 1) Singular model_name (strict)
 
-- Always pass a singular `model_name` (e.g., `order`, `invoice`, `purchase_order`, `proposal`, `item`, `phone`, `email`, `org`, `customer`, `vendor`).
+- Always pass a singular `model_name` (e.g., `order`, `invoice`, `purchase`, `proposal`, `item`, `phone`, `email`, `org`, `customer`, `vendor`).
 - Plural table keys are rejected with HTTP 400 and a hint to the proper singular.
 - Transitional aliases are accepted and normalized (e.g., `address` -> `location`, `org_item` -> `item`).
 
@@ -16,7 +16,7 @@ This document captures the conventions used by the Universal API endpoints (e.g.
 
 - The response contains a `data.related` object keyed by canonical plural buckets, because values are arrays.
 - Canonical buckets include (non-exhaustive):
-  - Lines: `order_lines`, `invoice_lines`, `purchase_order_lines`, `proposal_line` (historical singular name kept; may alias to `proposal_lines` later).
+  - Lines: `order_lines`, `invoice_lines`, `purchase_lines`, `proposal_line` (historical singular name kept; may alias to `proposal_lines` later).
   - Communications & orgs: `phones`, `emails`, `addresses`, `customers`, `vendors`.
 
 ## 3) Forward link hydration via refs.links
@@ -36,7 +36,7 @@ Accepted aliases (examples):
 - Line buckets:
   - `order_line` -> `order_lines`
   - `invoice_line` -> `invoice_lines`
-  - `purchase_order_line` -> `purchase_order_lines`
+  - `purchase_line` -> `purchase_lines`
   - `proposal_lin` -> `proposal_line`
 
 ## 4) Header-specific refs.links shapes
@@ -49,7 +49,7 @@ Accepted aliases (examples):
     - Proposal: `proposal_lin[]` (normalized to `related.proposal_line`)
 - Purchase Order:
   - Include: `item[]` (singular), `contact[]`, `vendor[]`, `address[]`, `phone[]`, `email[]`
-  - Lines: `purchase_order_line[]` (normalized to `related.purchase_order_lines`)
+  - Lines: `purchase_line[]` (normalized to `related.purchase_lines`)
 
 ## 5) Examples
 

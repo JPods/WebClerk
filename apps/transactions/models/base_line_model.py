@@ -53,7 +53,7 @@ def _normalize_line_kind(name: str | None) -> str:
         "order": "order", "order_line": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
         "workorder": "workorder", "workorderline": "workorder",
-        "purchase": "purchase", "purchase_order": "purchase", "purchaseline": "purchase", "purchaseorderline": "purchase",
+        "purchase": "purchase", "purchaseline": "purchase",
     }
     return aliases.get(n, n)
 

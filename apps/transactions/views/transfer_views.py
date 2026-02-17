@@ -123,7 +123,7 @@ def execute_transfer(request):
                 'target_status': result['invoice_status']
             }
 
-        elif data['source_type'] == 'order' and data['target_type'] == 'purchase_order':
+        elif data['source_type'] == 'order' and data['target_type'] == 'purchase':
             # Get order
             order = get_object_or_404(Order, id=data['source_id'])
 
@@ -137,7 +137,7 @@ def execute_transfer(request):
                 group_by_vendor=False,
             )
 
-            purchase_ids = result.get('purchase_order_ids') or []
+            purchase_ids = result.get('purchase_ids') or []
             target_id = purchase_ids[0] if purchase_ids else None
 
             response_data = {

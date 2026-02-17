@@ -9,9 +9,9 @@ Renamed 4 legacy PostgreSQL sequences to match current table names:
 | Before | After |
 |---|---|
 | `orders_id_seq` | `orders_id_seq` |
-| `purchase_orders_id_seq` | `purchases_id_seq` |
+| `purchases_id_seq` | `purchases_id_seq` |
 | `order_lines_id_seq` | `order_lines_id_seq` |
-| `purchase_order_lines_id_seq` | `purchase_lines_id_seq` |
+| `purchase_lines_id_seq` | `purchase_lines_id_seq` |
 
 All 12 transaction tables verified OK via `tools/check_all_sequences.py`.
 

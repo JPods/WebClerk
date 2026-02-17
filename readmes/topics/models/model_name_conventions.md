@@ -25,7 +25,7 @@ Endpoints to model_name mapping (examples)
 - /tx/proposal-lines/ -> proposal_line
 - /tx/order-lines/ -> order_lines -> stored as order_line
 - /tx/invoice-lines/ -> invoice_line
-- /tx/purchase-order-lines/ -> purchase_order_lines -> stored as purchase_order_line
+- /tx/purchase-order-lines/ -> purchase_lines -> stored as purchase_line
 - /tx/workorder-lines/ -> work_order_lines -> stored as work_order_line
 - /tx/requisition-lines/ -> requisition_line
 
@@ -39,7 +39,7 @@ Endpoints to model_name mapping (examples)
 Examples:
 
 ```bash
-curl -sS "http://localhost:8000/wcapi/model_name/detail/?model_name=purchase_order_line" \
+curl -sS "http://localhost:8000/wcapi/model_name/detail/?model_name=purchase_line" \
   -H "Authorization: Bearer <token>" | jq
 ```
 
@@ -51,7 +51,7 @@ Example responses
 {
   "ok": true,
   "data": {
-    "model_names": ["invoice_line", "purchase_order_line", "order_line", "work_order_line"],
+    "model_names": ["invoice_line", "purchase_line", "order_line", "work_order_line"],
     "count": 4
   }
 }
@@ -64,9 +64,9 @@ Example responses
   "ok": true,
   "data": {
     "model": {
-      "model_name": "purchase_order_line",
+      "model_name": "purchase_line",
       "app_label": "transactions",
-      "db_table": "purchase_order_lines",
+      "db_table": "purchase_lines",
       "endpoint": "/tx/purchase-order-lines/",
       "verbose_name": "Purchase order line",
       "fields": [

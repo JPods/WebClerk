@@ -51,8 +51,6 @@ def _resolve_dotpath(key: str):
 # Alias map for common underscore/no-underscore variants
 # Note: workorder is the canonical form (no underscore)
 _ALIAS_MAP = {
-    'purchase_order': 'purchase',
-    'purchase_order_line': 'purchaseline',
 }
 
 def get_model(model_key: str):

@@ -1,9 +1,9 @@
 {
     "self_fields": [
         "ida",
-        "price_level",
         "status",
-        "priority"
+        "priority",
+        "price_level"
     ],
     "related_keywords": {
         "email": [
@@ -30,12 +30,11 @@
         ]
     },
     "related_models": [
-        "purchase_order",
+        "vendor",
+        "purchase_line",
         "contact",
         "project",
-        "item",
-        "customer",
-        "vendor"
+        "customer"
     ],
-    "jjj_comment": "setting model_name=\"purchase_order_line\" purpose=\"refs_setup\""
+    "jjj_comment": "setting model_name=\"purchase\" purpose=\"refs_setup\""
 }

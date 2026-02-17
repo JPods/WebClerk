@@ -60,7 +60,7 @@ CoreModel (minimal identity + timestamps + version)
 
 #### Transaction System
 
-- **Headers**: Proposal, Order, PurchaseOrder, Invoice, WorkOrder, Requisition
+- **Headers**: Proposal, Order, Purchase, Invoice, WorkOrder, Requisition
 - **Lines**: Corresponding line items with quantity, pricing, costing
 - **Flows**: Proposal → Sales Order → Invoice; Purchase Order → Invoice
 - **Lineage**: Serial tracking and parent-child relationships

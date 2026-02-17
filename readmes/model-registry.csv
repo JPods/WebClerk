@@ -38,8 +38,8 @@ project,transactions,apps.transactions.models.projects.Project,projects,support,
 project_association,transactions,apps.transactions.models.project_links.ProjectAssociation,project-associations,support,project_associations
 proposal,transactions,apps.transactions.models.Proposal,proposals,header,proposals
 proposal_line,transactions,apps.transactions.models.ProposalLine,proposal-lines,line,proposal_lines
-purchase_order,transactions,apps.transactions.models.PurchaseOrder,purchase-orders,header,purchase_orders
-purchase_order_line,transactions,apps.transactions.models.PurchaseOrderLine,purchase-order-lines,line,purchase_order_lines
+purchase,transactions,apps.transactions.models.Purchase,purchase-orders,header,purchases
+purchase_line,transactions,apps.transactions.models.PurchaseLine,purchase-order-lines,line,purchase_lines
 purchase_receipt,transactions,apps.transactions.models.purchase_receipt.PurchaseReceipt,purchase-receipts,support,purchase_receipts
 report,core,apps.core.models.report.Report,reports,support,reports
 requisition,transactions,apps.transactions.models.Requisition,requisitions,header,requisitions

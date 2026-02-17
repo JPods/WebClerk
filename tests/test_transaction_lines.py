@@ -7,7 +7,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
@@ -103,17 +103,17 @@ def test_scoped_aggregation(django_user_model):
 @pytest.mark.django_db
 def test_permissions_remaining_line_models(django_user_model):
     # Create minimal PUBLIC rule for all remaining models
-    models_tables = ['invoice_line','purchase_order_lines','work_order_lines','requisition_line']
+    models_tables = ['invoice_line','purchase_lines','work_order_lines','requisition_line']
     for tbl in models_tables:
         Setting.objects.create(purpose='view_edit', model_target=tbl, is_active=True,
                                data={"PUBLIC": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='puball@example.com', password='pass12345', role='GUEST')
     inv = Invoice.objects.create()
-    pur = PurchaseOrder.objects.create(po_no='P1')
+    pur = Purchase.objects.create(ida='P1')
     wo = WorkOrder.objects.create(work_no='W1')
     req = Requisition.objects.create(req_no='R1')
     InvoiceLine.objects.create(parent=inv, parent_ref_id=inv.pk, status='SENT')
-    PurchaseOrderLine.objects.create(parent=pur, parent_ref_id=pur.pk, status='OPEN')
+    PurchaseLine.objects.create(purchase=pur, parent_ref_id=pur.pk, status='OPEN')
     WorkOrderLine.objects.create(parent=wo, parent_ref_id=wo.pk, status='OPEN')
     RequisitionLine.objects.create(parent=req, parent_ref_id=req.pk, status='OPEN')
     client = _auth(user)

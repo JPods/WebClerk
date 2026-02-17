@@ -52,7 +52,7 @@ All transaction lines (OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine) flow
 ┌─────────────────┐
 │  flow.py        │
 │  receive_       │
-│  purchase_order │
+│  purchase │
 └────────┬────────┘
          │
          ▼
@@ -293,7 +293,7 @@ class OrderLine(BaseSellLineModel):
 | Proposal→Order | `proposal_to_order.py:190` | Direct ORM | ✅ Signal catches |
 | Purchase→Order | `purchase_to_order.py:35` | Direct ORM | ✅ Signal catches |
 | Flow service | `flow.py:199` | Direct ORM | ✅ Signal catches |
-| PO Receiving | `flow.py:receive_purchase_order` | Direct Pending | ✅ Explicit |
+| PO Receiving | `flow.py:receive_purchase` | Direct Pending | ✅ Explicit |
 
 ---
 

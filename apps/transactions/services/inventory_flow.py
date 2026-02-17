@@ -353,7 +353,7 @@ def create_inventory_deltas_for_order(order: Order) -> int:
     return deltas_created
 
 
-def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
+def create_inventory_deltas_for_purchase(po: Purchase) -> int:
     """
     Create inventory deltas when a purchase order is created.
 
@@ -376,11 +376,11 @@ def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
 
         _create_inventory_delta(
             item_id=item_id,
-            source_type='purchase_order_line',
+            source_type='purchase_line',
             source_id=po.id,
             source_line_id=line.id,
             quantity_on_po_delta=Decimal(str(qty_ordered)),  # Increase on-PO (or decrease for returns)
-            notes=f"Purchase order {po.id} - ordered {qty_ordered} units"
+            notes=f"Purchase {po.id} - ordered {qty_ordered} units"
         )
         deltas_created += 1
 
@@ -601,7 +601,7 @@ def validate_inventory_delta(delta: Pending) -> Dict[str, Any]:
 
     # Source type validation
     valid_source_types = [
-        'order_line', 'purchase_order_line', 'invoice_line',
+        'order_line', 'purchase_line', 'invoice_line',
         'purchase_receipt', 'inventory_adjustment'
     ]
     source_type = data.get('source_type')
@@ -702,7 +702,7 @@ __all__ = [
     'release_inventory_on_invoice',
     'cancel_order_inventory_reservations',
     'create_inventory_deltas_for_order',
-    'create_inventory_deltas_for_purchase_order',
+    'create_inventory_deltas_for_purchase',
     '_create_inventory_delta',
     'process_inventory_deltas_immediately',
     'validate_inventory_delta',

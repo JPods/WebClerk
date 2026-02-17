@@ -40,8 +40,6 @@ from django.db import models
 MODEL_ALIASES: dict[str, str] = {
     "core.Audit": "core.AuditLog",
 
-    "transactions.PurchaseOrder": "transactions.Purchase",
-    "transactions.PurchaseOrderLine": "transactions.PurchaseLine",
     "transactions.PurchaseReceipt": "transactions.Receipt",
     "transactions.ProjectLinks": "transactions.Project",  # no separate model
     "docs.Linkage": "docs.LinkageEntry",

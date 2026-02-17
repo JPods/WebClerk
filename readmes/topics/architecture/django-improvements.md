@@ -416,7 +416,7 @@ _LINE_CONFIG = [
     (ProposalLine,  'parent',    'proposal',  'proposal',       'proposal_line'),
     (OrderLine,     'order',     'order',     'order',          'order_line'),
     (InvoiceLine,   'invoice',   'invoice',   'invoice',        'invoice_line'),
-    (PurchaseLine,  'purchase',  'purchase',  'purchase_order', 'purchase_line'),
+    (PurchaseLine,  'purchase',  'purchase',  'purchase', 'purchase_line'),
     (WorkOrderLine, 'workorder', 'workorder', 'workorder',      'workorder_line'),
 ]
 ```
@@ -654,7 +654,7 @@ interfaces directly.
   other backend-managed JSONB envelopes from Create/Update interfaces
 - **MODEL_ALIASES** — resolves 8 naming mismatches between
   `WCAPI_BLESSED_MODELS` keys and actual Django class names (e.g.,
-  `Order` → `Order`, `PurchaseOrder` → `Purchase`)
+  `Order` → `Order`, `Purchase` → `Purchase`)
 - **FK handling** — FK fields emit `attname` (e.g., `customer_id: number`)
   matching WCAPI save payload convention
 - **Comments** — each field carries inline TS comments: FK targets,

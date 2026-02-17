@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
-from apps.transactions.models import Proposal, ProposalLine, OrderLine, Order, InvoiceLine, Invoice, PurchaseOrderLine, PurchaseOrder
+from apps.transactions.models import Proposal, ProposalLine, OrderLine, Order, InvoiceLine, Invoice, PurchaseLine, Purchase
 
 
 def _auth(user):
@@ -13,7 +13,7 @@ def _auth(user):
 @pytest.mark.django_db
 def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     # Minimal permissions for involved models
-    for model in ('proposal', 'order', 'invoice', 'purchase_order'):
+    for model in ('proposal', 'order', 'invoice', 'purchase'):
         Setting.objects.create(purpose='view_edit', model_target=model, is_active=True, data={'USER': {'view': ['id'], 'edit': ['id']}})
     user = django_user_model.objects.create_user(email='linkage1@example.com', password='pass12345', role='USER')
     client = _auth(user)
@@ -47,9 +47,9 @@ def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     # Also convert sales order -> purchase order
     resp3 = client.post(f'/tx/orders/{so_id}/convert-to-purchase-order/', {}, format='json')
     assert resp3.status_code == 201  # type: ignore[attr-defined]
-    po_id = resp3.data['data']['purchase_order_id']  # type: ignore[attr-defined]
-    po = PurchaseOrder.objects.get(pk=po_id)
-    pol = PurchaseOrderLine.objects.filter(parent=po).first()
+    po_id = resp3.data['data']['purchase_id']  # type: ignore[attr-defined]
+    po = Purchase.objects.get(pk=po_id)
+    pol = PurchaseLine.objects.filter(parent=po).first()
     assert pol is not None
     po_linkage_ids = (pol.refs or {}).get('links', {}).get('linkage', []) if pol.refs else []
     assert po_linkage_ids and po_linkage_ids[0] == linkage_id

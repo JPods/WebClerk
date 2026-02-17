@@ -94,14 +94,14 @@ The implementation work focused on:
 4. **`apps/transactions/views/line_views.py`**
    - Applied EnvelopeResponseMixin + ListResponseEnvelopeMixin to 18+ view classes
    - Integrated TransactionPagination for all list endpoints
-   - Views now include: ProposalListCreate, ProposalLineListCreate, OrderListCreate, OrderLineListCreate, InvoiceListCreate, InvoiceLineListCreate, PurchaseOrderListCreate, PurchaseOrderLineListCreate, WorkOrderListCreate, WorkOrderLineListCreate, RequisitionListCreate, RequisitionLineListCreate, ProjectListCreate, ProjectLineListCreate, and detail/update/delete variants
+   - Views now include: ProposalListCreate, ProposalLineListCreate, OrderListCreate, OrderLineListCreate, InvoiceListCreate, InvoiceLineListCreate, PurchaseListCreate, PurchaseLineListCreate, WorkOrderListCreate, WorkOrderLineListCreate, RequisitionListCreate, RequisitionLineListCreate, ProjectListCreate, ProjectLineListCreate, and detail/update/delete variants
 
 5. **`apps/transactions/views/order_views.py`**
    - Fixed BaseJSONAPIView import (was: `common.http.mixins`, now: `apps.core.views` with fallback)
    - Added `convert-to-order` action alias for backward compatibility
    - Applied response envelope mixins
 
-6. **`apps/transactions/views/purchase_order_views.py`**
+6. **`apps/transactions/views/purchase_views.py`**
    - Fixed BaseJSONAPIView import 
    - Applied response envelope mixins
 

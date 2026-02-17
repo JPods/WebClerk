@@ -649,8 +649,6 @@ class SaveWcapiView(APIView):
                 'proposal': 'proposalline',
                 'order': 'orderline',
                 'purchase': 'purchaseline',
-                'purchaseorder': 'purchaseline',  # backwards compatibility alias
-                'purchase_order': 'purchaseline',  # underscore variant
                 'invoice': 'invoiceline',
                 'workorder': 'workorderline',
                 'receipt': 'receiptline',
@@ -663,10 +661,8 @@ class SaveWcapiView(APIView):
                 # FK field name without _id suffix (Django field name, not column name)
                 # e.g., 'proposal' for ProposalLine, 'order' for OrderLine
                 fk_field_name = model_key.lower()
-                # Handle aliases like 'purchase_order' -> 'purchase'
+                # Handle special FK mappings
                 fk_field_aliases = {
-                    'purchaseorder': 'purchase',
-                    'purchase_order': 'purchase',
                     'workorder': 'workorder',
                 }
                 fk_field_name = fk_field_aliases.get(fk_field_name, fk_field_name)
@@ -846,7 +842,6 @@ class SaveWcapiView(APIView):
                 'invoice_line': 'invoice',
                 'purchaseline': 'purchase',
                 'purchase_line': 'purchase',
-                'purchaseorderline': 'purchase',
                 'workorderline': 'workorder',
                 'receiptline': 'receipt',
                 'receipt_line': 'receipt',
@@ -1840,7 +1835,7 @@ class SaveWcapiView(APIView):
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'proposal'}
+        header_models = {'order', 'invoice', 'purchase', 'workorder', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
@@ -1852,8 +1847,6 @@ class SaveWcapiView(APIView):
                 'order': ('OrderLine', 'order'),
                 'invoice': ('InvoiceLine', 'invoice'),
                 'purchase': ('PurchaseLine', 'purchase'),
-                'purchaseorder': ('PurchaseLine', 'purchase'),
-                'purchase_order': ('PurchaseLine', 'purchase'),
                 'workorder': ('WorkOrderLine', 'workorder'),
                 'proposal': ('ProposalLine', 'proposal'),
             }

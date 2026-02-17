@@ -205,7 +205,7 @@ _LINE_CONFIG = [
     (ProposalLine,   'parent',     'proposal',   'proposal',       'proposal_line'),
     (OrderLine,      'order',      'order',      'order',          'order_line'),
     (InvoiceLine,    'invoice',    'invoice',    'invoice',        'invoice_line'),
-    (PurchaseLine,   'purchase',   'purchase',   'purchase_order', 'purchase_line'),
+    (PurchaseLine,   'purchase',   'purchase',   'purchase',       'purchase_line'),
     (WorkOrderLine,  'workorder',  'workorder',  'workorder',      'workorder_line'),
 ]
 
