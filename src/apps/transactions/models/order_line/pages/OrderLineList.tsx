@@ -99,7 +99,7 @@ export default function OrderLineList() {
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Order ID",
-      selector: (row) => row.order_id || row.salesorder_id || "--",
+      selector: (row) => row.order_id || "--",
       sortable: true,
       width: "15%",
     },

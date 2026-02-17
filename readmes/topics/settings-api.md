@@ -69,7 +69,7 @@ import {
 } from '@/api/wcapi';
 
 // Fetch for a specific model
-const setting = await getWorkbenchFieldsSetting('sales_order');
+const setting = await getWorkbenchFieldsSetting('order');
 // setting.data.list = ['id', 'customer_name', 'order_date', ...]
 // setting.data.detail = ['id', 'customer_name', ...]
 
@@ -79,7 +79,7 @@ const allSettings = await getAllWorkbenchFieldsSettings();
 // Save
 await saveWorkbenchFieldsSetting({
   id: setting?.id,
-  model_name: 'sales_order',
+  model_name: 'order',
   purpose: 'workbench_fields',
   data: {
     list: ['id', 'customer_name', 'order_date', 'total'],
@@ -115,14 +115,14 @@ import {
 } from '@/api/wcapi';
 
 // Fetch
-const setting = await getDetailFieldSetting('sales_order');
+const setting = await getDetailFieldSetting('order');
 // setting.data.hidden = ['internal_notes', 'legacy_id']
 // setting.data.readOnly = ['created_at', 'order_number']
 
 // Save
 await saveDetailFieldSetting({
   id: setting?.id,
-  model_name: 'sales_order',
+  model_name: 'order',
   purpose: 'detail_field_access',
   data: {
     hidden: ['internal_notes'],
@@ -335,7 +335,7 @@ async function getViewEditMatrix(
 }
 
 // Usage
-const userPerms = await getViewEditMatrix('sales_order', 'user');
+const userPerms = await getViewEditMatrix('order', 'user');
 if (userPerms?.fields.discount_pct?.edit === false) {
   // Disable discount field editing
 }

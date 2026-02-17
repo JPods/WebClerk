@@ -15,8 +15,8 @@ All transaction types share common behaviors that must be implemented consistent
 
 | Category | Models | Primary Value | Customer-Facing |
 |----------|--------|---------------|-----------------|
-| **Sales** | `sales_order`, `proposal`, `invoice` | Price | Yes |
-| **Purchase** | `purchase_order`, `work_order` | Cost | No (internal/vendor) |
+| **Sales** | `order`, `proposal`, `invoice` | Price | Yes |
+| **Purchase** | `purchase`, `work_order` | Cost | No (internal/vendor) |
 
 ### Architecture Principle
 
@@ -73,7 +73,7 @@ When line items change, instead of immediately updating the Item record (which c
 ┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │  LineItemService│     │    Pending       │     │  Item.record     │
 │  add_item()     │────▶│    model_name=   │     │  .quantity{}     │
-│  update_qty()   │     │    'item'        │────▶│  .on_sales_order │
+│  update_qty()   │     │    'item'        │────▶│  .on_order       │
 │  delete_line()  │     │    dt_processed= │     │  .on_purchase_   │
 └─────────────────┘     │    0             │     │  .on_work_order  │
                         └──────────────────┘     └──────────────────┘
@@ -97,8 +97,8 @@ When line items change, instead of immediately updating the Item record (which c
 **Type Codes** (matches WebClerk2 DInventory):
 | Code | Transaction Type | Affects |
 |------|------------------|---------|
-| `SO` | sales_order | `qty_on_so` |
-| `PO` | purchase_order | `qty_on_po` |
+| `SO` | order | `qty_on_so` |
+| `PO` | purchase | `qty_on_po` |
 | `WO` | work_order | `qty_on_wo` |
 | `IV` | invoice | `qty_invoiced` (decreases on-hand) |
 | `PP` | proposal | None (quotes don't affect inventory) |
@@ -199,7 +199,7 @@ summary = process_pending_for_item(item_id=123)
     # Audit
     'reason': 'so line add',
     'take_action': 1,
-    'transaction_type': 'sales_order',
+    'transaction_type': 'order',
 }
 
 ---
@@ -932,11 +932,11 @@ __all__ = [
 ### In Transaction Detail Components
 
 ```typescript
-// src/apps/transactions/models/sales_order/pages/SalesOrderDetail.tsx
+// src/apps/transactions/models/order/pages/OrderDetail.tsx
 
 import { createTransactionServices } from '../../../services';
 
-const SalesOrderDetail: React.FC = () => {
+const OrderDetail: React.FC = () => {
   const services = useMemo(() => createTransactionServices({
     transactionType: 'sales',
     useCost: false,
@@ -977,9 +977,9 @@ const SalesOrderDetail: React.FC = () => {
 ### In Purchase Order Detail
 
 ```typescript
-// src/apps/transactions/models/purchase_order/pages/PurchaseOrderDetail.tsx
+// src/apps/transactions/models/purchase/pages/PurchaseDetail.tsx
 
-const PurchaseOrderDetail: React.FC = () => {
+const PurchaseDetail: React.FC = () => {
   const services = useMemo(() => createTransactionServices({
     transactionType: 'purchase',
     useCost: true,

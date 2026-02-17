@@ -10,9 +10,9 @@
  *
  * Usage:
  *   resolveModelName('order')           -> 'order'
- *   resolveModelName('sales_order')     -> 'order'
- *   resolveModelName('SalesOrder')      -> 'order'
- *   resolveModelName('purchase-order')  -> 'purchase'
+ *   resolveModelName('order')            -> 'order'
+ *   resolveModelName('order')            -> 'order'
+ *   resolveModelName('purchase')        -> 'purchase'
  *   resolveModelName('invoice')         -> 'invoice'
  */
 
@@ -20,38 +20,33 @@
 // Keys are normalized (lowercase, no separators), values are the wcapi model_name
 const MODEL_NAME_MAP: Record<string, string> = {
   // Transactions - canonical names match Django model._meta.model_name
-  salesorder: "order",
-  order: "order",
-  sales: "order",
-  invoice: "invoice",
-  purchaseorder: "purchase",
-  purchase: "purchase",
-  po: "purchase",
-  proposal: "proposal",
-  quote: "proposal",
-  workorder: "workorder", // Django model_name is 'workorder' (no underscore)
-  work: "workorder",
-  wo: "workorder",
-  requisition: "requisition",
-  req: "requisition",
-  project: "project",
-  receipt: "receipt",
-  purchasereceipt: "receipt",
-
+  order: 'order',
+  invoice: 'invoice',
+  purchase: 'purchase',
+  po: 'purchase',
+  proposal: 'proposal',
+  quote: 'proposal',
+  workorder: 'workorder',  // Django model_name is 'workorder' (no underscore)
+  work: 'workorder',
+  wo: 'workorder',
+  requisition: 'requisition',
+  req: 'requisition',
+  project: 'project',
+  receipt: 'receipt',
+  purchasereceipt: 'receipt',
+  
   // Transaction Lines
-  salesorderline: "order_line",
-  orderline: "order_line",
-  invoiceline: "invoice_line",
-  purchaseorderline: "purchase_line",
-  purchaseline: "purchase_line",
-  poline: "purchase_line",
-  proposalline: "proposal_line",
-  quoteline: "proposal_line",
-  workorderline: "workorderline", // Django model_name is 'workorderline' (no underscore)
-  woline: "workorderline",
-  requisitionline: "requisition_line",
-  reqline: "requisition_line",
-
+  orderline: 'order_line',
+  invoiceline: 'invoice_line',
+  purchaseline: 'purchase_line',
+  poline: 'purchase_line',
+  proposalline: 'proposal_line',
+  quoteline: 'proposal_line',
+  workorderline: 'workorderline',  // Django model_name is 'workorderline' (no underscore)
+  woline: 'workorderline',
+  requisitionline: 'requisition_line',
+  reqline: 'requisition_line',
+  
   // Organizations
   customer: "customer",
   vendor: "vendor",
@@ -127,24 +122,21 @@ const MODEL_NAME_MAP: Record<string, string> = {
 };
 
 // RESTful path patterns to model name
-// Handles paths like /api/transactions/salesorder/22
+// Handles paths like /api/transactions/order/22
 const PATH_PATTERN_MAP: Record<string, string> = {
   // Transactions
-  "transactions/sales-order": "order",
-  "transactions/salesorder": "order",
-  "transactions/order": "order",
-  "transactions/invoice": "invoice",
-  "transactions/purchase-order": "purchase",
-  "transactions/purchaseorder": "purchase",
-  "transactions/purchase": "purchase",
-  "transactions/proposal": "proposal",
-  "transactions/quote": "proposal",
-  "transactions/work-order": "workorder",
-  "transactions/workorder": "workorder",
-  "transactions/requisition": "requisition",
-  "transactions/project": "project",
-  "transactions/receipt": "receipt",
-
+  'transactions/order': 'order',
+  'transactions/invoice': 'invoice',
+  'transactions/purchase-order': 'purchase',
+  'transactions/purchase': 'purchase',
+  'transactions/proposal': 'proposal',
+  'transactions/quote': 'proposal',
+  'transactions/work-order': 'workorder',
+  'transactions/workorder': 'workorder',
+  'transactions/requisition': 'requisition',
+  'transactions/project': 'project',
+  'transactions/receipt': 'receipt',
+  
   // Orgs
   "orgs/customer": "customer",
   "orgs/vendor": "vendor",
@@ -264,10 +256,10 @@ export function resolveModelName(input: string): string {
  * Extract model name and ID from a RESTful path.
  *
  * Handles patterns like:
- *   /api/transactions/salesorder/22
- *   /transactions/sales-order/detail/22
- *   /api/salesorder/22
- *
+ *   /api/transactions/order/22
+ *   /transactions/order/detail/22
+ *   /api/order/22
+ * 
  * @param path - URL path
  * @returns Object with modelName and optional id
  */
@@ -304,9 +296,9 @@ export function parseRestfulPath(path: string): {
 /**
  * Convert a URL path segment to wcapi model_name format.
  * Used for URL-based routing to API calls.
- *
- * @param urlSegment - URL segment like "sales-order" or "purchase-order"
- * @returns wcapi model_name like "salesorder" or "purchaseorder"
+ * 
+ * @param urlSegment - URL segment like "order" or "purchase"
+ * @returns wcapi model_name like "order" or "purchase"
  */
 export function urlToModelName(urlSegment: string): string {
   return resolveModelName(urlSegment);
@@ -315,27 +307,25 @@ export function urlToModelName(urlSegment: string): string {
 /**
  * Convert a wcapi model_name to URL-friendly format.
  * Used for building navigation URLs.
- *
- * @param modelName - wcapi model_name like "salesorder"
+ * 
+ * @param modelName - wcapi model_name like "order"
  * @returns URL segment like "sales-order"
  */
 export function modelNameToUrl(modelName: string): string {
   // Special cases with hyphens in URL
   const URL_MAP: Record<string, string> = {
-    sales_order: "sales-order",
-    order: "order",
-    purchase: "purchase",
-    workorder: "workorder",
-    sales_order_line: "sales-order-line",
-    order_line: "order-line",
-    purchase_line: "purchase-line",
-    workorderline: "workorderline",
-    invoice_line: "invoice-line",
-    proposal_line: "proposal-line",
-    exchange_rate: "exchange-rate",
-    gl_account: "gl-account",
-    gl_journal: "gl-journal",
-    tax_jurisdiction: "tax-jurisdiction",
+    order: 'order',
+    purchase: 'purchase',
+    workorder: 'workorder',
+    order_line: 'order-line',
+    purchase_line: 'purchase-line',
+    workorderline: 'workorderline',
+    invoice_line: 'invoice-line',
+    proposal_line: 'proposal-line',
+    exchange_rate: 'exchange-rate',
+    gl_account: 'gl-account',
+    gl_journal: 'gl-journal',
+    tax_jurisdiction: 'tax-jurisdiction',
   };
 
   return URL_MAP[modelName] || modelName.replace(/_/g, "-");
@@ -345,17 +335,16 @@ export function modelNameToUrl(modelName: string): string {
  * Get the transaction type for routing purposes from a model name.
  *
  * @param modelName - wcapi model_name
- * @returns Transaction type for routing (e.g., "sales_order", "invoice")
+ * @returns Transaction type for routing (e.g., "order", "invoice")
  */
 export function getTransactionType(modelName: string): string {
   const TYPE_MAP: Record<string, string> = {
-    sales_order: "sales_order",
-    order: "order",
-    invoice: "invoice",
-    purchase: "purchase",
-    proposal: "proposal",
-    workorder: "workorder",
-    requisition: "requisition",
+    order: 'order',
+    invoice: 'invoice',
+    purchase: 'purchase',
+    proposal: 'proposal',
+    workorder: 'workorder',
+    requisition: 'requisition',
   };
 
   return TYPE_MAP[modelName] || modelName;

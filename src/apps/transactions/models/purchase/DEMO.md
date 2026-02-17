@@ -5,7 +5,7 @@ This model represents purchase orders in the transaction system.
 ## Fields
 
 - `id`: Unique identifier (readonly)
-- `purchase_order_no`: Purchase order number (required)
+- `purchase_no`: Purchase order number (required)
 - `dt_created`: Creation timestamp (readonly)
 
 ## API Endpoints
@@ -19,10 +19,10 @@ This model represents purchase orders in the transaction system.
 ## Usage
 
 ```typescript
-import { fetchPurchaseOrders, createPurchaseOrder } from './services/purchaseOrderApi';
+import { fetchPurchases, createPurchase } from './services/purchaseOrderApi';
 
 // Fetch all purchase orders
-const purchaseOrders = await fetchPurchaseOrders();
+const purchaseOrders = await fetchPurchases();
 
 // Create new purchase order
-const newPurchaseOrder = await createPurchaseOrder({ purchase_order_no: 'PO-001' });
+const newPurchase = await createPurchase({ purchase_no: 'PO-001' });

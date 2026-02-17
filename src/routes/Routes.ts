@@ -70,10 +70,10 @@
   static readonly transactionsApplyPayments: string =
     "/transactions/apply-payments";
 
-  static readonly transactionsPurchaseOrderList: string =
-    "/transactions/purchase-order/list";
-  static readonly transactionsPurchaseOrderDetail: string =
-    "/transactions/purchase-order/detail/:id?";
+  static readonly transactionsPurchaseList: string =
+    "/transactions/purchase/list";
+  static readonly transactionsPurchaseDetail: string =
+    "/transactions/purchase/detail/:id?";
 
   static readonly transactionsProposalList: string =
     "/transactions/proposal/list";

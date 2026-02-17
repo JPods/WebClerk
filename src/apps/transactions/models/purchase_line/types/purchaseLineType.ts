@@ -1,5 +1,5 @@
 /**
- * PurchaseOrderLine Types — matches wc3 BaseExecLineModel
+ * PurchaseLine Types — matches wc3 BaseExecLineModel
  * @see webClerk3/apps/transactions/models/base_line_model.py
  *
  * DB table: purchase_lines (extends BaseExecLineModel)
@@ -15,7 +15,7 @@ import type {
   LinePhysical,
 } from "@/apps/transactions/types/transactionTypes";
 
-export interface PurchaseOrderLineAddProps {
+export interface PurchaseLineAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
   hideBreadcrumb?: boolean;
@@ -24,7 +24,7 @@ export interface PurchaseOrderLineAddProps {
   onCancelInline?: () => void;
 }
 
-export interface CreatePurchaseOrderLineRequest {
+export interface CreatePurchaseLineRequest {
   parent_id: number;
   status?: string;
   price_level?: string;
@@ -35,7 +35,7 @@ export interface CreatePurchaseOrderLineRequest {
   physical?: LinePhysical;
 }
 
-export interface PurchaseOrderLineApiTask {
+export interface PurchaseLineApiTask {
   id: number;
   parent_id: number;
   parent_ref_id?: number;
@@ -61,7 +61,7 @@ export interface PurchaseOrderLineApiTask {
   actions?: Record<string, unknown>;
 }
 
-export interface UpdatePurchaseOrderLineRequest extends Partial<CreatePurchaseOrderLineRequest> {
+export interface UpdatePurchaseLineRequest extends Partial<CreatePurchaseLineRequest> {
   id: number;
   version?: number;
 }

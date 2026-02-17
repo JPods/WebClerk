@@ -1,8 +1,8 @@
 /**
- * PurchaseOrder Types — matches wc3 TransactionBaseModel
+ * Purchase Types — matches wc3 TransactionBaseModel
  * @see webClerk3/apps/transactions/models/base_transaction_model.py
  *
- * DB table: purchase_orders (extends TransactionBaseModel)
+ * DB table: purchases (extends TransactionBaseModel)
  */
 
 import type {
@@ -18,7 +18,7 @@ import type {
   TransactionActions,
 } from "@/apps/transactions/types/transactionTypes";
 
-export interface PurchaseOrderAddProps {
+export interface PurchaseAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
   hideBreadcrumb?: boolean;
@@ -28,7 +28,7 @@ export interface PurchaseOrderAddProps {
   isAdmin?: boolean;
 }
 
-export interface CreatePurchaseOrderRequest {
+export interface CreatePurchaseRequest {
   status?: TransactionStatus;
   priority?: string;
   price_level?: string;
@@ -63,7 +63,7 @@ export interface CreatePurchaseOrderRequest {
   actions?: TransactionActions;
 }
 
-export interface PurchaseOrderApiTask {
+export interface PurchaseApiTask {
   id: number;
   uuid?: string;
   ida?: string;
@@ -108,7 +108,7 @@ export interface PurchaseOrderApiTask {
   lines?: unknown[];
 }
 
-export interface UpdatePurchaseOrderRequest extends Partial<CreatePurchaseOrderRequest> {
+export interface UpdatePurchaseRequest extends Partial<CreatePurchaseRequest> {
   id: number;
   version?: number;
 }

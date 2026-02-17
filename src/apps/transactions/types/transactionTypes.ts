@@ -22,9 +22,9 @@ export type TransactionStatus =
 // Matches TRANSACTION_PARENT_MODEL_CHOICES
 export type TransactionParentType =
   | "proposal"
-  | "sales_order"
+  | "order"
   | "invoice"
-  | "purchase_order"
+  | "purchase"
   | "workorder"
   | "requisition";
 

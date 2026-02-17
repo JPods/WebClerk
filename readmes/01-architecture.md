@@ -80,10 +80,10 @@ apps/core/models/customer/pages/
 ├── CustomerDetail.tsx      # Add/edit customer form
 └── CustomerList.tsx        # Customer management table
 
-apps/transactions/models/sales_order/pages/
-├── SalesOrderDetail.tsx    # Order form
-├── SalesOrderList.tsx      # Order management
-└── SalesOrderDisplay.tsx   # Order details view
+apps/transactions/models/order/pages/
+├── OrderDetail.tsx         # Order form
+├── OrderList.tsx           # Order management
+└── OrderDisplay.tsx        # Order details view
 ```
 
 ### Container Components
@@ -101,8 +101,8 @@ apps/transactions/models/sales_order/pages/
 
 ### Model Name Mapping
 API endpoints use specific model names (may differ from directory names):
-- `sales_order` (not `salesOrder`)
-- `purchase_order` (not `purchaseOrder`)
+- `order` (not `salesOrder`)
+- `purchase` (not `purchaseOrder`)
 - `work_order` (not `workOrder`)
 
 ## 🎨 UI Patterns

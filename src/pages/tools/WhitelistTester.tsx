@@ -112,7 +112,7 @@ const PRESETS: Preset[] = [
       requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
       notes: [
         'No separate call needed for order lines.',
-        'Canonical key: related.order_lines. Legacy fallbacks may include related.sales_order_lines depending on environment.',
+        'Line items are embedded under related.order_lines.',
       ],
     },
   },

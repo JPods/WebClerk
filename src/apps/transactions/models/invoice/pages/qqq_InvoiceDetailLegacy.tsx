@@ -1249,7 +1249,7 @@ export default function InvoiceDetailLegacy({
       const candidates = [
         recordContainer.ida,
         recordContainer.invoice_no,
-        recordContainer.ida_sales_order,
+        recordContainer.ida_order,
       ];
       for (const candidate of candidates) {
         if (typeof candidate === "string" && candidate.trim()) {
@@ -1806,7 +1806,7 @@ export default function InvoiceDetailLegacy({
         lineOperations.push(
           (async () => {
             await saveRecord(
-              "sales_order_line",
+              "order_line",
               JSON.parse(JSON.stringify(payload))
             );
           })()
@@ -1817,7 +1817,7 @@ export default function InvoiceDetailLegacy({
         if (!retainedLineIds.has(lineId)) {
           lineOperations.push(
             (async () => {
-              await deleteRecord("sales_order_line", lineId);
+              await deleteRecord("order_line", lineId);
             })()
           );
         }
@@ -2550,7 +2550,7 @@ export default function InvoiceDetailLegacy({
               </div>
               <div>
                 <Label>Audit</Label>
-                <AuditTrail transactionId={recordData.id} model="sales_order" />
+                <AuditTrail transactionId={recordData.id} model="order" />
               </div>
               <div>
                 <Label>Status flow</Label>

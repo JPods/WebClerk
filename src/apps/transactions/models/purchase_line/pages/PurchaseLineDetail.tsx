@@ -10,12 +10,12 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createPurchaseOrderLine, updatePurchaseOrderLine } from "../services/purchaseOrderLineApi";
+import { createPurchaseLine, updatePurchaseLine } from "../services/purchaseLineApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { purchaseOrderLineSchema } from "../utils/purchaseOrderLineSchema";
-import { PurchaseOrderLineAddProps } from "../types/purchaseOrderLineType";
+import { purchaseLineSchema } from "../utils/purchaseLineSchema";
+import { PurchaseLineAddProps } from "../types/purchaseLineType";
 import { coerceFormValue, coerceNumber } from "../../common/valueNormalization";
 
 export default function PurchaseLineDetail({
@@ -25,7 +25,7 @@ export default function PurchaseLineDetail({
   onSaved,
   inline = false,
   onCancelInline,
-}: PurchaseOrderLineAddProps) {
+}: PurchaseLineAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -34,8 +34,8 @@ export default function PurchaseLineDetail({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof purchaseOrderLineSchema>>({
-    resolver: zodResolver(purchaseOrderLineSchema),
+  } = useForm<z.infer<typeof purchaseLineSchema>>({
+    resolver: zodResolver(purchaseLineSchema),
   });
 
   const location = useLocation();
@@ -50,7 +50,7 @@ export default function PurchaseLineDetail({
   const handleCancel = () => {
     setCurrentMode("view");
     if (data) {
-      const numericFields = new Set(["purchaseorder_id", "item_id", "quantity", "unit_price", "line_total"]);
+      const numericFields = new Set(["purchase_id", "item_id", "quantity", "unit_price", "line_total"]);
       Object.keys(data).forEach((key: any) => {
         if (data[key] === undefined) {
           return;
@@ -71,7 +71,7 @@ export default function PurchaseLineDetail({
     if (currentMode === "add") {
       reset();
     } else if (data) {
-      const numericFields = new Set(["purchaseorder_id", "item_id", "quantity", "unit_price", "line_total"]);
+      const numericFields = new Set(["purchase_id", "item_id", "quantity", "unit_price", "line_total"]);
       Object.keys(data).forEach((key: any) => {
         if (data[key] === undefined) {
           return;
@@ -90,7 +90,7 @@ export default function PurchaseLineDetail({
     }
   }, [data, reset, setValue, currentMode]);
 
-  const preparePayload = (formValues: z.infer<typeof purchaseOrderLineSchema>): Record<string, unknown> => {
+  const preparePayload = (formValues: z.infer<typeof purchaseLineSchema>): Record<string, unknown> => {
     const numericPrice =
       typeof formValues.unit_price === "number" && Number.isFinite(formValues.unit_price) ? formValues.unit_price : 0;
     const existingCostRaw = (data as Record<string, unknown> | null)?.cost as unknown;
@@ -106,18 +106,18 @@ export default function PurchaseLineDetail({
     };
   };
 
-  const onSubmit = async (formData: z.infer<typeof purchaseOrderLineSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof purchaseLineSchema>) => {
     setIsSaving(true);
     try {
       const payload = preparePayload(formData);
       const res =
         currentMode === "add"
-          ? await createPurchaseOrderLine(payload)
-          : await updatePurchaseOrderLine(data && data.id, payload);
+          ? await createPurchaseLine(payload)
+          : await updatePurchaseLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({
-            message: `Purchase order line ${
+            message: `Purchase line ${
               currentMode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -140,15 +140,15 @@ export default function PurchaseLineDetail({
         <PageBreadcrumb
           pageTitle={
             currentMode === "edit"
-              ? "Edit Purchase Order Line"
+              ? "Edit Purchase Line"
               : currentMode === "view"
-              ? "View Purchase Order Line"
-              : "Purchase Order Line Detail"
+              ? "View Purchase Line"
+              : "Purchase Line Detail"
           }
         />
       )}
       <SimpleDetailHeader
-        entityName="Purchase Order Line"
+        entityName="Purchase Line"
         id={data?.id}
         mode={currentMode}
       />
@@ -164,10 +164,10 @@ export default function PurchaseLineDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {currentMode === "edit"
-                ? "Edit Purchase Order Line"
+                ? "Edit Purchase Line"
                 : currentMode === "view"
-                ? "View Purchase Order Line"
-                : "Add New Purchase Order Line"}
+                ? "View Purchase Line"
+                : "Add New Purchase Line"}
             </h3>
             {onCancelInline && (
               <button
@@ -182,14 +182,14 @@ export default function PurchaseLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="purchaseorder_id">purchaseorder_id</Label>
+            <Label htmlFor="purchase_id">purchase_id</Label>
             <Input
               type="number"
-              id="purchaseorder_id"
-              placeholder="Purchase Order ID"
-              {...register("purchaseorder_id", { valueAsNumber: true })}
-              error={errors.purchaseorder_id && errors.purchaseorder_id.message ? true : false}
-              hint={errors.purchaseorder_id && errors.purchaseorder_id.message}
+              id="purchase_id"
+              placeholder="Purchase ID"
+              {...register("purchase_id", { valueAsNumber: true })}
+              error={errors.purchase_id && errors.purchase_id.message ? true : false}
+              hint={errors.purchase_id && errors.purchase_id.message}
               disabled={currentMode === "view"}
             />
           </div>

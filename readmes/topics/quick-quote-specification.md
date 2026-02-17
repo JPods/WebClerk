@@ -203,8 +203,8 @@ interface QuickQuoteItem {
 
 ## Related Components
 
-- [SalesOrderDetail](../models/sales_order/pages/SalesOrderDetail.tsx)
-- [SalesOrderItemSearch](../models/sales_order/components/SalesOrderItemSearch.tsx)
+- [OrderDetail](../models/order/pages/OrderDetail.tsx)
+- [OrderItemSearch](../models/order/components/OrderItemSearch.tsx)
 - [TransactionDetailBase](../components/TransactionDetailBase.tsx)
 
 ## Notes

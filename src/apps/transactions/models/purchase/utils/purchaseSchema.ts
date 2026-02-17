@@ -2,7 +2,7 @@ import * as z from "zod";
 import { baseTransactionSchema } from '../../base/utils/baseSchema';
 import { baseLineItemSchema } from '../../base/utils/baseLineItemSchema';
 
-// Valid status values for purchase orders
+// Valid status values for purchases
 const validPOStatuses = ['draft', 'approved', 'rejected', 'received', 'closed'] as const;
 
 // Price structure schema (adapted for PO - focus on cost)
@@ -11,8 +11,8 @@ const poPriceSchema = z.object({
   sell: z.number().min(0, "Sell price must be non-negative").optional(),
 }).optional();
 
-// Purchase Order Line schema
-export const purchaseOrderLineSchema = baseLineItemSchema.extend({
+// Purchase Line schema
+export const purchaseLineSchema = baseLineItemSchema.extend({
   // Required fields
   description: z.string().min(1, "Description is required").max(255, "Description must be 255 characters or less"),
   quantity: z.number().positive("Quantity must be greater than zero"),
@@ -46,10 +46,10 @@ export const purchaseOrderLineSchema = baseLineItemSchema.extend({
   path: ["discount_amount"]
 });
 
-// Purchase Order schema with comprehensive validation
-export const purchaseOrderSchema = baseTransactionSchema.extend({
+// Purchase schema with comprehensive validation
+export const purchaseSchema = baseTransactionSchema.extend({
   // Basic fields
-  purchase_order_no: z.string().max(50, "Purchase Order No must be 50 characters or less").optional(),
+  purchase_no: z.string().max(50, "Purchase No must be 50 characters or less").optional(),
   status: z.enum(validPOStatuses, {
     errorMap: () => ({ message: `Status must be one of: ${validPOStatuses.join(', ')}` })
   }).optional(),
@@ -70,7 +70,7 @@ export const purchaseOrderSchema = baseTransactionSchema.extend({
   vendor_pack_date: z.string().optional(), // ISO date string
 
   // Line items
-  line_items: z.array(purchaseOrderLineSchema).optional(),
+  line_items: z.array(purchaseLineSchema).optional(),
 
   // Financial summary fields
   subtotal: z.number().min(0, "Subtotal must be non-negative").optional(),
@@ -105,5 +105,5 @@ export const purchaseOrderSchema = baseTransactionSchema.extend({
 });
 
 // Type exports
-export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
-export type PurchaseOrderLineFormData = z.infer<typeof purchaseOrderLineSchema>;
+export type PurchaseFormData = z.infer<typeof purchaseSchema>;
+export type PurchaseLineFormData = z.infer<typeof purchaseLineSchema>;

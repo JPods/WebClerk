@@ -1,3 +1,3 @@
-export * from './types/purchaseOrderType';
-export * from './utils/purchaseOrderSchema';
-export * from './services/purchaseOrderApi';
+export * from './types/purchaseType';
+export * from './utils/purchaseSchema';
+export * from './services/purchaseApi';

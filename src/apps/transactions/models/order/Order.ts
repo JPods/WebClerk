@@ -3,13 +3,13 @@
 
 export interface WC3Order {
   id: string; // readonly
-  order_no: string; // required (was sales_order_no)
+  order_no: string; // required
   dt_created: string; // readonly, ISO8601
 }
 
 export interface R25Order {
   id: string;
-  orderNo: string; // was salesOrderNo
+  orderNo: string;
   createdAt: string;
 }
 

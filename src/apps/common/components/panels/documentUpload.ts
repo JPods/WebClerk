@@ -109,7 +109,7 @@ export interface DocumentRecord {
     url?: string;         // public/presigned URL
   };
   checksum?: string;
-  model_name?: string;    // parent model type (e.g., 'sales_order')
+  model_name?: string;    // parent model type (e.g., 'order')
   created_by?: number;
   dt_created?: number;
   metadata?: DocumentMetadata;
@@ -119,7 +119,7 @@ export interface DocumentRecord {
 export interface UploadDocumentOptions {
   /** The file to upload */
   file: File;
-  /** Parent model type (e.g., 'sales_order', 'question_answer') */
+  /** Parent model type (e.g., 'order', 'question_answer') */
   parent_model: string;
   /** Parent record ID */
   parentId: number;

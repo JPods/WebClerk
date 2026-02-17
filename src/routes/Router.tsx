@@ -336,11 +336,11 @@ const Router: React.FC = () => {
             element={<ApplyPayments />}
           />
           <Route
-            path={PageRoutes.transactionsPurchaseOrderList}
+            path={PageRoutes.transactionsPurchaseList}
             element={<PurchaseList />}
           />
           <Route
-            path={PageRoutes.transactionsPurchaseOrderDetail}
+            path={PageRoutes.transactionsPurchaseDetail}
             element={<PurchaseDetail />}
           />
           <Route

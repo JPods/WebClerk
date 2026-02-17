@@ -11,21 +11,21 @@ import { Input } from "./wrapper";
 import { saveRecord } from "../api/wcapi";
 import { showToast } from "../store/slices/toastSlice";
 
-const purchaseOrderSchema = z.object({
+const purchaseSchema = z.object({
   receipt_id: z.string().optional(),
   vendor_pack_list: z.string().optional(),
   vendor_pack_date: z.string().optional(),
 });
 
-type PurchaseOrderFormValues = z.infer<typeof purchaseOrderSchema>;
+type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
-interface PurchaseOrderFormProps {
+interface PurchaseFormProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: Record<string, any> | null;
   onSaved?: () => void;
 }
 
-export default function PurchaseOrderForm({ modeProp, dataProp, onSaved }: PurchaseOrderFormProps) {
+export default function PurchaseForm({ modeProp, dataProp, onSaved }: PurchaseFormProps) {
   const dispatch = useDispatch();
   const {
     register,
@@ -33,8 +33,8 @@ export default function PurchaseOrderForm({ modeProp, dataProp, onSaved }: Purch
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<PurchaseOrderFormValues>({
-    resolver: zodResolver(purchaseOrderSchema),
+  } = useForm<PurchaseFormValues>({
+    resolver: zodResolver(purchaseSchema),
     defaultValues: {},
   });
 
@@ -45,7 +45,7 @@ export default function PurchaseOrderForm({ modeProp, dataProp, onSaved }: Purch
     if (mode === "add") {
       reset();
     } else if (data) {
-      (Object.keys(purchaseOrderSchema.shape) as Array<keyof PurchaseOrderFormValues>).forEach((key) => {
+      (Object.keys(purchaseSchema.shape) as Array<keyof PurchaseFormValues>).forEach((key) => {
         const value = data[key as string];
         if (value !== undefined && value !== null) {
           setValue(key, value);
@@ -56,14 +56,14 @@ export default function PurchaseOrderForm({ modeProp, dataProp, onSaved }: Purch
     }
   }, [data, mode, reset, setValue]);
 
-  const onSubmit = async (formData: PurchaseOrderFormValues) => {
+  const onSubmit = async (formData: PurchaseFormValues) => {
     try {
       const payload = { ...formData, id: data?.id };
-      const res = await saveRecord("purchase_order", payload);
+      const res = await saveRecord("purchase", payload);
       if (res) {
         dispatch(
           showToast({
-            message: `purchase_order ${mode === "add" ? "saved" : "updated"} successfully`,
+            message: `purchase ${mode === "add" ? "saved" : "updated"} successfully`,
             type: "success",
           })
         );
@@ -74,7 +74,7 @@ export default function PurchaseOrderForm({ modeProp, dataProp, onSaved }: Purch
     } catch (error: any) {
       dispatch(
         showToast({
-          message: error?.message || "failed to save purchase_order",
+          message: error?.message || "failed to save purchase",
           type: "error",
         })
       );

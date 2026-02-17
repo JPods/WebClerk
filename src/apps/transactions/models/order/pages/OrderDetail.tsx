@@ -36,7 +36,6 @@ import { ShippingPanel } from "@/apps/common/components/panels";
 interface Order extends Transaction {
   ida?: string;
   order_no?: string;
-  sales_order_no?: string; // Backwards compatibility
   po_number?: string;
   reference?: string;
   dt?: string;
@@ -56,7 +55,7 @@ interface Order extends Transaction {
 }
 
 // Order specific tabs
-const SALES_ORDER_TABS_BEFORE: TransactionTab[] = [];
+const ORDER_TABS_BEFORE: TransactionTab[] = [];
 
 // Dynamic tabs generator with badges based on data
 const getOrderTabsAfter = (_data: Transaction): TransactionTab[] => {
@@ -696,9 +695,6 @@ interface OrderDetailProps {
   // onCancelInline?: () => void;
 }
 
-// Backwards compatibility alias
-// type SalesOrderDetailProps = OrderDetailProps;
-
 const OrderDetail: React.FC<OrderDetailProps> = ({
   isAdmin = false,
   inline = false,
@@ -1152,7 +1148,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         typeLabel="Order"
         modelName="order"
         fetchData={fetchOrderData}
-        customTabsBefore={SALES_ORDER_TABS_BEFORE}
+        customTabsBefore={ORDER_TABS_BEFORE}
         getCustomTabsAfter={getOrderTabsAfter}
         renderCustomTab={renderCustomTab}
         renderHeader={renderHeaderFn}
@@ -1193,8 +1189,5 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     </>
   );
 };
-
-// Backwards compatibility alias
-export const SalesOrderDetail = OrderDetail;
 
 export default OrderDetail;

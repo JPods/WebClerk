@@ -4,7 +4,7 @@
  * This component reads model_name and id from query parameters and renders
  * the appropriate detail or list component.
  * 
- * Usage: /wcapi/get/?model_name=purchase&id=38 -> renders PurchaseOrderDetail
+ * Usage: /wcapi/get/?model_name=purchase&id=38 -> renders PurchaseDetail
  */
 import React, { Suspense, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -23,11 +23,7 @@ const ContactDetail = lazy(() => import("../apps/core/models/contact/pages/Conta
 const MODEL_DETAIL_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   // Transactions
   "purchase": PurchaseDetail,
-  "purchase_order": PurchaseDetail,
-  "purchaseorder": PurchaseDetail,
   "order": OrderDetail,
-  "sales_order": OrderDetail,
-  "salesorder": OrderDetail,
   "invoice": InvoiceDetail,
   "proposal": ProposalDetail,
   "quote": ProposalDetail,

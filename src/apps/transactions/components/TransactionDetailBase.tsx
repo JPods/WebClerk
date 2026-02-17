@@ -1264,7 +1264,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       {/* TransactionTabs - show related transactions for the linked org */}
       {(() => {
         const customerTypes = ['order', 'invoice', 'proposal'];
-        const vendorTypes = ['purchaseorder', 'receipt'];
+        const vendorTypes = ['purchase', 'receipt'];
         let orgType: 'customer' | 'vendor' | null = null;
         let orgId: number | null = null;
         if (customerTypes.includes(transactionType) && currentData?.customer_id) {

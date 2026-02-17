@@ -47,7 +47,7 @@ interface DocumentRefLink extends RefLink {
 }
 
 interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'data' | 'entityType' | 'entityId'> {
-  /** Parent entity type (e.g., 'sales_order', 'contact') */
+  /** Parent entity type (e.g., 'order', 'contact') */
   parent_model?: string;
   /** Parent entity ID */
   parentId?: number;

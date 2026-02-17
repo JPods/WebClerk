@@ -23,7 +23,7 @@ import {
 // Types
 // ============================================================================
 
-export type TransactionType = 'order' | 'sales_order' | 'proposal' | 'invoice' | 'purchase' | 'workorder';
+export type TransactionType = 'order' | 'proposal' | 'invoice' | 'purchase' | 'workorder';
 
 export interface LineItemServiceConfig {
   transactionType: TransactionType;
@@ -59,7 +59,7 @@ export interface LineCalculation {
  */
 export function isSalesTransaction(transactionType: string): boolean {
   const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  return ['sales_order', 'salesorder', 'order', 'proposal', 'invoice'].includes(kind);
+  return ['order', 'proposal', 'invoice'].includes(kind);
 }
 
 /**
@@ -67,7 +67,7 @@ export function isSalesTransaction(transactionType: string): boolean {
  */
 export function isExecTransaction(transactionType: string): boolean {
   const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  return ['purchase', 'purchaseorder', 'workorder'].includes(kind);
+  return ['purchase', 'workorder'].includes(kind);
 }
 
 /**
@@ -95,7 +95,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
     };
   }
   
-  if (['sales_order', 'salesorder', 'order'].includes(kind)) {
+  if (['order'].includes(kind)) {
     return {
       placed: quantity,
       invoiced: 0,
@@ -119,7 +119,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
     };
   }
   
-  if (['purchase', 'purchaseorder', 'workorder'].includes(kind)) {
+  if (['purchase', 'workorder'].includes(kind)) {
     return {
       placed: quantity,
       received: 0,
@@ -523,7 +523,7 @@ export class LineItemService {
 /**
  * Create a LineItemService configured for sales transactions
  */
-export function createSalesLineItemService(transactionType: 'order' | 'sales_order' | 'proposal' | 'invoice' = 'order'): LineItemService {
+export function createSalesLineItemService(transactionType: 'order' | 'proposal' | 'invoice' = 'order'): LineItemService {
   return new LineItemService({
     transactionType,
     useCost: false,

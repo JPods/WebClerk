@@ -287,7 +287,7 @@ export { default as QuickAddRecent } from './QuickAddRecent';
 Here's how these features integrate into a transaction detail page:
 
 ```tsx
-// In SalesOrderDetail.tsx
+// In OrderDetail.tsx
 
 import {
   LineDetailsModal,

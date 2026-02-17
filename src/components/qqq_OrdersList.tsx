@@ -70,12 +70,12 @@ export default function OrdersList({ customerId, count, onCountChange }: OrdersL
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      let params: any = { model_name: 'sales_order' };
+      let params: any = { model_name: 'order' };
       if (customerId) {
-        // Assuming sales_order has customer_id field
+        // Assuming order has customer_id field
         params.customer_id = customerId;
       }
-      const res = await getRecords('sales_order');
+      const res = await getRecords('order');
       const orders = res.results || [];
       setData(orders);
       if (onCountChange) {
