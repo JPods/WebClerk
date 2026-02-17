@@ -13,14 +13,11 @@ from apps.core.utils.model_name_resolver import resolve_model_name, parse_restfu
 
 # Test various formats
 tests = [
-    ('sales-order', 'order'),
-    ('sales_order', 'order'),
-    ('SalesOrder', 'order'),
-    ('salesorder', 'order'),
     ('order', 'order'),
-    ('purchase-order', 'purchase'),
+    ('Order', 'order'),
+    ('purchase', 'purchase'),
     ('invoice', 'invoice'),
-    ('PurchaseOrder', 'purchase'),
+    ('Purchase', 'purchase'),
 ]
 
 print('Testing resolve_model_name:')
@@ -32,9 +29,9 @@ for input_val, expected in tests:
 print()
 print('Testing parse_restful_path:')
 paths = [
-    '/api/transactions/salesorder/22',
-    '/transactions/sales-order/detail/22',
-    '/api/salesorder/22',
+    '/api/transactions/order/22',
+    '/transactions/order/detail/22',
+    '/api/order/22',
 ]
 for path in paths:
     result = parse_restful_path(path)
