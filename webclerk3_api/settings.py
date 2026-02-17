@@ -390,7 +390,7 @@ WCAPI_BLESSED_MODELS = {
     # Communications models
     "domain": "communications.Domain",
     "email": "communications.Email",
-    "location": "communications.Address",
+    "address": "communications.Address",
     "phone": "communications.Phone",
 
     # Docs models

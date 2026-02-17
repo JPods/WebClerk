@@ -33,7 +33,7 @@ def default_item() -> Dict[str, Any]:
         "description": "",
         "description_text": "",
         "time_lead": None,
-        "locations": [],
+        "addresses": [],
         "unit_measure": "",
         # sequence of display in frontend. User changeable
         "sequence": 0,

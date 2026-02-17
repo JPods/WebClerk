@@ -29,7 +29,7 @@ invoice,transactions,apps.transactions.models.Invoice,invoices,header,invoices
 invoice_line,transactions,apps.transactions.models.InvoiceLine,invoice-lines,line,invoice_lines
 item,products,apps.products.models.item.Item,items,support,items
 ledger,accounts,apps.accounts.models.ledger.Ledger,ledgers,support,ledgers
-location,communications,apps.communications.models.address.Address,locations,support,locations
+address,communications,apps.communications.models.address.Address,addresses,support,"locations,addresses"
 notification,core,apps.core.models.notification.Notification,notifications,support,notifications
 org_item,products,apps.products.models.org_item.OrgItem,org-items,support,org_items
 pending_inventory_adjustment,products,apps.products.models.inventory_layer.PendingInventoryAdjustment,pending-inventory-adjustments,support,pending_inventory_adjustments

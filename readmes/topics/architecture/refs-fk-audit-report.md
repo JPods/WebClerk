@@ -170,7 +170,7 @@ These are legitimate uses of `refs` for data that has no FK counterpart.
 | `apps/transactions/services/email_notifications.py` | L37 | `contact.refs.get('links', {}).get('email', [])` — email IDs for a contact |
 | `apps/transactions/management/commands/populate_project_contacts.py` | L2-4 | `project.refs.links.contact` — denormalized list of active contact IDs |
 
-**No M2M FK table** exists for contact↔email, contact↔phone, contact↔domain, contact↔location. These many-to-many relationships are tracked in `refs.links` buckets (email IDs, phone IDs, etc.).
+**No M2M FK table** exists for contact↔email, contact↔phone, contact↔domain, contact↔address. These many-to-many relationships are tracked in `refs.links` buckets (email IDs, phone IDs, etc.).
 
 ### 3.4 Serial Reservations (`refs.serials`)
 

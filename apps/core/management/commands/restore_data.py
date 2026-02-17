@@ -40,7 +40,6 @@ class Command(BaseCommand):
         # 4. Contacts and communication
         'contact.json',
         'address.json',
-        'location.json',
         'phone.json',
         'email.json',
         'domain.json',

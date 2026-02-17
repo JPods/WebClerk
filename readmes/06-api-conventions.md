@@ -10,7 +10,7 @@ This document captures the conventions used by the Universal API endpoints (e.g.
 
 - Always pass a singular `model_name` (e.g., `order`, `invoice`, `purchase`, `proposal`, `item`, `phone`, `email`, `org`, `customer`, `vendor`).
 - Plural table keys are rejected with HTTP 400 and a hint to the proper singular.
-- Transitional aliases are accepted and normalized (e.g., `address` -> `location`, `org_item` -> `item`).
+- Use canonical `model_name` values directly (e.g., `address`, `order`, `purchase`). Legacy aliases like `org_item` -> `item` are still normalized.
 
 ## 2) Related data buckets (plural)
 

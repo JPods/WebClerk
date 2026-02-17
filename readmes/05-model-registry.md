@@ -46,7 +46,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - invoice_line — app: `transactions`, endpoint: [`/wcapi/invoice-lines/`](/wcapi/invoice-lines/), kind: `line`, aliases: invoice_lines
 - item — app: `products`, endpoint: [`/wcapi/items/`](/wcapi/items/), kind: `support`, aliases: items
 - ledger — app: `accounts`, endpoint: [`/wcapi/ledgers/`](/wcapi/ledgers/), kind: `support`, aliases: ledgers
-- location — app: `communications`, endpoint: [`/wcapi/locations/`](/wcapi/locations/), kind: `support`, aliases: locations
+- address — app: `communications`, endpoint: [`/wcapi/addresses/`](/wcapi/addresses/), kind: `support`, aliases: addresses
 - notification — app: `core`, endpoint: [`/wcapi/notifications/`](/wcapi/notifications/), kind: `support`, aliases: notifications
 - org_item — app: `products`, endpoint: [`/wcapi/org-items/`](/wcapi/org-items/), kind: `support`, aliases: org_items
 - pending_inventory_adjustment — app: `products`, endpoint: [`/wcapi/pending-inventory-adjustments/`](/wcapi/pending-inventory-adjustments/), kind: `support`, aliases: pending_inventory_adjustments
@@ -92,7 +92,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 
 - domain — endpoint: [`/wcapi/domains/`](/wcapi/domains/), kind: `support`, aliases: domains
 - email — endpoint: [`/wcapi/emails/`](/wcapi/emails/), kind: `support`, aliases: emails
-- location — endpoint: [`/wcapi/locations/`](/wcapi/locations/), kind: `support`, aliases: locations
+- address — endpoint: [`/wcapi/addresses/`](/wcapi/addresses/), kind: `support`, aliases: addresses
 - phone — endpoint: [`/wcapi/phones/`](/wcapi/phones/), kind: `support`, aliases: phones
 
 ### core (6)
@@ -210,9 +210,9 @@ flowchart LR
     email["email"]
     app_communications --> email
     class email support
-    location["location"]
-    app_communications --> location
-    class location support
+    address["address"]
+    app_communications --> address
+    class address support
     phone["phone"]
     app_communications --> phone
     class phone support

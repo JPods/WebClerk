@@ -331,7 +331,7 @@ LINK_DENORMALIZE_FIELDS = {
     "email": ["id", "email", "name", "type", "is_primary"],
     "contact": ["id", "attention", "company", "email", "name_first", "name_last", "title", "role"],
     "phone": ["id", "number", "format", "name"],
-    "location": ["id", "address1", "city", "state", "zip", "country", "full"],
+    "address": ["id", "address1", "city", "state", "zip", "country", "full"],
     "item": ["id", "name", "sku", "description", "kind", "uom"],
     "domain": ["id", "path", "type"],
     "orgbase": ["id", "company", "org_type", "status"],

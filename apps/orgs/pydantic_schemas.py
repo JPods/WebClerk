@@ -16,7 +16,7 @@ class ContactMini(BaseModel):
     phone: Optional[str] = Field(None, max_length=40)
 
 
-class LocationMini(BaseModel):
+class AddressMini(BaseModel):
     id: Optional[int] = None
     type: Optional[str] = Field(None, description="billing|shipping|office|warehouse|other")
     address1: Optional[str] = None
@@ -92,7 +92,7 @@ class OrgSnapshot(BaseModel):
     status: Optional[str] = None
     is_active: bool = True
     contacts: List[ContactMini] = Field(default_factory=list)
-    addresses: List[LocationMini] = Field(default_factory=list)
+    addresses: List[AddressMini] = Field(default_factory=list)
     domains: List[DomainMini] = Field(default_factory=list)
     phones: List[PhoneMini] = Field(default_factory=list)
     emails: List[EmailMini] = Field(default_factory=list)
@@ -118,7 +118,7 @@ class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
     status: Optional[str] = None
     is_active: Optional[bool] = None
     contacts: Optional[List[ContactMini]] = None
-    addresses: Optional[List[LocationMini]] = None
+    addresses: Optional[List[AddressMini]] = None
     domains: Optional[List[DomainMini]] = None
     phones: Optional[List[PhoneMini]] = None
     emails: Optional[List[EmailMini]] = None

@@ -53,8 +53,8 @@ Baseline contracts = v0.3; breaking changes require version bump + docs.
 
 Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es' plurals.
 
-- Use 's' plurals where possible: `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`.
-- Avoid irregular 'es' forms (prefer synonyms): not `addresses`, `classes`, `processes`.
+- Use 's' plurals where possible: `contacts`, `addresses`, `domains`, `phones`, `emails`, `actions`.
+- Avoid irregular 'es' forms (prefer synonyms): not `classes`, `processes`.
 - Public docs/UI should refer to model_name (singular) for a record and the table key (plural) for collections.
 
 ## Examples
@@ -66,7 +66,7 @@ Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es
 | purchase        | purchases               | purchases   |
 | order_line            | order_lines                   | order_lines       |
 | invoice_line          | invoice_line                  | invoice_line      |
-| address               | locations                     | locations         |
+| address               | addresses                     | addresses         |
 
 Notes:
 

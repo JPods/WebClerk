@@ -112,7 +112,7 @@ MODEL_MAP = {
     'action': Action,
     'email': Email,
     'phone': Phone,
-    'location': Location,
+    'address': Address,
     'document': Document,
     # ... transaction models
     'proposal': Proposal,
@@ -320,7 +320,7 @@ flowchart TD
     B -->|Email| C[Send Email Code]
     B -->|Phone| D[Send SMS Code]
     B -->|Domain| E[DNS Check]
-    B -->|Location| F[Address Validation]
+    B -->|Address| F[Address Validation]
 
     C --> G[User Enters Code]
     D --> G

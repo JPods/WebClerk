@@ -1,6 +1,6 @@
-"""Provider-agnostic Location Verification service (stub, OSM-like).
+"""Provider-agnostic Address Verification service (stub, OSM-like).
 
-Resolves a Connection of type 'location_verification' and records an
+Resolves a Connection of type 'address_verification' and records an
 Bundle with normalized response. No network I/O in stub mode.
 """
 
@@ -24,13 +24,13 @@ def _normalize_result(provider: str, raw: dict | None = None) -> Dict[str, Any]:
 
 def get_verification_connection(name: str | None = None):
     Connection = apps.get_model("sync", "Connection")
-    qs = Connection.objects.filter(type="location_verification")
+    qs = Connection.objects.filter(type="address_verification")
     if name:
         return qs.filter(name=name).first() or qs.first()
     return qs.first()
 
 
-def verify_location_via_connection(location_payload: Dict[str, Any], connection_name: str | None = None) -> Dict[str, Any]:
+def verify_address_via_connection(address_payload: Dict[str, Any], connection_name: str | None = None) -> Dict[str, Any]:
     Bundle = apps.get_model("sync", "Bundle")
 
     conn = get_verification_connection(connection_name)
@@ -45,7 +45,7 @@ def verify_location_via_connection(location_payload: Dict[str, Any], connection_
     provider = str(cfg.get("provider")) if cfg else "stub"
 
     started = time.perf_counter()
-    payload = {"location": location_payload}
+    payload = {"address": address_payload}
     masked_cfg = _mask_config(cfg)
     status = "ok"
 

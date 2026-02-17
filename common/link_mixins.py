@@ -11,7 +11,7 @@ Usage:
 
 The mixin ensures (on save) that refs.links contains the canonical keys
 USING singular model_name (canonical) forms:
-    contact, email, phone, location, domain,
+    contact, email, phone, address, domain,
     customer, vendor, manufacturer, rep,
     order, project, document
 
@@ -52,11 +52,9 @@ CANONICAL_MODEL_KEYS = {
     'phone_numbers': 'phone',
     'telephone': 'phone',
     
-    # Location models
-    'locations': 'location',
-    'location': 'location',
-    'address': 'location',
-    'addresses': 'location',
+    # Address models
+    'address': 'address',
+    'addresses': 'address',
     
     # Domain models
     'domains': 'domain',
@@ -157,7 +155,7 @@ STANDARD_LINK_KEYS: tuple[str, ...] = (
     "contact",
     "email",
     "phone",
-    "location",
+    "address",
     "domain",
     # Organization type buckets (singular)
     "customer",
@@ -235,7 +233,7 @@ def get_canonical_link_keys(model_key: str) -> list[str]:
     canonical_key = resolve_canonical_model_key(model_key)
     
     # Base link keys that all models should have
-    base_keys = ['contact', 'email', 'phone', 'location', 'domain']
+    base_keys = ['contact', 'email', 'phone', 'address', 'domain']
     
     # Model-specific additional keys
     model_specific_keys = {

@@ -73,8 +73,7 @@ MODEL_NAME_MAP: Dict[str, str] = {
     
     # Core
     'contact': 'contact',
-    'location': 'location',
-    'address': 'location',
+    'address': 'address',
     'setting': 'setting',
     'report': 'report',
     'action': 'action',
@@ -124,7 +123,7 @@ PATH_PATTERN_MAP: Dict[str, str] = {
     'products/category': 'category',
     'products/warehouse': 'warehouse',
     'core/contact': 'contact',
-    'core/location': 'location',
+    'core/address': 'address',
     'core/setting': 'setting',
     'core/action': 'action',
     'communications/email': 'email',

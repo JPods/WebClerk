@@ -178,7 +178,7 @@ classDiagram
         +BaseModel+
     }
 
-    class Location {
+    class Address {
         +contact_id: IntegerField
         +address: TextField
         +city: CharField
@@ -217,7 +217,7 @@ classDiagram
     Contact ||--o{ Action : performs
     Contact ||--o{ Email : has
     Contact ||--o{ Phone : has
-    Contact ||--o{ Location : has
+    Contact ||--o{ Address : has
     Contact ||--o{ Document : owns
 ```
 
@@ -619,7 +619,7 @@ classDiagram
 |-------|----------|------------------|
 | Contact | BaseModel | Full envelope, keywords, lifecycle |
 | Action | BaseModel | Full envelope, dependencies, status tracking |
-| Email/Phone/Location | BaseModel | Verification flows, contact linking |
+| Email/Phone/Address | BaseModel | Verification flows, contact linking |
 | Document | BaseModel | Search vectors, access tracking, linkage |
 | Transaction Headers | BaseModel | Totals aggregation, flow tracking |
 | Transaction Lines | BaseModel | Lineage, serial tracking, parent linking |

@@ -64,7 +64,7 @@ python manage.py storage_load_report --json > storage_util.json
 Options:
 
 - `--model app_label.ModelName` restrict scan
-- `--field metadata|refs|prefs|comments|contacts|locations|domains|phones|emails|relations|financial|docs|access|data|metrics|gl_accounts` choose envelope/aspect (default metadata)
+- `--field metadata|refs|prefs|comments|contacts|addresses|domains|phones|emails|relations|financial|docs|access|data|metrics|gl_accounts` choose envelope/aspect (default metadata)
 - `--limit N` sample size per model (default 50)
 - `--order asc|desc` order by size (default desc)
 - `--json` machine readable output

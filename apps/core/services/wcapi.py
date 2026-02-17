@@ -181,10 +181,9 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
         from common.models import LINK_DENORMALIZE_FIELDS
         from apps.core.models import Contact
 
-        comm_models = {"email", "phone", "address", "location", "domain"}
+        comm_models = {"email", "phone", "address", "domain"}
         if model_key and model_key.lower() in comm_models:
-            # Determine the bucket name used in refs.links (back-compat: address -> location)
-            bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+            bucket = model_key.lower()
 
             # Resolve contact id from payload or authenticated user
             contact = None

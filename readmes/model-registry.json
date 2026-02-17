@@ -294,13 +294,15 @@
     ]
   },
   {
-    "key": "location",
+    "key": "address",
     "app": "communications",
     "model": "apps.communications.models.address.Address",
-    "endpoint": "locations",
+    "endpoint": "addresses",
     "kind": "support",
     "aliases": [
-      "locations"
+      "locations",
+      "addresses",
+      "location"
     ]
   },
   {

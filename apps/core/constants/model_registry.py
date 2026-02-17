@@ -53,7 +53,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # --- communications --- (A->Z by key)
     'domain': ModelMeta('domain', 'apps.communications.models.domain.Domain', 'Domain', 'Domains', 'domains', kind='support', aliases=['domains']),
     'email': ModelMeta('email', 'apps.communications.models.email.Email', 'Email', 'Emails', 'emails', kind='support', aliases=['emails']),
-    'location': ModelMeta('location', 'apps.communications.models.address.Address', 'Address', 'Addresses', 'addresses', kind='support', aliases=['locations', 'addresses']),
+    'address': ModelMeta('address', 'apps.communications.models.address.Address', 'Address', 'Addresses', 'addresses', kind='support', aliases=['addresses']),
     'phone': ModelMeta('phone', 'apps.communications.models.phone.Phone', 'Phone', 'Phones', 'phones', kind='support', aliases=['phones']),
 
     # --- orgs --- (A->Z by key)

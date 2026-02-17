@@ -954,9 +954,9 @@ class SaveWcapiView(APIView):
         # Auto-link communication records to a Contact
         linked = False
         try:
-            comm_models = {"email", "phone", "address", "location", "domain"}
+            comm_models = {"email", "phone", "address", "domain"}
             if model_key.lower() in comm_models:
-                bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                bucket = model_key.lower()
                 # Resolve contact id from payload or authenticated user
                 contact = None
                 contact_id = None
@@ -1951,9 +1951,9 @@ class SaveWcapiView(APIView):
         contact = None
         bucket = None
         try:
-            comm_models = {"email", "phone", "address", "location", "domain"}
+            comm_models = {"email", "phone", "address", "domain"}
             if model_key.lower() in comm_models:
-                bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                bucket = model_key.lower()
                 if request.user and getattr(request.user, "is_authenticated", False):
                     contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
                 if contact:
