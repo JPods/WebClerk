@@ -30,11 +30,20 @@ import Input from "@/components/form/input/InputField";
 import { CustTextArea } from "@/components/wrapper";
 
 // Tab navigation
-import { useColumnCount } from "@/components/common/DetailTabs";
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+} from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
+// Panel Components
+//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import { FinancialsPanel } from "@/apps/common/components/panels";
 // API & State
 import { createAddress, updateAddress } from "../services/addressApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -42,7 +51,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
-import { ColumnSelector } from "@/components/common/DetailTabs";
+//import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -163,7 +172,7 @@ export default function AddressDetail({
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
-
+  const { activeTab, setActiveTab } = useDetailTabs("address", "comments");
   const { columnCount, setColumnCount } = useColumnCount("address", 3);
 
   // ---------------------------------------------------------------------------
@@ -256,6 +265,68 @@ export default function AddressDetail({
   const displayName = data
     ? data.name || data.address1 || data.full || `Address #${data.id}`
     : "New Address";
+  // ---------------------------------------------------------------------------
+  // Render Tab Content
+  // ---------------------------------------------------------------------------
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="address"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={isEditing}
+            currentUser="Current User"
+          />
+        );
+
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="address"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={isEditing}
+          />
+        );
+
+      case "documents":
+        return (
+          <DocumentsPanel
+            parent_model="address"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+            isEditing={isEditing}
+          />
+        );
+
+      case "financials":
+        return (
+          <FinancialsPanel
+            totals={data?.financial?.totals}
+            cost={data?.financial?.cost}
+            sell={data?.financial?.sell}
+            currency="USD"
+          />
+        );
+
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
@@ -509,7 +580,32 @@ export default function AddressDetail({
         )}
       </div>
 
-      <ColumnSelector value={columnCount} onChange={setColumnCount} />
+      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
+      {/* ─── TAB NAVIGATION ─── */}
+      {activeAddressId && data?.id && (
+        <>
+          <DetailTabs
+            entityType="address"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={[
+              "comments",
+              "actions",
+              "documents",
+              "financials",
+              "raw",
+            ]}
+            showColumnSelector
+            columnCount={columnCount}
+            onColumnCountChange={setColumnCount}
+          />
+
+          {/* ─── TAB CONTENT (scrollable) ─── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">{renderTabContent()}</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -31,11 +31,19 @@ import DropDown from "@/components/form/input/DropDown";
 import Checkbox from "@/components/form/input/Checkbox";
 
 // Column count
-import { useColumnCount } from "@/components/common/DetailTabs";
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+} from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-
+// Panel Components
+//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 // API & State
 import { createEmail, updateEmail } from "../services/emailApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -43,7 +51,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
-import { ColumnSelector } from "@/components/common/DetailTabs";
+//import { ColumnSelector } from "@/components/common/DetailTabs";
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -172,6 +180,8 @@ export default function EmailDetail({
     }
   }, [data, reset, setValue, effectiveMode]);
 
+  const { activeTab, setActiveTab } = useDetailTabs("email", "comments");
+
   // ---------------------------------------------------------------------------
   // Column Count
   // ---------------------------------------------------------------------------
@@ -292,9 +302,57 @@ export default function EmailDetail({
   const statusLabel = watch("opt_out") || "active";
 
   // ---------------------------------------------------------------------------
-  // Render
+  // Render Tab Content
   // ---------------------------------------------------------------------------
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "comments":
+        return (
+          <CommentsPanel
+            entityType="email"
+            entityId={data?.id}
+            comments={data?.comments}
+            isEditing={isEditing}
+            currentUser="Current User"
+          />
+        );
+
+      case "actions":
+        return (
+          <ActionsPanel
+            entityType="email"
+            entityId={data?.id}
+            data={data?.actions?.items}
+            isEditing={isEditing}
+          />
+        );
+
+      case "documents":
+        return (
+          <DocumentsPanel
+            parent_model="email"
+            parentId={data?.id}
+            data={data?.refs?.links?.document}
+            isEditing={isEditing}
+          />
+        );
+
+      case "raw":
+        return (
+          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* ─── HEADER ─── */}
@@ -515,7 +573,26 @@ export default function EmailDetail({
           </form>
         )}
       </div>
-      <ColumnSelector value={columnCount} onChange={setColumnCount} />
+      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
+      {/* ─── TAB NAVIGATION ─── */}
+      {activeEmailId && data?.id && (
+        <>
+          <DetailTabs
+            entityType="email"
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            standardTabs={["comments", "actions", "documents", "raw"]}
+            showColumnSelector
+            columnCount={columnCount}
+            onColumnCountChange={setColumnCount}
+          />
+
+          {/* ─── TAB CONTENT (scrollable) ─── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">{renderTabContent()}</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
