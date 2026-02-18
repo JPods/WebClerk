@@ -59,7 +59,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   const lineCount = lines.length;
   const totalQty = lines.reduce((sum, l) => {
     const lRecord = l as unknown as Record<string, unknown>;
-    const qty = lRecord.qty ?? l.quantity?.ordered ?? 0;
+    const qty = lRecord.qty ?? l.quantity?.placed ?? 0;
     return sum + Number(qty);
   }, 0);
 
@@ -302,7 +302,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   unit_measure: unitMeasure,
                 },
                 quantity: {
-                  ordered: quantity,
+                  placed: quantity,
                 },
                 price: {
                   unit: unitPrice,
@@ -386,7 +386,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 if (description.length > 15) {
                   description = description.substring(0, 15) + "...";
                 }
-                const qty = lineRecord.qty ?? line.quantity?.ordered ?? 0;
+                const qty = lineRecord.qty ?? line.quantity?.placed ?? 0;
                 const uom = String(
                   lineRecord.unit_measure ?? line.item?.unit_measure ?? "EA",
                 );
@@ -458,8 +458,8 @@ const LinesCard: React.FC<LinesCardProps> = ({
                       }`}
                       onDoubleClick={() =>
                         canEditLine &&
-                        line.id &&
-                        handleDoubleClick(line.id, field, value)
+                        lineId != null &&
+                        handleDoubleClick(lineId as number, field, value)
                       }
                       title={canEditLine ? "Double-click to edit" : undefined}
                     >

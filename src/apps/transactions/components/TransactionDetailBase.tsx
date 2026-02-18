@@ -181,6 +181,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   renderCustomTab,
   // ...existing props
   renderHeader,
+  renderLines,
   isAdmin = false,
   canEdit = () => true,
   canClone = true,
@@ -1162,70 +1163,74 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         )}
       </div>
 
-      <LinesCard
-        lines={currentData.lines ?? []}
-        isEditing={isEditing}
-        isLocked={data?.is_locked}
-        onDeleteLine={(lineId) => {
-          if (typeof onLinesChange === "function") {
-            onLinesChange(
-              (currentData.lines ?? []).filter((l) => l.id !== lineId),
-            );
-          }
-        }}
-        onUpdateLine={(lineId, field, value) => {
-          if (typeof onLinesChange === "function") {
-            onLinesChange(
-              (currentData.lines ?? []).map((l) => {
-                if (l.id !== lineId) return l;
-                const baseUpdate = { ...l, _dirty: true };
-                switch (field) {
-                  case "qty":
-                    return {
-                      ...baseUpdate,
-                      quantity: { ...l.quantity, ordered: Number(value) },
-                    };
-                  case "description":
-                    return {
-                      ...baseUpdate,
-                      item: { ...l.item, description: String(value) },
-                    };
-                  case "unit_price":
-                    const newPrice = Number(value);
-                    const qty = l.quantity?.ordered ?? 0;
-                    return {
-                      ...baseUpdate,
-                      price: {
-                        ...l.price,
-                        unit: newPrice,
-                        extended: newPrice * qty,
-                      },
-                    };
-                  default:
-                    return { ...baseUpdate, [field]: value };
-                }
-              }),
-            );
-          }
-        }}
-        onDuplicateLine={(lineId) => {
-          if (typeof onLinesChange === "function") {
-            const lineToDup = (currentData.lines ?? []).find(
-              (l) => l.id === lineId,
-            );
-            if (lineToDup) {
-              const { id, ...rest } = lineToDup;
-              const newLine: TransactionLine = {
-                ...rest,
-                id: Date.now(),
-              };
-              onLinesChange([...(currentData.lines ?? []), newLine]);
+      {renderLines ? (
+        renderLines(currentData.lines ?? [], isEditing, currentData, onLinesChange)
+      ) : (
+        <LinesCard
+          lines={currentData.lines ?? []}
+          isEditing={isEditing}
+          isLocked={data?.is_locked}
+          onDeleteLine={(lineId) => {
+            if (typeof onLinesChange === "function") {
+              onLinesChange(
+                (currentData.lines ?? []).filter((l) => l.id !== lineId),
+              );
             }
-          }
-        }}
-        onLinesChange={onLinesChange}
-        onAddItem={handleAddItem}
-      />
+          }}
+          onUpdateLine={(lineId, field, value) => {
+            if (typeof onLinesChange === "function") {
+              onLinesChange(
+                (currentData.lines ?? []).map((l) => {
+                  if (l.id !== lineId) return l;
+                  const baseUpdate = { ...l, _dirty: true };
+                  switch (field) {
+                    case "qty":
+                      return {
+                        ...baseUpdate,
+                        quantity: { ...l.quantity, placed: Number(value) },
+                      };
+                    case "description":
+                      return {
+                        ...baseUpdate,
+                        item: { ...l.item, description: String(value) },
+                      };
+                    case "unit_price":
+                      const newPrice = Number(value);
+                      const qty = l.quantity?.placed ?? 0;
+                      return {
+                        ...baseUpdate,
+                        price: {
+                          ...l.price,
+                          unit: newPrice,
+                          extended: newPrice * qty,
+                        },
+                      };
+                    default:
+                      return { ...baseUpdate, [field]: value };
+                  }
+                }),
+              );
+            }
+          }}
+          onDuplicateLine={(lineId) => {
+            if (typeof onLinesChange === "function") {
+              const lineToDup = (currentData.lines ?? []).find(
+                (l) => l.id === lineId,
+              );
+              if (lineToDup) {
+                const { id, ...rest } = lineToDup;
+                const newLine: TransactionLine = {
+                  ...rest,
+                  id: Date.now(),
+                };
+                onLinesChange([...(currentData.lines ?? []), newLine]);
+              }
+            }
+          }}
+          onLinesChange={onLinesChange}
+          onAddItem={handleAddItem}
+        />
+      )}
       {/* Tabs Navbar */}
       <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">

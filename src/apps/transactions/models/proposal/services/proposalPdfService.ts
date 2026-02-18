@@ -86,7 +86,7 @@ export const generateProposalPdf = (data: ProposalPdfData): void => {
 
       const itemName = line.item?.ida_item || 'Unknown';
       const description = line.item?.description || '';
-      const quantity = line.quantity?.ordered || 0;
+      const quantity = line.quantity?.placed || 0;
       const price = line.price?.unit || 0;
       const total = line.price?.extended || (quantity * price);
 

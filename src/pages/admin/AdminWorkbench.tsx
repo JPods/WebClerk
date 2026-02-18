@@ -345,7 +345,7 @@ const AdminWorkbench: React.FC = () => {
       <div className="border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
         <div className="flex flex-wrap items-center gap-4">
           <div><span className="font-semibold">API</span>: {NetworkInfo.API_URL || '(unset)'}</div>
-          <div><span className="font-semibold">Auth</span>: {token ? 'token ✓' : 'no token'} ({isAuthenticated ? 'auth ✓' : 'auth ✗'})</div>
+          <div><span className="font-semibold">Auth</span>: {isAuthenticated ? 'auth ✓' : 'auth ✗'}</div>
           <div><span className="font-semibold">Models</span>: {loadingModels ? 'loading…' : (totalModelCount ? `${totalModelCount} loaded` : 'none')}</div>
           {lastModelsFetchAt && (
             <div><span className="font-semibold">Last fetch</span>: {new Date(lastModelsFetchAt).toLocaleTimeString()}</div>

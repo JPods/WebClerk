@@ -405,10 +405,7 @@ export interface LineItem {
 
 export interface LineQuantity {
   placed?: number;
-  ordered?: number;
-  invoiced?: number;
-  packed?: number;
-  received?: number;
+  actioned?: number;
   remaining?: number;
   is_fixed?: boolean;
   precision?: number;
