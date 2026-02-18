@@ -110,39 +110,63 @@ _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-# DB_MODE toggle: "remote" or "local" - set in .env to switch databases easily
+# DB_MODE toggle: "remote", "local", or "write-through" - set in .env
+# - remote:        reads & writes go to remote DB (team/production, default)
+# - local:         reads & writes go to local DB (isolated debugging)
+# - write-through: reads from local DB, writes forwarded to remote DB,
+#                  response bundle stored locally — keeps both in sync
 _db_mode = config('DB_MODE', default='remote').lower()
+
+# ── Remote DB configuration (shared by remote + write-through modes) ──
+_remote_db_cfg = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': config('REMOTE_DATABASE_NAME', default=config('DATABASE_NAME', default='commerce_expert')),
+    'USER': config('REMOTE_DATABASE_USER', default=config('DATABASE_USER', default='postgres')),
+    'PASSWORD': config('REMOTE_DATABASE_PASS', default=config('DATABASE_PASS', default='')),
+    'HOST': config('REMOTE_DATABASE_HOST', default=config('DATABASE_HOST', default='localhost')),
+    'PORT': config('REMOTE_DATABASE_PORT', default=config('DATABASE_PORT', default='5432')),
+    'ATOMIC_REQUESTS': False,
+}
+
+# ── Local DB configuration (shared by local + write-through modes) ──
+_local_db_cfg = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': config('LOCAL_DATABASE_NAME', default='commerce_expert'),
+    'USER': config('LOCAL_DATABASE_USER', default='williamjames'),
+    'PASSWORD': config('LOCAL_DATABASE_PASS', default=''),
+    'HOST': config('LOCAL_DATABASE_HOST', default='localhost'),
+    'PORT': config('LOCAL_DATABASE_PORT', default='5432'),
+    'ATOMIC_REQUESTS': False,
+}
 
 if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
     # Postgres path (default)
-    if _db_mode == 'local':
+    if _db_mode == 'write-through':
+        # Write-through: local DB serves all reads; saves forward to remote.
+        # 'default' = local (fast reads), '_wt_remote' = remote (authoritative writes)
+        DATABASES = {
+            'default': _local_db_cfg,
+            '_wt_remote': _remote_db_cfg,
+        }
+        WRITE_THROUGH_ENABLED = True
+        WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
+        WRITE_THROUGH_TIMEOUT = int(config('WRITE_THROUGH_TIMEOUT', default='30'))
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n')
+    elif _db_mode == 'local':
         # Local database for debugging
         DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('LOCAL_DATABASE_NAME', default='commerce_expert'),
-                'USER': config('LOCAL_DATABASE_USER', default='williamjames'),
-                'PASSWORD': config('LOCAL_DATABASE_PASS', default=''),
-                'HOST': config('LOCAL_DATABASE_HOST', default='localhost'),
-                'PORT': config('LOCAL_DATABASE_PORT', default='5432'),
-                'ATOMIC_REQUESTS': False,
-            }
+            'default': _local_db_cfg,
         }
+        WRITE_THROUGH_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
     else:
         # Remote database for team collaboration (default)
         DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('REMOTE_DATABASE_NAME', default=config('DATABASE_NAME', default='commerce_expert')),
-                'USER': config('REMOTE_DATABASE_USER', default=config('DATABASE_USER', default='postgres')),
-                'PASSWORD': config('REMOTE_DATABASE_PASS', default=config('DATABASE_PASS', default='')),
-                'HOST': config('REMOTE_DATABASE_HOST', default=config('DATABASE_HOST', default='localhost')),
-                'PORT': config('REMOTE_DATABASE_PORT', default=config('DATABASE_PORT', default='5432')),
-                'ATOMIC_REQUESTS': False,
-            }
+            'default': _remote_db_cfg,
         }
+        WRITE_THROUGH_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
 else:

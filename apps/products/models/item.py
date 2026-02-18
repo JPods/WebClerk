@@ -195,15 +195,6 @@ TAX_SCHEMA_DESC = {
 class Item(StatsMixin, BaseModel):
     """Catalog item (physical good, service placeholder, or bundle)."""
 
-    @property
-    def ida(self):
-        return str(self.pk)
-
-    @property
-    def description(self):
-        return self.description if self.description else self.name
-
-
     # README (tax localization):
     # Tax metadata in `tax_code` is intentionally minimal and highly localized.
     # Different jurisdictions (states, provinces, countries, municipalities) may apply

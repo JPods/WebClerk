@@ -153,6 +153,7 @@ class WCAPITransactionSaveView(APIView):
             CalculationMismatchError,
             ItemIdChangeError,
         )
+        from common.write_through import is_write_through, forward_transaction_and_store
         
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
@@ -173,6 +174,17 @@ class WCAPITransactionSaveView(APIView):
                 {"detail": f"Model {model_key} does not support lines"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # ── Write-through: forward to remote, store result locally ───
+        if is_write_through():
+            result, status_code = forward_transaction_and_store(
+                request=request,
+                model_key=model_key,
+                record_data=record_data,
+                lines_data=lines_data,
+                options=options,
+            )
+            return Response(result, status=status_code)
         
         try:
             result = save_transaction_with_lines(
@@ -310,6 +322,8 @@ class WCAPISaveView(APIView):
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
+        from common.write_through import is_write_through, forward_and_store
+
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
@@ -324,6 +338,15 @@ class WCAPISaveView(APIView):
         ModelCls = registry.resolve(model_key or "")
         if not ModelCls or not isinstance(data, dict):
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── Write-through: forward to remote, store result locally ───
+        if is_write_through():
+            # Build a payload compatible with forward_and_store
+            payload = dict(data)
+            if record_id is not None:
+                payload["id"] = record_id
+            result, status_code = forward_and_store(request, ModelCls, payload)
+            return Response(result, status=status_code)
 
         # Delegate to core save_item to centralize save behavior (including linking hooks)
         try:

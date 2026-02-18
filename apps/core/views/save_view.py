@@ -1,5 +1,6 @@
 # path: apps/core/views/save_view.py
 from common.api_responses import api_response
+from common.write_through import is_write_through, forward_and_store
 from django.conf import settings
 import logging
 console_logger = logging.getLogger('console')  # Console logger for debugging
@@ -1499,6 +1500,18 @@ class SaveWcapiView(APIView):
         record_id = coerce_int(record_id)
         data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
+
+        # ── Write-through: forward to remote, store bundle locally ──
+        if is_write_through():
+            console_logger.info(f"[SAVE_VIEW] Write-through mode — forwarding {model_key} save to remote DB")
+            wt_payload, wt_status = forward_and_store(request, model_cls, data)
+            if wt_status >= 400:
+                return api_response(
+                    success=False, status_code=wt_status,
+                    message=wt_payload.get('detail', 'Write-through failed'),
+                    error={'code': 'write_through_error', 'details': wt_payload},
+                )
+            return api_response(data=wt_payload, status_code=wt_status)
 
         # Create or update
         is_update = bool(record_id)
