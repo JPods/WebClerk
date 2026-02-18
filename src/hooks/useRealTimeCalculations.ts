@@ -1,56 +1,49 @@
+/**
+ * useRealTimeCalculations — WC3-aligned real-time totals hook
+ *
+ * Mirrors the backend's `compute_*_sell_cost_totals()` services so the UI
+ * can display optimistic totals while editing lines, before the server
+ * persists them.
+ *
+ * Backend reference:
+ *   apps/transactions/services/order_totals.py
+ *   apps/transactions/services/proposal_totals.py
+ *   apps/transactions/services/invoice_totals.py
+ *   apps/transactions/services/purchase_totals.py
+ *
+ * @see webClerk3/readmes/topics/transactions/transactions-totals.md §3
+ */
 import { useMemo } from 'react';
+import {
+  computeHeaderTotals,
+  type HeaderTotalsResult,
+} from '../apps/transactions/services/headerTotals';
+import type {
+  TransactionLine,
+  TransactionTotals,
+  HeaderCost,
+  HeaderSell,
+} from '../apps/transactions/types/transactionTypes';
 
-export interface TransactionLine {
-  id?: number;
-  item_name: string;
-  description: string;
-  quantity: number;
-  price: number;
-  // Add other fields as needed
-}
+// Re-export the canonical types so existing consumers keep working.
+export type { TransactionTotals, HeaderCost, HeaderSell };
 
-export interface TransactionTotals {
-  subtotal: number;
-  discount: number;
-  taxable: number;
-  tax: number;
-  shipping: number;
-  other: number;
-  total: number;
-  cost: number;
-  margin: number;
-  margin_pc: number;
-  received?: number;
-  balance?: number;
-}
-
+/**
+ * Compute sell / cost / totals envelopes from an array of TransactionLine
+ * objects each time lines, transactionType, or received changes.
+ *
+ * @param lines - The current (possibly unsaved) line array.
+ * @param transactionType - 'order' | 'proposal' | 'invoice' | 'purchase' | 'workorder'.
+ * @param received - Payment amount already received (preserved through recalc).
+ * @returns `{ sell, cost, totals }` — same three-envelope shape the server returns.
+ */
 export function useRealTimeCalculations(
   lines: TransactionLine[],
-  taxRate: number = 0.08,
-  shipping: number = 0,
-  other: number = 0
-): TransactionTotals {
-  return useMemo(() => {
-    const subtotal = lines.reduce((sum, line) => sum + (line.quantity * line.price), 0);
-    const discount = 0; // TODO: Implement discount logic
-    const taxable = subtotal - discount;
-    const tax = taxable * taxRate;
-    const total = taxable + tax + shipping + other;
-    const cost = 0; // TODO: Implement cost calculation
-    const margin = total - cost;
-    const margin_pc = cost > 0 ? (margin / cost) * 100 : 0;
-
-    return {
-      subtotal,
-      discount,
-      taxable,
-      tax,
-      shipping,
-      other,
-      total,
-      cost,
-      margin,
-      margin_pc,
-    };
-  }, [lines, taxRate, shipping, other]);
+  transactionType = 'order',
+  received: number | null = null,
+): HeaderTotalsResult {
+  return useMemo(
+    () => computeHeaderTotals(lines, { transactionType, received }),
+    [lines, transactionType, received],
+  );
 }
