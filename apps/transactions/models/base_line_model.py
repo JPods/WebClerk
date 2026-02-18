@@ -135,6 +135,82 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "precision": 2,
         }
 
+# Legacy quantity key → canonical key mapping.
+# Any of these arriving from old data or external systems are mapped to placed/actioned.
+_LEGACY_QTY_ALIASES: Dict[str, str] = {
+    "ordered":  "placed",
+    "quantity": "placed",
+    "qty":      "placed",
+    "shipped":  "actioned",
+    "invoiced": "actioned",
+    "received": "actioned",
+    "packed":   "actioned",
+    "completed": "actioned",
+}
+
+
+def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | None = None) -> Dict[str, Any]:
+    """Normalize a quantity JSON blob to the canonical structure.
+
+    Handles:
+      1. None / empty → full default from default_quantity()
+      2. Legacy keys (ordered, shipped, received, …) → placed / actioned
+      3. Null numeric values → 0
+      4. Missing canonical keys → backfilled from defaults
+      5. remaining recalculated as placed − actioned
+    """
+    base = default_quantity(transaction_type)
+
+    if not isinstance(q, dict) or not q:
+        return base
+
+    out = dict(base)  # start from full default
+
+    # Map legacy keys first (only when canonical key is still at default)
+    for legacy_key, canonical_key in _LEGACY_QTY_ALIASES.items():
+        if legacy_key in q and canonical_key in out:
+            val = q[legacy_key]
+            # Only adopt legacy value if canonical key hasn't been explicitly set
+            if q.get(canonical_key) in (None, 0, 0.0):
+                try:
+                    out[canonical_key] = float(val) if val is not None else 0
+                except (TypeError, ValueError):
+                    out[canonical_key] = 0
+
+    # Overlay explicit canonical keys from input
+    for key in ("placed", "actioned", "remaining"):
+        if key in q and q[key] is not None:
+            try:
+                out[key] = float(q[key])
+            except (TypeError, ValueError):
+                out[key] = 0
+        elif key in out and out[key] is None:
+            out[key] = 0
+
+    # Control / metadata keys
+    if "is_fixed" in q:
+        out["is_fixed"] = bool(q["is_fixed"])
+    if "precision" in q:
+        try:
+            out["precision"] = int(q["precision"])
+        except (TypeError, ValueError):
+            pass
+    if "is_blanket" in q:
+        out["is_blanket"] = bool(q["is_blanket"])
+    if "increment" in q:
+        try:
+            out["increment"] = float(q["increment"]) if q["increment"] is not None else 0
+        except (TypeError, ValueError):
+            out["increment"] = 0
+
+    # Recalculate remaining
+    placed = out.get("placed", 0) or 0
+    actioned = out.get("actioned", 0) or 0
+    out["remaining"] = float(_to_decimal(placed - actioned, places=out.get("precision", 2)))
+
+    return out
+
+
 def default_cost() -> Dict[str, Any]:
     """Firm cost schema for all line models (exec + sell).
     Keys mirror what Purchase totals expect to aggregate.
@@ -333,7 +409,9 @@ class BaseLineCore(BaseModel):
 
         Flow:
           1. Seed missing envelopes from JSON_DEFAULT_FACTORIES
-          2. Seed quantity via default_quantity(kind) if empty
+          2. Normalize quantity via normalize_quantity_map() — always runs
+             (maps legacy keys like 'ordered' → 'placed', fills missing keys,
+             fixes nulls, recalculates remaining)
           3. Normalize cost via normalize_cost_map() — always runs
 
         BaseSellLineModel overrides this to also normalize price and
@@ -347,9 +425,11 @@ class BaseLineCore(BaseModel):
             if not val:
                 setattr(self, field_name, factory())
 
-        # Step 2: quantity variant by model kind (proposal, order, etc.)
-        if not self.quantity:
-            self.quantity = default_quantity(transaction_type=self._meta.model_name)
+        # Step 2: normalize quantity (maps legacy keys, fills missing, fixes nulls)
+        self.quantity = normalize_quantity_map(
+            getattr(self, "quantity", None),
+            transaction_type=self._meta.model_name,
+        )
 
         # Step 3: normalize cost strictly (fixes nulls, ensures all keys)
         self.cost = normalize_cost_map(getattr(self, "cost", None))
