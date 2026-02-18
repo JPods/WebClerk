@@ -206,10 +206,13 @@ export default function ItemList() {
     const nameSelector = (row: any) => valueFrom(row, ["name", "item_name", "title", "description"], "--");
     const skuSelector = (row: any) => valueFrom(row, ["sku", "item_code", "item_number", "external_id"], "--");
     const categorySelector = (row: any) => valueFrom(row, ["category", "category_name", "segment", "group"], "--");
-    const priceSelector = (row: any) => {
-      const raw = valueFrom(row, ["price", "unit_price", "list_price", "cost"], 0);
-      const numeric = Number(raw);
-      return Number.isFinite(numeric) ? numeric : 0;
+    const retailSelector = (row: any) => {
+      const val = Number(row?.price?.retail);
+      return Number.isFinite(val) ? val : 0;
+    };
+    const distributorSelector = (row: any) => {
+      const val = Number(row?.price?.distributor);
+      return Number.isFinite(val) ? val : 0;
     };
     const descriptionSelector = (row: any) =>
       valueFrom(row, ["description", "long_description", "short_description", "change_reason"], "--");
@@ -220,14 +223,26 @@ export default function ItemList() {
       { id: "sku", name: "SKU", selector: skuSelector, sortable: true, wrap: true, width: "15%" },
       { id: "category", name: "Category", selector: categorySelector, sortable: true, wrap: true, width: "15%" },
       {
-        id: "price",
-        name: "Price",
-        selector: priceSelector,
+        id: "retail",
+        name: "Retail",
+        selector: retailSelector,
         sortable: true,
         width: "10%",
         cell: (row) => (
           <span className="font-medium text-green-600 dark:text-green-400">
-            ${priceSelector(row).toFixed(2)}
+            ${retailSelector(row).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        id: "distributor",
+        name: "Distributor",
+        selector: distributorSelector,
+        sortable: true,
+        width: "10%",
+        cell: (row) => (
+          <span className="font-medium text-blue-600 dark:text-blue-400">
+            ${distributorSelector(row).toFixed(2)}
           </span>
         ),
       },
