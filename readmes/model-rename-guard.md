@@ -68,19 +68,82 @@ Exit code **0** = clean, **1** = violations found.
 
 ## CI Integration
 
-To add this as a GitHub Actions check:
+The workflow lives at `.github/workflows/rename-guard.yml`.
+
+### Current status: **Staged (inactive)**
+
+The workflow is configured with `workflow_dispatch` only — it does **not** run
+automatically on PRs. This is intentional while the project is still being
+polished.
+
+To run it manually: go to **Actions → Model Rename Guard → Run workflow** in
+the GitHub UI.
+
+### Activating for PRs
+
+When ready, edit `.github/workflows/rename-guard.yml`:
+
+1. Uncomment the `pull_request` trigger block
+2. Remove (or comment out) the `workflow_dispatch` line
+
+```yaml
+# Before (staged — manual only)
+on:
+  workflow_dispatch:
+
+# After (active — runs on every PR)
+on:
+  pull_request:
+    paths:
+      - '**.py'
+      - '**.ts'
+      - '**.tsx'
+      - '**.js'
+      - '**.md'
+      - '**.json'
+```
+
+### Full workflow reference
 
 ```yaml
 # .github/workflows/rename-guard.yml
 name: Model Rename Guard
-on: [pull_request]
+
+on:
+  workflow_dispatch:   # manual-only until we're ready
+
+# ── Activate by replacing the above with: ──
+# on:
+#   pull_request:
+#     paths:
+#       - '**.py'
+#       - '**.ts'
+#       - '**.tsx'
+#       - '**.js'
+#       - '**.md'
+#       - '**.json'
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: bash tools/check_renamed_models.sh
+        with:
+          path: webClerk3
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/React2025
+          path: React2025
+          # Remove this step if both projects share a monorepo
+
+      - name: Run rename guard
+        working-directory: webClerk3
+        run: bash tools/check_renamed_models.sh
 ```
+
+> **Note:** The script gracefully skips React2025 checks if that directory
+> isn't found, so the second checkout step is optional.
 
 ## History
 

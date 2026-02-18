@@ -18,6 +18,23 @@ def transfer_order_to_invoice(
     preserve_order: bool = True,
     invoice_type: str = "standard"
 ) -> Dict[str, Any]:
+    """Transfer order lines to a new invoice (atomic).
+
+    Workflow:
+      1. Select lines (all or by ID list); skip lines with remaining ≤ 0
+      2. Create Invoice header with refs.source.order_id
+      3. For each OrderLine:
+         a. Convert quantity via _convert_quantity_for_invoice()
+         b. Create InvoiceLine with full price/cost/tax/physical
+         c. Update source OrderLine: invoiced += remaining, remaining → 0
+      4. If all order lines fulfilled → set order.status = 'fulfilled'
+
+    LEGACY KEYS: _convert_quantity_for_invoice() outputs 'packed' instead
+    of 'placed', and reads 'invoiced' — these should be migrated to
+    placed/actioned/remaining.
+    TODO: Does NOT set parent_model/parent_id on the new Invoice.
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     if not order:
         raise OrderToInvoiceTransferError("Order is required")
     if not transfer_all and not line_ids:
@@ -157,6 +174,14 @@ def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
     return md
 
 def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Convert order line quantity to invoice line quantity.
+
+    LEGACY: Uses 'packed' instead of canonical 'placed', and reads 'invoiced'
+    instead of 'actioned'.  Should be migrated to:
+      placed = remaining, actioned = 0, remaining = remaining
+
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     q = dict(order_quantity or {})
     remaining = q.get("remaining", 0)
     return {
@@ -172,6 +197,15 @@ def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> D
     }
 
 def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
+    """Decrement source order line after transfer to invoice.
+
+    Updates: invoiced += invoiced_qty, remaining = max(0, remaining - invoiced_qty)
+
+    LEGACY: Uses 'invoiced' instead of canonical 'actioned'.
+    Should be: actioned += invoiced_qty, remaining = placed - actioned
+
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     q = dict(ol.quantity or {})
     q["invoiced"] = q.get("invoiced", 0) + invoiced_qty
     q["remaining"] = max(0, q.get("remaining", 0) - invoiced_qty)

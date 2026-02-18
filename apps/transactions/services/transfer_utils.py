@@ -19,19 +19,31 @@ def sum_price_extended(lines: Iterable[Model]) -> float:
     return float(total)
 
 def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dict:
-    """
-    Normalize a quantity dict into a generic line quantity for targets.
+    """Normalize a source line's quantity dict into a generic target-line quantity.
 
-    - Base = placed if present; else ordered; else remaining; else 0
-    - Preserve precision/is_fixed when present
-    - Set invoiced=0 by default (safe for non-invoice targets)
-    - Attach converted_from_<src_label> with original keys
+    Resolves the base quantity through a fallback chain:
+      placed → ordered → remaining → 0
+
+    The result dict always has:
+      remaining:            base value (target starts with full amount available)
+      invoiced:             0 (safe default for non-invoice targets)
+      precision, is_fixed:  preserved from source when present
+      converted_from_<src_label>: audit trail with original keys
+
+    LEGACY NOTE: The fallback to 'ordered' supports lines created before the
+    canonical placed/actioned/remaining keys were adopted.  New code should
+    always write 'placed' and never 'ordered'.
+
+    TODO: This function does NOT set 'placed' or 'actioned' on the output.
+    Target lines should have placed = base, actioned = 0, remaining = base.
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = src_qty or {}
+    # Fallback chain: placed (canonical) → ordered (legacy) → remaining
     base = q.get("placed")
     used_key = "placed"
     if base is None:
-        base = q.get("ordered")
+        base = q.get("ordered")    # LEGACY: pre-canonical key
         used_key = "ordered"
     if base is None:
         base = q.get("remaining", 0)
@@ -100,21 +112,17 @@ def _resolve_line_parent_id(src_line: Any) -> Any:
     return None
 
 def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
-    """
-    Build a normalized payload array for a source line, to be embedded into refs['xfer'].
+    """Build a normalized transfer-audit payload for a source line.
 
-    Structure (versioned):
-    [
-      {
-        'version': 1,
-        'source': { 'kind': 'proposal'|'order'|'purchase'|'invoice', 'parent_id': int, 'line_id': int },
-        'item':   { 'id': int|None, 'sku': str|None, 'name': str|None, 'uom': str|None },
-        'qty':    { 'base': Decimal, 'placed': any, 'ordered': any, 'remaining': any, 'precision': int|None },
-        'price':  { 'unit': Decimal, 'extended': Decimal, 'currency': str|None, 'precision': int|None },
-        'cost':   { 'unit': Decimal, 'extended': Decimal, 'currency': str|None },
-        'meta':   { 'status': str|None, 'tags': list|None }
-      }
-    ]
+    Embedded into the target line's refs['xfer'] so the full provenance
+    (source header, line, item, quantity, price, cost) is captured at
+    transfer time.  This enables debugging and reconciliation without
+    querying back to the source transaction.
+
+    The payload is versioned (PAYLOAD_VERSION) and returned as a list to
+    support future multi-source merges.
+
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     price = getattr(src_line, "price", None) or {}
     cost = getattr(src_line, "cost", None) or {}

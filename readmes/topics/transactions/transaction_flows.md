@@ -28,6 +28,68 @@ graph TD
 
 The primary flow follows: **Proposal → Order → Purchase → Invoice → Payment**
 
+## Transaction Lineage — `parent_model` / `parent_id`
+
+Every transaction header has two fields on `TransactionBaseModel` that track **which transaction created it**:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `parent_id` | `BigIntegerField` | PK of the source transaction |
+| `parent_model` | `CharField(20)` | Discriminator: `proposal`, `order`, `invoice`, `purchase`, `workorder`, `requisition` |
+
+This is a **polymorphic pattern** (not a true FK). It answers: *"This order was created from proposal #42."*
+
+### Parent-child chains
+
+```
+Proposal #42  ──parent_of──▶  Order #61  ──parent_of──▶  Invoice #85
+                               │
+                               └──parent_of──▶  Purchase #39  ──parent_of──▶  Receipt (via FK)
+```
+
+When a transfer service converts one transaction to another, it sets:
+```python
+new_order.parent_model = "proposal"
+new_order.parent_id    = proposal.pk
+```
+
+### Line-level lineage
+
+Lines track their source line via `refs.source` and `refs.xfer` JSONB:
+```json
+{
+  "refs": {
+    "source": { "model": "proposal_line", "id": 101 },
+    "xfer":   { "version": 1, "transferred_at": "2026-02-17T..." }
+  }
+}
+```
+
+## Quantity Model — `placed` / `actioned` / `remaining`
+
+All line types use a unified `quantity` JSONB with **three canonical keys**:
+
+| Key | Meaning |
+|-----|---------|
+| `placed` | Quantity committed on this line |
+| `actioned` | Quantity acted upon (context-dependent — see below) |
+| `remaining` | `placed - actioned` |
+
+Additional keys: `is_fixed`, `precision`, `is_blanket`, `increment`.
+
+The `actioned` key **replaces** the legacy per-type verbs:
+
+| Transaction Type | `actioned` means | Legacy key (deprecated) |
+|------------------|-------------------|------------------------|
+| Proposal | converted to order | — |
+| Order | shipped / invoiced | `ordered`, `invoiced` |
+| Invoice | delivered | `shipped` |
+| Purchase | received from vendor | `received` |
+| WorkOrder | completed | — |
+
+> **Migration note**: Transfer services must be updated to read/write `placed`/`actioned`
+> instead of legacy keys like `ordered`, `invoiced`, `packed`.
+
 ## Transaction Models
 
 All transaction models inherit from `TransactionBaseModel` which provides:

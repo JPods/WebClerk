@@ -6,17 +6,28 @@ if TYPE_CHECKING:  # pragma: no cover
     from apps.transactions.models.purchase import Purchase
 
 def compute_purchase_cost_totals(po: "Purchase") -> Dict[str, Any]:
-    """Aggregate per-line cost fields into Purchase header totals.
-    Returns a dict shaped for header totals (cost-side).
-    - line_sum_goods: sum of line.cost.extended
-    - line_sum_tax: sum of line.cost.tax
-    - line_sum_shipping: sum of line.cost.shipping
-    - line_sum_handling: sum of line.cost.handling
-    - freight: sum of line.cost.freight
-    - commissions: sum of line.cost.commissions
-    - tax: alias of line_sum_tax (header-level)
-    - total: goods + shipping + handling + freight + tax + commissions
-    Note: tax_rate aggregation is not meaningful at header-level; leave None.
+    """Aggregate per-line cost fields into Purchase header cost envelope.
+
+    Returns a *flat* cost dict (not the three-envelope sell/cost/totals shape).
+    This is the cost-only variant — see purchase_totals.py for the full
+    three-envelope version used by update_sell_cost_totals().
+
+    Keys returned:
+      line_sum_goods     Σ line.cost.extended
+      line_sum_tax       Σ line.cost.tax
+      line_sum_shipping  Σ line.cost.shipping
+      line_sum_handling  Σ line.cost.handling
+      freight            Σ line.cost.freight
+      commissions        Σ line.cost.commissions
+      tax                alias of line_sum_tax (header-level convenience)
+      tax_rate           None (not meaningful as an aggregate)
+      total              goods + tax + shipping + handling + freight + commissions
+
+    BUG: uses `cast` and `Decimal` without importing them — will raise
+    NameError at runtime. Needs: ``from decimal import Decimal`` and
+    ``from typing import cast``.
+
+    See: readmes/topics/transactions/transactions-totals.md §3
     """
     sums = {
         "line_sum_goods": Decimal(0),
