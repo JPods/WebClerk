@@ -217,7 +217,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
                     case "qty":
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, ordered: Number(value) },
+                        quantity: { ...l.quantity, placed: Number(value) },
                       };
                     case "description":
                       return {
@@ -226,7 +226,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
                       };
                     case "unit_price":
                       const newPrice = Number(value);
-                      const qty = l.quantity?.ordered ?? 0;
+                      const qty = l.quantity?.placed ?? 0;
                       return {
                         ...baseUpdate,
                         price: {

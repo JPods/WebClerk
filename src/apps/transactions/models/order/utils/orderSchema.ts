@@ -32,9 +32,9 @@ const quantitySchema = z.union([
         .number()
         .min(0, "Quantity placed must be non-negative")
         .optional(),
-      ordered: z.coerce
+      actioned: z.coerce
         .number()
-        .min(0, "Quantity ordered must be non-negative")
+        .min(0, "Quantity actioned must be non-negative")
         .optional(),
       remaining: z.coerce
         .number()
@@ -46,10 +46,7 @@ const quantitySchema = z.union([
       (value) => {
         const placed =
           typeof value.placed === "number" ? value.placed : undefined;
-        const ordered =
-          typeof value.ordered === "number" ? value.ordered : undefined;
-        const effective = placed ?? ordered;
-        return effective === undefined || effective > 0;
+        return placed === undefined || placed > 0;
       },
       { message: "Quantity must be greater than zero" }
     ),

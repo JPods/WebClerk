@@ -140,13 +140,13 @@ describe('Proposal PDF Service', () => {
         {
           id: 1,
           item: { ida_item: 'ITEM-001', description: 'Test Item' },
-          quantity: { ordered: 2 },
+          quantity: { placed: 2 },
           price: { unit: 10.00, extended: 20.00 },
         },
         {
           id: 2,
           item: { ida_item: 'ITEM-002', description: 'Another Item' },
-          quantity: { ordered: 1 },
+          quantity: { placed: 1 },
           price: { unit: 15.00, extended: 15.00, discount_amount: 2.00 },
         },
       ],
@@ -188,13 +188,13 @@ describe('Proposal PDF Service', () => {
         {
           id: 1,
           item: { ida_item: 'ITEM-001' },
-          quantity: { ordered: 2 },
+          quantity: { placed: 2 },
           price: { unit: 10.00, extended: 20.00 },
         },
         {
           id: 2,
           item: { ida_item: 'ITEM-002' },
-          quantity: { ordered: 1 },
+          quantity: { placed: 1 },
           price: { unit: 15.00, extended: 15.00, discount_amount: 2.00 },
         },
       ],
@@ -223,7 +223,7 @@ describe('Proposal PDF Service', () => {
         {
           id: 1,
           item: { ida_item: 'ITEM-001' },
-          quantity: { ordered: 2 },
+          quantity: { placed: 2 },
           price: { unit: 10.00, extended: 20.00 },
         },
       ],
@@ -332,7 +332,7 @@ describe('Proposal PDF Service', () => {
             ida_item: 'VERY_LONG_ITEM_CODE_THAT_EXCEEDS_LIMITS',
             description: 'This is a very long description that should be truncated because it exceeds the normal display length for PDF generation purposes'
           },
-          quantity: { ordered: 1 },
+          quantity: { placed: 1 },
           price: { unit: 10.00, extended: 10.00 },
         },
       ],
