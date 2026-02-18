@@ -18,6 +18,7 @@ import {
   resolveUnitPrice,
   resolveUnitCost,
 } from '../components/TransactionItemSearch';
+import { round, toNumber } from './calculationUtils';
 
 // ============================================================================
 // Types
@@ -70,12 +71,7 @@ export function isExecTransaction(transactionType: string): boolean {
   return ['purchase', 'workorder'].includes(kind);
 }
 
-/**
- * Round a number to specified decimal places
- */
-function round(value: number, decimals = 2): number {
-  return Math.round(value * 10 ** decimals) / 10 ** decimals;
-}
+// round() and toNumber() are imported from calculationUtils.ts
 
 /**
  * Get default quantity envelope based on transaction type
@@ -380,6 +376,9 @@ export class LineItemService {
 
   /**
    * Calculate line values (price and cost extensions)
+   *
+   * Mirrors WC3 `_calculate_extended_price()` at base_line_model.py:388.
+   * Uses per-line precision from price.precision / cost.precision.
    */
   calculateLine(line: TransactionLine): LineCalculation {
     const qty = this.getQuantity(line);
@@ -388,29 +387,33 @@ export class LineItemService {
     const unitCost = this.getUnitCost(line);
     const costDiscountPc = this.getCostDiscountPercent(line);
 
-    // Price calculations
-    const gross = qty * unitPrice;
-    const discountAmount = this.getDiscountAmount(line, gross, discountPc);
-    const extended = gross - discountAmount;
+    // Read precision from line envelopes (WC3 default: 2)
+    const pricePrecision = this.getPrecision(line, 'price');
+    const costPrecision = this.getPrecision(line, 'cost');
+
+    // Price calculations  (sell-side)
+    const gross = round(qty * unitPrice, pricePrecision);
+    const discountAmount = this.getDiscountAmount(line, gross, discountPc, pricePrecision);
+    const extended = round(gross - discountAmount, pricePrecision);
 
     // Cost calculations
-    const grossCost = qty * unitCost;
-    const discountCost = this.getCostDiscountAmount(line, grossCost, costDiscountPc);
-    const costExtended = grossCost - discountCost;
+    const grossCost = round(qty * unitCost, costPrecision);
+    const discountCost = this.getCostDiscountAmount(line, grossCost, costDiscountPc, costPrecision);
+    const costExtended = round(grossCost - discountCost, costPrecision);
 
     // Margin (internal use only)
-    const margin = extended - costExtended;
-    const marginPc = extended > 0 ? (margin / extended) * 100 : 0;
+    const margin = round(extended - costExtended);
+    const marginPc = extended > 0 ? round((margin / extended) * 100, 2) : 0;
 
     return {
-      gross: round(gross),
-      discountAmount: round(discountAmount),
-      extended: round(extended),
-      grossCost: round(grossCost),
-      discountCost: round(discountCost),
-      costExtended: round(costExtended),
-      margin: round(margin),
-      marginPc: round(marginPc),
+      gross,
+      discountAmount,
+      extended,
+      grossCost,
+      discountCost,
+      costExtended,
+      margin,
+      marginPc,
     };
   }
 
@@ -469,19 +472,39 @@ export class LineItemService {
     return 0;
   }
 
+  /**
+   * Read precision from a line's price or cost envelope.
+   * Falls back to 2 (WC3 default).
+   */
+  private getPrecision(line: TransactionLine, envelope: 'price' | 'cost'): number {
+    const env = line[envelope];
+    if (typeof env === 'object' && env !== null) {
+      const p = Number((env as Record<string, unknown>).precision);
+      return Number.isFinite(p) && p >= 0 ? p : 2;
+    }
+    return 2;
+  }
+
+  /**
+   * Resolve discount amount — mirrors WC3 logic:
+   *   if discount_amount is explicitly set (non-zero) → use it
+   *   else → compute from gross × (discount_percent / 100)
+   */
   private getDiscountAmount(
     line: TransactionLine,
     gross: number,
-    discountPc: number
+    discountPc: number,
+    precision = 2,
   ): number {
     if (typeof line.price === 'object' && line.price !== null) {
       const p = line.price as Record<string, unknown>;
-      const discountAmount = Number(p.discount_amount ?? 0);
-      if (discountAmount) {
-        return discountAmount;
+      const explicit = Number(p.discount_amount ?? 0);
+      // WC3: use explicit if set AND (non-zero OR percent is zero)
+      if (explicit !== 0) {
+        return round(explicit, precision);
       }
     }
-    return gross * (discountPc / 100);
+    return round(gross * (discountPc / 100), precision);
   }
 
   private getUnitCost(line: TransactionLine): number {
@@ -503,16 +526,17 @@ export class LineItemService {
   private getCostDiscountAmount(
     line: TransactionLine,
     grossCost: number,
-    discountPc: number
+    discountPc: number,
+    precision = 2,
   ): number {
     if (typeof line.cost === 'object' && line.cost !== null) {
       const c = line.cost as Record<string, unknown>;
-      const discountAmount = Number(c.discount_amount ?? 0);
-      if (discountAmount) {
-        return discountAmount;
+      const explicit = Number(c.discount_amount ?? 0);
+      if (explicit !== 0) {
+        return round(explicit, precision);
       }
     }
-    return grossCost * (discountPc / 100);
+    return round(grossCost * (discountPc / 100), precision);
   }
 }
 

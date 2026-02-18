@@ -89,21 +89,19 @@ const StatBox: React.FC<{
 );
 
 const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
-  totals = {},
-  cost = {},
-  sell = {},
+  totals = {} as TransactionTotals,
+  cost = {} as TransactionCost,
+  sell = {} as TransactionSell,
   currency = "USD",
 }) => {
-  const grossMarginAmount = (totals.ex ?? 0) - (cost.total ?? 0);
-  const grossMarginPercent =
-    totals.ex && totals.ex > 0
-      ? (grossMarginAmount / totals.ex) * 100
-      : undefined;
+  // WC3-aligned: margin lives on the totals envelope
+  const marginAmount = totals.margin ?? 0;
+  const marginPercent = totals.margin_pc ?? undefined;
   const marginTrend =
-    grossMarginPercent !== undefined
-      ? grossMarginPercent >= 20
+    marginPercent !== undefined
+      ? marginPercent >= 20
         ? "up"
-        : grossMarginPercent >= 10
+        : marginPercent >= 10
           ? "neutral"
           : "down"
       : "neutral";
@@ -120,58 +118,86 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         </div>
       </div>
 
+      {/* ── Sell summary ──────────────────────────────────────── */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
         <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
           <FaChartLine size={10} />
-          Transaction Totals
+          Sell Totals
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
-            label="Total (ex Tax)"
-            value={formatCurrency(totals.ex, currency)}
+            label="Line Goods"
+            value={formatCurrency(sell.line_sum_goods, currency)}
+            sublabel="Σ extended"
             mandatory
           />
-          <StatBox label="Tax" value={formatCurrency(totals.tax, currency)} />
           <StatBox
-            label="Total (inc Tax)"
-            value={formatCurrency(totals.inc, currency)}
+            label="Discount"
+            value={formatCurrency(sell.discount, currency)}
+            sublabel="Line discounts"
+          />
+          <StatBox
+            label="Tax"
+            value={formatCurrency(sell.tax, currency)}
+          />
+          <StatBox
+            label="Sell Total"
+            value={formatCurrency(sell.total, currency)}
             highlight
           />
-          <StatBox
-            label="Deposit"
-            value={formatCurrency(totals.deposit, currency)}
-          />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-          <StatBox label="Net Total" value={formatCurrency(totals.net, currency)} />
-          <StatBox label="Quantity" value={totals.qty?.toString() ?? "--"} />
-          <StatBox label="Pieces" value={totals.pcs?.toString() ?? "--"} />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
           <StatBox
-            label="Weight"
-            value={totals.wt ? `${totals.wt} kg` : "--"}
+            label="Shipping"
+            value={formatCurrency(sell.shipping, currency)}
+          />
+          <StatBox
+            label="Handling"
+            value={formatCurrency(sell.handling, currency)}
+          />
+          <StatBox
+            label="Other"
+            value={formatCurrency(sell.other, currency)}
           />
         </div>
       </div>
 
+      {/* ── Cost breakdown ────────────────────────────────────── */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
         <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
           Cost Breakdown
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatBox
-            label="Items"
-            value={formatCurrency(cost.items, currency)}
-            sublabel="Product cost"
-          />
-          <StatBox label="Freight" value={formatCurrency(cost.freight, currency)} />
-          <StatBox
-            label="Landing"
-            value={formatCurrency(cost.landing, currency)}
-            sublabel="Duties/fees"
+            label="Line Goods"
+            value={formatCurrency(cost.line_sum_goods, currency)}
+            sublabel="Σ cost extended"
           />
           <StatBox
-            label="Overhead"
-            value={formatCurrency(cost.overhead, currency)}
+            label="Shipping"
+            value={formatCurrency(cost.line_sum_shipping, currency)}
+          />
+          <StatBox
+            label="Handling"
+            value={formatCurrency(cost.line_sum_handling, currency)}
+          />
+          <StatBox
+            label="Freight"
+            value={formatCurrency(cost.freight, currency)}
+          />
+          <StatBox
+            label="Commissions"
+            value={formatCurrency(cost.commissions, currency)}
+          />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+          <StatBox
+            label="Tax"
+            value={formatCurrency(cost.tax, currency)}
+          />
+          <StatBox
+            label="Tax Rate"
+            value={cost.tax_rate != null ? formatPercent(cost.tax_rate) : "--"}
           />
           <StatBox
             label="Total Cost"
@@ -183,60 +209,51 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         </div>
       </div>
 
+      {/* ── Totals & Margin ───────────────────────────────────── */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
-          Sell Pricing
+        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+          <FaPercentage size={10} />
+          Margin Analysis
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
-            label="Retail"
-            value={formatCurrency(sell.retail, currency)}
-            sublabel="List price"
+            label="Grand Total"
+            value={formatCurrency(totals.total, currency)}
+            highlight
+            mandatory
           />
           <StatBox
-            label="Trade"
-            value={formatCurrency(sell.trade, currency)}
-            sublabel="Wholesale"
+            label="Total Cost"
+            value={formatCurrency(totals.cost, currency)}
           />
           <StatBox
-            label="Contract"
-            value={formatCurrency(sell.contract, currency)}
-            sublabel="Agreed price"
+            label="Margin $"
+            value={formatCurrency(marginAmount, currency)}
+            trend={marginTrend}
           />
           <StatBox
-            label="Promo"
-            value={formatCurrency(sell.promo, currency)}
-            sublabel="Special"
-          />
-          <StatBox
-            label="Selling Price"
-            value={formatCurrency(sell.total, currency)}
+            label="Margin %"
+            value={marginPercent != null ? formatPercent(marginPercent) : "--"}
+            trend={marginTrend}
             highlight
           />
         </div>
       </div>
 
+      {/* ── Payment status ────────────────────────────────────── */}
       <div className="p-4 bg-slate-50 dark:bg-slate-900/30">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaPercentage size={10} />
-          Margin Analysis
+        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+          Payment Status
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <StatBox
-            label="Gross Margin $"
-            value={formatCurrency(grossMarginAmount, currency)}
-            trend={marginTrend}
+            label="Received"
+            value={formatCurrency(totals.received ?? 0, currency)}
           />
           <StatBox
-            label="Gross Margin %"
-            value={formatPercent(grossMarginPercent)}
-            trend={marginTrend}
-            highlight
-          />
-          <StatBox
-            label="Target Margin"
-            value={formatPercent(sell.target_margin_percent)}
-            sublabel="Goal"
+            label="Balance"
+            value={formatCurrency(totals.balance ?? 0, currency)}
+            trend={(totals.balance ?? 0) <= 0 ? "up" : "down"}
           />
         </div>
       </div>

@@ -5,6 +5,15 @@
  * Import services from this index for clean imports.
  */
 
+// Calculation Utilities (shared rounding, formatting)
+export {
+  round,
+  toNumber,
+  formatCurrency,
+  formatPercent,
+  formatNumber,
+} from './calculationUtils';
+
 // Line Item Service
 export {
   LineItemService,
@@ -21,6 +30,17 @@ export {
   type AddItemOptions,
   type LineCalculation,
 } from './lineItemService';
+
+// Header Totals Rollup (mirrors WC3 compute_*_sell_cost_totals)
+export {
+  computeHeaderTotals,
+  computeCostOnlyTotals,
+  defaultSell,
+  defaultCost,
+  defaultTotals,
+  type HeaderTotalsResult,
+  type ComputeTotalsOptions,
+} from './headerTotals';
 
 // Re-export default
 export { default as LineItemService } from './lineItemService';

@@ -1,28 +1,40 @@
+/**
+ * TransactionTotals — Display component for the three-envelope totals shape
+ * returned by computeHeaderTotals / useRealTimeCalculations.
+ *
+ * Aligned with the WC3 backend sell/cost/totals JSON structure.
+ *
+ * @see webClerk3/readmes/topics/transactions/transactions-totals.md §3
+ */
 import React from 'react';
-import { TransactionTotals as TotalsType } from '../../../hooks/useRealTimeCalculations';
+import type {
+  TransactionTotals as TotalsType,
+  HeaderCost,
+  HeaderSell,
+} from '../../../apps/transactions/types/transactionTypes';
+import {
+  formatCurrency,
+  formatPercent,
+} from '../../../apps/transactions/services/calculationUtils';
 
 export interface TransactionTotalsProps {
+  sell?: HeaderSell;
+  cost?: HeaderCost;
   totals: TotalsType;
   currency?: string;
   showBalance?: boolean;
+  /** Show sell breakdown (sales-side only) */
+  showSell?: boolean;
 }
 
 export const TransactionTotals: React.FC<TransactionTotalsProps> = ({
+  sell,
+  cost,
   totals,
   currency = 'USD',
   showBalance = false,
+  showSell = true,
 }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatPercent = (value: number) => {
-    return `${value.toFixed(2)}%`;
-  };
-
   return (
     <div className="transaction-totals bg-gray-50 p-6 rounded-lg border">
       <h3 className="text-lg font-semibold mb-4 text-gray-800">Transaction Totals</h3>
