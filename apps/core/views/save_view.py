@@ -823,6 +823,16 @@ class SaveWcapiView(APIView):
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+
+            # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+            try:
+                from apps.transactions.services.denormalize_org_links import denormalize_org_links
+                if denormalize_org_links(obj, model_key):
+                    obj.save(update_fields=['refs'])
+                    console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
+            except Exception:
+                pass  # non-transaction models will simply return False
+
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             raise ValueError('Integrity error')
@@ -1832,6 +1842,16 @@ class SaveWcapiView(APIView):
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+
+            # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+            try:
+                from apps.transactions.services.denormalize_org_links import denormalize_org_links
+                if denormalize_org_links(obj, model_key):
+                    obj.save(update_fields=['refs'])
+                    console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
+            except Exception:
+                pass  # non-transaction models will simply return False
+
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})

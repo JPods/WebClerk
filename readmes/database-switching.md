@@ -1,13 +1,119 @@
 # Switching Between Local and Remote Databases
 
-webClerk3 supports two database modes that can be toggled at any time during development:
+webClerk3 supports three database modes that can be toggled at any time during development:
 
-| Mode | Host | Purpose |
-|------|------|---------|
-| **remote** | Shared server (configured in `.env`) | Team collaboration — everyone reads/writes the same data |
-| **local** | `localhost` | Isolated debugging — safe to break things without affecting teammates |
+| Mode | Reads from | Writes to | Purpose |
+|------|-----------|-----------|---------|
+| **remote** | Remote server | Remote server | Team collaboration — everyone reads/writes the same data |
+| **local** | localhost | localhost | Isolated debugging — safe to break things without affecting teammates |
+| **write-through** | localhost | Remote server (then syncs back to local) | Fast local reads + saves always reach remote. Best of both worlds. |
 
 The **remote** mode is always the default. Every time `./runserver.sh` starts, it force-resets the mode to `remote` as a safety measure.
+
+---
+
+## Write-Through Mode (Recommended for Daily Development)
+
+Write-through is the recommended mode for everyday development. It gives you
+the speed of a local database for all reads (page loads, searches, list views)
+while ensuring every save goes to the shared remote database so teammates and
+production always have the latest data.
+
+### How it works
+
+```
+Browser ──GET /wcapi/items/──▶ Django ──▶ Local Postgres (fast)
+Browser ──POST /wcapi/save/──▶ Django ──▶ Remote Postgres (authoritative)
+                                              │
+                                         save succeeds,
+                                         returns id, uuid,
+                                         version, dt_modified
+                                              │
+                                              ▼
+                                         Django stores the
+                                         remote's response
+                                         back into Local Postgres
+                                              │
+                                              ▼
+                                         Response to browser
+```
+
+**Key points:**
+- **Reads** are instant — they hit `localhost`, no network latency.
+- **Saves** go to the remote server so the shared database is always authoritative.
+- After a successful remote save, the record is **written back to local** so both databases stay in sync without a separate sync step.
+- If the remote is unreachable, the save returns a `502` error — nothing is written locally either. This keeps both databases consistent.
+
+### Setup (one time)
+
+```bash
+# 1. Create the local database (if it doesn't exist)
+createdb -U williamjames commerce_expert
+
+# 2. Seed it from remote (requires pg_dump matching the remote Postgres version)
+PGPASSWORD=wc_psql_server \
+  /opt/homebrew/Cellar/postgresql@16/16.11_1/bin/pg_dump \
+  -h 76.13.185.210 -U postgres -d commerce_expert \
+  | psql -U williamjames -d commerce_expert
+
+# 3. Set write-through mode in .env
+#    DB_MODE=write-through
+
+# 4. Restart the server
+python manage.py runserver
+```
+
+The boot log will confirm:
+```
+DATABASE  ▸  WRITE-THROUGH  read=LOCAL@localhost  write=REMOTE@76.13.185.210
+```
+
+### Switching to write-through
+
+Edit `.env`:
+```
+DB_MODE=write-through
+```
+
+Or use the switcher:
+```bash
+./tools/switch-dataset.sh write-through
+```
+
+### Re-seeding local (if it drifts)
+
+If a teammate made changes directly on remote and your local copy is stale:
+
+```bash
+# Drop and recreate
+dropdb -U williamjames commerce_expert
+createdb -U williamjames commerce_expert
+
+# Re-seed from remote
+PGPASSWORD=wc_psql_server \
+  /opt/homebrew/Cellar/postgresql@16/16.11_1/bin/pg_dump \
+  -h 76.13.185.210 -U postgres -d commerce_expert \
+  | psql -U williamjames -d commerce_expert
+```
+
+### Configuration
+
+All settings are in `.env` — no code changes needed:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `DB_MODE` | `remote` / `local` / `write-through` | `remote` |
+| `WRITE_THROUGH_TIMEOUT` | Seconds before a remote save times out | `30` |
+| `REMOTE_DATABASE_HOST` | Remote Postgres host | `76.13.185.210` |
+| `LOCAL_DATABASE_HOST` | Local Postgres host | `localhost` |
+
+### Error behavior
+
+| What happens | Result |
+|-------------|--------|
+| Remote is down | Save returns HTTP 502 — nothing written anywhere |
+| Remote save succeeds but local sync fails | Save returns HTTP 200 (data is safe on remote), warning logged. Local will be slightly stale until next re-seed. |
+| Remote rejects the save (validation error) | Normal error response, same as remote mode |
 
 ---
 
@@ -201,30 +307,42 @@ Remote mode remains the default to protect you from accidentally writing to the 
 ## Quick Reference
 
 ```bash
-# ── Switching modes (config only, no data transfer) ──
-
-# Check current mode
+# ── Check current mode ──
 ./tools/switch-dataset.sh status
 
-# Switch to local (skips data sync)
-SKIP_LOCAL_SYNC=1 ./tools/switch-dataset.sh local
+# ── Switch modes (config only, no data transfer) ──
 
-# Switch back to remote
-./tools/switch-dataset.sh remote
+# Remote (default) — all reads and writes go to shared server
+DB_MODE=remote                    # in .env
 
-# ── Data sync (independent of which mode is active) ──
+# Local — fully isolated, no network
+DB_MODE=local                     # in .env
+
+# Write-through — reads local, saves to remote, syncs back
+DB_MODE=write-through             # in .env
+
+# ── First-time local database setup ──
+
+createdb -U williamjames commerce_expert
+PGPASSWORD=wc_psql_server \
+  /opt/homebrew/Cellar/postgresql@16/16.11_1/bin/pg_dump \
+  -h 76.13.185.210 -U postgres -d commerce_expert \
+  | psql -U williamjames -d commerce_expert
+
+# ── Re-seed local from remote (if stale) ──
+
+dropdb -U williamjames commerce_expert
+createdb -U williamjames commerce_expert
+PGPASSWORD=wc_psql_server \
+  /opt/homebrew/Cellar/postgresql@16/16.11_1/bin/pg_dump \
+  -h 76.13.185.210 -U postgres -d commerce_expert \
+  | psql -U williamjames -d commerce_expert
+
+# ── Data sync (alternative to pg_dump) ──
 
 # Download: copy remote database into local
 cd tools/ && python sync_remote_to_local.py --status-file .sync_status.json
 
 # Upload: copy local database into remote (manual, intentional)
 cd tools/ && python sync_local_to_remote.py
-
-# ── Combined: switch to local AND sync in one step ──
-
-# Switch to local with automatic remote→local sync (default behavior)
-./tools/switch-dataset.sh local
-
-# Force re-sync while already in local mode
-FORCE_LOCAL_SYNC=1 ./tools/switch-dataset.sh local
 ```

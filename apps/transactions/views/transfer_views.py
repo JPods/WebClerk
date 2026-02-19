@@ -57,7 +57,7 @@ def validate_transfer(request):
 @permission_classes([IsAuthenticated])
 def execute_transfer(request):
     """
-    Execute a transaction transfer.
+    Execute a transaction transfer via the unified transfer engine.
 
     POST /tx/transfers/execute/
     {
@@ -69,7 +69,17 @@ def execute_transfer(request):
         "preserve_source": true,
         "target_status": "confirmed"
     }
+
+    Supports all combinations in the transfer matrix:
+      proposal → proposal (clone), proposal → order/invoice (convert),
+      sell ↔ purchase (cross-type).
+    See: readmes/topics/transactions/transaction_transfer.md
     """
+    from apps.transactions.services.transfer import (
+        execute_transfer as do_transfer,
+        TransferError,
+    )
+
     serializer = TransferRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -77,88 +87,36 @@ def execute_transfer(request):
     data = serializer.validated_data
 
     try:
-        if data['source_type'] == 'proposal' and data['target_type'] == 'order':
-            # Get proposal
-            proposal = get_object_or_404(Proposal, id=data['source_id'])
+        result = do_transfer(
+            source_type=data['source_type'],
+            source_id=data['source_id'],
+            target_type=data['target_type'],
+            line_ids=data.get('line_ids'),
+            transfer_all=data.get('transfer_all', True),
+            preserve_source=data.get('preserve_source', True),
+            target_status=data.get('target_status'),
+        )
 
-            # Transfer
-            result = proposal_to_order.transfer_proposal_to_order(
-                proposal=proposal,
-                line_ids=data.get('line_ids'),
-                transfer_all=data.get('transfer_all', True),
-                order_status=data.get('target_status', 'confirmed'),
-                preserve_proposal=data.get('preserve_source', True)
-            )
-
-            response_data = {
-                'success': result['success'],
-                'target_id': result['order_id'],
-                'source_id': result['proposal_id'],
-                'lines_transferred': result['lines_transferred'],
-                'line_mapping': result['line_mapping'],
-                'source_preserved': result['proposal_preserved'],
-                'target_status': result['order_status']
-            }
-
-        elif data['source_type'] == 'order' and data['target_type'] == 'invoice':
-            # Get order
-            order = get_object_or_404(Order, id=data['source_id'])
-
-            # Transfer
-            result = order_to_invoice.transfer_order_to_invoice(
-                order=order,
-                line_ids=data.get('line_ids'),
-                transfer_all=data.get('transfer_all', True),
-                invoice_status=data.get('target_status', 'pending'),
-                preserve_order=data.get('preserve_source', True)
-            )
-
-            response_data = {
-                'success': result['success'],
-                'target_id': result['invoice_id'],
-                'source_id': result['order_id'],
-                'lines_transferred': result['lines_transferred'],
-                'line_mapping': result['line_mapping'],
-                'source_preserved': result['order_preserved'],
-                'target_status': result['invoice_status']
-            }
-
-        elif data['source_type'] == 'order' and data['target_type'] == 'purchase':
-            # Get order
-            order = get_object_or_404(Order, id=data['source_id'])
-
-            # Transfer
-            result = order_to_purchase.transfer_order_to_purchase(
-                order=order,
-                line_ids=data.get('line_ids'),
-                transfer_all=data.get('transfer_all', True),
-                purchase_status=data.get('target_status', 'open'),
-                preserve_order=data.get('preserve_source', True),
-                group_by_vendor=False,
-            )
-
-            purchase_ids = result.get('purchase_ids') or []
-            target_id = purchase_ids[0] if purchase_ids else None
-
-            response_data = {
-                'success': result['success'],
-                'target_id': target_id,
-                'source_id': result['order_id'],
-                'lines_transferred': result['lines_transferred'],
-                'line_mapping': result['line_mapping'],
-                'source_preserved': result['order_preserved'],
-                'target_status': result['order_status']
-            }
-
-        else:
-            return Response(
-                {'error': f"Unsupported transfer: {data['source_type']} -> {data['target_type']}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        response_data = {
+            'success': result['success'],
+            'target_id': result['target_id'],
+            'target_type': result['target_type'],
+            'source_id': result['source_id'],
+            'source_type': result['source_type'],
+            'lines_transferred': result['lines_transferred'],
+            'line_mapping': result['line_mapping'],
+            'source_preserved': result['source_preserved'],
+            'target_status': result['target_status'],
+        }
 
         response_serializer = TransferResponseSerializer(response_data)
         return Response(response_serializer.data)
 
+    except TransferError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     except Exception as e:
         return Response(
             {'error': str(e)},

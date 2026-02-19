@@ -20,7 +20,7 @@ class BOMChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = BillOfMaterial
         fields = [
-            'id', 'component', 'description', 'quantity', 'cost_snapshot', 
+            'id', 'component', 'child_description', 'quantity', 'cost_snapshot', 
             'extended_cost', 'sequence', 'is_alternate', 'is_optional'
         ]
 
@@ -40,7 +40,7 @@ class BillOfMaterialSerializer(serializers.ModelSerializer):
     )
     
     # Read fields - return nested details
-    parent_item = BOMComponentSerializer(source='parent_item', read_only=True)
+    parent_item = BOMComponentSerializer(read_only=True)
     component = BOMComponentSerializer(source='child_item', read_only=True)
     
     # Computed fields
@@ -57,7 +57,7 @@ class BillOfMaterialSerializer(serializers.ModelSerializer):
             # Write - IDs
             'parent_id', 'component_id_write',
             # BOM fields
-            'description', 'revision', 'dt_effective_from', 'dt_effective_to',
+            'child_description', 'revision', 'dt_effective_from', 'dt_effective_to',
             'quantity', 'scrap_factor', 'yield_pct', 'sequence', 
             'is_alternate', 'alternate_group', 'is_optional',
             'cost_snapshot', 'extended_cost', 'component_child_count', 'refs',

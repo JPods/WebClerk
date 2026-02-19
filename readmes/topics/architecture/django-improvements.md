@@ -29,6 +29,8 @@
     - [14. Testing Infrastructure — ✅ Implemented](#14-testing-infrastructure--implemented)
     - [15. Remove Debug print() Statements — ✅ Implemented](#15-remove-debug-print-statements--implemented)
     - [16. FK Naming Convention Rollout — ✅ Implemented](#16-fk-naming-convention-rollout--implemented)
+  - [Data Denormalization](#data-denormalization)
+    - [21. Transaction Org Denormalization — ✅ Implemented](#21-transaction-org-denormalization--implemented)
   - [R25 Frontend Alignment](#r25-frontend-alignment)
     - [17. Type Generation from Django Models](#17-type-generation-from-django-models)
     - [18. Error Envelope Consistency — ✅ Implemented](#18-error-envelope-consistency--implemented)
@@ -98,7 +100,7 @@ Axios interceptors.
 
 ### 2. Reduce JWT Access-Token Lifetime — ✅ Implemented
 
-**Status:** Completed 2026-02-15
+**Status:** Completed 2026-02-15, updated 2026-02-19
 
 **Problem:** `ACCESS_TOKEN_LIFETIME = timedelta(days=7)` was far too long.
 A leaked token granted 7 days of full access.
@@ -110,10 +112,26 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),   # was 7 days
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),       # was 30 days
     'ROTATE_REFRESH_TOKENS': True,                     # added
-    'BLACKLIST_AFTER_ROTATION': True,                  # added
+    'BLACKLIST_AFTER_ROTATION': False,                 # was True — see below
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 ```
+
+**2026-02-19 fix — token-loss race condition:**
+
+`BLACKLIST_AFTER_ROTATION: True` plus the manual `old_refresh.blacklist()`
+call in `cookie_token_refresh.py` made the refresh token **single-use**.
+Any concurrent refresh attempt — second browser tab, page reload during an
+API call, `bootstrapAuth()` racing with the 401 interceptor — would find
+the token already blacklisted and throw `TokenError`, clearing the cookie
+and logging the user out.
+
+Changes:
+- `BLACKLIST_AFTER_ROTATION` → `False` in settings
+- Removed `old_refresh.blacklist()` from `cookie_token_refresh.py`
+- Old refresh tokens now expire naturally (7 d); the httpOnly cookie
+  already prevents XSS theft, so there is no material security regression.
+- Rotation is still on: each refresh still issues a new token + cookie.
 
 **R25 impact:** None — the frontend already handles 401 → refresh → replay
 via the Axios interceptor in `src/api/axios.ts`. Shorter access tokens
@@ -613,6 +631,69 @@ products, sync, transactions — all using `RenameField` (not destructive
 
 ---
 
+## Data Denormalization
+
+### 21. Transaction Org Denormalization — ✅ Implemented
+
+**Status:** Completed 2026-02-19
+
+**Problem:** Transaction records (proposal, order, invoice, purchase)
+reference customer, vendor, and manufacturer via FK columns pointing to
+`OrgBase`. The R25 frontend needs address, email, phone, and attention
+for display — but loading the full org record on every render is slow
+and couples the frontend to the org API.
+
+**What was done:** On every transaction save, the referenced org's
+display fields are snapshotted into `refs.links.<role>`:
+
+```json
+{
+  "refs": {
+    "links": {
+      "customer": {
+        "id": 42,
+        "company": "Acme Corp",
+        "address_full": "123 Main St, Springfield, IL 62701",
+        "email": "orders@acme.com",
+        "phone": "555-1234",
+        "attention": "Jane Doe"
+      },
+      "vendor": { ... },
+      "manufacturer": { ... }
+    }
+  }
+}
+```
+
+**Rules:**
+
+| Transaction Type | Primary Role | Optional Roles |
+|---|---|---|
+| proposal, order, invoice | `customer` | `vendor`, `manufacturer` |
+| purchase | `vendor` | `customer`, `manufacturer` |
+
+All three roles are snapshotted when their FK is non-null. When an FK
+is cleared (set to null), the corresponding `refs.links.<role>` entry
+is removed.
+
+**Fields captured per org:** `id`, `company` (from `display_name`),
+`address_full`, `email`, `phone`, `attention`.
+
+**Implementation:**
+
+| File | Purpose |
+|---|---|
+| `apps/transactions/services/denormalize_org_links.py` | Utility — reads org FKs, batch-fetches OrgBase, builds snapshots |
+| `apps/transactions/services/transaction_save.py` | Hook after header save (create + update) |
+| `apps/core/views/save_view.py` | Hook after `obj.save()` in both generic save paths |
+
+Orgs are fetched in a single `OrgBase.objects.filter(pk__in=...)`
+query with `.only()` for the snapshot fields — no N+1 queries.
+The denormalization is a no-op for non-transaction models (returns
+`False` immediately).
+
+---
+
 ## R25 Frontend Alignment
 
 ### 17. Type Generation from Django Models — ✅ Implemented
@@ -906,6 +987,7 @@ Suggested sequence for the team to tackle these:
 | ~~**Backlog (P3)**~~ | ~~#13 admin~~ ✅, ~~#14 tests~~ ✅, ~~#15 remove print()~~ ✅, ~~#16 FK naming~~ ✅ | ~~completed~~ |
 | ~~**R25 alignment**~~ | ~~#17 type generation~~ ✅, ~~#18 envelope consistency~~ ✅, ~~#19 token storage~~ ✅ | ~~completed~~ |
 | **Ongoing** | ~~#16 FK naming rollout~~ ✅ | ~~completed~~ |
+| **Data** | #21 org denormalization ✅ | completed |
 
 ---
 

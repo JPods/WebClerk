@@ -467,7 +467,7 @@ class CoreModel(models.Model):
         return self.save(*args, **kwargs)
 
     def __str__(self):  # convenience for admin / debugging
-        for attr in ("name", "title", "email", "ida", "uuid"):
+        for attr in ("display_name", "name", "title", "email", "ida", "uuid"):
             v = getattr(self, attr, None)
             if v:
                 return str(v)
