@@ -78,14 +78,14 @@ class CookieTokenRefreshView(APIView):
             else:
                 role = None
 
-            # NOTE: old_refresh.blacklist() was removed intentionally.
+            # NOTE: We do NOT call old_refresh.blacklist().
             # Blacklisting creates a one-use token that fails on any concurrent
             # refresh attempt (second tab, bootstrapAuth + interceptor race,
             # page reload during API call).  The httpOnly cookie already
             # prevents XSS token theft; the old refresh expires naturally.
-            new_refresh = RefreshToken.for_user(old_refresh.payload.get("user_id"))
+            # token_blacklist app is also removed from INSTALLED_APPS.
 
-            # Re-derive from the user to get fresh claims
+            # Derive a fresh refresh token from the user to get current claims
             from django.contrib.auth import get_user_model
             User = get_user_model()
             try:

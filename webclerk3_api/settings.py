@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
+    # 'rest_framework_simplejwt.token_blacklist',  # Removed — we don't blacklist tokens (see cookie_token_refresh.py)
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
@@ -224,8 +224,8 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,   # was True — caused race-condition logouts
+    'ROTATE_REFRESH_TOKENS': False,       # We handle rotation manually in CookieTokenRefreshView
+    'BLACKLIST_AFTER_ROTATION': False,     # token_blacklist app is not installed
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
