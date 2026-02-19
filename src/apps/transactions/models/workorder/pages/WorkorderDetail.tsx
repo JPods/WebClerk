@@ -77,183 +77,23 @@ const formatCurrency = (value?: number | null): string => {
 };
 
 // Custom Work Order Header Component
+import SummaryCard from '../../../components/SummaryCard';
 const WorkOrderHeader: React.FC<{
   data: WorkOrder;
   isEditing: boolean;
   onChange?: (field: keyof WorkOrder, value: unknown) => void;
 }> = ({ data, isEditing, onChange }) => {
   return (
-    <div className="space-y-6">
-      {/* Work Order Header Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Work Order Details */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaTools className="text-blue-500" />
-            Work Order Details
-          </h3>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <FieldLabel label="WO No" mandatory locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? data.workorder_no ?? '--'}</dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? '--'}</dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.dt ? new Date(data.dt).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('dt', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Due Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('due_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
-              <dd>
-                <StatusBadge status={data.status} />
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Priority" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <select
-                  value={data.priority ?? 'normal'}
-                  onChange={(e) => onChange('priority', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                >
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              ) : (
-                <dd>
-                  <PriorityBadge priority={data.priority} />
-                </dd>
-              )}
-            </div>
-          </dl>
-        </div>
-
-        {/* Middle: Schedule */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaClock className="text-green-500" />
-            Schedule
-          </h3>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Start Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.start_date ? new Date(data.start_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('start_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.start_date ? new Date(data.start_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="End Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.end_date ? new Date(data.end_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('end_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.end_date ? new Date(data.end_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Assigned To" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="text"
-                  value={data.assigned_to ?? ''}
-                  onChange={(e) => onChange('assigned_to', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">{data.assigned_to ?? '--'}</dd>
-              )}
-            </div>
-          </dl>
-        </div>
-
-        {/* Right: Description */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaClipboardList className="text-purple-500" />
-            Description
-          </h3>
-          <div className="text-sm">
-            {isEditing && onChange ? (
-              <textarea
-                value={data.description ?? ''}
-                onChange={(e) => onChange('description', e.target.value)}
-                rows={4}
-                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                placeholder="Work order description..."
-              />
-            ) : (
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                {data.description || <span className="italic text-slate-400">No description</span>}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Notes Section */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Notes</h3>
-        {isEditing && onChange ? (
-          <textarea
-            value={data.notes ?? ''}
-            onChange={(e) => onChange('notes', e.target.value)}
-            rows={3}
-            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            placeholder="Additional notes..."
-          />
-        ) : (
-          <p className="text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap">
-            {data.notes || <span className="italic text-slate-400">No notes</span>}
-          </p>
-        )}
-      </div>
-    </div>
+    <SummaryCard
+      data={data}
+      isEditing={isEditing}
+      onChange={onChange}
+      transactionLabel="Work Order"
+      documentNoLabel="WO No"
+      dueDateLabel="Due Date"
+      showShipping={false}
+      showCostMargin={true}
+    />
   );
 };
 
