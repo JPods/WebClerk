@@ -3,7 +3,7 @@
  *
  * Provides CRUD operations for tasks/actions within a transaction context.
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   TransactionTaskFormState,
@@ -298,35 +298,16 @@ export function useTransactionTasks({
   const fetchTasksByIds = useCallback(async (ids: number[]) => {
     if (!ids || ids.length === 0) return;
 
-    console.log("[useTransactionTasks] fetchTasksByIds called with:", ids);
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fetch each action individually by ID since backend doesn't support id__in
-      console.log("[useTransactionTasks] Fetching actions individually...");
-      const individualResults: ActionItem[] = [];
-
       // Use Promise.all for parallel fetching
       const fetchPromises = ids.map(async (id) => {
         try {
-          console.log(`[useTransactionTasks] Fetching action id=${id}`);
           const response = await getRecords("action", { id, limit: 1 });
-          console.log(
-            `[useTransactionTasks] action id=${id} response:`,
-            response,
-          );
 
-          // Handle different response formats:
-          // 1. Single record: { record: {...} }
-          // 2. Array of results: { results: [...] } or { data: [...] }
-          // 3. Direct array: [...]
           if ((response as any)?.record) {
-            // Single record response format
-            console.log(
-              `[useTransactionTasks] action id=${id} found record:`,
-              (response as any).record,
-            );
             return (response as any).record;
           }
 
@@ -348,19 +329,7 @@ export function useTransactionTasks({
 
       const results = await Promise.all(fetchPromises);
       const validResults = results.filter((r): r is ActionItem => r !== null);
-
-      console.log(
-        "[useTransactionTasks] Fetched actions:",
-        validResults.length,
-        validResults,
-      );
-
-      const formStates = validResults.map(apiToFormState);
-      console.log(
-        "[useTransactionTasks] Converted to form states:",
-        formStates,
-      );
-      setTasks(formStates);
+      setTasks(validResults.map(apiToFormState));
     } catch (err) {
       console.error("Failed to fetch tasks by IDs:", err);
       setError("Failed to load tasks");
@@ -437,9 +406,7 @@ export function useTransactionTasks({
           parent_id: parentId,
         });
 
-        console.log("[useTransactionTasks] createTask payload:", payload);
         const response = await saveRecord("action", payload);
-        console.log("[useTransactionTasks] createTask response:", response);
 
         // Extract the created action ID from response
         const createdId =
@@ -449,7 +416,6 @@ export function useTransactionTasks({
           // Refresh tasks list - include the new ID when fetching by IDs
           if (useActionIds) {
             const newIds = [...actionIds, createdId];
-            console.log("[useTransactionTasks] Refreshing by new IDs:", newIds);
             await fetchTasksByIds(newIds);
           } else {
             await fetchTasks();
@@ -485,14 +451,12 @@ export function useTransactionTasks({
 
       try {
         const payload = formStateToApi(task);
-        console.log("[useTransactionTasks] updateTask payload:", payload);
 
         // saveRecord handles both create and update when id is included
         await saveRecord("action", payload);
 
         // Refresh tasks list - use fetchTasksByIds if we have specific IDs
         if (useActionIds && actionIds.length > 0) {
-          console.log("[useTransactionTasks] Refreshing by IDs:", actionIds);
           await fetchTasksByIds(actionIds);
         } else {
           await fetchTasks();
@@ -534,52 +498,37 @@ export function useTransactionTasks({
   // Serialize actionIds to string for stable dependency comparison
   const actionIdsKey = actionIds.join(",");
 
-  // Auto-fetch on mount if enabled
+  // Fetch contacts & projects once on mount (separate from task fetching)
+  const didFetchLookups = useRef(false);
   useEffect(() => {
-    console.log("[useTransactionTasks] autoFetch effect:", {
-      autoFetch,
-      useActionIds,
-      actionIds,
-      actionIdsKey,
-      parentId,
-    });
-
-    if (autoFetch) {
-      // If useActionIds flag is set, ONLY fetch by IDs (don't fall back to parent)
-      if (useActionIds) {
-        if (actionIds && actionIds.length > 0) {
-          console.log("[useTransactionTasks] Fetching by IDs:", actionIds);
-          fetchTasksByIds(actionIds);
-        } else {
-          console.log(
-            "[useTransactionTasks] useActionIds=true but no IDs yet, waiting...",
-          );
-        }
-        // Don't fetch by parent when useActionIds is true - wait for IDs
-      } else if (actionIds && actionIds.length > 0) {
-        // If actionIds provided without flag, still prefer IDs
-        console.log(
-          "[useTransactionTasks] Fetching by IDs (no flag):",
-          actionIds,
-        );
-        fetchTasksByIds(actionIds);
-      } else if (parentId) {
-        // Only fetch by parent when no actionIds
-        console.log("[useTransactionTasks] Fetching by parent:", parentId);
-        fetchTasks();
-      }
+    if (autoFetch && !didFetchLookups.current) {
+      didFetchLookups.current = true;
       fetchContacts();
       fetchProjects();
+    }
+  }, [autoFetch, fetchContacts, fetchProjects]);
+
+  // Auto-fetch tasks when parentId or actionIds change
+  useEffect(() => {
+    if (!autoFetch) return;
+
+    if (useActionIds) {
+      if (actionIds && actionIds.length > 0) {
+        fetchTasksByIds(actionIds);
+      }
+      // Don't fetch by parent when useActionIds is true - wait for IDs
+    } else if (actionIds && actionIds.length > 0) {
+      fetchTasksByIds(actionIds);
+    } else if (parentId) {
+      fetchTasks();
     }
   }, [
     autoFetch,
     parentId,
-    actionIdsKey, // Use serialized string for stable comparison
+    actionIdsKey,
     useActionIds,
     fetchTasks,
     fetchTasksByIds,
-    fetchContacts,
-    fetchProjects,
   ]);
 
   return {

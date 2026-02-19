@@ -3,7 +3,7 @@
  * Extends base with order-specific fields and functionality
  * Keeps item search and lines management capabilities
  */
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { FaTruck, FaCheck } from "react-icons/fa";
 
 // Import base component and shared types
@@ -29,6 +29,7 @@ import type {
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
 import { saveRecord, getRecord } from "@/api/wcapi";
+import apiClient from "@/api/axios";
 import { ShippingPanel } from "@/apps/common/components/panels";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
@@ -722,13 +723,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   // Merge server IDs with local state to avoid losing newly created IDs
   useEffect(() => {
     const orderData = dataProp as Order;
-    console.log("[OrderDetail] dataProp changed, actions:", orderData?.actions);
     const serverActionIds = orderData?.actions?.ids ?? [];
     if (serverActionIds.length > 0) {
-      // Merge server IDs with any local IDs that aren't on the server yet
       setCurrentActionIds((prevIds) => {
         const merged = [...new Set([...serverActionIds, ...prevIds])];
-        console.log("[OrderDetail] Merged actionIds:", merged);
         return merged;
       });
     }
@@ -737,7 +735,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   // Also update currentOrderId when dataProp changes
   useEffect(() => {
     if (dataProp?.id && dataProp.id !== currentOrderId) {
-      console.log("[OrderDetail] Setting currentOrderId to:", dataProp.id);
       setCurrentOrderId(dataProp.id);
     }
   }, [dataProp?.id, currentOrderId]);
@@ -745,11 +742,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   // Task management hook - pass actionIds for fetching
   // Use useActionIds=true to prevent fetching by parent_id (which returns ALL actions)
   const hasActionIds = currentActionIds.length > 0;
-  console.log("[OrderDetail] Hook params:", {
-    currentOrderId,
-    currentActionIds,
-    hasActionIds,
-  });
   const {
     tasks,
     isSaving: isTaskSaving,
@@ -767,6 +759,15 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     useActionIds: hasActionIds, // Only use IDs-based fetching when IDs exist
     autoFetch: !!currentOrderId || hasActionIds,
   });
+
+  // Keep a ref to tasks/contacts/projects so renderCustomTab doesn't
+  // need them as deps (avoids re-creating the callback on every fetch)
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+  const contactsRef = useRef(contacts);
+  contactsRef.current = contacts;
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
 
   const fetchOrderData = useCallback(async (id: string) => {
     const apiResult = await getRecord("order", Number(id));
@@ -879,12 +880,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       onFieldChange?: (field: string, value: unknown) => void,
     ) => {
       const orderData = data as Order;
-
-      console.log("[renderCustomTab] tasks from hook:", tasks);
-      console.log("[renderCustomTab] orderData.actions:", orderData.actions);
+      const currentTasks = tasksRef.current;
 
       // Convert tasks from hook to ActionItem format
-      const tasksAsActions: ActionItem[] = tasks.map((task) => ({
+      const tasksAsActions: ActionItem[] = currentTasks.map((task) => ({
         id: task.id,
         ida: task.id?.toString(),
         what: task.title,
@@ -951,13 +950,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
 
       // Handler to update the action IDs in the order
       const handleActionIdsChange = (ids: number[]) => {
-        console.log("[OrderDetail] handleActionIdsChange called with:", ids);
-        // Update local state for useTransactionTasks hook
         setCurrentActionIds(ids);
         if (onFieldChange) {
-          console.log(
-            "[OrderDetail] Updating order.actions.ids via onFieldChange",
-          );
           onFieldChange("actions", {
             ...orderData.actions,
             ids: ids,
@@ -967,7 +961,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
 
       // Handler to auto-save the order with updated action IDs
       const handleAutoSaveOrderActions = async (ids: number[]) => {
-        console.log("[OrderDetail] Auto-saving order.actions.ids:", ids);
         if (orderData.id) {
           try {
             await saveRecord("order", {
@@ -980,7 +973,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
                 },
               },
             });
-            console.log("[OrderDetail] Order.actions.ids saved successfully");
           } catch (error) {
             console.error(
               "[OrderDetail] Failed to save order.actions.ids:",
@@ -1012,8 +1004,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
               onAutoSaveOrderActions={handleAutoSaveOrderActions}
               onUpdateAction={handleUpdateAction}
               onDeleteAction={handleDeleteAction}
-              contacts={contacts}
-              projects={projects}
+              contacts={contactsRef.current}
+              projects={projectsRef.current}
             />
           );
         case "shipping":
@@ -1024,11 +1016,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     },
     [
       renderHeaderFn,
-      contacts,
-      projects,
       createTask,
       updateTask,
-      tasks,
       currentActionIds,
     ],
   );
@@ -1137,9 +1126,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   }, []);
 
   // Count pending tasks for badge
-  const pendingTaskCount = tasks.filter(
-    (t) => t.status !== "done" && t.status !== "canceled",
-  ).length;
+  const pendingTaskCount = useMemo(
+    () => tasks.filter((t) => t.status !== "done" && t.status !== "canceled").length,
+    [tasks],
+  );
 
   return (
     <>

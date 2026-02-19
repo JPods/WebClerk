@@ -10,6 +10,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
 import { useWindowPath } from "@/context/WindowPathContext";
+import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaArrowLeft,
   FaEdit,
@@ -207,6 +208,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const id = idProp?.toString() ?? dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { ensureWindow } = useWindowManager();
   const { user } = useAppSelector((state) => state.auth);
   const displayName = user ? `${user.name_first}${user.name_last}` : "You";
 
@@ -248,20 +250,80 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Debug log the props
-  console.log("[TransactionDetailBase] Props:", {
-    modeProp,
-    inline,
-    hasDataProp: !!dataProp,
-  });
-
-  // Handle "add" mode - create empty record
+  // Handle "add" mode - create empty record or pre-populate from transfer source
   useEffect(() => {
     if (effectiveMode !== "add") return;
+
+      // Check for transfer source params
+      const transferFromType = windowSearchParams?.get("transfer_from_type");
+      const transferFromId = windowSearchParams?.get("transfer_from_id");
+
       // Get today's date at midnight (zero time)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayIso = today.toISOString();
+
+      // If transferring from another transaction, fetch the source and pre-populate
+      if (transferFromType && transferFromId) {
+        setLoading(true);
+        getRecord(transferFromType, Number(transferFromId))
+          .then((apiResult) => {
+            const source = apiResult?.record ?? apiResult;
+            if (!source) {
+              dispatch(showToast({ message: `Could not load source ${transferFromType} #${transferFromId}`, type: "error" }));
+              setLoading(false);
+              return;
+            }
+            // Copy lines from source, resetting IDs so they create as new
+            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => ({
+              ...line,
+              id: undefined,
+              line_id: undefined,
+            }));
+            // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
+            // but our Transaction type and save serializers use _id suffix.
+            const customerId = source.customer_id ?? source.customer ?? null;
+            const vendorId = source.vendor_id ?? source.vendor ?? null;
+            const manufacturerId = source.manufacturer_id ?? source.manufacturer ?? null;
+            const contactId = source.contact_id ?? source.contact ?? null;
+            const record: Transaction = {
+              id: undefined as unknown as number,
+              customer_id: customerId,
+              vendor_id: vendorId,
+              manufacturer_id: manufacturerId,
+              status: "planned",
+              lines: transferredLines,
+              refs: source.refs ?? ({ links: {} } as any),
+              metadata: {} as any,
+              comments: { notes: [] },
+              totals: {},
+              finance: {},
+              dt: todayIso,
+              due_date: todayIso,
+              // Copy common header fields
+              ...(source.terms ? { terms: source.terms } : {}),
+              ...(source.terms_id ?? source.terms_fk ? { terms_id: source.terms_id ?? source.terms_fk } : {}),
+              ...(source.price_level ? { price_level: source.price_level } : {}),
+              ...(source.attention ? { attention: source.attention } : {}),
+              ...(source.phone ? { phone: source.phone } : {}),
+              ...(source.email ? { email: source.email } : {}),
+              ...(source.address_full ? { address_full: source.address_full } : {}),
+              ...(contactId ? { contact_id: contactId } : {}),
+              // Lineage: record which transaction this was transferred from
+              transfer_from: { type: transferFromType, id: Number(transferFromId) },
+            };
+            setData(record);
+            setEditData(record);
+            setIsEditing(true);
+            setLoading(false);
+          })
+          .catch((err) => {
+            console.warn("[TransactionDetailBase] Transfer source fetch failed:", err);
+            dispatch(showToast({ message: `Failed to load source ${transferFromType}`, type: "error" }));
+            setLoading(false);
+          });
+        return;
+      }
 
       // Pre-populate from query params if available
       const qsCustomerId = windowSearchParams?.get("customer_id");
@@ -302,7 +364,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       }
 
       const emptyRecord: Transaction = {
-        id: 0,
+        id: undefined as unknown as number,
         customer_id: qsCustomerId ? Number(qsCustomerId) : null,
         vendor_id: null,
         manufacturer_id: null,
@@ -391,10 +453,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
       setLoading(true);
       setError(null);
-      console.log(
-        "[TransactionDetailBase] Fetching data from API, refreshKey:",
-        refreshKey,
-      );
 
       try {
         let result: Transaction;
@@ -407,10 +465,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           result = apiResult.record ?? apiResult;
         }
 
-        console.log(
-          "[TransactionDetailBase] Fresh data loaded:",
-          result?.refs?.links?.contact,
-        );
         setData(result);
         setEditData(result);
       } catch (e) {
@@ -511,10 +565,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Handle edit mode
   const handleEdit = () => {
-    console.log("[TransactionDetailBase] handleEdit called", {
-      data,
-      canEditResult: data ? canEdit(data) : "no data",
-    });
     if (data && canEdit(data)) {
       // Always initialize editData with the latest data (including comments)
       setEditData({ ...data });
@@ -536,10 +586,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       return await saveData(editData);
     }
 
-    // Ensure id is included in payload for updates
+    // Ensure id is included in payload for updates (omit falsy ids for new records)
+    const rawId = data?.id;
     const payloadWithId = {
       ...editData,
-      id: data?.id,
+      ...(rawId ? { id: rawId } : { id: undefined }),
     };
 
     // Use transaction-specific save if data has lines, otherwise standard save
@@ -641,7 +692,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     const clonedData = { ...data };
     delete (clonedData as Record<string, unknown>).id;
     delete (clonedData as Record<string, unknown>).ida;
-    navigate(`/transactions/${transactionType}s/new`, {
+    navigate(`/transactions/${transactionType}/detail`, {
       state: { clone: clonedData, mode: "add" },
     });
   }, [data, transactionType, navigate, dispatch, typeLabel]);
@@ -655,21 +706,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           type: "info",
         }),
       );
-      // Navigate to new transaction of target type with lines from this one
-      navigate(`/transactions/${targetType}s/new`, {
-        state: {
-          transferFrom: {
-            type: transactionType,
-            id: data.id,
-            lines: (data as unknown as Record<string, unknown>).lines,
-            customer_id: data.customer_id,
-            refs: data.refs,
-          },
-          mode: "add",
-        },
-      });
+      // Build query params to pass transfer source info through the window path
+      const params = new URLSearchParams();
+      params.set("transfer_from_type", transactionType);
+      params.set("transfer_from_id", String(data.id));
+      if (data.customer_id) params.set("customer_id", String(data.customer_id));
+      const path = `/transactions/${targetType}/detail?${params.toString()}`;
+      const label = targetType.charAt(0).toUpperCase() + targetType.slice(1);
+      ensureWindow(path, `New ${label} (from ${typeLabel})`, { maximized: false });
     },
-    [data, transactionType, navigate, dispatch],
+    [data, transactionType, ensureWindow, dispatch, typeLabel],
   );
 
   const handlePrint = useCallback(() => {
@@ -716,23 +762,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Check if form has changed
   const isDirty = useMemo(() => {
     if (!data || !editData) return false;
-    const dirty = JSON.stringify(data) !== JSON.stringify(editData);
-    console.log("[TransactionDetailBase] isDirty computed", {
-      isDirty: dirty,
-      dataId: data?.id,
-      editDataId: editData?.id,
-    });
-    return dirty;
+    return JSON.stringify(data) !== JSON.stringify(editData);
   }, [data, editData]);
 
   // Handle field changes during edit
   const handleFieldChange = (field: string, value: unknown) => {
-    console.log("[TransactionDetailBase] handleFieldChange START", {
-      field,
-      value,
-      hasEditData: !!editData,
-      currentEditDataId: editData?.id,
-    });
     if (editData) {
       // Deep merge for comments to persist tab messages
       let newData;
@@ -744,14 +778,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             ...value,
           },
         };
-        console.log("[TransactionDetailBase] Comments field updated", {
-          oldComments: editData.comments,
-          newComments: newData.comments,
-        });
       } else {
         newData = { ...editData, [field]: value } as Transaction;
       }
-      console.log("[TransactionDetailBase] Setting new editData");
       setEditData(newData);
     } else {
       console.warn(
@@ -786,12 +815,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   }
 
   const currentData = isEditing && editData ? editData : data;
-  console.log("[TransactionDetailBase] render:", {
-    isEditing,
-    hasEditData: !!editData,
-    hasData: !!data,
-    usingEditData: isEditing && editData,
-  });
 
   // Handler for updating lines array in editData
   const onLinesChange = (newLines: TransactionLine[]) => {
@@ -862,7 +885,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       }
 
       case "contacts":
-        console.log("currentData", currentData);
         // Use normalization helper to parse contacts from API
         return (
           <ContactPanel
