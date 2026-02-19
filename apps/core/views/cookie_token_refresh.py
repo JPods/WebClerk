@@ -78,7 +78,11 @@ class CookieTokenRefreshView(APIView):
             else:
                 role = None
 
-            old_refresh.blacklist()
+            # NOTE: old_refresh.blacklist() was removed intentionally.
+            # Blacklisting creates a one-use token that fails on any concurrent
+            # refresh attempt (second tab, bootstrapAuth + interceptor race,
+            # page reload during API call).  The httpOnly cookie already
+            # prevents XSS token theft; the old refresh expires naturally.
             new_refresh = RefreshToken.for_user(old_refresh.payload.get("user_id"))
 
             # Re-derive from the user to get fresh claims

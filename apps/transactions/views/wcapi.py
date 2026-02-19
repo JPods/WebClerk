@@ -231,7 +231,9 @@ class WCAPITransactionSaveView(APIView):
                         from apps.core.utils import registry
                         LineModel = registry.resolve(line_model_key)
                         if LineModel is not None:
-                            line_qs = LineModel.objects.filter(parent_id=saved_id).order_by('id')
+                            from apps.transactions.services.transaction_save import _resolve_parent_fk
+                            parent_fk = _resolve_parent_fk(LineModel, type(saved_obj), model_key.lower())
+                            line_qs = LineModel.objects.filter(**{parent_fk: saved_id}).order_by('id')
                             record_dict['lines'] = [to_dict(ln) for ln in line_qs]
                         result['record'] = record_dict
                 except Exception as fetch_err:

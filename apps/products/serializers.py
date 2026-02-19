@@ -94,7 +94,7 @@ class BillOfMaterialSerializer(serializers.ModelSerializer):
             "id", "uuid", "dt_created", "dt_modified", "version",
             "is_active", "security_level", "is_deleted", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
-            "parent_ida", "recalc_parent_cost_description",
+            "parent_ida", "parent_description",
             "parent_item_id", "child_item_id", "child_ida", "child_description",
             "revision", "dt_effective_from", "dt_effective_to",
             "quantity", "scrap_factor", "yield_pct", "sequence",

@@ -11,7 +11,7 @@ from .item import Item
 class BillOfMaterial(BaseModel):
 
     parent_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
-    recalc_parent_cost_description = models.CharField(max_length=255, blank=True, help_text="Description for this parent item (denormalized from Item.description for convenience)")
+    parent_description = models.CharField(max_length=255, blank=True, help_text="Description for this parent item (denormalized from Item.description for convenience)", db_column='recalc_parent_cost_description')
     parent_item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent", db_column='parent_id')
 
     @property
@@ -24,7 +24,7 @@ class BillOfMaterial(BaseModel):
 
     @property
     def description_value(self):
-        return self.description or str(self.child_item) if hasattr(self, 'child_item') else ""
+        return self.child_description or str(self.child_item) if hasattr(self, 'child_item') else ""
 
     """Single component line for an assembled/bundle item.
 

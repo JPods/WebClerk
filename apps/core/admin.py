@@ -238,10 +238,34 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'record_id', 'purpose', 'on_hand', 'on_p', 'on_so', 'on_in', 'on_po', 'dt_processed')
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+    def _data_field(self, obj, key):
+        val = (obj.data or {}).get(key)
+        return val if val is not None else '-'
+
+    @admin.display(description='on_hand')
+    def on_hand(self, obj):
+        return self._data_field(obj, 'on_hand')
+
+    @admin.display(description='on_p')
+    def on_p(self, obj):
+        return self._data_field(obj, 'on_p')
+
+    @admin.display(description='on_so')
+    def on_so(self, obj):
+        return self._data_field(obj, 'on_so')
+
+    @admin.display(description='on_in')
+    def on_in(self, obj):
+        return self._data_field(obj, 'on_in')
+
+    @admin.display(description='on_po')
+    def on_po(self, obj):
+        return self._data_field(obj, 'on_po')
 
 
 @admin.register(SoftDeleteLedger)

@@ -85,6 +85,19 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	def company(self, value: str) -> None:
 		setattr(self, 'display_name', value)
 
+	def __repr__(self) -> str:
+		"""Dev-friendly repr showing key value pairs for data cleanup."""
+		pairs = [
+			f"id={self.pk}",
+			f"display_name={self.display_name!r}",
+			f"attention={self.attention!r}",
+			f"phone={self.phone!r}",
+			f"email={self.email!r}",
+			f"address_full={self.address_full!r}",
+			f"domain={self.domain!r}",
+		]
+		return f"<OrgBase({', '.join(pairs)})>"
+
 	# Aspect JSONB fields -------------------------------------------------
 	# denormalized hybrid of table data into a flatter structure
 	contacts = models.JSONField(default=default_contacts)
