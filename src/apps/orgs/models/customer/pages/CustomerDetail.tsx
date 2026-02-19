@@ -39,6 +39,7 @@ import {
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
+import { DevBadge } from "@/components/common/DevBadge";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
@@ -1287,9 +1288,7 @@ export default function CustomerDetail({
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
-              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
-                CustomerDetail
-              </span>
+              <DevBadge label="CustomerDetail" className="mr-2" />
               {customerData.display_name || "New Customer"}
               {customerData.id && (
                 <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">

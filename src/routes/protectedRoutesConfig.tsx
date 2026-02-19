@@ -192,12 +192,16 @@ export const protectedRoutesConfig = [
 ];
 
 export const resolveWindowElement = (path: string) => {
+  // Strip query string for matching purposes
+  const cleanPath = path.split("?")[0];
   const match = protectedRoutesConfig.find((r) => {
     if (r.path?.includes(":")) {
       const base = r.path.split(":")[0];
-      return path.startsWith(base);
+      // Match with or without trailing slash (e.g. /detail vs /detail/)
+      const baseNoSlash = base.endsWith("/") ? base.slice(0, -1) : base;
+      return cleanPath === baseNoSlash || cleanPath.startsWith(base);
     }
-    return r.path === path;
+    return r.path === cleanPath;
   });
   return match?.element ?? null;
 };

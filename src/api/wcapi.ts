@@ -224,9 +224,10 @@ export async function saveTransactionWithLines(
   );
   //return false;
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-      ...body,
-    });
+    const res = await apiClient.post<ApiEnvelope<any>>(
+      "/wcapi/transaction/save/",
+      body,
+    );
     console.log("[wcapi.saveTransactionWithLines] Response:", res.data);
     return res.data.data ?? res.data;
   } catch (err: any) {
@@ -240,7 +241,7 @@ export async function saveTransactionWithLines(
     );
     if (err?.response?.status === 404) {
       const res2 = await apiClient.post<ApiEnvelope<any>>(
-        "/api/wcapi/save/",
+        "/api/wcapi/transaction/save/",
         body,
       );
       return res2.data.data ?? res2.data;

@@ -21,10 +21,13 @@ import {
   FaCreditCard,
   FaChartLine,
   FaCheck,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 import { customerApi } from "@/apps/orgs/services/orgApi";
 import type { Organization } from "@/apps/orgs/types/orgTypes";
 import ComponentCard from "@/components/common/ComponentCard";
+import { useWindowManager } from "@/context/WindowManagerContext";
+import { getModelDetailPath, getModelWindowTitle } from "@/apps/common/components/panels/getModelDetailPath";
 
 // ---------- Constants ----------
 
@@ -118,6 +121,16 @@ export interface CustomerSelectionData {
   price_level?: string | null;
 }
 
+/** Denormalized org snapshot from refs.links (dict, not array) */
+export interface OrgLinkSnapshot {
+  id: number;
+  company: string;
+  address_full?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  attention?: string | null;
+}
+
 export interface CustomerSalesPanelProps {
   /** Currently selected customer ID */
   value?: number | null;
@@ -136,6 +149,9 @@ export interface CustomerSalesPanelProps {
 
   /** Additional CSS classes */
   className?: string;
+
+  /** Pre-fetched org snapshot from refs.links – skips the API call when present */
+  initialData?: OrgLinkSnapshot | null;
 }
 
 // ---------- Utility functions ----------
@@ -408,6 +424,7 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
   showFinancials = true,
   title = "Customer",
   className = "",
+  initialData,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -418,6 +435,10 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { ensureWindow, activateWindow } = useWindowManager();
+
+  // Derive model type from title prop for window navigation
+  const modelType = title.toLowerCase() === "vendor" ? "vendor" : "customer";
 
   // Load recent customers from localStorage
   useEffect(() => {
@@ -434,6 +455,16 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
   // Load selected customer details if value changes
   useEffect(() => {
     if (value && value > 0) {
+      // If we have a pre-fetched snapshot from refs.links, use it immediately
+      if (initialData && initialData.id === value) {
+        setSelectedCustomer({
+          id: initialData.id,
+          display_name: initialData.company || "",
+          phone: initialData.phone,
+          email: initialData.email,
+        });
+        return;
+      }
       // Check if we already have this customer in recent selections
       const recentMatch = recentCustomers.find((c) => c.id === value);
       if (recentMatch) {
@@ -465,7 +496,7 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
     } else {
       setSelectedCustomer(null);
     }
-  }, [value, recentCustomers]);
+  }, [value, recentCustomers, initialData]);
 
   // Search for customers with AND query support
   // Comma-separated values are treated as AND conditions
@@ -680,8 +711,27 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
             <FaUser className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 flex-shrink-0" />
             {selectedCustomer ? (
               <div className="min-w-0">
-                <div className="font-medium text-slate-900 dark:text-white truncate">
-                  {selectedCustomer.display_name}
+                <div className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-white">
+                  <span className="truncate">{selectedCustomer.display_name}</span>
+                  <button
+                    type="button"
+                    title={`Open ${title} detail`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const path = getModelDetailPath(modelType, selectedCustomer.id);
+                      const windowTitle = getModelWindowTitle(
+                        modelType,
+                        selectedCustomer.id,
+                        selectedCustomer.display_id,
+                        selectedCustomer.display_name,
+                      );
+                      ensureWindow(path, windowTitle, { maximized: false });
+                      activateWindow(path);
+                    }}
+                    className="flex-shrink-0 p-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    <FaExternalLinkAlt size={10} />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   {selectedCustomer.display_id && (
@@ -733,6 +783,36 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
                 : "Account is inactive."}
             </span>
           </div>
+        )}
+
+        {/* Contact Details from refs.links snapshot */}
+        {selectedCustomer && initialData && (
+          <dl className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300 px-1">
+            {initialData.attention && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500 dark:text-slate-400">Attn</dt>
+                <dd>{initialData.attention}</dd>
+              </div>
+            )}
+            {initialData.phone && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500 dark:text-slate-400">Phone</dt>
+                <dd>{initialData.phone}</dd>
+              </div>
+            )}
+            {initialData.email && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500 dark:text-slate-400">Email</dt>
+                <dd className="truncate ml-4">{initialData.email}</dd>
+              </div>
+            )}
+            {initialData.address_full && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500 dark:text-slate-400">Address</dt>
+                <dd className="text-right ml-4 whitespace-pre-line">{initialData.address_full}</dd>
+              </div>
+            )}
+          </dl>
         )}
 
         {/* Search Dropdown */}
