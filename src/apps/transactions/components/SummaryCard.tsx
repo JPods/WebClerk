@@ -125,7 +125,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
-                label={documentNoLabel}
+                label="ida"
                 mandatory
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -136,7 +136,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="ID"
+                label="id"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -146,7 +146,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Date"
+                label="dt"
                 mandatory
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -167,7 +167,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label={dueDateLabel}
+                label="due_date"
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -191,7 +191,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Terms"
+                label="terms"
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -209,7 +209,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="PO Number"
+                label="po_number"
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -227,7 +227,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Priority"
+                label="priority"
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -245,7 +245,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Price Level"
+                label="price_level"
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
@@ -268,7 +268,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {data.attention && (
               <div className="flex justify-between items-center">
                 <FieldLabel
-                  label="Attention"
+                  label="attention"
                   className="text-slate-500 dark:text-slate-400"
                 />
                 {isEditing && onChange ? (
@@ -288,7 +288,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {data.email && (
               <div className="flex justify-between items-center">
                 <FieldLabel
-                  label="Email"
+                  label="email"
                   className="text-slate-500 dark:text-slate-400"
                 />
                 {isEditing && onChange ? (
@@ -308,7 +308,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {data.phone && (
               <div className="flex justify-between items-center">
                 <FieldLabel
-                  label="Phone"
+                  label="phone"
                   className="text-slate-500 dark:text-slate-400"
                 />
                 {isEditing && onChange ? (
@@ -328,7 +328,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {data.address_full && (
               <div className="flex justify-between items-center">
                 <FieldLabel
-                  label="Address"
+                  label="address_full"
                   className="text-slate-500 dark:text-slate-400"
                 />
                 {isEditing && onChange ? (
@@ -347,7 +347,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             )}
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Status"
+                label="status"
                 mandatory
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -357,7 +357,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Customer IDA"
+                label="customer_ida"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -368,7 +368,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {data.is_locked && (
               <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-slate-700">
                 <FieldLabel
-                  label="Locked"
+                  label="is_locked"
                   locked
                   className="text-slate-500 dark:text-slate-400"
                 />
@@ -403,7 +403,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               <dl className="space-y-3 text-xs">
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="Customer ID"
+                    label="customer_id"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -413,7 +413,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="Name"
+                    label="display_name"
                     className="text-slate-500 dark:text-slate-400"
                   />
                   <dd className="text-slate-900 dark:text-white">
@@ -422,7 +422,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="IDA"
+                    label="ida"
                     className="text-slate-500 dark:text-slate-400"
                   />
                   <dd className="font-mono text-slate-600 dark:text-slate-300">
@@ -534,7 +534,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Subtotal"
+                label=".subtotal"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -544,7 +544,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Discount"
+                label=".discount"
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-red-600 dark:text-red-400">
@@ -555,7 +555,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Tax"
+                label=".tax"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -565,7 +565,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="Shipping"
+                label=".shipping"
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
@@ -574,7 +574,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
               <FieldLabel
-                label="Total"
+                label=".total"
                 mandatory
                 locked
                 className="text-slate-700 dark:text-slate-200 text-base"
@@ -587,7 +587,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               <>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="Cost"
+                    label=".cost"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -597,7 +597,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="Margin"
+                    label=".margin"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -622,7 +622,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               <>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                   <FieldLabel
-                    label="Received"
+                    label=".received"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -632,7 +632,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label="Balance"
+                    label=".balance"
                     locked
                     className="text-slate-700 dark:text-slate-200 font-semibold"
                   />
