@@ -211,7 +211,7 @@ export default function OrderList() {
         name: "Order No",
         selector: (row: OrderRow) => row.ida || "--",
         sortable: true,
-        width: "14%",
+        width: "10%",
       },
       {
         name: "Status",
@@ -238,15 +238,18 @@ export default function OrderList() {
       },
       {
         name: "Customer",
-        selector: (row: OrderRow) => row.customer?.display_name || "--",
+        selector: (row: OrderRow) =>
+          row.refs?.links?.customer?.attention ||
+          row.refs?.links?.customer?.email ||
+          "--",
         sortable: true,
-        width: "12%",
+        width: "20%",
       },
       {
         name: "Vendor",
         selector: (row: OrderRow) => row.vendor?.display_name || "--",
         sortable: true,
-        width: "12%",
+        width: "20%",
       },
       {
         name: "Total Amount",
