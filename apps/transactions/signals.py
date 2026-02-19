@@ -186,10 +186,8 @@ def register_line_totals_signals(line_model, parent_attr: str):
     When a line is saved or deleted, calls parent.update_sell_cost_totals(persist=True)
     which triggers the matching compute_*_sell_cost_totals() aggregation.
 
-    IMPORTANT: Currently only wired for ProposalLine (see bottom of this file).
-    OrderLine, InvoiceLine, PurchaseLine, and WorkOrderLine do NOT auto-recalc
-    totals — callers must invoke header.update_sell_cost_totals(persist=True)
-    explicitly after modifying lines.
+    Wired for all 5 line types: ProposalLine, OrderLine, InvoiceLine,
+    PurchaseLine, and WorkOrderLine (see bottom of this file).
 
     See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
     """
@@ -210,8 +208,8 @@ def register_line_totals_signals(line_model, parent_attr: str):
 # =============================================================================
 # REGISTER ALL 5 LINE TYPES
 #
-# All 5 line types get inventory tracking + header-link maintenance signals.
-# Only ProposalLine gets the totals auto-recalc signal.
+# All 5 line types get inventory tracking, header-link maintenance,
+# AND totals auto-recalc signals.
 # See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
 # =============================================================================
 
@@ -229,10 +227,12 @@ for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
     register_line_header_links(_model, _parent, _link)
 
 # Line types that auto-recalculate parent header totals on save/delete.
-# (Previously only ProposalLine was wired; OrderLine added Feb 2026.)
-# TODO: Wire totals signals for InvoiceLine, PurchaseLine, WorkOrderLine.
+# (Previously only ProposalLine was wired; all types added Feb 2026.)
 register_line_totals_signals(ProposalLine, 'parent')
 register_line_totals_signals(OrderLine, 'order')
+register_line_totals_signals(InvoiceLine, 'invoice')
+register_line_totals_signals(PurchaseLine, 'purchase')
+register_line_totals_signals(WorkOrderLine, 'workorder')
 
 
 # =============================================================================
