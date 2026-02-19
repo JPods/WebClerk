@@ -961,7 +961,16 @@ class SaveWcapiView(APIView):
             if lines_results:
                 from apps.products.dispatch_pending import dispatch_pending_processing
                 dispatch_pending_processing(limit=200, caller='save_view')
-        
+
+            # ── Recalculate header totals from saved lines ──
+            if lines_results and hasattr(obj, 'update_sell_cost_totals'):
+                try:
+                    obj.update_sell_cost_totals(persist=True)
+                    obj.refresh_from_db()
+                    console_logger.info(f"[SAVE_VIEW] Recalculated totals for {model_key} ID: {obj_id}")
+                except Exception as totals_err:
+                    console_logger.warning(f"[SAVE_VIEW] Failed to recalc totals for {model_key} {obj_id}: {totals_err}")
+
         # Auto-link communication records to a Contact
         linked = False
         try:
