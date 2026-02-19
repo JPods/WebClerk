@@ -195,7 +195,7 @@ export default function AddressList() {
         name: "id",
         selector: (row: dynamicData) => row.id,
         sortable: true,
-        width: "5%",
+        width: "6%",
       },
       {
         name: "address1",
@@ -246,6 +246,8 @@ export default function AddressList() {
         ignoreRowClick: true,
         allowOverflow: true,
         button: true,
+        width: "10%",
+        sortable: false,
       },
     ],
     [handleDelete, handleEdit, handleView],
@@ -304,7 +306,7 @@ export default function AddressList() {
                     </button>
                   </div>
                 }
-                onRowClicked={handleEdit}
+                onRowClicked={handleView}
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}
                 rowKeyField="id"

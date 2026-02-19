@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 

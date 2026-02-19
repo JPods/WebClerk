@@ -22,7 +22,7 @@ import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { FaEdit, FaMapMarkerAlt } from "react-icons/fa";
+import { FaEdit, FaMapMarkerAlt, FaPlus } from "react-icons/fa";
 
 // UI primitives
 import Label from "@/components/form/Label";

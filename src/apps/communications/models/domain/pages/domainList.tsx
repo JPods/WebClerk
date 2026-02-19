@@ -34,7 +34,7 @@ export default function DomainList() {
   const [selectedDomains, setSelectedDomains] = useState<dynamicData[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null,
+    "view",
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
@@ -296,7 +296,7 @@ export default function DomainList() {
                     </button>
                   </div>
                 }
-                onRowClicked={handleEdit}
+                onRowClicked={handleView}
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}
                 rowKeyField="id"
@@ -317,60 +317,5 @@ export default function DomainList() {
         )}
       </div>
     </>
-  );
-}
-
-type DomainListCardsProps = {
-  data: dynamicData[];
-  columns: DomainColumnConfig[];
-  onView: (row: dynamicData) => void;
-  onEdit: (row: dynamicData) => void;
-};
-
-function DomainListCards({
-  data,
-  columns,
-  onView,
-  onEdit,
-}: DomainListCardsProps) {
-  return (
-    <div className="flex flex-col">
-      {data.map((row, index) => (
-        <div
-          key={row.id ?? `domain-card-${index}`}
-          className="flex flex-col min-h-55 border-t"
-        >
-          <div className="space-y-1 text-sm px-2 py-3">
-            {columns.map((column) => (
-              <p key={`${column.key}-${row.id ?? index}`}>
-                <strong>{column.label}:</strong>{" "}
-                {column.renderCell
-                  ? column.renderCell(row)
-                  : column.getValue(row)}
-              </p>
-            ))}
-          </div>
-          <div className="mt-auto px-2 pb-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
-            <button
-              onClick={() => onView(row)}
-              title="View"
-              className="h-6.25 w-6.25 flex items-center justify-center border rounded-md hover:text-green-600"
-            >
-              <FaEye className="text-green-600 hover:scale-110" />
-            </button>
-            <button
-              onClick={() => onEdit(row)}
-              title="Edit"
-              className="h-6.25 w-6.25 flex items-center justify-center border rounded-md hover:text-blue-600"
-            >
-              <FaEdit className="text-blue-600 hover:scale-110" />
-            </button>
-          </div>
-        </div>
-      ))}
-      {!data.length && (
-        <p className="text-center text-gray-500 py-6">No domain found.</p>
-      )}
-    </div>
   );
 }
