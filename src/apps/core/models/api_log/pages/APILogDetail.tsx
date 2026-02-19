@@ -1,6 +1,7 @@
 import { FaTimes, FaCopy, FaCheck } from "react-icons/fa";
 import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
+import { DevBadge } from "@/components/common/DevBadge";
 
 interface APILogRecord {
   id: number;
@@ -84,7 +85,7 @@ export default function APILogDetail({ log, onClose }: APILogDetailProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">APILogDetail</span>
+              <DevBadge label="APILogDetail" className="mr-2" />
               API Log Details
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">

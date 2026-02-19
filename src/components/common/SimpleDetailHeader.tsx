@@ -9,6 +9,7 @@
  */
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, Pencil, Eye, X } from "lucide-react";
+import { DevBadge } from './DevBadge';
 
 interface SimpleDetailHeaderProps {
   /** Entity type name (e.g., "Service", "Currency") */
@@ -99,7 +100,7 @@ export function SimpleDetailHeader({
       {/* Entity name and title */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">{entityName}</span>
+          <DevBadge label={entityName} />
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
             {recordName || entityName}
           </h1>

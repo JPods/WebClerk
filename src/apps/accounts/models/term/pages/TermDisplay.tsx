@@ -3,6 +3,7 @@ import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import RippleLoader from "@/components/common/RippleLoader";
+import { DevBadge } from "@/components/common/DevBadge";
 import { Input } from "@/components/wrapper";
 import Label from "@/components/form/Label";
 import { Calendar, Clock, Percent, DollarSign, User, FileText, Hash } from "lucide-react";
@@ -126,7 +127,7 @@ export default function TermDisplay({
       {/* Header with Title and Column Selector */}
       <div className="flex items-center justify-between border-b pb-3">
         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
-          <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">TermDisplay</span>
+          <DevBadge label="TermDisplay" className="mr-2" />
           {modeProp === "add" ? "Add Term" : modeProp === "edit" ? "Edit Term" : "View Term"}
           {data.name && <span className="ml-2 text-slate-500 font-normal">— {data.name}</span>}
         </h2>

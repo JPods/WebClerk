@@ -2329,7 +2329,7 @@ export interface BillOfMaterialRecord {
   parent_item_id: number | null;  // FK → products.Item
   prefs: Record<string, any>;
   quantity: number | string;
-  recalc_parent_cost_description?: string;  // max_length=255
+  parent_description?: string;  // max_length=255
   refs: Record<string, any>;
   revision?: string;  // max_length=20
   scrap_factor: number | string;
@@ -2356,7 +2356,7 @@ export interface CreateBillOfMaterialRequest {
   parent_ida?: string;  // max_length=120
   parent_item_id: number | null;  // FK → products.Item
   quantity?: number | string;
-  recalc_parent_cost_description?: string;  // max_length=255
+  parent_description?: string;  // max_length=255
   revision?: string;  // max_length=20
   scrap_factor?: number | string;
   sequence?: number;
@@ -2381,7 +2381,7 @@ export interface UpdateBillOfMaterialRequest {
   parent_ida?: string;  // max_length=120
   parent_item_id?: number | null;  // FK → products.Item
   quantity?: number | string;
-  recalc_parent_cost_description?: string;  // max_length=255
+  parent_description?: string;  // max_length=255
   revision?: string;  // max_length=20
   scrap_factor?: number | string;
   sequence?: number;

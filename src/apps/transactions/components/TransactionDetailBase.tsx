@@ -49,7 +49,6 @@ import { DocumentsPanel, PrefsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
 import TransactionTabs from "@/components/common/TransactionTabs";
-import ItemTabs from "@/components/common/ItemTabs";
 
 // Import types
 import type {
@@ -58,6 +57,7 @@ import type {
 } from "../types/transactionTypes";
 import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
+import { DevBadge } from '@/components/common/DevBadge';
 
 // Extend Transaction type locally to ensure 'lines' exists
 type Transaction = TransactionBase & {
@@ -274,11 +274,23 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               setLoading(false);
               return;
             }
-            // Copy lines from source, resetting IDs so they create as new
+            // Copy lines from source, resetting IDs so they create as new.
+            // Stamp each line's refs.source with the source line ID so the
+            // backend can update the source line's quantity.actioned after save.
+            const srcType = transferFromType as string;
+            const srcId = Number(transferFromId);
             const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => ({
               ...line,
               id: undefined,
               line_id: undefined,
+              refs: {
+                ...((line.refs as Record<string, unknown>) || {}),
+                source: {
+                  [`${srcType}_line_id`]: (line as any).id,
+                  [`${srcType}_id`]: srcId,
+                  converted_from: srcType,
+                },
+              },
             }));
             // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
             // but our Transaction type and save serializers use _id suffix.
@@ -293,7 +305,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               manufacturer_id: manufacturerId,
               status: "planned",
               lines: transferredLines,
-              refs: source.refs ?? ({ links: {} } as any),
+              // Lineage: parent_id / parent_model tell the backend this is
+              // a transferred transaction.  The Pending inventory creator
+              // uses parent_id to release on_so and deduct on_hand.
+              parent_id: srcId,
+              parent_model: srcType,
+              refs: {
+                source: {
+                  [`${srcType}_id`]: srcId,
+                  converted_from: srcType,
+                },
+              } as any,
               metadata: {} as any,
               comments: { notes: [] },
               totals: {},
@@ -309,8 +331,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               ...(source.email ? { email: source.email } : {}),
               ...(source.address_full ? { address_full: source.address_full } : {}),
               ...(contactId ? { contact_id: contactId } : {}),
-              // Lineage: record which transaction this was transferred from
-              transfer_from: { type: transferFromType, id: Number(transferFromId) },
+              // Legacy transfer_from (kept for backwards compat)
+              transfer_from: { type: srcType, id: srcId },
             };
             setData(record);
             setEditData(record);
@@ -1165,7 +1187,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       )}
       {/* QQQ Summary and Lines item  */}
       <div className="flex items-center justify-between mb-0">
-        <span className="absolute top-1 left-1 z-10 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">{transactionType}Detail</span>
+        <DevBadge label={`${transactionType}Detail`} className="absolute top-1 left-1 z-10" />
         {renderHeader ? (
           renderHeader(currentData, isEditing, handleFieldChange)
         ) : (
@@ -1174,13 +1196,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             isEditing={isEditing}
             onChange={handleFieldChange}
             priceLable={priceLable}
-            customerInfo={currentData.refs?.links?.customer?.[0]}
+            customerInfo={currentData.refs?.links?.customer}
             billingContact={currentData.refs?.links?.contact?.find(
               (c) => c.purpose === "billto",
             )}
             shippingContact={currentData.refs?.links?.contact?.find(
               (c) => c.purpose === "shipto",
             )}
+            orgLinks={currentData.refs?.links}
           />
         )}
       </div>
@@ -1288,8 +1311,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         {renderTabContent()}
       </div>
 
-      {/* TransactionTabs - show related transactions for the linked org */}
+      {/* TransactionTabs - show related transactions for the linked org.
+          Only render for saved records (not add-mode / unsaved transfers)
+          so we don't fire queries when id is null/0. */}
       {(() => {
+        // Skip for new / unsaved records — no related transactions to show
+        const recordId = currentData?.id;
+        if (effectiveMode === "add" || !recordId) return null;
+
         const customerTypes = ['order', 'invoice', 'proposal'];
         const vendorTypes = ['purchase', 'receipt'];
         let orgType: 'customer' | 'vendor' | null = null;
@@ -1309,14 +1338,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         }
         if (orgType && orgId) {
           return (
-            <>
-              <div>
-                <TransactionTabs orgType={orgType} orgId={orgId} />
-              </div>
-              <div>
-                <ItemTabs orgType={orgType} orgId={orgId} />
-              </div>
-            </>
+            <div>
+              <TransactionTabs orgType={orgType} orgId={orgId} />
+            </div>
           );
         }
         return null;
