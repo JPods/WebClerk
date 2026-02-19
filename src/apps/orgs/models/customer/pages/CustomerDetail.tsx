@@ -6,20 +6,43 @@ import { z } from "zod";
 import Label from "../../../../../components/form/Label";
 import { Input, Select } from "../../../../../components/wrapper";
 
-import { createCustomer, updateCustomer, fetchCustomers, deleteCustomer } from "../services/customerApi";
+import {
+  createCustomer,
+  updateCustomer,
+  fetchCustomers,
+  deleteCustomer,
+} from "../services/customerApi";
 import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaAddressCard, FaCog, FaColumns, FaQuestionCircle, FaLink, FaSlidersH, FaPlus, FaFileInvoiceDollar, FaShoppingCart, FaClipboardList } from "react-icons/fa";
+import {
+  FaChevronLeft,
+  FaChevronRight,
+  FaEdit,
+  FaTrash,
+  FaDollarSign,
+  FaFileAlt,
+  FaPhone,
+  FaAddressCard,
+  FaCog,
+  FaColumns,
+  FaQuestionCircle,
+  FaLink,
+  FaSlidersH,
+  FaPlus,
+  FaFileInvoiceDollar,
+  FaShoppingCart,
+  FaClipboardList,
+} from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
-import { 
+import {
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
@@ -35,7 +58,11 @@ import {
 import TransactionTabs from "@/components/common/TransactionTabs";
 import ItemTabs from "@/components/common/ItemTabs";
 import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
-import { DetailTabs, useDetailTabs, useColumnCount } from "@/components/common/DetailTabs";
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+} from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
@@ -47,9 +74,24 @@ import RippleLoader from "@/components/common/RippleLoader";
 // ---------------------------------------------------------------------------
 
 const TRANSACTION_OPTIONS = [
-  { value: "proposal", label: "Proposal", icon: FaClipboardList, path: "/transactions/proposal/detail/" },
-  { value: "order",    label: "Order",    icon: FaShoppingCart,   path: "/transactions/order/detail/" },
-  { value: "invoice",  label: "Invoice",  icon: FaFileInvoiceDollar, path: "/transactions/invoice/detail/" },
+  {
+    value: "proposal",
+    label: "Proposal",
+    icon: FaClipboardList,
+    path: "/transactions/proposal/detail/",
+  },
+  {
+    value: "order",
+    label: "Order",
+    icon: FaShoppingCart,
+    path: "/transactions/order/detail/",
+  },
+  {
+    value: "invoice",
+    label: "Invoice",
+    icon: FaFileInvoiceDollar,
+    path: "/transactions/invoice/detail/",
+  },
 ] as const;
 
 interface CreateTransactionDropdownProps {
@@ -63,7 +105,11 @@ interface CreateTransactionDropdownProps {
   termsId?: number | null;
   contactId?: number | null;
   addressFull?: string | null;
-  ensureWindow: (path: string, title: string, opts?: { maximized?: boolean }) => void;
+  ensureWindow: (
+    path: string,
+    title: string,
+    opts?: { maximized?: boolean },
+  ) => void;
 }
 
 function CreateTransactionDropdown({
@@ -93,7 +139,7 @@ function CreateTransactionDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const handleSelect = (opt: typeof TRANSACTION_OPTIONS[number]) => {
+  const handleSelect = (opt: (typeof TRANSACTION_OPTIONS)[number]) => {
     setOpen(false);
     const qs = new URLSearchParams();
     if (customerId) qs.set("customer_id", String(customerId));
@@ -187,7 +233,11 @@ const JSON_DEFAULTS: Record<string, any> = {
   docs: [],
   connections: {},
   relations: { parents: [], children: [], linked_ids: [] },
-  financial: { credit: { limit: 0, used: 0 }, balances: { open: 0, current: 0 }, metrics: { ytd: { sales: 0 } } },
+  financial: {
+    credit: { limit: 0, used: 0 },
+    balances: { open: 0, current: 0 },
+    metrics: { ytd: { sales: 0 } },
+  },
   data: {},
   metrics: { counts: {}, periods: {} },
   gl_accounts: {},
@@ -239,11 +289,21 @@ interface HorizontalFieldProps {
   required?: boolean;
 }
 
-function HorizontalField({ label, htmlFor, children, error, required }: HorizontalFieldProps) {
+function HorizontalField({
+  label,
+  htmlFor,
+  children,
+  error,
+  required,
+}: HorizontalFieldProps) {
   return (
     <div className="flex items-center gap-1.5 py-1">
-      <Label htmlFor={htmlFor} className="w-18 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-400">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      <Label
+        htmlFor={htmlFor}
+        className="w-18 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-400"
+      >
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </Label>
       <div className="flex-1 min-w-0">
         {children}
@@ -259,9 +319,15 @@ interface SingleWindowSectionProps {
   className?: string;
 }
 
-function SingleWindowSection({ title, children, className = "" }: SingleWindowSectionProps) {
+function SingleWindowSection({
+  title,
+  children,
+  className = "",
+}: SingleWindowSectionProps) {
   return (
-    <section className={`rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 ${className}`}>
+    <section
+      className={`rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 ${className}`}
+    >
       <div className="px-2 py-1 text-[10px] font-semibold tracking-wide uppercase text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700">
         {title}
       </div>
@@ -278,7 +344,19 @@ const COLUMN_OPTIONS = [
 
 const STORAGE_KEY = "customerDetail_columnCount";
 const TAB_STORAGE_KEY = "customerDetail_activeTab";
-const VALID_TABS = ["actions", "comments", "contacts", "documents", "financial", "history", "metadata", "prefs", "qa", "raw", "refs"];
+const VALID_TABS = [
+  "actions",
+  "comments",
+  "contacts",
+  "documents",
+  "financial",
+  "history",
+  "metadata",
+  "prefs",
+  "qa",
+  "raw",
+  "refs",
+];
 
 export default function CustomerDetail({
   modeProp,
@@ -299,29 +377,38 @@ export default function CustomerDetail({
   const dispatch = useDispatch();
   const { ensureWindow, activateWindow, closeWindow } = useWindowManager();
   const currentUser = useAppSelector((state) => state.auth.user);
-  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs('customer', 'comments', VALID_TABS);
-  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount('customer', 3);
+  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs(
+    "customer",
+    "comments",
+    VALID_TABS,
+  );
+  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
+    "customer",
+    3,
+  );
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Data fetching state (used when no dataProp provided)
   const [fetchedRecord, setFetchedRecord] = useState<dynamicData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // FK-based contact loading (replaces refs.links.contact)
-  const [fkContacts, setFkContacts] = useState<ReturnType<typeof normalizeRefsLinksContact>>([]);
+  const [fkContacts, setFkContacts] = useState<
+    ReturnType<typeof normalizeRefsLinksContact>
+  >([]);
   const [fkContactsLoading, setFkContactsLoading] = useState(false);
   const [fkRefreshTrigger, setFkRefreshTrigger] = useState(0);
 
   // Detect mode from route if modeProp not provided
   const routeMode = useMemo(() => {
     const path = location.pathname;
-    if (path.includes('/customer/add')) return 'add';
-    if (path.includes('/customer/edit/')) return 'edit';
-    if (path.includes('/customer/detail/')) return 'view';
-    return 'view';
+    if (path.includes("/customer/add")) return "add";
+    if (path.includes("/customer/edit/")) return "edit";
+    if (path.includes("/customer/detail/")) return "view";
+    return "view";
   }, [location.pathname]);
-  
+
   const customerId = Number(id);
 
   // Resolved customer ID — useParams may be empty in floating windows,
@@ -335,14 +422,14 @@ export default function CustomerDetail({
   // Fetch data when in view/edit mode and no dataProp provided
   useEffect(() => {
     if (dataProp) return; // Skip if data provided via props
-    if (routeMode === 'add') return; // No fetch needed for add mode
+    if (routeMode === "add") return; // No fetch needed for add mode
     if (!Number.isFinite(customerId)) return;
-    
+
     setLoading(true);
     setError(null);
     fetchCustomers(customerId)
       .then((res) => {
-        const data = res?.data?.data?.record || res?.data?.data || res?.data;
+        const data = res?.data?.items || res?.data;
         setFetchedRecord(data || null);
       })
       .catch((err) => {
@@ -358,16 +445,23 @@ export default function CustomerDetail({
    */
   const fetchFkContacts = useCallback(async (custId: number) => {
     if (!Number.isFinite(custId) || custId <= 0) {
-      console.log("[CustomerDetail.fetchFkContacts] skipped – invalid custId:", custId);
+      console.log(
+        "[CustomerDetail.fetchFkContacts] skipped – invalid custId:",
+        custId,
+      );
       return;
     }
-    console.log(`[CustomerDetail.fetchFkContacts] fetching contacts for customer_id=${custId}`);
+    console.log(
+      `[CustomerDetail.fetchFkContacts] fetching contacts for customer_id=${custId}`,
+    );
     setFkContactsLoading(true);
     try {
       const res = await getRecords("contact", { customer_id: custId });
       console.log("[CustomerDetail.fetchFkContacts] API response:", res);
       const results = res?.results ?? [];
-      console.log(`[CustomerDetail.fetchFkContacts] got ${results.length} contact(s)`);
+      console.log(
+        `[CustomerDetail.fetchFkContacts] got ${results.length} contact(s)`,
+      );
       // Map raw contact records to RefContact shape
       const mapped = results.map((r: any) => ({
         contact_id: r.id,
@@ -403,7 +497,12 @@ export default function CustomerDetail({
   useEffect(() => {
     if (routeMode === "add") return;
     if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
-      console.log("[CustomerDetail] FK fetch skipped – resolvedCustomerId:", resolvedCustomerId, "useParams id:", id);
+      console.log(
+        "[CustomerDetail] FK fetch skipped – resolvedCustomerId:",
+        resolvedCustomerId,
+        "useParams id:",
+        id,
+      );
       return;
     }
     fetchFkContacts(resolvedCustomerId);
@@ -415,14 +514,19 @@ export default function CustomerDetail({
   useEffect(() => {
     if (inline) return; // Skip window management for inline rendering
     const record = dataProp || fetchedRecord;
-    if (!record && routeMode !== 'add') return;
-    const title = record?.display_name || record?.name || 
-      (routeMode === 'add' ? 'New Customer' : `Customer ${record?.id ?? customerId}`);
-    const prefix = routeMode === 'edit' ? 'Edit ' : '';
+    if (!record && routeMode !== "add") return;
+    const title =
+      record?.display_name ||
+      record?.name ||
+      (routeMode === "add"
+        ? "New Customer"
+        : `Customer ${record?.id ?? customerId}`);
+    const prefix = routeMode === "edit" ? "Edit " : "";
     const custId = record?.id ?? customerId;
-    const stablePath = routeMode === 'add'
-      ? '/org/customer/add'
-      : `/org/customer/detail/${custId}`;
+    const stablePath =
+      routeMode === "add"
+        ? "/org/customer/add"
+        : `/org/customer/detail/${custId}`;
     ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
   }, [inline, dataProp, fetchedRecord, ensureWindow, customerId, routeMode]);
 
@@ -437,35 +541,47 @@ export default function CustomerDetail({
     }
   }, [customerId]);
 
-  const currentIndex = useMemo(() => listOrder.indexOf(customerId), [listOrder, customerId]);
+  const currentIndex = useMemo(
+    () => listOrder.indexOf(customerId),
+    [listOrder, customerId],
+  );
   const prevId = currentIndex > 0 ? listOrder[currentIndex - 1] : null;
-  const nextId = currentIndex >= 0 && currentIndex < listOrder.length - 1 ? listOrder[currentIndex + 1] : null;
+  const nextId =
+    currentIndex >= 0 && currentIndex < listOrder.length - 1
+      ? listOrder[currentIndex + 1]
+      : null;
 
   // Navigation handlers
   const handleClose = useCallback(() => {
     closeWindow(location.pathname);
   }, [closeWindow, location.pathname]);
 
-  const openRecord = useCallback((targetId: number, targetMode: 'view' | 'edit') => {
-    if (inline) return; // Don't open windows when inline
-    const basePath = targetMode === 'edit' ? PageRoutes.customerEdit : PageRoutes.customerDetail;
-    const path = `${basePath}/${targetId}`;
-    const prefix = targetMode === 'edit' ? 'Edit ' : '';
-    ensureWindow(path, `${prefix}Customer ${targetId}`, { maximized: false });
-    activateWindow(path);
-    closeWindow(location.pathname);
-  }, [inline, activateWindow, closeWindow, ensureWindow, location.pathname]);
+  const openRecord = useCallback(
+    (targetId: number, targetMode: "view" | "edit") => {
+      if (inline) return; // Don't open windows when inline
+      const basePath =
+        targetMode === "edit"
+          ? PageRoutes.customerEdit
+          : PageRoutes.customerDetail;
+      const path = `${basePath}/${targetId}`;
+      const prefix = targetMode === "edit" ? "Edit " : "";
+      ensureWindow(path, `${prefix}Customer ${targetId}`, { maximized: false });
+      activateWindow(path);
+      closeWindow(location.pathname);
+    },
+    [inline, activateWindow, closeWindow, ensureWindow, location.pathname],
+  );
 
   const handlePrev = useMemo(() => {
     if (onPrevProp) return onPrevProp;
     if (!prevId) return undefined;
-    return () => openRecord(prevId, routeMode === 'edit' ? 'edit' : 'view');
+    return () => openRecord(prevId, routeMode === "edit" ? "edit" : "view");
   }, [onPrevProp, prevId, openRecord, routeMode]);
 
   const handleNext = useMemo(() => {
     if (onNextProp) return onNextProp;
     if (!nextId) return undefined;
-    return () => openRecord(nextId, routeMode === 'edit' ? 'edit' : 'view');
+    return () => openRecord(nextId, routeMode === "edit" ? "edit" : "view");
   }, [onNextProp, nextId, openRecord, routeMode]);
 
   const handleEditClick = useCallback(() => {
@@ -480,11 +596,22 @@ export default function CustomerDetail({
     if (!Number.isFinite(customerId)) return;
     const record = dataProp || fetchedRecord;
     const path = `${PageRoutes.customerEdit}/${customerId}`;
-    const label = record?.display_name || record?.name || `Customer ${customerId}`;
+    const label =
+      record?.display_name || record?.name || `Customer ${customerId}`;
     ensureWindow(path, `Edit ${label}`, { maximized: false });
     activateWindow(path);
     closeWindow(location.pathname);
-  }, [onEditProp, inline, activateWindow, closeWindow, customerId, ensureWindow, location.pathname, dataProp, fetchedRecord]);
+  }, [
+    onEditProp,
+    inline,
+    activateWindow,
+    closeWindow,
+    customerId,
+    ensureWindow,
+    location.pathname,
+    dataProp,
+    fetchedRecord,
+  ]);
 
   const handleDeleteClick = useCallback(async () => {
     const record = dataProp || fetchedRecord;
@@ -493,29 +620,44 @@ export default function CustomerDetail({
       return;
     }
     if (!record?.id) return;
-    if (!window.confirm(`Delete customer ${record.display_name || record.name || record.id}?`)) return;
+    if (
+      !window.confirm(
+        `Delete customer ${record.display_name || record.name || record.id}?`,
+      )
+    )
+      return;
     try {
       await deleteCustomer(record.id);
-      dispatch(showToast({ message: "Customer deleted successfully", type: "success" }));
+      dispatch(
+        showToast({
+          message: "Customer deleted successfully",
+          type: "success",
+        }),
+      );
       handleClose();
       navigate(PageRoutes.customerList);
     } catch (err: any) {
-      dispatch(showToast({ message: err?.message || "Failed to delete customer", type: "error" }));
+      dispatch(
+        showToast({
+          message: err?.message || "Failed to delete customer",
+          type: "error",
+        }),
+      );
     }
   }, [onDeleteProp, dispatch, handleClose, navigate, dataProp, fetchedRecord]);
 
   // Resolved props - use provided or derived
   const onCancel = onCancelProp || handleClose;
-  const onEdit = routeMode === 'view' ? handleEditClick : undefined;
-  const onDelete = routeMode === 'view' ? handleDeleteClick : undefined;
+  const onEdit = routeMode === "view" ? handleEditClick : undefined;
+  const onDelete = routeMode === "view" ? handleDeleteClick : undefined;
   const onPrev = handlePrev;
   const onNext = handleNext;
 
   // Additional tabs specific to Customer
   const additionalTabs = [
-    { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} /> },
-    { id: 'financial', label: 'Financial', icon: <FaDollarSign size={14} /> },
-    { id: 'qa', label: 'Q&A', icon: <FaQuestionCircle size={14} /> },
+    { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
+    { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
+    { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
   ];
 
   const {
@@ -532,23 +674,37 @@ export default function CustomerDetail({
       is_active: false,
       version: 1,
       org_type: "customer",
-      ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
+      ...Object.fromEntries(
+        Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+      ),
     },
   });
 
   const routeState = (location.state as any) || {};
-  const baseMode: "add" | "edit" | "view" = (modeProp || routeMode || (routeState.mode as "add" | "edit" | "view") || "add");
+  const baseMode: "add" | "edit" | "view" =
+    modeProp ||
+    routeMode ||
+    (routeState.mode as "add" | "edit" | "view") ||
+    "add";
   // Allow local edit override when in view mode
-  const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
+  const mode: "add" | "edit" | "view" =
+    baseMode === "view" && isEditing ? "edit" : baseMode;
   const data = dataProp || fetchedRecord || routeState.data || null;
 
   // Count badges for tabs (must be after data declaration)
   const getCommentCount = () => {
     if (!data?.comments) return 0;
     const c = data.comments;
-    return (c.public?.length || 0) + (c.process?.length || 0) + (c.partner?.length || 0) + (c.notes?.length || 0);
+    return (
+      (c.public?.length || 0) +
+      (c.process?.length || 0) +
+      (c.partner?.length || 0) +
+      (c.notes?.length || 0)
+    );
   };
-  const getActionCount = () => data?.actions?.items?.filter((a: any) => a.status === 'pending').length || 0;
+  const getActionCount = () =>
+    data?.actions?.items?.filter((a: any) => a.status === "pending").length ||
+    0;
   const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
 
   const tabBadges = {
@@ -564,7 +720,9 @@ export default function CustomerDetail({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
       });
       return;
     }
@@ -572,7 +730,10 @@ export default function CustomerDetail({
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           if (key in JSON_DEFAULTS) {
-            setValue(key, JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2));
+            setValue(
+              key,
+              JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2),
+            );
           } else {
             setValue(key, data[key]);
           }
@@ -580,7 +741,10 @@ export default function CustomerDetail({
       });
       Object.keys(JSON_DEFAULTS).forEach((key) => {
         if (data[key] === undefined) {
-          setValue(key as keyof CustomerFormValues, JSON.stringify(JSON_DEFAULTS[key]));
+          setValue(
+            key as keyof CustomerFormValues,
+            JSON.stringify(JSON_DEFAULTS[key]),
+          );
         }
       });
     } else {
@@ -588,7 +752,9 @@ export default function CustomerDetail({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
       });
     }
   }, [data, reset, setValue, mode]);
@@ -598,7 +764,9 @@ export default function CustomerDetail({
     try {
       return JSON.parse(raw);
     } catch {
-      dispatch(showToast({ message: `${label} must be valid JSON`, type: "error" }));
+      dispatch(
+        showToast({ message: `${label} must be valid JSON`, type: "error" }),
+      );
       throw new Error(`${label} JSON invalid`);
     }
   };
@@ -634,7 +802,11 @@ export default function CustomerDetail({
         status: data.status ?? "",
       };
       Object.keys(JSON_DEFAULTS).forEach((key) => {
-        nextValues[key] = JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2);
+        nextValues[key] = JSON.stringify(
+          data[key] ?? JSON_DEFAULTS[key],
+          null,
+          2,
+        );
       });
       reset(nextValues as CustomerFormValues);
       return;
@@ -672,7 +844,10 @@ export default function CustomerDetail({
     try {
       const jsonPayload: Record<string, any> = {};
       Object.keys(JSON_DEFAULTS).forEach((key) => {
-        const parsed = parseJsonField(key, formData[key as keyof CustomerFormValues] as string | undefined);
+        const parsed = parseJsonField(
+          key,
+          formData[key as keyof CustomerFormValues] as string | undefined,
+        );
         if (parsed !== undefined) {
           jsonPayload[key] = parsed;
         }
@@ -705,7 +880,7 @@ export default function CustomerDetail({
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
-          })
+          }),
         );
 
         // --- Auto-create contact for new customers ---
@@ -722,11 +897,18 @@ export default function CustomerDetail({
               );
             } catch (contactErr: any) {
               // Contact creation is best-effort; don't block customer save
-              console.error("[CustomerDetail] Auto-contact creation failed:", contactErr);
-              dispatch(showToast({
-                message: `Customer saved, but contact creation failed: ${contactErr?.message || "Unknown error"}`,
-                type: "warning",
-              }));
+              console.error(
+                "[CustomerDetail] Auto-contact creation failed:",
+                contactErr,
+              );
+              dispatch(
+                showToast({
+                  message: `Customer saved, but contact creation failed: ${
+                    contactErr?.message || "Unknown error"
+                  }`,
+                  type: "warning",
+                }),
+              );
             }
           }
         }
@@ -752,65 +934,73 @@ export default function CustomerDetail({
    * via refs.links, set customer.contact_id, then open the contact
    * detail page so the user can add an address.
    */
-  const autoCreateContactForCustomer = useCallback(async (
-    custId: number,
-    displayName: string,
-    attention: string,
-    email: string,
-    phone: string,
-  ) => {
-    // Parse attention into first/last name
-    const nameParts = attention.trim().split(/\s+/);
-    const firstName = nameParts[0] || displayName.split(/\s+/)[0] || "";
-    const lastName = nameParts.length > 1
-      ? nameParts.slice(1).join(" ")
-      : (displayName.split(/\s+/).slice(1).join(" ") || "");
+  const autoCreateContactForCustomer = useCallback(
+    async (
+      custId: number,
+      displayName: string,
+      attention: string,
+      email: string,
+      phone: string,
+    ) => {
+      // Parse attention into first/last name
+      const nameParts = attention.trim().split(/\s+/);
+      const firstName = nameParts[0] || displayName.split(/\s+/)[0] || "";
+      const lastName =
+        nameParts.length > 1
+          ? nameParts.slice(1).join(" ")
+          : displayName.split(/\s+/).slice(1).join(" ") || "";
 
-    // 1. Create the contact with a link back to this customer
-    const contactPayload = {
-      name_first: firstName,
-      name_last: lastName,
-      attention: attention || displayName,
-      email: email || `contact${custId}@placeholder.com`,
-      phone: phone || undefined,
-      company: displayName,
-      customer_id: custId,
-      comment: `Auto-created from customer #${custId}`,
-      refs: {
-        links: {
-          customer: [custId],
+      // 1. Create the contact with a link back to this customer
+      const contactPayload = {
+        name_first: firstName,
+        name_last: lastName,
+        attention: attention || displayName,
+        email: email || `contact${custId}@placeholder.com`,
+        phone: phone || undefined,
+        company: displayName,
+        customer_id: custId,
+        comment: `Auto-created from customer #${custId}`,
+        refs: {
+          links: {
+            customer: [custId],
+          },
         },
-      },
-    };
+      };
 
-    const contactResult = await createContact(contactPayload);
-    const newContactId = contactResult?.record?.id ?? contactResult?.id;
+      const contactResult = await createContact(contactPayload);
+      const newContactId = contactResult?.record?.id ?? contactResult?.id;
 
-    if (!newContactId) {
-      throw new Error("Contact created but no ID returned");
-    }
+      if (!newContactId) {
+        throw new Error("Contact created but no ID returned");
+      }
 
-    // 2. Update the customer with contact_id and refs.links.contact
-    await updateCustomer({
-      id: custId,
-      contact_id: newContactId,
-      refs: {
-        links: {
-          contact: [newContactId],
+      // 2. Update the customer with contact_id and refs.links.contact
+      await updateCustomer({
+        id: custId,
+        contact_id: newContactId,
+        refs: {
+          links: {
+            contact: [newContactId],
+          },
         },
-      },
-    } as any);
+      } as any);
 
-    dispatch(showToast({
-      message: `Contact #${newContactId} created — opening to add address…`,
-      type: "success",
-    }));
+      dispatch(
+        showToast({
+          message: `Contact #${newContactId} created — opening to add address…`,
+          type: "success",
+        }),
+      );
 
-    // 3. Open the new contact detail page for address entry
-    const contactPath = `/core/contact/detail/${newContactId}`;
-    ensureWindow(contactPath, `Contact ${firstName} ${lastName}`.trim(), { maximized: false });
-    activateWindow(contactPath);
-  }, [dispatch, ensureWindow, activateWindow]);
+      // 3. Open the new contact detail page for address entry
+      const contactPath = `/core/contact/detail/${newContactId}`;
+      ensureWindow(contactPath, `Contact ${firstName} ${lastName}`.trim(), {
+        maximized: false,
+      });
+      activateWindow(contactPath);
+    },
+    [dispatch, ensureWindow, activateWindow],
+  );
 
   const onSubmit = async (formData: CustomerFormValues) => {
     await saveCustomer(formData);
@@ -820,7 +1010,12 @@ export default function CustomerDetail({
   // Set Primary Contact – saves contact_id + denormalized fields on the org
   // ---------------------------------------------------------------------------
   const handleSetPrimary = useCallback(
-    async (contact: { contact_id: number; attention?: string; email?: string | any[]; phone?: string | any[] }) => {
+    async (contact: {
+      contact_id: number;
+      attention?: string;
+      email?: string | any[];
+      phone?: string | any[];
+    }) => {
       const custId = data?.id;
       if (!custId) return;
 
@@ -829,14 +1024,18 @@ export default function CustomerDetail({
         typeof contact.email === "string"
           ? contact.email
           : Array.isArray(contact.email) && contact.email.length > 0
-            ? (typeof contact.email[0] === "object" ? contact.email[0].value ?? "" : String(contact.email[0]))
-            : "";
+          ? typeof contact.email[0] === "object"
+            ? contact.email[0].value ?? ""
+            : String(contact.email[0])
+          : "";
       const phoneStr =
         typeof contact.phone === "string"
           ? contact.phone
           : Array.isArray(contact.phone) && contact.phone.length > 0
-            ? (typeof contact.phone[0] === "object" ? contact.phone[0].value ?? "" : String(contact.phone[0]))
-            : "";
+          ? typeof contact.phone[0] === "object"
+            ? contact.phone[0].value ?? ""
+            : String(contact.phone[0])
+          : "";
 
       try {
         await updateCustomer({
@@ -849,7 +1048,8 @@ export default function CustomerDetail({
 
         // Update local form state so UI reflects the change immediately
         setValue("contact_id" as keyof CustomerFormValues, contact.contact_id);
-        if (contact.attention) setValue("attention" as keyof CustomerFormValues, contact.attention);
+        if (contact.attention)
+          setValue("attention" as keyof CustomerFormValues, contact.attention);
         if (emailStr) setValue("email" as keyof CustomerFormValues, emailStr);
         if (phoneStr) setValue("phone" as keyof CustomerFormValues, phoneStr);
 
@@ -912,7 +1112,7 @@ export default function CustomerDetail({
         >
           <FaEdit size={14} />
           Edit
-        </button>
+        </button>,
       );
       if (onCancel) {
         buttons.push(
@@ -924,7 +1124,7 @@ export default function CustomerDetail({
             title="Close"
           >
             Close
-          </button>
+          </button>,
         );
       }
       if (onEdit) {
@@ -938,7 +1138,7 @@ export default function CustomerDetail({
           >
             <FaEdit size={14} />
             Edit
-          </button>
+          </button>,
         );
       }
       if (onDelete) {
@@ -952,7 +1152,7 @@ export default function CustomerDetail({
           >
             <FaTrash size={14} />
             Delete
-          </button>
+          </button>,
         );
       }
     } else {
@@ -971,7 +1171,7 @@ export default function CustomerDetail({
         >
           <FaChevronLeft size={14} />
           Prev
-        </button>
+        </button>,
       );
     }
 
@@ -986,7 +1186,7 @@ export default function CustomerDetail({
         >
           Next
           <FaChevronRight size={14} />
-        </button>
+        </button>,
       );
     }
 
@@ -994,36 +1194,37 @@ export default function CustomerDetail({
   };
 
   const formData = watch();
-  
+
   // In view mode, prefer direct data from props; in edit/add mode, use form values
-  const customerData: Customer = mode === "view" && data
-    ? {
-        ...data,
-        id: data.id,
-        display_name: data.display_name,
-        status: data.status,
-        org_type: data.org_type,
-        version: data.version,
-        is_active: data.is_active,
-        attention: data.attention,
-        contact_id: data.contact_id,
-        email: data.email,
-        phone: data.phone,
-        price_level: data.price_level,
-        terms: data.terms,
-        terms_id: data.terms_id,
-        address_full: data.address_full,
-        financial: data.financial,
-      }
-    : {
-        ...formData,
-        id: data?.id,
-        display_name: formData.display_name,
-        status: formData.status,
-        org_type: formData.org_type,
-        version: formData.version,
-        is_active: formData.is_active,
-      };
+  const customerData: Customer =
+    mode === "view" && data
+      ? {
+          ...data,
+          id: data.id,
+          display_name: data.display_name,
+          status: data.status,
+          org_type: data.org_type,
+          version: data.version,
+          is_active: data.is_active,
+          attention: data.attention,
+          contact_id: data.contact_id,
+          email: data.email,
+          phone: data.phone,
+          price_level: data.price_level,
+          terms: data.terms,
+          terms_id: data.terms_id,
+          address_full: data.address_full,
+          financial: data.financial,
+        }
+      : {
+          ...formData,
+          id: data?.id,
+          display_name: formData.display_name,
+          status: formData.status,
+          org_type: formData.org_type,
+          version: formData.version,
+          is_active: formData.is_active,
+        };
 
   // Function to get data for specific tab
   const getTabData = (tabId: string) => {
@@ -1031,25 +1232,28 @@ export default function CustomerDetail({
     const jsonData = Object.fromEntries(
       Object.entries(JSON_DEFAULTS).map(([key, defaultValue]) => {
         try {
-          const parsed = JSON.parse(formData[key as keyof CustomerFormValues] as string || JSON.stringify(defaultValue));
+          const parsed = JSON.parse(
+            (formData[key as keyof CustomerFormValues] as string) ||
+              JSON.stringify(defaultValue),
+          );
           return [key, parsed];
         } catch {
           return [key, defaultValue];
         }
-      })
+      }),
     );
 
     // Define which fields belong to each tab
     const tabFieldMapping: Record<string, string[]> = {
-      contacts: ['contacts'],
-      financial: ['financial'],
-      documents: ['docs'],
+      contacts: ["contacts"],
+      financial: ["financial"],
+      documents: ["docs"],
     };
 
     const fieldsForTab = tabFieldMapping[tabId] || [];
     const filteredData: Record<string, any> = {};
 
-    fieldsForTab.forEach(field => {
+    fieldsForTab.forEach((field) => {
       if (jsonData[field] !== undefined) {
         filteredData[field] = jsonData[field];
       }
@@ -1072,533 +1276,582 @@ export default function CustomerDetail({
   }
 
   // For view/edit modes, wait for data before rendering
-  if (routeMode !== 'add' && !data && !dataProp) {
+  if (routeMode !== "add" && !data && !dataProp) {
     return <RippleLoader />;
   }
 
   return (
-  <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-    {/* Compact Header */}
-    <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-      <div className="flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
-            <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">CustomerDetail</span>
-            {customerData.display_name || "New Customer"}
-            {customerData.id && <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">#{customerData.id}</span>}
-          </h2>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
-              customerData.is_active
-                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-            }`}>
-              {customerData.is_active ? 'Active' : 'Inactive'}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
-            </span>
-            {(mode === "edit" || mode === "add") && isDirty && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded">
-                Unsaved changes
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* Compact Header */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
+                CustomerDetail
               </span>
-            )}
+              {customerData.display_name || "New Customer"}
+              {customerData.id && (
+                <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+                  #{customerData.id}
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                  customerData.is_active
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                }`}
+              >
+                {customerData.is_active ? "Active" : "Inactive"}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {customerData.org_type || "customer"} • v
+                {customerData.version ?? 1}
+              </span>
+              {(mode === "edit" || mode === "add") && isDirty && (
+                <span className="px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded">
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 ml-3">
+            {getActionButtons()}
           </div>
         </div>
-        <div className="flex items-center gap-1 ml-3">
-          {getActionButtons()}
-        </div>
       </div>
-    </div>
 
-    {/* Transaction-style Toolbar (edit/add mode) */}
-    {(mode === "edit" || mode === "add") && (
-      <div className="sticky top-0 z-20 mx-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-        <TransactionToolbar
-          transactionType="order"
-          transactionId={data?.id}
-          isDirty={isDirty}
-          isSaving={isSubmitting}
-          isEditing
-          onSave={handleSubmit(async (fd) => {
-            await saveCustomer(fd);
-          })}
-          onSaveAndClose={
-            (inline ? !!onCancelInline : !!onCancel)
-              ? handleSubmit(async (fd) => {
-                  const ok = await saveCustomer(fd);
-                  if (ok) handleCancel();
-                })
-              : undefined
-          }
-          onCancel={handleCancel}
-          canClone={false}
-          canTransfer={false}
-          canDelete={false}
-          showTaskButton={false}
-        />
-      </div>
-    )}
-
-    {/* Persistent Basic Information Panel - always visible in view mode */}
-    {/* In edit/add mode, show editable form fields instead */}
-    <div className="shrink-0 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-      {mode === "view" ? (
-        <BasicInformationPanel
-          data={customerData}
-          columns={columnCount}
-        />
-      ) : (
-        /* Editable Basic Information - Horizontal Layout */
-        <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-x-6 gap-y-1`}>
-          <HorizontalField label="display_name" htmlFor="display_name" required error={errors.display_name?.message}>
-            <Input
-              type="text"
-              id="display_name"
-              placeholder="display_name"
-              {...register("display_name")}
-              error={errors.display_name && errors.display_name.message ? true : false}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="email" htmlFor="email">
-            <Input
-              type="email"
-              id="email"
-              placeholder="email"
-              {...register("email")}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="attention" htmlFor="attention">
-            <Input
-              type="text"
-              id="attention"
-              placeholder="attention"
-              {...register("attention")}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="phone" htmlFor="phone">
-            <Input
-              type="tel"
-              id="phone"
-              placeholder="phone"
-              {...register("phone")}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="price_level" htmlFor="price_level">
-            <Controller
-              name="price_level"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  options={PRICE_LEVEL_OPTIONS}
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                  placeholder="price_level"
-                />
-              )}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="terms" htmlFor="terms">
-            <Controller
-              name="terms"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  options={TERMS_OPTIONS}
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                  placeholder="terms"
-                />
-              )}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="address_full" htmlFor="address_full">
-            <Input
-              type="text"
-              id="address_full"
-              placeholder="address_full"
-              {...register("address_full")}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="status" htmlFor="status" required>
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  options={STATUS_OPTIONS}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="status"
-                />
-              )}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="org_type" htmlFor="org_type">
-            <Controller
-              name="org_type"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  options={ORG_TYPE_OPTIONS}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="org_type"
-                />
-              )}
-            />
-          </HorizontalField>
-
-          <HorizontalField label="version" htmlFor="version">
-            <Input
-              type="number"
-              id="version"
-              placeholder="1"
-              {...register("version", { valueAsNumber: true })}
-            />
-          </HorizontalField>
-
-          <div className="flex items-center gap-1.5 py-1">
-            <div className="w-18 shrink-0" />
-            <Controller
-              name="is_active"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="is_active"
-                  checked={field.value ?? false}
-                  onChange={field.onChange}
-                  label="is_active"
-                />
-              )}
-            />
-          </div>
+      {/* Transaction-style Toolbar (edit/add mode) */}
+      {(mode === "edit" || mode === "add") && (
+        <div className="sticky top-0 z-20 mx-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+          <TransactionToolbar
+            transactionType="order"
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            isEditing
+            onSave={handleSubmit(async (fd) => {
+              await saveCustomer(fd);
+            })}
+            onSaveAndClose={
+              (inline ? !!onCancelInline : !!onCancel)
+                ? handleSubmit(async (fd) => {
+                    const ok = await saveCustomer(fd);
+                    if (ok) handleCancel();
+                  })
+                : undefined
+            }
+            onCancel={handleCancel}
+            canClone={false}
+            canTransfer={false}
+            canDelete={false}
+            showTaskButton={false}
+          />
         </div>
       )}
-    </div>
 
-    {/* Scrollable content: detail panels · transactions · items */}
-    <div className="flex-1 overflow-y-auto">
+      {/* Persistent Basic Information Panel - always visible in view mode */}
+      {/* In edit/add mode, show editable form fields instead */}
+      <div className="shrink-0 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+        {mode === "view" ? (
+          <BasicInformationPanel data={customerData} columns={columnCount} />
+        ) : (
+          /* Editable Basic Information - Horizontal Layout */
+          <div
+            className={`grid grid-cols-1 ${
+              columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+            } gap-x-6 gap-y-1`}
+          >
+            <HorizontalField
+              label="display_name"
+              htmlFor="display_name"
+              required
+              error={errors.display_name?.message}
+            >
+              <Input
+                type="text"
+                id="display_name"
+                placeholder="display_name"
+                {...register("display_name")}
+                error={
+                  errors.display_name && errors.display_name.message
+                    ? true
+                    : false
+                }
+              />
+            </HorizontalField>
 
-      {/* ── DetailTabs ────────────────────────────────────────── */}
-      <div>
-        <DetailTabs
-          entityType="customer"
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          standardTabs={['actions', 'comments', 'documents', 'raw']}
-          additionalTabs={additionalTabs}
-          badges={tabBadges}
-          showColumnSelector={true}
-          columnCount={columnCount}
-          onColumnCountChange={handleColumnChange}
-        />
-        <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="p-4">
-          {/* Standard Tabs - Comments */}
-          {activeTab === "comments" && (
-            <CommentsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              comments={data?.comments}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(comments) => {
-                // Update local state - in a real app this would update the form
-                console.log('Comments updated:', comments);
-              }}
-              currentUser={currentUser?.display_name || currentUser?.username}
-              currentUserId={currentUser?.id}
-            />
-          )}
+            <HorizontalField label="email" htmlFor="email">
+              <Input
+                type="email"
+                id="email"
+                placeholder="email"
+                {...register("email")}
+              />
+            </HorizontalField>
 
-          {/* Standard Tabs - Actions */}
-          {activeTab === "actions" && (
-            <ActionsPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data?.actions?.items}
-              actionIds={data?.actions?.ids}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(actions) => {
-                console.log('Actions updated:', actions);
-              }}
-            />
-          )}
+            <HorizontalField label="attention" htmlFor="attention">
+              <Input
+                type="text"
+                id="attention"
+                placeholder="attention"
+                {...register("attention")}
+              />
+            </HorizontalField>
 
-          {/* Standard Tabs - Documents */}
-          {activeTab === "documents" && (
-            <DocumentsPanel
-              parent_model="customer"
-              parentId={data?.id || 0}
-              data={data?.refs?.links?.document}
-              isEditing={mode !== "view" || isEditing}
-              onChange={(docs) => {
-                console.log('Documents updated:', docs);
-              }}
-            />
-          )}
+            <HorizontalField label="phone" htmlFor="phone">
+              <Input
+                type="tel"
+                id="phone"
+                placeholder="phone"
+                {...register("phone")}
+              />
+            </HorizontalField>
 
-          {/* Q&A tab */}
-          {activeTab === "qa" && (
-            <QAPanel
-              parent_model="customer"
-              parentId={data?.id || 0}
-              data={data?.qa}
-            />
-          )}
+            <HorizontalField label="price_level" htmlFor="price_level">
+              <Controller
+                name="price_level"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={PRICE_LEVEL_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="price_level"
+                  />
+                )}
+              />
+            </HorizontalField>
 
-          {/* Standard Tabs - Raw (Admin) */}
-          {activeTab === "raw" && (
-            <RawDataPanel
-              entityType="customer"
-              entityId={data?.id || 0}
-              data={data}
-            />
-          )}
+            <HorizontalField label="terms" htmlFor="terms">
+              <Controller
+                name="terms"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={TERMS_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="terms"
+                  />
+                )}
+              />
+            </HorizontalField>
 
-          {/* Model-Specific Tabs */}
-          {mode === "view" ? (
-            <>
-              {/* Contacts tab – ContactPanel (same as transactions) */}
-              {activeTab === "contacts" && (
-                <ContactPanel
-                  contacts={fkContacts}
-                  isEditing={false}
-                  loading={fkContactsLoading}
-                  allowCreate={true}
-                  parent_model="customer"
-                  parentId={customerData.id}
-                  customer_id={customerData.id}
-                  customer_name={customerData.display_name}
-                  primaryContactId={data?.contact_id}
-                  onSetPrimary={handleSetPrimary}
-                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                  onSaveSuccess={() => {
-                    // Bump the trigger to re-fetch FK contacts
-                    setFkRefreshTrigger((n) => n + 1);
-                    // Also refresh the parent record
-                    if (customerData.id) {
-                      getRecord("customer", customerData.id)
-                        .then((res: any) => {
-                          const rec = res?.record ?? res;
-                          if (rec) {
-                            setFetchedRecord(rec);
-                            Object.keys(rec).forEach((key) => {
-                              if (key in JSON_DEFAULTS) {
-                                setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
-                              } else {
-                                setValue(key as keyof CustomerFormValues, rec[key]);
-                              }
-                            });
-                          }
-                        })
-                        .catch(() => {});
-                    }
+            <HorizontalField label="address_full" htmlFor="address_full">
+              <Input
+                type="text"
+                id="address_full"
+                placeholder="address_full"
+                {...register("address_full")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="status" htmlFor="status" required>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={STATUS_OPTIONS}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="status"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="org_type" htmlFor="org_type">
+              <Controller
+                name="org_type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={ORG_TYPE_OPTIONS}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="org_type"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="version" htmlFor="version">
+              <Input
+                type="number"
+                id="version"
+                placeholder="1"
+                {...register("version", { valueAsNumber: true })}
+              />
+            </HorizontalField>
+
+            <div className="flex items-center gap-1.5 py-1">
+              <div className="w-18 shrink-0" />
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_active"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="is_active"
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable content: detail panels · transactions · items */}
+      <div className="flex-1 overflow-y-auto">
+        {/* ── DetailTabs ────────────────────────────────────────── */}
+        <div>
+          <DetailTabs
+            entityType="customer"
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            standardTabs={["actions", "comments", "documents", "raw"]}
+            additionalTabs={additionalTabs}
+            badges={tabBadges}
+            showColumnSelector={true}
+            columnCount={columnCount}
+            onColumnCountChange={handleColumnChange}
+          />
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="p-4">
+              {/* Standard Tabs - Comments */}
+              {activeTab === "comments" && (
+                <CommentsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  comments={data?.comments}
+                  isEditing={mode !== "view" || isEditing}
+                  onChange={(comments) => {
+                    // Update local state - in a real app this would update the form
+                    console.log("Comments updated:", comments);
+                  }}
+                  currentUser={
+                    currentUser?.display_name || currentUser?.username
+                  }
+                  currentUserId={currentUser?.id}
+                />
+              )}
+
+              {/* Standard Tabs - Actions */}
+              {activeTab === "actions" && (
+                <ActionsPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data?.actions?.items}
+                  actionIds={data?.actions?.ids}
+                  isEditing={mode !== "view" || isEditing}
+                  onChange={(actions) => {
+                    console.log("Actions updated:", actions);
                   }}
                 />
               )}
 
-              {/* Financial tab */}
-              {activeTab === "financial" && (
-                <OrgFinancialsPanel
-                  financial={customerData.financial}
-                  orgType="customer"
-                  currency="USD"
-                />
-              )}
-            </>
-          ) : (
-            /* Edit mode - JSON editors for model-specific tabs */
-            <div className="space-y-4">
-              {/* Contacts tab in edit mode */}
-              {activeTab === "contacts" && (
-                <ContactPanel
-                  contacts={fkContacts}
-                  isEditing={true}
-                  loading={fkContactsLoading}
-                  parent_model="customer"
-                  parentId={customerData.id}
-                  customer_id={customerData.id}
-                  customer_name={customerData.display_name}
-                  primaryContactId={data?.contact_id}
-                  onSetPrimary={handleSetPrimary}
-                  onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                  onChange={(newContacts) => {
-                    const currentRefs = safeParseJson(formData.refs as unknown as string | undefined, { links: {} });
-                    setValue(
-                      "refs" as keyof CustomerFormValues,
-                      JSON.stringify({
-                        ...currentRefs,
-                        links: { ...currentRefs.links, contact: newContacts },
-                      }, null, 2) as any,
-                      { shouldDirty: true },
-                    );
-                  }}
-                  onSaveSuccess={() => {
-                    setFkRefreshTrigger((n) => n + 1);
-                    if (customerData.id) {
-                      getRecord("customer", customerData.id)
-                        .then((res: any) => {
-                          const rec = res?.record ?? res;
-                          if (rec) {
-                            setFetchedRecord(rec);
-                            Object.keys(rec).forEach((key) => {
-                              if (key in JSON_DEFAULTS) {
-                                setValue(key as keyof CustomerFormValues, JSON.stringify(rec[key] ?? JSON_DEFAULTS[key], null, 2));
-                              } else {
-                                setValue(key as keyof CustomerFormValues, rec[key]);
-                              }
-                            });
-                          }
-                        })
-                        .catch(() => {});
-                    }
-                  }}
-                />
-              )}
-
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <SingleWindowSection title="Financial">
-                  <JsonFieldEditor
-                    label="financial"
-                    value={safeParseJson(
-                      formData.financial as unknown as string | undefined,
-                      JSON_DEFAULTS.financial,
-                    )}
-                    readonly={false}
-                    defaultExpanded
-                    maxHeight="300px"
-                    onChange={(val) => {
-                      setValue(
-                        "financial",
-                        JSON.stringify(val ?? JSON_DEFAULTS.financial, null, 2) as any,
-                        { shouldDirty: true, shouldValidate: true },
-                      );
-                    }}
-                  />
-                </SingleWindowSection>
-
-                <SingleWindowSection title="References">
-                  <RefsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data?.refs}
-                  />
-                </SingleWindowSection>
-              </div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <SingleWindowSection title="Comments">
-                  <CommentsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    comments={data?.comments}
-                    isEditing={true}
-                    onChange={(comments) => {
-                      console.log('Comments updated:', comments);
-                    }}
-                    currentUser={currentUser?.display_name || currentUser?.username}
-                    currentUserId={currentUser?.id}
-                  />
-                </SingleWindowSection>
-
-                <SingleWindowSection title="Actions">
-                  <ActionsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data?.actions?.items}
-                    actionIds={data?.actions?.ids}
-                    isEditing={true}
-                    onChange={(actions) => {
-                      console.log('Actions updated:', actions);
-                    }}
-                  />
-                </SingleWindowSection>
-              </div>
-
-              <SingleWindowSection title="Documents">
+              {/* Standard Tabs - Documents */}
+              {activeTab === "documents" && (
                 <DocumentsPanel
                   parent_model="customer"
                   parentId={data?.id || 0}
                   data={data?.refs?.links?.document}
-                  isEditing={true}
+                  isEditing={mode !== "view" || isEditing}
                   onChange={(docs) => {
-                    console.log('Documents updated:', docs);
+                    console.log("Documents updated:", docs);
                   }}
                 />
-              </SingleWindowSection>
+              )}
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <SingleWindowSection title="Preferences">
-                  <PrefsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data?.prefs}
-                  />
-                </SingleWindowSection>
+              {/* Q&A tab */}
+              {activeTab === "qa" && (
+                <QAPanel
+                  parent_model="customer"
+                  parentId={data?.id || 0}
+                  data={data?.qa}
+                />
+              )}
 
-                <SingleWindowSection title="Q&A">
-                  <QAPanel
-                    parent_model="customer"
-                    parentId={data?.id || 0}
-                    data={data?.qa}
-                  />
-                </SingleWindowSection>
-              </div>
+              {/* Standard Tabs - Raw (Admin) */}
+              {activeTab === "raw" && (
+                <RawDataPanel
+                  entityType="customer"
+                  entityId={data?.id || 0}
+                  data={data}
+                />
+              )}
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <SingleWindowSection title="Metadata">
-                  <MetadataPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data?.metadata}
-                    isEditing={false}
-                  />
-                </SingleWindowSection>
+              {/* Model-Specific Tabs */}
+              {mode === "view" ? (
+                <>
+                  {/* Contacts tab – ContactPanel (same as transactions) */}
+                  {activeTab === "contacts" && (
+                    <ContactPanel
+                      contacts={fkContacts}
+                      isEditing={false}
+                      loading={fkContactsLoading}
+                      allowCreate={true}
+                      parent_model="customer"
+                      parentId={customerData.id}
+                      customer_id={customerData.id}
+                      customer_name={customerData.display_name}
+                      primaryContactId={data?.contact_id}
+                      onSetPrimary={handleSetPrimary}
+                      onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
+                      onSaveSuccess={() => {
+                        // Bump the trigger to re-fetch FK contacts
+                        setFkRefreshTrigger((n) => n + 1);
+                        // Also refresh the parent record
+                        if (customerData.id) {
+                          getRecord("customer", customerData.id)
+                            .then((res: any) => {
+                              const rec = res?.record ?? res;
+                              if (rec) {
+                                setFetchedRecord(rec);
+                                Object.keys(rec).forEach((key) => {
+                                  if (key in JSON_DEFAULTS) {
+                                    setValue(
+                                      key as keyof CustomerFormValues,
+                                      JSON.stringify(
+                                        rec[key] ?? JSON_DEFAULTS[key],
+                                        null,
+                                        2,
+                                      ),
+                                    );
+                                  } else {
+                                    setValue(
+                                      key as keyof CustomerFormValues,
+                                      rec[key],
+                                    );
+                                  }
+                                });
+                              }
+                            })
+                            .catch(() => {});
+                        }
+                      }}
+                    />
+                  )}
 
-                <SingleWindowSection title="Raw Data">
-                  <RawDataPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data}
-                  />
-                </SingleWindowSection>
-              </div>
+                  {/* Financial tab */}
+                  {activeTab === "financial" && (
+                    <OrgFinancialsPanel
+                      financial={customerData.financial}
+                      orgType="customer"
+                      currency="USD"
+                    />
+                  )}
+                </>
+              ) : (
+                /* Edit mode - JSON editors for model-specific tabs */
+                <div className="space-y-4">
+                  {/* Contacts tab in edit mode */}
+                  {activeTab === "contacts" && (
+                    <ContactPanel
+                      contacts={fkContacts}
+                      isEditing={true}
+                      loading={fkContactsLoading}
+                      parent_model="customer"
+                      parentId={customerData.id}
+                      customer_id={customerData.id}
+                      customer_name={customerData.display_name}
+                      primaryContactId={data?.contact_id}
+                      onSetPrimary={handleSetPrimary}
+                      onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
+                      onChange={(newContacts) => {
+                        const currentRefs = safeParseJson(
+                          formData.refs as unknown as string | undefined,
+                          { links: {} },
+                        );
+                        setValue(
+                          "refs" as keyof CustomerFormValues,
+                          JSON.stringify(
+                            {
+                              ...currentRefs,
+                              links: {
+                                ...currentRefs.links,
+                                contact: newContacts,
+                              },
+                            },
+                            null,
+                            2,
+                          ) as any,
+                          { shouldDirty: true },
+                        );
+                      }}
+                      onSaveSuccess={() => {
+                        setFkRefreshTrigger((n) => n + 1);
+                        if (customerData.id) {
+                          getRecord("customer", customerData.id)
+                            .then((res: any) => {
+                              const rec = res?.record ?? res;
+                              if (rec) {
+                                setFetchedRecord(rec);
+                                Object.keys(rec).forEach((key) => {
+                                  if (key in JSON_DEFAULTS) {
+                                    setValue(
+                                      key as keyof CustomerFormValues,
+                                      JSON.stringify(
+                                        rec[key] ?? JSON_DEFAULTS[key],
+                                        null,
+                                        2,
+                                      ),
+                                    );
+                                  } else {
+                                    setValue(
+                                      key as keyof CustomerFormValues,
+                                      rec[key],
+                                    );
+                                  }
+                                });
+                              }
+                            })
+                            .catch(() => {});
+                        }
+                      }}
+                    />
+                  )}
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <SingleWindowSection title="Financial">
+                      <JsonFieldEditor
+                        label="financial"
+                        value={safeParseJson(
+                          formData.financial as unknown as string | undefined,
+                          JSON_DEFAULTS.financial,
+                        )}
+                        readonly={false}
+                        defaultExpanded
+                        maxHeight="300px"
+                        onChange={(val) => {
+                          setValue(
+                            "financial",
+                            JSON.stringify(
+                              val ?? JSON_DEFAULTS.financial,
+                              null,
+                              2,
+                            ) as any,
+                            { shouldDirty: true, shouldValidate: true },
+                          );
+                        }}
+                      />
+                    </SingleWindowSection>
+
+                    <SingleWindowSection title="References">
+                      <RefsPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        data={data?.refs}
+                      />
+                    </SingleWindowSection>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <SingleWindowSection title="Comments">
+                      <CommentsPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        comments={data?.comments}
+                        isEditing={true}
+                        onChange={(comments) => {
+                          console.log("Comments updated:", comments);
+                        }}
+                        currentUser={
+                          currentUser?.display_name || currentUser?.username
+                        }
+                        currentUserId={currentUser?.id}
+                      />
+                    </SingleWindowSection>
+
+                    <SingleWindowSection title="Actions">
+                      <ActionsPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        data={data?.actions?.items}
+                        actionIds={data?.actions?.ids}
+                        isEditing={true}
+                        onChange={(actions) => {
+                          console.log("Actions updated:", actions);
+                        }}
+                      />
+                    </SingleWindowSection>
+                  </div>
+
+                  <SingleWindowSection title="Documents">
+                    <DocumentsPanel
+                      parent_model="customer"
+                      parentId={data?.id || 0}
+                      data={data?.refs?.links?.document}
+                      isEditing={true}
+                      onChange={(docs) => {
+                        console.log("Documents updated:", docs);
+                      }}
+                    />
+                  </SingleWindowSection>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <SingleWindowSection title="Preferences">
+                      <PrefsPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        data={data?.prefs}
+                      />
+                    </SingleWindowSection>
+
+                    <SingleWindowSection title="Q&A">
+                      <QAPanel
+                        parent_model="customer"
+                        parentId={data?.id || 0}
+                        data={data?.qa}
+                      />
+                    </SingleWindowSection>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <SingleWindowSection title="Metadata">
+                      <MetadataPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        data={data?.metadata}
+                        isEditing={false}
+                      />
+                    </SingleWindowSection>
+
+                    <SingleWindowSection title="Raw Data">
+                      <RawDataPanel
+                        entityType="customer"
+                        entityId={data?.id || 0}
+                        data={data}
+                      />
+                    </SingleWindowSection>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </form>
         </div>
-        </form>
+
+        {/* ── TransactionTabs ────────────────────────────────────── */}
+        {!!customerData.id && (
+          <div>
+            <TransactionTabs orgType="customer" orgId={customerData.id!} />
+          </div>
+        )}
+
+        {/* ── ItemTabs ─────────────────────────────────────────── */}
+        {!!customerData.id && (
+          <div>
+            <ItemTabs orgType="customer" orgId={customerData.id!} />
+          </div>
+        )}
       </div>
-
-      {/* ── TransactionTabs ────────────────────────────────────── */}
-      {!!customerData.id && (
-        <div>
-          <TransactionTabs
-            orgType="customer"
-            orgId={customerData.id!}
-          />
-        </div>
-      )}
-
-      {/* ── ItemTabs ─────────────────────────────────────────── */}
-      {!!customerData.id && (
-        <div>
-          <ItemTabs
-            orgType="customer"
-            orgId={customerData.id!}
-          />
-        </div>
-      )}
-
     </div>
-  </div>
   );
 }

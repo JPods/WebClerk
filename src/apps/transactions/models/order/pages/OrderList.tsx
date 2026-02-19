@@ -21,7 +21,7 @@ type OrderStatus =
 
 type OrderRow = {
   id: number | string;
-  order_no?: string;
+  ida?: string;
   status?: string;
   customer_name?: string;
   id_customer?: string | number;
@@ -165,9 +165,7 @@ export default function OrderList() {
 
   const handle_delete = useCallback(
     async (row: any) => {
-      if (
-        window.confirm(`Delete order ${row.order_no}?`)
-      ) {
+      if (window.confirm(`Delete order ${row.ida}?`)) {
         try {
           await deleteAction(row.id);
           dispatch(
@@ -211,7 +209,7 @@ export default function OrderList() {
       },
       {
         name: "Order No",
-        selector: (row: OrderRow) => row.order_no || "--",
+        selector: (row: OrderRow) => row.ida || "--",
         sortable: true,
         width: "14%",
       },
@@ -240,14 +238,13 @@ export default function OrderList() {
       },
       {
         name: "Customer",
-        selector: (row: OrderRow) =>
-          row.customer_name || row.id_customer || "--",
+        selector: (row: OrderRow) => row.customer?.display_name || "--",
         sortable: true,
         width: "12%",
       },
       {
         name: "Vendor",
-        selector: (row: OrderRow) => row.vendor_name || row.id_vendor || "--",
+        selector: (row: OrderRow) => row.vendor?.display_name || "--",
         sortable: true,
         width: "12%",
       },
