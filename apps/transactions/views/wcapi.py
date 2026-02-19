@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from django.forms.models import model_to_dict
 import logging
+from django.db import IntegrityError
 from django.db.models import QuerySet, Model
 
 logger = logging.getLogger(__name__)
@@ -23,8 +24,22 @@ def to_dict(obj: Model) -> Dict[str, Any]:
         return data
 
 def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[str, Any]:
-    model_fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
-    return {k: v for k, v in (payload or {}).items() if k in model_fields}
+    """Filter payload to model fields, normalising FK names to attname."""
+    meta_fields = getattr(ModelCls._meta, "fields", [])
+    allowed: Dict[str, str] = {}
+    for f in meta_fields:
+        attname = getattr(f, "attname", None)
+        if attname and attname != f.name:
+            allowed[f.name] = attname
+            allowed[attname] = attname
+        else:
+            allowed[f.name] = f.name
+    result: Dict[str, Any] = {}
+    for k, v in (payload or {}).items():
+        canonical = allowed.get(k)
+        if canonical is not None:
+            result[canonical] = v
+    return result
 
 def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
     """Enforce role/tenant/publish/reserved constraints based on Settings.
@@ -201,6 +216,26 @@ class WCAPITransactionSaveView(APIView):
             result['recalculated_totals'] = {
                 k: float(v) for k, v in recalc_totals.items()
             }
+
+            # Re-fetch the full saved record so the frontend gets a complete
+            # Transaction object (with all fields & nested lines).
+            saved_id = result.get('header', {}).get('id')
+            if saved_id is not None:
+                try:
+                    from apps.core.services.wcapi import get_item
+                    saved_obj = get_item(model_key.lower(), request=request, id=saved_id)
+                    if saved_obj is not None:
+                        record_dict = to_dict(saved_obj)
+                        # Attach lines
+                        line_model_key = f"{model_key.lower()}line"
+                        from apps.core.utils import registry
+                        LineModel = registry.resolve(line_model_key)
+                        if LineModel is not None:
+                            line_qs = LineModel.objects.filter(parent_id=saved_id).order_by('id')
+                            record_dict['lines'] = [to_dict(ln) for ln in line_qs]
+                        result['record'] = record_dict
+                except Exception as fetch_err:
+                    logger.warning("Failed to re-fetch saved record %s: %s", saved_id, fetch_err)
             
             return Response(result, status=status.HTTP_200_OK)
             
@@ -228,6 +263,14 @@ class WCAPITransactionSaveView(APIView):
                 {"detail": str(e)},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        except IntegrityError as e:
+            logger = logging.getLogger(__name__)
+            logger.warning("Transaction save integrity error: %s", e)
+            return Response({
+                "detail": "Integrity error",
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
             logger = logging.getLogger(__name__)

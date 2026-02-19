@@ -315,6 +315,10 @@ def save_transaction_with_lines(
         header_clean = filter_input_fields(HeaderModel, header_data)
         # Remove internal flags
         header_clean.pop('_dirty', None)
+        # Never create records with explicit id=0 or id=None;
+        # let the database auto-generate the primary key.
+        if not header_id:
+            header_clean.pop('id', None)
         
         if header_id:
             header_obj = HeaderModel.objects.select_for_update().get(pk=header_id)
