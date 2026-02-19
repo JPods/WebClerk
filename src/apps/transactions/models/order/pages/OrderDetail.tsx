@@ -76,8 +76,8 @@ const OrderHeader: React.FC<{
   // State for Add Payment modal
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
-  // Extract customer info from refs.links
-  const customerInfo = data.refs?.links?.customer?.[0];
+  // Extract customer info from refs.links (customer is a dict, not an array)
+  const customerInfo = data.refs?.links?.customer;
   const billingContact = data.refs?.links?.contact?.find(
     (c) => c.purpose === "billto",
   );
@@ -110,6 +110,7 @@ const OrderHeader: React.FC<{
         shippingContact={shippingContact}
         showPayments={true}
         onAddPayment={() => setShowAddPaymentModal(true)}
+        orgLinks={data.refs?.links}
       />
 
       {/* Add Payment Modal */}
@@ -118,7 +119,7 @@ const OrderHeader: React.FC<{
         onClose={() => setShowAddPaymentModal(false)}
         order_id={data.id || 0}
         contact_id={paymentContactId ? Number(paymentContactId) : null}
-        customer_name={customerInfo?.display_name}
+        customer_name={customerInfo?.company || customerInfo?.display_name}
         orderTotal={data.totals?.total ?? data.total}
         onPaymentAdded={() => {
           setShowAddPaymentModal(false);
