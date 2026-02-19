@@ -1,9 +1,9 @@
 /**
  * PurchaseDetail - Refactored to use TransactionDetailBase
- * Extends base with purchase-specific fields and functionality
+ * Extends base with purchase-specific fields and SummaryCard
  */
 import React, { useCallback } from 'react';
-import { 
+import {
   FaShoppingBag,
   FaTruck,
   FaCheck,
@@ -15,8 +15,13 @@ import {
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import SummaryCard from '../../../components/SummaryCard';
 import LinesCard from '../../../components/LinesCard';
-import FieldLabel from '../../../components/FieldLabel';
-import { VendorSelector } from '../../../components/PartySelector';
+import TransactionItemSearch, {
+  resolveItemCode,
+  resolveItemDescription,
+  resolveUnitPrice,
+  resolveUnitCost,
+} from '../../../components/TransactionItemSearch';
+import type { ItemSearchResult } from '../../../components/TransactionItemSearch';
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
@@ -39,23 +44,6 @@ interface Purchase extends Transaction {
   total?: number;
 }
 
-// Status Badge Component
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  const statusStyles: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-    approved: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    received: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    closed: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-  };
-
-  return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusStyles[status ?? 'draft'] ?? statusStyles.draft}`}>
-      {status?.replace('_', ' ') ?? 'draft'}
-    </span>
-  );
-};
-
 // Utility functions
 const formatCurrency = (value?: number | null): string => {
   if (value === undefined || value === null) return '--';
@@ -66,7 +54,7 @@ const formatCurrency = (value?: number | null): string => {
   }).format(value);
 };
 
-// Custom Purchase Header Component
+// Custom Purchase Header Component using SummaryCard
 const PurchaseHeader: React.FC<{
   data: Purchase;
   isEditing: boolean;
@@ -74,198 +62,18 @@ const PurchaseHeader: React.FC<{
 }> = ({ data, isEditing, onChange }) => {
   // Extract vendor info from refs.links
   const vendorInfo = data.refs?.links?.vendor?.[0];
-
   return (
-    <div className="space-y-6">
-      {/* Purchase Order Header Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: PO Details */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaShoppingBag className="text-blue-500" />
-            Purchase Order Details
-          </h3>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <FieldLabel label="PO No" mandatory locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? data.purchase_no ?? '--'}</dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? '--'}</dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.dt ? new Date(data.dt).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('dt', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Due Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('due_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Terms" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="text"
-                  value={data.terms ?? ''}
-                  onChange={(e) => onChange('terms', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">{data.terms ?? '--'}</dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
-              <dd>
-                <StatusBadge status={data.status} />
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {/* Middle: Vendor Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaTruck className="text-green-500" />
-            Vendor Information
-          </h3>
-          {isEditing && onChange && (
-            <div className="mb-4">
-              <VendorSelector value={data.id_vendor ?? null} onChange={(p)=>onChange('id_vendor', p?.id ?? null)} />
-            </div>
-          )}
-          {vendorInfo ? (
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <FieldLabel label="Vendor" className="text-slate-500 dark:text-slate-400" />
-                <dd className="text-slate-900 dark:text-white font-medium">{vendorInfo.name ?? '--'}</dd>
-              </div>
-              {vendorInfo.contact && (
-                <div className="flex justify-between">
-                  <FieldLabel label="Contact" className="text-slate-500 dark:text-slate-400" />
-                  <dd className="text-slate-900 dark:text-white">{vendorInfo.contact}</dd>
-                </div>
-              )}
-              {vendorInfo.phone && (
-                <div className="flex justify-between">
-                  <FieldLabel label="Phone" className="text-slate-500 dark:text-slate-400" />
-                  <dd className="text-slate-900 dark:text-white">{vendorInfo.phone}</dd>
-                </div>
-              )}
-            </dl>
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400 italic">No vendor assigned</p>
-          )}
-        </div>
-
-        {/* Right: Receiving Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaTruck className="text-purple-500" />
-            Receiving Information
-          </h3>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Receipt ID" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="text"
-                  value={data.receipt_id ?? ''}
-                  onChange={(e) => onChange('receipt_id', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">{data.receipt_id ?? '--'}</dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Vendor Pack List" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="text"
-                  value={data.vendor_pack_list ?? ''}
-                  onChange={(e) => onChange('vendor_pack_list', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">{data.vendor_pack_list ?? '--'}</dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Pack Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.vendor_pack_date ? new Date(data.vendor_pack_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('vendor_pack_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.vendor_pack_date ? new Date(data.vendor_pack_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel label="Ship Date" className="text-slate-500 dark:text-slate-400" />
-              {isEditing && onChange ? (
-                <input
-                  type="date"
-                  value={data.ship_date ? new Date(data.ship_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => onChange('ship_date', e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.ship_date ? new Date(data.ship_date).toLocaleDateString() : '--'}
-                </dd>
-              )}
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Order Totals Summary */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
-        <div className="grid grid-cols-3 gap-8 text-center">
-          <div>
-            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Subtotal</dt>
-            <dd className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.subtotal)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Tax</dt>
-            <dd className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.tax)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Total</dt>
-            <dd className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(data.total)}</dd>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SummaryCard
+      data={data}
+      isEditing={isEditing}
+      onChange={onChange}
+      customerInfo={vendorInfo}
+      transactionLabel="Purchase Order"
+      documentNoLabel="PO No"
+      dueDateLabel="Due Date"
+      showShipping={true}
+      showCostMargin={true}
+    />
   );
 };
 
