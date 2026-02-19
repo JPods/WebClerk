@@ -228,9 +228,11 @@ for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
     register_line_inventory_signals(_model, _parent, _key, _txn)
     register_line_header_links(_model, _parent, _link)
 
-# ProposalLine also triggers parent totals recalculation.
-# TODO: Wire totals signals for OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine.
+# Line types that auto-recalculate parent header totals on save/delete.
+# (Previously only ProposalLine was wired; OrderLine added Feb 2026.)
+# TODO: Wire totals signals for InvoiceLine, PurchaseLine, WorkOrderLine.
 register_line_totals_signals(ProposalLine, 'parent')
+register_line_totals_signals(OrderLine, 'order')
 
 
 # =============================================================================
