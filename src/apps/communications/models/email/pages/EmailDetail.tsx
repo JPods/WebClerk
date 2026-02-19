@@ -28,6 +28,7 @@ import { FaEdit, FaEnvelope } from "react-icons/fa";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import DropDown from "@/components/form/input/DropDown";
+import { DevBadge } from '@/components/common/DevBadge';
 import Checkbox from "@/components/form/input/Checkbox";
 
 // Column count
@@ -360,9 +361,7 @@ export default function EmailDetail({
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
-                Email
-              </span>
+              <DevBadge label="Email" className="mr-2" />
               {displayName}
               {activeEmailId && (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">

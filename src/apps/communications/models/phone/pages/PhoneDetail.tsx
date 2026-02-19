@@ -28,6 +28,7 @@ import { FaEdit, FaPhone } from "react-icons/fa";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Checkbox from "@/components/form/input/Checkbox";
+import { DevBadge } from '@/components/common/DevBadge';
 
 // Tab navigation
 import {
@@ -333,9 +334,7 @@ export default function PhoneDetail({
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-              <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300 rounded">
-                Phone
-              </span>
+              <DevBadge label="Phone" variant="teal" className="mr-2" />
               {displayName}
               {activePhoneId && (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">

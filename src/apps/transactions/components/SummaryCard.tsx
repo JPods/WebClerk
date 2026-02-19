@@ -1,7 +1,7 @@
 import React from "react";
 import FieldLabel from "../components/FieldLabel";
 import { Input, DropDown } from "../../../components/wrapper";
-import CustomerSalesPanel, { type CustomerSelectionData } from "./CustomerSalesPanel";
+import CustomerSalesPanel, { type CustomerSelectionData, type OrgLinkSnapshot } from "./CustomerSalesPanel";
 
 // Inline StatusBadge (copied from OrderDetail)
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
@@ -55,6 +55,8 @@ interface SummaryCardProps {
   useCustomerSalesPanel?: boolean;
   /** Callback when customer is selected via CustomerSalesPanel - transfers terms/price_level */
   onCustomerSelect?: (data: CustomerSelectionData | null) => void;
+  /** Denormalized org snapshots from refs.links */
+  orgLinks?: { customer?: OrgLinkSnapshot | null; vendor?: OrgLinkSnapshot | null; manufacturer?: OrgLinkSnapshot | null };
 }
 // Utility functions
 const formatCurrency = (value?: number | null): string => {
@@ -88,6 +90,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   onAddPayment,
   useCustomerSalesPanel = true,
   onCustomerSelect,
+  orgLinks,
 }) => {
   // Handle customer selection from CustomerSalesPanel
   const handleCustomerSelect = (selectionData: CustomerSelectionData | null) => {
@@ -387,6 +390,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             showFinancials={true}
             title="Customer"
             className="h-full"
+            initialData={orgLinks?.customer ?? null}
           />
         ) : (
           <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">

@@ -3,6 +3,7 @@ import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import RippleLoader from "@/components/common/RippleLoader";
+import { DevBadge } from "@/components/common/DevBadge";
 
 interface BaseOrgModelDisplayProps {
   inline?: boolean;
@@ -85,7 +86,7 @@ export default function BaseOrgModelDisplay({
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
-        <span className="mr-2 px-1.5 py-0.5 text-[10px] font-mono font-normal tracking-wide uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">BaseOrgModelDisplay</span>
+        <DevBadge label="BaseOrgModelDisplay" className="mr-2" />
         {modeProp === "add" ? "Add Base Org Model" : modeProp === "edit" ? "Edit Base Org Model" : "View Base Org Model"}
       </h2>
       <div className="grid grid-cols-2 gap-4">

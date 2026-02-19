@@ -99,6 +99,7 @@ const MODEL_NAME_MAP: Record<string, string> = {
   glaccount: "gl_account",
   gljournal: "gl_journal",
   ledger: "ledger",
+  payment: "payment",
   taxjurisdiction: "tax_jurisdiction",
   term: "term",
 
