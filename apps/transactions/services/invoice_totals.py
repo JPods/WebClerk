@@ -61,11 +61,19 @@ def compute_invoice_sell_cost_totals(invoice) -> Dict[str, Dict[str, float]]:
     margin = total_amt - total_cost
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
+    # Build the full default_totals() structure so every key is present.
     totals = {
+        "subtotal": float(sell_goods),
+        "discount": float(sell_discount),
+        "taxable": float(sell_goods - sell_discount),
+        "tax": 0.0,
+        "shipping": 0.0,
+        "other": 0.0,
         "total": float(total_amt),
         "cost": float(total_cost),
         "margin": float(margin),
         "margin_pc": float(margin_pc) if margin_pc is not None else None,
-        "received": None, "balance": None,
+        "received": None,
+        "balance": None,
     }
     return {"sell": sell, "cost": cost, "totals": totals}

@@ -72,7 +72,14 @@ def compute_purchase_sell_cost_totals(purchase) -> Dict[str, Dict[str, float]]:
     margin = total_amt - total_cost  # Usually 0 for PO
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
+    # Build the full default_totals() structure so every key is present.
     totals = {
+        "subtotal": 0.0,           # Purchases have no sell-side subtotal
+        "discount": 0.0,
+        "taxable": 0.0,
+        "tax": float(cost_tax),    # PO tax comes from cost side
+        "shipping": float(cost_shipping),
+        "other": 0.0,
         "total": float(total_cost),  # PO total is the cost
         "cost": float(total_cost),
         "margin": float(margin),
