@@ -69,6 +69,62 @@ type Transaction = TransactionBase & {
   due_date?: string; // Due date
 };
 
+function normalizeFkId(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.id;
+    if (typeof nested === "number" && Number.isFinite(nested)) return nested;
+    if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) {
+      return Number(nested);
+    }
+  }
+  return null;
+}
+
+function normalizeTransactionFkFields<T extends Record<string, any>>(input: T): T {
+  if (!input || typeof input !== "object") return input;
+  const out: T = { ...(input as any) };
+
+  const setIfMissing = (targetField: string, ...candidates: unknown[]) => {
+    const existing = normalizeFkId((out as any)[targetField]);
+    if (existing && existing > 0) return;
+    for (const candidate of candidates) {
+      const normalized = normalizeFkId(candidate);
+      if (normalized && normalized > 0) {
+        (out as any)[targetField] = normalized;
+        return;
+      }
+    }
+  };
+
+  // WCAPI may return FK fields without the _id suffix (e.g. "customer")
+  // or legacy fields (e.g. "id_customer"). Normalize to *_id so UI + save path agree.
+  setIfMissing("customer_id", out.customer_id, out.customer, out.id_customer);
+  setIfMissing("vendor_id", out.vendor_id, out.vendor, out.id_vendor);
+  setIfMissing("manufacturer_id", out.manufacturer_id, out.manufacturer, out.id_manufacturer);
+  setIfMissing("contact_id", out.contact_id, out.contact, out.id_contact);
+  setIfMissing("terms_id", out.terms_id, out.terms_fk, out.terms);
+
+  return out;
+}
+
+function stripTransactionFkAliases<T extends Record<string, any>>(input: T): T {
+  const out: T = { ...(input as any) };
+  // Remove ambiguous alias fields so we don't send both "customer" and "customer_id".
+  // Keep *_ida and other scalar fields.
+  delete (out as any).customer;
+  delete (out as any).vendor;
+  delete (out as any).manufacturer;
+  delete (out as any).contact;
+  delete (out as any).terms_fk;
+  return out;
+}
+
 // Tab definition
 export interface TransactionTab {
   id: string;
@@ -463,8 +519,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     // If dataProp is provided AND we haven't used it yet AND refreshKey is 0 (initial load)
     // use dataProp directly instead of fetching
     if (dataProp && !initialDataPropUsed && refreshKey === 0) {
-      setData(dataProp);
-      setEditData(dataProp);
+      const normalized = normalizeTransactionFkFields(dataProp as any);
+      setData(normalized);
+      setEditData(normalized);
       setLoading(false);
       setInitialDataPropUsed(true);
       return;
@@ -488,8 +545,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           result = apiResult.record ?? apiResult;
         }
 
-        setData(result);
-        setEditData(result);
+        const normalized = normalizeTransactionFkFields(result as any);
+        setData(normalized);
+        setEditData(normalized);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load data");
       } finally {
@@ -590,7 +648,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const handleEdit = () => {
     if (data && canEdit(data)) {
       // Always initialize editData with the latest data (including comments)
-      setEditData({ ...data });
+      setEditData(normalizeTransactionFkFields({ ...(data as any) }));
       setIsEditing(true);
     }
   };
@@ -612,7 +670,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     // Ensure id is included in payload for updates (omit falsy ids for new records)
     const rawId = data?.id;
     const payloadWithId = {
-      ...editData,
+      ...stripTransactionFkAliases(normalizeTransactionFkFields(editData as any)),
       ...(rawId ? { id: rawId } : { id: undefined }),
     };
 
@@ -623,7 +681,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       ? await saveTransactionWithLines(modelName, payloadWithId)
       : await saveRecord(modelName, payloadWithId);
 
-    return apiResult.record ?? apiResult;
+    return normalizeTransactionFkFields((apiResult.record ?? apiResult) as any);
   }, [editData, saveData, modelName, data?.id]);
 
   const handleSave = useCallback(async () => {
@@ -635,8 +693,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       const result = await performSave();
       if (!result) return;
 
-      setData(result); // Update view state
-      setEditData(result); // Update edit state
+      const normalized = normalizeTransactionFkFields(result as any);
+      setData(normalized); // Update view state
+      setEditData(normalized); // Update edit state
       setIsEditing(false);
       setHasUnsavedChanges(false);
       dispatch(
@@ -1253,7 +1312,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             isEditing={isEditing}
             onChange={handleFieldChange}
             priceLable={priceLable}
-            customerInfo={currentData.refs?.links?.customer}
+            customerInfo={currentData.refs?.links?.customer?.[0]}
             billingContact={currentData.refs?.links?.contact?.find(
               (c) => c.purpose === "billto",
             )}
@@ -1364,7 +1423,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="pb-8 overflow-y-scroll max-h-[400px]">
+      <div className="pb-8 overflow-y-scroll max-h-100">
         {renderTabContent()}
       </div>
 

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form"; from "../../../../components/common/ComponentCard";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import ComponentCard from "../../../../components/common/ComponentCard";
 import SimpleDetailHeader from "../../../../components/common/SimpleDetailHeader";
 import SimpleDetailToolbar from "../../../../components/common/SimpleDetailToolbar";
 import Label from "../../../../components/form/Label";
