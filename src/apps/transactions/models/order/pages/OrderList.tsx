@@ -237,20 +237,30 @@ export default function OrderList() {
         ),
       },
       {
-        name: "Customer",
-        selector: (row: OrderRow) =>
-          row.refs?.links?.customer?.attention ||
-          row.refs?.links?.customer?.email ||
-          "--",
+        name: "display_name",
+        selector: (row: OrderRow) => row.refs?.links?.customer?.display_name || "-fix-",
         sortable: true,
         width: "20%",
       },
       {
-        name: "Vendor",
-        selector: (row: OrderRow) => row.vendor?.display_name || "--",
+        name: "attention",
+        selector: (row: OrderRow) => row.refs?.links?.customer?.attention || "-fix-",
         sortable: true,
         width: "20%",
       },
+      {
+        name: "email",
+        selector: (row: OrderRow) => row.refs?.links?.customer?.email || "-fix-",
+        sortable: true,
+        width: "20%",
+      },
+      {
+        name: "phone",
+        selector: (row: OrderRow) => row.refs?.links?.customer?.phone || "-fix-",
+        sortable: true,
+        width: "20%",
+      },
+    
       {
         name: "Total Amount",
         selector: (row: OrderRow) => row.total || row.total_amount || 0,
@@ -464,29 +474,33 @@ export default function OrderList() {
                 key={`${selectedOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
-                dataProp={
-                  formMode === "add"
-                    ? null
-                    : selectedOrder
-                    ? {
-                        ...selectedOrder,
-                        id:
-                          typeof selectedOrder.id === "string"
-                            ? Number(selectedOrder.id)
-                            : selectedOrder.id,
-                        customer_id:
-                          selectedOrder.customer_id ??
-                          selectedOrder.id_customer ??
-                          "",
-                        vendor_id:
-                          selectedOrder.vendor_id ??
-                          selectedOrder.id_vendor ??
-                          "",
-                        manufacturer_id: selectedOrder.manufacturer_id ?? "",
-                        status: (selectedOrder.status ?? "draft") as any, // Cast to 'any' to satisfy TransactionStatus
+                      dataProp={
+                      formMode === "add"
+                        ? null
+                        : selectedOrder
+                        ? {
+                            ...selectedOrder,
+                            id:
+                              typeof selectedOrder.id === "string"
+                                ? Number(selectedOrder.id)
+                                : selectedOrder.id,
+                            customer_id:
+                              selectedOrder.customer_id ??
+                              selectedOrder.id_customer ??
+                              "",
+                            vendor_id:
+                              selectedOrder.vendor_id ??
+                              selectedOrder.id_vendor ??
+                              "",
+                            manufacturer_id: selectedOrder.manufacturer_id ?? "",
+                            status: (selectedOrder.status ?? "draft") as any,
+                            dt_created:
+                              typeof selectedOrder.dt_created === "number"
+                                ? String(selectedOrder.dt_created)
+                                : selectedOrder.dt_created,
+                          }
+                        : null
                       }
-                    : null
-                }
                 onSaved={handleFormSaved}
               />
             )}
