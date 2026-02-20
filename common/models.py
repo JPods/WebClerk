@@ -326,53 +326,10 @@ def default_refs() -> dict:
     }
 
 
-# Denormalization fields for links - maps model name to list of fields to include when denormalizing
-LINK_DENORMALIZE_FIELDS = {
-    "email": ["id", "email", "name", "type", "is_primary"],
-    "contact": ["id", "attention", "company", "email", "name_first", "name_last", "title", "role"],
-    "phone": ["id", "number", "format", "name"],
-    "address": ["id", "address1", "city", "state", "zip", "country", "full"],
-    "item": ["id", "name", "sku", "description", "kind", "uom"],
-    "domain": ["id", "path", "type"],
-    "orgbase": ["id", "company", "org_type", "status"],
-    "currency": ["id", "code", "name", "symbol"],
-    "term": ["id", "name"],
-    "glaccount": ["id", "account_credit"],
-    "taxjurisdiction": ["id", "name", "code"],
-    "exchangerate": ["id", "from_currency", "to_currency", "rate"],
-    "paymentmethod": ["id", "name", "type"],
-    "paymentterm": ["id", "name", "terms"],
-    "project": ["id", "name", "status"],
-    "catalog": ["id", "name", "code", "currency"],
-    "warehouse": ["id", "name", "code"],
-    "connection": ["id", "name", "type"],
-    "bundle": ["id", "name"],
-    "notification": ["id", "name"],
-    "setting": ["id", "name"],
-    "report": ["id", "name"],
-    "template": ["id", "purpose"],
-    "action": ["id", "name"],
-    "auditlog": ["id", "action"],
-    "document": ["id", "name", "type"],
-    "tag": ["id", "name"],
-    "linkage": ["id", "name"],
-    "questionanswer": ["id", "question"],
-    "seriallog": ["id", "serial_number"],
-    "inventorycheck": ["id", "name"],
-    "deliveryvisit": ["id", "status"],
-    "purchasereceipt": ["id", "receipt_number"],
-    "paymentapplication": ["id", "amount_applied"],
-    "projectassociation": ["id", "project_id"],
-    "inventoryreservation": ["id", "quantity_reserved"],
-    "inventoryadjustmentprocessor": ["id", "status"],
-    "inventorymetricssnapshot": ["id", "snapshot_date"],
-    "pendinginventoryadjustment": ["id", "adjustment_type"],
-    "variant": ["id", "name"],
-    "billofmaterial": ["id", "parent_item_id"],
-    "service": ["id", "name"],
-    "campaign": ["id", "name"],
-    "support": ["id", "name"],
-}
+# Denormalization fields for links — single source of truth lives in common.denorm_registry.
+# This dict is populated from the registry so legacy callers keep working.
+from common.denorm_registry import DENORM_REGISTRY as _DENORM_REGISTRY  # noqa: E402
+LINK_DENORMALIZE_FIELDS = {k: list(v) for k, v in _DENORM_REGISTRY.items()}
 
 
 def default_prefs() -> dict:

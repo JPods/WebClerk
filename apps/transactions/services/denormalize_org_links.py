@@ -34,8 +34,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Fields copied from OrgBase into refs.links.<role>
-ORG_LINK_FIELDS = ("id", "display_name", "address_full", "email", "phone", "attention")
+# Fields copied from OrgBase into refs.links.<role>  (single source of truth: common.denorm_registry)
+from common.denorm_registry import get_org_denorm_fields as _get_org_fields
+ORG_LINK_FIELDS = tuple(_get_org_fields())
 
 # Which transaction types treat which role as "primary" (always captured)
 # and which roles are "optional" (captured only when FK is set).
@@ -52,7 +53,8 @@ def _snapshot_org(org: "Model") -> Dict[str, Any]:
     for field in ORG_LINK_FIELDS:
         val = getattr(org, field, None)
         if field == "display_name":
-            # Expose as "company" for frontend consistency
+            # Keep display_name AND expose as "company" for frontend consistency
+            snap["display_name"] = val or ""
             snap["company"] = val or ""
         else:
             snap[field] = val
