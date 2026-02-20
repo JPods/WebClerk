@@ -16,7 +16,10 @@ Traditional REST APIs create endpoints per model (`/api/invoices/`, `/api/contac
 |------------------|---------------|
 | `/api/invoices/` | `/wcapi/get/?model_name=invoice` |
 | `/api/contacts/` | `/wcapi/get/?model_name=contact` |
+| `/api/core/contacts/list` | `/wcapi/get/?model_name=contact` |
 | `/api/invoices/123/` | `/wcapi/get/?model_name=invoice&id=123` |
+| `/api/transactions/invoices/123/` | `/wcapi/get/?model_name=invoice&id=123` |
+
 
 **Benefits:**
 - **Security**: Single entry point for all write operations - easier to audit and protect
@@ -64,6 +67,36 @@ All responses follow a standard envelope structure:
 ```
 
 See [api_response_envelope.md](api_response_envelope.md) for detailed documentation.
+
+## Related Files
+
+### Backend (webClerk3)
+
+| File | Purpose |
+|------|---------|
+| `common/middleware/rest_redirect.py` | Server-side middleware — intercepts `/api/…` REST calls and 301-redirects to `/wcapi/` |
+| `tests/test_rest_redirect.py` | 46 tests covering path parsing, URL construction, and redirect behaviour |
+| `apps/core/services/wcapi_registry.py` | Runtime model registry used by wcapi views |
+| `apps/core/views/wcapi.py` | `WCAPIGetView`, `WCAPIDeleteView` |
+| `apps/core/views/save_view.py` | `SaveWcapiView` (create / update) |
+| `webclerk3_api/urls.py` | URL routing — mounts `/api/` REST endpoints and `/wcapi/` gateway |
+
+### Frontend (React2025)
+
+| File | Purpose |
+|------|---------|
+| `src/api/restToWcapi.ts` | Client-side REST→wcapi converter (mirrors the server middleware) |
+| `src/api/modelNameResolver.ts` | Canonical model-name resolution for wcapi calls |
+| `src/pages/tools/WhitelistTester.tsx` | Interactive API tester with REST + wcapi presets |
+| `readmes/api-migration-rest-to-wcapi.md` | Migration tracker — REST→wcapi file audit and status |
+
+### Swagger / OpenAPI
+
+| URL | Description |
+|-----|-------------|
+| `/wcapi/swagger/` | wcapi schema (Swagger UI) |
+| `/wcapi/redoc/` | wcapi schema (ReDoc) |
+| `/admin/swagger/` | Admin / DRF REST schema |
 
 ## Next Steps
 

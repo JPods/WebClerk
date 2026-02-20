@@ -19,6 +19,7 @@ from common.middleware.envelope import AutoEnvelopeMiddleware
 from common.middleware.exceptions import ExceptionAsJsonMiddleware
 from common.middleware.rendering import EnsureRenderedMiddleware
 from common.middleware.security import WriteGateMiddleware
+from common.middleware.rest_redirect import RestToWcapiMiddleware
 from common.middleware.helpers import ENVELOPE_SKIPS  # noqa: F401 – used by tests
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "ExceptionAsJsonMiddleware",
     "EnsureRenderedMiddleware",
     "WriteGateMiddleware",
+    "RestToWcapiMiddleware",
     "ENVELOPE_SKIPS",
 ]
