@@ -20,7 +20,7 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -1320,6 +1320,23 @@ export default function ContactDetail({
     formGetValuesRef.current = (name: string) => (getValues as any)(name);
   }, [getValues]);
 
+  // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
+  const watchedFirstName = useWatch({ control, name: "name_first" });
+  const watchedLastName = useWatch({ control, name: "name_last" });
+  useEffect(() => {
+    if (!isEditing) return;
+    const next = [watchedFirstName, watchedLastName]
+      .map((v) => String(v || "").trim())
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const current = String(getValues("attention") || "");
+    if (current !== next) {
+      setValue("attention", next, { shouldDirty: false, shouldValidate: false });
+    }
+  }, [isEditing, watchedFirstName, watchedLastName, getValues, setValue]);
+
   // Sync form when data loads
   useEffect(() => {
     if (!data) {
@@ -2159,9 +2176,9 @@ export default function ContactDetail({
                   <Input
                     type="text"
                     id="attention"
-                    placeholder="Attention / display name"
+                    placeholder="Auto from first + last"
                     {...register("attention")}
-                    disabled={isFieldDisabled("attention")}
+                    disabled
                   />
                 </HorizontalField>
               )}
