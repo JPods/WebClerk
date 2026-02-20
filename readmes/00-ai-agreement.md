@@ -158,7 +158,7 @@ When starting a session, share this context:
 
 - JSONB fields (`metadata`, `refs`, `prefs`, `comments`) allow schema evolution without migrations
 - `TransactionBaseModel` extends `BaseModel` with transaction-specific fields (totals, status, flow)
-- Line items follow `{Header}Line` naming (e.g., `InvoiceLine`, `SalesOrderLine`)
+- Line items follow `{Header}Line` naming (e.g., `InvoiceLine`, `OrderLine`)
 - Soft deletes via `LifecycleMixin` - records are archived, not destroyed
 
 ### Common Pitfalls

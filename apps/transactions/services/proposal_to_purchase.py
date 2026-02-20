@@ -18,7 +18,7 @@ def transfer_proposal_to_purchase(
     purchase_status: str = "open",
     preserve_proposal: bool = True,
 ) -> Dict:
-    qs = ProposalLine.objects.select_for_update().filter(parent=proposal)
+    qs = ProposalLine.objects.select_for_update().filter(proposal=proposal)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:
@@ -58,7 +58,7 @@ def transfer_proposal_to_purchase(
 
     return {
         "success": True,
-        "purchase_order_id": po.id,
+        "purchase_id": po.id,
         "proposal_id": proposal.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,

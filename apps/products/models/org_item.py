@@ -77,8 +77,8 @@ class OrgItem(ItemLinkedBase):
       - `description` can hold planogram, merchandising, pricing notes, etc.
     """
 
-    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name="org_items")
-    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, blank=True, null=True, related_name="org_items", help_text="Optional catalog / channel context scoping this association")
+    orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name="org_items", db_column='orgbase_id')
+    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, blank=True, null=True, related_name="org_items", db_column='catalog_id', help_text="Optional catalog / channel context scoping this association")
     item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this org item")
     description = models.CharField(max_length=255, blank=True, help_text="Description for this org item")
 

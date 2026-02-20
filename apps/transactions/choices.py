@@ -15,11 +15,11 @@ TRANSACTION_STATUS_CHOICES: Final[ChoiceList] = (
     ("canceled", "Canceled"),
 )
 
-TRANSACTION_PARENT_TYPE_CHOICES: Final[ChoiceList] = (
+TRANSACTION_PARENT_MODEL_CHOICES: Final[ChoiceList] = (
     ("proposal", "Proposal"),
-    ("sales_order", "Sales Order"),
+    ("order", "Order"),
     ("invoice", "Invoice"),
-    ("purchase_order", "Purchase Order"),
+    ("purchase", "Purchase"),
     ("workorder", "Work Order"),
     ("requisition", "Requisition"),
 )
@@ -72,7 +72,7 @@ PROJECT_LINK_MODEL_CHOICES: Final[ChoiceList] = (
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "TransactionBaseModel": {
         "status": TRANSACTION_STATUS_CHOICES,
-        "parent_type": TRANSACTION_PARENT_TYPE_CHOICES,
+        "parent_model": TRANSACTION_PARENT_MODEL_CHOICES,
     },
     "Project": {
         "status": PROJECT_STATUS_CHOICES,

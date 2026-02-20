@@ -53,7 +53,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # --- communications --- (A->Z by key)
     'domain': ModelMeta('domain', 'apps.communications.models.domain.Domain', 'Domain', 'Domains', 'domains', kind='support', aliases=['domains']),
     'email': ModelMeta('email', 'apps.communications.models.email.Email', 'Email', 'Emails', 'emails', kind='support', aliases=['emails']),
-    'location': ModelMeta('location', 'apps.communications.models.address.Address', 'Address', 'Addresses', 'addresses', kind='support', aliases=['locations', 'addresses']),
+    'address': ModelMeta('address', 'apps.communications.models.address.Address', 'Address', 'Addresses', 'addresses', kind='support', aliases=['addresses']),
     'phone': ModelMeta('phone', 'apps.communications.models.phone.Phone', 'Phone', 'Phones', 'phones', kind='support', aliases=['phones']),
 
     # --- orgs --- (A->Z by key)
@@ -109,8 +109,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'project_association': ModelMeta('project_association', 'apps.transactions.models.project_links.ProjectAssociation', 'Project Association', 'Project Associations', 'project-associations', kind='support', aliases=['project_associations']),
     'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
     'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
-    'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases', 'purchase_order', 'purchase_orders', 'purchaseorder']),
-    'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines', 'purchase_order_line', 'purchase_order_lines', 'purchaseorderline']),
+    'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases']),
+    'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines']),
     'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),
     'requisition': ModelMeta(
         'requisition',
@@ -130,8 +130,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         kind='line',
         aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
     ),
-    'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders', 'sales_order', 'sales_orders', 'salesorder']),
-    'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines', 'sales_order_line', 'sales_order_lines', 'salesorderline']),
+    'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders']),
+    'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
     'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
 }

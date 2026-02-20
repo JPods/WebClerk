@@ -1,15 +1,15 @@
 import pytest
-from apps.transactions.models import SalesOrder, SalesOrderLine
+from apps.transactions.models import Order, OrderLine
 
 @pytest.mark.django_db
-def test_sales_order_update_sell_cost_totals():
-    so = SalesOrder.objects.create()
-    SalesOrderLine.objects.create(
+def test_order_update_sell_cost_totals():
+    so = Order.objects.create()
+    OrderLine.objects.create(
         parent=so,
         price={"extended": 120.0, "discount_amount": 5.0, "unit": 120.0, "precision": 2},
         cost={"extended": 80.0, "tax": 0.0, "shipping": 5.0, "handling": 0.0, "freight": 0.0, "commissions": 0.0, "precision": 2},
     )
-    SalesOrderLine.objects.create(
+    OrderLine.objects.create(
         parent=so,
         price={"extended": 30.0, "discount_amount": 0.0, "unit": 30.0, "precision": 2},
         cost={"extended": 20.0, "tax": 0.0, "shipping": 0.0, "handling": 0.0, "freight": 0.0, "commissions": 0.0, "precision": 2},

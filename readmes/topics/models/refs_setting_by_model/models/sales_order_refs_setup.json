@@ -32,11 +32,11 @@
         ]
     },
     "related_models": [
-        "sales_order_line",
+        "order_line",
         "contact",
         "project",
         "item",
         "customer"
     ],
-    "jjj_comment": "setting model_name=\"sales_order\" purpose=\"refs_setup\""
+    "jjj_comment": "setting model_name=\"order\" purpose=\"refs_setup\""
 }

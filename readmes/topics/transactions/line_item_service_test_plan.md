@@ -13,11 +13,11 @@ Tests LineItemService across all transaction types to verify pending inventory r
 
 | Transaction Type | Model Name | Line Model | Type Code | Quantity Bucket |
 |------------------|------------|------------|-----------|-----------------|
-| Sales Order | `order` | `OrderLine` | SO | on_so |
+| Order | `order` | `OrderLine` | SO | on_so |
 | Proposal | `proposal` | `ProposalLine` | PP | on_p |
 | Invoice | `invoice` | `InvoiceLine` | IN | on_in |
 | Receipt | N/A | N/A | RC | on_r |
-| Purchase Order | `purchase` | `PurchaseLine` | PO | on_po |
+| Purchase | `purchase` | `PurchaseLine` | PO | on_po |
 | Work Order | `workorder` | `WorkOrderLine` | WO | on_wo |
 
 **Note:** Invoice (IN) and Receipt (RC) also affect `on_hand`:

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Document, QuestionAnswer, Tag, Linkage, LinkageIndex
+from .models import Document, QuestionAnswer, Tag, LinkageEntry
 
 
 @admin.register(Document)
@@ -94,19 +94,19 @@ class QuestionAnswerAdmin(admin.ModelAdmin):
         'prefs',
         'question',
         'refs',
-        'setting_id',
+        'setting',
     )
     list_display = ('id', 'question', 'answer', 'parent_model', 'parent_id', 'status', 'sequence', 'dt_created')
     list_filter = ('status', 'parent_model', 'is_active')
     search_fields = ('question', 'answer', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
     ordering = ('-dt_created',)
-    raw_id_fields = ('setting_id',)
+    raw_id_fields = ('setting',)
     
     fieldsets = (
         ('Identification', {'fields': ('id', 'ida', 'uuid')}),
         ('Question & Answer', {'fields': ('question', 'answer', 'status')}),
-        ('Template Link', {'fields': ('setting_id', 'question_id', 'answer_id')}),
+        ('Template Link', {'fields': ('setting', 'question_id', 'answer_id')}),
         ('Parent Link', {'fields': ('parent_model', 'parent_id')}),
         ('Attribution', {'fields': ('answered_by', 'security_level')}),
         ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),
@@ -166,25 +166,30 @@ class TagAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(Linkage)
-class LinkageAdmin(admin.ModelAdmin):
-    """Admin interface for Linkage model."""
-    # Scalar fields alphabetically
+@admin.register(LinkageEntry)
+class LinkageEntryAdmin(admin.ModelAdmin):
+    """Admin interface for LinkageEntry model - unified linkage table."""
+    # Scalar fields
     scalar_fields = (
         'dt_created',
         'dt_modified',
+        'group_id',
         'id',
         'ida',
         'is_active',
         'is_archived',
         'is_deleted',
+        'model_name',
         'name',
         'purpose',
+        'record_id',
+        'role',
         'security_level',
+        'sequence',
         'uuid',
         'version',
     )
-    # Object/JSON/Text fields alphabetically
+    # Object/JSON/Text fields
     object_fields = (
         'actions',
         'comments',
@@ -193,13 +198,14 @@ class LinkageAdmin(admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    list_display = ('id', 'name', 'purpose', 'is_active', 'dt_created')
-    list_filter = ('purpose', 'is_active')
-    search_fields = ('name', 'purpose', 'note')
+    list_display = ('id', 'group_id', 'model_name', 'record_id', 'purpose', 'role', 'name', 'dt_created')
+    list_filter = ('model_name', 'purpose', 'role', 'is_active')
+    search_fields = ('name', 'purpose', 'note', 'model_name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-    ordering = ('-dt_created',)
+    ordering = ('group_id', 'sequence', '-dt_created')
     
     fieldsets = (
+        ('Group & Link', {'fields': ('group_id', 'model_name', 'record_id', 'role', 'sequence')}),
         ('Identification', {'fields': ('id', 'ida', 'uuid', 'name')}),
         ('Classification', {'fields': ('purpose', 'security_level')}),
         ('Content', {'fields': ('note',)}),
@@ -207,13 +213,4 @@ class LinkageAdmin(admin.ModelAdmin):
         ('Timestamps', {'fields': ('dt_created', 'dt_modified')}),
         ('Extended Data', {'fields': ('refs', 'prefs', 'metadata', 'actions', 'comments'), 'classes': ('collapse',)}),
     )
-
-
-@admin.register(LinkageIndex)
-class LinkageIndexAdmin(admin.ModelAdmin):
-    """Admin interface for LinkageIndex model."""
-    list_display = ('id', 'linkage_id', 'table_name', 'record_id')
-    list_filter = ('table_name',)
-    search_fields = ('table_name', 'record_id')
-    raw_id_fields = ('linkage_id',)
 

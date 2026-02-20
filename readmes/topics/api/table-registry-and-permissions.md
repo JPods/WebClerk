@@ -41,7 +41,7 @@ All tests: **156 passed, 1 skipped** after changes.
 
 | Problem | Impact | Resolution |
 |---------|--------|------------|
-| Inconsistent singular/plural names | Permission mismatches, cognitive load | Standardized plural for multi-row tables (`sales_orders`, `sales_order_lines`, etc.) |
+| Inconsistent singular/plural names | Permission mismatches, cognitive load | Standardized plural for multi-row tables (`orders`, `order_lines`, etc.) |
 | Silent legacy alias mapping | Risk of drift & hidden coupling | Removed alias layer, forced explicit corrections |
 | No authoritative table metadata source | Duplication in serializers, views, docs | Added centralized registry (`TABLE_REGISTRY`) |
 | Unvalidated `Setting.model_target` | Typos caused 403s with little guidance | Model + serializer validation with explicit enum list |
@@ -100,7 +100,7 @@ Dry run by default; shows count and sample of stale rows.
 
 ## Test Additions
 
-- `test_setting_invalid_model_name_rejected` ensures invalid legacy names (e.g. `sales_order_line`) produce 400 with field error.
+- `test_setting_invalid_model_name_rejected` ensures invalid legacy names (e.g. `order_line`) produce 400 with field error.
 
 ## Extension Points
 
@@ -123,7 +123,7 @@ curl -s http://localhost:8000/wcapi/tables/ | jq '.data.tables | keys'
 Fetch single table with fields:
 
 ```bash
-curl -s 'http://localhost:8000/wcapi/tables/?table=sales_order_lines&include_fields=1' | jq '.data.table.fields.status'
+curl -s 'http://localhost:8000/wcapi/tables/?table=order_lines&include_fields=1' | jq '.data.table.fields.status'
 ```
 
 ### New entries: Work Orders

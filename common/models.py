@@ -326,53 +326,10 @@ def default_refs() -> dict:
     }
 
 
-# Denormalization fields for links - maps model name to list of fields to include when denormalizing
-LINK_DENORMALIZE_FIELDS = {
-    "email": ["id", "email", "name", "type", "is_primary"],
-    "contact": ["id", "attention", "company", "email", "name_first", "name_last", "title", "role"],
-    "phone": ["id", "number", "format", "name"],
-    "location": ["id", "address1", "city", "state", "zip", "country", "full"],
-    "item": ["id", "name", "sku", "description", "kind", "uom"],
-    "domain": ["id", "path", "type"],
-    "orgbase": ["id", "company", "org_type", "status"],
-    "currency": ["id", "code", "name", "symbol"],
-    "term": ["id", "name"],
-    "glaccount": ["id", "account_credit"],
-    "taxjurisdiction": ["id", "name", "code"],
-    "exchangerate": ["id", "from_currency", "to_currency", "rate"],
-    "paymentmethod": ["id", "name", "type"],
-    "paymentterm": ["id", "name", "terms"],
-    "project": ["id", "name", "status"],
-    "catalog": ["id", "name", "code", "currency"],
-    "warehouse": ["id", "name", "code"],
-    "connection": ["id", "name", "type"],
-    "bundle": ["id", "name"],
-    "notification": ["id", "name"],
-    "setting": ["id", "name"],
-    "report": ["id", "name"],
-    "template": ["id", "purpose"],
-    "action": ["id", "name"],
-    "auditlog": ["id", "action"],
-    "document": ["id", "name", "type"],
-    "tag": ["id", "name"],
-    "linkage": ["id", "name"],
-    "questionanswer": ["id", "question"],
-    "seriallog": ["id", "serial_number"],
-    "inventorycheck": ["id", "name"],
-    "deliveryvisit": ["id", "status"],
-    "purchasereceipt": ["id", "receipt_number"],
-    "paymentapplication": ["id", "amount_applied"],
-    "projectassociation": ["id", "project_id"],
-    "inventoryreservation": ["id", "quantity_reserved"],
-    "inventoryadjustmentprocessor": ["id", "status"],
-    "inventorymetricssnapshot": ["id", "snapshot_date"],
-    "pendinginventoryadjustment": ["id", "adjustment_type"],
-    "variant": ["id", "name"],
-    "billofmaterial": ["id", "parent_item_id"],
-    "service": ["id", "name"],
-    "campaign": ["id", "name"],
-    "support": ["id", "name"],
-}
+# Denormalization fields for links — single source of truth lives in common.denorm_registry.
+# This dict is populated from the registry so legacy callers keep working.
+from common.denorm_registry import DENORM_REGISTRY as _DENORM_REGISTRY  # noqa: E402
+LINK_DENORMALIZE_FIELDS = {k: list(v) for k, v in _DENORM_REGISTRY.items()}
 
 
 def default_prefs() -> dict:
@@ -445,9 +402,10 @@ class CoreModel(models.Model):
         # Ensure ida is populated once a primary key exists. Avoids an extra version bump.
         try:
             if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
-                # Set ida to string form of primary key by default; project policy can override per-model later.
-                type(self).objects.filter(pk=self.pk, ida="").update(ida=str(self.pk))
-                self.ida = str(self.pk)  # reflect locally
+                # ida format: "ida-{pk}"  (project-wide convention)
+                ida_value = f"ida-{self.pk}"
+                type(self).objects.filter(pk=self.pk, ida="").update(ida=ida_value)
+                self.ida = ida_value  # reflect locally
         except Exception:  # pragma: no cover - never block save
             logger.debug("ida autogeneration failed", exc_info=True)
         self._pydantic_cache = None
@@ -466,7 +424,7 @@ class CoreModel(models.Model):
         return self.save(*args, **kwargs)
 
     def __str__(self):  # convenience for admin / debugging
-        for attr in ("name", "title", "email", "ida", "uuid"):
+        for attr in ("display_name", "name", "title", "email", "ida", "uuid"):
             v = getattr(self, attr, None)
             if v:
                 return str(v)
@@ -1291,7 +1249,9 @@ class BaseModel(
         self._original_state: Dict[str, Any] = {}
         for f in self._meta.fields:  # type: ignore[attr-defined]
             try:
-                self._original_state[f.name] = getattr(self, f.name)
+                # Use f.attname (e.g. 'contact_id') for FK fields to avoid
+                # triggering lazy-load queries on the related object.
+                self._original_state[f.attname] = getattr(self, f.attname)
             except Exception:  # pragma: no cover
                 pass
     # Note: formerly captured a separate _original_dt_created to enforce immutability.
@@ -1306,8 +1266,11 @@ class BaseModel(
             name = f.name
             if name in auto_exclude:
                 continue
-            old = self._original_state.get(name)
-            new = getattr(self, name)
+            # Use f.attname to compare raw DB column values (e.g. contact_id)
+            # to avoid triggering lazy-load queries on FK fields.
+            attr = f.attname
+            old = self._original_state.get(attr)
+            new = getattr(self, attr)
             if old != new:
                 changed.append(name)
         return changed

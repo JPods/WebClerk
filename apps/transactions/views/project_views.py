@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,11 +8,11 @@ from django.apps import apps
 Project = apps.get_model("transactions", "Project")
 
 class ProjectListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["get", "post", "options", "head"]
 
     def get(self, request, *args, **kwargs):
-        qs = Project.objects.all().order_by("-id")
+        qs = Project.objects.active().order_by("-id")
         data = []
         for p in qs:
             data.append({

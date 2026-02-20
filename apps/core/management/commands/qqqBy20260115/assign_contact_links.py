@@ -1,7 +1,7 @@
 """
 Management command to assign contact links for seeded database.
 
-Assigns 1-3 records from domain, phone, email, location models to each contact's refs.links,
+Assigns 1-3 records from domain, phone, email, address models to each contact's refs.links,
 and 1 customer record. Also denormalizes by adding contact IDs to the related models' refs.links.contact.
 """
 import random
@@ -26,7 +26,7 @@ class Command(BaseCommand):
         domains = list(Domain.objects.all())
         phones = list(Phone.objects.all())
         emails = list(Email.objects.all())
-        locations = list(Address.objects.all())
+        addresses = list(Address.objects.all())
         try:
             customers = list(Customer.objects.all())
         except Exception as e:
@@ -34,7 +34,7 @@ class Command(BaseCommand):
             customers = []
 
         self.stdout.write(f"Found {len(contacts)} contacts, {len(domains)} domains, {len(phones)} phones, "
-                         f"{len(emails)} emails, {len(locations)} locations, {len(customers)} customers")
+                         f"{len(emails)} emails, {len(addresses)} addresses, {len(customers)} customers")
 
         if not contacts:
             self.stdout.write(self.style.WARNING("No contacts found"))
@@ -42,11 +42,11 @@ class Command(BaseCommand):
 
         # Process each contact
         for contact in contacts:
-            self.assign_links_to_contact(contact, domains, phones, emails, locations, customers)
+            self.assign_links_to_contact(contact, domains, phones, emails, addresses, customers)
 
         self.stdout.write(self.style.SUCCESS("Contact links assignment completed"))
 
-    def assign_links_to_contact(self, contact, domains, phones, emails, locations, customers):
+    def assign_links_to_contact(self, contact, domains, phones, emails, addresses, customers):
         """Assign links to a single contact and denormalize to related models."""
         with transaction.atomic():
             # Ensure refs.links exists
@@ -99,20 +99,20 @@ class Command(BaseCommand):
                         contact_list.append(contact.id)
                     email.save(update_fields=['refs'])
 
-            # Assign 1-3 locations
-            if locations:
-                num_locations = min(random.randint(1, 3), len(locations))
-                selected_locations = random.sample(locations, num_locations)
-                links['location'] = [location.id for location in selected_locations]
+            # Assign 1-3 addresses
+            if addresses:
+                num_addresses = min(random.randint(1, 3), len(addresses))
+                selected_addresses = random.sample(addresses, num_addresses)
+                links['address'] = [addr.id for addr in selected_addresses]
                 # Denormalize
-                for location in selected_locations:
-                    if not hasattr(location, 'refs') or not isinstance(location.refs, dict):
-                        location.refs = {}
-                    location_links = location.refs.setdefault('links', {})
-                    contact_list = location_links.setdefault('contact', [])
+                for addr in selected_addresses:
+                    if not hasattr(addr, 'refs') or not isinstance(addr.refs, dict):
+                        addr.refs = {}
+                    addr_links = addr.refs.setdefault('links', {})
+                    contact_list = addr_links.setdefault('contact', [])
                     if contact.id not in contact_list:
                         contact_list.append(contact.id)
-                    location.save(update_fields=['refs'])
+                    addr.save(update_fields=['refs'])
 
             # Assign 1 customer
             if customers:

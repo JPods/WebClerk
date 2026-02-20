@@ -10,8 +10,20 @@ def _d(x: Any, places: int = 2) -> Decimal:
         return Decimal(0)
 
 def compute_purchase_sell_cost_totals(purchase) -> Dict[str, Dict[str, float]]:
-    """Aggregate sell and cost from purchase lines."""
-    # For Purchase, sell is typically empty as it's procurement-focused
+    """Aggregate cost totals from all purchase lines.
+
+    Purchases are procurement-focused, so sell-side is always zero.
+    Only cost components are meaningful: cost.extended + surcharges.
+    totals.total = cost.total (not sell.total like sell-side transactions).
+
+    Called by Purchase.update_sell_cost_totals(persist=True).
+    NOTE: No post_save signal is wired for PurchaseLine yet — must be called
+    explicitly by the save view or transfer service.
+
+    See also: po_totals.py for a cost-only variant that returns a flat dict.
+    See: readmes/topics/transactions/transactions-totals.md §3
+    """
+    # For Purchase, sell is always zero — procurement doesn't have a sell side
     sell_goods = Decimal(0)
     sell_discount = Decimal(0)
 
@@ -22,8 +34,9 @@ def compute_purchase_sell_cost_totals(purchase) -> Dict[str, Dict[str, float]]:
     cost_freight = Decimal(0)
     cost_commissions = Decimal(0)
 
+    # --- Iterate all lines and accumulate cost components ---
     for ln in purchase.lines.all():
-        c = ln.cost or {}
+        c = ln.cost or {}  # cost envelope only — no sell on exec-side lines
 
         cost_goods += _d(c.get("extended", 0))
         cost_tax += _d(c.get("tax", 0))
@@ -59,7 +72,14 @@ def compute_purchase_sell_cost_totals(purchase) -> Dict[str, Dict[str, float]]:
     margin = total_amt - total_cost  # Usually 0 for PO
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
+    # Build the full default_totals() structure so every key is present.
     totals = {
+        "subtotal": 0.0,           # Purchases have no sell-side subtotal
+        "discount": 0.0,
+        "taxable": 0.0,
+        "tax": float(cost_tax),    # PO tax comes from cost side
+        "shipping": float(cost_shipping),
+        "other": 0.0,
         "total": float(total_cost),  # PO total is the cost
         "cost": float(total_cost),
         "margin": float(margin),

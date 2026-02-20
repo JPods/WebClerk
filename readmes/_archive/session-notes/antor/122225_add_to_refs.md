@@ -5,12 +5,12 @@ purpose: refs link issue
 # Add-to-refs changelog
 
 ## Summary ✅
-This note records the change that automatically appends newly created communication records (email, phone, address/location, domain) to a contact's `refs.links` when created via the universal save endpoint (`/wcapi/save`). The change is defensive and non-blocking if linking fails.
+This note records the change that automatically appends newly created communication records (email, phone, address, domain) to a contact's `refs.links` when created via the universal save endpoint (`/wcapi/save`). The change is defensive and non-blocking if linking fails.
 
 ## Key changes 🔧
 - **Behavior**: When a communication record is created via the save flow, the system will:
   - Prefer an explicit `contact_id` in the payload; fallback to the authenticated `request.user` when it's a `Contact`.
-  - Append a denormalized object (fields chosen from `LINK_DENORMALIZE_FIELDS`) into `contact.refs.links.<bucket>` (note: `address` maps to the `location` bucket for backward compatibility).
+  - Append a denormalized object (fields chosen from `LINK_DENORMALIZE_FIELDS`) into `contact.refs.links.<bucket>`.
   - Persist the contact with minimal update fields (`refs`, `dt_modified`, `version`).
   - Ensure a lightweight bidirectional link using `common.refs.links.ensure_bidirectional()` for quick reverse lookups.
 

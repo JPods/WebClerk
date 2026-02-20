@@ -57,7 +57,7 @@ def validate_proposal_for_transfer(
             "total_amount": 0.0,
         }
 
-    qs = ProposalLine.objects.filter(parent=proposal)
+    qs = ProposalLine.objects.filter(proposal=proposal)
 
     if line_ids is not None:
         existing = set(qs.filter(id__in=line_ids).values_list("id", flat=True))
@@ -90,12 +90,22 @@ def validate_proposal_for_transfer(
 
 
 def _convert_quantity_from_proposal(proposal_qty: Optional[Dict]) -> Dict:
-    """
-    Convert proposal line quantity structure to order line quantity structure.
+    """Convert proposal line quantity to order line quantity.
 
-    - Use 'placed' if present, else 'ordered', else 'remaining', else 0 as base.
-    - Preserve precision/is_fixed when present.
-    - Add converted_from_proposal with original keys and values.
+    Resolves base quantity through fallback chain:
+      placed → ordered (legacy) → remaining → 0
+
+    Sets:
+      remaining = base (full amount available for invoicing)
+      invoiced  = 0
+      converted_from_proposal = audit trail with original keys
+
+    LEGACY NOTE: 'ordered' fallback supports pre-canonical proposal lines.
+    New proposal lines always use 'placed'.
+
+    TODO: Should also set placed = base and actioned = 0 to match the
+    canonical quantity model.  Currently missing.
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = proposal_qty or {}
     has_placed = "placed" in q
@@ -136,24 +146,26 @@ def transfer_proposal_to_order(
     order_status: str = "confirmed",
     preserve_proposal: bool = True,
 ) -> Dict:
-    """
-    Transfer proposal lines to a new order.
+    """Transfer proposal lines to a new order (atomic).
 
-    Returns:
-      {
-        'success': True,
-        'order_id': int,
-        'proposal_id': int,
-        'lines_transferred': int,
-        'line_mapping': {proposal_line_id: order_line_id, ...},
-        'proposal_preserved': bool,
-        'order_status': str,
-      }
+    Workflow:
+      1. Select lines (all or by ID list)
+      2. Create Order header with refs.source.proposal_id
+      3. For each ProposalLine:
+         a. Convert quantity via _convert_quantity_from_proposal()
+         b. Create OrderLine with price/cost/quantity/refs
+         c. Embed transfer audit payload via build_line_payload()
+         d. Mark proposal line status = 'transferred'
+      4. Optionally mark proposal status = 'converted'
+
+    TODO: Does NOT set parent_model/parent_id on the new Order.
+    TODO: Quantity conversion does not set 'placed' or 'actioned' on target.
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     if not transfer_all and not line_ids:
         raise ProposalToOrderTransferError("Must specify line_ids when transfer_all is False")
 
-    all_lines_qs = ProposalLine.objects.select_for_update().filter(parent=proposal)
+    all_lines_qs = ProposalLine.objects.select_for_update().filter(proposal=proposal)
     if transfer_all:
         selected_lines = list(all_lines_qs)
         if not selected_lines:
@@ -188,7 +200,7 @@ def transfer_proposal_to_order(
     for pl in selected_lines:
         qty = _convert_quantity_from_proposal(getattr(pl, "quantity", None))
         ol = OrderLine.objects.create(
-            parent=order,
+            order=order,
             price=pl.price or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,

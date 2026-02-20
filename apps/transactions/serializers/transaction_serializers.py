@@ -7,6 +7,15 @@ from apps.transactions.models import (
     Proposal, ProposalLine, Order, OrderLine, Purchase, PurchaseLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
+from apps.orgs.models import OrgBase
+
+
+# system fields inherited from BaseModel (read-only)
+_BASE_RO = [
+    'id', 'uuid', 'dt_created', 'dt_modified', 'version',
+    'is_deleted', 'is_archived', 'metadata', 'refs', 'prefs',
+    'actions', 'comments', 'health_rating',
+]
 
 
 class ProposalLineSerializer(RoleAwareModelSerializer):
@@ -14,8 +23,14 @@ class ProposalLineSerializer(RoleAwareModelSerializer):
 
     class Meta:
         model = ProposalLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'price', 'proposal',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class ProposalSerializer(RoleAwareModelSerializer):
@@ -46,19 +61,19 @@ class ProposalSerializer(RoleAwareModelSerializer):
     def get_customer_name(self, obj):
         if obj.customer_id:
             try:
-                contact = Contact.objects.get(id=obj.customer_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.customer_id}"
+                org = OrgBase.objects.get(id=obj.customer_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.customer_id}"
         return None
 
     def get_vendor_name(self, obj):
         if obj.vendor_id:
             try:
-                contact = Contact.objects.get(id=obj.vendor_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.vendor_id}"
+                org = OrgBase.objects.get(id=obj.vendor_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.vendor_id}"
         return None
 
     def to_representation(self, instance):
@@ -100,17 +115,17 @@ class ProposalSerializer(RoleAwareModelSerializer):
     def validate_customer_id(self, value):
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Customer contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Customer organization does not exist.")
         return value
 
     def validate_vendor_id(self, value):
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Vendor contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Vendor organization does not exist.")
         return value
 
     def validate(self, data):
@@ -124,8 +139,14 @@ class OrderLineSerializer(RoleAwareModelSerializer):
 
     class Meta:
         model = OrderLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'price', 'order',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class PurchaseLineSerializer(RoleAwareModelSerializer):
@@ -133,8 +154,14 @@ class PurchaseLineSerializer(RoleAwareModelSerializer):
 
     class Meta:
         model = PurchaseLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'purchase',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class OrderSerializer(RoleAwareModelSerializer):
@@ -160,23 +187,23 @@ class OrderSerializer(RoleAwareModelSerializer):
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
 
     def get_customer_name(self, obj):
-        """Get customer name from Contact model."""
+        """Get customer name from OrgBase model."""
         if obj.customer_id:
             try:
-                contact = Contact.objects.get(id=obj.customer_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.customer_id}"
+                org = OrgBase.objects.get(id=obj.customer_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.customer_id}"
         return None
 
     def get_vendor_name(self, obj):
-        """Get vendor name from Contact model."""
+        """Get vendor name from OrgBase model."""
         if obj.vendor_id:
             try:
-                contact = Contact.objects.get(id=obj.vendor_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.vendor_id}"
+                org = OrgBase.objects.get(id=obj.vendor_id)
+                return org.display_name
+            except OrgBase.DoesNotExist:
+                return f"Org #{obj.vendor_id}"
         return None
 
     def to_representation(self, instance):
@@ -217,18 +244,18 @@ class OrderSerializer(RoleAwareModelSerializer):
         """Validate customer exists."""
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Customer contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Customer organization does not exist.")
         return value
 
     def validate_vendor_id(self, value):
         """Validate vendor exists."""
         if value and value > 0:
             try:
-                Contact.objects.get(id=value)
-            except Contact.DoesNotExist:
-                raise serializers.ValidationError("Vendor contact does not exist.")
+                OrgBase.objects.get(id=value)
+            except OrgBase.DoesNotExist:
+                raise serializers.ValidationError("Vendor organization does not exist.")
         return value
 
     def validate(self, data):
@@ -315,7 +342,7 @@ class PaymentSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            'id', 'uuid', 'amount', 'dt_payment', 'paymentmethod_id', 'paymentterm_id',
+            'id', 'uuid', 'amount', 'dt_payment', 'payment_method_id', 'payment_term_id',
             'reference_number', 'notes', 'gateway', 'id_gateway_transaction',
             'id_gateway_payment_intent', 'status', 'gateway_response',
             'dt_processed', 'reconciled', 'dt_reconciliation', 'fee_amount',

@@ -70,7 +70,7 @@ class PaymentWorkflowIntegrationTest(APITestCase):
         self.assertEqual(response.data['amount_applied'], 25.00)
 
         # Verify payment application
-        applications = PaymentApplication.objects.filter(payment_id=payment, invoice_id=self.invoice)
+        applications = PaymentApplication.objects.filter(payment=payment, invoice=self.invoice)
         self.assertEqual(applications.count(), 1)
         self.assertEqual(applications.first().amount, 25.00)
 
@@ -87,8 +87,8 @@ class PaymentWorkflowIntegrationTest(APITestCase):
         """Test payment status endpoint."""
         # Create and apply payment
         payment = Payment.objects.create(
-            invoice_id=self.invoice,
-            contact_id=self.customer,
+            invoice=self.invoice,
+            contact=self.customer,
             amount=50.00,
             status="completed"
         )

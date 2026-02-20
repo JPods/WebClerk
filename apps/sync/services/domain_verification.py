@@ -58,7 +58,7 @@ def verify_domain_via_connection(path: str, connection_name: str | None = None) 
     bundle_id = None
     try:
         e = Bundle.objects.create(
-            connection_id=cast(Any, conn),
+            connection=cast(Any, conn),
             direction="outbound",
             config=masked_cfg,
             status=status,

@@ -13,7 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
-from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
+from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report
 
 
 @admin.register(Contact)
@@ -30,11 +30,11 @@ class ContactAdmin(BaseUserAdmin):
         'company',
         'is_staff',
         'is_superuser',
-        'customer_id',
-        'rep_id',
-        'employee_id',
-        'manufacturer_id',
-        'vendor_id',
+        'customer',
+        'rep',
+        'employee',
+        'manufacturer',
+        'vendor',
         'other_id',
         'security_level',
         'title',
@@ -43,7 +43,8 @@ class ContactAdmin(BaseUserAdmin):
     list_display = scalar_fields
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
-    readonly_fields = ('dt_joined', 'uuid')
+    readonly_fields = ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version')
+    raw_id_fields = ('customer', 'vendor', 'manufacturer', 'rep', 'employee')
     ordering = ('name_last', 'name_first')
     object_fields = (
         'actions',
@@ -73,11 +74,11 @@ class ContactAdmin(BaseUserAdmin):
                 'company',
                 'title',
                 'department',
-                'employee_id',
-                'customer_id',
-                'vendor_id',
-                'manufacturer_id',
-                'rep_id',
+                'employee',
+                'customer',
+                'vendor',
+                'manufacturer',
+                'rep',
                 'other_id',
             ),
         }),
@@ -89,12 +90,23 @@ class ContactAdmin(BaseUserAdmin):
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')}),
-        ('Company info', {'fields': ('company', 'title', 'department')}),
-        ('Org relationships', {'fields': ('employee_id', 'customer_id', 'vendor_id', 'manufacturer_id', 'rep_id', 'other_id')}),
-        ('Permissions', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('dt_joined',)}),
-        ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
+        ('Scalar fields', {'fields': (
+            'address_full', 'address_id', 'attention', 'company',
+            'customer', 'department', 'domain', 'domain_id',
+            'email_id', 'employee', 'health_rating',
+            'is_active', 'is_archived', 'is_deleted', 'is_staff', 'is_superuser',
+            'manufacturer', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
+            'other_id', 'phone', 'phone_id',
+            'rep', 'role', 'security_level', 'title', 'vendor',
+        )}),
+        ('JSONB fields', {
+            'fields': ('actions', 'comment', 'comments', 'groups', 'metadata', 'prefs', 'refs', 'user_permissions'),
+            'classes': ('collapse',),
+        }),
+        ('System (read-only)', {
+            'fields': ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version'),
+            'classes': ('collapse',),
+        }),
     )
     
     # Override the get_fieldsets method to use our custom fieldsets
@@ -125,7 +137,7 @@ class ActionAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
     # Keep scalar then object fields alphabetical for detail view coherence.
     scalar_fields = (
-        'action_id',
+        'parent_action',
         'burndown',
         'difficulty',
         'dt_completed',
@@ -226,19 +238,61 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'record_id', 'purpose', 'on_hand', 'on_p', 'on_so', 'on_in', 'on_po', 'dt_processed')
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+    def _data_field(self, obj, key):
+        val = (obj.data or {}).get(key)
+        return val if val is not None else '-'
+
+    @admin.display(description='on_hand')
+    def on_hand(self, obj):
+        return self._data_field(obj, 'on_hand')
+
+    @admin.display(description='on_p')
+    def on_p(self, obj):
+        return self._data_field(obj, 'on_p')
+
+    @admin.display(description='on_so')
+    def on_so(self, obj):
+        return self._data_field(obj, 'on_so')
+
+    @admin.display(description='on_in')
+    def on_in(self, obj):
+        return self._data_field(obj, 'on_in')
+
+    @admin.display(description='on_po')
+    def on_po(self, obj):
+        return self._data_field(obj, 'on_po')
 
 
 @admin.register(SoftDeleteLedger)
 class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
     list_display = ('id', 'target', 'dt_purge', 'dt_created')
-    list_filter = ('contenttype_id', 'dt_purge')
-    search_fields = ('contenttype_id__model', 'object_id')
+    list_filter = ('content_type', 'dt_purge')
+    search_fields = ('content_type__model', 'object_id')
     readonly_fields = ('dt_created',)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """Admin interface for Notification model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    """Admin interface for Report model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 def _threepane_redirect(self, request, extra_context=None):
     if not self.has_permission(request):

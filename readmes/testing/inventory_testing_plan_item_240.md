@@ -124,14 +124,14 @@ print(f'Created Purchase {po.pk} with Line {line.pk}')
 ```bash
 # Receive purchase (requires existing PO)
 python manage.py shell -c "
-from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+from apps.transactions.services.flow import receive_purchase, ReceiveLine
 from apps.transactions.models import Purchase
 
 po = Purchase.objects.get(pk=<PO_ID>)  # Replace with actual PO ID
 lines = [
     ReceiveLine(po_line_id=<LINE_ID>, qty=10, warehouse_code='MAIN')
 ]
-result = receive_purchase_order(po, 'RCV-TEST-001', lines)
+result = receive_purchase(po, 'RCV-TEST-001', lines)
 print(result)
 "
 ```
@@ -310,7 +310,7 @@ print(f'Invoice Lines: {InvoiceLine.objects.filter(item__id_num=240).count()}')
 
 ### Services
 - `apps/transactions/services/inventory_flow.py` - Inventory delta creation
-- `apps/transactions/services/flow.py` - Transaction flow (receive_purchase_order, etc.)
+- `apps/transactions/services/flow.py` - Transaction flow (receive_purchase, etc.)
 
 ### Tests
 - `tests/test_inventory_flow.py` - Automated inventory tests

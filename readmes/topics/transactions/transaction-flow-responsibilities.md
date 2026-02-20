@@ -11,9 +11,9 @@
   - [Responsibility Matrix (TL;DR)](#responsibility-matrix-tldr)
   - [By Flow](#by-flow)
     - [Proposals](#proposals)
-    - [Sales Orders](#sales-orders)
+    - [Orders](#orders)
     - [Invoices](#invoices)
-    - [Purchase Orders (Receiving)](#purchase-orders-receiving)
+    - [Purchases (Receiving)](#purchases-receiving)
   - [Crosscutting Concerns](#crosscutting-concerns)
     - [Validation & Errors](#validation--errors)
     - [Permissions & Field Access](#permissions--field-access)
@@ -30,8 +30,8 @@
 
 Covers the transactional flows implemented in the transactions app:
 
-- Proposal -> Sales Order -> Invoice
-- Purchase Order receiving into inventory
+- Proposal -> Order -> Invoice
+- Purchase receiving into inventory
 
 This doc defines which responsibilities live in React (frontend) vs backend (Django/DRF).
 
@@ -55,7 +55,7 @@ Backend (Django/DRF):
 
 - Create/update headers/lines; enforce invariants (pricing, taxes, states).
 - Flow transitions (proposal->SO, SO->invoice) with idempotency and audit.
-- Purchase order receiving: inventory updates, receipts, integrity, and locking.
+- Purchase receiving: inventory updates, receipts, integrity, and locking.
 - Permissions (role-based view/edit), concurrency/versioning, error semantics.
 
 ## By Flow
@@ -72,11 +72,11 @@ Backend:
 - Persist headers/lines; compute authoritative totals/discounts/taxes.
 - Enforce field-level permissions and required business fields.
 
-### Sales Orders
+### Orders
 
 Frontend:
 
-- Display SO details; allow permitted edits before fulfillment/invoice.
+- Display order details; allow permitted edits before fulfillment/invoice.
 - Trigger conversion from a Proposal via action endpoint.
 
 Backend:
@@ -92,10 +92,10 @@ Frontend:
 
 Backend:
 
-- Create from Sales Order; finalize amounts; enforce immutability rules.
+- Create from Order; finalize amounts; enforce immutability rules.
 - Produce journal-ready values; emit events/hooks for downstream systems.
 
-### Purchase Orders (Receiving)
+### Purchases (Receiving)
 
 Frontend:
 
@@ -134,15 +134,15 @@ Backend:
 Headers/Lines (CRUD):
 
 - Proposals: `/tx/proposals/`, `/tx/proposals/<id>/`, `/tx/proposal-lines/`, `/tx/proposal-lines/<id>/`
-- Sales Orders: `/tx/sales-orders/`, `/tx/sales-orders/<id>/`, `/tx/sales-order-lines/`, `/tx/sales-order-lines/<id>/`
+- Orders: `/tx/orders/`, `/tx/orders/<id>/`, `/tx/order-lines/`, `/tx/order-lines/<id>/`
 - Invoices: `/tx/invoices/`, `/tx/invoices/<id>/`, `/tx/invoice-lines/`, `/tx/invoice-lines/<id>/`
-- Purchase Orders: `/tx/purchase-orders/`, `/tx/purchase-orders/<id>/`, `/tx/purchase-order-lines/`, `/tx/purchase-order-lines/<id>/`
+- Purchases: `/tx/purchases/`, `/tx/purchases/<id>/`, `/tx/purchase-lines/`, `/tx/purchase-lines/<id>/`
 
 Flow Actions:
 
-- Proposal -> Sales Order: `/tx/proposals/<id>/convert-to-sales-order/` (POST)
-- Sales Order -> Invoice: `/tx/sales-orders/<id>/convert-to-invoice/` (POST)
-- PO Receiving: `/tx/purchase-orders/<id>/receive/` (POST)
+- Proposal -> Order: `/tx/proposals/<id>/convert-to-order/` (POST)
+- Order -> Invoice: `/tx/orders/<id>/convert-to-invoice/` (POST)
+- Purchase Receiving: `/tx/purchases/<id>/receive/` (POST)
 - Preview Totals: `/tx/<kind>/<id>/preview-totals/` (GET)
 
 Notes:

@@ -92,7 +92,7 @@ class Command(BaseCommand):
                 'domain': [],
                 'email': [],
                 'item': [],
-                'location': [],
+                'address': [],
                 'phone': [],
                 'order_line': [
                     {'id': 11},
@@ -180,7 +180,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'Item ID {item_id}: name={item.name}, uom={item.uom} - {status}')
 
         # Log all other links if they have IDs
-        for link_type in ['domain', 'email', 'item', 'location', 'phone']:
+        for link_type in ['domain', 'email', 'item', 'address', 'phone']:
             for link_ref in links.get(link_type, []):
                 if isinstance(link_ref, dict) and 'id' in link_ref:
                     link_id = link_ref['id']

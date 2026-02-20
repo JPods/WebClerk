@@ -21,7 +21,7 @@ class BundleAdmin(admin.ModelAdmin):
 	actions = ("accept_selected", "reject_selected")
 
 	def connection_link(self, obj):  # pragma: no cover - admin view
-		return format_html("<a href='/admin/apps.sync/connection/{}/change/'>#{}</a>", obj.connection_id.id, obj.connection_id.id)
+		return format_html("<a href='/admin/apps.sync/connection/{}/change/'>#{}</a>", obj.connection.id, obj.connection.id)
 
 	connection_link.short_description = "Connection"
 

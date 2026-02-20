@@ -19,23 +19,36 @@ def sum_price_extended(lines: Iterable[Model]) -> float:
     return float(total)
 
 def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dict:
-    """
-    Normalize a quantity dict into a generic line quantity for targets.
+    """Normalize a source line's quantity dict into a generic target-line quantity.
 
-    - Base = placed if present; else ordered; else remaining; else 0
-    - Preserve precision/is_fixed when present
-    - Set invoiced=0 by default (safe for non-invoice targets)
-    - Attach converted_from_<src_label> with original keys
+    Resolves the base quantity through a fallback chain:
+      placed → ordered → remaining → 0
+
+    The result dict always has canonical keys:
+      placed:     base value (qty being transferred)
+      actioned:   0 (nothing acted on new target yet)
+      remaining:  base value (full qty available)
+      precision, is_fixed:  preserved from source when present
+      converted_from_<src_label>: audit trail with original keys
+
+    LEGACY NOTE: The fallback to 'ordered' supports lines created before the
+    canonical placed/actioned/remaining keys were adopted.  New code should
+    always write 'placed' and never 'ordered'.
+
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = src_qty or {}
+    # Fallback chain: placed (canonical) → ordered (legacy) → remaining
     base = q.get("placed")
     used_key = "placed"
     if base is None:
-        base = q.get("ordered")
+        base = q.get("ordered")    # LEGACY: pre-canonical key
         used_key = "ordered"
     if base is None:
         base = q.get("remaining", 0)
         used_key = "remaining"
+
+    base = base or 0
 
     converted_key = f"converted_from_{src_label}"
     converted = {
@@ -51,8 +64,9 @@ def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dic
         converted["original_remaining"] = q.get("remaining", 0)
 
     out = {
-        "remaining": base or 0,
-        "invoiced": 0,
+        "placed": base,
+        "actioned": 0,
+        "remaining": base,
         converted_key: converted,
     }
     if "precision" in q:
@@ -82,22 +96,35 @@ def _to_decimal_safe(val: Any, default: Decimal = Decimal(0)) -> Decimal:
     except Exception:
         return default
 
-def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
-    """
-    Build a normalized payload array for a source line, to be embedded into refs['xfer'].
+def _resolve_line_parent_id(src_line: Any) -> Any:
+    if hasattr(src_line, 'parent_id_value'):
+        try:
+            return src_line.parent_id_value
+        except Exception:
+            pass
+    parent_obj = getattr(src_line, 'parent', None)
+    if parent_obj is not None:
+        return getattr(parent_obj, 'id', None)
+    for field_name in (
+        'proposal_id', 'order_id', 'invoice_id', 'purchase_id',
+        'workorder_id', 'receipt_id', 'requisition_id'
+    ):
+        if hasattr(src_line, field_name):
+            return getattr(src_line, field_name)
+    return None
 
-    Structure (versioned):
-    [
-      {
-        'version': 1,
-        'source': { 'kind': 'proposal'|'sales_order'|'purchase_order'|'invoice', 'parent_id': int, 'line_id': int },
-        'item':   { 'id': int|None, 'sku': str|None, 'name': str|None, 'uom': str|None },
-        'qty':    { 'base': Decimal, 'placed': any, 'ordered': any, 'remaining': any, 'precision': int|None },
-        'price':  { 'unit': Decimal, 'extended': Decimal, 'currency': str|None, 'precision': int|None },
-        'cost':   { 'unit': Decimal, 'extended': Decimal, 'currency': str|None },
-        'meta':   { 'status': str|None, 'tags': list|None }
-      }
-    ]
+def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
+    """Build a normalized transfer-audit payload for a source line.
+
+    Embedded into the target line's refs['xfer'] so the full provenance
+    (source header, line, item, quantity, price, cost) is captured at
+    transfer time.  This enables debugging and reconciliation without
+    querying back to the source transaction.
+
+    The payload is versioned (PAYLOAD_VERSION) and returned as a list to
+    support future multi-source merges.
+
+    See: readmes/topics/transactions/transactions-totals.md §2
     """
     price = getattr(src_line, "price", None) or {}
     cost = getattr(src_line, "cost", None) or {}
@@ -114,7 +141,7 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
         "version": PAYLOAD_VERSION,
         "source": {
             "kind": src_kind,
-            "parent_id": getattr(src_line, "parent_id", None) or getattr(getattr(src_line, "parent", None), "id", None),
+            "parent_id": _resolve_line_parent_id(src_line),
             "line_id": getattr(src_line, "id", None),
         },
         "item": {

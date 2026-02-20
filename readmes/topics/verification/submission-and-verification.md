@@ -11,43 +11,43 @@
   - [Verification Stubs](#verification-stubs)
   - [Applying Results](#applying-results)
   - [Clearing the Snapshot](#clearing-the-snapshot)
-  - [Location display metadata](#location-display-metadata)
+  - [Address display metadata](#address-display-metadata)
   - [Next Steps](#next-steps)
 
 <!-- TOC END -->
 
 ## Overview
 
-Communications models (Location, Email, Phone) support a submission/verification flow. On create, we capture the original client payload in `prefs.submission.as_submitted` for traceability. Background tasks (Celery) can verify records (e.g., physical locations via OpenStreetMap/Nominatim) and update model fields and metadata.
+Communications models (Address, Email, Phone) support a submission/verification flow. On create, we capture the original client payload in `prefs.submission.as_submitted` for traceability. Background tasks (Celery) can verify records (e.g., physical addresses via OpenStreetMap/Nominatim) and update model fields and metadata.
 
 ## Submission Snapshot
 
 - A generic helper `BaseModel.record_submission_snapshot(data, actor_id)` stores a bounded snapshot under:
   - `prefs.submission.as_submitted = { data, dt, by }`
-- This is added during create in: EmailView, PhoneView, LocationView.
+- This is added during create in: EmailView, PhoneView, AddressView.
 
 ## Verification Stubs
 
 - Celery tasks exist but are stubbed (no external calls yet):
-  - `validate_location_osm(location_id)` — marks provider `osm`, status `stubbed`.
+  - `validate_address_osm(address_id)` — marks provider `osm`, status `stubbed`.
   - `validate_email_format(email_id)` — marks provider `local`, status `stubbed`.
   - `validate_phone_basic(phone_id)` — marks provider `local`, status `stubbed`.
-- Trigger location verification: `location.queue_verification('osm')`.
+- Trigger address verification: `address.queue_verification('osm')`.
 
 ## Applying Results
 
-- `Location.apply_validation_result(result)` updates:
+- `Address.apply_validation_result(result)` updates:
   - `metadata.versioning.validation = { provider, status, match_score? }`
   - `metadata.history.verified.dt` (epoch ms)
   - Lat/long and normalized fields if provided.
 
 ## Clearing the Snapshot
 
-- After successful validation, call `Location.clear_submission_snapshot(keep_copy_in_versioning=False)`.
+- After successful validation, call `Address.clear_submission_snapshot(keep_copy_in_versioning=False)`.
 
-## Location display metadata
+## Address display metadata
 
-On each save, `Location` computes a compact single-line label and persists it to `metadata.display.full_location`. It also stores a detected formatting `standard` (e.g., `us` or `eu`) and a `country_code` where possible. This keeps common UI labels fast to render without reformatting on every request.
+On each save, `Address` computes a compact single-line label and persists it to `metadata.display.full_location`. It also stores a detected formatting `standard` (e.g., `us` or `eu`) and a `country_code` where possible. This keeps common UI labels fast to render without reformatting on every request.
 
 Example `metadata.display` payload:
 

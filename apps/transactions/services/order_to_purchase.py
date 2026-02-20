@@ -24,7 +24,7 @@ def transfer_order_to_purchase(
     Transfer order lines to purchase orders, optionally grouping by vendor.
     Creates separate POs for each vendor if group_by_vendor=True.
     """
-    qs = OrderLine.objects.select_for_update().filter(parent=order)
+    qs = OrderLine.objects.select_for_update().filter(order=order)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:
@@ -40,7 +40,7 @@ def transfer_order_to_purchase(
         # All lines to one PO
         vendor_groups[order.vendor_id or 0] = selected
 
-    purchase_orders = []
+    purchases = []
     line_mapping: Dict[int, int] = {}
 
     for vendor_id, lines in vendor_groups.items():
@@ -49,20 +49,20 @@ def transfer_order_to_purchase(
             status=purchase_status,
             vendor_id=vendor_id,
             customer_id=order.customer_id,
-            refs={"source": {"sales_order_id": order.id}},
+            refs={"source": {"order_id": order.id}},
             metadata={"expected_delivery": None},  # Can be set later
         )
 
         for sl in lines:
-            qty = convert_quantity_from_source(sl.quantity or {}, "sales_order")
+            qty = convert_quantity_from_source(sl.quantity or {}, "order")
             pol = PurchaseLine.objects.create(
                 purchase=po,
                 cost=getattr(sl, "cost", None) or {},
                 quantity=qty,
                 item=sl.item or {},
                 refs={
-                    "source": {"sales_order_line_id": sl.id},
-                    "xfer": build_line_payload(sl, "sales_order"),
+                    "source": {"order_line_id": sl.id},
+                    "xfer": build_line_payload(sl, "order"),
                 },
                 metadata={"expected_delivery": None},  # Per line if needed
             )
@@ -73,7 +73,7 @@ def transfer_order_to_purchase(
             except Exception:
                 pass
 
-        purchase_orders.append(po)
+        purchases.append(po)
 
     if not preserve_order:
         try:
@@ -83,13 +83,13 @@ def transfer_order_to_purchase(
             pass
 
     # Update totals for created POs
-    for po in purchase_orders:
+    for po in purchases:
         po.update_sell_cost_totals(persist=True)
 
     return {
         "success": True,
-        "purchase_order_ids": [po.id for po in purchase_orders],
-        "sales_order_id": order.id,
+        "purchase_ids": [po.id for po in purchases],
+        "order_id": order.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,
         "order_status": purchase_status,

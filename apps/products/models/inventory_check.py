@@ -98,9 +98,9 @@ class InventoryCheck(BaseModel):
     STATUS_CANCELED = "canceled"
     STATUSES = INVENTORY_CHECK_STATUS_CHOICES
 
-    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='inventory_checks')
-    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
-    user_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
+    orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='inventory_checks', db_column='orgbase_id')
+    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks', db_column='catalog_id')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks', db_column='user_id')
     dt_performed = models.BigIntegerField(help_text="Epoch ms when the primary count occurred / was finalized")
     status = models.CharField(max_length=20, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     notes = models.TextField(blank=True)
@@ -108,8 +108,8 @@ class InventoryCheck(BaseModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=("orgbase_id", "dt_performed"), name="invchk_org_dt_idx"),
-            models.Index(fields=("catalog_id", "dt_performed"), name="invchk_cat_dt_idx"),
+            models.Index(fields=("orgbase", "dt_performed"), name="invchk_org_dt_idx"),
+            models.Index(fields=("catalog", "dt_performed"), name="invchk_cat_dt_idx"),
             models.Index(fields=("status",), name="invchk_status_idx"),
         ]
 
@@ -129,7 +129,7 @@ class InventoryCheckLine(BaseModel):
 
     @property
     def description_value(self):
-        return self.description or str(self.orgitem_id) if hasattr(self, 'orgitem_id') else ""
+        return self.description or str(self.orgitem) if hasattr(self, 'orgitem') else ""
 
     """Per-item counted quantity within an InventoryCheck.
 
@@ -155,8 +155,8 @@ class InventoryCheckLine(BaseModel):
         * Support multi-count lines (store array of attempts and a resolved value).
     """
 
-    inventorycheck_id = models.ForeignKey(InventoryCheck, on_delete=models.CASCADE, related_name='lines')
-    orgitem_id = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='inventory_check_lines')
+    inventory_check = models.ForeignKey(InventoryCheck, on_delete=models.CASCADE, related_name='lines', db_column='inventorycheck_id')
+    orgitem = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='inventory_check_lines', db_column='orgitem_id')
     counted_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     prior_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="Optional previously known quantity for variance calc")
     variance_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="counted - prior if both available")
@@ -165,7 +165,7 @@ class InventoryCheckLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("inventorycheck_id", "orgitem_id"), name="uniq_invchk_orgitem"),
+            models.UniqueConstraint(fields=("inventory_check", "orgitem"), name="uniq_invchk_orgitem"),
         ]
         indexes = [
             models.Index(fields=("auto_flag",), name="invchkline_autoflag_idx"),

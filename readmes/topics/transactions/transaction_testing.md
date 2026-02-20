@@ -1,6 +1,6 @@
 # Transaction Testing Guide
 
-This guide covers testing procedures for the main transaction types: Proposals, Sales Orders, Invoices, and Purchase Orders.
+This guide covers testing procedures for the main transaction types: Proposals, Orders, Invoices, and Purchases.
 
 ## Overview
 
@@ -65,14 +65,14 @@ POST /api/wcapi/save/
 }
 ```
 
-### 2. Sales Order Testing
+### 2. Order Testing
 
-**Model**: `apps/transactions/models/sales_order.py`
+**Model**: `apps/transactions/models/order.py`
 **Frontend**: `../React2025/src/pages/transactions/OrderDetailPage.tsx`
 
 **Test Steps**:
 
-1. Access Sales Orders page
+1. Access Orders page
 2. Create from proposal or directly:
    - Customer selection
    - Item addition with pricing
@@ -97,7 +97,7 @@ POST /api/wcapi/save/
 **Test Steps**:
 
 1. Navigate to Invoices list
-2. Create invoice from sales order:
+2. Create invoice from order:
    - Select order
    - Review line items
    - Set billing/shipping addresses
@@ -114,15 +114,15 @@ POST /api/wcapi/save/
 - Manual testing via `calculate_transaction_tax()` function
 - See `readmes/tax_service.md` for details
 
-### 4. Purchase Order Testing
+### 4. Purchase Testing
 
-**Model**: `apps/transactions/models/purchase_order.py`
-**Frontend**: `../React2025/src/pages/transactions/PurchaseOrderDetailPage.tsx`
+**Model**: `apps/transactions/models/purchase.py`
+**Frontend**: `../React2025/src/pages/transactions/PurchaseDetailPage.tsx`
 
 **Test Steps**:
 
-1. Access Purchase Orders section
-2. Create PO for vendor:
+1. Access Purchases section
+2. Create purchase for vendor:
    - Select vendor
    - Add items with costs
    - Set delivery dates
@@ -212,8 +212,8 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 
 ### Cross-Transaction Flow
 
-1. Proposal → Sales Order → Invoice
-2. Purchase Order → Receipt → Invoice matching
+1. Proposal → Order → Invoice
+2. Purchase → Receipt → Invoice matching
 3. Customer data consistency across transactions
 
 ### External Integrations

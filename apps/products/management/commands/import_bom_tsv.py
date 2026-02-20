@@ -129,10 +129,10 @@ class Command(BaseCommand):
         if sequence is None:
             sequence = index
 
-        bom = BillOfMaterial.objects.filter(item_id=parent_item, component_id=component_item).first()
+        bom = BillOfMaterial.objects.filter(parent_item=parent_item, child_item=component_item).first()
         created = False
         if bom is None:
-            bom = BillOfMaterial(item_id=parent_item, component_id=component_item)
+            bom = BillOfMaterial(parent_item=parent_item, child_item=component_item)
             created = True
 
         bom.quantity = qty

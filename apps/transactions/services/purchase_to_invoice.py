@@ -26,20 +26,20 @@ def transfer_purchase_to_invoice(
 
     inv = Invoice.objects.create(
         status=invoice_status,
-        refs={"source": {"purchase_order_id": purchase.id}},
+        refs={"source": {"purchase_id": purchase.id}},
     )
 
     line_mapping: Dict[int, int] = {}
     for pl in selected:
-        qty = convert_quantity_from_source(getattr(pl, "quantity", {}) or {}, "purchase_order")
+        qty = convert_quantity_from_source(getattr(pl, "quantity", {}) or {}, "purchase")
         il = InvoiceLine.objects.create(
-            parent=inv,
+            invoice=inv,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,
             refs={
-                "source": {"purchase_order_line_id": pl.pk},
-                "xfer": build_line_payload(pl, "purchase_order"),
+                "source": {"purchase_line_id": pl.pk},
+                "xfer": build_line_payload(pl, "purchase"),
             },
         )
         line_mapping[pl.pk] = il.pk
@@ -56,7 +56,7 @@ def transfer_purchase_to_invoice(
     return {
         "success": True,
         "invoice_id": inv.id,
-        "purchase_order_id": purchase.id,
+        "purchase_id": purchase.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,
         "invoice_status": invoice_status,

@@ -6,12 +6,12 @@ class TransferValidationSerializer(serializers.Serializer):
     """Serializer for transfer validation requests."""
 
     source_type = serializers.ChoiceField(
-        choices=['proposal', 'order', 'purchase_order', 'invoice'],
+        choices=['proposal', 'order', 'purchase', 'invoice'],
         help_text="Type of source transaction"
     )
     source_id = serializers.IntegerField(help_text="ID of source transaction")
     target_type = serializers.ChoiceField(
-        choices=['order', 'invoice', 'payment', 'purchase_order'],
+        choices=['proposal', 'order', 'invoice', 'payment', 'purchase'],
         help_text="Type of target transaction"
     )
 
@@ -29,11 +29,11 @@ class TransferRequestSerializer(serializers.Serializer):
     """Serializer for transfer execution requests."""
 
     source_type = serializers.ChoiceField(
-        choices=['proposal', 'order', 'purchase_order', 'invoice']
+        choices=['proposal', 'order', 'purchase', 'invoice']
     )
     source_id = serializers.IntegerField()
     target_type = serializers.ChoiceField(
-        choices=['order', 'invoice', 'payment', 'purchase_order']
+        choices=['proposal', 'order', 'invoice', 'payment', 'purchase']
     )
     line_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -65,7 +65,9 @@ class TransferResponseSerializer(serializers.Serializer):
 
     success = serializers.BooleanField()
     target_id = serializers.IntegerField(required=False)
+    target_type = serializers.CharField(required=False)
     source_id = serializers.IntegerField()
+    source_type = serializers.CharField(required=False)
     lines_transferred = serializers.IntegerField()
     line_mapping = serializers.DictField()
     source_preserved = serializers.BooleanField()

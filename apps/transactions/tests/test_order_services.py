@@ -60,15 +60,15 @@ class OrderTotalsServiceTest(TestCase):
         """Test computing totals with line items."""
         # Create line items
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={'description': 'Item 1'},
             quantity={'placed': 2, 'remaining': 2},
             price={'unit': 10.00, 'extended': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 2",
+            order=self.order,
+            item={'description': 'Item 2'},
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 15.00, 'extended': 15.00},
             cost={'unit': 12.00, 'extended': 12.00}
@@ -93,8 +93,8 @@ class OrderTotalsServiceTest(TestCase):
     def test_compute_totals_with_discounts(self):
         """Test computing totals with discounts."""
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={'description': 'Item 1'},
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 100.00, 'discount_amount': 10.00, 'extended': 90.00},
             cost={'unit': 80.00, 'extended': 80.00}
@@ -120,8 +120,8 @@ class OrderTotalsServiceTest(TestCase):
     def test_compute_totals_with_additional_costs(self):
         """Test computing totals with additional cost components."""
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={'description': 'Item 1'},
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 100.00, 'extended': 100.00},
             cost={

@@ -129,7 +129,7 @@ def _build_contact_payload(base: Dict[str, Any], *, contact_obj: Any = None) -> 
         links = refs.get("links", {}) if isinstance(refs, dict) else {}
         if isinstance(links, dict):
             if not payload.get("address"):
-                payload["address"] = _normalize_comm_list(links.get("location") or links.get("address") or [], kind="address")
+                payload["address"] = _normalize_comm_list(links.get("address") or [], kind="address")
             if not payload.get("email"):
                 payload["email"] = _normalize_comm_list(links.get("email") or [], kind="email")
             if not payload.get("phone"):

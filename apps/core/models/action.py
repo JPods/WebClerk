@@ -6,7 +6,7 @@ from apps.core.services.keywords import build_keywords_for_record
 
 class Action(BaseModel):
     # Parent-child relationship
-    action_id = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
+    parent_action = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE, db_column='action_id')
     
     # Multilingual titles and descriptions
     action = models.JSONField(default=dict, blank=True, null=True)
@@ -251,6 +251,18 @@ class Action(BaseModel):
         def is_empty(val):
             return val is None or val == 0
         
+        # For new actions with a project, set dt_start from project.dt_kanban, dt_deadline = dt_start + 7 days
+        if not self.pk and self.project_id and self.project_id > 0:
+            from apps.transactions.models import Project
+            project = Project.objects.filter(id=self.project_id).first()
+            if project and project.dt_kanban:
+                # Convert datetime to milliseconds
+                kanban_ts = int(project.dt_kanban.timestamp() * 1000)
+                if is_empty(self.dt_start):
+                    self.dt_start = kanban_ts
+                if is_empty(self.dt_deadline):
+                    self.dt_deadline = self.dt_start + (7 * one_day_ms)
+        
         # Only apply logic if duration is set and positive
         if self.duration and self.duration > 0:
             duration_ms = self.duration * one_day_ms
@@ -306,8 +318,11 @@ class Action(BaseModel):
                 name = f.name
                 if name in {'dt_modified', 'version'}:
                     continue
-                old = self._original_state.get(name)
-                new = getattr(self, name)
+                # Use f.attname to compare raw DB column values (e.g. contact_id)
+                # to avoid triggering lazy-load queries on FK fields.
+                attr = f.attname
+                old = self._original_state.get(attr)
+                new = getattr(self, attr)
                 if old != new:
                     changed_fields.append(name)
         

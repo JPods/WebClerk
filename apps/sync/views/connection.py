@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.db import models
 
 from common.base_views import BaseListCreateView, BaseOptimisticDetailView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.sync.models.connection import Connection
 from apps.sync.serializers.connection import ConnectionSerializer
 
@@ -15,14 +15,14 @@ class SyncPagination(pagination.PageNumberPagination):
 
 class ConnectionListView(BaseListCreateView):
     _allow_write = True
-    permission_classes = [AllowAny]
-    queryset = Connection.objects.all()
+    permission_classes = [IsAuthenticated]
+    queryset = Connection.objects.active()
     serializer_class = ConnectionSerializer
     pagination_class = SyncPagination
     ALLOWED_ROLES = {'staff','admin'}
 
 class ConnectionDetailView(BaseOptimisticDetailView):
-    queryset = Connection.objects.all()
+    queryset = Connection.objects.active()
     serializer_class = ConnectionSerializer
     ALLOWED_ROLES = {'staff','admin'}
 

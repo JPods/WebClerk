@@ -102,7 +102,7 @@ class Command(BaseCommand):
                 links = {
                     'contact': [],
                     'email': [],
-                    'location': [],
+                    'address': [],
                     'phone': [],
                     'domain': [],
                 }
@@ -118,11 +118,11 @@ class Command(BaseCommand):
                         for email in org.emails:
                             if 'id' in email:
                                 links['email'].append(email['id'])
-                    # Collect location ids
-                    if isinstance(org.locations, list):
-                        for location in org.locations:
-                            if 'id' in location:
-                                links['location'].append(location['id'])
+                    # Collect address ids
+                    if isinstance(org.addresses, list):
+                        for address in org.addresses:
+                            if 'id' in address:
+                                links['address'].append(address['id'])
                     # Collect phone ids
                     if isinstance(org.phones, list):
                         for phone in org.phones:

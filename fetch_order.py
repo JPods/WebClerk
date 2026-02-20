@@ -53,7 +53,7 @@ def serialize_order(order):
     for line in order.lines.all():
         line_data = {
             'id': line.id,
-            'order_id': line.order_id_id,
+            # 'order_id': line.order_id_id,  # Legacy support removed for consistency
             'price_level': line.price_level,
             'status': line.status,
             'item': line.item or {},

@@ -39,7 +39,7 @@ def reserve_inventory_for_order(order: Order) -> Dict[str, int]:
     lines_reserved = 0
     total_reserved = Decimal(0)
 
-    for line in OrderLine.objects.filter(parent=order).select_related('parent'):
+    for line in OrderLine.objects.filter(order=order).select_related('order'):
         qty_needed = _get_order_quantity_needed(line)
         if qty_needed <= 0:
             continue
@@ -73,7 +73,7 @@ def reserve_inventory_for_order(order: Order) -> Dict[str, int]:
                     item=item,
                     warehouse=layer.warehouse,
                     quantity_reserved=float(reserve_qty),
-                    source_type='sales_order',
+                    source_type='order',
                     source_id=order.id,
                     source_line_id=line.id,
                     expires_at=None,  # No expiration for confirmed orders
@@ -119,7 +119,7 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
     deltas_created = 0
     total_processed = Decimal(0)
 
-    for line in InvoiceLine.objects.filter(parent=invoice).select_related('parent'):
+    for line in InvoiceLine.objects.filter(invoice=invoice).select_related('invoice'):
         qty_invoiced = _get_invoice_quantity_invoiced(line)
         if qty_invoiced == 0:
             continue
@@ -132,7 +132,7 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
         order_id = _get_order_id_from_invoice_line(line)
         if order_id and qty_invoiced > 0:
             reservations = InventoryReservation.objects.filter(
-                source_type='sales_order',
+                source_type='order',
                 source_id=order_id,
                 source_line_id__in=_get_order_line_ids_from_invoice_line(line),
                 quantity_reserved__gt=0
@@ -353,7 +353,7 @@ def create_inventory_deltas_for_order(order: Order) -> int:
     return deltas_created
 
 
-def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
+def create_inventory_deltas_for_purchase(po: Purchase) -> int:
     """
     Create inventory deltas when a purchase order is created.
 
@@ -376,11 +376,11 @@ def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
 
         _create_inventory_delta(
             item_id=item_id,
-            source_type='purchase_order_line',
+            source_type='purchase_line',
             source_id=po.id,
             source_line_id=line.id,
             quantity_on_po_delta=Decimal(str(qty_ordered)),  # Increase on-PO (or decrease for returns)
-            notes=f"Purchase order {po.id} - ordered {qty_ordered} units"
+            notes=f"Purchase {po.id} - ordered {qty_ordered} units"
         )
         deltas_created += 1
 
@@ -601,7 +601,7 @@ def validate_inventory_delta(delta: Pending) -> Dict[str, Any]:
 
     # Source type validation
     valid_source_types = [
-        'sales_order_line', 'purchase_order_line', 'invoice_line',
+        'order_line', 'purchase_line', 'invoice_line',
         'purchase_receipt', 'inventory_adjustment'
     ]
     source_type = data.get('source_type')
@@ -702,7 +702,7 @@ __all__ = [
     'release_inventory_on_invoice',
     'cancel_order_inventory_reservations',
     'create_inventory_deltas_for_order',
-    'create_inventory_deltas_for_purchase_order',
+    'create_inventory_deltas_for_purchase',
     '_create_inventory_delta',
     'process_inventory_deltas_immediately',
     'validate_inventory_delta',

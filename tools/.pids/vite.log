@@ -1,0 +1,33 @@
+
+> WebClerk-react@2.0.2 dev
+> vite
+
+
+
+[36m═══════════════════════════════════════════════════════[0m
+[36m  [React2025] Data Set: DEV - Development Server[0m
+  [React2025] Database: [34mLOCAL[0m
+[36m  Proxying API to http://localhost:8000[0m
+[36m═══════════════════════════════════════════════════════[0m
+
+
+
+  VITE v6.4.1  ready in 151 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+6:39:36 PM [vite] http proxy error: /wcapi/dev/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+6:39:36 PM [vite] http proxy error: /wcapi/dev/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+6:39:36 PM [vite] http proxy error: /wcapi/get/?model_name=contact&is_staff=true&limit=500
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+6:39:36 PM [vite] http proxy error: /wcapi/dev/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+6:39:36 PM [vite] http proxy error: /wcapi/get/?model_name=contact&is_staff=true&limit=500
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)

@@ -1,0 +1,26 @@
+[run]
+source =
+    apps
+    common
+omit =
+    */migrations/*
+    */tests/*
+    */__pycache__/*
+    */admin.py
+    manage.py
+    conftest.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    pass
+    \.\.\.
+show_missing = true
+precision = 1
+skip_covered = false
+
+[html]
+directory = htmlcov

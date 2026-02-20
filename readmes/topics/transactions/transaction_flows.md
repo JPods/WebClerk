@@ -26,7 +26,69 @@ graph TD
 
 ```
 
-The primary flow follows: **Proposal → Sales Order → Purchase Order → Invoice → Payment**
+The primary flow follows: **Proposal → Order → Purchase → Invoice → Payment**
+
+## Transaction Lineage — `parent_model` / `parent_id`
+
+Every transaction header has two fields on `TransactionBaseModel` that track **which transaction created it**:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `parent_id` | `BigIntegerField` | PK of the source transaction |
+| `parent_model` | `CharField(20)` | Discriminator: `proposal`, `order`, `invoice`, `purchase`, `workorder`, `requisition` |
+
+This is a **polymorphic pattern** (not a true FK). It answers: *"This order was created from proposal #42."*
+
+### Parent-child chains
+
+```
+Proposal #42  ──parent_of──▶  Order #61  ──parent_of──▶  Invoice #85
+                               │
+                               └──parent_of──▶  Purchase #39  ──parent_of──▶  Receipt (via FK)
+```
+
+When a transfer service converts one transaction to another, it sets:
+```python
+new_order.parent_model = "proposal"
+new_order.parent_id    = proposal.pk
+```
+
+### Line-level lineage
+
+Lines track their source line via `refs.source` and `refs.xfer` JSONB:
+```json
+{
+  "refs": {
+    "source": { "model": "proposal_line", "id": 101 },
+    "xfer":   { "version": 1, "transferred_at": "2026-02-17T..." }
+  }
+}
+```
+
+## Quantity Model — `placed` / `actioned` / `remaining`
+
+All line types use a unified `quantity` JSONB with **three canonical keys**:
+
+| Key | Meaning |
+|-----|---------|
+| `placed` | Quantity committed on this line |
+| `actioned` | Quantity acted upon (context-dependent — see below) |
+| `remaining` | `placed - actioned` |
+
+Additional keys: `is_fixed`, `precision`, `is_blanket`, `increment`.
+
+The `actioned` key **replaces** the legacy per-type verbs:
+
+| Transaction Type | `actioned` means | Legacy key (deprecated) |
+|------------------|-------------------|------------------------|
+| Proposal | converted to order | — |
+| Order | shipped / invoiced | `ordered`, `invoiced` |
+| Invoice | delivered | `shipped` |
+| Purchase | received from vendor | `received` |
+| WorkOrder | completed | — |
+
+> **Migration note**: Transfer services must be updated to read/write `placed`/`actioned`
+> instead of legacy keys like `ordered`, `invoiced`, `packed`.
 
 ## Transaction Models
 
@@ -39,8 +101,8 @@ All transaction models inherit from `TransactionBaseModel` which provides:
 ### Core Models
 
 - **Proposal**: Initial estimates/quotes with line items
-- **SalesOrder**: Confirmed customer orders
-- **PurchaseOrder**: Procurement orders to vendors
+- **Order**: Confirmed customer orders
+- **Purchase**: Procurement orders to vendors
 - **Invoice**: Billing documents with tax calculations
 - **Payment**: Payment records with gateway integration
 
@@ -49,8 +111,8 @@ All transaction models inherit from `TransactionBaseModel` which provides:
 Each transaction type has corresponding line models:
 
 - `ProposalLine`
-- `SalesOrderLine`
-- `PurchaseOrderLine`
+- `OrderLine`
+- `PurchaseLine`
 - `InvoiceLine`
 - `PaymentApplication`
 
@@ -62,7 +124,7 @@ WebClerk3 salvages key business logic patterns from WebClerk2 (4D implementation
 
 Core transfer utilities in `apps/transactions/services/`:
 
-- `proposal_to_order.py`: Converts proposals to sales orders
+- `proposal_to_order.py`: Converts proposals to orders
 - `order_to_invoice.py`: Converts orders to invoices
 - `flow.py`: Core transfer utilities and inventory receiving
 
@@ -72,7 +134,7 @@ The `flow.py` module provides specialized functions for inventory receiving:
 
 | Function | Source Type | Use Case |
 |----------|-------------|----------|
-| `receive_purchase_order()` | Purchase Order | Receiving goods from vendors |
+| `receive_purchase()` | Purchase | Receiving goods from vendors |
 | `complete_workorder()` | Work Order | Completing manufacturing |
 | `adjust_inventory()` | Manual | Adjustments, cycle counts, write-offs |
 | `receive_inventory_changes()` | Dispatcher | High-level routing to above functions |
@@ -81,7 +143,7 @@ Example usage:
 
 ```python
 from apps.transactions.services.flow import (
-    receive_purchase_order, ReceiveLine,
+    receive_purchase, ReceiveLine,
     complete_workorder, CompleteWorkOrderLine,
     adjust_inventory, AdjustmentLine,
     receive_inventory_changes
@@ -89,7 +151,7 @@ from apps.transactions.services.flow import (
 
 # Receive against a PO
 lines = [ReceiveLine(po_line_id=123, qty=10, warehouse_code='MAIN')]
-receive_purchase_order(po, 'RCV-001', lines)
+receive_purchase(po, 'RCV-001', lines)
 
 # Complete a workorder
 lines = [CompleteWorkOrderLine(wo_line_id=456, qty_completed=50, warehouse_code='FG')]
@@ -178,7 +240,7 @@ Transactions leverage PostgreSQL JSONB fields for flexible, searchable data stor
 ```json
 {
   "source": [{"type": "proposal", "id": 123}],
-  "children": [{"type": "sales_order", "id": 456}]
+  "children": [{"type": "order", "id": 456}]
 }
 
 ```

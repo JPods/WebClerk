@@ -19,10 +19,10 @@ class Serial(ItemLinkedBase):
     status = models.CharField(max_length=40, blank=True, db_index=True)
     # Current location / warehouse / inventory stack
     site = models.JSONField(default=dict, blank=True, help_text="Lightweight site/location snapshot (geo codes, address refs)")
-    inventorylayer_id = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
+    inventory_layer = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials", db_column='inventorylayer_id')
     data = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)
-    # Access the parent item's primary key via `serial.item_id_id` (Django auto FK _id attribute).
+    # Access the parent item's primary key via `serial.item_id` (Django auto FK _id attribute).
 
     @property
     def ida(self):
@@ -40,7 +40,7 @@ class Serial(ItemLinkedBase):
 class SerialLog(BaseModel):
     """Log of actions / state changes for a serialized unit."""
 
-    serial_id = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs")
+    serial = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs", db_column='serial_id')
     action = models.CharField(max_length=60, db_index=True)
     dt = models.BigIntegerField(db_index=True)
     data = models.JSONField(default=dict, blank=True)

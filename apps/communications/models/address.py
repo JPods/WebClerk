@@ -49,8 +49,8 @@ class Address(BaseModel):
         try:
             if provider == "osm":
                 # Lazy import to avoid circulars at import time
-                from apps.communications.tasks import validate_location_osm
-                validate_location_osm(self.pk)
+                from apps.communications.tasks import validate_address_osm
+                validate_address_osm(self.pk)
         except Exception:
             # Non-fatal; callers may choose to log
             pass

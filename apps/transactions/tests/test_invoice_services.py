@@ -62,9 +62,9 @@ class InvoiceTotalsServiceTest(TestCase):
         """Test totals computation for invoice with single line item."""
         # Create a line item
         InvoiceLine.objects.create(
-            invoice_id=self.invoice,
-            description="Test Item",
-            quantity={"placed": 2},
+            invoice=self.invoice,
+            item={"description": "Test Item"},
+            quantity={"placed": 2, "remaining": 2},
             price={"extended": 20.00},
             cost={"extended": 16.00, "tax": 1.60}
         )
@@ -106,8 +106,8 @@ class OrderToInvoiceServiceTest(TestCase):
         """Test basic order to invoice transfer."""
         # Create order lines
         OrderLine.objects.create(
-            parent=self.order,
-            description="Test Item",
+            order=self.order,
+            item={"description": "Test Item"},
             quantity={"placed": 2, "remaining": 2},
             price={"unit": 10.00, "extended": 20.00},
             cost={"extended": 16.00}
@@ -124,7 +124,7 @@ class OrderToInvoiceServiceTest(TestCase):
         self.assertEqual(invoice.refs['source']['order_id'], self.order.id)
 
         # Check lines were transferred
-        lines = InvoiceLine.objects.filter(invoice_id=invoice)
+        lines = InvoiceLine.objects.filter(invoice=invoice)
         self.assertEqual(len(lines), 1)
         line = lines[0]
         self.assertEqual(line.quantity['remaining'], 2)
@@ -133,15 +133,15 @@ class OrderToInvoiceServiceTest(TestCase):
         """Test partial order to invoice transfer."""
         # Create order lines
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 1",
+            order=self.order,
+            item={"description": "Item 1"},
             quantity={"placed": 5, "remaining": 3},
             price={"unit": 10.00, "extended": 30.00},
             cost={"extended": 24.00}
         )
         OrderLine.objects.create(
-            parent=self.order,
-            description="Item 2",
+            order=self.order,
+            item={"description": "Item 2"},
             quantity={"placed": 2, "remaining": 0},  # Already invoiced
             price={"unit": 5.00, "extended": 0.00},
             cost={"extended": 0.00}

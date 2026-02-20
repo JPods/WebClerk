@@ -61,14 +61,14 @@ class InvoiceModelTest(TestCase):
 
         # Create some line items
         line1 = InvoiceLine.objects.create(
-            invoice_id=invoice,
+            invoice=invoice,
             description="Item 1",
             quantity={"placed": 2},
             price={"unit": 10.00, "extended": 20.00},
             cost={"extended": 16.00}
         )
         line2 = InvoiceLine.objects.create(
-            invoice_id=invoice,
+            invoice=invoice,
             description="Item 2",
             quantity={"placed": 1},
             price={"unit": 15.00, "extended": 15.00},
@@ -115,14 +115,14 @@ class InvoiceLineModelTest(TestCase):
     def test_invoice_line_creation(self):
         """Test basic invoice line creation."""
         line = InvoiceLine.objects.create(
-            invoice_id=self.invoice,
+            invoice=self.invoice,
             description="Test Item",
             quantity={"placed": 5},
             price={"unit": 20.00},
             cost={"unit": 15.00}
         )
 
-        self.assertEqual(line.invoice_id, self.invoice)
+        self.assertEqual(line.invoice, self.invoice)
         self.assertEqual(line.description, "Test Item")
         self.assertEqual(line.quantity["placed"], 5)
         self.assertEqual(line.price["unit"], 20.00)

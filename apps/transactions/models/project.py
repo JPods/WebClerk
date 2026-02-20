@@ -61,6 +61,7 @@ class Project(BaseModel):
     metadata, prefs, refs, comments, etc.
     """
     name = models.CharField(max_length=255, blank=True, default="", help_text="Short name or title")
+    dt_kanban = models.DateTimeField(null=True, blank=True, db_index=True, help_text="Next action / review date for prioritization")
     situation = models.TextField(blank=True, default="", help_text="Current context / problem narrative")
     objective = models.JSONField(default=default_objective, help_text="Structured goal & success metrics")
     priority = models.PositiveSmallIntegerField(default=3, help_text="1 (highest) – 5 (lowest)")

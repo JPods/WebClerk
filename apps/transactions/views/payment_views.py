@@ -40,8 +40,8 @@ def process_payment(request):
 
         # Create payment record
         payment = Payment.objects.create(
-            invoice_id=invoice,
-            contact_id=request.user,  # Assuming user is contact
+            invoice=invoice,
+            contact=request.user,  # Assuming user is contact
             amount=amount,
             gateway=gateway,
             status='pending'
@@ -192,7 +192,7 @@ def payment_status(request, payment_id):
         payment = get_object_or_404(Payment, pk=payment_id)
 
         # Check if user has permission to view this payment
-        if payment.contact_id != request.user and not request.user.is_staff:
+        if payment.contact != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'Permission denied'},
                 status=status.HTTP_403_FORBIDDEN
@@ -226,7 +226,7 @@ def payment_status(request, payment_id):
 def payment_history(request):
     """Get payment history for the authenticated user"""
     try:
-        payments = Payment.objects.filter(contact_id=request.user).order_by('-dt_created')
+        payments = Payment.objects.filter(contact=request.user).order_by('-dt_created')
 
         # Paginate if needed
         page = request.query_params.get('page', 1)
@@ -241,7 +241,7 @@ def payment_history(request):
         for payment in payments_page:
             data.append({
                 'id': payment.id,
-                'invoice_id': payment.invoice_id.pk if payment.invoice_id else None,
+                'invoice_id': payment.invoice.pk if payment.invoice else None,
                 'amount': payment.amount,
                 'status': payment.status,
                 'gateway': payment.gateway,
@@ -264,47 +264,11 @@ def payment_history(request):
         )
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    """
-    REST API viewset for Payment management.
-    Uses WCAPI for all save operations to maintain consistency and security.
-    """
-    queryset = Payment.objects.all()
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Payment. Writes go through /wcapi/save/."""
+
+    queryset = Payment.objects.active()
     serializer_class = PaymentSerializer
-
-    def get_queryset(self):
-        """Filter queryset based on user permissions."""
-        return self.queryset
-
-    def perform_create(self, serializer):
-        """Create payment using WCAPI save."""
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'payment'
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('payment', request=self.request, data=data)
-        if result[1] == 'created':
-            # Set the created instance on serializer for response
-            instance = Payment.objects.get(pk=result[0])
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to create payment")
-
-    def perform_update(self, serializer):
-        """Update payment using WCAPI save."""
-        instance = self.get_object()
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'payment'
-        data['id'] = instance.id
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('payment', request=self.request, data=data, id=instance.id)
-        if result[1] == 'updated':
-            # Refresh instance
-            instance.refresh_from_db()
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to update payment")
 
     @action(detail=True, methods=['post'])
     def apply_to_invoice(self, request, pk=None):

@@ -6,6 +6,8 @@ from .models import (
     InventoryCheck, InventoryCheckLine, DeliveryVisit, DeliveryLine, ItemUsage,
     Service, InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
+from .models.inventory_reservation import InventoryReservation
+from .models.specification import Specification
 
 
 class ScalarFirstFieldsetMixin:
@@ -66,14 +68,14 @@ class ItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(ItemXRef)
 class ItemXRefAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "description", "is_active", "dt_created")
+    list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(BillOfMaterial)
 class BillOfMaterialAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "description", "is_active", "dt_created")
+    list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
@@ -202,3 +204,17 @@ class VariantAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "item_ida", "canonical_key", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("item_ida", "canonical_key", "description")
+
+
+@admin.register(InventoryReservation)
+class InventoryReservationAdmin(admin.ModelAdmin):
+    list_display = ("id", "item", "warehouse", "qty", "state", "dt_expires", "dt_committed", "reason")
+    list_filter = ("state", "warehouse")
+    search_fields = ("item_ida", "description", "reason")
+
+
+@admin.register(Specification)
+class SpecificationAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "name", "item", "unit", "status", "is_active")
+    list_filter = ("status", "is_active", "unit")
+    search_fields = ("name", "description", "unit", "ida")

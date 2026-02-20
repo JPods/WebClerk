@@ -1,7 +1,8 @@
 #Tip: You can call load_keyword_requirements() in your 
 # AppConfig’s ready() method and cache the result.
 import logging
-console_logger = logging.getLogger('console')  # Console logger for debugging
+
+logger = logging.getLogger(__name__)
 
 from apps.core.models.setting import Setting
 from apps.core.services.cache_service import cache_service
@@ -20,17 +21,17 @@ def load_keyword_requirements():
         for setting in qs:
             # Check timeout
             if time.time() - start_time > timeout:
-                print(f"[KEYWORDS] Timeout reached, stopping keyword requirements loading")
+                logger.warning("Timeout reached loading keyword requirements")
                 break
                 
             key = getattr(setting, 'parent_model', None)
             if key:
                 requirements[key] = setting.data
         
-        print(f"[KEYWORDS] Loaded requirements for {len(requirements)} models in {time.time() - start_time:.2f}s")
+        logger.info("Loaded keyword requirements for %d models in %.2fs", len(requirements), time.time() - start_time)
         return requirements
     except Exception as e:
-        print(f"[KEYWORDS] Error loading requirements: {e}")
+        logger.error("Error loading keyword requirements: %s", e)
         return {}
 
 def get_keyword_requirements():

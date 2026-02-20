@@ -26,20 +26,20 @@ def transfer_purchase_to_order(
 
     so = Order.objects.create(
         status=order_status,
-        refs={"source": {"purchase_order_id": purchase.id}},
+        refs={"source": {"purchase_id": purchase.id}},
     )
 
     line_mapping: Dict[int, int] = {}
     for pl in selected:
-        qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase_order")
+        qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase")
         sl = OrderLine.objects.create(
-            parent=so,
+            order=so,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,
             refs={
-                "source": {"purchase_order_line_id": pl.pk},
-                "xfer": build_line_payload(pl, "purchase_order"),
+                "source": {"purchase_line_id": pl.pk},
+                "xfer": build_line_payload(pl, "purchase"),
             },
         )
         line_mapping[pl.pk] = sl.id
@@ -56,7 +56,7 @@ def transfer_purchase_to_order(
 
     return {
         "order_id": so.id,
-        "purchase_order_id": purchase.id,
+        "purchase_id": purchase.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,
         "order_status": order_status,

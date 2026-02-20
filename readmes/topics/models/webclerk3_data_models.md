@@ -178,7 +178,7 @@ classDiagram
         +BaseModel+
     }
 
-    class Location {
+    class Address {
         +contact_id: IntegerField
         +address: TextField
         +city: CharField
@@ -217,7 +217,7 @@ classDiagram
     Contact ||--o{ Action : performs
     Contact ||--o{ Email : has
     Contact ||--o{ Phone : has
-    Contact ||--o{ Location : has
+    Contact ||--o{ Address : has
     Contact ||--o{ Document : owns
 ```
 
@@ -254,7 +254,7 @@ classDiagram
         +approved_by_id: IntegerField
     }
 
-    class SalesOrder {
+    class Order {
         +TransactionBaseModel+
         +approved_at: DateTimeField
         +approved_by_id: IntegerField
@@ -262,7 +262,7 @@ classDiagram
         +shipped_by_id: IntegerField
     }
 
-    class PurchaseOrder {
+    class Purchase {
         +TransactionBaseModel+
         +approved_at: DateTimeField
         +approved_by_id: IntegerField
@@ -292,8 +292,8 @@ classDiagram
     }
 
     TransactionBaseModel <|-- Proposal
-    TransactionBaseModel <|-- SalesOrder
-    TransactionBaseModel <|-- PurchaseOrder
+    TransactionBaseModel <|-- Order
+    TransactionBaseModel <|-- Purchase
     TransactionBaseModel <|-- Invoice
     TransactionBaseModel <|-- WorkOrder
     TransactionBaseModel <|-- Requisition
@@ -329,13 +329,13 @@ classDiagram
         +probability: DecimalField
     }
 
-    class SalesOrderLine {
+    class OrderLine {
         +TransactionLineBaseModel+
         +shipped_quantity: DecimalField
         +backorder_quantity: DecimalField
     }
 
-    class PurchaseOrderLine {
+    class PurchaseLine {
         +TransactionLineBaseModel+
         +received_quantity: DecimalField
         +rejected_quantity: DecimalField
@@ -359,8 +359,8 @@ classDiagram
     }
 
     TransactionLineBaseModel <|-- ProposalLine
-    TransactionLineBaseModel <|-- SalesOrderLine
-    TransactionLineBaseModel <|-- PurchaseOrderLine
+    TransactionLineBaseModel <|-- OrderLine
+    TransactionLineBaseModel <|-- PurchaseLine
     TransactionLineBaseModel <|-- InvoiceLine
     TransactionLineBaseModel <|-- WorkOrderLine
     TransactionLineBaseModel <|-- RequisitionLine
@@ -619,7 +619,7 @@ classDiagram
 |-------|----------|------------------|
 | Contact | BaseModel | Full envelope, keywords, lifecycle |
 | Action | BaseModel | Full envelope, dependencies, status tracking |
-| Email/Phone/Location | BaseModel | Verification flows, contact linking |
+| Email/Phone/Address | BaseModel | Verification flows, contact linking |
 | Document | BaseModel | Search vectors, access tracking, linkage |
 | Transaction Headers | BaseModel | Totals aggregation, flow tracking |
 | Transaction Lines | BaseModel | Lineage, serial tracking, parent linking |

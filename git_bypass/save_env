@@ -1,5 +1,7 @@
 DEBUG=True
 SECRET_KEY=1799934e7281a7a092b0136d173e328889e6cc678d38e997dd54bf901e853df1
+TIME_ZONE=Asia/Dhaka
+USE_TZ=False
 
 # Data Set Identification - helps identify which environment/database is in use
 # Options: LOCAL, DEV, STAGING, PRODUCTION, or a custom identifier
@@ -14,7 +16,7 @@ DATA_SET_NAME=Development Server
 DB_MODE=remote
 
 # Remote Postgres (team collaboration)
-REMOTE_DATABASE_HOST=85.31.234.194
+REMOTE_DATABASE_HOST=76.13.185.210
 REMOTE_DATABASE_PORT=5432
 REMOTE_DATABASE_NAME=commerce_expert
 REMOTE_DATABASE_USER=postgres
@@ -24,7 +26,7 @@ REMOTE_DATABASE_PASS=wc_psql_server
 LOCAL_DATABASE_HOST=localhost
 LOCAL_DATABASE_PORT=5432
 LOCAL_DATABASE_NAME=commerce_expert
-LOCAL_DATABASE_USER=williamjames
+LOCAL_DATABASE_USER=an7or
 LOCAL_DATABASE_PASS=
 
 # Admin email serversss

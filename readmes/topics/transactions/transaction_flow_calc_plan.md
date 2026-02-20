@@ -6,7 +6,7 @@ Identify useful business logic in WebClerk2 and create a plan to implement in We
 
 ## Overview
 
-This plan salvages practical business logic from WebClerk2 for transaction management in WebClerk3, with frontend implementation in React2025. The focus is on the core transaction flow: Proposals → Sales Orders → Purchase Orders → Invoices → Payments. Each table is analyzed step-by-step, incorporating schema alignments from WebClerk2 to WebClerk3, recommendations for jsonb field usage (.refs, .prefs, .metadata), summaries of relevant WebClerk2 functions, and additional implementation recommendations. Commissions and special discounts are stubbed for future implementation.
+This plan salvages practical business logic from WebClerk2 for transaction management in WebClerk3, with frontend implementation in React2025. The focus is on the core transaction flow: Proposals → Orders → Purchases → Invoices → Payments. Each table is analyzed step-by-step, incorporating schema alignments from WebClerk2 to WebClerk3, recommendations for jsonb field usage (.refs, .prefs, .metadata), summaries of relevant WebClerk2 functions, and additional implementation recommendations. Commissions and special discounts are stubbed for future implementation.
 
 ## React2025 Scope
 
@@ -17,8 +17,8 @@ React2025 is limited to features in WC_Core.4dm (basic order management, payment
 The following alignments map WebClerk2 tables to WebClerk3 models:
 
 - Proposal and ProposalLine → proposal and proposal_line
-- Order and OrderLine → sales_order and sales_order_line
-- PO and POLine → purchase_order and purchase_order_line
+- Order and OrderLine → order and order_line
+- Purchase and PurchaseLine → purchase and purchase_line
 - Invoice and InvoiceLine → invoice and invoice_line
 - Payment → Payment
 - QA → question_answer
@@ -29,7 +29,7 @@ The following alignments map WebClerk2 tables to WebClerk3 models:
 
 WebClerk3 models include jsonb fields: .refs, .prefs, and .metadata (except in pending). Recommendations for transaction needs:
 
-- **.refs**: Store lineage and relationship data, e.g., proposal_id in sales_order, order_id in invoice, vendor groupings in purchase_order.
+- **.refs**: Store lineage and relationship data, e.g., proposal_id in order, order_id in invoice, vendor groupings in purchase.
 - **.prefs**: User or system preferences, e.g., default tax rates, currency settings, or workflow preferences.
 - **.metadata**: Additional calculated or custom data, e.g., margin percentages, extended totals, notes, or flags for special processing.
 - For pricing: Use cost and sell jsonb fields for structured price data (e.g., {"base": 100, "tax": 10}).
@@ -58,16 +58,16 @@ WebClerk3: proposal, proposal_line
 
 **Step 4: Additional Recommendations**  
 
-- Implement proposal-to-order conversion logic based on createOrderProp (initialize sales_order from proposal).  
+- Implement proposal-to-order conversion logic based on createOrderProp (initialize order from proposal).  
 - Calculate totals automatically using proposal_totals service.  
 - Validate proposal completeness before conversion (e.g., all lines have pricing).  
 - In React2025, use WC_apiServer functions for proposal CRUD and conversion endpoints.
 
-### Sales Orders
+### Orders
 
 **Step 1: Schema Alignment**  
 WebClerk2: Order, OrderLine  
-WebClerk3: sales_order, sales_order_line  
+WebClerk3: order, order_line  
 
 **Step 2: Jsonb Recommendations**  
 
@@ -79,8 +79,8 @@ WebClerk3: sales_order, sales_order_line
 **Step 3: Function Summaries**  
 
 - NxPvOrders: Loads order records.  
-- createOrderProp: Initializes sales_order from proposal.  
-- OrdersCreateNew: Initializes new sales_order.  
+- createOrderProp: Initializes order from proposal.  
+- OrdersCreateNew: Initializes new order.  
 - LoadCustOrder: Denormalizes customer data into order; leverage related records in WebClerk3.  
 - OrdLnRays: Manages line data in arrays.  
 - Ord2InvComm: Invoices for commissions.  
@@ -91,7 +91,7 @@ WebClerk3: sales_order, sales_order_line
 - Order2POForceVendor: Forces lines into PO for specific vendor.  
 - listItemsFill: Implements OrdLnAdd.  
 - OrdLnExtend: Extends values on line changes (e.g., recalculate totals).  
-- CloneRecord: Creates work orders from sales orders.  
+- CloneRecord: Creates work orders from orders.  
 
 **Step 4: Additional Recommendations**  
 
@@ -101,15 +101,15 @@ WebClerk3: sales_order, sales_order_line
 - Support multiple conversions (to invoices, POs, manufacturing).  
 - In React2025, integrate with WC_apiServer for order loading and transfers.
 
-### Purchase Orders
+### Purchases
 
 **Step 1: Schema Alignment**  
 WebClerk2: PO, POLine  
-WebClerk3: purchase_order, purchase_order_line  
+WebClerk3: purchase, purchase_line  
 
 **Step 2: Jsonb Recommendations**  
 
-- .refs: Link to sales_order_id, vendor_id, grouped by vendor logic.  
+- .refs: Link to order_id, vendor_id, grouped by vendor logic.  
 - .prefs: Procurement preferences, e.g., {"lead_time_days": 7}.  
 - .metadata: Vendor-specific notes, expected_delivery.  
 - cost/sell: Vendor pricing structures.  
@@ -118,12 +118,12 @@ WebClerk3: purchase_order, purchase_order_line
 
 - NxPvPOs: Loads PO records.  
 - (Similar to orders: POLine management via listItemsFill for POLnAdd, line extensions.)  
-- Ord2POByVendor: Creates POs from sales orders by vendor.  
+- Ord2POByVendor: Creates purchases from orders by vendor.  
 - Order2POForceVendor: Forces vendor-specific POs.  
 
 **Step 4: Additional Recommendations**  
 
-- Automate PO creation from sales orders based on vendor requirements.  
+- Automate purchase creation from orders based on vendor requirements.  
 - Track procurement status and integrate with inventory receiving.  
 - Use refs for multi-vendor grouping.  
 - In React2025, provide PO creation wizards from order views.

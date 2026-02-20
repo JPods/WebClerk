@@ -294,13 +294,15 @@
     ]
   },
   {
-    "key": "location",
+    "key": "address",
     "app": "communications",
     "model": "apps.communications.models.address.Address",
-    "endpoint": "locations",
+    "endpoint": "addresses",
     "kind": "support",
     "aliases": [
-      "locations"
+      "locations",
+      "addresses",
+      "location"
     ]
   },
   {
@@ -384,23 +386,23 @@
     ]
   },
   {
-    "key": "purchase_order",
+    "key": "purchase",
     "app": "transactions",
-  "model": "apps.transactions.models.PurchaseOrder",
+  "model": "apps.transactions.models.Purchase",
     "endpoint": "purchase-orders",
     "kind": "header",
     "aliases": [
-      "purchase_orders"
+      "purchases"
     ]
   },
   {
-    "key": "purchase_order_line",
+    "key": "purchase_line",
     "app": "transactions",
-  "model": "apps.transactions.models.PurchaseOrderLine",
+  "model": "apps.transactions.models.PurchaseLine",
     "endpoint": "purchase-order-lines",
     "kind": "line",
     "aliases": [
-      "purchase_order_lines"
+      "purchase_lines"
     ]
   },
   {
@@ -444,23 +446,23 @@
     ]
   },
   {
-    "key": "sales_order",
+    "key": "order",
     "app": "transactions",
-  "model": "apps.transactions.models.SalesOrder",
-    "endpoint": "sales-orders",
+  "model": "apps.transactions.models.Order",
+    "endpoint": "orders",
     "kind": "header",
     "aliases": [
-      "sales_orders"
+      "orders"
     ]
   },
   {
-    "key": "sales_order_line",
+    "key": "order_line",
     "app": "transactions",
-  "model": "apps.transactions.models.SalesOrderLine",
-    "endpoint": "sales-order-lines",
+  "model": "apps.transactions.models.OrderLine",
+    "endpoint": "order-lines",
     "kind": "line",
     "aliases": [
-      "sales_order_lines"
+      "order_lines"
     ]
   },
   {

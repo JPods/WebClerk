@@ -118,7 +118,7 @@ GET /api/wcapi/get/?model_name=invoice&created__gte=2025-01-01&created__lte=2025
 
 ### Example 3: Multiple Filters + Search
 ```
-GET /api/wcapi/get/?model_name=salesorder&status=in_progress&priority__ne=low&customer_id=5&q=shipment&limit=50
+GET /api/wcapi/get/?model_name=order&status=in_progress&priority__ne=low&customer_id=5&q=shipment&limit=50
 ```
 
 ### Example 4: Not Equal + Pagination

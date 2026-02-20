@@ -1,109 +1,33 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 
 from apps.transactions.models import Proposal, ProposalLine
 from apps.transactions.serializers.transaction_serializers import ProposalSerializer, ProposalLineSerializer
-from apps.core.services import wcapi
 
 
-class ProposalViewSet(viewsets.ModelViewSet):
-    """
-    REST API viewset for Proposal management.
-    Uses WCAPI for all save operations to maintain consistency and security.
-    """
-    queryset = Proposal.objects.all()
+class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Proposal. Writes go through /wcapi/save/."""
+
+    queryset = Proposal.objects.active()
     serializer_class = ProposalSerializer
-
-    def get_queryset(self):
-        """Filter queryset based on user permissions."""
-        return self.queryset
-
-    def perform_create(self, serializer):
-        """Create proposal using WCAPI save."""
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'proposal'
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('proposal', request=self.request, data=data)
-        if result[1] == 'created':
-            # Set the created instance on serializer for response
-            instance = Proposal.objects.get(pk=result[0])
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to create proposal")
-
-    def perform_update(self, serializer):
-        """Update proposal using WCAPI save."""
-        instance = self.get_object()
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'proposal'
-        data['id'] = instance.id
-
-        # Use WCAPI save for consistency
-        result = wcapi.save_item('proposal', request=self.request, data=data, id=instance.id)
-        if result[1] == 'updated':
-            # Refresh instance
-            instance.refresh_from_db()
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to update proposal")
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
         """Convert proposal to sales order."""
         proposal = self.get_object()
-
-        # Validate proposal can be converted
-        if proposal.status not in ['accepted']:
-            return Response(
-                {'error': 'Only accepted proposals can be converted to orders'},
-                status=status.HTTP_400_BAD_REQUEST
+        try:
+            from apps.transactions.services.proposal_to_order import transfer_proposal_to_order
+            result = transfer_proposal_to_order(
+                proposal=proposal,
+                line_ids=request.data.get('line_ids'),
+                transfer_all=request.data.get('transfer_all', True),
+                order_status=request.data.get('order_status', 'confirmed'),
+                preserve_proposal=request.data.get('preserve_proposal', True),
             )
-
-        # Create sales order data
-        order_data = {
-            'model_name': 'sales_order',
-            'customer_id': proposal.customer_id,
-            'vendor_id': proposal.vendor_id,
-            'status': 'released',
-            'sell': proposal.sell,
-            'cost': proposal.cost,
-            'source': {'proposal_id': proposal.id}
-        }
-
-        # Use WCAPI to create sales order
-        result = wcapi.save_item('sales_order', request=request, data=order_data)
-        if result[1] == 'created':
-            order_id = result[0]
-
-            # Copy proposal lines to order lines
-            for line in proposal.proposalline_set.all():
-                line_data = {
-                    'model_name': 'sales_order_line',
-                    'parent': order_id,
-                    'item_id': line.item_id,
-                    'description': line.description,
-                    'quantity': line.quantity,
-                    'price': line.price,
-                    'discount_amount': line.discount_amount
-                }
-                wcapi.save_item('sales_order_line', request=request, data=line_data)
-
-            # Update proposal status
-            proposal.status = 'accepted'  # or 'converted'
-            proposal.save()
-
-            return Response({'order_id': order_id}, status=status.HTTP_201_CREATED)
-
-        # Backwards-compatible alias expected by external docs/tests
-        @action(detail=True, methods=['post'], url_path='convert-to-sales-order')
-        def convert_to_sales_order(self, request, pk=None):
-            """Alias for convert_to_order to support legacy route naming."""
-            return self.convert_to_order(request, pk)
-
-        return Response({'error': 'Failed to create order'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
@@ -113,12 +37,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Response(totals)
 
 
-class ProposalLineViewSet(viewsets.ModelViewSet):
-    """
-    REST API viewset for Proposal Line management.
-    Uses WCAPI for all save operations.
-    """
-    queryset = ProposalLine.objects.all()
+class ProposalLineViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for ProposalLine. Writes go through /wcapi/save/."""
+
+    queryset = ProposalLine.objects.active()
     serializer_class = ProposalLineSerializer
 
     def get_queryset(self):
@@ -126,35 +48,5 @@ class ProposalLineViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
         proposal_id = self.request.query_params.get('proposal_id')
         if proposal_id:
-            queryset = queryset.filter(parent_id=proposal_id)
+            queryset = queryset.filter(proposal_id=proposal_id)
         return queryset
-
-    def perform_create(self, serializer):
-        """Create proposal line using WCAPI save."""
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'proposal_line'
-
-        result = wcapi.save_item('proposal_line', request=self.request, data=data)
-        if result[1] == 'created':
-            instance = ProposalLine.objects.get(pk=result[0])
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to create proposal line")
-
-    def perform_update(self, serializer):
-        """Update proposal line using WCAPI save."""
-        instance = self.get_object()
-        data = serializer.validated_data.copy()
-        data['model_name'] = 'proposal_line'
-        data['id'] = instance.id
-
-        result = wcapi.save_item('proposal_line', request=self.request, data=data, id=instance.id)
-        if result[1] == 'updated':
-            instance.refresh_from_db()
-            serializer.instance = instance
-        else:
-            raise Exception("Failed to update proposal line")
-
-    def perform_destroy(self, instance):
-        """Delete proposal line using WCAPI."""
-        wcapi.delete_item('proposal_line', request=self.request, id=instance.id)

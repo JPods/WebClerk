@@ -115,12 +115,12 @@ setting model_name="contact" purpose="refs_setup"
     ],
     "related_keywords": {
         "email": ["email", "attention"],
-        "location": ["address1", "city", "state", "zip", "country"],
+        "address": ["address1", "city", "state", "zip", "country"],
         "phone": ["number", "country_code", "attention"],
         "customer": ["refs.keywords"],
         "vendor": ["refs.keywords"]
     },
-    "related_models": ["email", "location", "phone", "customer", "vendor"]
+    "related_models": ["email", "address", "phone", "customer", "vendor"]
 }
 ```
 
@@ -191,12 +191,12 @@ Models listed in `related_models` will have their IDs collected into `refs.links
     ],
     "related_keywords": {
         "email": ["email", "attention"],
-        "location": ["address1", "city", "state", "zip", "country"],
+        "address": ["address1", "city", "state", "zip", "country"],
         "phone": ["number", "country_code", "attention"],
         "customer": ["refs.keywords"],
         "vendor": ["refs.keywords"]
     },
-    "related_models": ["email", "location", "phone", "customer", "vendor"]
+    "related_models": ["email", "address", "phone", "customer", "vendor"]
 }
 ```
 
@@ -206,13 +206,13 @@ This configuration tells the system to:
 
 - Contact's own email, names, company, and department
 - Related email addresses and their attention lines
-- Related location addresses
+- Related address fields
 - Related phone numbers and country codes
 - Keywords from associated customer and vendor records
 
 **Include in refs.links:**
 
-- All related email, location, phone, customer, and vendor record IDs
+- All related email, address, phone, customer, and vendor record IDs
 
 ### Action Model (refs_setup) - Example
 

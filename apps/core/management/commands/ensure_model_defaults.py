@@ -13,7 +13,7 @@ IMPORTANT: This command only ADDS missing keys - it never overwrites existing da
 Usage:
     python manage.py ensure_model_defaults
     python manage.py ensure_model_defaults --dry-run
-    python manage.py ensure_model_defaults --model=salesorder
+    python manage.py ensure_model_defaults --model=order
     python manage.py ensure_model_defaults --verbose
     python manage.py ensure_model_defaults --batch-size=500
 
@@ -99,7 +99,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--model',
             type=str,
-            help='Only process a specific model (e.g., salesorder, invoice)',
+            help='Only process a specific model (e.g., order, invoice)',
         )
         parser.add_argument(
             '--verbose',

@@ -3,6 +3,9 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
 from typing import Optional, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
 from apps.communications.models import Email
 from apps.core.models import Contact
 from apps.transactions.models import Proposal, Order, Invoice, Payment
@@ -92,8 +95,7 @@ class TransactionEmailService:
 
             return True
         except Exception as e:
-            # Log the error in a real implementation
-            print(f"Failed to send email: {e}")
+            logger.error("Failed to send email: %s", e)
             return False
 
     @classmethod

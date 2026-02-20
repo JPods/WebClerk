@@ -33,10 +33,10 @@ This ensures atomicity and consistency across the transaction and its lines.
 
 | Transaction Type | Model Name(s) | Line Model | FK Field | Pending Type |
 |-----------------|---------------|------------|----------|--------------|
-| Sales Order | `order`, `salesorder`, `sales_order` | `OrderLine` | `order` | `SO` |
+| Order | `order` | `OrderLine` | `order` | `SO` |
 | Invoice | `invoice` | `InvoiceLine` | `invoice` | `IN` |
 | Proposal | `proposal` | `ProposalLine` | `proposal` | `PP` |
-| Purchase Order | `purchase`, `purchaseorder`, `purchase_order` | `PurchaseLine` | `purchase` | `PO` |
+| Purchase | `purchase` | `PurchaseLine` | `purchase` | `PO` |
 | Work Order | `workorder`, `work_order` | `WorkOrderLine` | `workorder` | `WO` |
 
 ---
@@ -108,12 +108,8 @@ The save view uses a unified mapping to determine the line model:
 ```python
 line_model_map = {
     'order': ('OrderLine', 'order'),
-    'salesorder': ('OrderLine', 'order'),
-    'sales_order': ('OrderLine', 'order'),
     'invoice': ('InvoiceLine', 'invoice'),
     'purchase': ('PurchaseLine', 'purchase'),
-    'purchaseorder': ('PurchaseLine', 'purchase'),
-    'purchase_order': ('PurchaseLine', 'purchase'),
     'workorder': ('WorkOrderLine', 'workorder'),
     'work_order': ('WorkOrderLine', 'workorder'),
     'proposal': ('ProposalLine', 'proposal'),
@@ -144,12 +140,13 @@ All line types share a common structure with type-specific variations:
     "unit_measure": "EA"
   },
   "quantity": {
-    "ordered": 5,                // Sales/Purchase quantity
-    "placed": 5,                 // Actual quantity placed
-    "received": 0,               // For purchase lines
-    "remaining": 5
+    "placed": 5,                 // Quantity placed/committed on this line
+    "actioned": 0,               // Quantity acted on (context-dependent: shipped, received, etc.)
+    "remaining": 5,              // placed - actioned
+    "is_fixed": false,           // Whether quantity is locked
+    "precision": 2               // Decimal precision
   },
-  "price": {                     // For sales-side (order, invoice, proposal)
+  "price": {                     // For sell-side (order, invoice, proposal)
     "unit": 220.00,
     "extended": 1100.00
   },
@@ -160,14 +157,25 @@ All line types share a common structure with type-specific variations:
 }
 ```
 
+> **Canonical quantity keys**: All transaction types use `placed` / `actioned` / `remaining`.
+> Legacy keys like `ordered`, `invoiced`, `received`, `shipped`, `packed` are **deprecated**.
+> `actioned` replaces the type-specific verb — its meaning is contextual:
+>
+> | Transaction Type | `actioned` means |
+> |------------------|------------------|
+> | Proposal         | converted to order |
+> | Order            | shipped / invoiced |
+> | Invoice          | delivered |
+> | Purchase         | received from vendor |
+> | WorkOrder        | completed |
+
 ### Type-Specific Fields
 
 | Field | Order | Invoice | Proposal | Purchase | WorkOrder |
 |-------|-------|---------|----------|----------|-----------|
-| `quantity.ordered` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `quantity.placed` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `quantity.received` | - | - | - | ✓ | - |
-| `quantity.shipped` | - | ✓ | - | - | - |
+| `quantity.actioned` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `quantity.remaining` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `price.unit` | ✓ | ✓ | ✓ | - | - |
 | `cost.unit` | - | - | - | ✓ | ✓ |
 
@@ -181,10 +189,10 @@ When a new line is created, a Pending record is generated to track the inventory
 
 | Type Code | Transaction | Quantity Bucket | Description |
 |-----------|-------------|-----------------|-------------|
-| `SO` | Sales Order | `on_so` | Reserved for customer orders |
+| `SO` | Order | `on_so` | Reserved for customer orders |
 | `IN` | Invoice | `on_in` | Issued/shipped (reduces on_hand) |
 | `PP` | Proposal | `on_p` | Forecast/pipeline (probability-weighted) |
-| `PO` | Purchase Order | `on_po` | On order from vendor |
+| `PO` | Purchase | `on_po` | On order from vendor |
 | `WO` | Work Order | `on_wo` | Committed to work orders |
 | `RC` | Receipt | `on_r` | Received into inventory (increases on_hand) |
 
@@ -259,7 +267,7 @@ const payload = {
       // New line (no id or temp id)
       {
         item: { item_id: 236, ida_item: "BBD10", ... },
-        quantity: { ordered: 5 },
+        quantity: { placed: 5 },         // Use placed, NOT ordered
         cost: { unit: 150 },
       }
     ]
@@ -323,7 +331,7 @@ except Exception as pending_err:
 
 ## Examples
 
-### Creating a Purchase Order with Lines
+### Creating a Purchase with Lines
 
 **Request:**
 ```http
@@ -340,7 +348,7 @@ Content-Type: application/json
     "lines": [
       {
         "item": { "item_id": 236, "ida_item": "BBD10" },
-        "quantity": { "ordered": 10 },
+        "quantity": { "placed": 10 },
         "cost": { "unit": 150.00 }
       }
     ]
@@ -378,8 +386,8 @@ POST /wcapi/save/
   "record": {
     "id": 61,
     "lines": [
-      { "id": 144, "quantity": { "ordered": 9 } },  // Update existing
-      { "item": { "item_id": 259 }, "quantity": { "ordered": 3 } }  // Add new
+      { "id": 144, "quantity": { "placed": 9 } },  // Update existing
+      { "item": { "item_id": 259 }, "quantity": { "placed": 3 } }  // Add new
     ]
   },
   "id": 61
@@ -402,4 +410,4 @@ POST /wcapi/save/
 
 ---
 
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-17*

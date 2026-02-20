@@ -37,6 +37,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _resolve_parent_fk(LineModel, HeaderModel, model_key: str) -> str:
+    """Return the attname (e.g. 'invoice_id') of the FK on LineModel
+    that points to HeaderModel.  Falls back to '{model_key}_id'."""
+    from django.db.models import ForeignKey
+    for f in LineModel._meta.get_fields():
+        if isinstance(f, ForeignKey) and f.related_model is HeaderModel:
+            return f.attname          # e.g. 'invoice_id'
+    return f"{model_key}_id"          # conventional fallback
+
+
 # Tolerance for calculation comparison (0.01 = 1 cent)
 CALC_TOLERANCE = Decimal("0.01")
 
@@ -85,6 +95,80 @@ class ItemIdChangeError(Exception):
             f"Current: {old_item_id}, Attempted: {new_item_id}. "
             f"To change the item, delete this line and add a new line with the correct item."
         )
+
+
+def _update_source_lines_after_transfer(
+    header_obj: 'Model',
+    model_key: str,
+    lines_data: List[Dict[str, Any]],
+) -> int:
+    """After saving a *new* transferred transaction, bump actioned on each
+    source line and set remaining = placed − actioned.
+
+    Returns number of source lines updated.
+
+    The frontend stamps every transferred line's refs.source with:
+        { "<source_type>_line_id": <pk>, "<source_type>_id": <pk>,
+          "converted_from": "<source_type>" }
+
+    We look up each source line, read quantity.placed / actioned,
+    add the transferred quantity (target line's quantity.placed),
+    and save.
+    """
+    parent_model = getattr(header_obj, 'parent_model', None)
+    parent_id = getattr(header_obj, 'parent_id', None)
+    if not parent_model or not parent_id:
+        return 0
+
+    from apps.core.utils import registry
+
+    source_line_key = f"{parent_model}line"
+    SourceLineModel = registry.resolve(source_line_key)
+    if SourceLineModel is None:
+        logger.warning("_update_source_lines_after_transfer: cannot resolve %s", source_line_key)
+        return 0
+
+    updated = 0
+    with db_transaction.atomic():
+        for ld in lines_data:
+            refs = ld.get('refs') or {}
+            source_info = refs.get('source') or {}
+            src_line_id = source_info.get(f'{parent_model}_line_id')
+            if not src_line_id:
+                continue
+
+            qty_placed = 0.0
+            qty_data = ld.get('quantity') or {}
+            if isinstance(qty_data, dict):
+                qty_placed = float(qty_data.get('placed', 0) or 0)
+            if qty_placed <= 0:
+                continue
+
+            try:
+                src_line = SourceLineModel.objects.select_for_update().get(pk=src_line_id)
+            except SourceLineModel.DoesNotExist:
+                logger.warning("Source line %s #%s not found", source_line_key, src_line_id)
+                continue
+
+            q = dict(getattr(src_line, 'quantity', None) or {})
+            q['actioned'] = float(q.get('actioned', 0) or 0) + qty_placed
+            remaining = float(q.get('placed', 0) or 0) - float(q['actioned'])
+            q['remaining'] = max(0.0, remaining)
+            src_line.quantity = q
+
+            save_fields = ['quantity', 'dt_modified', 'version']
+            if q['remaining'] <= 0:
+                src_line.status = 'transferred'
+                save_fields.append('status')
+
+            src_line.save(update_fields=save_fields)
+            updated += 1
+            logger.debug(
+                "Updated source %s #%s: actioned=%s remaining=%s",
+                source_line_key, src_line_id, q['actioned'], q['remaining'],
+            )
+
+    return updated
 
 
 def calculate_line_extended(line_data: Dict[str, Any]) -> Dict[str, Decimal]:
@@ -288,6 +372,10 @@ def save_transaction_with_lines(
     if not LineModel:
         raise ValueError(f"Unknown line model: {line_model_key}")
     
+    # Resolve the FK field on LineModel that points to HeaderModel.
+    # Each line model uses a different FK name (order_id, invoice_id, etc.).
+    parent_fk_attname = _resolve_parent_fk(LineModel, HeaderModel, model_key)
+    
     header_id = header_data.get('id')
     result = {
         'header': None,
@@ -315,6 +403,10 @@ def save_transaction_with_lines(
         header_clean = filter_input_fields(HeaderModel, header_data)
         # Remove internal flags
         header_clean.pop('_dirty', None)
+        # Never create records with explicit id=0 or id=None;
+        # let the database auto-generate the primary key.
+        if not header_id:
+            header_clean.pop('id', None)
         
         if header_id:
             header_obj = HeaderModel.objects.select_for_update().get(pk=header_id)
@@ -325,12 +417,21 @@ def save_transaction_with_lines(
             header_obj = HeaderModel.objects.create(**header_clean)
             header_id = header_obj.pk
         
+        # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+        try:
+            from apps.transactions.services.denormalize_org_links import denormalize_org_links
+            if denormalize_org_links(header_obj, model_key):
+                header_obj.save(update_fields=['refs'])
+                logger.debug("Denormalized org links for %s #%s", model_key, header_id)
+        except Exception as org_err:
+            logger.warning("Failed to denormalize org links for %s #%s: %s", model_key, header_id, org_err)
+
         result['header'] = {'id': header_obj.pk}
         
         # Process lines
         existing_lines = {
             line.pk: line 
-            for line in LineModel.objects.filter(parent_id=header_id).select_for_update()
+            for line in LineModel.objects.filter(**{parent_fk_attname: header_id}).select_for_update()
         }
         
         for line_data in lines_data:
@@ -350,7 +451,7 @@ def save_transaction_with_lines(
             # Clean line data
             line_clean = filter_input_fields(LineModel, line_data)
             line_clean.pop('_dirty', None)
-            line_clean['parent_id'] = header_id
+            line_clean[parent_fk_attname] = header_id
             
             if line_id:
                 # Update existing line
@@ -401,6 +502,29 @@ def save_transaction_with_lines(
                 except Exception as pending_err:
                     logger.warning(f"Failed to create pending for line {new_line.pk}: {pending_err}")
     
+    # ── Pending inventory processing (Celery if worker alive, else inline) ──
+    if result['lines_saved'] > 0:
+        from apps.products.dispatch_pending import dispatch_pending_processing
+        dispatch_pending_processing(limit=200, caller='transaction_save')
+
+    # ── Source line update (transfer-created transactions only) ──
+    # When a new transaction is created via transfer (parent_id set),
+    # bump quantity.actioned on each source line and set remaining.
+    if result['action'] == 'created' and getattr(header_obj, 'parent_id', None):
+        try:
+            src_updated = _update_source_lines_after_transfer(
+                header_obj, model_key, lines_data,
+            )
+            if src_updated:
+                logger.info(
+                    "Updated %d source %s lines after transfer (target %s #%s)",
+                    src_updated, getattr(header_obj, 'parent_model', '?'),
+                    model_key, header_id,
+                )
+                result['source_lines_updated'] = src_updated
+        except Exception as src_err:
+            logger.warning("Failed to update source lines after transfer: %s", src_err)
+
     logger.info(
         "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s",
         model_key, header_id, result['lines_saved'], result['lines_skipped']

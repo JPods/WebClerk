@@ -17,3 +17,9 @@ include/
 /Scripts
 venv/
 logs/
+tools/.pids/
+
+# Write-through / local DB artifacts
+local_data/
+*.sqlite3
+db.sqlite3

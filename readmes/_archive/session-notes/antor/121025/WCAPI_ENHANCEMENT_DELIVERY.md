@@ -179,9 +179,9 @@ System check identified no issues (0 silenced)
 ### Supported Models
 Works with any registered model:
 - ✅ Proposal
-- ✅ SalesOrder
+- ✅ Order
 - ✅ Invoice
-- ✅ PurchaseOrder
+- ✅ Purchase
 - ✅ Contact
 - ✅ Organization
 - ✅ ... and any other registered model

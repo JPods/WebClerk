@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
+
+logger = logging.getLogger(__name__)
 
 from common.models import BaseModel
 from common.link_mixins import StandardLinksMixin
@@ -41,13 +44,31 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
-	contact_id = models.IntegerField(blank=True, null=True)  # optional pointer to primary contact (could be denormalized from contacts aspect)
+	# FK-first: proper ForeignKey to Contact for primary contact reference.
+	contact = models.ForeignKey(
+		'core.Contact', on_delete=models.SET_NULL,
+		blank=True, null=True,
+		db_column='contact_id', related_name='orgs_as_contact',
+	)
+
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
+	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address
+	address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
 	email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
+	email_id = models.IntegerField(blank=True, null=True)  # optional FK to an Email record for the primary email
+	phone_id = models.IntegerField(blank=True, null=True)  # optional FK to a Phone record for the primary phone
 	phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
 	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
 	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
+	domain = models.CharField(max_length=255, blank=True, null=True)  # optional primary domain (could be denormalized from domains aspect)
+	domain_id = models.IntegerField(blank=True, null=True)  # optional FK to a Domain record for the primary domain
 	price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+	terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+	terms_fk = models.ForeignKey(
+		'transactions.PaymentTerm', on_delete=models.SET_NULL,
+		blank=True, null=True,
+		db_column='terms_id', related_name='orgs_with_terms',
+	)
 	status = models.CharField(
 		max_length=30,
 		blank=True,
@@ -63,6 +84,19 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	@company.setter
 	def company(self, value: str) -> None:
 		setattr(self, 'display_name', value)
+
+	def __repr__(self) -> str:
+		"""Dev-friendly repr showing key value pairs for data cleanup."""
+		pairs = [
+			f"id={self.pk}",
+			f"display_name={self.display_name!r}",
+			f"attention={self.attention!r}",
+			f"phone={self.phone!r}",
+			f"email={self.email!r}",
+			f"address_full={self.address_full!r}",
+			f"domain={self.domain!r}",
+		]
+		return f"<OrgBase({', '.join(pairs)})>"
 
 	# Aspect JSONB fields -------------------------------------------------
 	# denormalized hybrid of table data into a flatter structure
@@ -294,5 +328,5 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				self.validate_aspects(partial=True)
 		except Exception as e:
 			# Log validation errors but continue with save for admin
-			print(f"Validation error during save (continuing anyway): {e}")
+			logger.warning("Validation error during save (continuing): %s", e)
 		super().save(*args, **kwargs)

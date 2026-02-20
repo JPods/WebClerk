@@ -38,19 +38,29 @@ WcapiResponseSerializer = inline_serializer(
 class WCAPIDeleteView(APIView):
     """Delete WCAPI endpoint supporting record removal by model_name and id."""
 
-    http_method_names = ["post", "options", "head"]
+    http_method_names = ["get", "post", "options", "head"]
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests with query params: ?model_name=X&id=Y"""
+        model_key = request.query_params.get("model_name") or request.query_params.get("model")
+        record_id = request.query_params.get("id")
+        return self._do_delete(request, model_key, record_id)
 
     def post(self, request, *args, **kwargs):
+        """Handle POST requests with body: { model_name, id }"""
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
+        return self._do_delete(request, model_key, record_id)
 
+    def _do_delete(self, request, model_key, record_id):
+        """Shared delete logic for GET and POST."""
         if not model_key or record_id is None:
             return api_response(
                 success=False,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="invalid payload",
-                error={"code": "invalid_payload", "details": body},
+                error={"code": "invalid_payload", "details": {"model_name": model_key, "id": record_id}},
             )
 
         try:
@@ -74,14 +84,12 @@ class WCAPIGetView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    LINE_MODEL_KEYS = {"proposal", "order", "salesorder", "invoice", "purchase", "purchaseorder", "workorder"}
+    LINE_MODEL_KEYS = {"proposal", "order", "invoice", "purchase", "workorder"}
     LINE_MODEL_MAP = {
         "proposal": "proposal_line",
         "order": "order_line",
-        "salesorder": "order_line",  # backwards compatibility alias
         "invoice": "invoice_line",
         "purchase": "purchase_line",
-        "purchaseorder": "purchase_line",  # backwards compatibility alias
         "workorder": "workorderline",
     }
 
@@ -93,22 +101,20 @@ class WCAPIGetView(APIView):
         return self._normalize_model_key(model_key) in self.LINE_MODEL_KEYS
 
     def _serialize_lines(self, obj, request) -> List[Dict[str, Any]]:
-        print(f"[_serialize_lines] Starting for obj.id={getattr(obj, 'id', '?')}")
+        logger.debug("_serialize_lines: obj.id=%s", getattr(obj, 'id', '?'))
         
         manager = getattr(obj, "lines", None)
         if not hasattr(manager, "all"):
-            print(f"[_serialize_lines] No lines manager, returning []")
+            logger.debug("_serialize_lines: no lines manager, returning []")
             return []
         try:
             qs = manager.all()
-            print(f"[_serialize_lines] Got queryset with {qs.count()} lines")
-            print(f"[_serialize_lines] Line IDs from queryset: {list(qs.values_list('id', flat=True))}")
             try:
                 qs = qs.order_by("id")
             except Exception:
                 pass
         except Exception as e:
-            print(f"[_serialize_lines] Exception getting queryset: {e}")
+            logger.error("_serialize_lines: exception getting queryset: %s", e)
             return []
 
         results: List[Dict[str, Any]] = []
@@ -121,10 +127,10 @@ class WCAPIGetView(APIView):
             if not isinstance(payload, dict):
                 continue
             if payload.get("is_deleted") is True:
-                print(f"[_serialize_lines] Skipping line {payload.get('id')} - is_deleted=True")
+                logger.debug("_serialize_lines: skipping deleted line id=%s", payload.get('id'))
                 continue
             results.append(payload)
-        print(f"[_serialize_lines] Returning {len(results)} lines: {[r.get('id') for r in results]}")
+        logger.debug("_serialize_lines: returning %d lines", len(results))
         return results
 
     def _line_model_key(self, model_key: str | None) -> Optional[str]:
@@ -243,22 +249,17 @@ class WCAPIGetView(APIView):
         return merged
 
     def _collect_lines(self, obj, model_key: str, request) -> List[Dict[str, Any]]:
-        print(f"[_collect_lines] Starting for model_key={model_key}, obj.id={getattr(obj, 'id', '?')}")
+        logger.debug("_collect_lines: model_key=%s obj.id=%s", model_key, getattr(obj, 'id', '?'))
         
         db_lines = self._serialize_lines(obj, request)
-        print(f"[_collect_lines] db_lines count: {len(db_lines)}, ids: {[l.get('id') for l in db_lines]}")
-        
         ref_lines = self._extract_lines_from_refs(obj, model_key, request)
-        print(f"[_collect_lines] ref_lines count: {len(ref_lines)}, ids: {[l.get('id') for l in ref_lines]}")
         
         if not db_lines:
-            print(f"[_collect_lines] No db_lines, returning ref_lines")
             return ref_lines
         if not ref_lines:
-            print(f"[_collect_lines] No ref_lines, returning db_lines")
             return db_lines
         merged = self._merge_line_records(db_lines, ref_lines)
-        print(f"[_collect_lines] Merged count: {len(merged)}, ids: {[l.get('id') for l in merged]}")
+        logger.debug("_collect_lines: merged %d db + %d ref → %d lines", len(db_lines), len(ref_lines), len(merged))
         return merged
 
     def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
@@ -274,6 +275,16 @@ class WCAPIGetView(APIView):
         """
         filters = {}
         field_names = {f.name for f in ModelCls._meta.get_fields()}
+
+        def _resolve_parent_field() -> Optional[str]:
+            parent_candidates = (
+                'proposal', 'order', 'invoice', 'purchase',
+                'workorder', 'receipt', 'requisition'
+            )
+            for candidate in parent_candidates:
+                if candidate in field_names:
+                    return candidate
+            return None
         
         # Build a map of field name to field type for type coercion
         field_types = {}
@@ -288,6 +299,12 @@ class WCAPIGetView(APIView):
             if key in {'model_name', 'id', 'fields', 'limit', 'offset', 'page', 'page_size', 
                       'q', 'search', 'order_by', 'ordering', 'model_name_filter'}:
                 continue
+
+            # Map generic parent filters to the actual FK field on line models
+            if key in {'parent', 'parent_id'}:
+                parent_field = _resolve_parent_field()
+                if parent_field:
+                    key = parent_field
             
             # Validate field name (before __lookup)
             field_base = key.split('__')[0]
@@ -485,7 +502,7 @@ class WCAPIGetView(APIView):
         
         try:
             # Test ordering by applying to empty queryset
-            ModelCls.objects.all().order_by(ordering)
+            ModelCls.objects.active().order_by(ordering)
             return ordering
         except Exception:
             return None
@@ -516,12 +533,6 @@ class WCAPIGetView(APIView):
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
-
-            # DEBUG: Check lines before serialization
-            if model_key in ('salesorder', 'sales_order', 'order'):
-                print(f"[WCAPI DEBUG] Fetched {model_key} id={record_id}")
-                print(f"[WCAPI DEBUG] obj.lines.all() count: {obj.lines.count()}")
-                print(f"[WCAPI DEBUG] obj.lines.all() IDs: {list(obj.lines.values_list('id', flat=True))}")
 
             allow = policy.field_allowlist(type(obj), request=request)
             logger = logging.getLogger(__name__)
@@ -722,7 +733,7 @@ class WCAPIGetView(APIView):
 
         stats = []
         for label, model_key, filters in [
-            ("Sales Orders", "sales_order", None),
+            ("Orders", "order", None),
             ("Invoices", "invoice", None),
             ("Proposals", "proposal", None),
             ("Contacts", "contact", None),
@@ -732,7 +743,7 @@ class WCAPIGetView(APIView):
                 stats.append({"label": label, "value": count_val})
 
         # Activities: prefer transactional signals first
-        activities = safe_recent("sales_order", limit=5) or safe_recent("proposal", limit=5) or []
+        activities = safe_recent("order", limit=5) or safe_recent("proposal", limit=5) or []
 
         # Notifications: reuse activities but keep lightweight; can be swapped to a dedicated model if available
         notifications = safe_recent("communication", limit=5) or safe_recent("support_ticket", limit=5) or activities[:5]
@@ -800,7 +811,7 @@ Retrieve records from any configured model with comprehensive query support.
                 type=str,
                 required=True,
                 location=OpenApiParameter.QUERY,
-                description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'salesorder')",
+                description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'order')",
             ),
             OpenApiParameter(
                 name="id",

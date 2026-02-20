@@ -21,5 +21,5 @@ setting model_name="work_order" purpose="refs_setup"
         "customer": ["refs.keywords"],
         "vendor": ["refs.keywords"]
     },
-    "related_models": ["sales_order_line", "contact", "project", "item", "customer"]
+    "related_models": ["order_line", "contact", "project", "item", "customer"]
 }
