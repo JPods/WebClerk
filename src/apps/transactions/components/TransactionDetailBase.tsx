@@ -6,6 +6,7 @@ import { normalizeRefsLinksContact } from "./ContactPanel";
  * Extended by InvoiceDetail, OrderDetail, etc.
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
@@ -787,6 +788,64 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     return JSON.stringify(data) !== JSON.stringify(editData);
   }, [data, editData]);
 
+  // currentData must be computed before hooks that depend on it,
+  // and hooks must come before any early returns (Rules of Hooks).
+  const currentData = isEditing && editData ? editData : data;
+
+  // --- Real-time totals from lines ---
+  // Recomputes sell/cost/totals whenever lines change during editing,
+  // so SummaryCard and FinancialsCard always show up-to-date values.
+  const liveCalc = useRealTimeCalculations(
+    currentData?.lines ?? [],
+    transactionType,
+    currentData?.totals?.received ?? null,
+  );
+
+  // Merge live calculations with currentData's totals.
+  // During editing the live values override stale server values;
+  // in view mode the server values are authoritative.
+  const liveTotals = useMemo(() => {
+    if (!currentData) return undefined;
+    const hasLines = (currentData.lines?.length ?? 0) > 0;
+    if (!hasLines) return currentData.totals;
+    return {
+      ...currentData.totals,
+      subtotal: liveCalc.sell.line_sum_goods,
+      discount: liveCalc.sell.discount,
+      taxable: (liveCalc.sell.line_sum_goods ?? 0) - (liveCalc.sell.discount ?? 0),
+      tax: currentData.totals?.tax ?? 0,
+      shipping: currentData.totals?.shipping ?? 0,
+      other: currentData.totals?.other ?? 0,
+      total: liveCalc.totals.total,
+      cost: liveCalc.totals.cost,
+      margin: liveCalc.totals.margin,
+      margin_pc: liveCalc.totals.margin_pc,
+      received: liveCalc.totals.received,
+      balance: liveCalc.totals.balance,
+    };
+  }, [currentData, liveCalc]);
+  const liveSell = useMemo(() => {
+    if (!currentData) return undefined;
+    const hasLines = (currentData.lines?.length ?? 0) > 0;
+    return hasLines ? liveCalc.sell : currentData.sell;
+  }, [currentData, liveCalc]);
+  const liveCost = useMemo(() => {
+    if (!currentData) return undefined;
+    const hasLines = (currentData.lines?.length ?? 0) > 0;
+    return hasLines ? liveCalc.cost : currentData.cost;
+  }, [currentData, liveCalc]);
+
+  // Build a currentData view that includes live totals for SummaryCard
+  const currentDataWithTotals = useMemo(() => {
+    if (!currentData) return currentData;
+    return {
+      ...currentData,
+      totals: liveTotals,
+      sell: liveSell,
+      cost: liveCost,
+    };
+  }, [currentData, liveTotals, liveSell, liveCost]);
+
   // Handle field changes during edit
   const handleFieldChange = (field: string, value: unknown) => {
     if (editData) {
@@ -836,9 +895,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     );
   }
 
-  const currentData = isEditing && editData ? editData : data;
-
-  // Handler for updating lines array in editData
+  // --- data is guaranteed non-null below this point ---
   const onLinesChange = (newLines: TransactionLine[]) => {
     if (isEditing && editData) {
       setEditData({ ...editData, lines: newLines });
@@ -1043,9 +1100,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       case "financials":
         return (
           <FinancialsCard
-            totals={currentData.totals}
-            cost={currentData.cost}
-            sell={currentData.sell}
+            totals={liveTotals}
+            cost={liveCost}
+            sell={liveSell}
             currency={currentData.currency}
             isEditing={isEditing}
           />
@@ -1189,10 +1246,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       <div className="flex items-center justify-between mb-0">
         <DevBadge label={`${transactionType}Detail`} className="absolute top-1 left-1 z-10" />
         {renderHeader ? (
-          renderHeader(currentData, isEditing, handleFieldChange)
+          renderHeader(currentDataWithTotals as Transaction, isEditing, handleFieldChange)
         ) : (
           <SummaryCard
-            data={currentData}
+            data={currentDataWithTotals}
             isEditing={isEditing}
             onChange={handleFieldChange}
             priceLable={priceLable}
