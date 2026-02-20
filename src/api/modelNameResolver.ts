@@ -14,6 +14,13 @@
  *   resolveModelName('order')            -> 'order'
  *   resolveModelName('purchase')        -> 'purchase'
  *   resolveModelName('invoice')         -> 'invoice'
+ *
+ * Related files:
+ *   wc3  common/middleware/rest_redirect.py      — server-side REST→wcapi redirect
+ *   wc3  apps/core/services/wcapi_registry.py    — runtime model registry
+ *   wc3  readmes/03-wcapi-gateway.md              — gateway overview & mapping table
+ *   r25  src/api/restToWcapi.ts                   — client-side REST→wcapi converter (uses this module)
+ *   r25  readmes/api-migration-rest-to-wcapi.md   — migration tracker
  */
 
 // Canonical model name mappings

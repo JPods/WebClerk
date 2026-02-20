@@ -245,3 +245,24 @@ After migrating a file, verify:
 3. Create operations work (check network tab for `POST /wcapi/save/`)
 4. Update operations work
 5. Delete operations work (uses `/wcapi/delete/` endpoint)
+
+---
+
+## Related Files
+
+### Backend (webClerk3)
+
+| File | Purpose |
+|------|---------|
+| `common/middleware/rest_redirect.py` | Server-side middleware — 301-redirects `/api/…` → `/wcapi/…` |
+| `tests/test_rest_redirect.py` | 46 tests for the redirect middleware |
+| `readmes/03-wcapi-gateway.md` | Gateway overview, endpoint reference, model registry |
+| `apps/core/services/wcapi_registry.py` | Runtime model registry |
+
+### Frontend (React2025)
+
+| File | Purpose |
+|------|---------|
+| `src/api/restToWcapi.ts` | Client-side REST→wcapi converter |
+| `src/api/modelNameResolver.ts` | Canonical model-name resolution |
+| `src/pages/tools/WhitelistTester.tsx` | Interactive API tester with REST + wcapi presets |

@@ -18,6 +18,13 @@
  *   // Convert a RESTful path to wcapi params
  *   const { endpoint, params } = convertRestToWcapi('/api/orgs/customer/42');
  *   // { endpoint: '/wcapi/get/', params: { model_name: 'customer', id: 42 } }
+ *
+ * Related files:
+ *   wc3  common/middleware/rest_redirect.py      — server-side REST→wcapi redirect (mirrors this logic)
+ *   wc3  readmes/03-wcapi-gateway.md              — gateway overview & mapping table
+ *   r25  src/api/modelNameResolver.ts              — canonical model-name resolution
+ *   r25  src/pages/tools/WhitelistTester.tsx        — interactive REST + wcapi tester
+ *   r25  readmes/api-migration-rest-to-wcapi.md    — migration tracker
  */
 
 import { resolveModelName, parseRestfulPath } from './modelNameResolver';
