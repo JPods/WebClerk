@@ -68,6 +68,7 @@ if _running_django_test or _disable_contrib_migrations:
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",
     'corsheaders.middleware.CorsMiddleware',
+    'common.middleware.RestToWcapiMiddleware',      # redirect /api/ → /wcapi/
     'common.middleware.EnsureRenderedMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
