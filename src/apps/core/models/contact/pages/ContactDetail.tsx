@@ -63,7 +63,6 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
   DetailTabs,
   useDetailTabs,
-  useColumnCount,
   TabConfig,
 } from "@/components/common/DetailTabs";
 
@@ -529,7 +528,6 @@ export default function ContactDetail({
     "actions",
     VALID_TABS,
   );
-  const { columnCount, setColumnCount } = useColumnCount("contact", 3);
 
   const additionalTabs: TabConfig[] = useMemo(
     () => [
@@ -1308,20 +1306,19 @@ export default function ContactDetail({
               Basic Information
             </h3>
             <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm"
             >
+              <InfoRow label="name_prefix" value={data.name_prefix} />
               <InfoRow label="name_first" value={data.name_first} />
+              <InfoRow label="name_middle" value={data.name_middle} />
               <InfoRow label="name_last" value={data.name_last} />
+              <InfoRow label="name_suffix" value={data.name_suffix} />
+
               <InfoRow label="email" value={data.email} />
               <InfoRow label="phone" value={data.phone} />
               <InfoRow label="address_full" value={data.address_full} />
               <InfoRow label="domain" value={data.domain} />
               <InfoRow label="attention" value={data.attention} />
-              <InfoRow label="name_prefix" value={data.name_prefix} />
-              <InfoRow label="name_middle" value={data.name_middle} />
-              <InfoRow label="name_suffix" value={data.name_suffix} />
               <InfoRow label="company" value={data.company} />
               <InfoRow label="title" value={data.title} />
               <InfoRow label="department" value={data.department} />
@@ -1355,10 +1352,20 @@ export default function ContactDetail({
             onSubmit={handleSubmit(onSubmit, onValidationError)}
           >
             <div
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-0`}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0"
             >
+              {shouldRenderField("name_prefix") && (
+                <HorizontalField label="name_prefix" htmlFor="name_prefix">
+                  <Input
+                    type="text"
+                    id="name_prefix"
+                    placeholder="Mr., Ms., Dr."
+                    {...register("name_prefix")}
+                    disabled={isFieldDisabled("name_prefix")}
+                  />
+                </HorizontalField>
+              )}
+
               {shouldRenderField("name_first") && (
                 <HorizontalField
                   label="name_first"
@@ -1377,6 +1384,18 @@ export default function ContactDetail({
                 </HorizontalField>
               )}
 
+              {shouldRenderField("name_middle") && (
+                <HorizontalField label="name_middle" htmlFor="name_middle">
+                  <Input
+                    type="text"
+                    id="name_middle"
+                    placeholder="Middle name"
+                    {...register("name_middle")}
+                    disabled={isFieldDisabled("name_middle")}
+                  />
+                </HorizontalField>
+              )}
+
               {shouldRenderField("name_last") && (
                 <HorizontalField
                   label="name_last"
@@ -1391,6 +1410,18 @@ export default function ContactDetail({
                     {...register("name_last")}
                     error={!!errors.name_last?.message}
                     disabled={isFieldDisabled("name_last")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("name_suffix") && (
+                <HorizontalField label="name_suffix" htmlFor="name_suffix">
+                  <Input
+                    type="text"
+                    id="name_suffix"
+                    placeholder="Jr., Sr., III"
+                    {...register("name_suffix")}
+                    disabled={isFieldDisabled("name_suffix")}
                   />
                 </HorizontalField>
               )}
@@ -1457,42 +1488,6 @@ export default function ContactDetail({
                     placeholder="Attention / display name"
                     {...register("attention")}
                     disabled={isFieldDisabled("attention")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_prefix") && (
-                <HorizontalField label="name_prefix" htmlFor="name_prefix">
-                  <Input
-                    type="text"
-                    id="name_prefix"
-                    placeholder="Mr., Ms., Dr."
-                    {...register("name_prefix")}
-                    disabled={isFieldDisabled("name_prefix")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_middle") && (
-                <HorizontalField label="name_middle" htmlFor="name_middle">
-                  <Input
-                    type="text"
-                    id="name_middle"
-                    placeholder="Middle name"
-                    {...register("name_middle")}
-                    disabled={isFieldDisabled("name_middle")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_suffix") && (
-                <HorizontalField label="name_suffix" htmlFor="name_suffix">
-                  <Input
-                    type="text"
-                    id="name_suffix"
-                    placeholder="Jr., Sr., III"
-                    {...register("name_suffix")}
-                    disabled={isFieldDisabled("name_suffix")}
                   />
                 </HorizontalField>
               )}
@@ -1669,9 +1664,6 @@ export default function ContactDetail({
             standardTabs={["actions", "comments", "documents", "raw"]}
             additionalTabs={additionalTabs}
             badges={tabBadges}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
           />
 
           {/* ─── TAB CONTENT (scrollable) ─── */}
