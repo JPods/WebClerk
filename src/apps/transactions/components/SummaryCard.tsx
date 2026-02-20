@@ -532,30 +532,53 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {transactionLabel} Totals
           </h3>
           <dl className="space-y-3 text-xs">
+            {/* --- sell envelope --- */}
             <div className="flex justify-between items-center">
               <FieldLabel
-                label=".subtotal"
+                label="sell.line_sum_goods"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.subtotal ?? data.subtotal)}
+                {formatCurrency(data.sell?.line_sum_goods ?? data.totals?.subtotal ?? data.subtotal)}
               </dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label=".discount"
+                label="sell.discount"
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-red-600 dark:text-red-400">
-                {data.totals?.discount
-                  ? `-${formatCurrency(data.totals.discount)}`
+                {(data.sell?.discount ?? data.totals?.discount)
+                  ? `-${formatCurrency(data.sell?.discount ?? data.totals?.discount)}`
                   : "--"}
               </dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label=".tax"
+                label="sell.total"
+                locked
+                className="text-slate-500 dark:text-slate-400"
+              />
+              <dd className="font-mono text-slate-900 dark:text-white">
+                {formatCurrency(data.sell?.total ?? data.totals?.subtotal)}
+              </dd>
+            </div>
+
+            {/* --- totals envelope --- */}
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+              <FieldLabel
+                label="totals.taxable"
+                locked
+                className="text-slate-500 dark:text-slate-400"
+              />
+              <dd className="font-mono text-slate-900 dark:text-white">
+                {formatCurrency(data.totals?.taxable)}
+              </dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel
+                label="totals.tax"
                 locked
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -563,18 +586,29 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 {formatCurrency(data.totals?.tax ?? data.tax)}
               </dd>
             </div>
+            {showShipping && (
+              <div className="flex justify-between items-center">
+                <FieldLabel
+                  label="totals.shipping"
+                  className="text-slate-500 dark:text-slate-400"
+                />
+                <dd className="font-mono text-slate-900 dark:text-white">
+                  {formatCurrency(data.totals?.shipping)}
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <FieldLabel
-                label=".shipping"
+                label="totals.other"
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.shipping)}
+                {formatCurrency(data.totals?.other)}
               </dd>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pt-2 border-t-2 border-slate-300 dark:border-slate-600">
               <FieldLabel
-                label=".total"
+                label="totals.total"
                 mandatory
                 locked
                 className="text-slate-700 dark:text-slate-200 text-base"
@@ -583,21 +617,55 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 {formatCurrency(data.totals?.total ?? data.total)}
               </dd>
             </div>
+
+            {/* --- cost envelope --- */}
             {showCostMargin && (
               <>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                   <FieldLabel
-                    label=".cost"
+                    label="cost.line_sum_goods"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
                   <dd className="font-mono text-slate-600 dark:text-slate-400">
-                    {formatCurrency(data.totals?.cost)}
+                    {formatCurrency(data.cost?.line_sum_goods)}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label=".margin"
+                    label="cost.freight"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-400">
+                    {formatCurrency(data.cost?.freight)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="cost.commissions"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-400">
+                    {formatCurrency(data.cost?.commissions)}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <FieldLabel
+                    label="cost.total"
+                    locked
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  <dd className="font-mono text-slate-600 dark:text-slate-400">
+                    {formatCurrency(data.cost?.total ?? data.totals?.cost)}
+                  </dd>
+                </div>
+
+                {/* --- margin --- */}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <FieldLabel
+                    label="totals.margin"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -618,11 +686,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
               </>
             )}
+
+            {/* --- payments --- */}
             {showPayments && (
               <>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                   <FieldLabel
-                    label=".received"
+                    label="totals.received"
                     locked
                     className="text-slate-500 dark:text-slate-400"
                   />
@@ -632,7 +702,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <FieldLabel
-                    label=".balance"
+                    label="totals.balance"
                     locked
                     className="text-slate-700 dark:text-slate-200 font-semibold"
                   />
