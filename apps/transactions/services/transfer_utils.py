@@ -24,9 +24,10 @@ def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dic
     Resolves the base quantity through a fallback chain:
       placed → ordered → remaining → 0
 
-    The result dict always has:
-      remaining:            base value (target starts with full amount available)
-      invoiced:             0 (safe default for non-invoice targets)
+    The result dict always has canonical keys:
+      placed:     base value (qty being transferred)
+      actioned:   0 (nothing acted on new target yet)
+      remaining:  base value (full qty available)
       precision, is_fixed:  preserved from source when present
       converted_from_<src_label>: audit trail with original keys
 
@@ -34,8 +35,6 @@ def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dic
     canonical placed/actioned/remaining keys were adopted.  New code should
     always write 'placed' and never 'ordered'.
 
-    TODO: This function does NOT set 'placed' or 'actioned' on the output.
-    Target lines should have placed = base, actioned = 0, remaining = base.
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = src_qty or {}
@@ -48,6 +47,8 @@ def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dic
     if base is None:
         base = q.get("remaining", 0)
         used_key = "remaining"
+
+    base = base or 0
 
     converted_key = f"converted_from_{src_label}"
     converted = {
@@ -63,8 +64,9 @@ def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dic
         converted["original_remaining"] = q.get("remaining", 0)
 
     out = {
-        "remaining": base or 0,
-        "invoiced": 0,
+        "placed": base,
+        "actioned": 0,
+        "remaining": base,
         converted_key: converted,
     }
     if "precision" in q:
