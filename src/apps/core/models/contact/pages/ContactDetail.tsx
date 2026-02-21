@@ -79,6 +79,7 @@ import {
   FaShoppingCart,
   FaClipboardList,
   FaSpinner,
+  FaTimes,
 } from "react-icons/fa";
 import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
 
@@ -538,23 +539,44 @@ export default function ContactDetail({
     routeState.data?.id ||
     dataProp?.id;
 
-  const contactIdFromUrl = urlId
-    ? typeof urlId === "number"
-      ? urlId
-      : parseInt(String(urlId), 10)
-    : null;
+  const parseRecordId = (value: unknown): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value === "string") {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
+  const contactIdFromUrl = parseRecordId(urlId);
 
   // ---------------------------------------------------------------------------
   // Mode
   // ---------------------------------------------------------------------------
 
-  const baseMode: "add" | "edit" | "view" =
-    modeProp || routeState.mode || (contactIdFromUrl ? "view" : "add");
-  const [effectiveMode, setEffectiveMode] = useState(baseMode);
+  // recordMode controls validation + save behavior.
+  // UI mode always starts in view for existing records.
+  const recordMode: "add" | "edit" = useMemo(() => {
+    if (modeProp === "add") return "add";
+    if (contactIdFromUrl != null) return "edit";
+    // With no ID, default to add. routeState.mode may be set by navigations,
+    // but it shouldn't force edit-mode for a non-existent record.
+    return "add";
+  }, [modeProp, contactIdFromUrl]);
+
+  const initialUiMode: "add" | "edit" | "view" = useMemo(() => {
+    return recordMode === "add" ? "add" : "view";
+  }, [recordMode]);
+
+  const [effectiveMode, setEffectiveMode] = useState<
+    "add" | "edit" | "view"
+  >(initialUiMode);
 
   useEffect(() => {
-    setEffectiveMode(baseMode);
-  }, [baseMode]);
+    setEffectiveMode(initialUiMode);
+  }, [initialUiMode]);
 
   const isEditing = effectiveMode === "edit" || effectiveMode === "add";
 
@@ -569,7 +591,7 @@ export default function ContactDetail({
   const activeContactId = data?.id || contactIdFromUrl || null;
 
   useEffect(() => {
-    if (contactIdFromUrl && contactIdFromUrl !== fetchedData?.id) {
+    if (contactIdFromUrl != null && contactIdFromUrl !== fetchedData?.id) {
       if (initialData?.id === contactIdFromUrl) return;
       setIsLoading(true);
       getRecord("contact", contactIdFromUrl)
@@ -1301,7 +1323,7 @@ export default function ContactDetail({
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
-      baseMode === "edit" ? updateContactSchema : contactSchema,
+      recordMode === "edit" ? updateContactSchema : contactSchema,
     ),
     defaultValues: {
       // Auto-populate the parent org ID field when opened from an org page
@@ -1589,7 +1611,7 @@ export default function ContactDetail({
           : undefined;
 
         console.log("[ContactDetail] Submitting:", {
-          baseMode,
+          recordMode,
           formData,
           mappedRefs,
         });
@@ -1620,7 +1642,7 @@ export default function ContactDetail({
         };
 
         const payload =
-          baseMode === "add"
+          recordMode === "add"
             ? {
                 ...basePayload,
                 password: (formData as any).password,
@@ -1629,7 +1651,7 @@ export default function ContactDetail({
             : basePayload;
 
         const res =
-          baseMode === "add"
+          recordMode === "add"
             ? await createContact(payload as CreateContactRequest)
             : await updateContact({
                 ...payload,
@@ -1652,7 +1674,7 @@ export default function ContactDetail({
           // When a new contact is created from an org detail page,
           // update the parent record to include this contact in its refs.
           if (
-            baseMode === "add" &&
+            recordMode === "add" &&
             parentModel &&
             parentId &&
             newContactId &&
@@ -1679,7 +1701,7 @@ export default function ContactDetail({
           dispatch(
             showToast({
               message: `Contact ${
-                baseMode === "add" ? "created" : "updated"
+                recordMode === "add" ? "created" : "updated"
               } successfully`,
               type: "success",
             }),
@@ -1721,7 +1743,7 @@ export default function ContactDetail({
       }
     },
     [
-      baseMode,
+      recordMode,
       data?.id,
       dispatch,
       onSaved,
@@ -1770,6 +1792,14 @@ export default function ContactDetail({
     [windowManager],
   );
 
+  const handleClose = useCallback(() => {
+    if (onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    windowManager.closeWindow(windowPath || location.pathname);
+  }, [onCancelInline, windowManager, windowPath, location.pathname]);
+
   // ---------------------------------------------------------------------------
   // Action Buttons (header)
   // ---------------------------------------------------------------------------
@@ -1803,19 +1833,6 @@ export default function ContactDetail({
           Edit
         </button>,
       );
-      if (onCancelInline) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancelInline}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
     }
 
     // Prev/Next nav arrows
@@ -1846,6 +1863,19 @@ export default function ContactDetail({
       );
     }
 
+    // Close detail (always shown at far right)
+    buttons.push(
+      <button
+        key="close-detail"
+        type="button"
+        onClick={handleClose}
+        className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        title="Close detail"
+      >
+        <FaTimes size={14} />
+      </button>,
+    );
+
     return buttons;
   };
 
@@ -1854,13 +1884,15 @@ export default function ContactDetail({
   // ---------------------------------------------------------------------------
 
   const handleCancel = useCallback(() => {
-    if (onCancelInline) {
-      onCancelInline();
-    } else {
-      setEffectiveMode("view");
-      if (data) reset(data);
+    if (recordMode === "add") {
+      // Stay on the page, just clear changes back to defaultValues.
+      reset();
+      setEffectiveMode("add");
+      return;
     }
-  }, [onCancelInline, data, reset]);
+    setEffectiveMode("view");
+    if (data) reset(data);
+  }, [recordMode, data, reset]);
 
   // ---------------------------------------------------------------------------
   // Derived display values
