@@ -49,7 +49,8 @@ REMOTE_DATABASE_PASS=wc_psql_server
 LOCAL_DATABASE_HOST=localhost
 LOCAL_DATABASE_PORT=5432
 LOCAL_DATABASE_NAME=commerce_expert
-LOCAL_DATABASE_USER=an7or
+# qaq MUST be change to your own local Postgres username.  If you don't have one, create a new Postgres role with login permissions and use that.
+LOCAL_DATABASE_USER=williamjames
 LOCAL_DATABASE_PASS=
 
 # =============================================================================

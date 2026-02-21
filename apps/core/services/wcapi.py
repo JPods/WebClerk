@@ -98,7 +98,14 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
     ModelCls = registry.resolve(model_key or "")
     if not ModelCls:
         raise ValueError("invalid model")
-    qs = ModelCls.objects.all()
+
+    # Prefer the project's active() queryset when available so wcapi/get
+    # naturally hides soft-deleted / inactive rows.
+    try:
+        active = getattr(ModelCls.objects, "active", None)
+        qs = active() if callable(active) else ModelCls.objects.all()
+    except Exception:
+        qs = ModelCls.objects.all()
 
     normalized_key = (model_key or "").replace("_", "").lower()
     # Prefetch lines for transaction models
