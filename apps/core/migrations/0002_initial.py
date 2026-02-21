@@ -10,8 +10,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
-        ('contenttypes', '0002_remove_content_type_name'),
+        ('auth', '__first__'),
+        ('contenttypes', '__first__'),
         ('core', '0001_initial'),
         ('orgs', '0002_initial'),
     ]
