@@ -81,6 +81,21 @@ export default function InvoiceList() {
     getInvoiceData();
   }, [getInvoiceData]);
 
+  // Auto-refresh when another window saves/transfers a transaction.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail as any;
+      const model = String(detail?.model || "");
+      if (
+        ["order", "invoice", "proposal", "purchase", "workorder"].includes(model)
+      ) {
+        getInvoiceData();
+      }
+    };
+    window.addEventListener("wcapi:modelChanged", handler as any);
+    return () => window.removeEventListener("wcapi:modelChanged", handler as any);
+  }, [getInvoiceData]);
+
   const handleView = useCallback(
     (row: InvoiceRow) => {
       const invoiceId = row?.id;

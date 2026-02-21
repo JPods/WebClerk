@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
-import { FaPlus, FaEye, FaEdit } from "react-icons/fa";
+import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
@@ -12,7 +12,7 @@ import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import ContactDetail from "./ContactDetail";
 import ContactListMob from "./ContactListMob";
-import { getRecord } from "../../../../../api/wcapi";
+import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
 interface ContactData {
   id: string | number;
@@ -257,7 +257,7 @@ const ContactList = () => {
       },
       {
         name: "Actions",
-        width: "96px",
+        width: "140px",
         cell: (row: ContactData) => (
           <div className="flex items-center gap-2">
             <button
@@ -280,11 +280,21 @@ const ContactList = () => {
             >
               <FaEdit className="w-4 h-4" />
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteRow(row);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+              title="Delete"
+            >
+              <FaTrash className="w-4 h-4" />
+            </button>
           </div>
         ),
       },
     ],
-    [handleEdit, handleView],
+    [handleEdit, handleView, handleDeleteRow],
   );
 
   // Define filters
@@ -352,6 +362,35 @@ const ContactList = () => {
       if (res.record) setSelectedContact(res.record);
     } catch {
       // Keep using row data on error
+    }
+  }
+
+  // Handle delete action (row-level)
+  async function handleDeleteRow(row: ContactData) {
+    const id = Number(row?.id);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    if (!window.confirm(`Delete contact #${id}?`)) return;
+
+    try {
+      await deleteRecord("contact", id);
+
+      // Update UI immediately
+      setData((prev) => prev.filter((r) => Number(r?.id) !== id));
+      setSelectedContacts((prev) => prev.filter((r) => Number(r?.id) !== id));
+
+      // If the deleted record is open in the inline detail, close it
+      if (Number(selectedContact?.id) === id) {
+        setSelectedContact(null);
+        setFormMode(null);
+      }
+
+      dispatch(showToast({ message: "Contact deleted", type: "success" }));
+    } catch (error) {
+      console.error("[ContactList] delete failed:", error);
+      dispatch(
+        showToast({ message: "Failed to delete contact", type: "error" }),
+      );
     }
   }
 
