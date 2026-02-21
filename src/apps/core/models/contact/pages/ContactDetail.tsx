@@ -441,6 +441,31 @@ const normalizeNumber = (value: any): number | undefined => {
   return isNaN(num) ? undefined : num;
 };
 
+const normalizeContactFkFields = (record: any) => {
+  if (!record || typeof record !== "object") return record;
+  const out = { ...record };
+  const pickId = (v: any) => {
+    if (v == null) return undefined;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
+    if (typeof v === "object") {
+      const nested = (v as any).id;
+      if (typeof nested === "number" && Number.isFinite(nested)) return nested;
+      if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) return Number(nested);
+    }
+    return undefined;
+  };
+
+  // WCAPI often returns FK ids under the field name (customer, rep, ...) not the attname (customer_id).
+  if (out.customer_id == null) out.customer_id = pickId(out.customer);
+  if (out.rep_id == null) out.rep_id = pickId(out.rep);
+  if (out.vendor_id == null) out.vendor_id = pickId(out.vendor);
+  if (out.employee_id == null) out.employee_id = pickId(out.employee);
+  if (out.manufacturer_id == null) out.manufacturer_id = pickId(out.manufacturer);
+
+  return out;
+};
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
@@ -540,7 +565,7 @@ export default function ContactDetail({
   const [fetchedData, setFetchedData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const initialData = dataProp || routeState.data || null;
-  const data = fetchedData || initialData;
+  const data = normalizeContactFkFields(fetchedData || initialData);
   const activeContactId = data?.id || contactIdFromUrl || null;
 
   useEffect(() => {
@@ -548,7 +573,7 @@ export default function ContactDetail({
       if (initialData?.id === contactIdFromUrl) return;
       setIsLoading(true);
       getRecord("contact", contactIdFromUrl)
-        .then((result) => setFetchedData(result?.record || result))
+        .then((result) => setFetchedData(normalizeContactFkFields(result?.record || result)))
         .catch((err) =>
           console.error("[ContactDetail] Failed to fetch contact:", err),
         )
@@ -1347,11 +1372,11 @@ export default function ContactDetail({
     }
     reset({
       ...data,
-      customer_id: normalizeNumber(data.customer_id),
-      rep_id: normalizeNumber(data.rep_id),
-      vendor_id: normalizeNumber(data.vendor_id),
-      employee_id: normalizeNumber(data.employee_id),
-      manufacturer_id: normalizeNumber(data.manufacturer_id),
+      customer_id: normalizeNumber(data.customer_id ?? data.customer),
+      rep_id: normalizeNumber(data.rep_id ?? data.rep),
+      vendor_id: normalizeNumber(data.vendor_id ?? data.vendor),
+      employee_id: normalizeNumber(data.employee_id ?? data.employee),
+      manufacturer_id: normalizeNumber(data.manufacturer_id ?? data.manufacturer),
       other_id: normalizeNumber(data.other_id),
       refs: {
         tags: data.refs?.tags ?? [],
@@ -1585,11 +1610,11 @@ export default function ContactDetail({
           // Disabled inputs are excluded by react-hook-form, so fall back to
           // parent-seeded values (query params) or fetched record values.
           customer_id:
-            formData.customer_id ?? parentCustomerId ?? data?.customer_id,
-          rep_id: formData.rep_id ?? data?.rep_id,
-          vendor_id: formData.vendor_id ?? data?.vendor_id,
-          employee_id: formData.employee_id ?? data?.employee_id,
-          manufacturer_id: formData.manufacturer_id ?? data?.manufacturer_id,
+            formData.customer_id ?? parentCustomerId ?? data?.customer_id ?? data?.customer,
+          rep_id: formData.rep_id ?? data?.rep_id ?? data?.rep,
+          vendor_id: formData.vendor_id ?? data?.vendor_id ?? data?.vendor,
+          employee_id: formData.employee_id ?? data?.employee_id ?? data?.employee,
+          manufacturer_id: formData.manufacturer_id ?? data?.manufacturer_id ?? data?.manufacturer,
           other_id: formData.other_id ?? data?.other_id,
           refs: mappedRefs,
         };
