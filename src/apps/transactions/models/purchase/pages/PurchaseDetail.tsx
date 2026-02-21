@@ -367,6 +367,7 @@ const PurchaseDetail: React.FC<PurchaseDetailProps> = (props) => {
       modeProp={props.modeProp}
       dataProp={props.dataProp}
       idProp={resolvedId}
+      onCancelInline={props.onCancelInline}
       onSaved={props.onSaved}
       isAdmin={props.isAdmin}
       canEdit={canEdit}

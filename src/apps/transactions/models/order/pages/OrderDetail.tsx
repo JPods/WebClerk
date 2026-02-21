@@ -694,7 +694,7 @@ interface OrderDetailProps {
   /** Callback after successful save */
   onSaved?: (data: Transaction) => void;
   /** Callback for cancel action in inline mode */
-  // onCancelInline?: () => void;
+  onCancelInline?: () => void;
 }
 
 const OrderDetail: React.FC<OrderDetailProps> = ({
@@ -703,6 +703,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   modeProp,
   dataProp,
   onSaved,
+  onCancelInline,
 }) => {
   // Task modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -1149,6 +1150,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         inline={inline}
         modeProp={modeProp}
         dataProp={dataProp}
+        onCancelInline={onCancelInline}
         onSaved={(data) => {
           handleDataLoaded(data);
           onSaved?.(data);

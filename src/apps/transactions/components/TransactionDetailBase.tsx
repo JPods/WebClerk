@@ -219,7 +219,8 @@ interface TransactionDetailBaseProps {
   /** Direct ID prop (for use with /wcapi/get/?id=X routes) */
   idProp?: number | string;
 
-  /** Callback for cancel action in inline mode */
+  /** Callback for cancel/close action in inline mode */
+  onCancelInline?: () => void;
 
   /** Callback for Add Task action */
   onAddTask?: () => void;
@@ -254,10 +255,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   modeProp,
   dataProp,
   idProp,
+  onCancelInline,
   onAddTask,
   showTaskButton = false,
   taskCount,
 }) => {
+  const getTransactionRouteSegment = useCallback((t: string) => {
+    // Routes use a hyphenated segment for work orders, but the model key is `workorder`.
+    // Keep the model key for API calls; only the URL segment needs special-casing.
+    return t === "workorder" ? "work-order" : t;
+  }, []);
+
   // Default no-op for handleAddItem to avoid reference error
   const handleAddItem = () => {};
   const { id: urlId } = useParams<{ id: string }>();
@@ -265,9 +273,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const id = idProp?.toString() ?? dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { ensureWindow } = useWindowManager();
+  const { ensureWindow, closeWindow } = useWindowManager();
   const { user } = useAppSelector((state) => state.auth);
   const displayName = user ? `${user.name_first}${user.name_last}` : "You";
+
+  const emitModelChanged = useCallback((detail: Record<string, unknown>) => {
+    try {
+      window.dispatchEvent(new CustomEvent("wcapi:modelChanged", { detail }));
+    } catch {
+      // ignore (SSR/older env)
+    }
+  }, []);
 
   // Parse query params from the floating window path (if available)
   const windowPath = useWindowPath();
@@ -279,6 +295,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       return null;
     }
   }, [windowPath]);
+
+  // If this window was opened via the toolbar Transfer dropdown,
+  // these params identify the source transaction we transferred from.
+  const transferSource = useMemo(() => {
+    const t = windowSearchParams?.get("transfer_from_type")?.trim() || "";
+    const idRaw = windowSearchParams?.get("transfer_from_id")?.trim() || "";
+    const idNum = Number(idRaw);
+    if (!t || !Number.isFinite(idNum) || idNum <= 0) return null;
+    return { type: t, id: idNum };
+  }, [windowSearchParams]);
 
   // Determine effective mode: if no ID is available and modeProp isn't set,
   // treat as "add" mode (e.g. opened from Create Transaction dropdown)
@@ -664,7 +690,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     if (saveData) {
       // Use custom save function if provided
-      return await saveData(editData);
+      const rawId = data?.id;
+      const saved = await saveData(editData);
+      if (saved) {
+        emitModelChanged({
+          model: modelName,
+          id: (saved as any)?.id ?? null,
+          action: rawId ? "updated" : "created",
+        });
+      }
+      return saved;
     }
 
     // Ensure id is included in payload for updates (omit falsy ids for new records)
@@ -681,8 +716,38 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       ? await saveTransactionWithLines(modelName, payloadWithId)
       : await saveRecord(modelName, payloadWithId);
 
-    return normalizeTransactionFkFields((apiResult.record ?? apiResult) as any);
-  }, [editData, saveData, modelName, data?.id]);
+    const normalized = normalizeTransactionFkFields((apiResult.record ?? apiResult) as any);
+
+    emitModelChanged({ model: modelName, id: (normalized as any)?.id ?? null, action: rawId ? "updated" : "created" });
+
+    // If this was a Transfer-created record (new target created from a source),
+    // deactivate the source record so it disappears from the source list.
+    // This matches the expected "move" semantics for Transfer.
+    if (!rawId && transferSource) {
+      try {
+        await saveRecord(transferSource.type, {
+          id: transferSource.id,
+          is_active: false,
+        });
+
+        emitModelChanged({ model: transferSource.type, id: transferSource.id, action: "deactivated" });
+      } catch (e) {
+        console.warn(
+          "[TransactionDetailBase] Failed to deactivate transfer source:",
+          transferSource,
+          e,
+        );
+        dispatch(
+          showToast({
+            message: `Saved, but could not remove source ${transferSource.type} #${transferSource.id}`,
+            type: "warning",
+          }),
+        );
+      }
+    }
+
+    return normalized;
+  }, [editData, saveData, modelName, data?.id, transferSource, dispatch, emitModelChanged]);
 
   const handleSave = useCallback(async () => {
     if (!editData) return;
@@ -757,6 +822,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         }),
       );
       onSaved?.(result);
+
+      if (inline) {
+        // Inline split-view detail (in a list page)
+        // Let the parent list decide how to close.
+        // (Some list pages pass onCancelInline, some don't.)
+        onCancelInline?.();
+        return;
+      }
+
+      // Floating window: close it (better UX than navigate(-1)).
+      if (windowPath) {
+        closeWindow(windowPath);
+        return;
+      }
+
+      // Fallback for non-window navigation
       navigate(-1);
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : "Failed to save";
@@ -765,7 +846,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel]);
+  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel, inline, onCancelInline, windowPath, closeWindow]);
 
   const handleClone = useCallback(async () => {
     if (!data) return;
@@ -774,10 +855,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     const clonedData = { ...data };
     delete (clonedData as Record<string, unknown>).id;
     delete (clonedData as Record<string, unknown>).ida;
-    navigate(`/transactions/${transactionType}/detail`, {
+    const seg = getTransactionRouteSegment(transactionType);
+    navigate(`/transactions/${seg}/detail`, {
       state: { clone: clonedData, mode: "add" },
     });
-  }, [data, transactionType, navigate, dispatch, typeLabel]);
+  }, [data, transactionType, navigate, dispatch, typeLabel, getTransactionRouteSegment]);
 
   const handleTransfer = useCallback(
     async (targetType: TransactionType) => {
@@ -793,11 +875,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       params.set("transfer_from_type", transactionType);
       params.set("transfer_from_id", String(data.id));
       if (data.customer_id) params.set("customer_id", String(data.customer_id));
-      const path = `/transactions/${targetType}/detail?${params.toString()}`;
+      const seg = getTransactionRouteSegment(targetType);
+      const path = `/transactions/${seg}/detail?${params.toString()}`;
       const label = targetType.charAt(0).toUpperCase() + targetType.slice(1);
       ensureWindow(path, `New ${label} (from ${typeLabel})`, { maximized: false });
     },
-    [data, transactionType, ensureWindow, dispatch, typeLabel],
+    [data, transactionType, ensureWindow, dispatch, typeLabel, getTransactionRouteSegment],
   );
 
   const handlePrint = useCallback(() => {

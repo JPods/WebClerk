@@ -372,6 +372,7 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
       inline={props.inline}
       modeProp={props.modeProp}
       dataProp={props.dataProp}
+      onCancelInline={props.onCancelInline}
       onSaved={props.onSaved}
       isAdmin={props.isAdmin}
       canEdit={canEdit}

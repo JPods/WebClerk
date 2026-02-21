@@ -339,6 +339,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
       inline={props.inline}
       modeProp={props.modeProp}
       dataProp={props.dataProp}
+      onCancelInline={props.onCancelInline}
       onSaved={props.onSaved}
     />
   );
