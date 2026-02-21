@@ -4,6 +4,8 @@ Role-based permissions and field access rules for the application.
 
 from typing import Dict, List, Optional
 
+from rest_framework.permissions import BasePermission as DRFBasePermission
+
 
 def _all_fields(model) -> List[str]:
     try:
@@ -160,3 +162,66 @@ def get_user_permissions(user) -> List[str]:
     }
 
     return role_permissions.get(user_role, [])
+
+
+# ---------------------------------------------------------------------------
+# DRF permission class – enforces authentication + role-based view/edit rules
+# ---------------------------------------------------------------------------
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+
+
+class ViewEditPermission(DRFBasePermission):
+    """Check authentication and role-based access for view/edit operations.
+
+    Resolves the model from the view's ``queryset`` (or ``get_queryset()``)
+    and delegates to ``get_role_field_rules()`` to determine whether the
+    current user's role is allowed to *view* (safe methods) or *edit*
+    (write methods) that model.
+
+    Usage::
+
+        class OrderLineListCreate(generics.ListCreateAPIView):
+            permission_classes = [ViewEditPermission]
+            queryset = OrderLine.objects.active()
+    """
+
+    def _resolve_model(self, view):
+        """Extract the model class from the view's queryset."""
+        qs = getattr(view, 'queryset', None)
+        if qs is not None:
+            return qs.model
+        if hasattr(view, 'get_queryset'):
+            try:
+                return view.get_queryset().model
+            except Exception:
+                pass
+        return None
+
+    def has_permission(self, request, view):
+        # 1. Must be authenticated
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+
+        # 2. Superusers / admins bypass further checks
+        if user.is_superuser:
+            return True
+
+        user_role = getattr(user, 'role', '') or ''
+        if user_role == 'admin':
+            return True
+
+        # 3. Resolve model and field rules
+        model = self._resolve_model(view)
+        if model is None:
+            # Cannot determine model — fall back to auth-only
+            return True
+
+        rules = get_role_field_rules(model, user_role)
+
+        # 4. For read requests, the role must have at least one viewable field
+        if request.method in SAFE_METHODS:
+            return bool(rules.get('view'))
+
+        # 5. For write requests, the role must have at least one editable field
+        return bool(rules.get('edit'))

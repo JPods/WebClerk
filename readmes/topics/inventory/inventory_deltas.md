@@ -58,7 +58,7 @@ Items track multiple quantity buckets in the `Item.quantity` JSON field:
 # When a sales order is created
 _create_inventory_delta(
     item_id=item_id,
-    source_type='sales_order_line',
+    source_type='order_line',
     source_id=order.id,
     quantity_on_order_delta=+qty_ordered,  # Increases committed quantity
     notes=f"Sales order {order.id} - ordered {qty_ordered} units"
@@ -72,7 +72,7 @@ _create_inventory_delta(
 # When a purchase order is created
 _create_inventory_delta(
     item_id=item_id,
-    source_type='purchase_order_line',
+    source_type='purchase_line',
     source_id=po.id,
     quantity_on_po_delta=+qty_ordered,  # Increases committed purchases
     notes=f"Purchase order {po.id} - ordered {qty_ordered} units"
@@ -341,7 +341,7 @@ The system supports negative quantities to handle returns and cancellations:
 
 - **Fixed Import**: Added `Any` to typing imports in `inventory_flow.py`
 - **Removed Quantity Caps**: Updated `_get_order_quantity_needed` to return actual difference without `max(0, ...)`
-- **Process Negative Deltas**: Modified `create_inventory_deltas_for_order`, `create_inventory_deltas_for_purchase_order`, and `release_inventory_on_invoice` to process quantities != 0 instead of > 0
+- **Process Negative Deltas**: Modified `create_inventory_deltas_for_order`, `create_inventory_deltas_for_purchase`, and `release_inventory_on_invoice` to process quantities != 0 instead of > 0
 - **Reservation Logic**: For negative invoices, only positive quantities trigger reservation releases
 
 ### Delta Sign Convention
@@ -366,22 +366,22 @@ The system provides specialized functions for different inventory receiving scen
 
 | Function | Source Type | On-Hand | Other Effects |
 |----------|-------------|---------|---------------|
-| `receive_purchase_order()` | Purchase Order | +qty | -on_po |
+| `receive_purchase()` | Purchase Order | +qty | -on_po |
 | `complete_workorder()` | Work Order | +qty | -on_wo |
 | `adjust_inventory()` | Manual Adjustment | ±qty | None |
 | `receive_inventory_changes()` | Dispatcher | Routes to above | - |
 
-### receive_purchase_order(po, receipt_id, lines)
+### receive_purchase(po, receipt_id, lines)
 
 Receives goods against a Purchase Order:
 
 ```python
-from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+from apps.transactions.services.flow import receive_purchase, ReceiveLine
 
 lines = [
     ReceiveLine(po_line_id=123, qty=10, warehouse_code='MAIN', unit_cost=15.00),
 ]
-result = receive_purchase_order(po, 'RCV-2025-001', lines)
+result = receive_purchase(po, 'RCV-2025-001', lines)
 # Result: {'receipt_id': 456, 'stacks_created': [789], 'deltas_created': 1}
 ```
 

@@ -532,7 +532,7 @@ response = requests.post('/tx/transfers/bulk/proposals-to-orders/', json={
 ```python
 # Find all changes to a specific transaction
 logs = AuditLog.objects.filter(
-    model_name='sales_order',
+    model_name='order',
     record_id=123
 ).order_by('-dt_created')
 ```

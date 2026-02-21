@@ -33,7 +33,7 @@ def default_item() -> Dict[str, Any]:
         "description": "",
         "description_text": "",
         "time_lead": None,
-        "locations": [],
+        "addresses": [],
         "unit_measure": "",
         # sequence of display in frontend. User changeable
         "sequence": 0,
@@ -50,14 +50,35 @@ def _normalize_line_kind(name: str | None) -> str:
     # collapse common variants
     aliases = {
         "proposal": "proposal", "proposal_line": "proposal", "proposalline": "proposal",
-        "order": "order", "order_line": "order", "sales_order_line": "order", "salesorderline": "order",
+        "order": "order", "order_line": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
         "workorder": "workorder", "workorderline": "workorder",
-        "purchase": "purchase", "purchase_order": "purchase", "purchaseline": "purchase", "purchaseorderline": "purchase",
+        "purchase": "purchase", "purchaseline": "purchase",
     }
     return aliases.get(n, n)
 
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
+    """Return the canonical quantity JSONB structure for a line.
+
+    Canonical keys (all transaction types):
+      - placed:    quantity committed on this line
+      - actioned:  quantity acted upon (meaning is context-dependent):
+                     Proposal  → converted to order
+                     Order     → shipped / invoiced
+                     Invoice   → delivered
+                     Purchase  → received from vendor
+                     WorkOrder → completed
+      - remaining: placed − actioned
+      - is_fixed:  whether quantity is locked from editing
+      - precision: decimal places for quantity math
+      - is_blanket: blanket/open-ended quantity (optional)
+      - increment:  minimum order increment (optional)
+
+    Legacy keys (ordered, invoiced, received, shipped, packed) are DEPRECATED.
+    Transfer services should read/write placed/actioned/remaining only.
+
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     kind = _normalize_line_kind(transaction_type)
     if kind == "proposal":
         return {
@@ -70,7 +91,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     elif kind == "order":
-        # Sales orders track fulfillment progress
+        # Sales orders: actioned = qty shipped/invoiced downstream
         return {
             "placed": 0,
             "actioned": 0,
@@ -81,7 +102,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     elif kind == "invoice":
-        # Invoices track packing/ship confirmation at line-level
+        # Invoices: actioned = qty delivered/confirmed
         return {
             "placed": 0,
             "actioned": 0,
@@ -93,7 +114,8 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             }
     
     elif kind == "purchase" or kind == "workorder":
-        # Invoices track packing/ship confirmation at line-level
+        # Purchase: actioned = qty received from vendor
+        # WorkOrder: actioned = qty completed
         return {
             "placed": 0,
             "actioned": 0,
@@ -104,7 +126,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     else:
-        # Default structure
+        # Default structure — used when transaction_type is unknown
         return {
             "placed": None,
             "actioned": None,
@@ -112,6 +134,82 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "is_fixed": False,
             "precision": 2,
         }
+
+# Legacy quantity key → canonical key mapping.
+# Any of these arriving from old data or external systems are mapped to placed/actioned.
+_LEGACY_QTY_ALIASES: Dict[str, str] = {
+    "ordered":  "placed",
+    "quantity": "placed",
+    "qty":      "placed",
+    "shipped":  "actioned",
+    "invoiced": "actioned",
+    "received": "actioned",
+    "packed":   "actioned",
+    "completed": "actioned",
+}
+
+
+def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | None = None) -> Dict[str, Any]:
+    """Normalize a quantity JSON blob to the canonical structure.
+
+    Handles:
+      1. None / empty → full default from default_quantity()
+      2. Legacy keys (ordered, shipped, received, …) → placed / actioned
+      3. Null numeric values → 0
+      4. Missing canonical keys → backfilled from defaults
+      5. remaining recalculated as placed − actioned
+    """
+    base = default_quantity(transaction_type)
+
+    if not isinstance(q, dict) or not q:
+        return base
+
+    out = dict(base)  # start from full default
+
+    # Map legacy keys first (only when canonical key is still at default)
+    for legacy_key, canonical_key in _LEGACY_QTY_ALIASES.items():
+        if legacy_key in q and canonical_key in out:
+            val = q[legacy_key]
+            # Only adopt legacy value if canonical key hasn't been explicitly set
+            if q.get(canonical_key) in (None, 0, 0.0):
+                try:
+                    out[canonical_key] = float(val) if val is not None else 0
+                except (TypeError, ValueError):
+                    out[canonical_key] = 0
+
+    # Overlay explicit canonical keys from input
+    for key in ("placed", "actioned", "remaining"):
+        if key in q and q[key] is not None:
+            try:
+                out[key] = float(q[key])
+            except (TypeError, ValueError):
+                out[key] = 0
+        elif key in out and out[key] is None:
+            out[key] = 0
+
+    # Control / metadata keys
+    if "is_fixed" in q:
+        out["is_fixed"] = bool(q["is_fixed"])
+    if "precision" in q:
+        try:
+            out["precision"] = int(q["precision"])
+        except (TypeError, ValueError):
+            pass
+    if "is_blanket" in q:
+        out["is_blanket"] = bool(q["is_blanket"])
+    if "increment" in q:
+        try:
+            out["increment"] = float(q["increment"]) if q["increment"] is not None else 0
+        except (TypeError, ValueError):
+            out["increment"] = 0
+
+    # Recalculate remaining
+    placed = out.get("placed", 0) or 0
+    actioned = out.get("actioned", 0) or 0
+    out["remaining"] = float(_to_decimal(placed - actioned, places=out.get("precision", 2)))
+
+    return out
+
 
 def default_cost() -> Dict[str, Any]:
     """Firm cost schema for all line models (exec + sell).
@@ -303,26 +401,57 @@ class BaseLineCore(BaseModel):
     }
 
     def ensure_json_defaults(self) -> None:
-        # initialize configured JSON clusters
+        """Seed missing JSON envelopes and normalize existing ones.
+
+        Called automatically by save(). Ensures every JSON field has a
+        well-formed default structure so downstream code (totals rollup,
+        transfer services) can safely read keys without existence checks.
+
+        Flow:
+          1. Seed missing envelopes from JSON_DEFAULT_FACTORIES
+          2. Normalize quantity via normalize_quantity_map() — always runs
+             (maps legacy keys like 'ordered' → 'placed', fills missing keys,
+             fixes nulls, recalculates remaining)
+          3. Normalize cost via normalize_cost_map() — always runs
+
+        BaseSellLineModel overrides this to also normalize price and
+        compute extended values.
+
+        See: readmes/topics/transactions/transactions-totals.md §1
+        """
+        # Step 1: initialize configured JSON clusters from factory defaults
         for field_name, factory in self.JSON_DEFAULT_FACTORIES.items():
             val = getattr(self, field_name, None)
             if not val:
                 setattr(self, field_name, factory())
 
-        # quantity variant by model kind
-        if not self.quantity:
-            self.quantity = default_quantity(transaction_type=self._meta.model_name)
+        # Step 2: normalize quantity (maps legacy keys, fills missing, fixes nulls)
+        self.quantity = normalize_quantity_map(
+            getattr(self, "quantity", None),
+            transaction_type=self._meta.model_name,
+        )
 
-        # normalize cost strictly
+        # Step 3: normalize cost strictly (fixes nulls, ensures all keys)
         self.cost = normalize_cost_map(getattr(self, "cost", None))
 
     def save(self, *args, **kwargs):
+        """Save with JSON normalization. Calls ensure_json_defaults() first."""
         self.ensure_json_defaults()
         return super().save(*args, **kwargs)
 
 
 class BaseSellLineModel(BaseLineCore):
-    """Sell-side documents (proposal, order, invoice)."""
+    """Sell-side line base for Proposal, Order, Invoice.
+
+    Adds the ``price`` JSON envelope and auto-computes extended values
+    on every save via _calculate_extended_price().
+
+    Extended calculation (runs in ensure_json_defaults → _calculate_extended_price):
+      price.extended = (quantity.placed × price.unit) − discount_amount
+      cost.extended  = (quantity.placed × cost.unit)  − discount_amount
+
+    See: readmes/topics/transactions/transactions-totals.md §1
+    """
     price = models.JSONField(default=dict, blank=True, null=True)
 
     class Meta(BaseLineCore.Meta):
@@ -331,15 +460,28 @@ class BaseSellLineModel(BaseLineCore):
     JSON_DEFAULT_FACTORIES = dict(BaseLineCore.JSON_DEFAULT_FACTORIES, price=default_price)
 
     def ensure_json_defaults(self) -> None:
-        super().ensure_json_defaults()
-        self.price = normalize_price_map(getattr(self, "price", None))
-        self._calculate_extended_price()
+        """Extends BaseLineCore: also normalizes price and computes extended."""
+        super().ensure_json_defaults()           # seed + normalize cost
+        self.price = normalize_price_map(getattr(self, "price", None))  # normalize price
+        self._calculate_extended_price()         # compute extended from qty × unit
 
     def _calculate_extended_price(self) -> None:
-        """Calculate and update the extended prices in price and cost JSON."""
+        """Compute price.extended and cost.extended from quantity.placed.
+
+        Formula for both price and cost envelopes:
+          gross = quantity.placed × unit
+          discount_amount = explicit value if set, else gross × (discount_percent / 100)
+          extended = gross − discount_amount
+
+        This is the line-level calculation that feeds into header totals
+        rollup via compute_*_sell_cost_totals() services.
+
+        See: readmes/topics/transactions/transactions-totals.md §1
+        """
+        # quantity.placed drives both price and cost extended calculations
         quantity = self.quantity.get("placed", 0) if self.quantity else 0
 
-        # Calculate sell extended
+        # --- SELL EXTENDED: price.extended = qty × price.unit − discount ---
         if self.price:
             unit_price = self.price.get("unit", 0)
             discount_amount = self.price.get("discount_amount", None)
@@ -352,7 +494,7 @@ class BaseSellLineModel(BaseLineCore):
             extended = float(_to_decimal(gross - Decimal(str(self.price["discount_amount"])), places=precision))
             self.price["extended"] = extended
 
-        # Calculate cost extended
+        # --- COST EXTENDED: cost.extended = qty × cost.unit − discount ---
         if self.cost:
             unit_cost = self.cost.get("unit", 0)
             discount_cost_amount = self.cost.get("discount_amount", None)
@@ -367,7 +509,15 @@ class BaseSellLineModel(BaseLineCore):
 
 
 class BaseExecLineModel(BaseLineCore):
-    """Execution-side documents (purchase/work orders)."""
+    """Exec-side line base for Purchase, WorkOrder, Receipt.
+
+    No price envelope — exec lines track cost only.
+    Does NOT auto-compute cost.extended on save (unlike BaseSellLineModel).
+    Extended cost must be set explicitly by the caller or via
+    LineItemService._recalculate_line().
+
+    See: readmes/topics/transactions/transactions-totals.md §1
+    """
     class Meta(BaseLineCore.Meta):
         abstract = True
 

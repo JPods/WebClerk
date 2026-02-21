@@ -76,9 +76,9 @@ class DeliveryVisit(BaseModel):
     STATUS_CANCELED = "canceled"
     STATUSES = DELIVERY_VISIT_STATUS_CHOICES
 
-    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor')
-    customer_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
-    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits')
+    orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor', db_column='orgbase_id')
+    customer_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer', db_column='customer_orgbase_id')
+    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits', db_column='catalog_id')
     dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
     dt_arrived = models.BigIntegerField(null=True, blank=True)
     dt_completed = models.BigIntegerField(null=True, blank=True)
@@ -88,21 +88,21 @@ class DeliveryVisit(BaseModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=("orgbase_id", "dt_scheduled"), name="delv_vendor_sched_idx"),
-            models.Index(fields=("customer_orgbase_id", "dt_scheduled"), name="delv_customer_sched_idx"),
+            models.Index(fields=("orgbase", "dt_scheduled"), name="delv_vendor_sched_idx"),
+            models.Index(fields=("customer_orgbase", "dt_scheduled"), name="delv_customer_sched_idx"),
             models.Index(fields=("status",), name="delv_status_idx"),
         ]
 
     def clean(self):  # pragma: no cover simple validation
         from django.core.exceptions import ValidationError
         # Check if catalog is set (access FK object, not raw id)
-        catalog = getattr(self, "catalog_id", None)
+        catalog = getattr(self, "catalog", None)
         if catalog:
             # Access FK PKs via the related object's pk property for clarity
             vendor_org_id = catalog.vendor_org_id.pk if hasattr(catalog, 'vendor_org_id') and catalog.vendor_org_id else None
             customer_org_id = catalog.customer_org_id.pk if hasattr(catalog, 'customer_org_id') and catalog.customer_org_id else None
-            self_vendor_id = self.orgbase_id.pk if self.orgbase_id else None  # type: ignore[attr-defined]
-            self_customer_id = self.customer_orgbase_id.pk if self.customer_orgbase_id else None  # type: ignore[attr-defined]
+            self_vendor_id = self.orgbase.pk if self.orgbase else None  # type: ignore[attr-defined]
+            self_customer_id = self.customer_orgbase.pk if self.customer_orgbase else None  # type: ignore[attr-defined]
             if vendor_org_id and vendor_org_id != self_vendor_id:
                 raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
             if customer_org_id and customer_org_id != self_customer_id:
@@ -144,8 +144,8 @@ class DeliveryLine(BaseModel):
     STATUS_PARTIAL = "partial"
     STATUSES = DELIVERY_LINE_STATUS_CHOICES
 
-    deliveryvisit_id = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines')
-    orgitem_id = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines')
+    delivery_visit = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines', db_column='deliveryvisit_id')
+    orgitem = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines', db_column='orgitem_id')
     planned_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     loaded_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -155,7 +155,7 @@ class DeliveryLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("deliveryvisit_id", "orgitem_id"), name="uniq_delivery_visit_orgitem"),
+            models.UniqueConstraint(fields=("delivery_visit", "orgitem"), name="uniq_delivery_visit_orgitem"),
         ]
         indexes = [
             models.Index(fields=("status",), name="delvline_status_idx"),

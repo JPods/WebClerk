@@ -22,23 +22,33 @@ def default_price():
     """Price dictionary structure.
 
     Keys:
-        base: primary sell price
-        msrp: manufacturer suggested retail price
-        tiers: list of {level, price} for customer segment based overrides (not quantity)
-        qty_breaks: list of quantity-based breaks sorted by min_qty ascending.
+        base:        primary sell price
+        msrp:        manufacturer suggested retail price
+        retail:      100% of base (price level A)
+        wholesale:    90% of base (price level B)
+        distributor:  75% of base (price level C)
+        sample:       70% of base (price level D)
+        qty_breaks:  list of quantity-based breaks sorted by min_qty ascending.
             Each element either:
               {min_qty:int, unit_price:Decimal}  -- inline quantity break
               OR {min_qty:int, variant_item_id:int} -- delegate to variant item pricing
         currency: ISO currency code
         history: optional recent adjustments (not authoritative ledger)
     """
-    return {"base": None, "msrp": None, "tiers": [], "qty_breaks": [], "currency": "USD", "history": []}
+    return {
+        "base": None, "msrp": None,
+        "retail": None, "wholesale": None, "distributor": None, "sample": None,
+        "qty_breaks": [], "currency": "USD", "history": [],
+    }
 
 # Descriptor dictionaries (key -> meaning) for documentation & runtime validation aids
 PRICE_SCHEMA_DESC = {
     "base": "Primary sell price",
     "msrp": "Manufacturer suggested retail price",
-    "tiers": "List of {level, price} entries for segment-based overrides",
+    "retail": "100% of base (price level A)",
+    "wholesale": "90% of base (price level B)",
+    "distributor": "75% of base (price level C)",
+    "sample": "70% of base (price level D)",
     "qty_breaks": "List of quantity break rows (min_qty + unit_price or variant_item_id)",
     "currency": "3-letter ISO currency",
     "history": "Recent change log (bounded)"
@@ -184,15 +194,6 @@ TAX_SCHEMA_DESC = {
 
 class Item(StatsMixin, BaseModel):
     """Catalog item (physical good, service placeholder, or bundle)."""
-
-    @property
-    def ida(self):
-        return str(self.pk)
-
-    @property
-    def description(self):
-        return self.description if self.description else self.name
-
 
     # README (tax localization):
     # Tax metadata in `tax_code` is intentionally minimal and highly localized.

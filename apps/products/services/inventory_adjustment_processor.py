@@ -37,7 +37,7 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
     reserved_conflict_skipped = 0
     started = timezone.now()
     pending_qs = (PendingInventoryAdjustment.objects
-                  .select_related('stack')
+                  .select_related('inventory_layer')
                   .filter(state=PendingInventoryAdjustment.STATE_PENDING)
                   .order_by('dt_created')[:limit])
 
@@ -52,13 +52,13 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
             try:
                 row_qs = (PendingInventoryAdjustment.objects
                           .select_for_update(skip_locked=True)
-                          .select_related('stack')
+                          .select_related('inventory_layer')
                           .filter(id=pid, state=PendingInventoryAdjustment.STATE_PENDING))
                 padj = row_qs.first()
                 if padj is None:  # locked elsewhere or already processed
                     skipped_locked += 1
                     continue
-                stack = padj.stack
+                stack = padj.inventory_layer
                 if stack.is_locked:
                     still_locked += 1
                     continue
@@ -67,9 +67,9 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
                 if padj.reason == 'reserved_conflict' and not apply_insufficient:
                     from apps.products.models.inventory_reservation import InventoryReservation  # local import to avoid circular
                     active_reserved = (InventoryReservation.objects
-                                       .filter(stack=stack,
+                                       .filter(inventory_layer=stack,
                                                state=InventoryReservation.STATE_PENDING,
-                                               expires_at__gt=timezone.now())
+                                               dt_expires__gt=timezone.now())
                                        .aggregate(total_qty=models.Sum('qty'))['total_qty'] or 0)
                     # Only safe to apply if remaining - active_reserved >= qty
                     if (remaining - active_reserved) < padj.qty:
@@ -137,7 +137,7 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
     started = timezone.now()
     # Filter pending rows for this stack ordered FIFO
     ids = list(PendingInventoryAdjustment.objects.filter(
-        stack_id=stack_id,
+        inventory_layer_id=stack_id,
         state=PendingInventoryAdjustment.STATE_PENDING
     ).order_by('dt_created').values_list('id', flat=True))
     for pid in ids:
@@ -145,12 +145,12 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
         with transaction.atomic():
             row_qs = (PendingInventoryAdjustment.objects
                       .select_for_update(skip_locked=True)
-                      .select_related('stack')
+                      .select_related('inventory_layer')
                       .filter(id=pid, state=PendingInventoryAdjustment.STATE_PENDING))
             padj = row_qs.first()
             if not padj:
                 continue
-            stack = padj.stack
+            stack = padj.inventory_layer
             if stack.is_locked:
                 # Still locked; abort loop early (future attempts will retry)
                 break
@@ -158,9 +158,9 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
             if padj.reason == 'reserved_conflict' and not apply_insufficient:
                 from apps.products.models.inventory_reservation import InventoryReservation
                 active_reserved = (InventoryReservation.objects
-                                   .filter(stack=stack,
+                                   .filter(inventory_layer=stack,
                                            state=InventoryReservation.STATE_PENDING,
-                                           expires_at__gt=timezone.now())
+                                           dt_expires__gt=timezone.now())
                                    .aggregate(total_qty=models.Sum('qty'))['total_qty'] or 0)
                 if (remaining - active_reserved) < padj.qty:
                     reserved_conflict_skipped += 1

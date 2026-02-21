@@ -7,7 +7,7 @@ This document outlines the plan for implementing a comprehensive transaction flo
 ### Core Flow
 
 ```aaa
-Proposal → Sales Order → Purchase Order → Invoice → Payment
+Proposal → Order → Purchase → Invoice → Payment
      ↓           ↓           ↓           ↓           ↓
   Estimate   Confirmed   Procurement   Billing   Settlement
 ```
@@ -28,8 +28,8 @@ Proposal → Sales Order → Purchase Order → Invoice → Payment
 All core models are already implemented in `apps/transactions/models/`:
 
 - `Proposal`: Initial estimates/quotes
-- `SalesOrder`: Confirmed customer orders
-- `PurchaseOrder`: Procurement orders to vendors
+- `Order`: Confirmed customer orders
+- `Purchase`: Procurement orders to vendors
 - `Invoice`: Billing documents
 - `Payment`: Payment records with gateway integration
 
@@ -43,7 +43,7 @@ All inherit from `TransactionBaseModel` providing:
 
 Key transfer services already exist in `apps/transactions/services/`:
 
-- `proposal_to_order.py`: Converts proposals to sales orders
+- `proposal_to_order.py`: Converts proposals to orders
 - `order_to_invoice.py`: Converts orders to invoices
 - `flow.py`: Core transfer utilities and inventory receiving
 - `*_totals.py`: Automatic totals computation
@@ -66,8 +66,8 @@ Items managed via `apps/products/models/`:
 
 **Enhancements Needed**:
 
-- Add purchase order creation from sales orders
-- Estimate taxes in proposal and sales_order
+- Add purchase creation from orders
+- Estimate taxes in proposal and order
 - Enhance invoice creation with tax calculations
 - Add payment application logic, keep an estimate of balance due in the order for invoices and payments related to that order
 - Implement inventory quantity updates on transfers
@@ -76,9 +76,9 @@ Items managed via `apps/products/models/`:
 
 ```python
 # apps/transactions/services/order_to_purchase.py
-def transfer_order_to_purchase_order(order: SalesOrder) -> PurchaseOrder:
+def transfer_order_to_purchase(order: Order) -> Purchase:
 
-    # Create PO from SO lines requiring procurement
+    # Create purchase from order lines requiring procurement
 
 # apps/transactions/services/invoice_to_payment.py
 def apply_payment_to_invoice(invoice: Invoice, payment: Payment):
@@ -101,7 +101,7 @@ def apply_payment_to_invoice(invoice: Invoice, payment: Payment):
 
 ```python
 # apps/transactions/services/inventory_flow.py
-def reserve_inventory_for_order(order: SalesOrder):
+def reserve_inventory_for_order(order: Order):
 
     # Create inventory reservations
 
@@ -129,8 +129,8 @@ tx/
 ├── proposals/           # List/Create
 ├── proposals/{id}/      # Detail/Update
 ├── proposals/{id}/lines/ # Line management
-├── orders/              # Sales orders
-├── purchase-orders/     # Purchase orders
+├── orders/              # Orders
+├── purchases/           # Purchases
 ├── invoices/
 ├── payments/
 └── transfers/           # Bulk transfer operations
@@ -157,7 +157,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
 
     # Check line completeness, pricing, etc.
 
-def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
+def validate_order_for_invoicing(order: Order) -> ValidationResult:
 
     # Check fulfillment status, shipping, etc.
 ```
@@ -179,7 +179,7 @@ def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
 
 ```python
 # apps/transactions/services/notifications.py
-def notify_order_confirmed(order: SalesOrder):
+def notify_order_confirmed(order: Order):
 
     # Email customer, update CRM
 
@@ -257,15 +257,15 @@ src/components/transactions/
 ### Order Conversion
 
 1. Validate proposal completeness
-2. Create `SalesOrder` via `transfer_proposal_to_order`
+2. Create `Order` via `transfer_proposal_to_order`
 3. Copy lines with quantity conversion
 4. Reserve inventory if applicable
 5. Update proposal status to "converted"
 
-### Purchase Order Creation
+### Purchase Creation
 
 1. Identify order lines requiring procurement
-2. Create `PurchaseOrder` via `transfer_order_to_purchase_order`
+2. Create `Purchase` via `transfer_order_to_purchase`
 3. Link to vendor items
 4. Track expected delivery dates
 

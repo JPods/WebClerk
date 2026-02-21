@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Purchase, PurchaseLine, Order, OrderLine
-from apps.transactions.services.purchase_order_totals import compute_purchase_order_sell_cost_totals
+from apps.transactions.services.purchase_totals import compute_purchase_sell_cost_totals
 from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
 from apps.core.models import Contact
 
@@ -23,7 +23,7 @@ class PurchaseTotalsServiceTest(TestCase):
 
     def test_compute_totals_empty_order(self):
         """Test computing totals for an empty purchase."""
-        result = compute_purchase_order_sell_cost_totals(self.purchase)
+        result = compute_purchase_sell_cost_totals(self.purchase)
 
         expected = {
             'sell': {
@@ -73,7 +73,7 @@ class PurchaseTotalsServiceTest(TestCase):
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
-        result = compute_purchase_order_sell_cost_totals(self.purchase)
+        result = compute_purchase_sell_cost_totals(self.purchase)
 
         # Check sell totals (empty for PO)
         self.assertEqual(result['sell']['line_sum_goods'], 0.0)
@@ -105,7 +105,7 @@ class PurchaseTotalsServiceTest(TestCase):
             }
         )
 
-        result = compute_purchase_order_sell_cost_totals(self.purchase)
+        result = compute_purchase_sell_cost_totals(self.purchase)
 
         # Check sell totals
         self.assertEqual(result['sell']['line_sum_goods'], 0.0)
@@ -163,14 +163,14 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         self.assertTrue(result['success'])
-        self.assertEqual(len(result['purchase_order_ids']), 1)
+        self.assertEqual(len(result['purchase_ids']), 1)
         self.assertEqual(result['lines_transferred'], 1)
 
         # Check PO was created
-        po = Purchase.objects.get(id=result['purchase_order_ids'][0])
+        po = Purchase.objects.get(id=result['purchase_ids'][0])
         self.assertEqual(po.status, "planned")
         self.assertEqual(po.customer_id, self.customer.id)
-        self.assertEqual(po.refs['source']['sales_order_id'], self.order.id)
+        self.assertEqual(po.refs['source']['order_id'], self.order.id)
 
         # Check PO line was created
         po_lines = po.lines.all()
@@ -211,12 +211,12 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         self.assertTrue(result['success'])
-        self.assertEqual(len(result['purchase_order_ids']), 2)
+        self.assertEqual(len(result['purchase_ids']), 2)
         self.assertEqual(result['lines_transferred'], 2)
         self.assertEqual(result['vendor_groups'], 2)
 
         # Check POs were created with correct vendors
-        pos = Purchase.objects.filter(id__in=result['purchase_order_ids'])
+        pos = Purchase.objects.filter(id__in=result['purchase_ids'])
         vendor_ids = [po.vendor_id for po in pos]
         self.assertIn(self.vendor.id, vendor_ids)
         self.assertIn(vendor2.id, vendor_ids)

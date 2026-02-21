@@ -136,7 +136,7 @@ def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None) -> D
             value_available__isnull=False,
         ).exclude(
             value_available=0
-        ).select_related('invoice_id').filter(
+        ).select_related('invoice').filter(
             invoice_id__org_id=org_id
         ).values('dt_due', 'value_available')
     

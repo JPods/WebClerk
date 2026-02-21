@@ -49,7 +49,6 @@ class Command(BaseCommand):
         ('core', 'Contact', 'contact.json'),
         ('core', 'Action', 'action.json'),
         ('communications', 'Address', 'address.json'),
-        ('communications', 'Address', 'location.json'),  # location renamed to address
         ('communications', 'Phone', 'phone.json'),
         ('communications', 'Email', 'email.json'),
         ('communications', 'Domain', 'domain.json'),
@@ -101,8 +100,6 @@ class Command(BaseCommand):
 
     # Field name mappings: old_name -> new_name
     FIELD_MAPPINGS = {
-        'locations': 'addresses',
-        'location': 'address',
         'dt_end': 'dt_deadline',
         'dt_due': 'dt_deadline',
         'due_by': 'deadline_by',

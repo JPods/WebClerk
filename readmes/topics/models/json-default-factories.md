@@ -29,9 +29,9 @@ The system walks the Method Resolution Order (MRO) to collect factories from all
 | **TransactionBaseModel** | `totals`, `cost`, `sell`, `finance`, `flow`, `source`, `action` |
 | **Concrete Models** | Any model-specific fields |
 
-### Example: SalesOrder
+### Example: Order
 
-When a `SalesOrder` is saved, these factories are collected and applied:
+When an `Order` is saved, these factories are collected and applied:
 
 ```python
 # From mixins (via BaseModel):
@@ -132,7 +132,7 @@ To apply defaults to existing records that were created before this pattern:
 python manage.py populate_json_defaults --dry-run
 
 # Apply to specific model
-python manage.py populate_json_defaults --model SalesOrder
+python manage.py populate_json_defaults --model Order
 
 # Apply to all models
 python manage.py populate_json_defaults

@@ -36,7 +36,7 @@ class InventoryReservation(models.Model):
 
     item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this reservation")
     description = models.CharField(max_length=255, blank=True, help_text="Description for this reservation")
-    item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations', db_column='item_id')
 
     @property
     def ida(self):
@@ -48,9 +48,9 @@ class InventoryReservation(models.Model):
 
     @property
     def description_value(self):
-        return self.description or f"Reservation for item {self.item_id.pk if self.item_id else 'unknown'}"
-    warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
-    inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+        return self.description or f"Reservation for item {self.item.pk if self.item else 'unknown'}"
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations', db_column='warehouse_id')
+    inventory_layer = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations', db_column='inventorylayer_id')
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATES, default=STATE_PENDING, db_index=True)
     dt_expires = models.DateTimeField(db_index=True)
@@ -77,9 +77,9 @@ class InventoryReservation(models.Model):
             if r.state != self.STATE_PENDING:
                 return False
             # Convert to real issue from stack (if still available)
-            if r.inventorylayer_id and r.inventorylayer_id.remaining_qty() >= self.qty:
-                r.inventorylayer_id.mark_issue(self.qty)
-                r.inventorylayer_id.save(update_fields=['quantity', 'dt_modified', 'version'])
+            if r.inventory_layer and r.inventory_layer.remaining_qty() >= self.qty:
+                r.inventory_layer.mark_issue(self.qty)
+                r.inventory_layer.save(update_fields=['quantity', 'dt_modified', 'version'])
             r.state = self.STATE_COMMITTED
             r.dt_committed = timezone.now()
             r.save(update_fields=['state', 'dt_committed'])

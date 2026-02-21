@@ -11,14 +11,30 @@ class WorkOrder(TransactionBaseModel):
     class Meta:
         db_table = "work_orders"
 
+    def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, Any]]:
+        """Compute and optionally persist header totals from lines."""
+        computed = compute_work_order_cost_totals(self)
+
+        if persist:
+            update_fields: list[str] = []
+            if hasattr(self, "sell"):
+                self.sell = computed["sell"]  # type: ignore[assignment]
+                update_fields.append("sell")
+            if hasattr(self, "cost"):
+                self.cost = computed["cost"]  # type: ignore[assignment]
+                update_fields.append("cost")
+            if hasattr(self, "totals"):
+                self.totals = computed["totals"]  # type: ignore[assignment]
+                update_fields.append("totals")
+            if update_fields:
+                update_fields += ["dt_modified", "version"]
+                self.save(update_fields=update_fields)
+
+        return computed
+
+    # Keep the old name as an alias for backward compatibility
     def update_cost_totals(self) -> Dict[str, Any]:
-        """Compute and optionally persist header cost totals from lines."""
-        totals = compute_work_order_cost_totals(self)
-        # If this model has a header-level 'cost' or 'totals' JSON, set it here.
-        # Example (uncomment if you store header cost under 'cost'):
-        # self.cost = totals
-        # self.save(update_fields=["cost", "dt_modified", "version"])
-        return totals
+        return self.update_sell_cost_totals(persist=True)
 
     def __str__(self) -> str:
         return f"WorkOrder #{self.id} ({self.ida or ''})"

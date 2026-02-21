@@ -14,14 +14,22 @@ if [ ! -x "$PY_BIN" ]; then
 fi
 
 echo "Starting Django with same-terminal auto-restart loop"
-echo "Use this command for dev: ./runserver.sh"
+echo "Use this command for dev: ./runserver.sh [local]"
 
-ensure_remote_default_mode() {
+# Accept optional argument: ./runserver.sh local
+INITIAL_DB_MODE="${1:-remote}"
+if [[ "$INITIAL_DB_MODE" != "local" && "$INITIAL_DB_MODE" != "remote" ]]; then
+  echo "Usage: ./runserver.sh [local|remote]  (default: remote)"
+  exit 1
+fi
+
+ensure_default_mode() {
+  local mode="$INITIAL_DB_MODE"
   if [ -f "$ENV_FILE" ]; then
     if grep -q '^DB_MODE=' "$ENV_FILE"; then
-      sed -i '' 's/^DB_MODE=.*/DB_MODE=remote/' "$ENV_FILE"
+      sed -i '' "s/^DB_MODE=.*/DB_MODE=$mode/" "$ENV_FILE"
     else
-      echo 'DB_MODE=remote' >> "$ENV_FILE"
+      echo "DB_MODE=$mode" >> "$ENV_FILE"
     fi
   fi
 
@@ -31,12 +39,12 @@ import json
 from pathlib import Path
 path = Path("$DEV_CONFIG_FILE")
 config = json.loads(path.read_text())
-config["db_mode"] = "remote"
+config["db_mode"] = "$mode"
 path.write_text(json.dumps(config, indent=2))
 EOF
   fi
 
-  echo "Default DB mode enforced: remote"
+  echo "DB mode set to: $mode"
 }
 
 free_port_8000() {
@@ -57,8 +65,38 @@ free_port_8000() {
   fi
 }
 
-ensure_remote_default_mode
+ensure_default_mode
 free_port_8000
+
+# ── Start Celery worker+beat in the background ──────────────────
+start_celery() {
+  # Kill any existing celery processes for this project
+  pkill -f "celery -A webclerk3_api" 2>/dev/null || true
+  sleep 1
+
+  echo "Starting Celery worker+beat in background..."
+  "$PY_BIN" -m celery -A webclerk3_api worker \
+    -l info \
+    --concurrency=2 \
+    -P solo \
+    --without-heartbeat \
+    -B \
+    -s /tmp/celerybeat-webclerk3-schedule \
+    >> "$WC3_DIR/logs/celery.log" 2>&1 &
+  CELERY_PID=$!
+  echo "Celery PID: $CELERY_PID (log: logs/celery.log)"
+}
+
+stop_celery() {
+  pkill -f "celery -A webclerk3_api" 2>/dev/null || true
+}
+
+# Ensure log directory exists
+mkdir -p "$WC3_DIR/logs"
+start_celery
+
+# Stop celery on script exit
+trap stop_celery EXIT
 
 while true; do
   free_port_8000

@@ -1,5 +1,6 @@
 # path: apps/core/views/save_view.py
 from common.api_responses import api_response
+from common.write_through import is_write_through, forward_and_store
 from django.conf import settings
 import logging
 console_logger = logging.getLogger('console')  # Console logger for debugging
@@ -245,7 +246,7 @@ class SaveWcapiView(APIView):
         actor_role = str(getattr(actor, 'role', '')).lower() if actor else None
         actor_id = getattr(actor, 'id', None)
         # Constrain queryset by role before any DB fetch
-        base_qs = model_cls.objects.all()
+        base_qs = model_cls.objects.active()
         constrained_qs = policy.inject_constraints(base_qs, request=request, model_key=model_key)
         # Create or update
         is_update = bool(record_id)
@@ -323,6 +324,15 @@ class SaveWcapiView(APIView):
                     raise ValueError('Pre-save hook failed')
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
+        # ── Role-based write-field filtering ──
+        from apps.core.utils.model_policies import enforce_write_policy
+        parsed_data, denied_fields = enforce_write_policy(model_cls, parsed_data, request=request)
+        if denied_fields:
+            console_logger.info(
+                "[SAVE_VIEW] Write-policy stripped fields from %s: %s",
+                model_key, ", ".join(denied_fields),
+            )
+
         # Assign fields
         field_size_errors = []
         raw_password = None
@@ -639,11 +649,7 @@ class SaveWcapiView(APIView):
             line_model_map = {
                 'proposal': 'proposalline',
                 'order': 'orderline',
-                'salesorder': 'orderline',  # backwards compatibility alias
-                'sales_order': 'orderline',  # underscore variant
                 'purchase': 'purchaseline',
-                'purchaseorder': 'purchaseline',  # backwards compatibility alias
-                'purchase_order': 'purchaseline',  # underscore variant
                 'invoice': 'invoiceline',
                 'workorder': 'workorderline',
                 'receipt': 'receiptline',
@@ -656,12 +662,8 @@ class SaveWcapiView(APIView):
                 # FK field name without _id suffix (Django field name, not column name)
                 # e.g., 'proposal' for ProposalLine, 'order' for OrderLine
                 fk_field_name = model_key.lower()
-                # Handle aliases like 'salesorder' -> 'order', 'purchase_order' -> 'purchase'
+                # Handle special FK mappings
                 fk_field_aliases = {
-                    'salesorder': 'order',
-                    'sales_order': 'order',
-                    'purchaseorder': 'purchase',
-                    'purchase_order': 'purchase',
                     'workorder': 'workorder',
                 }
                 fk_field_name = fk_field_aliases.get(fk_field_name, fk_field_name)
@@ -821,6 +823,16 @@ class SaveWcapiView(APIView):
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+
+            # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+            try:
+                from apps.transactions.services.denormalize_org_links import denormalize_org_links
+                if denormalize_org_links(obj, model_key):
+                    obj.save(update_fields=['refs'])
+                    console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
+            except Exception:
+                pass  # non-transaction models will simply return False
+
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             raise ValueError('Integrity error')
@@ -841,7 +853,6 @@ class SaveWcapiView(APIView):
                 'invoice_line': 'invoice',
                 'purchaseline': 'purchase',
                 'purchase_line': 'purchase',
-                'purchaseorderline': 'purchase',
                 'workorderline': 'workorder',
                 'receiptline': 'receipt',
                 'receipt_line': 'receipt',
@@ -945,13 +956,27 @@ class SaveWcapiView(APIView):
                     lines_errors.append(f"Line {idx}: {str(e)}")
             
             console_logger.debug(f"[SAVE_VIEW] Lines saved: {len(lines_results)} success, {len(lines_errors)} errors")
-        
+
+            # ── Pending inventory processing (Celery if worker alive, else inline)
+            if lines_results:
+                from apps.products.dispatch_pending import dispatch_pending_processing
+                dispatch_pending_processing(limit=200, caller='save_view')
+
+            # ── Recalculate header totals from saved lines ──
+            if lines_results and hasattr(obj, 'update_sell_cost_totals'):
+                try:
+                    obj.update_sell_cost_totals(persist=True)
+                    obj.refresh_from_db()
+                    console_logger.info(f"[SAVE_VIEW] Recalculated totals for {model_key} ID: {obj_id}")
+                except Exception as totals_err:
+                    console_logger.warning(f"[SAVE_VIEW] Failed to recalc totals for {model_key} {obj_id}: {totals_err}")
+
         # Auto-link communication records to a Contact
         linked = False
         try:
-            comm_models = {"email", "phone", "address", "location", "domain"}
+            comm_models = {"email", "phone", "address", "domain"}
             if model_key.lower() in comm_models:
-                bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                bucket = model_key.lower()
                 # Resolve contact id from payload or authenticated user
                 contact = None
                 contact_id = None
@@ -1495,6 +1520,18 @@ class SaveWcapiView(APIView):
         data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
 
+        # ── Write-through: forward to remote, store bundle locally ──
+        if is_write_through():
+            console_logger.info(f"[SAVE_VIEW] Write-through mode — forwarding {model_key} save to remote DB")
+            wt_payload, wt_status = forward_and_store(request, model_cls, data)
+            if wt_status >= 400:
+                return api_response(
+                    success=False, status_code=wt_status,
+                    message=wt_payload.get('detail', 'Write-through failed'),
+                    error={'code': 'write_through_error', 'details': wt_payload},
+                )
+            return api_response(data=wt_payload, status_code=wt_status)
+
         # Create or update
         is_update = bool(record_id)
         if is_update:
@@ -1568,6 +1605,15 @@ class SaveWcapiView(APIView):
                     return api_response(success=False, status_code=400, message='Pre-save hook failed', error={'code':'hook_failed','details': hook_result['errors']})
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
+
+        # ── Role-based write-field filtering ──
+        from apps.core.utils.model_policies import enforce_write_policy
+        data, denied_fields = enforce_write_policy(model_cls, data, request=request)
+        if denied_fields:
+            console_logger.info(
+                "[SAVE_VIEW] Write-policy stripped fields from %s: %s",
+                model_key, ", ".join(denied_fields),
+            )
 
         # Assign fields
         field_size_errors = []
@@ -1805,6 +1851,16 @@ class SaveWcapiView(APIView):
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+
+            # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+            try:
+                from apps.transactions.services.denormalize_org_links import denormalize_org_links
+                if denormalize_org_links(obj, model_key):
+                    obj.save(update_fields=['refs'])
+                    console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
+            except Exception:
+                pass  # non-transaction models will simply return False
+
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
@@ -1821,7 +1877,7 @@ class SaveWcapiView(APIView):
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'proposal'}
+        header_models = {'order', 'invoice', 'purchase', 'workorder', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
@@ -1831,12 +1887,8 @@ class SaveWcapiView(APIView):
             # Dynamically determine line model and FK field based on parent model
             line_model_map = {
                 'order': ('OrderLine', 'order'),
-                'salesorder': ('OrderLine', 'order'),
-                'sales_order': ('OrderLine', 'order'),
                 'invoice': ('InvoiceLine', 'invoice'),
                 'purchase': ('PurchaseLine', 'purchase'),
-                'purchaseorder': ('PurchaseLine', 'purchase'),
-                'purchase_order': ('PurchaseLine', 'purchase'),
                 'workorder': ('WorkOrderLine', 'workorder'),
                 'proposal': ('ProposalLine', 'proposal'),
             }
@@ -1932,14 +1984,18 @@ class SaveWcapiView(APIView):
                         except Exception as e:
                             console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
 
+                        # ── Pending inventory processing (Celery if worker alive, else inline)
+                        from apps.products.dispatch_pending import dispatch_pending_processing
+                        dispatch_pending_processing(limit=200, caller='save_view.lines_from_payload')
+
         # Auto-link communication records to a Contact
         linked = False
         contact = None
         bucket = None
         try:
-            comm_models = {"email", "phone", "address", "location", "domain"}
+            comm_models = {"email", "phone", "address", "domain"}
             if model_key.lower() in comm_models:
-                bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                bucket = model_key.lower()
                 if request.user and getattr(request.user, "is_authenticated", False):
                     contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
                 if contact:

@@ -269,7 +269,7 @@ def get_transaction_details():
             details.append({
                 "type": "invoice_line",
                 "line_id": line.pk,
-                "header_id": line.invoice_id_id if hasattr(line, 'invoice_id_id') else None,
+                # "header_id": line.invoice_id_id if hasattr(line, 'invoice_id_id') else None,  # Legacy support removed for consistency
                 "status": getattr(line, 'status', None),
                 "quantity": qty_data.get('invoiced', 0),
                 "quantity_raw": qty_data,
@@ -284,7 +284,7 @@ def get_transaction_details():
             details.append({
                 "type": "proposal_line",
                 "line_id": line.pk,
-                "header_id": line.proposal_id_id if hasattr(line, 'proposal_id_id') else None,
+                # "header_id": line.proposal_id_id if hasattr(line, 'proposal_id_id') else None,  # Legacy support removed for consistency
                 "status": getattr(line, 'status', None),
                 "quantity": qty_data.get('quoted', 0),
                 "quantity_raw": qty_data,
@@ -736,7 +736,7 @@ def create_receipt(quantity: float):
     """Create a Receipt with item 240 using LineItemService.
     
     Note: Receipts increase on_hand and track the informational on_r field.
-    Unlike the receive_purchase_order flow (which receives against a PO),
+    Unlike the receive_purchase flow (which receives against a PO),
     this creates a standalone receipt for testing the on_r pending flow.
     """
     from apps.transactions.models.receipt import Receipt

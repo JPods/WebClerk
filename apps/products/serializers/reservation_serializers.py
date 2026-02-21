@@ -11,7 +11,7 @@ class InventoryReservationSerializer(serializers.ModelSerializer):
             'id', 'item', 'warehouse', 'stack', 'qty', 'state', 'expires_at',
             'committed_at', 'released_at', 'reason', 'context', 'dt_created', 'dt_modified'
         ]
-    read_only_fields = ['state', 'committed_at', 'released_at', 'dt_created', 'dt_modified']
+        read_only_fields = ['state', 'committed_at', 'released_at', 'dt_created', 'dt_modified']
 
 class ReservationCreateSerializer(serializers.Serializer):
     stack_id = serializers.IntegerField(required=True)

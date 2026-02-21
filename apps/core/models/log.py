@@ -83,12 +83,13 @@ class APILog(BaseModel):
     )
 
     # Context
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='api_logs',
+        db_column='user_id',
         help_text="User who triggered the request"
     )
     correlation_id = models.CharField(

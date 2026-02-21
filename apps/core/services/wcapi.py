@@ -66,8 +66,33 @@ def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, A
     return ordered
 
 def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[str, Any]:
-    fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
-    return {k: v for k, v in (payload or {}).items() if k in fields}
+    """Filter payload to only include fields that exist on the model.
+
+    Accepts both ``f.name`` (e.g. ``customer``) **and** ``f.attname``
+    (e.g. ``customer_id``) so callers can send either the FK object-name
+    or the raw column-name.  For ForeignKey fields the value is always
+    stored under the ``attname`` (``customer_id``) so that ``setattr``
+    uses the raw-column path and avoids Django's FK descriptor which
+    expects a model instance.
+    """
+    meta_fields = getattr(ModelCls._meta, "fields", [])
+    # Build lookup: accepted key → canonical key (attname for FKs)
+    allowed: Dict[str, str] = {}
+    for f in meta_fields:
+        attname = getattr(f, "attname", None)
+        if attname and attname != f.name:
+            # ForeignKey: accept both forms, but store under attname
+            allowed[f.name] = attname
+            allowed[attname] = attname
+        else:
+            allowed[f.name] = f.name
+    result: Dict[str, Any] = {}
+    for k, v in (payload or {}).items():
+        canonical = allowed.get(k)
+        if canonical is not None:
+            # Later key wins (e.g. customer_id overrides customer)
+            result[canonical] = v
+    return result
 
 def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
     ModelCls = registry.resolve(model_key or "")
@@ -77,7 +102,7 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
 
     normalized_key = (model_key or "").replace("_", "").lower()
     # Prefetch lines for transaction models
-    if normalized_key in {'proposal', 'salesorder', 'invoice', 'purchaseorder', 'workorder'}:
+    if normalized_key in {'proposal', 'order', 'invoice', 'purchase', 'workorder'}:
         qs = qs.prefetch_related('lines')
 
     qs = policy.inject_constraints(qs, request=request, model_key=model_key)
@@ -181,10 +206,9 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
         from common.models import LINK_DENORMALIZE_FIELDS
         from apps.core.models import Contact
 
-        comm_models = {"email", "phone", "address", "location", "domain"}
+        comm_models = {"email", "phone", "address", "domain"}
         if model_key and model_key.lower() in comm_models:
-            # Determine the bucket name used in refs.links (back-compat: address -> location)
-            bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+            bucket = model_key.lower()
 
             # Resolve contact id from payload or authenticated user
             contact = None

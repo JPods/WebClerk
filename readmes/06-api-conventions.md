@@ -8,15 +8,15 @@ This document captures the conventions used by the Universal API endpoints (e.g.
 
 ## 1) Singular model_name (strict)
 
-- Always pass a singular `model_name` (e.g., `sales_order`, `invoice`, `purchase_order`, `proposal`, `item`, `phone`, `email`, `org`, `customer`, `vendor`).
+- Always pass a singular `model_name` (e.g., `order`, `invoice`, `purchase`, `proposal`, `item`, `phone`, `email`, `org`, `customer`, `vendor`).
 - Plural table keys are rejected with HTTP 400 and a hint to the proper singular.
-- Transitional aliases are accepted and normalized (e.g., `address` -> `location`, `org_item` -> `item`).
+- Use canonical `model_name` values directly (e.g., `address`, `order`, `purchase`). Legacy aliases like `org_item` -> `item` are still normalized.
 
 ## 2) Related data buckets (plural)
 
 - The response contains a `data.related` object keyed by canonical plural buckets, because values are arrays.
 - Canonical buckets include (non-exhaustive):
-  - Lines: `sales_order_lines`, `invoice_lines`, `purchase_order_lines`, `proposal_line` (historical singular name kept; may alias to `proposal_lines` later).
+  - Lines: `order_lines`, `invoice_lines`, `purchase_lines`, `proposal_line` (historical singular name kept; may alias to `proposal_lines` later).
   - Communications & orgs: `phones`, `emails`, `addresses`, `customers`, `vendors`.
 
 ## 3) Forward link hydration via refs.links
@@ -34,9 +34,9 @@ Accepted aliases (examples):
   - `contact` -> `contacts`
   - `vendor` -> `vendors`
 - Line buckets:
-  - `sales_order_line` -> `sales_order_lines`
+  - `order_line` -> `order_lines`
   - `invoice_line` -> `invoice_lines`
-  - `purchase_order_line` -> `purchase_order_lines`
+  - `purchase_line` -> `purchase_lines`
   - `proposal_lin` -> `proposal_line`
 
 ## 4) Header-specific refs.links shapes
@@ -44,12 +44,12 @@ Accepted aliases (examples):
 - Sales Order / Invoice / Proposal:
   - Include: `items[]`, `contacts[]`, `customers[]`, `address[]`, `phone[]`, `email[]`
   - Lines:
-    - Sales Order: `sales_order_lines[]`
+    - Sales Order: `order_lines[]`
     - Invoice: `invoice_line[]` (normalized to `related.invoice_lines`)
     - Proposal: `proposal_lin[]` (normalized to `related.proposal_line`)
 - Purchase Order:
   - Include: `item[]` (singular), `contact[]`, `vendor[]`, `address[]`, `phone[]`, `email[]`
-  - Lines: `purchase_order_line[]` (normalized to `related.purchase_order_lines`)
+  - Lines: `purchase_line[]` (normalized to `related.purchase_lines`)
 
 ## 5) Examples
 

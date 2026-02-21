@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Any, cast
 from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
@@ -35,7 +34,7 @@ def prune_refs_for_owner(owner_model: str, owner_id: int) -> int:
 def nightly_prune_refs(owner_model: str = "accounts.customer") -> int:
     """
     Runs during low-load windows via beat scheduler. Iterates candidate owners.
-    You can narrow by activity window to keep runtime bounded.
+    Calls prune_refs_for_owner synchronously via transaction.on_commit.
     """
     app_label, model_name = owner_model.split(".")
     Model = apps.get_model(app_label, model_name)
@@ -45,7 +44,7 @@ def nightly_prune_refs(owner_model: str = "accounts.customer") -> int:
     qs = Model.objects.all().values_list("id", flat=True)
     count = 0
     for owner_id in qs.iterator(chunk_size=500):
-        cast(Any, prune_refs_for_owner).delay(owner_model, owner_id)
+        transaction.on_commit(lambda oid=owner_id: prune_refs_for_owner(owner_model, oid))
         count += 1
     return count
 
@@ -70,6 +69,7 @@ def sync_assignees_for_line(line_model: str, line_id: int, kind: str = "assignee
 def nightly_backfill_assignee_refs(line_model: str, days: int = 14, kind: str = "assignee") -> int:
     """
     Low-load backfill. Touch lines changed recently and ensure assignee links.
+    Calls sync_assignees_for_line synchronously via transaction.on_commit.
     """
     app_label, model_name = line_model.split(".")
     Model = apps.get_model(app_label, model_name)
@@ -86,7 +86,7 @@ def nightly_backfill_assignee_refs(line_model: str, days: int = 14, kind: str = 
 
     count = 0
     for line_id in qs.iterator(chunk_size=500):
-        cast(Any, sync_assignees_for_line).delay(line_model, line_id, kind=kind)
+        transaction.on_commit(lambda lid=line_id: sync_assignees_for_line(line_model, lid, kind=kind))
         count += 1
     return count
 
@@ -110,6 +110,7 @@ def sync_action_denorm_refs(action_model: str, action_id: int) -> int:
 def nightly_backfill_action_refs(action_model: str, days: int = 14) -> int:
     """
     Low-load backfill: ensure Action -> related refs for recently-touched Actions.
+    Calls sync_action_denorm_refs synchronously via transaction.on_commit.
     """
     app_label, model_name = action_model.split(".")
     Model = apps.get_model(app_label, model_name)
@@ -126,6 +127,6 @@ def nightly_backfill_action_refs(action_model: str, days: int = 14) -> int:
 
     count = 0
     for act_id in qs.iterator(chunk_size=500):
-        cast(Any, sync_action_denorm_refs).delay(action_model, act_id)
+        transaction.on_commit(lambda aid=act_id: sync_action_denorm_refs(action_model, aid))
         count += 1
     return count

@@ -49,7 +49,7 @@ class ItemVariantsView(APIView):
         parent_uuid = request.GET.get('parent_uuid')
         key = request.GET.get('key')
         if Variant is not None and (parent_id or parent_uuid or key):
-            vqs = Variant.objects.all()
+            vqs = Variant.objects.active()
             try:
                 if parent_id:
                     vqs = vqs.filter(parent_item_id=int(parent_id))
@@ -64,7 +64,7 @@ class ItemVariantsView(APIView):
             items = Item.objects.filter(id__in=item_ids)
             data = list(items.values('id', 'name', 'uuid', 'refs', 'catalog'))
             return api_response(data={'model_name': 'item', 'results': data, 'total': total, 'limit': None, 'offset': 0})
-        qs = Item.objects.all()
+        qs = Item.objects.active()
         try:
             if parent_id:
                 qs = qs.filter(refs__variants__parent_id=int(parent_id))

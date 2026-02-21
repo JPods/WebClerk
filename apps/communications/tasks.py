@@ -4,7 +4,7 @@ from typing import Any, Dict, cast
 from django.apps import apps
 from apps.sync.services.email_verification import verify_email_via_connection
 from apps.sync.services.phone_verification import verify_phone_via_connection
-from apps.sync.services.location_verification import verify_location_via_connection
+from apps.sync.services.address_verification import verify_address_via_connection
 from apps.sync.services.domain_verification import verify_domain_via_connection
 
 def hello():
@@ -25,30 +25,30 @@ def user_id_is_superuser(user_id):
 
 
 # -------- Validation / cleanup stubs ---------------------------------------
-def validate_location_osm(location_id: int, connection_name: str | None = None) -> Dict[str, Any]:
-    """Location verification via Connection/Bundle (stubbed provider).
+def validate_address_osm(address_id: int, connection_name: str | None = None) -> Dict[str, Any]:
+    """Address verification via Connection/Bundle (stubbed provider).
 
-    Builds a minimal location payload and verifies through a Connection of
-    type 'location_verification'. Records review pending bundle in metadata.
+    Builds a minimal address payload and verifies through a Connection of
+    type 'address_verification'. Records review pending bundle in metadata.
     """
     Address = apps.get_model('communications', 'Address')
-    loc = Address.objects.filter(pk=location_id).first()
-    if not loc:
+    addr = Address.objects.filter(pk=address_id).first()
+    if not addr:
         return {"ok": False, "error": "not_found"}
     payload = {
-        "address1": getattr(loc, "address1", ""),
-        "address2": getattr(loc, "address2", ""),
-        "city": getattr(loc, "city", ""),
-        "state": getattr(loc, "state", ""),
-        "zip": getattr(loc, "zip", ""),
-        "country": getattr(loc, "country", ""),
+        "address1": getattr(addr, "address1", ""),
+        "address2": getattr(addr, "address2", ""),
+        "city": getattr(addr, "city", ""),
+        "state": getattr(addr, "state", ""),
+        "zip": getattr(addr, "zip", ""),
+        "country": getattr(addr, "country", ""),
     }
-    res = verify_location_via_connection(payload, connection_name)
+    res = verify_address_via_connection(payload, connection_name)
     result = res.get("result") or {}
     bundle_id = res.get("bundle_id")
 
     try:
-        obj = cast(Any, loc)
+        obj = cast(Any, addr)
         if hasattr(obj, "apply_validation_result"):
             obj.apply_validation_result(result)
         # Ensure review info is present

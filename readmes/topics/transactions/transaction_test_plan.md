@@ -33,12 +33,12 @@ This document consolidates testing procedures for the transaction system across 
 | `test_proposal_serializers.py` | API serialization |
 | `test_proposal_integration.py` | Proposal end-to-end |
 | `test_proposal_e2e_scenarios.py` | Complex proposal scenarios |
-| `test_sales_order_models.py` | SalesOrder model validation |
-| `test_sales_order_services.py` | Order business logic |
+| `test_order_models.py` | Order model validation |
+| `test_order_services.py` | Order business logic |
 | `test_invoice_models.py` | Invoice model validation |
 | `test_invoice_services.py` | Invoice business logic |
-| `test_purchase_order_models.py` | PO model validation |
-| `test_purchase_order_services.py` | PO business logic |
+| `test_purchase_models.py` | Purchase model validation |
+| `test_purchase_services.py` | Purchase business logic |
 | `test_payment_models.py` | Payment model validation |
 | `test_payment_services.py` | Payment business logic |
 | `test_payment_integration.py` | Payment gateway integration |
@@ -86,7 +86,7 @@ The LineItemService is the Single Point of Authority for line management. Test c
 class TestLineItemServiceAdd:
     """Test adding items to transactions."""
     
-    def test_add_item_to_sales_order(self):
+    def test_add_item_to_order(self):
         """Add item creates line with correct quantity buckets."""
         
     def test_add_item_creates_pending_record(self):
@@ -168,10 +168,10 @@ class TestPendingRecordCreation:
     """Test pending records created by LineItemService."""
     
     def test_pending_created_for_so_line_add(self):
-        """Sales order line add creates qty_on_so pending."""
+        """Order line add creates qty_on_so pending."""
         
     def test_pending_created_for_po_line_add(self):
-        """Purchase order line add creates qty_on_po pending."""
+        """Purchase line add creates qty_on_po pending."""
         
     def test_pending_data_structure(self):
         """Pending data contains required fields."""
@@ -216,10 +216,10 @@ Test complete flows: Proposal → Order → Invoice → Payment
 # tests/test_flow_transfers.py
 
 class TestProposalToOrder:
-    """Test proposal conversion to sales order."""
+    """Test proposal conversion to order."""
     
     def test_transfer_creates_order(self):
-        """Conversion creates sales order."""
+        """Conversion creates order."""
         
     def test_transfer_copies_lines(self):
         """Lines transferred with quantities."""
@@ -271,8 +271,8 @@ class TestProposalTotals:
         """Shipping included in totals."""
 
 
-class TestSalesOrderTotals:
-    """Test sales order header totals."""
+class TestOrderTotals:
+    """Test order header totals."""
 
 
 class TestInvoiceTotals:
@@ -288,7 +288,7 @@ class TestInvoiceTotals:
 ```bash
 # List transactions
 curl "http://localhost:8000/api/wcapi/?model_name=proposal"
-curl "http://localhost:8000/api/wcapi/?model_name=sales_order"
+curl "http://localhost:8000/api/wcapi/?model_name=order"
 curl "http://localhost:8000/api/wcapi/?model_name=invoice"
 
 # Get single transaction
@@ -330,10 +330,10 @@ curl -X POST "http://localhost:8000/tx/pending/process/"
 - [ ] Modify quantities
 - [ ] Verify totals update
 - [ ] Save proposal
-- [ ] Convert to sales order
+- [ ] Convert to order
 - [ ] Verify order created with correct lines
 
-### Sales Order Flow
+### Order Flow
 
 - [ ] View order created from proposal
 - [ ] Verify line items transferred
@@ -353,7 +353,7 @@ curl -X POST "http://localhost:8000/tx/pending/process/"
 ### Inventory Verification
 
 - [ ] Check Item.quantity before operations
-- [ ] Add line to sales order
+- [ ] Add line to order
 - [ ] Verify Pending record created
 - [ ] Run `process_line_item_pending`
 - [ ] Verify Item.quantity.qty_on_so updated
@@ -379,7 +379,7 @@ pytest apps/transactions/tests/test_line_item_service.py -v
 coverage run -m pytest apps/transactions/tests/ && coverage report
 
 # Run single test
-pytest apps/transactions/tests/test_line_item_service.py::TestLineItemServiceAdd::test_add_item_to_sales_order -v
+pytest apps/transactions/tests/test_line_item_service.py::TestLineItemServiceAdd::test_add_item_to_order -v
 ```
 
 ### R25 Frontend
@@ -439,9 +439,9 @@ def sample_item(db):
     )
 
 @pytest.fixture
-def sample_sales_order(db, sample_customer):
-    from apps.transactions.models import SalesOrder
-    return SalesOrder.objects.create(
+def sample_order(db, sample_customer):
+    from apps.transactions.models import Order
+    return Order.objects.create(
         customer_id=sample_customer.id,
         status="planned"
     )

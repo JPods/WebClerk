@@ -63,36 +63,40 @@ class Payment(BaseModel):
         db_table = "payments"
 
     # Existing fields
-    invoice_id = models.ForeignKey(
+    invoice = models.ForeignKey(
         'transactions.Invoice',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='payments',
+        db_column='invoice_id',
         help_text="Invoice this payment is for (nullable for order-level deposits)"
     )
-    contact_id = models.ForeignKey(
+    contact = models.ForeignKey(
         'core.Contact',
         on_delete=models.CASCADE,
         related_name='payments',
+        db_column='contact_id',
         help_text="Contact who made the payment"
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2, help_text="Payment amount")
     dt_payment = models.DateTimeField(help_text="Date the payment was made")
-    paymentmethod_id = models.ForeignKey(
+    payment_method = models.ForeignKey(
         PaymentMethod,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='payments',
+        db_column='paymentmethod_id',
         help_text="Method of payment"
     )
-    paymentterm_id = models.ForeignKey(
+    payment_term = models.ForeignKey(
         PaymentTerm,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='payments',
+        db_column='paymentterm_id',
         help_text="Payment term applied"
     )
     reference_number = models.CharField(max_length=100, blank=True, help_text="Check number, transaction ID, etc.")
@@ -162,7 +166,7 @@ class Payment(BaseModel):
     )
 
     def __str__(self):
-        return f"Payment #{self.id} - {self.amount} ({self.status}) for Invoice #{self.invoice_id.id}"
+        return f"Payment #{self.id} - {self.amount} ({self.status}) for Invoice #{self.invoice_id}"
 
     def mark_as_completed(self):
         """Mark payment as completed"""

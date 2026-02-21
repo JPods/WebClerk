@@ -2,7 +2,7 @@
 Line Item Service - Single Point of Authority for transaction line management.
 
 Handles adding, updating, and managing transaction line items across all
-transaction types (sales_order, proposal, invoice, purchase_order, work_order).
+transaction types (order, proposal, invoice, purchase, work_order).
 
 Includes deferred inventory adjustment via Pending records to reduce lock contention
 on Item records. When quantity changes occur, a Pending record is created instead of
@@ -60,14 +60,10 @@ logger = logging.getLogger(__name__)
 
 # Model mapping for dynamic line creation
 LINE_MODEL_MAP = {
-    'sales_order': 'apps.transactions.models.OrderLine',
-    'salesorder': 'apps.transactions.models.OrderLine',
     'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
     'purchase': 'apps.transactions.models.PurchaseLine',
-    'purchase_order': 'apps.transactions.models.PurchaseLine',
-    'purchaseorder': 'apps.transactions.models.PurchaseLine',
     'workorder': 'apps.transactions.models.WorkOrderLine',
     'receipt': 'apps.transactions.models.ReceiptLine',
 }
@@ -116,15 +112,11 @@ def _is_exec_transaction(transaction_type: str) -> bool:
 # Pending Inventory Type Codes (mirrors WebClerk2 DInventory.typeID)
 # -----------------------------------------------------------------------------
 PENDING_TYPE_MAP = {
-    'sales_order': 'SO',
-    'salesorder': 'SO',
     'order': 'SO',
     'proposal': 'PP',  # Proposals don't affect inventory until converted
     'invoice': 'IN',
     'receipt': 'RC',
     'purchase': 'PO',
-    'purchase_order': 'PO',
-    'purchaseorder': 'PO',
     'workorder': 'WO',
 }
 
@@ -166,8 +158,8 @@ class LineItemService:
     """
     Single Point of Authority for managing transaction line items.
     
-    Supports both sales transactions (proposal, sales_order, invoice) 
-    and purchase transactions (purchase_order, work_order).
+    Supports both sales transactions (proposal, order, invoice) 
+    and purchase transactions (purchase, work_order).
     
     Key behaviors:
     - Sales transactions: price.unit is the primary value
@@ -920,7 +912,7 @@ class LineItemService:
         
         Args:
             transaction: Parent transaction
-            transaction_type: Type code (sales_order, invoice, etc.)
+            transaction_type: Type code (order, invoice, etc.)
             line: The created line
             item: The Item model
             quantity: Quantity being reserved/committed
@@ -1070,12 +1062,10 @@ class LineItemService:
         # Normalize transaction type
         tx_type_map = {
             'order': 'order',
-            'salesorder': 'order',
             'proposal': 'proposal',
             'quote': 'proposal',
             'invoice': 'invoice',
             'purchase': 'purchase',
-            'purchaseorder': 'purchase',
             'workorder': 'workorder',
         }
         transaction_type = tx_type_map.get(parent_model_key.lower())
@@ -1212,6 +1202,7 @@ class LineItemService:
             'on_in': quantity_delta if pending_type == 'IN' else 0,
             'on_r': quantity_delta if pending_type == 'RC' else 0,
             'on_p': quantity_delta * probability if pending_type == 'PP' else 0,  # Proposals track forecast
+            'on_hand': 0,
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -1226,7 +1217,49 @@ class LineItemService:
             # Transaction reference
             'transaction_type': transaction_type,
             'transaction_model': transaction._meta.model_name,
+            
+            # Parent links (populated for child transactions)
+            'links': {},
         }
+        
+        # Cross-document effects for invoice/receipt qty changes.
+        # Mirrors the logic in _create_pending_for_line_add():
+        # - Invoice from Order: adjust on_so (release/re-commit order inventory)
+        # - Receipt from Purchase: adjust on_po
+        # - Receipt from WorkOrder: adjust on_wo
+        # Note: on_hand is derived by the processor from on_in/on_r, but we
+        # set it here for visibility in the pending data.
+        if pending_type == 'IN':
+            parent_id = getattr(transaction, 'parent_id', None)
+            if parent_id:
+                # Reducing invoice qty (+delta to on_so to restore order commitment)
+                pending_data['on_so'] = -quantity_delta
+                pending_data['on_hand'] = -quantity_delta
+                pending_data['links']['order'] = {'parent_id': parent_id}
+                pending_data['reason'] = (
+                    f'in qty {"increase" if quantity_delta > 0 else "decrease"}'
+                    f' (adjusts so, on_hand)'
+                )
+        elif pending_type == 'RC':
+            purchase_id = getattr(transaction, 'purchase_id', None)
+            if purchase_id:
+                pending_data['on_po'] = -quantity_delta
+                pending_data['on_hand'] = quantity_delta
+                pending_data['links']['purchase'] = {'parent_id': purchase_id}
+                pending_data['reason'] = (
+                    f'rc qty {"increase" if quantity_delta > 0 else "decrease"}'
+                    f' (adjusts po, on_hand)'
+                )
+            else:
+                workorder_id = getattr(transaction, 'workorder_id', None)
+                if workorder_id:
+                    pending_data['on_wo'] = -quantity_delta
+                    pending_data['on_hand'] = quantity_delta
+                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
+                    pending_data['reason'] = (
+                        f'rc qty {"increase" if quantity_delta > 0 else "decrease"}'
+                        f' (adjusts wo, on_hand)'
+                    )
         
         pending = Pending.objects.create(
             model_name='item',
@@ -1312,6 +1345,7 @@ class LineItemService:
             'on_in': release_qty if pending_type == 'IN' else 0,  # Negative = reverse
             'on_r': release_qty if pending_type == 'RC' else 0,   # Negative = reverse
             'on_p': release_qty * probability if pending_type == 'PP' else 0,  # Proposals track forecast
+            'on_hand': 0,
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -1326,7 +1360,37 @@ class LineItemService:
             # Transaction reference
             'transaction_type': transaction_type,
             'transaction_model': transaction._meta.model_name,
+            
+            # Parent links (populated for child transactions)
+            'links': {},
         }
+        
+        # Cross-document effects for invoice/receipt line deletions.
+        # Mirrors the logic in _create_pending_for_line_add():
+        # - Invoice from Order: restore on_so (re-commit order inventory)
+        # - Receipt from Purchase: restore on_po
+        # - Receipt from WorkOrder: restore on_wo
+        if pending_type == 'IN':
+            parent_id = getattr(transaction, 'parent_id', None)
+            if parent_id:
+                pending_data['on_so'] = quantity_released  # Positive: restore order commitment
+                pending_data['on_hand'] = quantity_released  # Positive: restore on_hand
+                pending_data['links']['order'] = {'parent_id': parent_id}
+                pending_data['reason'] = 'in line delete (restores so, on_hand)'
+        elif pending_type == 'RC':
+            purchase_id = getattr(transaction, 'purchase_id', None)
+            if purchase_id:
+                pending_data['on_po'] = quantity_released  # Positive: restore PO commitment
+                pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
+                pending_data['links']['purchase'] = {'parent_id': purchase_id}
+                pending_data['reason'] = 'rc line delete (restores po, removes on_hand)'
+            else:
+                workorder_id = getattr(transaction, 'workorder_id', None)
+                if workorder_id:
+                    pending_data['on_wo'] = quantity_released  # Positive: restore WO commitment
+                    pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
+                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
+                    pending_data['reason'] = 'rc line delete (restores wo, removes on_hand)'
         
         pending = Pending.objects.create(
             model_name='item',

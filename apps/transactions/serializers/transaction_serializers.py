@@ -10,13 +10,27 @@ from apps.core.models import Contact
 from apps.orgs.models import OrgBase
 
 
+# system fields inherited from BaseModel (read-only)
+_BASE_RO = [
+    'id', 'uuid', 'dt_created', 'dt_modified', 'version',
+    'is_deleted', 'is_archived', 'metadata', 'refs', 'prefs',
+    'actions', 'comments', 'health_rating',
+]
+
+
 class ProposalLineSerializer(RoleAwareModelSerializer):
     """Serializer aligned with ProposalLine schema."""
 
     class Meta:
         model = ProposalLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'price', 'proposal',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class ProposalSerializer(RoleAwareModelSerializer):
@@ -125,8 +139,14 @@ class OrderLineSerializer(RoleAwareModelSerializer):
 
     class Meta:
         model = OrderLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'price', 'order',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class PurchaseLineSerializer(RoleAwareModelSerializer):
@@ -134,8 +154,14 @@ class PurchaseLineSerializer(RoleAwareModelSerializer):
 
     class Meta:
         model = PurchaseLine
-        fields = '__all__'
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
+        fields = [
+            'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
+            'price_level', 'status', 'item_fk', 'item',
+            'quantity', 'cost', 'tax', 'physical', 'purchase',
+        ]
+        read_only_fields = _BASE_RO
 
 
 class OrderSerializer(RoleAwareModelSerializer):
@@ -316,7 +342,7 @@ class PaymentSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            'id', 'uuid', 'amount', 'dt_payment', 'paymentmethod_id', 'paymentterm_id',
+            'id', 'uuid', 'amount', 'dt_payment', 'payment_method_id', 'payment_term_id',
             'reference_number', 'notes', 'gateway', 'id_gateway_transaction',
             'id_gateway_payment_intent', 'status', 'gateway_response',
             'dt_processed', 'reconciled', 'dt_reconciliation', 'fee_amount',

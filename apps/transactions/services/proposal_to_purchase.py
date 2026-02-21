@@ -58,7 +58,7 @@ def transfer_proposal_to_purchase(
 
     return {
         "success": True,
-        "purchase_order_id": po.id,
+        "purchase_id": po.id,
         "proposal_id": proposal.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,

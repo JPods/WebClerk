@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -10,6 +11,9 @@ from drf_spectacular.views import (
 from apps.docs.urls import upload_urlpatterns
 
 urlpatterns = [
+    # Root redirect → Swagger docs
+    path('', RedirectView.as_view(url='/wcapi/swagger/', permanent=False), name='root'),
+
     # API Documentation
     path('wcapi/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('wcapi/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

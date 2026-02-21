@@ -26,20 +26,20 @@ def transfer_purchase_to_proposal(
 
     prop = Proposal.objects.create(
         status=proposal_status,
-        refs={"source": {"purchase_order_id": purchase.id}},
+        refs={"source": {"purchase_id": purchase.id}},
     )
 
     line_mapping: Dict[int, int] = {}
     for pl in selected:
-        qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase_order")
+        qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase")
         tl = ProposalLine.objects.create(
             proposal=prop,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,
             refs={
-                "source": {"purchase_order_line_id": pl.pk},
-                "xfer": build_line_payload(pl, "purchase_order"),
+                "source": {"purchase_line_id": pl.pk},
+                "xfer": build_line_payload(pl, "purchase"),
             },
         )
         line_mapping[pl.pk] = tl.id
@@ -56,7 +56,7 @@ def transfer_purchase_to_proposal(
     return {
         "success": True,
         "proposal_id": prop.id,
-        "purchase_order_id": purchase.id,
+        "purchase_id": purchase.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,
         "proposal_status": proposal_status,

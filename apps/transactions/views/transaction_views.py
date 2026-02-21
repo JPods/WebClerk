@@ -12,16 +12,16 @@ from apps.transactions.serializers import (
     InvoiceSerializer, PaymentSerializer
 )
 from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
-from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+from apps.transactions.services.flow import receive_purchase, ReceiveLine
 
 
-class ProposalViewSet(viewsets.ModelViewSet):
-    """ViewSet for Proposal transactions."""
+class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Proposal. Writes go through /wcapi/save/."""
 
-    queryset = Proposal.objects.prefetch_related('lines').all()
+    queryset = Proposal.objects.active().prefetch_related('lines')
     serializer_class = ProposalSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id']
+    filterset_fields = ['status', 'customer', 'vendor']
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
@@ -40,13 +40,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class OrderViewSet(viewsets.ModelViewSet):
-    """ViewSet for Order transactions."""
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Order. Writes go through /wcapi/save/."""
 
-    queryset = Order.objects.prefetch_related('lines').all()
+    queryset = Order.objects.active().prefetch_related('lines')
     serializer_class = OrderSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
+    filterset_fields = ['status', 'customer', 'vendor', 'ida']
 
     @action(detail=True, methods=['post'])
     def convert_to_invoice(self, request, pk=None):
@@ -96,13 +96,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PurchaseViewSet(viewsets.ModelViewSet):
-    """ViewSet for Purchase transactions."""
+class PurchaseViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Purchase. Writes go through /wcapi/save/."""
 
-    queryset = Purchase.objects.prefetch_related('lines').all()
+    queryset = Purchase.objects.active().prefetch_related('lines')
     serializer_class = PurchaseSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
+    filterset_fields = ['status', 'customer', 'vendor', 'ida']
 
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
@@ -128,7 +128,7 @@ class PurchaseViewSet(viewsets.ModelViewSet):
             ))
 
         try:
-            result = receive_purchase_order(purchase, receipt_id, lines)
+            result = receive_purchase(purchase, receipt_id, lines)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -141,19 +141,13 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         return Response(totals)
 
 
-class InvoiceViewSet(viewsets.ModelViewSet):
-    """ViewSet for Invoice transactions."""
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Invoice. Writes go through /wcapi/save/."""
 
-    queryset = Invoice.objects.all()
+    queryset = Invoice.objects.active()
     serializer_class = InvoiceSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id']
-
-    @action(detail=True, methods=['post'])
-    def apply_payment(self, request, pk=None):
-        """Apply payment to invoice."""
-        invoice = self.get_object()
-        return Response({'message': 'Payment application endpoint - implementation needed'})
+    filterset_fields = ['status', 'customer', 'vendor']
 
     @action(detail=True, methods=['get'])
     def payment_status(self, request, pk=None):
@@ -162,25 +156,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Payment status endpoint - implementation needed'})
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    """ViewSet for Payment transactions."""
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Payment. Writes go through /wcapi/save/."""
 
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.active()
     serializer_class = PaymentSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'gateway', 'contact_id', 'invoice_id', 'paymentmethod_id']
-
-    @action(detail=True, methods=['post'])
-    def process(self, request, pk=None):
-        """Process payment through gateway."""
-        payment = self.get_object()
-        return Response({'message': 'Payment processing endpoint - implementation needed'})
-
-    @action(detail=True, methods=['post'])
-    def refund(self, request, pk=None):
-        """Process refund."""
-        payment = self.get_object()
-        return Response({'message': 'Refund endpoint - implementation needed'})
+    filterset_fields = ['status', 'gateway', 'contact', 'invoice', 'payment_method']
 
 
 __all__ = [

@@ -13,7 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
-from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
+from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report
 
 
 @admin.register(Contact)
@@ -44,6 +44,7 @@ class ContactAdmin(BaseUserAdmin):
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
     readonly_fields = ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version')
+    raw_id_fields = ('customer', 'vendor', 'manufacturer', 'rep', 'employee')
     ordering = ('name_last', 'name_first')
     object_fields = (
         'actions',
@@ -136,7 +137,7 @@ class ActionAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
     # Keep scalar then object fields alphabetical for detail view coherence.
     scalar_fields = (
-        'action_id',
+        'parent_action',
         'burndown',
         'difficulty',
         'dt_completed',
@@ -237,19 +238,61 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'record_id', 'purpose', 'on_hand', 'on_p', 'on_so', 'on_in', 'on_po', 'dt_processed')
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+    def _data_field(self, obj, key):
+        val = (obj.data or {}).get(key)
+        return val if val is not None else '-'
+
+    @admin.display(description='on_hand')
+    def on_hand(self, obj):
+        return self._data_field(obj, 'on_hand')
+
+    @admin.display(description='on_p')
+    def on_p(self, obj):
+        return self._data_field(obj, 'on_p')
+
+    @admin.display(description='on_so')
+    def on_so(self, obj):
+        return self._data_field(obj, 'on_so')
+
+    @admin.display(description='on_in')
+    def on_in(self, obj):
+        return self._data_field(obj, 'on_in')
+
+    @admin.display(description='on_po')
+    def on_po(self, obj):
+        return self._data_field(obj, 'on_po')
 
 
 @admin.register(SoftDeleteLedger)
 class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
     list_display = ('id', 'target', 'dt_purge', 'dt_created')
-    list_filter = ('contenttype_id', 'dt_purge')
-    search_fields = ('contenttype_id__model', 'object_id')
+    list_filter = ('content_type', 'dt_purge')
+    search_fields = ('content_type__model', 'object_id')
     readonly_fields = ('dt_created',)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """Admin interface for Notification model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    """Admin interface for Report model."""
+    list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
+    list_filter = ('purpose', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 def _threepane_redirect(self, request, extra_context=None):
     if not self.has_permission(request):

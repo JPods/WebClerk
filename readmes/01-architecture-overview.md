@@ -55,12 +55,12 @@ CoreModel (minimal identity + timestamps + version)
 
 - **Contact**: Central entity with relationships to all other data
 - **Action**: Activity records with status and dependencies
-- **Communication**: Email, phone, location with verification flows
+- **Communication**: Email, phone, address with verification flows
 - **Document**: File metadata with search vectors and linkage
 
 #### Transaction System
 
-- **Headers**: Proposal, SalesOrder, PurchaseOrder, Invoice, WorkOrder, Requisition
+- **Headers**: Proposal, Order, Purchase, Invoice, WorkOrder, Requisition
 - **Lines**: Corresponding line items with quantity, pricing, costing
 - **Flows**: Proposal → Sales Order → Invoice; Purchase Order → Invoice
 - **Lineage**: Serial tracking and parent-child relationships
@@ -115,7 +115,7 @@ erDiagram
     Contact ||--o{ Action : "performs"
     Contact ||--o{ Email : "has"
     Contact ||--o{ Phone : "has"
-    Contact ||--o{ Location : "has"
+    Contact ||--o{ Address : "has"
     Contact ||--o{ Document : "owns"
 
     Action ||--o{ Linkage : "references"

@@ -124,7 +124,7 @@ class OrderToInvoiceServiceTest(TestCase):
         self.assertEqual(invoice.refs['source']['order_id'], self.order.id)
 
         # Check lines were transferred
-        lines = InvoiceLine.objects.filter(invoice_id=invoice)
+        lines = InvoiceLine.objects.filter(invoice=invoice)
         self.assertEqual(len(lines), 1)
         line = lines[0]
         self.assertEqual(line.quantity['remaining'], 2)

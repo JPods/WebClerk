@@ -181,6 +181,18 @@ class TransactionBaseModel(BaseModel):
     actions = models.JSONField(default=dict, blank=True, null=True)
     
     
+    # FK columns that must be NULL (not 0) when empty.  Zero would violate
+    # the foreign-key constraint; negative values are never valid.
+    _FK_COLUMNS = ("customer_id", "vendor_id", "manufacturer_id", "contact_id")
+
+    def save(self, *args, **kwargs):
+        # Normalise bad FK values: 0 / negative → None (NULL).
+        for col in self._FK_COLUMNS:
+            val = getattr(self, col, None)
+            if val is not None and int(val) <= 0:
+                setattr(self, col, None)
+        super().save(*args, **kwargs)
+
     class Meta:
         abstract = True
 

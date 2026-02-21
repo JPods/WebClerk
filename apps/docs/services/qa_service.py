@@ -369,7 +369,7 @@ class QAService:
             qa_record = QuestionAnswer(
                 question=q_def.get('question', ''),
                 answer=None,  # No answer yet - set when user responds
-                setting_id=template_setting,
+                setting=template_setting,
                 question_id=question_id,  # ID of question from Setting.data.questions[]
                 answer_id=None,  # ID of selected answer from Setting - set when user responds
                 parent_model=parent_model,

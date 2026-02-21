@@ -18,6 +18,19 @@ def transfer_order_to_invoice(
     preserve_order: bool = True,
     invoice_type: str = "standard"
 ) -> Dict[str, Any]:
+    """Transfer order lines to a new invoice (atomic).
+
+    Workflow:
+      1. Select lines (all or by ID list); skip lines with remaining ≤ 0
+      2. Create Invoice header with refs.source.order_id
+      3. For each OrderLine:
+         a. Convert quantity via _convert_quantity_for_invoice()
+         b. Create InvoiceLine with full price/cost/tax/physical
+         c. Update source OrderLine: invoiced += remaining, remaining → 0
+      4. If all order lines fulfilled → set order.status = 'fulfilled'
+
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     if not order:
         raise OrderToInvoiceTransferError("Order is required")
     if not transfer_all and not line_ids:
@@ -35,11 +48,15 @@ def transfer_order_to_invoice(
         missing = set(line_ids or []) - found
         raise OrderToInvoiceTransferError(f"Line IDs not found: {missing}")
 
-    # Create invoice
+    # Create invoice — set parent_id/parent_model so the inventory
+    # signal (_create_pending_for_line_add) knows to release on_so
+    # and deduct on_hand when invoice lines are created.
     invoice = Invoice.objects.create(
         status=invoice_status,
         customer_id=getattr(order, "customer_id", 0) or 0,
         vendor_id=getattr(order, "vendor_id", 0) or 0,
+        parent_id=order.id,
+        parent_model='order',
         refs=_prepare_invoice_refs(order, invoice_type),
         prefs=dict(order.prefs or {}),
         metadata=_prepare_invoice_metadata(order, invoice_type),
@@ -78,10 +95,6 @@ def transfer_order_to_invoice(
         if remaining_total <= 0:
             order.status = "fulfilled"
             order.save(update_fields=["status", "dt_modified", "version"])
-        remaining_total = sum((l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(order=order))
-        if remaining_total <= 0:
-            order.status = "fulfilled"
-            order.save(update_fields=["status", "dt_modified", "version"])
     inv_refs = invoice.refs or {}
     inv_refs.setdefault("source", {})["order_id"] = order.id
     transfer_date_value: Any = getattr(invoice, "dt_created", None)
@@ -95,7 +108,17 @@ def transfer_order_to_invoice(
     inv_refs["source"]["invoice_type"] = invoice_type
     invoice.refs = inv_refs
     invoice.save(update_fields=["refs", "dt_modified", "version"])
-    invoice.save(update_fields=["refs", "dt_modified", "version"])
+
+    # Recalculate totals on both the new invoice and the source order
+    # so sell/cost/totals reflect the transferred lines.
+    try:
+        invoice.update_sell_cost_totals(persist=True)
+    except Exception:
+        pass  # best-effort; invoice lines are already saved
+    try:
+        order.update_sell_cost_totals(persist=True)
+    except Exception:
+        pass  # best-effort; order lines have been updated
 
     return {
         "success": True,
@@ -157,23 +180,41 @@ def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
     return md
 
 def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Convert order line quantity to invoice line quantity.
+
+    Uses canonical placed/actioned/remaining keys.
+    placed = source remaining (qty being transferred to this invoice)
+    actioned = 0 (nothing has acted on the new invoice line yet)
+    remaining = placed (full qty available)
+
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     q = dict(order_quantity or {})
     remaining = q.get("remaining", 0)
     return {
-        "packed": 0,
+        "placed": remaining,
+        "actioned": 0,
         "remaining": remaining,
         "precision": q.get("precision", 2),
         "is_fixed": q.get("is_fixed", False),
         "converted_from_order": {
-            "invoiced": q.get("invoiced", 0),
+            "actioned": q.get("actioned", q.get("invoiced", 0)),
             "original_remaining": remaining,
             "converted_from_proposal": q.get("converted_from_proposal"),
         },
     }
 
 def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
+    """Decrement source order line after transfer to invoice.
+
+    Updates: actioned += invoiced_qty, remaining = placed - actioned
+
+    Uses canonical placed/actioned/remaining keys.
+    See: readmes/topics/transactions/transactions-totals.md §2
+    """
     q = dict(ol.quantity or {})
-    q["invoiced"] = q.get("invoiced", 0) + invoiced_qty
-    q["remaining"] = max(0, q.get("remaining", 0) - invoiced_qty)
+    q["actioned"] = q.get("actioned", 0) + invoiced_qty
+    placed = q.get("placed", 0)
+    q["remaining"] = max(0, placed - q["actioned"])
     ol.quantity = cast(Any, q)
     ol.save(update_fields=["quantity", "dt_modified", "version"])

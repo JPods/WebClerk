@@ -218,8 +218,8 @@ Special:     ne, in, isnull, range
 
 ### Supported Models
 ```
-✅ Proposal, SalesOrder, Invoice, PurchaseOrder
-✅ Contact, Organization, Item, Location
+✅ Proposal, Order, Invoice, Purchase
+✅ Contact, Organization, Item, Address
 ✅ ... any registered model in the system
 ```
 

@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
 )
 from .utils import assert_envelope
 
@@ -19,7 +19,7 @@ def _auth(user):
 @pytest.mark.django_db
 def test_preview_totals_scoped_to_kind(django_user_model):
     # Minimal permissions for headers so BasePermission passes
-    for mn in ('proposal', 'sales_order'):
+    for mn in ('proposal', 'order'):
         Setting.objects.create(purpose='view_edit', model_target=mn, is_active=True, data={"USER": {"view": ["id"], "edit": ["id"]}})
 
     user = django_user_model.objects.create_user(email='preview@example.com', password='pass12345', role='USER')
@@ -31,8 +31,8 @@ def test_preview_totals_scoped_to_kind(django_user_model):
     ProposalLine.objects.create(parent=p, parent_ref_id=p.pk, price={"extended": "2.50"}, cost={"extended": "1.00"})
 
     # Also create a separate SO with a line to ensure scoping works
-    so = SalesOrder.objects.create(order_no='SO-X')
-    SalesOrderLine.objects.create(parent=so, parent_ref_id=so.pk, price={"extended": "7.00"}, cost={"extended": "3.00"})
+    so = Order.objects.create(order_no='SO-X')
+    OrderLine.objects.create(parent=so, parent_ref_id=so.pk, price={"extended": "7.00"}, cost={"extended": "3.00"})
 
     r = client.get(f'/tx/proposal/{p.pk}/preview-totals/?include_breakdown=1')
     assert r.status_code == 200  # type: ignore[attr-defined]

@@ -58,7 +58,7 @@ def transfer_invoice_to_purchase(
 
     return {
         "success": True,
-        "purchase_order_id": po.pk,
+        "purchase_id": po.pk,
         "invoice_id": invoice.pk,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,

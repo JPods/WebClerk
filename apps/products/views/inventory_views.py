@@ -18,7 +18,7 @@ from apps.products.serializers.reservation_serializers import (
 )
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from apps.products.services.inventory_metrics import summarize_inventory_metrics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 
 # Prefer project BaseJSONAPIView; fallback to DRF APIView
 try:
@@ -144,7 +144,7 @@ class InventoryReservationCreateView(APIView):
 )
 class InventoryReservationActionView(BaseJSONAPIView):
     _allow_write = True
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
@@ -224,7 +224,7 @@ class InventoryMetricsView(APIView):
 
 class InventoryPrometheusMetricsView(APIView):
     # Auth toggle: default require auth unless settings flag disables
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     @extend_schema(
         parameters=[
             OpenApiParameter(name='auth', description='Set auth=0 to bypass auth when INVENTORY_PROMETHEUS_REQUIRE_AUTH is true', required=False, type=str),

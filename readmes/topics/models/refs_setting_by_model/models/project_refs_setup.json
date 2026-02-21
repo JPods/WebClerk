@@ -1,3 +1,3 @@
 {
-    "jjj_comment": "setting model_name=\"project\" purpose=\"refs_setup\"\n{\n    \"self_fields\": [\n        \"situation\",\n        \"description\",\n        \"attention\",\n        \"category\",\n    ],\n    \"related_keywords\": {\n        \"customer\": [\"refs.keywords\"]\n    },\n    \"related_models\": [\"contact\", \"customer\", \"vendor\", \"invoice\", \"sales_order\"]\n}"
+    "jjj_comment": "setting model_name=\"project\" purpose=\"refs_setup\"\n{\n    \"self_fields\": [\n        \"situation\",\n        \"description\",\n        \"attention\",\n        \"category\",\n    ],\n    \"related_keywords\": {\n        \"customer\": [\"refs.keywords\"]\n    },\n    \"related_models\": [\"contact\", \"customer\", \"vendor\", \"invoice\", \"order\"]\n}"
 }

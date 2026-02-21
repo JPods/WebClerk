@@ -112,11 +112,11 @@ MODEL_MAP = {
     'action': Action,
     'email': Email,
     'phone': Phone,
-    'location': Location,
+    'address': Address,
     'document': Document,
     # ... transaction models
     'proposal': Proposal,
-    'sales_order': SalesOrder,
+    'order': Order,
     'invoice': Invoice,
     # ... etc
 }
@@ -188,7 +188,7 @@ classDiagram
 ### Transaction Flow Engine
 **Key Components:**
 - **Flow Conversion Services** (`apps/transactions/services/`)
-  - `order_to_invoice.py`: Sales Order → Invoice conversion
+  - `order_to_invoice.py`: Order → Invoice conversion
   - `purchase_to_order.py`: Purchase Requisition → Purchase Order
   - `transfer_utils.py`: Cross-document data transfer
 
@@ -320,7 +320,7 @@ flowchart TD
     B -->|Email| C[Send Email Code]
     B -->|Phone| D[Send SMS Code]
     B -->|Domain| E[DNS Check]
-    B -->|Location| F[Address Validation]
+    B -->|Address| F[Address Validation]
 
     C --> G[User Enters Code]
     D --> G

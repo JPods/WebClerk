@@ -79,7 +79,7 @@ The following fields are included for each model type:
 - **Email**: id, email, name, type, is_primary
 - **Contact**: id, email, name_first, name_last, company, title, role
 - **Phone**: id, number, format, name
-- **Location**: id, address1, city, state, zip, country, full
+- **Address**: id, address1, city, state, zip, country, full
 - **Item**: id, name, sku, description, kind, uom
 - **Domain**: id, path, type
 - **OrgBase**: id, company, org_type, status

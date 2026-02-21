@@ -13,7 +13,7 @@ This guide outlines the integration of React2025 components for WebClerk3's tran
 ### Transaction Models
 
 - **Proposals**: `proposal` and `proposal_line` models
-- **Orders**: `sales_order` and `sales_order_line` models (basic order management)
+- **Orders**: `order` and `order_line` models (basic order management)
 - **Payments**: `payment` and `payment_application` models
 - **Reservations**: `inventory_reservation` model (from products app)
 

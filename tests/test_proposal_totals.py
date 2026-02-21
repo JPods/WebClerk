@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import pytest
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from apps.transactions.models import Proposal, ProposalLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import Proposal, ProposalLine, Order, OrderLine
 from apps.transactions.services.proposal_to_order import (
     transfer_proposal_to_order,
     validate_proposal_for_transfer,
@@ -348,15 +348,15 @@ class TestProposalToOrderTransfer:
         assert len(result['line_mapping']) == 2
         
         # Check order was created
-        order = SalesOrder.objects.get(id=result['sales_order_id'])
+        order = Order.objects.get(id=result['order_id'])
         assert order.status == 'confirmed'
-        # Verify party linkage if the field exists on SalesOrder
+        # Verify party linkage if the field exists on Order
         party_id = getattr(order, 'party_id', None)
         if party_id is not None:
             assert party_id == 123
         assert order.refs['source']['proposal_id'] == proposal.id
         # Check lines were transferred
-        order_lines = SalesOrderLine.objects.filter(parent=order)
+        order_lines = OrderLine.objects.filter(parent=order)
         for order_line in order_lines:
             quantity = order_line.quantity or {}
             assert quantity.get('invoiced', 0) == 0
@@ -400,8 +400,8 @@ class TestProposalToOrderTransfer:
         assert line3.id in result['line_mapping']
         assert line2.id not in result['line_mapping']
         # Check order has only 2 lines
-        order = SalesOrder.objects.get(id=result['sales_order_id'])
-        assert SalesOrderLine.objects.filter(parent=order).count() == 2
+        order = Order.objects.get(id=result['order_id'])
+        assert OrderLine.objects.filter(parent=order).count() == 2
         
         # Check transferred lines are marked
         # Check transferred lines are marked
@@ -481,9 +481,9 @@ class TestProposalToOrderTransfer:
         )
         
         result = transfer_proposal_to_order(proposal=proposal, transfer_all=True)
-        order = SalesOrder.objects.get(id=result['sales_order_id'])
-        order_line = SalesOrderLine.objects.filter(parent=order).first()
-        assert order_line is not None, "Expected at least one SalesOrderLine to be created"
+        order = Order.objects.get(id=result['order_id'])
+        order_line = OrderLine.objects.filter(parent=order).first()
+        assert order_line is not None, "Expected at least one OrderLine to be created"
         # Check quantity conversion
         quantity = order_line.quantity or {}
         assert quantity.get('invoiced', 0) == 0
@@ -600,14 +600,14 @@ class TestProposalTransferValidation:
 # - `proposal`: Source Proposal instance
 # - `line_ids`: Optional list of ProposalLine IDs to transfer
 # - `transfer_all`: If True and line_ids is None, transfer all lines
-# - `order_status`: Status to set on new sales order (default: 'confirmed')
+# - `order_status`: Status to set on new order (default: 'confirmed')
 # - `preserve_proposal`: If True, keep original proposal; if False, mark as converted
 
 # #### Returns
 # ```python
 # {
 #     'success': True,
-#     'sales_order_id': 123,
+#     'order_id': 123,
 #     'proposal_id': 456,
 #     'lines_transferred': 3,
 #     'line_mapping': {789: 101, 790: 102, 791: 103},  # proposal_line_id -> order_line_id
@@ -735,7 +735,7 @@ class TestProposalTransferValidation:
 # {
 #     "source_type": "proposal",
 #     "source_id": 456,
-#     "target_type": "sales_order",
+#     "target_type": "order",
 #     "line_ids": [789, 790],
 #     "order_status": "confirmed",
 #     "preserve_source": true

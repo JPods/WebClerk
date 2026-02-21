@@ -10,7 +10,27 @@ def _d(x: Any, places: int = 2) -> Decimal:
         return Decimal(0)
 
 def compute_proposal_sell_cost_totals(proposal) -> Dict[str, Dict[str, float]]:
-    """Aggregate sell and cost from proposal lines."""
+    """Aggregate sell and cost totals from all proposal lines.
+
+    Iterates proposal.lines.all() and sums:
+      sell: Σ line.price.extended, Σ line.price.discount_amount
+      cost: Σ line.cost.extended + tax + shipping + handling + freight + commissions
+
+    Returns dict with three envelopes:
+      sell:   { line_sum_goods, discount, tax, shipping, handling, other, total }
+      cost:   { line_sum_goods, line_sum_tax, ..., total }
+      totals: { total (=sell), cost, margin, margin_pc, received, balance }
+
+    Margin formula:
+      margin    = sell.total − cost.total
+      margin_pc = (margin / sell.total) × 100
+
+    Called by Proposal.update_sell_cost_totals(persist=True) to write back
+    to the header's sell/cost/totals JSON fields.
+    Auto-triggered via post_save signal on ProposalLine.
+
+    See: readmes/topics/transactions/transactions-totals.md §3
+    """
     sell_goods = Decimal(0)
     sell_discount = Decimal(0)
 
@@ -21,13 +41,16 @@ def compute_proposal_sell_cost_totals(proposal) -> Dict[str, Dict[str, float]]:
     cost_freight = Decimal(0)
     cost_commissions = Decimal(0)
 
+    # --- Iterate all lines and accumulate sell + cost components ---
     for ln in proposal.lines.all():
-        p = ln.price or {}
-        c = ln.cost or {}
+        p = ln.price or {}    # sell-side envelope (BaseSellLineModel)
+        c = ln.cost or {}     # cost envelope (BaseLineCore)
 
+        # Sell aggregation: sum of extended prices and discounts
         sell_goods += _d(p.get("extended", 0))
         sell_discount += _d(p.get("discount_amount", 0))
 
+        # Cost aggregation: sum of extended costs plus surcharges
         cost_goods += _d(c.get("extended", 0))
         cost_tax += _d(c.get("tax", 0))
         cost_shipping += _d(c.get("shipping", 0))
@@ -62,7 +85,14 @@ def compute_proposal_sell_cost_totals(proposal) -> Dict[str, Dict[str, float]]:
     margin = total_amt - total_cost
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
+    # Build the full default_totals() structure so every key is present.
     totals = {
+        "subtotal": float(sell_goods),
+        "discount": float(sell_discount),
+        "taxable": float(sell_goods - sell_discount),
+        "tax": 0.0,
+        "shipping": 0.0,
+        "other": 0.0,
         "total": float(total_amt),
         "cost": float(total_cost),
         "margin": float(margin),

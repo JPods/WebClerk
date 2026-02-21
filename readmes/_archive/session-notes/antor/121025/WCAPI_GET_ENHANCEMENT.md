@@ -31,7 +31,7 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `model_name` | string | Model key from registry (proposal, salesorder, invoice, contact, etc.) |
+| `model_name` | string | Model key from registry (proposal, order, invoice, contact, etc.) |
 
 ### Single Record Retrieval
 
@@ -229,7 +229,7 @@ Response:
 ### Example 5: Complex Filter with Multiple Conditions
 
 ```bash
-GET /api/wcapi/get/?model_name=salesorder&status=in_progress&priority__ne=low&customer_id=5&created_date__gte=2025-01-01&q=shipment
+GET /api/wcapi/get/?model_name=order&status=in_progress&priority__ne=low&customer_id=5&created_date__gte=2025-01-01&q=shipment
 
 Response:
 {
@@ -252,7 +252,7 @@ Response:
 ### Example 6: Transaction Model with Lines (Auto-Included)
 
 ```bash
-GET /api/wcapi/get/?model_name=salesorder&id=10
+GET /api/wcapi/get/?model_name=order&id=10
 
 Response:
 {

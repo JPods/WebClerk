@@ -46,7 +46,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - invoice_line — app: `transactions`, endpoint: [`/wcapi/invoice-lines/`](/wcapi/invoice-lines/), kind: `line`, aliases: invoice_lines
 - item — app: `products`, endpoint: [`/wcapi/items/`](/wcapi/items/), kind: `support`, aliases: items
 - ledger — app: `accounts`, endpoint: [`/wcapi/ledgers/`](/wcapi/ledgers/), kind: `support`, aliases: ledgers
-- location — app: `communications`, endpoint: [`/wcapi/locations/`](/wcapi/locations/), kind: `support`, aliases: locations
+- address — app: `communications`, endpoint: [`/wcapi/addresses/`](/wcapi/addresses/), kind: `support`, aliases: addresses
 - notification — app: `core`, endpoint: [`/wcapi/notifications/`](/wcapi/notifications/), kind: `support`, aliases: notifications
 - org_item — app: `products`, endpoint: [`/wcapi/org-items/`](/wcapi/org-items/), kind: `support`, aliases: org_items
 - pending_inventory_adjustment — app: `products`, endpoint: [`/wcapi/pending-inventory-adjustments/`](/wcapi/pending-inventory-adjustments/), kind: `support`, aliases: pending_inventory_adjustments
@@ -55,14 +55,14 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - project_association — app: `transactions`, endpoint: [`/wcapi/project-associations/`](/wcapi/project-associations/), kind: `support`, aliases: project_associations
 - proposal — app: `transactions`, endpoint: [`/wcapi/proposals/`](/wcapi/proposals/), kind: `header`, aliases: proposals
 - proposal_line — app: `transactions`, endpoint: [`/wcapi/proposal-lines/`](/wcapi/proposal-lines/), kind: `line`, aliases: proposal_lines
-- purchase_order — app: `transactions`, endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchase_orders
-- purchase_order_line — app: `transactions`, endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_order_lines
+- purchase — app: `transactions`, endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchases
+- purchase_line — app: `transactions`, endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_lines
 - purchase_receipt — app: `transactions`, endpoint: [`/wcapi/purchase-receipts/`](/wcapi/purchase-receipts/), kind: `support`, aliases: purchase_receipts
 - report — app: `core`, endpoint: [`/wcapi/reports/`](/wcapi/reports/), kind: `support`, aliases: reports
 - requisition — app: `transactions`, endpoint: [`/wcapi/requisitions/`](/wcapi/requisitions/), kind: `header`, aliases: requisitions
 - requisition_line — app: `transactions`, endpoint: [`/wcapi/requisition-lines/`](/wcapi/requisition-lines/), kind: `line`, aliases: requisition_lines
-- sales_order — app: `transactions`, endpoint: [`/wcapi/sales-orders/`](/wcapi/sales-orders/), kind: `header`, aliases: sales_orders
-- sales_order_line — app: `transactions`, endpoint: [`/wcapi/sales-order-lines/`](/wcapi/sales-order-lines/), kind: `line`, aliases: sales_order_lines
+- order — app: `transactions`, endpoint: [`/wcapi/orders/`](/wcapi/orders/), kind: `header`, aliases: orders
+- order_line — app: `transactions`, endpoint: [`/wcapi/order-lines/`](/wcapi/order-lines/), kind: `line`, aliases: order_lines
 - serial_log — app: `products`, endpoint: [`/wcapi/serial-logs/`](/wcapi/serial-logs/), kind: `support`, aliases: serial_logs
 - setting — app: `core`, endpoint: [`/wcapi/settings/`](/wcapi/settings/), kind: `support`, aliases: settings
 - Bundle — app: `sync`, endpoint: [`/wcapi/sync-exchanges/`](/wcapi/sync-exchanges/), kind: `support`, aliases: exchanges_sync
@@ -92,7 +92,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 
 - domain — endpoint: [`/wcapi/domains/`](/wcapi/domains/), kind: `support`, aliases: domains
 - email — endpoint: [`/wcapi/emails/`](/wcapi/emails/), kind: `support`, aliases: emails
-- location — endpoint: [`/wcapi/locations/`](/wcapi/locations/), kind: `support`, aliases: locations
+- address — endpoint: [`/wcapi/addresses/`](/wcapi/addresses/), kind: `support`, aliases: addresses
 - phone — endpoint: [`/wcapi/phones/`](/wcapi/phones/), kind: `support`, aliases: phones
 
 ### core (6)
@@ -142,13 +142,13 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - project_association — endpoint: [`/wcapi/project-associations/`](/wcapi/project-associations/), kind: `support`, aliases: project_associations
 - proposal — endpoint: [`/wcapi/proposals/`](/wcapi/proposals/), kind: `header`, aliases: proposals
 - proposal_line — endpoint: [`/wcapi/proposal-lines/`](/wcapi/proposal-lines/), kind: `line`, aliases: proposal_lines
-- purchase_order — endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchase_orders
-- purchase_order_line — endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_order_lines
+- purchase — endpoint: [`/wcapi/purchase-orders/`](/wcapi/purchase-orders/), kind: `header`, aliases: purchases
+- purchase_line — endpoint: [`/wcapi/purchase-order-lines/`](/wcapi/purchase-order-lines/), kind: `line`, aliases: purchase_lines
 - purchase_receipt — endpoint: [`/wcapi/purchase-receipts/`](/wcapi/purchase-receipts/), kind: `support`, aliases: purchase_receipts
 - requisition — endpoint: [`/wcapi/requisitions/`](/wcapi/requisitions/), kind: `header`, aliases: requisitions
 - requisition_line — endpoint: [`/wcapi/requisition-lines/`](/wcapi/requisition-lines/), kind: `line`, aliases: requisition_lines
-- sales_order — endpoint: [`/wcapi/sales-orders/`](/wcapi/sales-orders/), kind: `header`, aliases: sales_orders
-- sales_order_line — endpoint: [`/wcapi/sales-order-lines/`](/wcapi/sales-order-lines/), kind: `line`, aliases: sales_order_lines
+- order — endpoint: [`/wcapi/orders/`](/wcapi/orders/), kind: `header`, aliases: orders
+- order_line — endpoint: [`/wcapi/order-lines/`](/wcapi/order-lines/), kind: `line`, aliases: order_lines
 - work_order — endpoint: [`/wcapi/work-orders/`](/wcapi/work-orders/), kind: `header`, aliases: work_orders
 - work_order_line — endpoint: [`/wcapi/workorder-lines/`](/wcapi/workorder-lines/), kind: `line`, aliases: work_order_lines
 
@@ -210,9 +210,9 @@ flowchart LR
     email["email"]
     app_communications --> email
     class email support
-    location["location"]
-    app_communications --> location
-    class location support
+    address["address"]
+    app_communications --> address
+    class address support
     phone["phone"]
     app_communications --> phone
     class phone support
@@ -340,12 +340,12 @@ flowchart LR
     proposal_line["proposal_line"]
     app_transactions --> proposal_line
     class proposal_line line
-    purchase_order["purchase_order"]
-    app_transactions --> purchase_order
-    class purchase_order header
-    purchase_order_line["purchase_order_line"]
-    app_transactions --> purchase_order_line
-    class purchase_order_line line
+    purchase["purchase"]
+    app_transactions --> purchase
+    class purchase header
+    purchase_line["purchase_line"]
+    app_transactions --> purchase_line
+    class purchase_line line
     purchase_receipt["purchase_receipt"]
     app_transactions --> purchase_receipt
     class purchase_receipt support
@@ -355,12 +355,12 @@ flowchart LR
     requisition_line["requisition_line"]
     app_transactions --> requisition_line
     class requisition_line line
-    sales_order["sales_order"]
-    app_transactions --> sales_order
-    class sales_order header
-    sales_order_line["sales_order_line"]
-    app_transactions --> sales_order_line
-    class sales_order_line line
+    order["order"]
+    app_transactions --> order
+    class order header
+    order_line["order_line"]
+    app_transactions --> order_line
+    class order_line line
     work_order["work_order"]
     app_transactions --> work_order
     class work_order header

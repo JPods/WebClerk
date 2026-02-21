@@ -13714,8 +13714,8 @@
   },
   {
     "app": "transactions",
-    "model": "PurchaseOrder",
-    "db_table": "purchase_orders",
+    "model": "Purchase",
+    "db_table": "purchases",
     "fields": [
       {
         "name": "id",
@@ -13885,8 +13885,8 @@
   },
   {
     "app": "transactions",
-    "model": "PurchaseOrderLine",
-    "db_table": "purchase_order_lines",
+    "model": "PurchaseLine",
+    "db_table": "purchase_lines",
     "fields": [
       {
         "name": "id",
@@ -14181,7 +14181,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "PurchaseOrder"
+        "related_model": "Purchase"
       }
     ],
     "field_count": 29
@@ -14843,8 +14843,8 @@
   },
   {
     "app": "transactions",
-    "model": "SalesOrder",
-    "db_table": "sales_orders",
+    "model": "Order",
+    "db_table": "orders",
     "fields": [
       {
         "name": "id",
@@ -15014,8 +15014,8 @@
   },
   {
     "app": "transactions",
-    "model": "SalesOrderLine",
-    "db_table": "sales_order_lines",
+    "model": "OrderLine",
+    "db_table": "order_lines",
     "fields": [
       {
         "name": "id",
@@ -15310,7 +15310,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "SalesOrder"
+        "related_model": "Order"
       }
     ],
     "field_count": 29

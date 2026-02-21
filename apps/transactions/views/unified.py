@@ -112,7 +112,7 @@ class TransactionHeaderListCreate(_KindMixin, generics.ListCreateAPIView):
 
     def get_queryset(self):
         Model = self.get_header_model()
-        return Model.objects.all().order_by('-id')
+        return Model.objects.active().order_by('-id')
 
     def get_serializer_class(self):
         return self.get_header_serializer()
@@ -127,7 +127,7 @@ class TransactionHeaderDetail(_KindMixin, generics.RetrieveUpdateDestroyAPIView)
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return self.get_header_model().objects.all()
+        return self.get_header_model().objects.active()
 
     def get_serializer_class(self):
         return self.get_header_serializer()
@@ -212,7 +212,7 @@ class TransactionTotalsPreview(_KindMixin, generics.GenericAPIView):
 
     # Provide queryset so ViewEditPermission can resolve model for permission rules
     def get_queryset(self):
-        return self.get_header_model().objects.all()
+        return self.get_header_model().objects.active()
 
     def get(self, request, *args, **kwargs):  # noqa: D401
         """Return aggregate totals for this header's lines.
@@ -291,7 +291,7 @@ class LinkageCommentsView(generics.GenericAPIView):
                 except Exception:
                     pass
 
-            qs = Model.objects.all()
+            qs = Model.objects.active()
             if len(fields) > 1:
                 try:
                     qs = qs.only(*fields)

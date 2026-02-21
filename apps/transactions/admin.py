@@ -6,12 +6,10 @@ from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, Order, OrderLine, Purchase, PurchaseLine,
     Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
-    Project,
+    Project, Payment, PaymentMethod, PaymentTerm,
 )
 from .models.receipt import Receipt
-
-
-# Scoped: other model admin registrations are deferred for now
+from .models.payment_application import PaymentApplication
 
 
 class TransactionTotalsDisplayMixin:
@@ -154,14 +152,14 @@ class JSONBFieldsetMixin:
 
 @admin.register(Invoice)
 class InvoiceAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer_id", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(InvoiceLine)
 class InvoiceLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "invoice_id", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "invoice", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -176,7 +174,7 @@ class InvoiceLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFie
 
 @admin.register(WorkOrderLine)
 class WorkOrderLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "workorder_id", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "workorder", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -235,21 +233,21 @@ class WorkOrderLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBF
 
 @admin.register(Order)
 class OrderAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer_id", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(OrderLine)
 class OrderLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "order_id", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "order", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Purchase)
 class PurchaseAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "vendor_id", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    list_display = ("id", "ida", "status", "vendor", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -270,14 +268,14 @@ class PurchaseLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFi
 
 @admin.register(Proposal)
 class ProposalAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer_id", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(ProposalLine)
 class ProposalLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "proposal_id", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "proposal", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -291,7 +289,7 @@ class RequisitionAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.
 
 @admin.register(RequisitionLine)
 class RequisitionLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "requisition_id", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "requisition", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -305,15 +303,36 @@ class ReceiptAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.Mode
 
 @admin.register(WorkOrder)
 class WorkOrderAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer_id", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
-##
+@admin.register(Payment)
+class PaymentAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "ida", "contact", "amount", "status", "gateway", "dt_payment", "reconciled", "reference_number")
+    list_filter = ("status", "gateway", "reconciled", "is_active")
+    search_fields = ("reference_number", "id_gateway_transaction", "id_gateway_payment_intent", "notes", "ida")
+    readonly_fields = ("uuid", "dt_created", "dt_modified")
 
 
-##
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "description")
 
 
-##
+@admin.register(PaymentTerm)
+class PaymentTermAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "days", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "description")
+
+
+@admin.register(PaymentApplication)
+class PaymentApplicationAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "payment", "invoice", "amount", "applied_at")
+    list_filter = ("is_active",)
+    search_fields = ("notes", "ida")
+    readonly_fields = ("uuid", "dt_created", "dt_modified")

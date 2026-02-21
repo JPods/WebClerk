@@ -6,7 +6,7 @@ from apps.core.services.keywords import build_keywords_for_record
 
 class Action(BaseModel):
     # Parent-child relationship
-    action_id = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
+    parent_action = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE, db_column='action_id')
     
     # Multilingual titles and descriptions
     action = models.JSONField(default=dict, blank=True, null=True)
@@ -318,8 +318,11 @@ class Action(BaseModel):
                 name = f.name
                 if name in {'dt_modified', 'version'}:
                     continue
-                old = self._original_state.get(name)
-                new = getattr(self, name)
+                # Use f.attname to compare raw DB column values (e.g. contact_id)
+                # to avoid triggering lazy-load queries on FK fields.
+                attr = f.attname
+                old = self._original_state.get(attr)
+                new = getattr(self, attr)
                 if old != new:
                     changed_fields.append(name)
         

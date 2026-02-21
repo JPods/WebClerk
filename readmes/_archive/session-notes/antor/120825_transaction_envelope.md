@@ -94,19 +94,19 @@ The implementation work focused on:
 4. **`apps/transactions/views/line_views.py`**
    - Applied EnvelopeResponseMixin + ListResponseEnvelopeMixin to 18+ view classes
    - Integrated TransactionPagination for all list endpoints
-   - Views now include: ProposalListCreate, ProposalLineListCreate, SalesOrderListCreate, SalesOrderLineListCreate, InvoiceListCreate, InvoiceLineListCreate, PurchaseOrderListCreate, PurchaseOrderLineListCreate, WorkOrderListCreate, WorkOrderLineListCreate, RequisitionListCreate, RequisitionLineListCreate, ProjectListCreate, ProjectLineListCreate, and detail/update/delete variants
+   - Views now include: ProposalListCreate, ProposalLineListCreate, OrderListCreate, OrderLineListCreate, InvoiceListCreate, InvoiceLineListCreate, PurchaseListCreate, PurchaseLineListCreate, WorkOrderListCreate, WorkOrderLineListCreate, RequisitionListCreate, RequisitionLineListCreate, ProjectListCreate, ProjectLineListCreate, and detail/update/delete variants
 
-5. **`apps/transactions/views/sales_order_views.py`**
+5. **`apps/transactions/views/order_views.py`**
    - Fixed BaseJSONAPIView import (was: `common.http.mixins`, now: `apps.core.views` with fallback)
-   - Added `convert-to-sales-order` action alias for backward compatibility
+   - Added `convert-to-order` action alias for backward compatibility
    - Applied response envelope mixins
 
-6. **`apps/transactions/views/purchase_order_views.py`**
+6. **`apps/transactions/views/purchase_views.py`**
    - Fixed BaseJSONAPIView import 
    - Applied response envelope mixins
 
 7. **`apps/transactions/views/proposal_views.py`**
-   - Added `convert-to-sales-order` action alias
+   - Added `convert-to-order` action alias
 
 8. **`apps/transactions/views/linkage_views.py`**
    - Fixed BaseJSONAPIView import
@@ -119,9 +119,9 @@ The implementation work focused on:
 
 11. **`apps/transactions/urls.py`**
     - Added explicit legacy routes for conversions:
-      - `/tx/proposals/{id}/convert-to-sales-order/`
-      - `/tx/sales-orders/{id}/convert-to-invoice/`
-      - `/tx/sales-orders/{id}/convert-to-purchase-order/`
+      - `/tx/proposals/{id}/convert-to-order/`
+      - `/tx/orders/{id}/convert-to-invoice/`
+      - `/tx/orders/{id}/convert-to-purchase-order/`
     - Maintains backward compatibility with existing API consumers
 
 ---

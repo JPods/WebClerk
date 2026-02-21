@@ -40,7 +40,6 @@ class Command(BaseCommand):
         # 4. Contacts and communication
         'contact.json',
         'address.json',
-        'location.json',
         'phone.json',
         'email.json',
         'domain.json',
@@ -76,9 +75,9 @@ class Command(BaseCommand):
         # 8. Transactions - headers first
         'project.json',
         'proposal.json',
-        'salesorder.json',
+        'order.json',
         'invoice.json',
-        'purchaseorder.json',
+        'purchase.json',
         'purchasereceipt.json',
         'requisition.json',
         'workorder.json',
@@ -87,9 +86,9 @@ class Command(BaseCommand):
         
         # 9. Transaction lines
         'proposalline.json',
-        'salesorderline.json',
+        'orderline.json',
         'invoiceline.json',
-        'purchaseorderline.json',
+        'purchaseline.json',
         'requisitionline.json',
         'workorderline.json',
         'deliveryline.json',

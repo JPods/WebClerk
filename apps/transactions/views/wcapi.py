@@ -2,7 +2,10 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from django.forms.models import model_to_dict
 import logging
+from django.db import IntegrityError
 from django.db.models import QuerySet, Model
+
+logger = logging.getLogger(__name__)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -21,8 +24,22 @@ def to_dict(obj: Model) -> Dict[str, Any]:
         return data
 
 def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[str, Any]:
-    model_fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
-    return {k: v for k, v in (payload or {}).items() if k in model_fields}
+    """Filter payload to model fields, normalising FK names to attname."""
+    meta_fields = getattr(ModelCls._meta, "fields", [])
+    allowed: Dict[str, str] = {}
+    for f in meta_fields:
+        attname = getattr(f, "attname", None)
+        if attname and attname != f.name:
+            allowed[f.name] = attname
+            allowed[attname] = attname
+        else:
+            allowed[f.name] = f.name
+    result: Dict[str, Any] = {}
+    for k, v in (payload or {}).items():
+        canonical = allowed.get(k)
+        if canonical is not None:
+            result[canonical] = v
+    return result
 
 def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
     """Enforce role/tenant/publish/reserved constraints based on Settings.
@@ -97,9 +114,9 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
 
 TRANSACTION_MODELS_WITH_LINES = {
     "proposal",
-    "salesorder",
+    "order",
     "invoice",
-    "purchaseorder",
+    "purchase",
     "workorder",
 }
 
@@ -151,6 +168,7 @@ class WCAPITransactionSaveView(APIView):
             CalculationMismatchError,
             ItemIdChangeError,
         )
+        from common.write_through import is_write_through, forward_transaction_and_store
         
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
@@ -171,6 +189,17 @@ class WCAPITransactionSaveView(APIView):
                 {"detail": f"Model {model_key} does not support lines"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # ── Write-through: forward to remote, store result locally ───
+        if is_write_through():
+            result, status_code = forward_transaction_and_store(
+                request=request,
+                model_key=model_key,
+                record_data=record_data,
+                lines_data=lines_data,
+                options=options,
+            )
+            return Response(result, status=status_code)
         
         try:
             result = save_transaction_with_lines(
@@ -187,6 +216,28 @@ class WCAPITransactionSaveView(APIView):
             result['recalculated_totals'] = {
                 k: float(v) for k, v in recalc_totals.items()
             }
+
+            # Re-fetch the full saved record so the frontend gets a complete
+            # Transaction object (with all fields & nested lines).
+            saved_id = result.get('header', {}).get('id')
+            if saved_id is not None:
+                try:
+                    from apps.core.services.wcapi import get_item
+                    saved_obj = get_item(model_key.lower(), request=request, id=saved_id)
+                    if saved_obj is not None:
+                        record_dict = to_dict(saved_obj)
+                        # Attach lines
+                        line_model_key = f"{model_key.lower()}line"
+                        from apps.core.utils import registry
+                        LineModel = registry.resolve(line_model_key)
+                        if LineModel is not None:
+                            from apps.transactions.services.transaction_save import _resolve_parent_fk
+                            parent_fk = _resolve_parent_fk(LineModel, type(saved_obj), model_key.lower())
+                            line_qs = LineModel.objects.filter(**{parent_fk: saved_id}).order_by('id')
+                            record_dict['lines'] = [to_dict(ln) for ln in line_qs]
+                        result['record'] = record_dict
+                except Exception as fetch_err:
+                    logger.warning("Failed to re-fetch saved record %s: %s", saved_id, fetch_err)
             
             return Response(result, status=status.HTTP_200_OK)
             
@@ -214,6 +265,14 @@ class WCAPITransactionSaveView(APIView):
                 {"detail": str(e)},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        except IntegrityError as e:
+            logger = logging.getLogger(__name__)
+            logger.warning("Transaction save integrity error: %s", e)
+            return Response({
+                "detail": "Integrity error",
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
             logger = logging.getLogger(__name__)
@@ -238,7 +297,7 @@ class WCAPIGetView(APIView):
         if not ModelCls:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
 
-        qs: QuerySet = ModelCls.objects.all()
+        qs: QuerySet = ModelCls.objects.active()
         qs = inject_constraints(qs, request, str(model_key))
 
         if record_id is not None:
@@ -308,23 +367,31 @@ class WCAPISaveView(APIView):
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
+        from common.write_through import is_write_through, forward_and_store
+
         body: Dict[str, Any] = request.data or {}
         model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
         data = body.get("data") or {}
 
-        # DEBUG: Print to stdout to see in runserver terminal
-        print(f"\n{'='*60}")
-        print(f"WCAPISaveView DEBUG:")
-        print(f"  model_key: {model_key}")
-        print(f"  record_id: {record_id}")
-        print(f"  data keys: {list(data.keys()) if isinstance(data, dict) else None}")
-        print(f"  contact_id from data: {data.get('contact_id') if isinstance(data, dict) else None}")
-        print(f"{'='*60}\n")
+        logger.debug(
+            "WCAPISaveView: model_key=%s record_id=%s data_keys=%s",
+            model_key, record_id,
+            list(data.keys()) if isinstance(data, dict) else None,
+        )
 
         ModelCls = registry.resolve(model_key or "")
         if not ModelCls or not isinstance(data, dict):
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── Write-through: forward to remote, store result locally ───
+        if is_write_through():
+            # Build a payload compatible with forward_and_store
+            payload = dict(data)
+            if record_id is not None:
+                payload["id"] = record_id
+            result, status_code = forward_and_store(request, ModelCls, payload)
+            return Response(result, status=status_code)
 
         # Delegate to core save_item to centralize save behavior (including linking hooks)
         try:
@@ -402,7 +469,7 @@ class WCAPISyncView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
             # Apply constraints to ensure user can access this model
-            qs = ModelCls.objects.all()
+            qs = ModelCls.objects.active()
             qs = inject_constraints(qs, request, str(model_key))
             
             # Route to appropriate sync operation
@@ -643,4 +710,4 @@ class WCAPISyncView(APIView):
             transformed_data.append(transformed_record)
             
         # Process transformed data using bulk operations
-        return self._bulk_create(ModelCls, transformed_data, ModelCls.objects.all())
+        return self._bulk_create(ModelCls, transformed_data, ModelCls.objects.active())

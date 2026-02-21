@@ -8,7 +8,7 @@ from apps.transactions.serializers.requisition import RequisitionSerializer
 
 @allow_write
 class RequisitionListView(BaseListCreateView):
-    queryset = Requisition.objects.all()
+    queryset = Requisition.objects.active()
     serializer_class = RequisitionSerializer
     permission_classes = [IsAuthenticated]
     model_name = 'requisition'
@@ -19,7 +19,7 @@ class RequisitionListView(BaseListCreateView):
 
 @allow_write
 class RequisitionDetailView(BaseOptimisticDetailView):
-    queryset = Requisition.objects.all()
+    queryset = Requisition.objects.active()
     serializer_class = RequisitionSerializer
 
 

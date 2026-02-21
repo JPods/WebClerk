@@ -1,8 +1,8 @@
 import json
 import pytest
 from django.test import RequestFactory, override_settings
-from apps.transactions.models import SalesOrder, SalesOrderLine
-from apps.transactions.serializers.sales_order_serializers import SalesOrderLineSerializer
+from apps.transactions.models import Order, OrderLine
+from apps.transactions.serializers.order_serializers import OrderLineSerializer
 from apps.core.views.get_view import WcapiGetView
 
 
@@ -10,12 +10,12 @@ from apps.core.views.get_view import WcapiGetView
 @pytest.mark.fast
 @pytest.mark.smoke
 @pytest.mark.django_db
-def test_sales_order_line_serializer_parent_id_create():
-    so = SalesOrder.objects.create()
-    ser = SalesOrderLineSerializer(data={"parent_id": so.id})
+def test_order_line_serializer_parent_id_create():
+    so = Order.objects.create()
+    ser = OrderLineSerializer(data={"parent_id": so.id})
     assert ser.is_valid(), ser.errors
     obj = ser.save()
-    assert isinstance(obj, SalesOrderLine)
+    assert isinstance(obj, OrderLine)
     assert getattr(obj, 'parent_id') == so.id
 
 
@@ -24,12 +24,12 @@ def test_sales_order_line_serializer_parent_id_create():
 @pytest.mark.smoke
 @pytest.mark.django_db
 @override_settings(WCAPI_OPEN_READ=True)
-def test_wcapi_get_sales_order_line_has_parent_id():
-    so = SalesOrder.objects.create()
-    line = SalesOrderLine.objects.create(parent=so)
+def test_wcapi_get_order_line_has_parent_id():
+    so = Order.objects.create()
+    line = OrderLine.objects.create(parent=so)
 
     rf = RequestFactory()
-    req = rf.get("/wcapi/get/", {"model_name": "sales_order_line", "id": line.id})
+    req = rf.get("/wcapi/get/", {"model_name": "order_line", "id": line.id})
     response = WcapiGetView.as_view()(req)
     response.render()  # type: ignore[attr-defined]
 

@@ -115,7 +115,7 @@ export const ProposalForm: React.FC<ProposalFormProps> = ({
 ```tsx
 interface OrderFormProps {
   proposalId?: string; // For conversion from proposal
-  initialData?: Partial<SalesOrder>;
+  initialData?: Partial<Order>;
   onSubmit: (data: OrderFormData) => Promise<void>;
 }
 
@@ -401,7 +401,7 @@ class TransactionAPI {
 ### Core Types (`types/transactions.ts`)
 
 ```typescript
-export type TransactionType = 'proposal' | 'order' | 'purchase_order' | 'invoice' | 'payment';
+export type TransactionType = 'proposal' | 'order' | 'purchase' | 'invoice' | 'payment';
 
 export type TransactionStatus =
   | 'planned' | 'released' | 'in_progress' | 'complete' | 'canceled'

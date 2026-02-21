@@ -347,7 +347,7 @@ The system provides three specialized functions for receiving inventory in `apps
 
 | Function | Use Case | On-Hand Effect |
 |----------|----------|----------------|
-| `receive_purchase_order(po, receipt_id, lines)` | Receiving goods from vendors | +qty, -on_po |
+| `receive_purchase(po, receipt_id, lines)` | Receiving goods from vendors | +qty, -on_po |
 | `complete_workorder(wo, receipt_id, lines)` | Completing manufacturing | +qty, -on_wo |
 | `adjust_inventory(adjustment_id, lines, notes)` | Manual adjustments | ±qty |
 
