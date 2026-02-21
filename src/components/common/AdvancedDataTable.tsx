@@ -20,7 +20,6 @@ import {
   FaPrint,
   FaCheckSquare,
   FaSearch,
-  FaTrash,
   FaFileExcel,
   FaFilePdf,
   FaFileCode,
@@ -1336,15 +1335,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                         )}
                       </div>
                     )}
-                    {/* <button
-                      onClick={() => onDeleteSelected?.(selectedRows)}
-                      disabled={!onDeleteSelected || selectedRows.length === 0}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                      title="Delete"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                      Delete
-                    </button> */}
+                    {/* Bulk Delete UI intentionally removed. Delete actions belong on the detail page header. */}
 
                     {/* Place all the action buttons here */}
                     {/* <button

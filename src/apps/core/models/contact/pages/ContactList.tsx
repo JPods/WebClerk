@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
-import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { FaPlus, FaEye, FaEdit } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
 } from "../../../../../components/common/AdvancedDataTable";
-import { patchAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
@@ -168,43 +167,6 @@ const ContactList = () => {
     [dispatch],
   );
 
-  // Handle delete
-  const handleDelete = useCallback(
-    async (id: string | number) => {
-      if (!window.confirm("Are you sure you want to delete this action?")) {
-        return;
-      }
-
-      try {
-        // Implement delete logic here using patchAction or appropriate API
-        await patchAction({
-          model_name: "action",
-          id,
-          method: "delete",
-        });
-
-        dispatch(
-          showToast({
-            message: "Action deleted successfully",
-            type: "success",
-          }),
-        );
-
-        // Refresh data
-        fetchActions();
-      } catch (error) {
-        console.error("Error deleting action:", error);
-        dispatch(
-          showToast({
-            message: "Failed to delete action",
-            type: "error",
-          }),
-        );
-      }
-    },
-    [dispatch, fetchActions],
-  );
-
   // Define table columns
   const columns: TableColumn<ContactData>[] = useMemo(
     () => [
@@ -295,7 +257,7 @@ const ContactList = () => {
       },
       {
         name: "Actions",
-        width: "140px",
+        width: "96px",
         cell: (row: ContactData) => (
           <div className="flex items-center gap-2">
             <button
@@ -318,21 +280,11 @@ const ContactList = () => {
             >
               <FaEdit className="w-4 h-4" />
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(row.id);
-              }}
-              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
-              title="Delete"
-            >
-              <FaTrash className="w-4 h-4" />
-            </button>
           </div>
         ),
       },
     ],
-    [handleDelete],
+    [handleEdit, handleView],
   );
 
   // Define filters
@@ -382,66 +334,14 @@ const ContactList = () => {
     [],
   );
 
-  // Handle bulk operations
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedContacts.length === 0) {
-      dispatch(
-        showToast({
-          message: "Please select actions to delete",
-          type: "error",
-        }),
-      );
-      return;
-    }
-
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedContacts.length} action(s)?`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // Implement bulk delete logic
-      await Promise.all(
-        selectedContacts.map((action) =>
-          patchAction({
-            model_name: "action",
-            id: action.id,
-            method: "delete",
-          }),
-        ),
-      );
-
-      dispatch(
-        showToast({
-          message: `${selectedContacts.length} action(s) deleted successfully`,
-          type: "success",
-        }),
-      );
-
-      fetchActions();
-      setSelectedContacts([]);
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
-      dispatch(
-        showToast({
-          message: "Failed to delete some actions",
-          type: "error",
-        }),
-      );
-    }
-  }, [selectedContacts, dispatch, fetchActions]);
-
   // Handle view action
-  const handleView = (row: ContactData) => {
+  function handleView(row: ContactData) {
     setSelectedContact(row);
     setFormMode("view");
-  };
+  }
 
   // Handle edit action
-  const handleEdit = async (row: ContactData) => {
+  async function handleEdit(row: ContactData) {
     // Set selected item immediately using row data
     setSelectedContact(row);
     setFormMode("edit");
@@ -453,7 +353,7 @@ const ContactList = () => {
     } catch {
       // Keep using row data on error
     }
-  };
+  }
 
   // Handle add new action - navigate to separate page
   const handleAdd = () => {
@@ -522,15 +422,6 @@ const ContactList = () => {
                 noDataMessage="No contact found"
                 customActions={
                   <div className="flex gap-2">
-                    {selectedContacts.length > 0 && (
-                      <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                        Delete ({selectedContacts.length})
-                      </button>
-                    )}
                     <button
                       onClick={handleAdd}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"

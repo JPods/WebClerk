@@ -33,7 +33,7 @@ import { DevBadge } from '@/components/common/DevBadge';
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
-import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import { deleteRecord, getRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { createContact, updateContact } from "../services/contactApi";
 import {
   contactSchema,
@@ -79,6 +79,7 @@ import {
   FaShoppingCart,
   FaClipboardList,
   FaSpinner,
+  FaTrash,
   FaTimes,
 } from "react-icons/fa";
 import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
@@ -1800,6 +1801,32 @@ export default function ContactDetail({
     windowManager.closeWindow(windowPath || location.pathname);
   }, [onCancelInline, windowManager, windowPath, location.pathname]);
 
+  const handleDeleteContact = useCallback(async () => {
+    const contactId = data?.id;
+    if (!contactId) return;
+    if (!window.confirm(`Delete contact #${contactId}?`)) return;
+
+    try {
+      await deleteRecord("contact", contactId);
+      dispatch(showToast({ message: "Contact deleted", type: "success" }));
+
+      window.dispatchEvent(
+        new CustomEvent("contact-deleted", {
+          detail: { contactId },
+        }),
+      );
+
+      // Allow parent list pages (inline detail) to refetch immediately.
+      onSaved?.();
+      handleClose();
+    } catch (err) {
+      console.error("[ContactDetail] delete failed:", err);
+      dispatch(
+        showToast({ message: "Failed to delete contact", type: "error" }),
+      );
+    }
+  }, [data?.id, dispatch, onSaved, handleClose]);
+
   // ---------------------------------------------------------------------------
   // Action Buttons (header)
   // ---------------------------------------------------------------------------
@@ -1859,6 +1886,21 @@ export default function ContactDetail({
           title={`Next (#${nextId})`}
         >
           <FaChevronRight size={14} />
+        </button>,
+      );
+    }
+
+    // Delete (right side, before close)
+    if (effectiveMode === "view" && data?.id) {
+      buttons.push(
+        <button
+          key="delete-contact"
+          type="button"
+          onClick={handleDeleteContact}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete contact"
+        >
+          <FaTrash size={14} />
         </button>,
       );
     }
