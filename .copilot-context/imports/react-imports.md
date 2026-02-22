@@ -1,7 +1,7 @@
 # React Canonical Import Paths
 
 > Auto-generated. Key React components, hooks, services, and types with import paths.
-> Generated: 2026-02-22 13:25
+> Generated: 2026-02-22 15:05
 
 ---
 
@@ -26,6 +26,7 @@
 | `reportApi.ts` | `import from '@/apps/core/models/report/services/reportApi'` |
 | `settingApi.ts` | `import from '@/apps/core/models/setting/services/settingApi'` |
 | `templateApi.ts` | `import from '@/apps/core/models/template/services/templateApi'` |
+| `userDailyLogApi.ts` | `import from '@/apps/core/services/userDailyLogApi'` |
 | `documentApi.ts` | `import from '@/apps/docs/models/document/services/documentApi'` |
 | `questionAnswerApi.ts` | `import from '@/apps/docs/models/question_answer/services/questionAnswerApi'` |
 | `tagApi.ts` | `import from '@/apps/docs/models/tag/services/tagApi'` |
@@ -53,6 +54,7 @@
 | `warehouseApi.ts` | `import from '@/apps/products/models/warehouse/services/warehouseApi'` |
 | `campaignApi.ts` | `import from '@/apps/support/models/campaign/services/campaignApi'` |
 | `aiApi.ts` | `import from '@/apps/support/services/aiApi'` |
+| `issueApi.ts` | `import from '@/apps/support/services/issueApi'` |
 | `connectionApi.ts` | `import from '@/apps/sync/connection/services/connectionApi'` |
 | `bundleApi.ts` | `import from '@/apps/sync/models/bundle/services/bundleApi'` |
 | `qqq_connectionApi.ts` | `import from '@/apps/sync/models/connection/services/qqq_connectionApi'` |
@@ -82,6 +84,7 @@
 |------|-------------|
 | `userProfile.ts` | `import from '@/api/userProfile'` |
 | `usePermissions.ts` | `import from '@/apps/common/components/panels/usePermissions'` |
+| `userDailyLogApi.ts` | `import from '@/apps/core/services/userDailyLogApi'` |
 | `Warehouse.ts` | `import from '@/apps/products/models/warehouse/Warehouse'` |
 | `index.ts` | `import from '@/apps/products/models/warehouse/index'` |
 | `WarehouseDetail.tsx` | `import from '@/apps/products/models/warehouse/pages/WarehouseDetail'` |
@@ -313,6 +316,7 @@
 | `UserProfile.tsx` | `import from '@/pages/UserProfile'` |
 | `AdminWorkbench.tsx` | `import from '@/pages/admin/AdminWorkbench'` |
 | `DetailReview.tsx` | `import from '@/pages/admin/DetailReview'` |
+| `UserActivityDashboard.tsx` | `import from '@/pages/admin/UserActivityDashboard'` |
 | `NotionTrackerPage.tsx` | `import from '@/pages/notion/NotionTrackerPage'` |
 | `qqq_ItemDashboard.tsx` | `import from '@/pages/qqq_ItemDashboard'` |
 | `QATestPage.tsx` | `import from '@/pages/test/QATestPage'` |

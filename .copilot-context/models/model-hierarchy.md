@@ -37,6 +37,7 @@ BaseModel
 
 ### BaseModel (full)
 
+- `core.APILog`
 - `core.Action`
 - `communications.Address`
 - `accounts.Audit`
@@ -102,6 +103,7 @@ BaseModel
 - `accounts.TaxJurisdiction`
 - `core.Template`
 - `accounts.Term`
+- `core.UserDailyLog`
 - `products.Variant`
 - `orgs.Vendor`
 - `products.Warehouse`

@@ -854,6 +854,12 @@ CELERY_BEAT_SCHEDULE = {
         'kwargs': {'limit': 5000, 'batch_size': 500},
     },
 
+    # ── User daily log aggregation (daily 1:30 AM) ─────────────────
+    'aggregate-user-daily-logs-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_aggregate_user_daily_logs',
+        'schedule': crontab(hour=1, minute=30),
+    },
+
     # ── Model defaults (daily 2 AM) ────────────────────────────────
     'ensure-model-defaults-daily': {
         'task': 'apps.support.scheduler.tasks.task_ensure_model_defaults',
