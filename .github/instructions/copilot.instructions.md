@@ -397,6 +397,23 @@ Lines carry a `_dirty` flag:
 
 `item_id` cannot change on existing lines. UI must prevent it; backend validates as backstop.
 
+### Two Save Endpoints
+
+| Action | Endpoint | SDK Function | When |
+|--------|----------|-------------|------|
+| Save transaction + lines | `POST /wcapi/transaction/save/` | `saveTransactionWithLines(modelName, payload)` | Creating/editing any transaction with lines |
+| Deactivate source doc | `POST /wcapi/save/` | `saveRecord(modelName, { id, is_active: false })` | After transfer (e.g. deactivate order after creating invoice) |
+
+### Transfer Flow (Order → Invoice)
+
+1. R25 builds invoice header from order data, sets `parent_id` and `parent_model: "order"`
+2. R25 stamps each invoice line with `refs.source.order_line_id` pointing to the source order line
+3. R25 calls `saveTransactionWithLines("invoice", payload)` → `POST /wcapi/transaction/save/`
+4. **Backend creates exactly one Pending per line** — captures `on_in`, `on_so` release, and `on_hand` deduction in a single record
+5. R25 calls `saveRecord("order", { id, is_active: false })` → `POST /wcapi/save/` to deactivate the order (no lines, no pending)
+
+> **Backend is authoritative for pending creation.** R25 provides `refs.source` for traceability, but the backend derives pending type, transfer status, and quantity buckets from its own data. Do not send pending-related fields from the frontend.
+
 ---
 
 ## 12. JSONB Fields & refs.links
