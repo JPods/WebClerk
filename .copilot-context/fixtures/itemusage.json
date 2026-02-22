@@ -1,0 +1,132 @@
+{
+  "__model__": "products.ItemUsage",
+  "__table__": "products_itemusage",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "item": "<fk:Item>",
+  "item_id": "<int:fk>",
+  "status": "<str:max30>",
+  "item_ida": "<str:max120>",
+  "description": "<str:max255>",
+  "year": "<int>",
+  "month": "<int>",
+  "metrics": {
+    "turns.actual": 0,
+    "turns.average": 0,
+    "turns.target": 0,
+    "adjustment.quantity": 0,
+    "adjustment.value": 0,
+    "bill_of_material.quantity.actual": 0,
+    "capacity.value": 0,
+    "cost.actual": 0,
+    "cost.plan": 0,
+    "count.invoices": 0,
+    "count.sos": 0,
+    "inventory.actual": 0,
+    "inventory.eom_count": 0,
+    "inventory.plan": 0,
+    "lead.time": 0,
+    "margin.factor": 0,
+    "order.quantity.actual": 0,
+    "order.quantity.plan": 0,
+    "order.value.actual": 0,
+    "order.value.plan": 0,
+    "purchase.quantity": 0,
+    "purchase.value": 0,
+    "sales.actual": 0,
+    "sales.plan": 0,
+    "sales.quantity.actual": 0,
+    "sales.quantity.plan": 0,
+    "scrap.actual": 0,
+    "scrap.plan": 0,
+    "meta": {
+      "description": "",
+      "purpose": "",
+      "type": ""
+    },
+    "dt_updated": 0,
+    "version": 1,
+    "schema_version": 1
+  }
+}

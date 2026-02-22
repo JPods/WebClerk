@@ -1,0 +1,125 @@
+{
+  "__model__": "core.Contact",
+  "__table__": "contacts",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "password": "<str:max128>",
+  "last_login": "<datetime:ISO8601>",
+  "is_superuser": false,
+  "name_first": "<str:max100>",
+  "name_last": "<str:max100>",
+  "name_middle": "<str:max100>",
+  "name_prefix": "<str:max20>",
+  "name_suffix": "<str:max20>",
+  "attention": "<str:max201>",
+  "email": "<str:max254>",
+  "email_id": "<int>",
+  "address_full": "<str:max500>",
+  "address_id": "<int>",
+  "phone": "<str:max50>",
+  "phone_id": "<int>",
+  "domain": "<str:max255>",
+  "domain_id": "<int>",
+  "employee": "<fk:OrgBase>",
+  "employee_id": "<int:fk>",
+  "customer": "<fk:OrgBase>",
+  "customer_id": "<int:fk>",
+  "vendor": "<fk:OrgBase>",
+  "vendor_id": "<int:fk>",
+  "manufacturer": "<fk:OrgBase>",
+  "manufacturer_id": "<int:fk>",
+  "rep": "<fk:OrgBase>",
+  "rep_id": "<int:fk>",
+  "other_id": "<int>",
+  "company": "<str:max200>",
+  "title": "<str:max100>",
+  "department": "<str:max100>",
+  "comment": "<text>",
+  "role": "<choice:['', 'user', 'employee']>",
+  "is_active": true,
+  "is_staff": false,
+  "dt_joined": "<datetime:ISO8601>",
+  "groups": "<manytomanyfield>",
+  "user_permissions": "<manytomanyfield>"
+}

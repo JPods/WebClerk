@@ -1,0 +1,124 @@
+{
+  "__model__": "transactions.Project",
+  "__table__": "projects",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726725,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726725,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726725,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "name": "<str:max255>",
+  "dt_kanban": "<datetime:ISO8601>",
+  "situation": "<text>",
+  "objective": {
+    "summary": "",
+    "success": {
+      "definition": "",
+      "metrics": []
+    },
+    "scope": {
+      "in": [],
+      "out": []
+    }
+  },
+  "priority": "<int>",
+  "status": "<choice:['', 'draft', 'active']>",
+  "attention": "<choice:['', 'low', 'normal']>",
+  "id_contact": "<int>",
+  "tasks": {
+    "items": [],
+    "completed": 0,
+    "total": 0
+  },
+  "burndown": "<int>",
+  "category": "<str:max128>",
+  "intent": "<str:max255>",
+  "logistics": {
+    "budget": 0.0,
+    "deadline": 0,
+    "timezone": "",
+    "resources": []
+  },
+  "slug": "<str:max180>",
+  "profit": "<decimal:14.2>",
+  "profit_velocity": "<int>",
+  "data": {}
+}

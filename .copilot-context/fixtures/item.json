@@ -1,0 +1,150 @@
+{
+  "__model__": "products.Item",
+  "__table__": "products_item",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726721,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "stats": {
+    "counts": {},
+    "values": {},
+    "series": {},
+    "last": {}
+  },
+  "name": "<str:max160>",
+  "sku": "<str:max80>",
+  "qr_code": "<str:max255>",
+  "kind": "<choice:['physical', 'service', 'bundle']>",
+  "uom": "<str:max20>",
+  "base_uom": "<str:max20>",
+  "description": "<text>",
+  "gls": {},
+  "flags": {
+    "back_order_allowed": false,
+    "discountable": false,
+    "linked": false,
+    "not_tracked": false,
+    "pacing": false,
+    "print_suppressed": false,
+    "serialized": false,
+    "tally_by_type": false
+  },
+  "price": {
+    "base": null,
+    "msrp": null,
+    "retail": null,
+    "wholesale": null,
+    "distributor": null,
+    "sample": null,
+    "qty_breaks": [],
+    "currency": "USD",
+    "history": []
+  },
+  "cost": {
+    "standard": null,
+    "last": null,
+    "avg": null,
+    "landed": null,
+    "currency": "USD",
+    "components": {},
+    "qty_breaks": [],
+    "history": []
+  },
+  "tax_code": {
+    "code": "",
+    "jurisdiction": "",
+    "category": "",
+    "rate": null,
+    "exemptions": [],
+    "jurisdiction_params": []
+  },
+  "specification_id": "<int>",
+  "catalog": {
+    "categories": [],
+    "attributes": {},
+    "web": {},
+    "flags": {}
+  },
+  "quantity": {},
+  "row_version": "<int>"
+}

@@ -1,0 +1,64 @@
+{
+  "__model__": "transactions.Payment",
+  "__table__": "payments",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "invoice": "<fk:Invoice>",
+  "invoice_id": "<int:fk>",
+  "contact": "<fk:Contact>",
+  "contact_id": "<int:fk>",
+  "amount": "<decimal:15.2>",
+  "dt_payment": "<datetime:ISO8601>",
+  "payment_method": "<fk:PaymentMethod>",
+  "payment_method_id": "<int:fk>",
+  "payment_term": "<fk:PaymentTerm>",
+  "payment_term_id": "<int:fk>",
+  "reference_number": "<str:max100>",
+  "notes": "<text>",
+  "gateway": "<choice:['', 'manual', 'stripe']>",
+  "id_gateway_transaction": "<str:max255>",
+  "id_gateway_payment_intent": "<str:max255>",
+  "status": "<choice:['', 'pending', 'processing']>",
+  "gateway_response": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c6170>",
+  "dt_processed": "<datetime:ISO8601>",
+  "reconciled": false,
+  "dt_reconciliation": "<datetime:ISO8601>",
+  "fee_amount": "<decimal:10.2>",
+  "refs": {
+    "invoice_ids": [],
+    "order_ids": [],
+    "source": {
+      "type": "",
+      "id": 0
+    }
+  },
+  "metadata": {
+    "reconciliation": {
+      "batch_id": null,
+      "statement_date": null,
+      "notes": ""
+    },
+    "gateway_metadata": {},
+    "processing_fees": [],
+    "audit_trail": []
+  }
+}
