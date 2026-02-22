@@ -7,6 +7,7 @@ import { StaffBadgePrefsProvider } from "./context/StaffBadgePrefsContext";
 import Router from "./routes/Router";
 import { DataSetBadge } from './components/DataSetBadge';
 import { DevTools } from './components/DevTools';
+import { AiHelpWidget } from './components/AiHelpWidget';
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -51,6 +52,8 @@ export default function App() {
               <DataSetBadge position="bottom-right" showDetails />
               {/* Dev tools panel (only shows in DEV mode) */}
               <DevTools position="bottom-left" />
+              {/* AI Help Assistant chat widget */}
+              <AiHelpWidget position="bottom-right" />
             </div>
           </StaffBadgePrefsProvider>
         </WindowManagerProvider>
