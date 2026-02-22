@@ -1,0 +1,47 @@
+{
+  "__model__": "core.AuditLog",
+  "__table__": "audit_logs",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "user": "<fk:Contact>",
+  "user_id": "<int:fk>",
+  "model_name": "<str:max100>",
+  "record_id": "<int>",
+  "action": "<str:max50>",
+  "changes": {},
+  "ip_address": "<genericipaddressfield>",
+  "user_agent": "<text>",
+  "id_session": "<str:max255>",
+  "metadata": {}
+}

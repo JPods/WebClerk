@@ -1,0 +1,115 @@
+{
+  "__model__": "products.InventoryLayer",
+  "__table__": "products_inventorylayer",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "item": "<fk:Item>",
+  "item_id": "<int:fk>",
+  "status": "<str:max30>",
+  "warehouse": "<fk:Warehouse>",
+  "warehouse_id": "<int:fk>",
+  "source": {},
+  "quantity": {},
+  "cost": {
+    "unit_po": 0.0,
+    "fifo_snapshot": 0.0,
+    "lifo_snapshot": 0.0,
+    "moving_avg": 0.0,
+    "landed": 0.0,
+    "freight": 0.0,
+    "duty": 0.0,
+    "handling": 0.0,
+    "vat": 0.0,
+    "scrap_cost": 0.0,
+    "trend_pct": 0.0,
+    "currency": "USD",
+    "exchange_rate": 1.0
+  },
+  "lot": "<str:max80>",
+  "serial_numbers": [],
+  "serial_batch": "<str:max80>",
+  "source_doc_type": "<str:max40>",
+  "source_doc_id": "<int>",
+  "is_locked": false
+}

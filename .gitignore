@@ -2,7 +2,6 @@
 !static/
 !static/images/
 !static/images/**
-.github/
 .local/
 .vscode/
 .env
@@ -23,3 +22,10 @@ tools/.pids/
 local_data/
 *.sqlite3
 db.sqlite3
+
+# macOS Finder duplicate files (e.g. "foo 2.py")
+* 2.*
+* 2
+
+# AI Assistant vector store (rebuild with: python manage.py index_docs)
+.chroma_db/

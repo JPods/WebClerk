@@ -1,0 +1,39 @@
+# .github/workflows/rename-guard.yml
+# Blocks PRs that reintroduce legacy model names
+# (SalesOrder, PurchaseOrder, Location-as-comm-model).
+# See readmes/model-rename-guard.md for details.
+
+name: Model Rename Guard
+
+# ── STAGED: activate by uncommenting the pull_request trigger below ──
+# on:
+#   pull_request:
+#     paths:
+#       - '**.py'
+#       - '**.ts'
+#       - '**.tsx'
+#       - '**.js'
+#       - '**.md'
+#       - '**.json'
+on:
+  workflow_dispatch:   # manual-only until we're ready
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Also check out React2025 so the script can scan both repos
+          path: webClerk3
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/React2025
+          path: React2025
+          # If React2025 is in a separate repo; remove this block
+          # if both projects live in the same monorepo.
+
+      - name: Run rename guard
+        working-directory: webClerk3
+        run: bash tools/check_renamed_models.sh

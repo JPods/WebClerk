@@ -1,0 +1,122 @@
+{
+  "__model__": "core.Action",
+  "__table__": "actions",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726715,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726715,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726715,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "parent_action": "<fk:Action>",
+  "parent_action_id": "<int:fk>",
+  "action": {},
+  "description": {},
+  "assigned_to": "<django.db.models.fields.NOT_PROVIDED object at 0x11933e120>",
+  "contact_id": "<int>",
+  "languages": [],
+  "project_name": "<str:max255>",
+  "project_id": "<int>",
+  "project_ida": "<str:max255>",
+  "sequence": "<int>",
+  "kanban_column": "<choice:['', 'Backlog', 'Planning']>",
+  "priority": "<int>",
+  "difficulty": "<int>",
+  "status": "<str:max100>",
+  "percent_complete": "<int>",
+  "burndown": "<int>",
+  "dt_start": "<int>",
+  "dt_deadline": "<int>",
+  "dt_expected": "<int>",
+  "dt_completed": "<int>",
+  "dt_updated": "<int>",
+  "duration": "<int>",
+  "dt_start_original": "<int>",
+  "dt_end_original": "<int>",
+  "created_by": "<django.db.models.fields.NOT_PROVIDED object at 0x119322210>",
+  "start_by": "<django.db.models.fields.NOT_PROVIDED object at 0x1193220d0>",
+  "deadline_by": "<django.db.models.fields.NOT_PROVIDED object at 0x119394e90>",
+  "expected_by": "<django.db.models.fields.NOT_PROVIDED object at 0x119394d60>",
+  "completed_by": "<django.db.models.fields.NOT_PROVIDED object at 0x11942ab10>",
+  "updated_by": "<django.db.models.fields.NOT_PROVIDED object at 0x11934a140>",
+  "end_by": "<django.db.models.fields.NOT_PROVIDED object at 0x11934a360>",
+  "linkage": "<int>",
+  "project_metadata": "<django.db.models.fields.NOT_PROVIDED object at 0x11938b150>"
+}

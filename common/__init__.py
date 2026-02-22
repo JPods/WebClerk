@@ -11,6 +11,8 @@ class CommonConfig(AppConfig):
 	def ready(self):  # pragma: no cover
 		# Import signals to connect receivers
 		from . import signals  # noqa: F401
+		# Register system checks (copilot instruction sync, etc.)
+		from . import checks  # noqa: F401
 		# Register periodic tasks (Celery Beat) lazily after app ready
 		try:
 			from django_celery_beat.models import PeriodicTask, IntervalSchedule

@@ -1,0 +1,13 @@
+{
+  "__model__": "products.PendingInventoryAdjustment",
+  "__table__": "products_pendinginventoryadjustment",
+  "id": "<int:pk>",
+  "inventory_layer": "<fk:InventoryLayer>",
+  "inventory_layer_id": "<int:fk>",
+  "qty": "<decimal:14.4>",
+  "state": "<choice:['pending', 'applied', 'canceled']>",
+  "reason": "<str:max80>",
+  "request_ref": {},
+  "dt_applied": "<datetime:ISO8601>",
+  "cancel_reason": "<str:max120>"
+}

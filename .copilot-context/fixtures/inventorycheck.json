@@ -1,0 +1,97 @@
+{
+  "__model__": "products.InventoryCheck",
+  "__table__": "products_inventorycheck",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726720,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "orgbase": "<fk:OrgBase>",
+  "orgbase_id": "<int:fk>",
+  "catalog": "<fk:Catalog>",
+  "catalog_id": "<int:fk>",
+  "user": "<fk:Contact>",
+  "user_id": "<int:fk>",
+  "dt_performed": "<int>",
+  "status": "<choice:['planned', 'in_progress', 'completed']>",
+  "notes": "<text>",
+  "data": {}
+}
