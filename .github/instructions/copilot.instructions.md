@@ -536,7 +536,34 @@ pnpm test -- --run --coverage  # With coverage
 
 ---
 
-## 17. Session Context
+## 17. Instruction File Sync (MANDATORY)
+
+Copilot instructions exist in **two locations** in both repos:
+
+| File | Role |
+|------|------|
+| `git_bypass/copilot.instructions.md` | **Source of truth** — committed to git, shared with the team |
+| `.github/instructions/copilot.instructions.md` | **Active copy** — read by VS Code / Copilot |
+
+In R25, both are committed (`.github/` is NOT gitignored here).  
+In wc3, `.github/` is gitignored, so only `git_bypass/` is committed.
+
+### Rules
+
+1. **Always edit `git_bypass/copilot.instructions.md` first** — it's the canonical version.
+2. **Immediately copy to the active location:**
+   ```bash
+   cp git_bypass/copilot.instructions.md .github/instructions/copilot.instructions.md
+   ```
+3. **Both repos must stay aligned** — when instructions change, update both:
+   - `webClerk3/git_bypass/copilot.instructions.md`
+   - `React2025/git_bypass/copilot.instructions.md`
+   - Then copy each to its `.github/instructions/` counterpart.
+4. **wc3 has a Django startup check** (`common/checks.py`) that warns if the files are out of sync.
+
+---
+
+## 18. Session Context
 
 When starting a coding session, establish:
 
