@@ -1,5 +1,31 @@
 Now lets get the transfer between transactions working
 
+## Save Flow for All Transfers
+
+Every transfer follows the unified save architecture via `POST /wcapi/transaction/save/`.
+
+### Collect-then-Create Pattern (2026-02-21)
+
+```
+POST /wcapi/transaction/save/  →  save_transaction_with_lines():
+  Phase 1: atomic { save header → save lines (signals suppressed) → collect deltas }
+  Phase 2: _create_pending_from_deltas() — one Pending per new line
+  Phase 3: update source lines (transfer only)
+  Phase 4: single dispatch_pending_processing()
+```
+
+**Key rules:**
+- **Backend is authoritative** — pending type, transfer detection, and quantity buckets derived server-side
+- Lines saved with `_pending_created = True` to suppress `post_save` signal
+- Exactly ONE pending record per line — `(invoice_line_id, order_line_id)` pair is stored and duplicates are forbidden
+- For transfers (e.g. order→invoice), one Pending captures both the add and the release (`on_in=+qty, on_so=-qty, on_hand=-qty`)
+- Celery only **applies** pending deltas to `Item.quantity` — it does not create them
+- One dispatch signal after all pending records exist, not per-line
+
+---
+
+## Proposal to Proposal
+
 In a flow from proposal to proposal
 1. a null id proposal is created
 2. Customer information is not populated from the proposal, price_level is set to "retail"
@@ -9,6 +35,12 @@ In a flow from proposal to proposal
 	proposal_line.quantity.remaining = proposal_line.quantity.placed
 
 When the customer is selected, the appropriate price_level will be set and the lines recalculate.
+
+**Pending:** One pending per new proposal line (type_id=PP, on_p += placed). No parent-side pending since this is a copy, not a transfer.
+
+---
+
+## Proposal to Order or Invoice
 
 From proposal to order or invoice.
 1. a null id order or invoice is created
@@ -30,7 +62,15 @@ From proposal to order or invoice.
 		order_line.quantity.placed = proposal.quantity.remaining
 		proposal_line.quantity.actioned =+ proposal.quantity.remaining
 		proposal_line.quantity.remaining = 0
-		
+
+**Pending (inside atomic block):**
+1. Child pending: type_id=SO (or IN), on_so += order_line.quantity.placed
+2. Parent pending: type_id=PP, on_p -= quantity transferred (proposal actioned)
+3. Both pending records saved in current worker; Celery applies after delay
+
+---
+
+## Cross-Type Transfers (Purchase ↔ Sell-Side)
 		
 In a flow from proposal to purchase, or order to purchase, or invoice to purchase, or purchase to proposal,  or purchase to order, or purchase to invoice
 1. a null id purchase is created
@@ -39,5 +79,10 @@ In a flow from proposal to purchase, or order to purchase, or invoice to purchas
 	receiving_line.quantity.placed = original_line.quantity.placed
 	receiving_line.quantity.actioned = 0
 	receiving_line.quantity.remaining = original_line.quantity.placed
+
+**Pending (inside atomic block):**
+1. Child pending: type_id matching the new transaction (PO, SO, IN, PP, etc.)
+2. Parent pending: delta on the originating line's bucket
+3. Saved together in the same atomic block
 	
 	

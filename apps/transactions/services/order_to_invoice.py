@@ -4,6 +4,9 @@ from datetime import datetime, timezone as dt_timezone
 from django.db import transaction
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class OrderToInvoiceTransferError(Exception):
     """Custom exception for order-to-invoice transfer errors."""
@@ -20,14 +23,19 @@ def transfer_order_to_invoice(
 ) -> Dict[str, Any]:
     """Transfer order lines to a new invoice (atomic).
 
-    Workflow:
+    Workflow — collect-then-create pending pattern:
       1. Select lines (all or by ID list); skip lines with remaining ≤ 0
       2. Create Invoice header with refs.source.order_id
       3. For each OrderLine:
          a. Convert quantity via _convert_quantity_for_invoice()
-         b. Create InvoiceLine with full price/cost/tax/physical
-         c. Update source OrderLine: invoiced += remaining, remaining → 0
-      4. If all order lines fulfilled → set order.status = 'fulfilled'
+         b. Create InvoiceLine (signal suppressed via _pending_created)
+         c. Update source OrderLine (signal suppressed via _pending_created)
+         d. Append inventory delta to pending_deltas array
+      4. After all saves complete, create Pending records from the array
+      5. If all order lines fulfilled → set order.status = 'fulfilled'
+
+    This ensures exactly ONE pending record per invoice line, with correct
+    on_in / on_so / on_hand values.  No signal-driven duplicates.
 
     See: readmes/topics/transactions/transactions-totals.md §2
     """
@@ -48,9 +56,7 @@ def transfer_order_to_invoice(
         missing = set(line_ids or []) - found
         raise OrderToInvoiceTransferError(f"Line IDs not found: {missing}")
 
-    # Create invoice — set parent_id/parent_model so the inventory
-    # signal (_create_pending_for_line_add) knows to release on_so
-    # and deduct on_hand when invoice lines are created.
+    # Create invoice — parent_id/parent_model links back to source order
     invoice = Invoice.objects.create(
         status=invoice_status,
         customer_id=getattr(order, "customer_id", 0) or 0,
@@ -62,15 +68,19 @@ def transfer_order_to_invoice(
         metadata=_prepare_invoice_metadata(order, invoice_type),
     )
 
+    # ── Phase 1: Save all lines, collect inventory deltas ────────────
     line_mapping: Dict[int, int] = {}
+    pending_deltas: List[Dict[str, Any]] = []
     transferred = 0
+
     for ol in lines_to_transfer:
         q = ol.quantity or {}
         remaining = q.get("remaining", 0)
         if transfer_all and remaining <= 0:
             continue
 
-        il = InvoiceLine.objects.create(
+        # Create InvoiceLine — suppress signal with _pending_created
+        il = InvoiceLine(
             invoice=invoice,
             status=ol.status or "pending",
             price_level=ol.price_level,
@@ -84,10 +94,32 @@ def transfer_order_to_invoice(
             prefs=dict(ol.prefs or {}),
             metadata=_prepare_line_metadata(ol, order),
         )
+        il._pending_created = True  # suppress signal
+        il.save()
+
         line_mapping[ol.id] = il.id
         transferred += 1
 
+        # Update source OrderLine — suppress signal with _pending_created
         _update_order_line_quantity(ol, remaining)
+
+        # Collect the inventory delta for this transfer
+        item_data = ol.item or {}
+        item_id = item_data.get('id') or item_data.get('item_id')
+        if item_id and remaining > 0:
+            pending_deltas.append({
+                'item_id': item_id,
+                'item_ida': item_data.get('ida', str(item_id)),
+                'quantity': float(remaining),
+                'invoice_line_id': il.id,
+                'order_line_id': ol.id,
+                'unit_cost': float((ol.cost or {}).get('unit', 0) or 0),
+                'unit_price': float((ol.price or {}).get('unit', 0) or 0),
+            })
+
+    # ── Phase 2: Create pending records from collected deltas ────────
+    _create_pending_records(invoice, order, pending_deltas)
+
     if transfer_all:
         remaining_total = sum(
             (l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(order=order)
@@ -208,6 +240,8 @@ def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
     """Decrement source order line after transfer to invoice.
 
     Updates: actioned += invoiced_qty, remaining = placed - actioned
+    Sets _pending_created to suppress the post_save signal —
+    pending records are created later by _create_pending_records().
 
     Uses canonical placed/actioned/remaining keys.
     See: readmes/topics/transactions/transactions-totals.md §2
@@ -217,4 +251,81 @@ def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
     placed = q.get("placed", 0)
     q["remaining"] = max(0, placed - q["actioned"])
     ol.quantity = cast(Any, q)
+    ol._pending_created = True  # suppress signal — pending created later
     ol.save(update_fields=["quantity", "dt_modified", "version"])
+
+
+def _create_pending_records(
+    invoice: Invoice,
+    order: Order,
+    pending_deltas: List[Dict[str, Any]],
+) -> List:
+    """Create ONE Pending record per transferred line from the collected deltas.
+
+    Each pending records:
+      on_in  = +quantity   (invoice commitment)
+      on_so  = -quantity   (release order commitment)
+      on_hand = -quantity  (goods shipped)
+
+    Called after all lines are saved so IDs are stable.
+    """
+    from apps.core.models import Pending
+
+    created = []
+    for delta in pending_deltas:
+        item_id = delta['item_id']
+        qty = delta['quantity']
+        pending_data = {
+            'type_id': 'IN',
+            'item_num': delta['item_ida'],
+            'item_id': item_id,
+            'doc_id': getattr(invoice, 'ida', '') or str(invoice.pk),
+            'doc_pk': invoice.pk,
+            'line_id': delta['invoice_line_id'],
+            'line_num': 0,
+
+            # Quantity buckets
+            'on_so': -qty,
+            'on_po': 0,
+            'on_wo': 0,
+            'on_in': qty,
+            'on_r': 0,
+            'on_p': 0,
+            'on_hand': -qty,
+
+            # Pricing snapshot
+            'unit_cost': delta['unit_cost'],
+            'unit_price': delta['unit_price'],
+
+            # Audit
+            'reason': 'in line add (releases so, deducts on_hand)',
+            'take_action': 1,
+            'changed_by': '',
+
+            # Transaction reference
+            'transaction_type': 'invoice',
+            'transaction_model': 'invoice',
+
+            # Parent links
+            'links': {
+                'order': {
+                    'parent_id': order.pk,
+                    'order_line_id': delta['order_line_id'],
+                },
+            },
+        }
+
+        pending = Pending.objects.create(
+            model_name='item',
+            record_id=str(item_id),
+            purpose='inventory_line_add',
+            name=f'IN Line Add: {delta["item_ida"]}',
+            data=pending_data,
+        )
+        created.append(pending)
+        logger.debug(
+            f"Created pending {pending.pk} for invoice line {delta['invoice_line_id']}, "
+            f"item {item_id}, qty={qty} (on_in=+{qty}, on_so=-{qty}, on_hand=-{qty})"
+        )
+
+    return created

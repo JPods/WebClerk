@@ -49,7 +49,157 @@ def _resolve_parent_fk(LineModel, HeaderModel, model_key: str) -> str:
 
 # Tolerance for calculation comparison (0.01 = 1 cent)
 CALC_TOLERANCE = Decimal("0.01")
+# Pending type codes — mirrors line_item_service._get_pending_type
+_PENDING_TYPE_MAP = {
+    'proposal': 'PP',
+    'order': 'SO',
+    'invoice': 'IN',
+    'purchase': 'PO',
+    'workorder': 'WO',
+}
 
+
+def _create_pending_from_deltas(
+    header_obj: 'Model',
+    model_key: str,
+    pending_deltas: List[Dict[str, Any]],
+) -> int:
+    """Convert the collected pending_deltas array into Pending records.
+
+    Backend-authoritative:
+      • ``pending_type`` is derived from ``model_key``.
+      • ``parent_id`` / ``parent_model`` on the header determine whether this
+        is a transfer.  For transfers (e.g. order → invoice) a single Pending
+        captures on_in, on_so release, and on_hand deduction.
+      • ``invoice_line_id`` + ``order_line_id`` are stored in every record.
+        The pair must be unique — if a duplicate already exists the record is
+        skipped.
+
+    Returns the number of Pending records created.
+    """
+    from apps.core.models import Pending
+    from apps.products.models import Item
+
+    pending_type = _PENDING_TYPE_MAP.get(model_key.lower(), 'XX')
+    parent_id = getattr(header_obj, 'parent_id', None)
+    parent_model = getattr(header_obj, 'parent_model', None) or ''
+    is_transfer = bool(parent_id and parent_model)
+    doc_ida = getattr(header_obj, 'ida', '') or str(header_obj.pk)
+
+    created_count = 0
+    seen_pairs: set = set()
+
+    for delta in pending_deltas:
+        item_id = delta['item_id']
+        line_id = delta['line_id']           # the saved new-line PK
+        source_line_id = delta.get('source_line_id')  # FK to source line (transfer)
+        quantity = delta['quantity']
+
+        # ── Build the pair key ───────────────────────────────────────
+        # For invoice-from-order: invoice_line_id = line_id, order_line_id = source_line_id
+        if model_key.lower() == 'invoice':
+            invoice_line_id = line_id
+            order_line_id = source_line_id
+        elif model_key.lower() == 'order':
+            order_line_id = line_id
+            invoice_line_id = source_line_id
+        else:
+            invoice_line_id = None
+            order_line_id = None
+
+        pair = (invoice_line_id, order_line_id)
+        if pair in seen_pairs:
+            logger.warning(
+                'Duplicate pair skipped in same batch: IL=%s OL=%s item=%s',
+                invoice_line_id, order_line_id, item_id,
+            )
+            continue
+        seen_pairs.add(pair)
+
+        # ── DB-level duplicate guard ─────────────────────────────────
+        if invoice_line_id and order_line_id:
+            dup = Pending.objects.filter(
+                model_name='item',
+                record_id=str(item_id),
+                purpose='inventory_line_add',
+                dt_processed=0,
+                data__invoice_line_id=invoice_line_id,
+                data__order_line_id=order_line_id,
+            ).exists()
+            if dup:
+                logger.warning(
+                    'Duplicate pending blocked: IL=%s OL=%s item=%s',
+                    invoice_line_id, order_line_id, item_id,
+                )
+                continue
+
+        # ── Build quantity buckets ───────────────────────────────────
+        pending_data: Dict[str, Any] = {
+            'type_id': pending_type,
+            'item_id': item_id,
+            'item_num': delta.get('item_ida', str(item_id)),
+            'doc_id': doc_ida,
+            'doc_pk': header_obj.pk,
+            'line_id': line_id,
+            'line_num': 0,
+            # Quantity buckets — zeroed, then set by type
+            'on_so': 0, 'on_po': 0, 'on_wo': 0,
+            'on_in': 0, 'on_r': 0, 'on_p': 0, 'on_hand': 0,
+            # Pricing snapshot
+            'unit_cost': delta.get('unit_cost', 0),
+            'unit_price': delta.get('unit_price', 0),
+            # Audit
+            'reason': f'{pending_type.lower()} line add',
+            'take_action': 1,
+            'changed_by': '',
+            'transaction_type': model_key.lower(),
+            'transaction_model': header_obj._meta.model_name,
+            # Line-pair IDs (one pending per pair; forbids duplicates)
+            'invoice_line_id': invoice_line_id,
+            'order_line_id': order_line_id,
+            'links': {},
+        }
+
+        if pending_type == 'SO':
+            pending_data['on_so'] = quantity
+        elif pending_type == 'PO':
+            pending_data['on_po'] = quantity
+        elif pending_type == 'WO':
+            pending_data['on_wo'] = quantity
+        elif pending_type == 'PP':
+            pending_data['on_p'] = quantity  # probability handled during apply
+        elif pending_type == 'IN':
+            pending_data['on_in'] = quantity
+            if is_transfer and parent_model == 'order':
+                # Invoice from order: release SO commitment + deduct on_hand
+                pending_data['on_so'] = -quantity
+                pending_data['on_hand'] = -quantity
+                pending_data['links']['order'] = {'parent_id': parent_id}
+                pending_data['reason'] = 'in line add (releases so, deducts on_hand)'
+
+        # Look up item.ida for the name field
+        item_ida = delta.get('item_ida', str(item_id))
+        try:
+            item_obj = Item.objects.only('ida').get(pk=item_id)
+            item_ida = item_obj.ida or str(item_id)
+        except Item.DoesNotExist:
+            pass
+
+        Pending.objects.create(
+            model_name='item',
+            record_id=str(item_id),
+            purpose='inventory_line_add',
+            name=f'{pending_type} Line Add: {item_ida}',
+            data=pending_data,
+        )
+        created_count += 1
+        logger.debug(
+            "Pending created: type=%s item=%s line=%s src=%s",
+            pending_type, item_id, line_id, source_line_id,
+        )
+
+    logger.info("Created %d pending records for %s #%s", created_count, model_key, header_obj.pk)
+    return created_count
 
 def _d(val: Any, places: int = 2) -> Decimal:
     """Convert value to Decimal with specified precision."""
@@ -161,6 +311,9 @@ def _update_source_lines_after_transfer(
                 src_line.status = 'transferred'
                 save_fields.append('status')
 
+            # Suppress signal — the transfer pending already captures
+            # the on_so release for this order_line↔invoice_line pair.
+            src_line._pending_created = True
             src_line.save(update_fields=save_fields)
             updated += 1
             logger.debug(
@@ -342,7 +495,18 @@ def save_transaction_with_lines(
     save_only_dirty: bool = True,
 ) -> Dict[str, Any]:
     """Save a transaction with its lines atomically.
-    
+
+    Collect-then-create pattern (2026-02-21):
+      1. Save header + lines inside an atomic block (signals suppressed).
+      2. After all saves, the backend collects pending deltas — one per
+         new line, keyed by (invoice_line_id, order_line_id) to forbid
+         duplicate pairs.
+      3. Create Pending records from the collection.
+      4. One dispatch signal after all pending records exist.
+
+    The backend is authoritative — transfer detection uses parent_id /
+    parent_model on the header, not front-end refs.
+
     Args:
         model_key: Transaction model key (e.g., 'invoice', 'order')
         header_data: Transaction header data including id for updates
@@ -350,34 +514,33 @@ def save_transaction_with_lines(
         request: Django request for permissions
         verify_calculations: If True, verify R25 calculations match WC3
         save_only_dirty: If True, only save lines with `_dirty: true`
-    
+
     Returns:
         Dict with saved header, lines, and any calculation warnings
-    
+
     Raises:
         CalculationMismatchError: If verify_calculations=True and calcs don't match
         ItemIdChangeError: If attempting to change item_id on existing line
     """
     from apps.core.utils import registry
     from apps.core.services.wcapi import filter_input_fields
-    
+
     # Resolve models
     HeaderModel = registry.resolve(model_key)
     if not HeaderModel:
         raise ValueError(f"Unknown transaction model: {model_key}")
-    
+
     # Determine line model
     line_model_key = f"{model_key}line"
     LineModel = registry.resolve(line_model_key)
     if not LineModel:
         raise ValueError(f"Unknown line model: {line_model_key}")
-    
+
     # Resolve the FK field on LineModel that points to HeaderModel.
-    # Each line model uses a different FK name (order_id, invoice_id, etc.).
     parent_fk_attname = _resolve_parent_fk(LineModel, HeaderModel, model_key)
-    
+
     header_id = header_data.get('id')
-    result = {
+    result: Dict[str, Any] = {
         'header': None,
         'lines': [],
         'lines_saved': 0,
@@ -385,29 +548,28 @@ def save_transaction_with_lines(
         'calculation_warnings': [],
         'action': 'created' if header_id is None else 'updated',
     }
-    
+
+    # ── Collection for deferred pending creation ──────────────────────
+    # Each element holds the data needed to create ONE Pending record.
+    # Built during the save loop, converted to Pending records afterwards.
+    pending_deltas: List[Dict[str, Any]] = []
+
     with db_transaction.atomic():
         # Verify calculations before saving (fail fast)
         if verify_calculations:
-            # Verify each dirty line
             for line_data in lines_data:
-                is_dirty = line_data.get('_dirty', True)  # Default dirty if not specified
+                is_dirty = line_data.get('_dirty', True)
                 if is_dirty or not save_only_dirty:
                     line_id = line_data.get('id')
                     verify_line_calculations(line_data, line_id)
-            
-            # Verify header totals
             verify_header_calculations(header_data, lines_data)
-        
+
         # Save header
         header_clean = filter_input_fields(HeaderModel, header_data)
-        # Remove internal flags
         header_clean.pop('_dirty', None)
-        # Never create records with explicit id=0 or id=None;
-        # let the database auto-generate the primary key.
         if not header_id:
             header_clean.pop('id', None)
-        
+
         if header_id:
             header_obj = HeaderModel.objects.select_for_update().get(pk=header_id)
             for k, v in header_clean.items():
@@ -416,7 +578,7 @@ def save_transaction_with_lines(
         else:
             header_obj = HeaderModel.objects.create(**header_clean)
             header_id = header_obj.pk
-        
+
         # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
         try:
             from apps.transactions.services.denormalize_org_links import denormalize_org_links
@@ -427,17 +589,17 @@ def save_transaction_with_lines(
             logger.warning("Failed to denormalize org links for %s #%s: %s", model_key, header_id, org_err)
 
         result['header'] = {'id': header_obj.pk}
-        
-        # Process lines
+
+        # ── Phase 1: Save all lines (signals suppressed) ────────────
         existing_lines = {
-            line.pk: line 
+            line.pk: line
             for line in LineModel.objects.filter(**{parent_fk_attname: header_id}).select_for_update()
         }
-        
+
         for line_data in lines_data:
             line_id = line_data.get('id')
-            is_dirty = line_data.get('_dirty', True)  # Default dirty if not specified
-            
+            is_dirty = line_data.get('_dirty', True)
+
             # Skip non-dirty existing lines
             if line_id is not None and save_only_dirty and not is_dirty:
                 result['lines_skipped'] += 1
@@ -447,69 +609,112 @@ def save_transaction_with_lines(
                     'reason': 'not_dirty'
                 })
                 continue
-            
+
             # Clean line data
             line_clean = filter_input_fields(LineModel, line_data)
             line_clean.pop('_dirty', None)
             line_clean[parent_fk_attname] = header_id
-            
+
             if line_id:
                 # Update existing line
                 existing_line = existing_lines.get(line_id)
                 if not existing_line:
                     raise LookupError(f"Line {line_id} not found for transaction {header_id}")
-                
-                # Verify item_id hasn't changed
+
                 current_item = getattr(existing_line, 'item', {}) or {}
                 new_item = line_data.get('item', {}) or {}
                 current_item_id = current_item.get('item_id')
                 new_item_id = new_item.get('item_id')
-                
-                if (current_item_id is not None and 
-                    new_item_id is not None and 
+
+                if (current_item_id is not None and
+                    new_item_id is not None and
                     current_item_id != new_item_id):
                     raise ItemIdChangeError(line_id, current_item_id, new_item_id)
-                
+
                 for k, v in line_clean.items():
                     setattr(existing_line, k, v)
                 existing_line.save()
-                
+
                 result['lines_saved'] += 1
                 result['lines'].append({
                     'id': line_id,
                     'action': 'updated'
                 })
             else:
-                # Create new line
-                new_line = LineModel.objects.create(**line_clean)
+                # Create new line — suppress signal so no pending is created
+                # by the post_save handler.  We build pending_deltas below.
+                new_line = LineModel(**line_clean)
+                new_line._pending_created = True
+                new_line.save()
                 result['lines_saved'] += 1
                 result['lines'].append({
                     'id': new_line.pk,
                     'action': 'created'
                 })
-                
-                # Create pending inventory record for new lines
-                try:
-                    from apps.transactions.services.line_item_service import LineItemService
-                    service = LineItemService(create_pending=True)
-                    service._create_pending_for_new_line(
-                        parent=header_obj,
-                        parent_model_key=model_key,
-                        line=new_line,
-                        line_data=line_data,
-                    )
-                    logger.debug(f"Created pending inventory record for new line {new_line.pk}")
-                except Exception as pending_err:
-                    logger.warning(f"Failed to create pending for line {new_line.pk}: {pending_err}")
-    
-    # ── Pending inventory processing (Celery if worker alive, else inline) ──
-    if result['lines_saved'] > 0:
-        from apps.products.dispatch_pending import dispatch_pending_processing
-        dispatch_pending_processing(limit=200, caller='transaction_save')
 
-    # ── Source line update (transfer-created transactions only) ──
-    # When a new transaction is created via transfer (parent_id set),
-    # bump quantity.actioned on each source line and set remaining.
+                # ── Collect pending delta for this line ──────────────
+                # The backend determines item_id, quantity, cost, price
+                # from the saved line — no reliance on front-end refs.
+                item_data = line_data.get('item', {}) or {}
+                item_id = (
+                    item_data.get('id')
+                    or item_data.get('item_id')
+                    or (getattr(new_line, 'item', None) or {}).get('id')
+                    or (getattr(new_line, 'item', None) or {}).get('item_id')
+                )
+                qty_data = line_data.get('quantity', {}) or {}
+                qty_placed = float(
+                    qty_data.get('placed', 0)
+                    or qty_data.get('ordered', 0)
+                    or 0
+                )
+                if not qty_placed and hasattr(new_line, 'quantity') and isinstance(new_line.quantity, dict):
+                    qty_placed = float(new_line.quantity.get('placed', 0) or 0)
+
+                cost_data = line_data.get('cost', {}) or {}
+                price_data = line_data.get('price', {}) or {}
+
+                # Backend-authoritative transfer detection:
+                # If header has parent_id + parent_model, this is a transfer.
+                # The source order_line_id comes from refs.source on the
+                # line_data (stamped by R25) — but we also look it up from
+                # the persisted new_line.refs as a fallback.
+                source_line_id = None
+                parent_model = getattr(header_obj, 'parent_model', None)
+                if parent_model:
+                    refs = line_data.get('refs') or {}
+                    source_info = refs.get('source') or {}
+                    source_line_id = source_info.get(f'{parent_model}_line_id')
+                    if not source_line_id and isinstance(getattr(new_line, 'refs', None), dict):
+                        source_line_id = ((new_line.refs or {}).get('source') or {}).get(f'{parent_model}_line_id')
+
+                if item_id and qty_placed:
+                    pending_deltas.append({
+                        'item_id': item_id,
+                        'item_ida': item_data.get('ida', str(item_id)),
+                        'quantity': qty_placed,
+                        'line_id': new_line.pk,
+                        'source_line_id': source_line_id,
+                        'unit_cost': float(cost_data.get('unit', 0) or 0),
+                        'unit_price': float(price_data.get('unit', 0) or 0),
+                        'line_data': line_data,
+                    })
+
+    # ── Phase 2: Create Pending records from collected deltas ────────
+    # Runs OUTSIDE the atomic block — lines are already committed with IDs.
+    # One Pending per delta; the (invoice_line_id, order_line_id) pair is
+    # stored in every record to forbid duplicates.
+    if pending_deltas:
+        try:
+            _create_pending_from_deltas(
+                header_obj=header_obj,
+                model_key=model_key,
+                pending_deltas=pending_deltas,
+            )
+        except Exception as pend_err:
+            logger.warning("Failed to create pending records: %s", pend_err)
+
+    # ── Phase 3: Update source lines (transfer only) ────────────────
     if result['action'] == 'created' and getattr(header_obj, 'parent_id', None):
         try:
             src_updated = _update_source_lines_after_transfer(
@@ -525,9 +730,14 @@ def save_transaction_with_lines(
         except Exception as src_err:
             logger.warning("Failed to update source lines after transfer: %s", src_err)
 
+    # ── Phase 4: Single dispatch signal after all pending created ────
+    if pending_deltas:
+        from apps.products.dispatch_pending import dispatch_pending_processing
+        dispatch_pending_processing(limit=200, caller='transaction_save')
+
     logger.info(
-        "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s",
-        model_key, header_id, result['lines_saved'], result['lines_skipped']
+        "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s pending_created=%s",
+        model_key, header_id, result['lines_saved'], result['lines_skipped'], len(pending_deltas),
     )
-    
+
     return result

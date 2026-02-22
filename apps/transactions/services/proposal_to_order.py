@@ -14,6 +14,9 @@ from apps.transactions.models import (
 )
 from .transfer_utils import build_line_payload
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class ProposalToOrderTransferError(Exception):
     """Business-rule violation during proposal-to-order transfer."""
@@ -137,6 +140,93 @@ def _convert_quantity_from_proposal(proposal_qty: Optional[Dict]) -> Dict:
     return order_qty
 
 
+def _create_transfer_pending_records(
+    order: Order,
+    proposal: Proposal,
+    pending_deltas: List[Dict],
+) -> List:
+    """Create Pending records for a proposal → order transfer.
+
+    For each transferred line creates TWO pending records:
+      1. Order-side:   on_so += quantity  (new SO commitment)
+      2. Proposal-side: on_p -= quantity  (release proposal forecast)
+
+    Called after all lines are saved so IDs are stable.
+    """
+    from apps.core.models import Pending
+
+    created = []
+    for delta in pending_deltas:
+        item_id = delta['item_id']
+        qty = delta['quantity']
+
+        # 1. Order-side pending: SO commitment
+        so_data = {
+            'type_id': 'SO',
+            'item_num': delta['item_ida'],
+            'item_id': item_id,
+            'doc_id': getattr(order, 'ida', '') or str(order.pk),
+            'doc_pk': order.pk,
+            'line_id': delta['order_line_id'],
+            'line_num': 0,
+            'on_so': qty, 'on_po': 0, 'on_wo': 0,
+            'on_in': 0, 'on_r': 0, 'on_p': 0, 'on_hand': 0,
+            'unit_cost': delta['unit_cost'],
+            'unit_price': delta['unit_price'],
+            'reason': 'so line add (from proposal transfer)',
+            'take_action': 1,
+            'changed_by': '',
+            'transaction_type': 'order',
+            'transaction_model': 'order',
+            'links': {'proposal': {'parent_id': proposal.pk, 'proposal_line_id': delta['proposal_line_id']}},
+        }
+        p_so = Pending.objects.create(
+            model_name='item',
+            record_id=str(item_id),
+            purpose='inventory_line_add',
+            name=f'SO Line Add: {delta["item_ida"]}',
+            data=so_data,
+        )
+        created.append(p_so)
+
+        # 2. Proposal-side pending: release forecast
+        pp_data = {
+            'type_id': 'PP',
+            'item_num': delta['item_ida'],
+            'item_id': item_id,
+            'doc_id': getattr(proposal, 'ida', '') or str(proposal.pk),
+            'doc_pk': proposal.pk,
+            'line_id': delta['proposal_line_id'],
+            'line_num': 0,
+            'on_so': 0, 'on_po': 0, 'on_wo': 0,
+            'on_in': 0, 'on_r': 0, 'on_p': -qty, 'on_hand': 0,
+            'unit_cost': delta['unit_cost'],
+            'unit_price': delta['unit_price'],
+            'reason': 'pp transfer to order',
+            'take_action': 1,
+            'changed_by': '',
+            'transaction_type': 'proposal',
+            'transaction_model': 'proposal',
+            'links': {'order': {'child_id': order.pk, 'order_line_id': delta['order_line_id']}},
+        }
+        p_pp = Pending.objects.create(
+            model_name='item',
+            record_id=str(item_id),
+            purpose='inventory_line_add',
+            name=f'PP Transfer to Order: {delta["item_ida"]}',
+            data=pp_data,
+        )
+        created.append(p_pp)
+
+        logger.debug(
+            f"Created pending pair for proposal→order: "
+            f"SO#{p_so.pk} (on_so=+{qty}), PP#{p_pp.pk} (on_p=-{qty}) "
+            f"item={item_id}"
+        )
+
+    return created
+
+
 @transaction.atomic
 def transfer_proposal_to_order(
     *,
@@ -148,18 +238,17 @@ def transfer_proposal_to_order(
 ) -> Dict:
     """Transfer proposal lines to a new order (atomic).
 
-    Workflow:
+    Workflow — collect-then-create pending pattern:
       1. Select lines (all or by ID list)
       2. Create Order header with refs.source.proposal_id
       3. For each ProposalLine:
          a. Convert quantity via _convert_quantity_from_proposal()
-         b. Create OrderLine with price/cost/quantity/refs
-         c. Embed transfer audit payload via build_line_payload()
-         d. Mark proposal line status = 'transferred'
-      4. Optionally mark proposal status = 'converted'
+         b. Create OrderLine (signal suppressed via _pending_created)
+         c. Mark proposal line status = 'transferred' (signal suppressed)
+         d. Append inventory delta to pending_deltas array
+      4. After all saves, create Pending records from the array
+      5. Optionally mark proposal status = 'converted'
 
-    TODO: Does NOT set parent_model/parent_id on the new Order.
-    TODO: Quantity conversion does not set 'placed' or 'actioned' on target.
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     if not transfer_all and not line_ids:
@@ -195,29 +284,53 @@ def transfer_proposal_to_order(
             # Ignore if field doesn't exist or is read-only
             pass
 
-    # Create order lines and map from proposal lines
+    # ── Phase 1: Save all lines, collect inventory deltas ────────────
     line_mapping: Dict[int, int] = {}
+    pending_deltas: List[Dict] = []
+
     for pl in selected_lines:
         qty = _convert_quantity_from_proposal(getattr(pl, "quantity", None))
-        ol = OrderLine.objects.create(
+        ol = OrderLine(
             order=order,
             price=pl.price or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,
+            item=getattr(pl, "item", None) or {},
             refs={
                 "source": {"proposal_line_id": pl.id},
                 "xfer": build_line_payload(pl, "proposal"),  # common payload array
             },
         )
+        ol._pending_created = True  # suppress signal
+        ol.save()
         line_mapping[pl.id] = ol.id
 
-        # Mark proposal line as transferred
+        # Collect inventory delta for the new order line
+        item_data = getattr(pl, 'item', None) or {}
+        item_id = item_data.get('id') or item_data.get('item_id') if isinstance(item_data, dict) else None
+        placed = float(qty.get('remaining', 0) or qty.get('placed', 0) or 0)
+        if item_id and placed > 0:
+            pending_deltas.append({
+                'item_id': item_id,
+                'item_ida': item_data.get('ida', str(item_id)) if isinstance(item_data, dict) else str(item_id),
+                'quantity': placed,
+                'order_line_id': ol.id,
+                'proposal_line_id': pl.id,
+                'unit_cost': float((getattr(pl, 'cost', None) or {}).get('unit', 0) or 0),
+                'unit_price': float((pl.price or {}).get('unit', 0) or 0),
+            })
+
+        # Mark proposal line as transferred — suppress signal
         try:
             pl.status = "transferred"
+            pl._pending_created = True  # suppress signal
             pl.save(update_fields=["status"])
         except Exception:
             # If status field does not exist, ignore
             pass
+
+    # ── Phase 2: Create pending records from collected deltas ────────
+    _create_transfer_pending_records(order, proposal, pending_deltas)
 
     # Update proposal if not preserving
     if not preserve_proposal:

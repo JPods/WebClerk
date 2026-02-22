@@ -4,10 +4,56 @@
 
 - [Transaction Line Save Architecture](transaction_line_save.md) - How lines are saved via `/wcapi/save/`
 - [Inventory Deltas](../inventory/inventory_deltas.md) - How pending records affect inventory
+- [Save Path Consolidation](../architecture/save-path-consolidation.md) - Dedup strategy & known issues
 
 ## Scope
 
-Tests LineItemService across all transaction types to verify pending inventory records are created correctly.
+Tests LineItemService across all transaction types to verify:
+1. Exactly **one** pending inventory record is created per line operation
+2. The correct quantity bucket is populated
+3. Parent-to-child transfers (e.g., proposal → order) produce the right deltas on both sides
+
+## Resolved: Collect-then-Create (2026-02-21)
+
+Two rounds of consolidation:
+1. Dead `_perform_save()` removed from `save_view.py` — single `post()` flow
+2. `transaction_save.py` rewritten with **collect-then-create** pattern — signals suppressed, pending deltas collected during save loop, Pending records created afterwards, single dispatch
+
+### Two Save Paths
+
+| Endpoint | Pending Strategy | Used By |
+|----------|------------------|---------|
+| `/wcapi/save/` | Per-line via `LineItemService._create_pending_for_new_line()` | Generic saves, order deactivation |
+| `/wcapi/transaction/save/` | Collect-then-create via `_create_pending_from_deltas()` | R25 transaction saves with lines |
+
+### Transaction Save Flow (Collect-then-Create)
+
+```
+POST /wcapi/transaction/save/  { model_name: "invoice", record: { lines: [...] } }
+  │
+  ├── Phase 1 — Atomic save (signals suppressed)
+  │   ├── transaction.atomic() begins
+  │   │     ├── Verify R25 calculations against WC3 math
+  │   │     ├── Save header (create or update)
+  │   │     ├── For each dirty line:
+  │   │     │     ├── Save line (create or update)
+  │   │     │     ├── Set _pending_created = True (suppresses signal)
+  │   │     │     └── Collect pending delta into pending_deltas[]
+  │   │     └── (No Pending records created yet)
+  │   └── transaction.atomic() commits
+  │
+  ├── Phase 2 — _create_pending_from_deltas()
+  │   ├── Backend-authoritative: type from model_key, transfer from header
+  │   ├── Stores (invoice_line_id, order_line_id) pair per record
+  │   ├── In-memory + DB duplicate guard
+  │   └── For IN-from-order: on_in=+qty, on_so=-qty, on_hand=-qty
+  │
+  ├── Phase 3 — Update source lines (transfer only)
+  │
+  └── Phase 4 — Single dispatch_pending_processing()
+```
+
+**Rule:** Backend is authoritative for all pending decisions. Celery only **applies** pending deltas to Item records.
 
 ## Pending Type Mapping
 
@@ -39,7 +85,7 @@ Quantity baseline: `placed = 3`
 ### 1. Line Add (New Line)
 
 **Test:** Create new transaction line
-**Expected:** Pending record created with positive quantity in appropriate bucket
+**Expected:** Exactly ONE pending record created with positive quantity in appropriate bucket
 
 ```python
 # Expected Pending.data structure
@@ -53,7 +99,26 @@ Quantity baseline: `placed = 3`
 }
 ```
 
-### 2. Line Quantity Change
+**Dedup assertion:** `Pending.objects.filter(data__line_id=line_id, purpose='inventory_line_add').count() == 1`
+
+### 2. Line Add with Parent Transfer (Proposal → Order)
+
+**Test:** Create order line from a proposal line (parent_model/parent_id set)
+**Expected:** TWO pending records total:
+- One for the **order line** (on_so += placed)
+- One for the **proposal line** (actioned += placed, remaining -= placed)
+
+```python
+# Order line pending
+{ "type_id": "SO", "item_id": 246, "on_so": 3.0, "reason": "so line add" }
+
+# Proposal parent pending (quantity transfer)
+{ "type_id": "PP", "item_id": 246, "on_p": -3.0, "reason": "pp transfer to order" }
+```
+
+**Dedup assertion:** No more than 1 pending per line_id per purpose.
+
+### 3. Line Quantity Change
 
 **Test:** Update existing line quantity (e.g., 3 → 5)
 **Expected:** Delta pending record created with difference (+2)
@@ -69,7 +134,7 @@ Quantity baseline: `placed = 3`
 }
 ```
 
-### 3. Line Delete
+### 4. Line Delete
 
 **Test:** Delete existing line
 **Expected:** Negative pending record created to reverse original quantity
@@ -87,38 +152,50 @@ Quantity baseline: `placed = 3`
 ## Assertions
 
 For each transaction type:
-- [ ] Pending created on add with correct `type_id`
-- [ ] Pending has correct quantity bucket populated
+- [ ] Exactly ONE pending created on add (single flow in `post()`)
+- [ ] Pending has correct `type_id` and quantity bucket populated
 - [ ] Delta pending created on quantity update
 - [ ] Negative pending created on delete
 - [ ] `item_id` matches line item
 - [ ] `line_id` references the transaction line
 - [ ] `doc_pk` references the parent transaction
+- [ ] Parent transfer produces pending for both child and parent lines
+- [ ] All pending creation happens inside `transaction.atomic()` block
 
 ## Verification Query
 
 ```python
 from apps.core.models.pending import Pending
 
-# Check pending records for a specific item
+# Check pending records for a specific item — watch for duplicates
 for p in Pending.objects.filter(record_id=246).order_by('-id')[:10]:
     data = p.data or {}
     print(f"ID: {p.id}, type_id={data.get('type_id')}, "
           f"on_so={data.get('on_so')}, on_po={data.get('on_po')}, "
-          f"on_p={data.get('on_p')}, reason={data.get('reason')}")
+          f"on_p={data.get('on_p')}, reason={data.get('reason')}, "
+          f"line_id={data.get('line_id')}")
+
+# Duplicate detection query
+from django.db.models import Count
+dupes = (Pending.objects
+    .filter(purpose='inventory_line_add', dt_processed__isnull=True)
+    .values('data__line_id')
+    .annotate(cnt=Count('id'))
+    .filter(cnt__gt=1))
+print(f"Duplicate pending records: {list(dupes)}")
 ```
 
 ## Test Results Template
 
-| Transaction | Add Pending | Delta Pending | Delete Pending | Type Code | Bucket |
-|-------------|-------------|---------------|----------------|-----------|--------|
-| Order | ✅/❌ | ✅/❌ | ✅/❌ | SO | on_so |
-| Invoice | ✅/❌ | ✅/❌ | ✅/❌ | IN | on_in |
-| Proposal | ✅/❌ | ✅/❌ | ✅/❌ | PP | on_p |
-| Purchase | ✅/❌ | ✅/❌ | ✅/❌ | PO | on_po |
-| WorkOrder | ✅/❌ | ✅/❌ | ✅/❌ | WO | on_wo |
+| Transaction | Add (1 pending) | Parent Transfer | Delta Pending | Delete Pending | Type Code | Bucket |
+|-------------|-----------------|-----------------|---------------|----------------|-----------|--------|
+| Order | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | SO | on_so |
+| Invoice | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | IN | on_in |
+| Proposal | ✅/❌ | N/A | ✅/❌ | ✅/❌ | PP | on_p |
+| Purchase | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | PO | on_po |
+| WorkOrder | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | WO | on_wo |
 
 ---
 
-*Last verified: 2026-02-01*
+*Last verified: 2026-02-21*
 
