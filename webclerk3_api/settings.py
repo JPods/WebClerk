@@ -29,6 +29,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'apps.accounts',
+    'apps.ai_assistant',
     'apps.communications',
     'apps.core',
     'apps.docs',
@@ -884,3 +885,10 @@ CELERY_BEAT_SCHEDULE = {
 INVENTORY_PENDING_PROCESS_DELAY = int(config('INVENTORY_PENDING_PROCESS_DELAY', default=5))  # seconds
 INVENTORY_PENDING_BATCH_SIZE = int(config('INVENTORY_PENDING_BATCH_SIZE', default=100))  # records per batch
 INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', default=False, cast=bool)  # enable in prod
+
+# ── AI Assistant ────────────────────────────────────────────────────
+OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')
+OLLAMA_MODEL = config('OLLAMA_MODEL', default='deepseek-r1:8b')
+OLLAMA_TIMEOUT = int(config('OLLAMA_TIMEOUT', default=120))
+CHROMA_PERSIST_DIR = os.path.join(BASE_DIR, '.chroma_db')
+CHROMA_COLLECTION = 'commerce_expert_docs'

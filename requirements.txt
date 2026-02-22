@@ -92,3 +92,8 @@ vine==5.1.0
 wcwidth==0.2.13
 pytest-cov==7.0.0
 factory-boy==3.3.3
+
+# AI Assistant
+chromadb==1.5.1
+sentence-transformers==5.2.3
+httpx==0.28.1
