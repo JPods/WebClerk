@@ -6,12 +6,13 @@
 #   ./tools/setup_ai.sh           # full setup
 #   ./tools/setup_ai.sh --check   # check prerequisites only
 #   ./tools/setup_ai.sh --index   # re-index docs only
+#   ./tools/setup_ai.sh --hooks   # install git hooks for auto-reindex
 # ──────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-OLLAMA_MODEL="${OLLAMA_MODEL:-deepseek-coder-v2}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-deepseek-r1:8b}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -173,6 +174,35 @@ setup_django() {
 
 # ── Main ─────────────────────────────────────────────────────────
 
+install_hooks() {
+    info "Installing git hooks for auto-reindex..."
+    local hooks_src="$SCRIPT_DIR/hooks"
+    local hooks_dst
+
+    # wc3 repo
+    if [[ -d "$PROJECT_DIR/.git/hooks" ]]; then
+        hooks_dst="$PROJECT_DIR/.git/hooks"
+        if [[ -f "$hooks_src/post-commit" ]]; then
+            cp "$hooks_src/post-commit" "$hooks_dst/post-commit"
+            chmod +x "$hooks_dst/post-commit"
+            success "Installed post-commit hook for wc3"
+        fi
+    fi
+
+    # r25 repo
+    local r25_dir="$(dirname "$PROJECT_DIR")/React2025"
+    if [[ -d "$r25_dir/.git/hooks" ]]; then
+        hooks_dst="$r25_dir/.git/hooks"
+        if [[ -f "$hooks_src/post-commit" ]]; then
+            cp "$hooks_src/post-commit" "$hooks_dst/post-commit"
+            chmod +x "$hooks_dst/post-commit"
+            success "Installed post-commit hook for r25"
+        fi
+    fi
+
+    success "Git hooks installed — docs auto-reindex on commit"
+}
+
 case "${1:-full}" in
     --check|-c)
         check_prereqs
@@ -187,6 +217,9 @@ case "${1:-full}" in
         if [[ -f "bin/activate" ]]; then source bin/activate; fi
         python manage.py index_docs --reset
         ;;
+    --hooks)
+        install_hooks
+        ;;
     full|--full)
         echo ""
         echo "═══════════════════════════════════════════"
@@ -198,20 +231,36 @@ case "${1:-full}" in
         install_deps
         setup_ollama
         setup_django
+        install_hooks
         echo ""
         echo "═══════════════════════════════════════════"
         success "AI Assistant setup complete!"
+        echo ""
+        echo "  Modes available:"
+        echo "    general      — Conversational help"
+        echo "    developer    — Code-aware with file paths & conventions"
+        echo "    debugger     — Error analysis & fix suggestions"
+        echo "    user_support — Plain-language help for end users"
+        echo "    code_review  — Convention compliance review"
+        echo "    test_writer  — Generate tests with project patterns"
         echo ""
         echo "  Try it:"
         echo "    curl -X POST http://localhost:8000/wcapi/ai/ask/ \\"
         echo "      -H 'Content-Type: application/json' \\"
         echo "      -H 'Authorization: Bearer <your-token>' \\"
-        echo "      -d '{\"question\": \"How do I create an order?\"}'"
+        echo "      -d '{\"question\": \"How do I create an order?\", \"mode\": \"developer\"}'"
+        echo ""
+        echo "  New endpoints:"
+        echo "    POST /wcapi/ai/debug/    — paste a traceback for diagnosis"
+        echo "    POST /wcapi/ai/review/   — submit code for review"
+        echo "    POST /wcapi/ai/generate/ — generate code or tests"
+        echo "    GET  /wcapi/ai/modes/    — list available modes"
+        echo "    POST /wcapi/ai/reindex/  — trigger reindex (staff only)"
         echo ""
         echo "═══════════════════════════════════════════"
         ;;
     *)
-        echo "Usage: $0 [--check|--index|--reset|--full]"
+        echo "Usage: $0 [--check|--index|--reset|--hooks|--full]"
         exit 1
         ;;
 esac

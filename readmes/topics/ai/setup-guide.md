@@ -18,7 +18,8 @@ This single script will:
 3. Install/start Ollama and pull the DeepSeek model
 4. Run Django migrations
 5. Index all project documentation
-6. Run a health check
+6. Install git hooks for auto-reindex
+7. Run a health check
 
 ### Other script modes
 
@@ -26,6 +27,7 @@ This single script will:
 ./tools/setup_ai.sh --check   # Check prerequisites only
 ./tools/setup_ai.sh --index   # Re-index docs only
 ./tools/setup_ai.sh --reset   # Wipe and rebuild the index
+./tools/setup_ai.sh --hooks   # Install git hooks for auto-reindex
 ```
 
 ---
@@ -122,31 +124,66 @@ Expected output:
 
 ## Using the AI Assistant
 
+### AI Modes
+
+The assistant has 6 specialized modes — each changes how it thinks about your question:
+
+| Mode | Best For | Example |
+|------|----------|---------|
+| **General** | Quick help on any topic | "What is the Pending system?" |
+| **Developer** | Code-aware answers with file paths | "How do I register a new model in WCAPI?" |
+| **Debugger** | Error analysis from tracebacks | Paste a Python/JS error for diagnosis + fix |
+| **User Support** | End-user help in plain language | "How do I create a purchase order?" |
+| **Code Review** | Convention compliance checks | Paste code to get a review against project rules |
+| **Test Writer** | Generate tests | "Write tests for the OrderService.create method" |
+
 ### From the Frontend (React2025)
 
-A floating chat widget (`AiHelpWidget`) appears in the bottom-right corner of every page. Click it to open.
+A floating chat widget (`AiHelpWidget`) appears in the bottom-right corner of every page.
 
-- Ask questions in natural language
-- The assistant knows about your orders, invoices, inventory, API endpoints, etc.
+- Click the bot icon to open
+- Use the **mode dropdown** in the header to switch modes
+- Mode badges show on quick-select chips when the chat is empty
+- Each mode has a different color theme and placeholder text
 - Thumbs up/down feedback helps improve retrieval quality over time
 
 ### From the API
 
 ```bash
-# Ask a question
+# Ask a question (default: general mode)
 curl -X POST http://localhost:8000/wcapi/ai/ask/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <your-jwt-token>" \
-  -d '{"question": "How do I transfer an order to an invoice?"}'
+  -d '{"question": "How do I transfer an order to an invoice?", "mode": "developer"}'
+
+# Debug an error
+curl -X POST http://localhost:8000/wcapi/ai/debug/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{"error": "TypeError: Cannot read property id of undefined", "file_context": "OrderDetailPage.tsx"}'
+
+# Review code
+curl -X POST http://localhost:8000/wcapi/ai/review/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{"code": "class MyView(APIView): ...", "file_path": "apps/core/views/my_view.py"}'
+
+# Generate tests
+curl -X POST http://localhost:8000/wcapi/ai/generate/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{"task": "test", "description": "Write tests for the Order model create flow"}'
+
+# List available modes
+curl http://localhost:8000/wcapi/ai/modes/
+
+# Trigger reindex (staff only)
+curl -X POST http://localhost:8000/wcapi/ai/reindex/ \
+  -H "Authorization: Bearer <admin-jwt-token>" \
+  -d '{"source": "all"}'
 
 # Check health
 curl http://localhost:8000/wcapi/ai/health/
-
-# Submit feedback
-curl -X POST http://localhost:8000/wcapi/ai/feedback/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -d '{"message_id": 42, "feedback": 1}'
 ```
 
 ### From the Django Shell
@@ -155,29 +192,81 @@ curl -X POST http://localhost:8000/wcapi/ai/feedback/ \
 from apps.ai_assistant.services.rag_service import RAGService
 
 rag = RAGService()
+
+# General question
 result = rag.ask("What fields does the Order model have?")
+
+# Developer mode
+result = rag.ask("How do I add inventory allocation?", mode="developer")
+
+# Debug an error
+result = rag.ask("TypeError in line_save", mode="debugger", extra_context=traceback_text)
+
+# Code review
+result = rag.ask("Review this code", mode="code_review", extra_context=code_text)
+
 print(result["answer"])
 print(result["sources"])
+print(result["mode"])
 ```
 
 ---
 
 ## Keeping the Index Fresh
 
-The vector index should be rebuilt when documentation or code changes significantly:
+### Automatic (git hooks)
+
+When you run `tools/setup_ai.sh --hooks` (or `--full`), a git post-commit hook is installed that:
+- Detects which files changed in the commit
+- Maps them to source categories (readmes, models, services, etc.)
+- Runs targeted `index_docs --source <category>` in the background
+- Does **not** slow down your commits
+
+### Manual
 
 ```bash
 # Quick re-index (updates existing + adds new)
 python manage.py index_docs
 
+# Index specific category only
+python manage.py index_docs --source readmes
+python manage.py index_docs --source models
+python manage.py index_docs --source tests
+python manage.py index_docs --source react_services
+
 # Full rebuild (wipe + re-index)
 python manage.py index_docs --reset
+
+# View stats
+python manage.py index_docs --stats
 ```
 
-**Automation ideas** (future):
-- Git post-commit hook: `python manage.py index_docs --source readmes`
-- Celery beat task: re-index nightly
-- CI/CD: re-index on deploy
+### Via API (staff only)
+
+```bash
+curl -X POST http://localhost:8000/wcapi/ai/reindex/ \
+  -H "Authorization: Bearer <admin-jwt-token>" \
+  -d '{"source": "all"}'
+```
+
+### Available index sources
+
+| Source | What it indexes |
+|--------|----------------|
+| `readmes` | Markdown docs from wc3 and r25 |
+| `instructions` | Copilot/team instruction files |
+| `models` | Django model definitions |
+| `services` | Django service/business logic files |
+| `views` | Django views and URL configs |
+| `settings` | Django settings, urls, celery config |
+| `tasks` | Celery tasks and management commands |
+| `tests` | Test files and conftest |
+| `common` | Shared utilities from common/ |
+| `4d_methods` | Legacy 4D method files |
+| `react_types` | TypeScript type/model definitions |
+| `react_services` | React API services and SDK code |
+| `react_pages` | React page components |
+| `copilot_context` | Auto-generated context files (.copilot-context/) |
 
 ---
 
@@ -188,7 +277,7 @@ All settings can be overridden in `.env` or `webclerk3_api/settings.py`:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `OLLAMA_MODEL` | `deepseek-coder-v2` | Model to use for generation |
+| `OLLAMA_MODEL` | `deepseek-r1:8b` | Model to use for generation |
 | `OLLAMA_TIMEOUT` | `120` | Request timeout in seconds |
 | `CHROMA_PERSIST_DIR` | `.chroma_db/` | Where ChromaDB stores its data |
 | `CHROMA_COLLECTION` | `commerce_expert_docs` | Collection name in ChromaDB |
@@ -247,8 +336,8 @@ python manage.py index_docs --stats  # verify count > 0
 │        │ context   │ • 4D methods       │     │
 │        ↓           │ • instructions     │     │
 │  Ollama (DeepSeek) │ • React types      │     │
-│        ↓           └────────────────────┘     │
-│  Contextual answer                           │
+│        ↓           │ • copilot-context  │     │
+│  Contextual answer └────────────────────┘     │
 └─────────────────────────────────────────────┘
 ```
 
@@ -258,14 +347,19 @@ python manage.py index_docs --stats  # verify count > 0
 |------|---------|
 | `apps/ai_assistant/apps.py` | Django app config |
 | `apps/ai_assistant/models.py` | Conversation & Message models |
-| `apps/ai_assistant/views.py` | API views (ask, feedback, health, history) |
-| `apps/ai_assistant/urls.py` | URL routing |
+| `apps/ai_assistant/views.py` | API views (ask, debug, review, generate, feedback, health, history, modes, reindex) |
+| `apps/ai_assistant/urls.py` | URL routing (9 endpoints) |
 | `apps/ai_assistant/admin.py` | Django admin integration |
-| `apps/ai_assistant/services/ollama_client.py` | Ollama HTTP client |
+| `apps/ai_assistant/services/ollama_client.py` | Ollama HTTP client (mode-aware) |
 | `apps/ai_assistant/services/vector_store.py` | ChromaDB wrapper |
-| `apps/ai_assistant/services/rag_service.py` | RAG orchestration |
-| `apps/ai_assistant/management/commands/index_docs.py` | Document indexer |
+| `apps/ai_assistant/services/rag_service.py` | RAG orchestration (mode-aware) |
+| `apps/ai_assistant/services/prompt_templates.py` | Mode-specific system prompts & query wrappers |
+| `apps/ai_assistant/management/commands/index_docs.py` | Document indexer (14 source categories) |
+| `apps/ai_assistant/management/commands/generate_context.py` | Copilot context generator (models, fixtures, imports, endpoints) |
 | `apps/ai_assistant/management/commands/ai_health.py` | Health check CLI |
 | `tools/setup_ai.sh` | One-command automated setup |
-| `React2025/src/components/AiHelpWidget.tsx` | Frontend chat widget |
-| `React2025/src/apps/support/services/aiApi.ts` | Frontend API client |
+| `tools/hooks/post-commit` | Git hook for auto-reindex |
+| `React2025/src/components/AiHelpWidget.tsx` | Frontend chat widget (mode selector + console capture) |
+| `React2025/src/hooks/useConsoleCapture.ts` | Browser error capture hook (console.error, window.onerror, rejections) |
+| `React2025/src/apps/support/services/aiApi.ts` | Frontend API client (all endpoints + types) |
+| `.copilot-context/` | Auto-generated model reference, fixtures, import paths, error patterns, endpoint map |

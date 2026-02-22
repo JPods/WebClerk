@@ -101,12 +101,42 @@ True continuous learning from user behavior requires fine-tuning infrastructure.
 7. ✅ **Contextual awareness** — passes current page URL as context
 8. ✅ **Feedback system** — thumbs up/down on each assistant response
 
-### Phase 3 — Continuous Improvement (next)
+### Phase 3 — Multi-Mode Intelligence ✅ DONE
 
-9. **Auto-reindex** — trigger re-indexing when docs/code change (git hook or Celery task)
-10. **Usage analytics** — track common questions to identify documentation gaps
-11. **Access to logs** — give the AI access to server logs for debugging assistance
-12. **Streaming responses** — SSE streaming for real-time token output (backend ready, frontend TODO)
+9. ✅ **Mode system** — 6 specialized modes with tailored system prompts:
+   - `general` — Conversational help about CommerceExpert
+   - `developer` — Code-aware with file paths, conventions, import patterns
+   - `debugger` — Error analysis: paste a traceback, get a diagnosis + fix
+   - `user_support` — Plain-language help for end users (no jargon)
+   - `code_review` — Review code against project conventions
+   - `test_writer` — Generate tests following pytest/vitest patterns
+10. ✅ **Specialized endpoints**:
+    - `POST /wcapi/ai/debug/` — paste a traceback for instant diagnosis
+    - `POST /wcapi/ai/review/` — submit code for convention review
+    - `POST /wcapi/ai/generate/` — generate code or tests
+    - `GET /wcapi/ai/modes/` — list available modes
+    - `POST /wcapi/ai/reindex/` — trigger reindex (staff only)
+11. ✅ **Enhanced indexing** — added settings, tasks, tests, common, React services/pages
+12. ✅ **Auto-reindex** — git post-commit hook runs targeted reindex in background
+13. ✅ **Mode-aware React widget** — mode selector dropdown, color-coded per mode
+
+### Phase 4 — Continuous Improvement (next)
+
+14. ✅ **Console capture** — `useConsoleCapture` hook auto-captures `console.error`, `window.onerror`, unhandled promise rejections; paste panel in debugger mode
+15. ✅ **Developer tools documentation** — `readmes/topics/developer-tools.md` catalogues all dev tools (DevTools panel, AI widget, Whitelist Tester, Swagger UI)
+16. ✅ **Copilot context system** — `.copilot-context/` directory with auto-generated reference files:
+    - `models/model-reference.md` — every Django model's fields, types, relations (80 models, 3,400+ lines)
+    - `models/model-hierarchy.md` — CoreModel → BaseModel mixin chain overview
+    - `fixtures/*.json` — golden API response shapes for all 80 models
+    - `imports/django-imports.md` — canonical import paths for models, services, views
+    - `imports/react-imports.md` — canonical import paths for React services, hooks, pages, types
+    - `maps/endpoint-map.md` — all 600+ URL patterns with view classes and names
+    - `errors/error-patterns.md` — curated known error patterns with diagnosis and fixes
+17. ✅ **Context generator command** — `python manage.py generate_context` generates all context files in 0.6s
+18. **Feedback analytics** — track thumbs up/down patterns to improve prompts
+19. **Server log access** — give debugger mode access to Django/Celery logs
+20. **SSE streaming in widget** — real-time token output (backend ready, frontend TODO)
+21. **Scheduled reindex** — Celery periodic task for full reindex overnight
 
 > **Setup guide for team members:** see [setup-guide.md](setup-guide.md)
 ---

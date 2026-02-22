@@ -2,20 +2,25 @@
 RAG (Retrieval-Augmented Generation) service — ties the vector store and LLM together.
 
 This is the main entry point for the AI assistant. It:
-1. Takes a user question
+1. Takes a user question + optional mode
 2. Retrieves relevant context from the vector store
-3. Sends both to Ollama for generation
-4. Returns the answer with source references
+3. Optionally wraps the query with mode-specific framing
+4. Sends both to Ollama for generation
+5. Returns the answer with source references
+
+Modes: general, developer, debugger, user_support, code_review, test_writer
 
 Usage:
     from apps.ai_assistant.services.rag_service import RAGService
 
     rag = RAGService()
-    answer = rag.ask("How do I create an invoice from an order?")
+    answer = rag.ask("How do I create an invoice from an order?", mode="developer")
+    answer = rag.ask("TypeError: ...", mode="debugger", extra_context=traceback)
 """
 import logging
 
 from .ollama_client import OllamaClient
+from .prompt_templates import wrap_query, get_available_modes
 from .vector_store import VectorStoreManager
 
 logger = logging.getLogger(__name__)
@@ -75,26 +80,33 @@ class RAGService:
         question: str,
         history: list[dict] | None = None,
         n_results: int = 6,
+        mode: str = "general",
+        extra_context: str = "",
     ) -> dict:
         """
         Answer a question using RAG.
-        Returns {"answer": str, "sources": list[dict], "model": str}.
+        Returns {"answer": str, "sources": list[dict], "model": str, "mode": str}.
         """
         context, sources = self._retrieve_context(question, n_results=n_results)
 
         if not context:
             logger.info("No relevant context found for: %s", question[:100])
 
+        # Wrap query with mode-specific framing
+        wrapped_question = wrap_query(mode, question, extra_context=extra_context)
+
         answer = self.llm_client.generate(
-            prompt=question,
+            prompt=wrapped_question,
             context=context,
             history=history,
+            mode=mode,
         )
 
         return {
             "answer": answer,
             "sources": sources,
             "model": self.llm_client.model,
+            "mode": mode,
             "context_chunks": len(sources),
         }
 
@@ -103,6 +115,8 @@ class RAGService:
         question: str,
         history: list[dict] | None = None,
         n_results: int = 6,
+        mode: str = "general",
+        extra_context: str = "",
     ):
         """
         Streaming variant — yields content chunks.
@@ -111,13 +125,21 @@ class RAGService:
         """
         context, sources = self._retrieve_context(question, n_results=n_results)
 
+        wrapped_question = wrap_query(mode, question, extra_context=extra_context)
+
         stream = self.llm_client.stream(
-            prompt=question,
+            prompt=wrapped_question,
             context=context,
             history=history,
+            mode=mode,
         )
 
         return stream, sources
+
+    @staticmethod
+    def available_modes() -> list[dict]:
+        """Return the list of available AI modes."""
+        return get_available_modes()
 
     def health_check(self) -> dict:
         """Check if all components are operational."""

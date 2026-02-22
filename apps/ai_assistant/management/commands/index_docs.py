@@ -73,6 +73,42 @@ SOURCE_CONFIGS = {
         "file_patterns": ["views.py", "views/", "urls.py"],
         "type": "code_views",
     },
+    "settings": {
+        "label": "Django Settings & Configuration",
+        "paths": [
+            BASE / "webclerk3_api",
+        ],
+        "extensions": {".py"},
+        "file_patterns": ["settings.py", "urls.py", "celery.py"],
+        "type": "code_config",
+    },
+    "tasks": {
+        "label": "Celery Tasks & Management Commands",
+        "paths": [
+            BASE / "apps",
+        ],
+        "extensions": {".py"},
+        "file_patterns": ["tasks.py", "tasks/", "management/commands/"],
+        "type": "code_tasks",
+    },
+    "tests": {
+        "label": "Test Files",
+        "paths": [
+            BASE / "tests",
+            BASE,  # root-level test_*.py files
+        ],
+        "extensions": {".py"},
+        "file_patterns": ["test_", "conftest.py"],
+        "type": "code_tests",
+    },
+    "common": {
+        "label": "Common / Shared Utilities",
+        "paths": [
+            BASE / "common",
+        ],
+        "extensions": {".py"},
+        "type": "code_common",
+    },
     "4d_methods": {
         "label": "4D Legacy Methods",
         "paths": [
@@ -91,6 +127,33 @@ SOURCE_CONFIGS = {
         ],
         "extensions": {".ts", ".tsx"},
         "type": "code_types",
+    },
+    "react_services": {
+        "label": "React API Services & SDK",
+        "paths": [
+            WORKSPACE_ROOT / "React2025" / "src" / "api",
+            WORKSPACE_ROOT / "React2025" / "src" / "apps",
+        ],
+        "extensions": {".ts", ".tsx"},
+        "file_patterns": ["Api.ts", "api.ts", "Service.ts", "service.ts", "SDK", "sdk"],
+        "type": "code_react_services",
+    },
+    "react_pages": {
+        "label": "React Pages & Components",
+        "paths": [
+            WORKSPACE_ROOT / "React2025" / "src" / "apps",
+        ],
+        "extensions": {".ts", ".tsx"},
+        "file_patterns": ["Page.tsx", "page.tsx"],
+        "type": "code_react_pages",
+    },
+    "copilot_context": {
+        "label": "Copilot Context Files",
+        "paths": [
+            BASE / ".copilot-context",
+        ],
+        "extensions": {".md", ".json"},
+        "type": "copilot_context",
     },
 }
 

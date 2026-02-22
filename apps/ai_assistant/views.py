@@ -2,17 +2,23 @@
 AI Assistant API views.
 
 Endpoints:
-    POST /wcapi/ai/ask/       — ask a question (RAG-powered)
-    POST /wcapi/ai/feedback/   — submit feedback on an answer
-    GET  /wcapi/ai/health/     — system health check
-    GET  /wcapi/ai/history/    — conversation history for current user
+    POST /wcapi/ai/ask/       — ask a question (RAG-powered, mode-aware)
+    POST /wcapi/ai/debug/     — analyze an error/traceback
+    POST /wcapi/ai/review/    — review code for convention compliance
+    POST /wcapi/ai/generate/  — generate code or tests
+    POST /wcapi/ai/feedback/  — submit feedback on an answer
+    GET  /wcapi/ai/health/    — system health check
+    GET  /wcapi/ai/history/   — conversation history for current user
+    GET  /wcapi/ai/modes/     — list available AI modes
+    POST /wcapi/ai/reindex/   — trigger reindexing (staff only)
 """
 import json
 import logging
 
+from django.core.management import call_command
 from django.http import StreamingHttpResponse, JsonResponse
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.views import APIView
 
 from common.api_responses import api_response
@@ -25,9 +31,18 @@ logger = logging.getLogger(__name__)
 class AskView(APIView):
     """
     POST /wcapi/ai/ask/
-    Body: {"question": "...", "conversation_id": null, "context_page": "", "stream": false}
+    Body: {
+        "question": "...",
+        "conversation_id": null,
+        "context_page": "",
+        "mode": "general",           # general|developer|debugger|user_support|code_review|test_writer
+        "extra_context": "",          # optional: paste traceback, code, etc.
+        "stream": false
+    }
     """
     permission_classes = [IsAuthenticated]
+
+    VALID_MODES = {"general", "developer", "debugger", "user_support", "code_review", "test_writer"}
 
     def post(self, request):
         question = request.data.get("question", "").strip()
@@ -40,7 +55,13 @@ class AskView(APIView):
 
         conversation_id = request.data.get("conversation_id")
         context_page = request.data.get("context_page", "")
+        mode = request.data.get("mode", "general")
+        extra_context = request.data.get("extra_context", "")
         do_stream = request.data.get("stream", False)
+
+        # Validate mode
+        if mode not in self.VALID_MODES:
+            mode = "general"
 
         # Get or create conversation
         if conversation_id:
@@ -72,11 +93,11 @@ class AskView(APIView):
         rag = RAGService()
 
         if do_stream:
-            return self._stream_response(rag, question, history, conversation)
+            return self._stream_response(rag, question, history, conversation, mode, extra_context)
 
         # Non-streaming response
         try:
-            result = rag.ask(question, history=history)
+            result = rag.ask(question, history=history, mode=mode, extra_context=extra_context)
         except ConnectionError as e:
             return api_response(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -103,16 +124,19 @@ class AskView(APIView):
             "answer": result["answer"],
             "sources": result["sources"],
             "model": result["model"],
+            "mode": result.get("mode", mode),
             "conversation_id": conversation.pk,
             "message_id": msg.pk,
         })
 
-    def _stream_response(self, rag, question, history, conversation):
+    def _stream_response(self, rag, question, history, conversation, mode="general", extra_context=""):
         """Return a streaming response for real-time output."""
 
         def event_stream():
             try:
-                stream, sources = rag.ask_stream(question, history=history)
+                stream, sources = rag.ask_stream(
+                    question, history=history, mode=mode, extra_context=extra_context
+                )
                 full_answer = []
 
                 for chunk in stream:
@@ -227,3 +251,201 @@ class HistoryView(APIView):
             })
 
         return api_response(data={"conversations": data})
+
+
+# ── Specialized endpoints ──────────────────────────────────────────
+
+
+class DebugView(APIView):
+    """
+    POST /wcapi/ai/debug/
+    Body: {"error": "traceback or error message", "file_context": "", "question": ""}
+
+    Shortcut for ask with mode=debugger.
+    Accepts a traceback/error directly and returns diagnosis + fix.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        error = request.data.get("error", "").strip()
+        file_context = request.data.get("file_context", "")
+        question = request.data.get("question", "").strip()
+
+        if not error and not question:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Provide 'error' (a traceback) or 'question'",
+                error_code="missing_input",
+            )
+
+        # Build the question for the debugger
+        if error and not question:
+            question = f"Analyze this error and suggest a fix:\n\n{error}"
+        elif error:
+            question = f"{question}\n\nError/traceback:\n{error}"
+
+        rag = RAGService()
+        try:
+            result = rag.ask(
+                question,
+                mode="debugger",
+                extra_context=file_context,
+            )
+        except ConnectionError as e:
+            return api_response(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                message=str(e),
+                error_code="ollama_unavailable",
+            )
+
+        return api_response(data={
+            "diagnosis": result["answer"],
+            "sources": result["sources"],
+            "model": result["model"],
+            "mode": "debugger",
+        })
+
+
+class ReviewView(APIView):
+    """
+    POST /wcapi/ai/review/
+    Body: {"code": "...", "file_path": "relative/path.py", "question": ""}
+
+    Reviews code against CommerceExpert conventions.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        code = request.data.get("code", "").strip()
+        file_path = request.data.get("file_path", "")
+        question = request.data.get("question", "").strip()
+
+        if not code and not question:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Provide 'code' to review or a 'question'",
+                error_code="missing_input",
+            )
+
+        review_prompt = question or "Review this code for CommerceExpert convention compliance."
+        extra = ""
+        if code:
+            extra = f"File: {file_path}\n```\n{code}\n```"
+
+        rag = RAGService()
+        try:
+            result = rag.ask(review_prompt, mode="code_review", extra_context=extra)
+        except ConnectionError as e:
+            return api_response(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                message=str(e),
+                error_code="ollama_unavailable",
+            )
+
+        return api_response(data={
+            "review": result["answer"],
+            "sources": result["sources"],
+            "model": result["model"],
+            "mode": "code_review",
+        })
+
+
+class GenerateView(APIView):
+    """
+    POST /wcapi/ai/generate/
+    Body: {
+        "task": "test|code|migration",
+        "description": "what to generate",
+        "file_context": "",
+        "target_file": ""
+    }
+
+    Generates code, tests, or migration plans following project conventions.
+    """
+    permission_classes = [IsAuthenticated]
+
+    TASK_MODE_MAP = {
+        "test": "test_writer",
+        "code": "developer",
+        "migration": "developer",
+    }
+
+    def post(self, request):
+        task = request.data.get("task", "code")
+        description = request.data.get("description", "").strip()
+        file_context = request.data.get("file_context", "")
+        target_file = request.data.get("target_file", "")
+
+        if not description:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Provide a 'description' of what to generate",
+                error_code="missing_description",
+            )
+
+        mode = self.TASK_MODE_MAP.get(task, "developer")
+        extra = ""
+        if file_context:
+            extra = f"Target file: {target_file}\nExisting code context:\n{file_context}"
+
+        rag = RAGService()
+        try:
+            result = rag.ask(description, mode=mode, extra_context=extra)
+        except ConnectionError as e:
+            return api_response(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                message=str(e),
+                error_code="ollama_unavailable",
+            )
+
+        return api_response(data={
+            "generated": result["answer"],
+            "sources": result["sources"],
+            "model": result["model"],
+            "mode": mode,
+            "task": task,
+        })
+
+
+class ModesView(APIView):
+    """
+    GET /wcapi/ai/modes/
+    Returns the list of available AI assistant modes.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return api_response(data={"modes": RAGService.available_modes()})
+
+
+class ReindexView(APIView):
+    """
+    POST /wcapi/ai/reindex/
+    Body: {"source": "all"}  # optional: readmes, models, services, views, etc.
+
+    Triggers re-indexing of the knowledge base. Staff only.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        source = request.data.get("source", "all")
+        reset = request.data.get("reset", False)
+
+        try:
+            call_command("index_docs", source=source, reset=reset)
+        except Exception as e:
+            logger.exception("Reindex failed")
+            return api_response(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message=f"Reindex failed: {e}",
+                error_code="reindex_error",
+            )
+
+        # Return updated stats
+        rag = RAGService()
+        stats = rag.vector_store.stats()
+        return api_response(data={
+            "message": "Reindex complete",
+            "source": source,
+            "total_chunks": stats["count"],
+        })
