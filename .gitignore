@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 .enc-example
+# macOS Finder duplicate files (e.g. "foo 2.py")
+* 2.*
+* 2
