@@ -397,6 +397,22 @@ Lines carry a `_dirty` flag:
 
 `item_id` cannot change on existing lines. UI must prevent it; backend validates as backstop.
 
+### Line Identity — `line_number` System
+
+**Stable keys for React state handlers.** Every line carries a scalar `line_number` (auto-assigned by the backend in increments of 10). R25 uses two helpers from `@/apps/transactions/utils/lineHelpers.ts`:
+
+| Helper | Returns | Purpose |
+|--------|---------|--------|
+| `lineKey(line, idx)` | `line.line_number ?? line.id ?? idx` | Stable identity for delete / update / duplicate handlers |
+| `getNextLineNumber(lines)` | `max(line_numbers) + 10` | Assign `line_number` to client-side new/duplicated lines |
+
+**Rules:**
+- All `handleDeleteLine`, `handleLineChange`, `handleDuplicateLine`, and `handleAddItem` handlers **must** use `lineKey(l, i)` for identity.
+- Never use bare `line.id ?? idx` — it breaks for unsaved lines whose `id` is `undefined`.
+- New lines added client-side get `line_number: getNextLineNumber(lines)` immediately.
+- Transfer pre-population assigns sequential `line_number` values (10, 20, 30…).
+- The backend persists `line_number` and returns it in the save response.
+
 ### Two Save Endpoints
 
 | Action | Endpoint | SDK Function | When |
@@ -500,6 +516,8 @@ pnpm test -- --run --coverage  # With coverage
 | Route definitions | `src/routes/` |
 | Shared components | `src/components/` |
 | App shell / layout | `src/layout/` |
+| Line identity helpers | `src/apps/transactions/utils/lineHelpers.ts` |
+| Transaction types | `src/apps/transactions/types/transactionTypes.ts` |
 | Test setup | `src/test/setup.ts` |
 | Vitest config | `vitest.config.ts` |
 | Vite config | `vite.config.ts` |

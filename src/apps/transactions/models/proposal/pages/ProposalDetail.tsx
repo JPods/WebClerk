@@ -14,6 +14,7 @@ import {
 import TransactionDetailBase, { TransactionTab } from "../../../components/TransactionDetailBase";
 import SummaryCard from "../../../components/SummaryCard";
 import LinesCard from "../../../components/LinesCard";
+import { lineKey, getNextLineNumber } from "../../../utils/lineHelpers";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import {
   convertProposalToOrder,
@@ -204,14 +205,14 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
           priceLevel={priceLevel}
           onDeleteLine={(lineId) => {
             if (onLinesChange) {
-              onLinesChange(lines.filter((l) => l.id !== lineId));
+              onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
             }
           }}
           onUpdateLine={(lineId, field, value) => {
             if (onLinesChange) {
               onLinesChange(
-                lines.map((l) => {
-                  if (l.id !== lineId) return l;
+                lines.map((l, i) => {
+                  if (lineKey(l, i) !== lineId) return l;
                   const baseUpdate = { ...l, _dirty: true };
                   switch (field) {
                     case "qty":
@@ -244,12 +245,13 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
           }}
           onDuplicateLine={(lineId) => {
             if (onLinesChange) {
-              const lineToDup = lines.find((l) => l.id === lineId);
+              const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);
               if (lineToDup) {
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(),
+                  line_number: getNextLineNumber(lines),
                 };
                 onLinesChange([...lines, newLine]);
               }
