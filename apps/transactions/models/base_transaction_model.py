@@ -124,6 +124,8 @@ class TransactionBaseModel(BaseModel):
     total = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
     #denormalized from record.totals.balance for indexing and quick queries
     balance = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
+    # Counter for the next line_number to assign to new lines (increments by 10)
+    line_increment = models.IntegerField(default=10)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)

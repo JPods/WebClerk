@@ -177,6 +177,17 @@ Models have JSONB columns for schema-less extension: `metadata`, `refs`, `prefs`
 Lines carry `quantity`, `price`, `cost`, `tax` as JSONB dicts with sub-fields (`unit`, `extended`, `discount_percent`, etc.).
 Headers carry `totals` and `finance` JSONB dicts aggregated from lines.
 
+### Line Identity — `line_number` / `line_increment`
+
+- **`line_number`** — `IntegerField(default=0, db_index=True)` on `BaseLineCore`. A stable, non-PK line identifier assigned in increments of 10.
+- **`line_increment`** — `IntegerField(default=10)` on `TransactionBaseModel`. Tracks the next value to assign.
+
+Auto-assignment (two paths):
+1. **`transaction_save.py`** — reads `header.line_increment` before the line loop; assigns to new lines with `line_number == 0`; persists the bumped counter after the loop.
+2. **`BaseLineCore.save()`** fallback — if `line_number == 0` on save, reads `parent.line_increment`, assigns, bumps, and saves the parent.
+
+R25 uses `lineKey(line, idx)` → `line.line_number ?? line.id ?? idx` for stable React state identity. Never use bare `line.id ?? idx`.
+
 ---
 
 ## 7. Testing Requirements
@@ -244,15 +255,90 @@ When generating or modifying code, follow these rules:
 
 ---
 
-## 9. Save Hooks
+## 9. Save Hooks & Transaction Save Flow
 
-Pre/post save logic is defined in `Setting` records with `purpose: "save_pre_post"`:
+### Save Hooks
+
+Pre/post save logic is defined in `Setting` records with `purpose: "save_pre_post"` and matching `parent_model`:
 
 - `data.save_pre` — synchronous, runs before save (validation, normalization)
 - `data.save_post` — synchronous, runs after save (logging, side-effects)
 - `data.save_async` — asynchronous via Celery (email, sync, expensive operations)
 
 This allows customization without code deployment. Check existing hooks before adding inline logic.
+
+### Two Save Paths
+
+| Endpoint | Handler | Pending Strategy | Used By |
+|----------|---------|------------------|---------|
+| `/wcapi/save/` | `save_view.py` `post()` | Per-line via `LineItemService._create_pending_for_new_line()` | Generic saves, order deactivation |
+| `/wcapi/transaction/save/` | `transaction_save.py` `save_transaction_with_lines()` | **Collect-then-create** via `_create_pending_from_deltas()` | R25 transaction saves with lines |
+
+### Transaction Save Flow — Collect-then-Create (2026-02-21)
+
+```
+POST /wcapi/transaction/save/  { model_name: "invoice", record: { lines: [...] } }
+  │
+  ├── Phase 1 — Atomic save (signals suppressed)
+  │   ├── transaction.atomic() begins
+  │   │     ├── Verify R25 calculations against WC3 math
+  │   │     ├── Save header (create or update)
+  │   │     ├── Read current_line_increment from header
+  │   │     ├── For each dirty line:
+  │   │     │     ├── Assign line_number from current_line_increment if == 0
+  │   │     │     ├── Save line (create or update)
+  │   │     │     ├── Set line._pending_created = True (suppresses signal)
+  │   │     │     └── Collect pending delta into pending_deltas[]
+  │   │     ├── Persist bumped line_increment back to header
+  │   │     └── (No Pending records created yet)
+  │   └── transaction.atomic() commits
+  │
+  ├── Phase 2 — Create Pending records from collected deltas
+  │   └── _create_pending_from_deltas() — backend-authoritative:
+  │         ├── Derives type from model_key (not front-end data)
+  │         ├── Detects transfers from header.parent_id/parent_model
+  │         ├── Stores (invoice_line_id, order_line_id) pair in each record
+  │         ├── In-memory seen_pairs + DB duplicate guard
+  │         └── For IN-from-order: on_in=+qty, on_so=-qty, on_hand=-qty
+  │
+  ├── Phase 3 — Update source lines (transfer only)
+  │   └── Bumps actioned, sets remaining, marks transferred
+  │
+  └── Phase 4 — Single dispatch_pending_processing() call
+      └── Celery applies pending deltas to Item.quantity
+```
+
+### Generic Save Flow (`/wcapi/save/`)
+
+```
+POST /wcapi/save/  { model_name: "order", record: { lines: [...] } }
+  │
+  ├── save_pre hooks — validation, normalization
+  │
+  ├── transaction.atomic() begins
+  │     ├── Save parent record
+  │     ├── For each line:
+  │     │     ├── Set _pending_created = True
+  │     │     ├── Save line record
+  │     │     └── Call _create_pending_for_new_line() (one Pending per line)
+  │     └── Dispatch Celery task
+  │
+  ├── transaction.atomic() commits
+  │
+  └── save_post / save_async hooks
+```
+
+### Pending Record Rules
+
+- **One pending per line operation** — duplicate pairs are forbidden
+- **Backend is authoritative** — pending type, transfer detection, and quantity buckets are derived server-side, not from front-end data
+- **Collect-then-create** (transaction save): lines saved first with signals suppressed, then all Pending records created from the collected deltas array
+- **Single dispatch** — one `dispatch_pending_processing()` call after all Pending records exist, not per-line
+- The `_pending_created` flag on line instances prevents the signal safety net from duplicating
+- Celery only **applies** pending deltas to `Item.quantity` fields — it does not create them
+- Pending type codes: SO, PO, PP, IN, WO — mapped via `_PENDING_TYPE_MAP` in `transaction_save.py`
+- For transfers (e.g. order→invoice), each Pending captures both the add and the release in one record (e.g. `on_in=+qty, on_so=-qty, on_hand=-qty`)
+- `(invoice_line_id, order_line_id)` pair stored in every Pending record; duplicates blocked in-memory and at DB level
 
 ---
 
@@ -267,6 +353,11 @@ This allows customization without code deployment. Check existing hooks before a
 | Exception handlers | `common/exception_handlers.py` |
 | Model registry | `apps/core/services/wcapi_registry.py` |
 | WCAPI views | `apps/core/views/wcapi.py`, `apps/core/views/save_view.py` |
+| Transaction save (collect-then-create) | `apps/transactions/services/transaction_save.py` |
+| Transaction save view | `apps/transactions/views/wcapi.py` |
+| Line item service (generic pending) | `apps/transactions/services/line_item_service.py` |
+| Pending dispatch helper | `apps/products/dispatch_pending.py` |
+| Signal safety net | `apps/transactions/signals.py` |
 | URL routing | `webclerk3_api/urls.py` |
 | Settings | `webclerk3_api/settings.py` |
 | Tests | `tests/` (root) and `apps/*/tests/` |

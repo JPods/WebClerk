@@ -591,6 +591,9 @@ def save_transaction_with_lines(
         result['header'] = {'id': header_obj.pk}
 
         # ── Phase 1: Save all lines (signals suppressed) ────────────
+        # Track the line_increment counter for auto-assigning line_number
+        current_line_increment = getattr(header_obj, 'line_increment', 10) or 10
+
         existing_lines = {
             line.pk: line
             for line in LineModel.objects.filter(**{parent_fk_attname: header_id}).select_for_update()
@@ -638,17 +641,24 @@ def save_transaction_with_lines(
                 result['lines_saved'] += 1
                 result['lines'].append({
                     'id': line_id,
+                    'line_number': getattr(existing_line, 'line_number', 0),
                     'action': 'updated'
                 })
             else:
                 # Create new line — suppress signal so no pending is created
                 # by the post_save handler.  We build pending_deltas below.
+                # Auto-assign line_number if not provided or zero
+                incoming_ln = line_clean.get('line_number', 0) or 0
+                if incoming_ln == 0:
+                    line_clean['line_number'] = current_line_increment
+                    current_line_increment += 10
                 new_line = LineModel(**line_clean)
                 new_line._pending_created = True
                 new_line.save()
                 result['lines_saved'] += 1
                 result['lines'].append({
                     'id': new_line.pk,
+                    'line_number': getattr(new_line, 'line_number', 0),
                     'action': 'created'
                 })
 
@@ -699,6 +709,11 @@ def save_transaction_with_lines(
                         'unit_price': float(price_data.get('unit', 0) or 0),
                         'line_data': line_data,
                     })
+
+    # ── Persist bumped line_increment back to the header ──────────
+    if hasattr(header_obj, 'line_increment') and header_obj.line_increment != current_line_increment:
+        header_obj.line_increment = current_line_increment
+        header_obj.save(update_fields=['line_increment'])
 
     # ── Phase 2: Create Pending records from collected deltas ────────
     # Runs OUTSIDE the atomic block — lines are already committed with IDs.
