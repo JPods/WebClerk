@@ -8,9 +8,12 @@ import {
   FaExternalLinkAlt,
   FaCopy,
   FaTrash,
+  FaBoxes,
 } from "react-icons/fa";
 import LineDetailsModal from "../components/LineDetailsModal";
+import InventoryCheckDialog from "../components/InventoryCheckDialog";
 import OrderItemSearch from "../models/order/components/OrderItemSearch";
+import { lineKey } from "../utils/lineHelpers";
 
 // You may need to import types for TransactionLine, ItemSearchResult, etc.
 
@@ -55,6 +58,10 @@ const LinesCard: React.FC<LinesCardProps> = ({
   const [selectedLineIds, setSelectedLineIds] = React.useState<Set<number>>(
     new Set(),
   );
+  const [inventoryCheck, setInventoryCheck] = React.useState<{
+    itemId: number;
+    itemCode: string;
+  } | null>(null);
 
   const lineCount = lines.length;
   const totalQty = lines.reduce((sum, l) => {
@@ -355,7 +362,10 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   Description
                 </th>
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
-                  Qty
+                  Placed
+                </th>
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
+                  Remaining
                 </th>
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
                   UOM
@@ -406,7 +416,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   priceRecord?.extended ??
                   line.price?.extended ??
                   Number(qty) * Number(unitPrice);
-                const lineId = line.id ?? idx;
+                const lineId = lineKey(line, idx);
                 const canEditLine = isEditing && !isLocked;
                 const notesObj = lineRecord.notes as
                   | Record<string, string>
@@ -424,7 +434,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   value: string | number,
                   displayValue: string,
                   className: string,
-                  inputType: "text" | "number" = "text",
+                  isNumeric: boolean = false,
                 ) => {
                   const isEditingThis =
                     editingCell?.lineId === lineId &&
@@ -434,16 +444,15 @@ const LinesCard: React.FC<LinesCardProps> = ({
                     return (
                       <td className={className}>
                         <input
-                          type={inputType}
+                          type="text"
+                          inputMode={isNumeric ? "decimal" : "text"}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={handleEditSave}
                           onKeyDown={handleEditKeyDown}
                           autoFocus
                           className="w-full px-2 py-1 text-xs border border-blue-500 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          style={
-                            inputType === "number" ? { textAlign: "right" } : {}
-                          }
+                          style={isNumeric ? { textAlign: "right" } : {}}
                         />
                       </td>
                     );
@@ -532,13 +541,40 @@ const LinesCard: React.FC<LinesCardProps> = ({
                           <>{line.item?.description}</>
                         )}
                       </td>
-                      {renderEditableCell(
-                        "qty",
-                        Number(qty),
-                        formatNumber(Number(qty)),
-                        "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
-                        "number",
-                      )}
+                      <td className="px-2 py-1 text-xs text-right text-slate-900 dark:text-white">
+                        {canEditLine && line.item?.is_active !== false ? (
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={
+                              editingCell?.lineId === lineId && editingCell?.field === "qty"
+                                ? editValue
+                                : String(qty)
+                            }
+                            onChange={(e) => {
+                              if (
+                                editingCell?.lineId !== lineId ||
+                                editingCell?.field !== "qty"
+                              ) {
+                                setEditingCell({ lineId: lineId as number, field: "qty" });
+                              }
+                              setEditValue(e.target.value);
+                            }}
+                            onFocus={() => {
+                              setEditingCell({ lineId: lineId as number, field: "qty" });
+                              setEditValue(String(qty));
+                            }}
+                            onBlur={handleEditSave}
+                            onKeyDown={handleEditKeyDown}
+                            className="w-20 px-2 py-0.5 text-xs text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        ) : (
+                          formatNumber(Number(qty))
+                        )}
+                      </td>
+                      <td className="px-2 py-1 text-xs text-right text-slate-500 dark:text-slate-400">
+                        {formatNumber(Number(line.quantity?.remaining ?? 0))}
+                      </td>
                       <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
                         {String(uom)}
                       </td>
@@ -547,7 +583,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                         Number(unitPrice),
                         formatCurrency(Number(unitPrice)),
                         "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
-                        "number",
+                        true,
                       )}
                       <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
                         {formatCurrency(Number(unitCost))}
@@ -565,6 +601,23 @@ const LinesCard: React.FC<LinesCardProps> = ({
                           >
                             <FaEdit size={14} />
                           </button>
+                          {itemCode !== "--" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const id = Number(
+                                  (line as any).item_id ??
+                                  line.item?.id ??
+                                  line.item?.item_id,
+                                );
+                                if (id) setInventoryCheck({ itemId: id, itemCode });
+                              }}
+                              className="p-1 text-slate-400 hover:text-amber-500 transition-colors"
+                              title="Check inventory"
+                            >
+                              <FaBoxes size={13} />
+                            </button>
+                          )}
                           {itemCode !== "--" && (
                             <button
                               type="button"
@@ -622,7 +675,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                     </tr>
                     {isExpanded && hasNotes && (
                       <tr className="bg-amber-50 dark:bg-amber-900/20">
-                        <td colSpan={canEdit ? 10 : 9} className="px-6 py-3">
+                        <td colSpan={canEdit ? 11 : 10} className="px-6 py-3">
                           <div className="flex flex-wrap gap-4 text-xs">
                             {notesObj?.public && (
                               <div className="flex-1 min-w-50">
@@ -673,6 +726,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 <td className="px-4 py-2 text-xs text-right text-slate-600 dark:text-slate-300">
                   {formatNumber(totalQty)} items
                 </td>
+                <td></td>
                 <td colSpan={2}></td>
                 <td className="px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 text-right">
                   Total:
@@ -696,6 +750,15 @@ const LinesCard: React.FC<LinesCardProps> = ({
         </div>
       )}
       {/* Only sidebar modal is used above; remove duplicate modal here. */}
+
+      {/* Inventory check dialog */}
+      {inventoryCheck && (
+        <InventoryCheckDialog
+          itemId={inventoryCheck.itemId}
+          itemCode={inventoryCheck.itemCode}
+          onClose={() => setInventoryCheck(null)}
+        />
+      )}
     </div>
   );
 };

@@ -28,6 +28,7 @@ import type {
 } from "../../../types/transactionTypes";
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
+import { lineKey, getNextLineNumber } from "@/apps/transactions/utils/lineHelpers";
 import { saveRecord, getRecord } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 import { ShippingPanel } from "@/apps/common/components/panels";
@@ -694,7 +695,7 @@ interface OrderDetailProps {
   /** Callback after successful save */
   onSaved?: (data: Transaction) => void;
   /** Callback for cancel action in inline mode */
-  // onCancelInline?: () => void;
+  onCancelInline?: () => void;
 }
 
 const OrderDetail: React.FC<OrderDetailProps> = ({
@@ -703,6 +704,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   modeProp,
   dataProp,
   onSaved,
+  onCancelInline,
 }) => {
   // Task modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -1046,15 +1048,15 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           onDeleteLine={(lineId) => {
             // Delete line from array
             if (onLinesChange) {
-              onLinesChange(lines.filter((l) => l.id !== lineId));
-            }
-          }}
-          onUpdateLine={(lineId, field, value) => {
-            // Update line field - handle nested structure
-            if (onLinesChange) {
-              onLinesChange(
-                lines.map((l) => {
-                  if (l.id !== lineId) return l;
+onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
+  }
+}}
+onUpdateLine={(lineId, field, value) => {
+  // Update line field - handle nested structure
+  if (onLinesChange) {
+    onLinesChange(
+      lines.map((l, i) => {
+        if (lineKey(l, i) !== lineId) return l;
 
                   // Mark line as dirty when modified
                   const baseUpdate = { ...l, _dirty: true };
@@ -1093,13 +1095,14 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           onDuplicateLine={(lineId) => {
             // Duplicate line - mark as dirty since it's new
             if (onLinesChange) {
-              const lineToDup = lines.find((l) => l.id === lineId);
+              const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);
               if (lineToDup) {
                 // Omit 'id' property so the new line does not have an 'id' field at all
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(), // Assign a new unique id
+                  line_number: getNextLineNumber(lines),
                 };
                 onLinesChange([...lines, newLine]);
               }
@@ -1149,6 +1152,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         inline={inline}
         modeProp={modeProp}
         dataProp={dataProp}
+        onCancelInline={onCancelInline}
         onSaved={(data) => {
           handleDataLoaded(data);
           onSaved?.(data);

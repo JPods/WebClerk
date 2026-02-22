@@ -58,6 +58,7 @@ import type {
 } from "../types/transactionTypes";
 import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
+import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
 import { DevBadge } from '@/components/common/DevBadge';
 
 // Extend Transaction type locally to ensure 'lines' exists
@@ -68,6 +69,62 @@ type Transaction = TransactionBase & {
   dt?: string; // Transaction date
   due_date?: string; // Due date
 };
+
+function normalizeFkId(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.id;
+    if (typeof nested === "number" && Number.isFinite(nested)) return nested;
+    if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) {
+      return Number(nested);
+    }
+  }
+  return null;
+}
+
+function normalizeTransactionFkFields<T extends Record<string, any>>(input: T): T {
+  if (!input || typeof input !== "object") return input;
+  const out: T = { ...(input as any) };
+
+  const setIfMissing = (targetField: string, ...candidates: unknown[]) => {
+    const existing = normalizeFkId((out as any)[targetField]);
+    if (existing && existing > 0) return;
+    for (const candidate of candidates) {
+      const normalized = normalizeFkId(candidate);
+      if (normalized && normalized > 0) {
+        (out as any)[targetField] = normalized;
+        return;
+      }
+    }
+  };
+
+  // WCAPI may return FK fields without the _id suffix (e.g. "customer")
+  // or legacy fields (e.g. "id_customer"). Normalize to *_id so UI + save path agree.
+  setIfMissing("customer_id", out.customer_id, out.customer, out.id_customer);
+  setIfMissing("vendor_id", out.vendor_id, out.vendor, out.id_vendor);
+  setIfMissing("manufacturer_id", out.manufacturer_id, out.manufacturer, out.id_manufacturer);
+  setIfMissing("contact_id", out.contact_id, out.contact, out.id_contact);
+  setIfMissing("terms_id", out.terms_id, out.terms_fk, out.terms);
+
+  return out;
+}
+
+function stripTransactionFkAliases<T extends Record<string, any>>(input: T): T {
+  const out: T = { ...(input as any) };
+  // Remove ambiguous alias fields so we don't send both "customer" and "customer_id".
+  // Keep *_ida and other scalar fields.
+  delete (out as any).customer;
+  delete (out as any).vendor;
+  delete (out as any).manufacturer;
+  delete (out as any).contact;
+  delete (out as any).terms_fk;
+  return out;
+}
 
 // Tab definition
 export interface TransactionTab {
@@ -163,7 +220,8 @@ interface TransactionDetailBaseProps {
   /** Direct ID prop (for use with /wcapi/get/?id=X routes) */
   idProp?: number | string;
 
-  /** Callback for cancel action in inline mode */
+  /** Callback for cancel/close action in inline mode */
+  onCancelInline?: () => void;
 
   /** Callback for Add Task action */
   onAddTask?: () => void;
@@ -198,10 +256,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   modeProp,
   dataProp,
   idProp,
+  onCancelInline,
   onAddTask,
   showTaskButton = false,
   taskCount,
 }) => {
+  const getTransactionRouteSegment = useCallback((t: string) => {
+    // Routes use a hyphenated segment for work orders, but the model key is `workorder`.
+    // Keep the model key for API calls; only the URL segment needs special-casing.
+    return t === "workorder" ? "work-order" : t;
+  }, []);
+
   // Default no-op for handleAddItem to avoid reference error
   const handleAddItem = () => {};
   const { id: urlId } = useParams<{ id: string }>();
@@ -209,9 +274,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const id = idProp?.toString() ?? dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { ensureWindow } = useWindowManager();
+  const { ensureWindow, closeWindow } = useWindowManager();
   const { user } = useAppSelector((state) => state.auth);
   const displayName = user ? `${user.name_first}${user.name_last}` : "You";
+
+  const emitModelChanged = useCallback((detail: Record<string, unknown>) => {
+    try {
+      window.dispatchEvent(new CustomEvent("wcapi:modelChanged", { detail }));
+    } catch {
+      // ignore (SSR/older env)
+    }
+  }, []);
 
   // Parse query params from the floating window path (if available)
   const windowPath = useWindowPath();
@@ -223,6 +296,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       return null;
     }
   }, [windowPath]);
+
+  // If this window was opened via the toolbar Transfer dropdown,
+  // these params identify the source transaction we transferred from.
+  const transferSource = useMemo(() => {
+    const t = windowSearchParams?.get("transfer_from_type")?.trim() || "";
+    const idRaw = windowSearchParams?.get("transfer_from_id")?.trim() || "";
+    const idNum = Number(idRaw);
+    if (!t || !Number.isFinite(idNum) || idNum <= 0) return null;
+    return { type: t, id: idNum };
+  }, [windowSearchParams]);
 
   // Determine effective mode: if no ID is available and modeProp isn't set,
   // treat as "add" mode (e.g. opened from Create Transaction dropdown)
@@ -280,19 +363,38 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             // backend can update the source line's quantity.actioned after save.
             const srcType = transferFromType as string;
             const srcId = Number(transferFromId);
-            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => ({
-              ...line,
-              id: undefined,
-              line_id: undefined,
-              refs: {
-                ...((line.refs as Record<string, unknown>) || {}),
-                source: {
-                  [`${srcType}_line_id`]: (line as any).id,
-                  [`${srcType}_id`]: srcId,
-                  converted_from: srcType,
+            let nextLn = 10; // line_number counter for transferred lines
+            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => {
+              // Remap quantity for the target transaction:
+              // placed = source remaining (qty being transferred)
+              // remaining = 0 (new line has nothing remaining to action)
+              // actioned = 0
+              const srcQty = (line.quantity as Record<string, unknown>) || {};
+              const transferQty = Number(srcQty.remaining ?? srcQty.placed ?? 0);
+              const ln = nextLn;
+              nextLn += 10;
+              return {
+                ...line,
+                id: undefined,
+                line_id: undefined,
+                line_number: ln,
+                quantity: {
+                  placed: transferQty,
+                  actioned: 0,
+                  remaining: 0,
+                  precision: srcQty.precision ?? 2,
+                  is_fixed: srcQty.is_fixed ?? false,
                 },
-              },
-            }));
+                refs: {
+                  ...((line.refs as Record<string, unknown>) || {}),
+                  source: {
+                    [`${srcType}_line_id`]: (line as any).id,
+                    [`${srcType}_id`]: srcId,
+                    converted_from: srcType,
+                  },
+                },
+              };
+            });
             // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
             // but our Transaction type and save serializers use _id suffix.
             const customerId = source.customer_id ?? source.customer ?? null;
@@ -463,8 +565,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     // If dataProp is provided AND we haven't used it yet AND refreshKey is 0 (initial load)
     // use dataProp directly instead of fetching
     if (dataProp && !initialDataPropUsed && refreshKey === 0) {
-      setData(dataProp);
-      setEditData(dataProp);
+      const normalized = normalizeTransactionFkFields(dataProp as any);
+      setData(normalized);
+      setEditData(normalized);
       setLoading(false);
       setInitialDataPropUsed(true);
       return;
@@ -488,8 +591,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           result = apiResult.record ?? apiResult;
         }
 
-        setData(result);
-        setEditData(result);
+        const normalized = normalizeTransactionFkFields(result as any);
+        setData(normalized);
+        setEditData(normalized);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load data");
       } finally {
@@ -590,7 +694,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const handleEdit = () => {
     if (data && canEdit(data)) {
       // Always initialize editData with the latest data (including comments)
-      setEditData({ ...data });
+      setEditData(normalizeTransactionFkFields({ ...(data as any) }));
       setIsEditing(true);
     }
   };
@@ -606,13 +710,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     if (saveData) {
       // Use custom save function if provided
-      return await saveData(editData);
+      const rawId = data?.id;
+      const saved = await saveData(editData);
+      if (saved) {
+        emitModelChanged({
+          model: modelName,
+          id: (saved as any)?.id ?? null,
+          action: rawId ? "updated" : "created",
+        });
+      }
+      return saved;
     }
 
     // Ensure id is included in payload for updates (omit falsy ids for new records)
     const rawId = data?.id;
     const payloadWithId = {
-      ...editData,
+      ...stripTransactionFkAliases(normalizeTransactionFkFields(editData as any)),
       ...(rawId ? { id: rawId } : { id: undefined }),
     };
 
@@ -623,8 +736,38 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       ? await saveTransactionWithLines(modelName, payloadWithId)
       : await saveRecord(modelName, payloadWithId);
 
-    return apiResult.record ?? apiResult;
-  }, [editData, saveData, modelName, data?.id]);
+    const normalized = normalizeTransactionFkFields((apiResult.record ?? apiResult) as any);
+
+    emitModelChanged({ model: modelName, id: (normalized as any)?.id ?? null, action: rawId ? "updated" : "created" });
+
+    // If this was a Transfer-created record (new target created from a source),
+    // deactivate the source record so it disappears from the source list.
+    // This matches the expected "move" semantics for Transfer.
+    if (!rawId && transferSource) {
+      try {
+        await saveRecord(transferSource.type, {
+          id: transferSource.id,
+          is_active: false,
+        });
+
+        emitModelChanged({ model: transferSource.type, id: transferSource.id, action: "deactivated" });
+      } catch (e) {
+        console.warn(
+          "[TransactionDetailBase] Failed to deactivate transfer source:",
+          transferSource,
+          e,
+        );
+        dispatch(
+          showToast({
+            message: `Saved, but could not remove source ${transferSource.type} #${transferSource.id}`,
+            type: "warning",
+          }),
+        );
+      }
+    }
+
+    return normalized;
+  }, [editData, saveData, modelName, data?.id, transferSource, dispatch, emitModelChanged]);
 
   const handleSave = useCallback(async () => {
     if (!editData) return;
@@ -635,8 +778,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       const result = await performSave();
       if (!result) return;
 
-      setData(result); // Update view state
-      setEditData(result); // Update edit state
+      const normalized = normalizeTransactionFkFields(result as any);
+      setData(normalized); // Update view state
+      setEditData(normalized); // Update edit state
       setIsEditing(false);
       setHasUnsavedChanges(false);
       dispatch(
@@ -698,6 +842,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         }),
       );
       onSaved?.(result);
+
+      if (inline) {
+        // Inline split-view detail (in a list page)
+        // Let the parent list decide how to close.
+        // (Some list pages pass onCancelInline, some don't.)
+        onCancelInline?.();
+        return;
+      }
+
+      // Floating window: close it (better UX than navigate(-1)).
+      if (windowPath) {
+        closeWindow(windowPath);
+        return;
+      }
+
+      // Fallback for non-window navigation
       navigate(-1);
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : "Failed to save";
@@ -706,7 +866,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel]);
+  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel, inline, onCancelInline, windowPath, closeWindow]);
 
   const handleClone = useCallback(async () => {
     if (!data) return;
@@ -715,10 +875,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     const clonedData = { ...data };
     delete (clonedData as Record<string, unknown>).id;
     delete (clonedData as Record<string, unknown>).ida;
-    navigate(`/transactions/${transactionType}/detail`, {
+    const seg = getTransactionRouteSegment(transactionType);
+    navigate(`/transactions/${seg}/detail`, {
       state: { clone: clonedData, mode: "add" },
     });
-  }, [data, transactionType, navigate, dispatch, typeLabel]);
+  }, [data, transactionType, navigate, dispatch, typeLabel, getTransactionRouteSegment]);
 
   const handleTransfer = useCallback(
     async (targetType: TransactionType) => {
@@ -734,11 +895,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       params.set("transfer_from_type", transactionType);
       params.set("transfer_from_id", String(data.id));
       if (data.customer_id) params.set("customer_id", String(data.customer_id));
-      const path = `/transactions/${targetType}/detail?${params.toString()}`;
+      const seg = getTransactionRouteSegment(targetType);
+      const path = `/transactions/${seg}/detail?${params.toString()}`;
       const label = targetType.charAt(0).toUpperCase() + targetType.slice(1);
       ensureWindow(path, `New ${label} (from ${typeLabel})`, { maximized: false });
     },
-    [data, transactionType, ensureWindow, dispatch, typeLabel],
+    [data, transactionType, ensureWindow, dispatch, typeLabel, getTransactionRouteSegment],
   );
 
   const handlePrint = useCallback(() => {
@@ -1253,7 +1415,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             isEditing={isEditing}
             onChange={handleFieldChange}
             priceLable={priceLable}
-            customerInfo={currentData.refs?.links?.customer}
+            customerInfo={currentData.refs?.links?.customer?.[0]}
             billingContact={currentData.refs?.links?.contact?.find(
               (c) => c.purpose === "billto",
             )}
@@ -1275,28 +1437,48 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onDeleteLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
-                (currentData.lines ?? []).filter((l) => l.id !== lineId),
+                (currentData.lines ?? []).filter((l, i) => lineKey(l, i) !== lineId),
               );
             }
           }}
           onUpdateLine={(lineId, field, value) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
-                (currentData.lines ?? []).map((l) => {
-                  if (l.id !== lineId) return l;
+                (currentData.lines ?? []).map((l, i) => {
+                  if (lineKey(l, i) !== lineId) return l;
                   const baseUpdate = { ...l, _dirty: true };
+                  const lineIsActive = l.item?.is_active !== false;
                   switch (field) {
-                    case "qty":
+                    case "qty": {
+                      const newQty = Number(value);
+                      if (!lineIsActive) {
+                        // Inactive line: persist placed but don't recalculate
+                        return {
+                          ...baseUpdate,
+                          quantity: { ...l.quantity, placed: newQty },
+                        };
+                      }
+                      const actioned = l.quantity?.actioned ?? 0;
+                      const unitPriceForCalc = l.price?.unit ?? 0;
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, placed: Number(value) },
+                        quantity: {
+                          ...l.quantity,
+                          placed: newQty,
+                          remaining: newQty - actioned,
+                        },
+                        price: {
+                          ...l.price,
+                          extended: unitPriceForCalc * newQty,
+                        },
                       };
+                    }
                     case "description":
                       return {
                         ...baseUpdate,
                         item: { ...l.item, description: String(value) },
                       };
-                    case "unit_price":
+                    case "unit_price": {
                       const newPrice = Number(value);
                       const qty = l.quantity?.placed ?? 0;
                       return {
@@ -1304,9 +1486,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                         price: {
                           ...l.price,
                           unit: newPrice,
-                          extended: newPrice * qty,
+                          extended: lineIsActive ? newPrice * qty : (l.price?.extended ?? 0),
                         },
                       };
+                    }
                     default:
                       return { ...baseUpdate, [field]: value };
                   }
@@ -1317,13 +1500,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onDuplicateLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               const lineToDup = (currentData.lines ?? []).find(
-                (l) => l.id === lineId,
+                (l, i) => lineKey(l, i) === lineId,
               );
               if (lineToDup) {
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(),
+                  line_number: getNextLineNumber(currentData.lines ?? []),
                 };
                 onLinesChange([...(currentData.lines ?? []), newLine]);
               }
@@ -1364,7 +1548,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="pb-8 overflow-y-scroll max-h-[400px]">
+      <div className="pb-8 overflow-y-scroll max-h-100">
         {renderTabContent()}
       </div>
 

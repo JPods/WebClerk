@@ -6,14 +6,13 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
 } from "../../../../../components/common/AdvancedDataTable";
-import { patchAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import ContactDetail from "./ContactDetail";
 import ContactListMob from "./ContactListMob";
-import { getRecord } from "../../../../../api/wcapi";
+import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
 interface ContactData {
   id: string | number;
@@ -168,43 +167,6 @@ const ContactList = () => {
     [dispatch],
   );
 
-  // Handle delete
-  const handleDelete = useCallback(
-    async (id: string | number) => {
-      if (!window.confirm("Are you sure you want to delete this action?")) {
-        return;
-      }
-
-      try {
-        // Implement delete logic here using patchAction or appropriate API
-        await patchAction({
-          model_name: "action",
-          id,
-          method: "delete",
-        });
-
-        dispatch(
-          showToast({
-            message: "Action deleted successfully",
-            type: "success",
-          }),
-        );
-
-        // Refresh data
-        fetchActions();
-      } catch (error) {
-        console.error("Error deleting action:", error);
-        dispatch(
-          showToast({
-            message: "Failed to delete action",
-            type: "error",
-          }),
-        );
-      }
-    },
-    [dispatch, fetchActions],
-  );
-
   // Define table columns
   const columns: TableColumn<ContactData>[] = useMemo(
     () => [
@@ -321,7 +283,7 @@ const ContactList = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete(row.id);
+                handleDeleteRow(row);
               }}
               className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
               title="Delete"
@@ -332,7 +294,7 @@ const ContactList = () => {
         ),
       },
     ],
-    [handleDelete],
+    [handleEdit, handleView, handleDeleteRow],
   );
 
   // Define filters
@@ -382,66 +344,14 @@ const ContactList = () => {
     [],
   );
 
-  // Handle bulk operations
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedContacts.length === 0) {
-      dispatch(
-        showToast({
-          message: "Please select actions to delete",
-          type: "error",
-        }),
-      );
-      return;
-    }
-
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedContacts.length} action(s)?`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // Implement bulk delete logic
-      await Promise.all(
-        selectedContacts.map((action) =>
-          patchAction({
-            model_name: "action",
-            id: action.id,
-            method: "delete",
-          }),
-        ),
-      );
-
-      dispatch(
-        showToast({
-          message: `${selectedContacts.length} action(s) deleted successfully`,
-          type: "success",
-        }),
-      );
-
-      fetchActions();
-      setSelectedContacts([]);
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
-      dispatch(
-        showToast({
-          message: "Failed to delete some actions",
-          type: "error",
-        }),
-      );
-    }
-  }, [selectedContacts, dispatch, fetchActions]);
-
   // Handle view action
-  const handleView = (row: ContactData) => {
+  function handleView(row: ContactData) {
     setSelectedContact(row);
     setFormMode("view");
-  };
+  }
 
   // Handle edit action
-  const handleEdit = async (row: ContactData) => {
+  async function handleEdit(row: ContactData) {
     // Set selected item immediately using row data
     setSelectedContact(row);
     setFormMode("edit");
@@ -453,7 +363,36 @@ const ContactList = () => {
     } catch {
       // Keep using row data on error
     }
-  };
+  }
+
+  // Handle delete action (row-level)
+  async function handleDeleteRow(row: ContactData) {
+    const id = Number(row?.id);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    if (!window.confirm(`Delete contact #${id}?`)) return;
+
+    try {
+      await deleteRecord("contact", id);
+
+      // Update UI immediately
+      setData((prev) => prev.filter((r) => Number(r?.id) !== id));
+      setSelectedContacts((prev) => prev.filter((r) => Number(r?.id) !== id));
+
+      // If the deleted record is open in the inline detail, close it
+      if (Number(selectedContact?.id) === id) {
+        setSelectedContact(null);
+        setFormMode(null);
+      }
+
+      dispatch(showToast({ message: "Contact deleted", type: "success" }));
+    } catch (error) {
+      console.error("[ContactList] delete failed:", error);
+      dispatch(
+        showToast({ message: "Failed to delete contact", type: "error" }),
+      );
+    }
+  }
 
   // Handle add new action - navigate to separate page
   const handleAdd = () => {
@@ -522,15 +461,6 @@ const ContactList = () => {
                 noDataMessage="No contact found"
                 customActions={
                   <div className="flex gap-2">
-                    {selectedContacts.length > 0 && (
-                      <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                        Delete ({selectedContacts.length})
-                      </button>
-                    )}
                     <button
                       onClick={handleAdd}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"

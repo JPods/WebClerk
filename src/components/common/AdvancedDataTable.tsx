@@ -20,7 +20,6 @@ import {
   FaPrint,
   FaCheckSquare,
   FaSearch,
-  FaTrash,
   FaFileExcel,
   FaFilePdf,
   FaFileCode,
@@ -556,7 +555,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       return false;
     };
 
-    return visibleColumns.map((col) => {
+    const mapped = visibleColumns.map((col) => {
       const activationCol =
         rowClickMode === "onlyIdAndActions" &&
         !!onActivate &&
@@ -613,6 +612,38 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
       return col;
     });
+
+    // If the sum of column widths is less than the available table width,
+    // react-data-table-component can leave a trailing blank area to the right.
+    // Make one "filler" column expand to consume remaining space.
+    // Prefer a non-actions column so action buttons remain a consistent size.
+    if (mapped.length > 0) {
+      const isActionLike = (c: TableColumn<T>) => {
+        const name = typeof c.name === "string" ? normalize(c.name) : "";
+        const id = typeof c.id === "string" ? normalize(c.id) : "";
+        return name === "actions" || name === "action" || id === "actions" || id === "action";
+      };
+
+      let fillerIndex = -1;
+      for (let i = mapped.length - 1; i >= 0; i--) {
+        if (!isActionLike(mapped[i])) {
+          fillerIndex = i;
+          break;
+        }
+      }
+      if (fillerIndex === -1) fillerIndex = mapped.length - 1;
+
+      const filler = mapped[fillerIndex];
+      mapped[fillerIndex] = {
+        ...filler,
+        // Remove any explicit width so flex-grow can actually fill.
+        width: undefined,
+        // Ensure the column can expand.
+        grow: typeof (filler as any).grow === "number" ? (filler as any).grow : 1,
+      } as TableColumn<T>;
+    }
+
+    return mapped;
   }, [
     visibleColumns,
     rowClickMode,
@@ -1046,9 +1077,35 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   // Custom styles for react-data-table-component
   const customStyles = {
+    tableWrapper: {
+      style: {
+        width: "100%",
+      },
+    },
+    table: {
+      style: {
+        width: "100%",
+        minWidth: "100%",
+      },
+    },
+    head: {
+      style: {
+        width: "100%",
+        minWidth: "100%",
+      },
+    },
+    headRow: {
+      style: {
+        width: "100%",
+        minWidth: "100%",
+        backgroundColor: theme === "dark" ? "#1f2937" : "#f9fafb",
+      },
+    },
     rows: {
       style: {
         minHeight: "48px",
+        width: "100%",
+        minWidth: "100%",
         "&:hover": {
           backgroundColor: theme === "dark" ? "#1f2937" : "#f3f4f6",
         },
@@ -1336,15 +1393,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                         )}
                       </div>
                     )}
-                    {/* <button
-                      onClick={() => onDeleteSelected?.(selectedRows)}
-                      disabled={!onDeleteSelected || selectedRows.length === 0}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                      title="Delete"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                      Delete
-                    </button> */}
+                    {/* Bulk Delete UI intentionally removed. Delete actions belong on the detail page header. */}
 
                     {/* Place all the action buttons here */}
                     {/* <button
@@ -1684,7 +1733,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       )} */}
 
       {/* Data Table */}
-      <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="w-full overflow-x-auto bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
         <DataTable
           columns={dataTableColumns as unknown as TableColumn<RowWithKey>[]}
           data={tableRows}

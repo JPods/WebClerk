@@ -19,7 +19,8 @@
  */
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { createPortal } from "react-dom";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -32,7 +33,7 @@ import { DevBadge } from "@/components/common/DevBadge";
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
-import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import { deleteRecord, getRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { createContact, updateContact } from "../services/contactApi";
 import {
   contactSchema,
@@ -63,7 +64,6 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
   DetailTabs,
   useDetailTabs,
-  useColumnCount,
   TabConfig,
 } from "@/components/common/DetailTabs";
 
@@ -78,6 +78,9 @@ import {
   FaSearch,
   FaShoppingCart,
   FaClipboardList,
+  FaSpinner,
+  FaTrash,
+  FaTimes,
 } from "react-icons/fa";
 import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
 
@@ -92,6 +95,11 @@ import {
   RawDataPanel,
   RefsPanel,
 } from "@/apps/common/components/panels";
+import {
+  CommunicationAddEditModal,
+  type CommunicationModalType,
+  type CommunicationModalData,
+} from "@/apps/common/components/panels/CommunicationAddEditModal";
 
 // Org search dialog
 import OrgSearchDialog from "@/apps/common/components/OrgSearchDialog";
@@ -260,6 +268,91 @@ const ROLE_OPTIONS = [
   { value: "guest", label: "Guest" },
 ];
 
+type CommType = CommunicationModalType;
+
+function commTypeToModelName(type: CommType): string {
+  return type;
+}
+
+function commTypeToContactIdField(type: CommType): "email_id" | "phone_id" | "address_id" | "domain_id" {
+  if (type === "email") return "email_id";
+  if (type === "phone") return "phone_id";
+  if (type === "address") return "address_id";
+  return "domain_id";
+}
+
+function commTypeToContactScalarField(type: CommType): "email" | "phone" | "address_full" | "domain" {
+  if (type === "email") return "email";
+  if (type === "phone") return "phone";
+  if (type === "address") return "address_full";
+  return "domain";
+}
+
+function getCommDisplayValue(type: CommType, item: any): string {
+  if (!item) return "";
+  if (type === "email") return item.email || item.address || item.value || "";
+  if (type === "phone") return item.number || item.value || item.format || "";
+  if (type === "domain") return item.domain || item.value || item.path || "";
+  // address
+  return (
+    item.full ||
+    [
+      item.address1,
+      [item.city, item.state, item.zip].filter(Boolean).join(", "),
+      item.country,
+    ]
+      .filter(Boolean)
+      .join(", ")
+  );
+}
+
+function mapModalToCommModelPayload(type: CommType, formData: CommunicationModalData, contactId: number) {
+  if (type === "email") {
+    const email = String((formData as any).email || "").trim();
+    return {
+      ...(formData.id ? { id: formData.id } : {}),
+      contact_id: contactId,
+      email,
+      name: (formData as any).name || "",
+      attention: (formData as any).attention || "",
+      is_primary: !!(formData as any).is_primary,
+    };
+  }
+  if (type === "phone") {
+    const number = String((formData as any).number || "").trim();
+    return {
+      ...(formData.id ? { id: formData.id } : {}),
+      contact_id: contactId,
+      number,
+      name: (formData as any).name || "",
+      attention: (formData as any).attention || "",
+    };
+  }
+  if (type === "domain") {
+    const path = String((formData as any).domain || (formData as any).path || "").trim();
+    return {
+      ...(formData.id ? { id: formData.id } : {}),
+      contact_id: contactId,
+      path,
+      type: (formData as any).type || "",
+      status: (formData as any).verified ? "active" : (formData as any).status || "active",
+    };
+  }
+
+  // address
+  const address1 = String((formData as any).address1 || "").trim();
+  return {
+    ...(formData.id ? { id: formData.id } : {}),
+    contact_id: contactId,
+    address1,
+    address2: (formData as any).address2 || "",
+    city: (formData as any).city || "",
+    state: (formData as any).state || "",
+    zip: (formData as any).zip || "",
+    country: (formData as any).country || "",
+  };
+}
+
 /** Maps parent org model name → the foreign-key field on Contact */
 const PARENT_MODEL_TO_ID_FIELD: Record<string, string> = {
   customer: "customer_id",
@@ -350,6 +443,31 @@ const normalizeNumber = (value: any): number | undefined => {
   return isNaN(num) ? undefined : num;
 };
 
+const normalizeContactFkFields = (record: any) => {
+  if (!record || typeof record !== "object") return record;
+  const out = { ...record };
+  const pickId = (v: any) => {
+    if (v == null) return undefined;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
+    if (typeof v === "object") {
+      const nested = (v as any).id;
+      if (typeof nested === "number" && Number.isFinite(nested)) return nested;
+      if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) return Number(nested);
+    }
+    return undefined;
+  };
+
+  // WCAPI often returns FK ids under the field name (customer, rep, ...) not the attname (customer_id).
+  if (out.customer_id == null) out.customer_id = pickId(out.customer);
+  if (out.rep_id == null) out.rep_id = pickId(out.rep);
+  if (out.vendor_id == null) out.vendor_id = pickId(out.vendor);
+  if (out.employee_id == null) out.employee_id = pickId(out.employee);
+  if (out.manufacturer_id == null) out.manufacturer_id = pickId(out.manufacturer);
+
+  return out;
+};
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
@@ -422,23 +540,44 @@ export default function ContactDetail({
     routeState.data?.id ||
     dataProp?.id;
 
-  const contactIdFromUrl = urlId
-    ? typeof urlId === "number"
-      ? urlId
-      : parseInt(String(urlId), 10)
-    : null;
+  const parseRecordId = (value: unknown): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value === "string") {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
+  const contactIdFromUrl = parseRecordId(urlId);
 
   // ---------------------------------------------------------------------------
   // Mode
   // ---------------------------------------------------------------------------
 
-  const baseMode: "add" | "edit" | "view" =
-    modeProp || routeState.mode || (contactIdFromUrl ? "view" : "add");
-  const [effectiveMode, setEffectiveMode] = useState(baseMode);
+  // recordMode controls validation + save behavior.
+  // UI mode always starts in view for existing records.
+  const recordMode: "add" | "edit" = useMemo(() => {
+    if (modeProp === "add") return "add";
+    if (contactIdFromUrl != null) return "edit";
+    // With no ID, default to add. routeState.mode may be set by navigations,
+    // but it shouldn't force edit-mode for a non-existent record.
+    return "add";
+  }, [modeProp, contactIdFromUrl]);
+
+  const initialUiMode: "add" | "edit" | "view" = useMemo(() => {
+    return recordMode === "add" ? "add" : "view";
+  }, [recordMode]);
+
+  const [effectiveMode, setEffectiveMode] = useState<
+    "add" | "edit" | "view"
+  >(initialUiMode);
 
   useEffect(() => {
-    setEffectiveMode(baseMode);
-  }, [baseMode]);
+    setEffectiveMode(initialUiMode);
+  }, [initialUiMode]);
 
   const isEditing = effectiveMode === "edit" || effectiveMode === "add";
 
@@ -449,15 +588,15 @@ export default function ContactDetail({
   const [fetchedData, setFetchedData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const initialData = dataProp || routeState.data || null;
-  const data = fetchedData || initialData;
+  const data = normalizeContactFkFields(fetchedData || initialData);
   const activeContactId = data?.id || contactIdFromUrl || null;
 
   useEffect(() => {
-    if (contactIdFromUrl && contactIdFromUrl !== fetchedData?.id) {
+    if (contactIdFromUrl != null && contactIdFromUrl !== fetchedData?.id) {
       if (initialData?.id === contactIdFromUrl) return;
       setIsLoading(true);
       getRecord("contact", contactIdFromUrl)
-        .then((result) => setFetchedData(result?.record || result))
+        .then((result) => setFetchedData(normalizeContactFkFields(result?.record || result)))
         .catch((err) =>
           console.error("[ContactDetail] Failed to fetch contact:", err),
         )
@@ -520,6 +659,527 @@ export default function ContactDetail({
     }
   }, [data?.communications, data?.refs?.links]);
 
+  // setValue is initialized by useForm later in this component.
+  // We store it in a ref so earlier callbacks (defined before useForm) don't hit TDZ.
+  const formSetValueRef = useRef<null | ((...args: any[]) => void)>(null);
+  const formGetValuesRef = useRef<null | ((name: string) => any)>(null);
+
+  // Prefer the authoritative communications tables when we have a saved contact id.
+  // This makes the Basic Info pickers and the Comms tab reflect real records.
+  useEffect(() => {
+    if (!activeContactId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [emailRes, phoneRes, addressRes, domainRes] = await Promise.all([
+          getRecords("email", { contact: activeContactId, limit: 200 }),
+          getRecords("phone", { contact: activeContactId, limit: 200 }),
+          getRecords("address", { contact: activeContactId, limit: 200 }),
+          getRecords("domain", { contact: activeContactId, limit: 200 }),
+        ]);
+
+        const rawEmails = (emailRes as any)?.results ?? [];
+        const emails = rawEmails
+          .filter((r: any) => {
+            const cid = Number(r?.contact ?? r?.contact_id);
+            return !Number.isFinite(cid) || cid === activeContactId;
+          })
+          .map((r: any) => ({
+          id: r.id,
+          name: r.name || "",
+          type: r.type || "",
+          email: r.email,
+          address: r.email,
+          value: r.email,
+          is_primary: !!r.is_primary,
+          is_verified: !!r.is_verified,
+        }));
+
+        const rawPhones = (phoneRes as any)?.results ?? [];
+        const phones = rawPhones
+          .filter((r: any) => {
+            const cid = Number(r?.contact ?? r?.contact_id);
+            return !Number.isFinite(cid) || cid === activeContactId;
+          })
+          .map((r: any) => ({
+          id: r.id,
+          name: r.name || "",
+          number: r.number,
+          value: r.number,
+          format: r.format || "",
+          country_code: r.country_code || "",
+        }));
+
+        const rawAddresses = (addressRes as any)?.results ?? [];
+        const addresses = rawAddresses
+          .filter((r: any) => {
+            const cid = Number(r?.contact ?? r?.contact_id);
+            return !Number.isFinite(cid) || cid === activeContactId;
+          })
+          .map((r: any) => ({
+          id: r.id,
+          name: r.address_type || "",
+          address1: r.address1,
+          address2: r.address2,
+          city: r.city,
+          state: r.state,
+          zip: r.zip,
+          country: r.country,
+          full: r.full,
+        }));
+
+        const rawDomains = (domainRes as any)?.results ?? [];
+        const domains = rawDomains
+          .filter((r: any) => {
+            const cid = Number(r?.contact ?? r?.contact_id);
+            return !Number.isFinite(cid) || cid === activeContactId;
+          })
+          .map((r: any) => ({
+          id: r.id,
+          name: r.type || "",
+          domain: r.path,
+          path: r.path,
+          value: r.path,
+          status: r.status,
+        }));
+
+        if (!cancelled) {
+          setCommunications({ emails, phones, addresses, domains });
+        }
+      } catch (e) {
+        // If tables are empty or endpoint errors, fall back to refs-based comms.
+        console.warn("[ContactDetail] communications model fetch failed:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeContactId]);
+
+  // ---------------------------------------------------------------------------
+  // Basic Info communications pickers (email/phone/address/domain)
+  // - Select from existing linked comm records (searchable)
+  // - Add new record (creates communication model row via wcapi)
+  // - Set as primary by updating contact.{*_id} + scalar field without refetching
+  //   (avoids wiping other unsaved form edits)
+  // ---------------------------------------------------------------------------
+
+  const [commSelectState, setCommSelectState] = useState<{
+    open: boolean;
+    type: CommType;
+  }>({ open: false, type: "email" });
+  const [commSelectQuery, setCommSelectQuery] = useState<string>("");
+  const [commGlobalResults, setCommGlobalResults] = useState<any[]>([]);
+  const [commGlobalLoading, setCommGlobalLoading] = useState(false);
+
+  const [commModalState, setCommModalState] = useState<{
+    open: boolean;
+    type: CommType;
+    data?: CommunicationModalData;
+  }>({ open: false, type: "email" });
+
+  const [commSaving, setCommSaving] = useState(false);
+
+  const openCommSelect = (type: CommType) => {
+    setCommSelectQuery("");
+    setCommSelectState({ open: true, type });
+  };
+
+  const closeCommSelect = () => setCommSelectState((s) => ({ ...s, open: false }));
+
+  // Global search results for selector dialog (shows all records; not limited to this contact)
+  useEffect(() => {
+    if (!commSelectState.open) return;
+
+    let cancelled = false;
+    (async () => {
+      setCommGlobalLoading(true);
+      try {
+        const modelName = commTypeToModelName(commSelectState.type);
+        const q = commSelectQuery.trim();
+        const params: Record<string, any> = { limit: 200 };
+        if (q) {
+          params.search = q;
+          params.q = q;
+        }
+        const res: any = await getRecords(modelName, params);
+        const rows: any[] = res?.results || [];
+        if (!cancelled) setCommGlobalResults(rows);
+      } catch (e) {
+        if (!cancelled) setCommGlobalResults([]);
+      } finally {
+        if (!cancelled) setCommGlobalLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [commSelectState.open, commSelectState.type, commSelectQuery]);
+
+  const filteredCommItems = useMemo(() => {
+    const q = commSelectQuery.trim().toLowerCase();
+    if (!q) return commGlobalResults;
+    return commGlobalResults.filter((item: any) => {
+      const value = getCommDisplayValue(commSelectState.type, item).toLowerCase();
+      const label = String(item?.name || item?.type || "").toLowerCase();
+      return value.includes(q) || label.includes(q) || String(item?.id || "").includes(q);
+    });
+  }, [commGlobalResults, commSelectQuery, commSelectState.type]);
+
+  const copyCommToThisContact = useCallback(
+    async (type: CommType, row: any): Promise<number> => {
+      if (!activeContactId) throw new Error("No active contact id");
+      const modelName = commTypeToModelName(type);
+      const existingContact = Number(row?.contact ?? row?.contact_id);
+
+      // If record is already attached to this contact, reuse it.
+      if (Number.isFinite(existingContact) && existingContact === activeContactId && row?.id) {
+        return Number(row.id);
+      }
+
+      // Otherwise, create a new record attached to this contact (safer than re-assigning ownership)
+      let createPayload: Record<string, any> = { contact_id: activeContactId };
+      if (type === "email") {
+        createPayload = {
+          ...createPayload,
+          email: row?.email || row?.address || row?.value || "",
+          name: row?.name || "",
+          attention: row?.attention || "",
+          type: row?.type || "",
+          is_primary: false,
+        };
+      } else if (type === "phone") {
+        createPayload = {
+          ...createPayload,
+          number: row?.number || row?.value || "",
+          name: row?.name || "",
+          attention: row?.attention || "",
+          country_code: row?.country_code || "",
+          format: row?.format || "",
+        };
+      } else if (type === "domain") {
+        createPayload = {
+          ...createPayload,
+          path: row?.path || row?.domain || row?.value || "",
+          type: row?.type || "",
+          status: row?.status || "active",
+          comment: row?.comment || "",
+        };
+      } else if (type === "address") {
+        createPayload = {
+          ...createPayload,
+          address1: row?.address1 || "",
+          address2: row?.address2 || "",
+          city: row?.city || "",
+          state: row?.state || "",
+          zip: row?.zip || "",
+          country: row?.country || "",
+          full: row?.full || "",
+          address_type: row?.address_type || row?.name || "",
+        };
+      }
+
+      const res: any = await saveRecord(modelName, createPayload);
+      const record = res?.record ?? res;
+      const newId = Number(record?.id ?? res?.id);
+      if (!Number.isFinite(newId) || newId <= 0) {
+        throw new Error("Failed to link communication record");
+      }
+      return newId;
+    },
+    [activeContactId],
+  );
+
+  const refreshCommType = useCallback(
+    async (type: CommType) => {
+      if (!activeContactId) return;
+      try {
+        const modelName = commTypeToModelName(type);
+        const res: any = await getRecords(modelName, {
+          contact: activeContactId,
+          limit: 200,
+        });
+        const rows: any[] = (res?.results || []).filter((r: any) => {
+          const cid = Number(r?.contact ?? r?.contact_id);
+          return !Number.isFinite(cid) || cid === activeContactId;
+        });
+
+        if (type === "email") {
+          const emails = rows.map((r) => ({
+            id: r.id,
+            name: r.name || "",
+            type: r.type || "",
+            email: r.email,
+            address: r.email,
+            value: r.email,
+            is_primary: !!r.is_primary,
+            is_verified: !!r.is_verified,
+          }));
+          setCommunications((prev) => ({ ...(prev || {}), emails }));
+        } else if (type === "phone") {
+          const phones = rows.map((r) => ({
+            id: r.id,
+            name: r.name || "",
+            number: r.number,
+            value: r.number,
+            format: r.format || "",
+            country_code: r.country_code || "",
+          }));
+          setCommunications((prev) => ({ ...(prev || {}), phones }));
+        } else if (type === "address") {
+          const addresses = rows.map((r) => ({
+            id: r.id,
+            name: r.address_type || "",
+            address1: r.address1,
+            address2: r.address2,
+            city: r.city,
+            state: r.state,
+            zip: r.zip,
+            country: r.country,
+            full: r.full,
+          }));
+          setCommunications((prev) => ({ ...(prev || {}), addresses }));
+        } else if (type === "domain") {
+          const domains = rows.map((r) => ({
+            id: r.id,
+            name: r.type || "",
+            domain: r.path,
+            path: r.path,
+            value: r.path,
+            status: r.status,
+            is_primary: data?.domain_id ? r.id === data.domain_id : false,
+            verified: r.status ? String(r.status).toLowerCase() === "active" : false,
+          }));
+          setCommunications((prev) => ({ ...(prev || {}), domains }));
+        }
+      } catch (e) {
+        console.warn("[ContactDetail] refreshCommType failed:", e);
+      }
+    },
+    [activeContactId, data?.domain_id],
+  );
+
+  const setPrimaryCommWithoutRefetch = useCallback(
+    async (type: CommType, commId: number, displayValue: string) => {
+      if (!activeContactId) return;
+      const idField = commTypeToContactIdField(type);
+      const scalarField = commTypeToContactScalarField(type);
+
+      const payload: Record<string, any> = {
+        id: activeContactId,
+        mode: "update",
+        [idField]: commId,
+      };
+
+      // Do NOT blindly overwrite Contact.email (login + unique).
+      // Only mirror the selected email into the scalar field when it matches the current form value
+      // (or when current is blank). This prevents 400s from uniqueness/validation.
+      if (type === "email") {
+        const currentEmailRaw =
+          (formGetValuesRef.current?.("email") as string | undefined) ??
+          (data?.email as string | undefined) ??
+          "";
+        const currentEmail = String(currentEmailRaw || "").trim().toLowerCase();
+        const selectedEmail = String(displayValue || "").trim().toLowerCase();
+        if (!currentEmail || currentEmail === selectedEmail) {
+          payload[scalarField] = displayValue;
+        }
+      } else {
+        payload[scalarField] = displayValue;
+      }
+      try {
+        await updateContact(payload as any);
+        if (payload[scalarField] !== undefined) {
+          formSetValueRef.current?.(scalarField as any, displayValue, { shouldDirty: true });
+        }
+      } catch (err: any) {
+        const details = err?.response?.data || err;
+        console.error("[ContactDetail] Failed to set primary comm:", {
+          type,
+          commId,
+          scalarField,
+          idField,
+          payload,
+          details,
+        });
+        const message =
+          details?.message ||
+          details?.detail ||
+          details?.error?.details ||
+          err?.message ||
+          "Failed to update contact";
+        dispatch(showToast({ message: String(message), type: "error" }));
+        throw err;
+      }
+    },
+    [activeContactId, updateContact, dispatch],
+  );
+
+  const handleSelectComm = useCallback(
+    async (item: any) => {
+      const type = commSelectState.type;
+      if (!activeContactId) return;
+
+      setCommSaving(true);
+      try {
+        const linkedId = await copyCommToThisContact(type, item);
+        await refreshCommType(type);
+        const displayValue = getCommDisplayValue(type, item);
+        await setPrimaryCommWithoutRefetch(type, linkedId, displayValue);
+        closeCommSelect();
+      } catch {
+        // toast/log already emitted in setPrimaryCommWithoutRefetch
+      } finally {
+        setCommSaving(false);
+      }
+    },
+    [activeContactId, commSelectState.type, copyCommToThisContact, refreshCommType, setPrimaryCommWithoutRefetch],
+  );
+
+  const handleAddNewComm = useCallback(
+    (type: CommType) => {
+      setCommModalState({ open: true, type, data: undefined });
+    },
+    [],
+  );
+
+  const handleSaveNewComm = useCallback(
+    async (payload: CommunicationModalData) => {
+      const type = commModalState.type;
+      if (!activeContactId) return;
+
+      setCommSaving(true);
+      try {
+        const modelName = commTypeToModelName(type);
+        const modelPayload = mapModalToCommModelPayload(type, payload, activeContactId);
+        const res: any = await saveRecord(modelName, modelPayload);
+        const record = res?.record ?? res;
+        const newId = Number(record?.id ?? res?.id);
+        if (!Number.isFinite(newId) || newId <= 0) {
+          throw new Error("Failed to create communication record");
+        }
+
+        await refreshCommType(type);
+
+        // Denormalize and set primary on contact
+        const displayValue = getCommDisplayValue(type, {
+          ...(record || {}),
+          // normalize common names for display
+          address: record?.email,
+          email: record?.email,
+          number: record?.number,
+          domain: record?.path,
+          path: record?.path,
+        });
+        await setPrimaryCommWithoutRefetch(type, newId, displayValue);
+
+        setCommModalState((s) => ({ ...s, open: false }));
+      } catch (e) {
+        console.error("[ContactDetail] handleSaveNewComm failed:", e);
+        dispatch(showToast({ message: `Failed to add ${commModalState.type}`, type: "error" }));
+      } finally {
+        setCommSaving(false);
+      }
+    },
+    [activeContactId, commModalState.type, dispatch, refreshCommType, saveRecord, setPrimaryCommWithoutRefetch],
+  );
+
+  const CommSelectDialog = commSelectState.open
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[12vh]"
+          onClick={() => closeCommSelect()}
+        >
+          <div
+            className="w-full max-w-lg mx-4 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 capitalize">
+                Select {commSelectState.type}
+              </div>
+              <button
+                type="button"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                onClick={() => closeCommSelect()}
+              >
+                <FaChevronRight />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={commSelectQuery}
+                  onChange={(e) => setCommSelectQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                />
+                <button
+                  type="button"
+                  className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg"
+                  onClick={() => handleAddNewComm(commSelectState.type)}
+                >
+                  Add new
+                </button>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                {commGlobalLoading ? (
+                  <div className="p-3 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                    <FaSpinner className="animate-spin" size={12} />
+                    Loading...
+                  </div>
+                ) : filteredCommItems.length === 0 ? (
+                  <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+                    No matches
+                  </div>
+                ) : (
+                  filteredCommItems.map((item: any, idx: number) => {
+                    const value = getCommDisplayValue(commSelectState.type, item);
+                    const label = item?.name || item?.type || "";
+                    return (
+                      <button
+                        key={`${item?.id ?? value ?? "comm"}-${idx}`}
+                        type="button"
+                        onClick={() => handleSelectComm(item)}
+                        className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        disabled={commSaving}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm text-slate-900 dark:text-slate-100 truncate">
+                              {value || "--"}
+                            </div>
+                            {label ? (
+                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {label}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-slate-400 font-mono shrink-0">#{item?.id}</div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {commSaving && (
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <FaSpinner className="animate-spin" size={12} />
+                  Saving...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
@@ -529,7 +1189,6 @@ export default function ContactDetail({
     "actions",
     VALID_TABS,
   );
-  const { columnCount, setColumnCount } = useColumnCount("contact", 3);
 
   const additionalTabs: TabConfig[] = useMemo(
     () => [
@@ -659,12 +1318,13 @@ export default function ContactDetail({
     register,
     control,
     handleSubmit,
+    getValues,
     reset,
     setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
-      baseMode === "edit" ? updateContactSchema : contactSchema,
+      recordMode === "edit" ? updateContactSchema : contactSchema,
     ),
     defaultValues: {
       // Auto-populate the parent org ID field when opened from an org page
@@ -700,6 +1360,31 @@ export default function ContactDetail({
     },
   });
 
+  useEffect(() => {
+    formSetValueRef.current = setValue as any;
+  }, [setValue]);
+
+  useEffect(() => {
+    formGetValuesRef.current = (name: string) => (getValues as any)(name);
+  }, [getValues]);
+
+  // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
+  const watchedFirstName = useWatch({ control, name: "name_first" });
+  const watchedLastName = useWatch({ control, name: "name_last" });
+  useEffect(() => {
+    if (!isEditing) return;
+    const next = [watchedFirstName, watchedLastName]
+      .map((v) => String(v || "").trim())
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const current = String(getValues("attention") || "");
+    if (current !== next) {
+      setValue("attention", next, { shouldDirty: false, shouldValidate: false });
+    }
+  }, [isEditing, watchedFirstName, watchedLastName, getValues, setValue]);
+
   // Sync form when data loads
   useEffect(() => {
     if (!data) {
@@ -710,11 +1395,11 @@ export default function ContactDetail({
     }
     reset({
       ...data,
-      customer_id: normalizeNumber(data.customer_id),
-      rep_id: normalizeNumber(data.rep_id),
-      vendor_id: normalizeNumber(data.vendor_id),
-      employee_id: normalizeNumber(data.employee_id),
-      manufacturer_id: normalizeNumber(data.manufacturer_id),
+      customer_id: normalizeNumber(data.customer_id ?? data.customer),
+      rep_id: normalizeNumber(data.rep_id ?? data.rep),
+      vendor_id: normalizeNumber(data.vendor_id ?? data.vendor),
+      employee_id: normalizeNumber(data.employee_id ?? data.employee),
+      manufacturer_id: normalizeNumber(data.manufacturer_id ?? data.manufacturer),
       other_id: normalizeNumber(data.other_id),
       refs: {
         tags: data.refs?.tags ?? [],
@@ -926,7 +1611,7 @@ export default function ContactDetail({
           : undefined;
 
         console.log("[ContactDetail] Submitting:", {
-          baseMode,
+          recordMode,
           formData,
           mappedRefs,
         });
@@ -947,17 +1632,17 @@ export default function ContactDetail({
           // Disabled inputs are excluded by react-hook-form, so fall back to
           // parent-seeded values (query params) or fetched record values.
           customer_id:
-            formData.customer_id ?? parentCustomerId ?? data?.customer_id,
-          rep_id: formData.rep_id ?? data?.rep_id,
-          vendor_id: formData.vendor_id ?? data?.vendor_id,
-          employee_id: formData.employee_id ?? data?.employee_id,
-          manufacturer_id: formData.manufacturer_id ?? data?.manufacturer_id,
+            formData.customer_id ?? parentCustomerId ?? data?.customer_id ?? data?.customer,
+          rep_id: formData.rep_id ?? data?.rep_id ?? data?.rep,
+          vendor_id: formData.vendor_id ?? data?.vendor_id ?? data?.vendor,
+          employee_id: formData.employee_id ?? data?.employee_id ?? data?.employee,
+          manufacturer_id: formData.manufacturer_id ?? data?.manufacturer_id ?? data?.manufacturer,
           other_id: formData.other_id ?? data?.other_id,
           refs: mappedRefs,
         };
 
         const payload =
-          baseMode === "add"
+          recordMode === "add"
             ? {
                 ...basePayload,
                 password: (formData as any).password,
@@ -966,7 +1651,7 @@ export default function ContactDetail({
             : basePayload;
 
         const res =
-          baseMode === "add"
+          recordMode === "add"
             ? await createContact(payload as CreateContactRequest)
             : await updateContact({
                 ...payload,
@@ -989,7 +1674,7 @@ export default function ContactDetail({
           // When a new contact is created from an org detail page,
           // update the parent record to include this contact in its refs.
           if (
-            baseMode === "add" &&
+            recordMode === "add" &&
             parentModel &&
             parentId &&
             newContactId &&
@@ -1016,7 +1701,7 @@ export default function ContactDetail({
           dispatch(
             showToast({
               message: `Contact ${
-                baseMode === "add" ? "created" : "updated"
+                recordMode === "add" ? "created" : "updated"
               } successfully`,
               type: "success",
             }),
@@ -1058,7 +1743,7 @@ export default function ContactDetail({
       }
     },
     [
-      baseMode,
+      recordMode,
       data?.id,
       dispatch,
       onSaved,
@@ -1107,6 +1792,40 @@ export default function ContactDetail({
     [windowManager],
   );
 
+  const handleClose = useCallback(() => {
+    if (onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    windowManager.closeWindow(windowPath || location.pathname);
+  }, [onCancelInline, windowManager, windowPath, location.pathname]);
+
+  const handleDeleteContact = useCallback(async () => {
+    const contactId = data?.id;
+    if (!contactId) return;
+    if (!window.confirm(`Delete contact #${contactId}?`)) return;
+
+    try {
+      await deleteRecord("contact", contactId);
+      dispatch(showToast({ message: "Contact deleted", type: "success" }));
+
+      window.dispatchEvent(
+        new CustomEvent("contact-deleted", {
+          detail: { contactId },
+        }),
+      );
+
+      // Allow parent list pages (inline detail) to refetch immediately.
+      onSaved?.();
+      handleClose();
+    } catch (err) {
+      console.error("[ContactDetail] delete failed:", err);
+      dispatch(
+        showToast({ message: "Failed to delete contact", type: "error" }),
+      );
+    }
+  }, [data?.id, dispatch, onSaved, handleClose]);
+
   // ---------------------------------------------------------------------------
   // Action Buttons (header)
   // ---------------------------------------------------------------------------
@@ -1140,19 +1859,6 @@ export default function ContactDetail({
           Edit
         </button>,
       );
-      if (onCancelInline) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancelInline}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
     }
 
     // Prev/Next nav arrows
@@ -1183,6 +1889,34 @@ export default function ContactDetail({
       );
     }
 
+    // Delete (right side, before close)
+    if (effectiveMode === "view" && data?.id) {
+      buttons.push(
+        <button
+          key="delete-contact"
+          type="button"
+          onClick={handleDeleteContact}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete contact"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close detail (always shown at far right)
+    buttons.push(
+      <button
+        key="close-detail"
+        type="button"
+        onClick={handleClose}
+        className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        title="Close detail"
+      >
+        <FaTimes size={14} />
+      </button>,
+    );
+
     return buttons;
   };
 
@@ -1191,13 +1925,15 @@ export default function ContactDetail({
   // ---------------------------------------------------------------------------
 
   const handleCancel = useCallback(() => {
-    if (onCancelInline) {
-      onCancelInline();
-    } else {
-      setEffectiveMode("view");
-      if (data) reset(data);
+    if (recordMode === "add") {
+      // Stay on the page, just clear changes back to defaultValues.
+      reset();
+      setEffectiveMode("add");
+      return;
     }
-  }, [onCancelInline, data, reset]);
+    setEffectiveMode("view");
+    if (data) reset(data);
+  }, [recordMode, data, reset]);
 
   // ---------------------------------------------------------------------------
   // Derived display values
@@ -1307,20 +2043,19 @@ export default function ContactDetail({
               Basic Information
             </h3>
             <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm"
             >
+              <InfoRow label="name_prefix" value={data.name_prefix} />
               <InfoRow label="name_first" value={data.name_first} />
+              <InfoRow label="name_middle" value={data.name_middle} />
               <InfoRow label="name_last" value={data.name_last} />
+              <InfoRow label="name_suffix" value={data.name_suffix} />
+
               <InfoRow label="email" value={data.email} />
               <InfoRow label="phone" value={data.phone} />
               <InfoRow label="address_full" value={data.address_full} />
               <InfoRow label="domain" value={data.domain} />
               <InfoRow label="attention" value={data.attention} />
-              <InfoRow label="name_prefix" value={data.name_prefix} />
-              <InfoRow label="name_middle" value={data.name_middle} />
-              <InfoRow label="name_suffix" value={data.name_suffix} />
               <InfoRow label="company" value={data.company} />
               <InfoRow label="title" value={data.title} />
               <InfoRow label="department" value={data.department} />
@@ -1354,10 +2089,20 @@ export default function ContactDetail({
             onSubmit={handleSubmit(onSubmit, onValidationError)}
           >
             <div
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-0`}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0"
             >
+              {shouldRenderField("name_prefix") && (
+                <HorizontalField label="name_prefix" htmlFor="name_prefix">
+                  <Input
+                    type="text"
+                    id="name_prefix"
+                    placeholder="Mr., Ms., Dr."
+                    {...register("name_prefix")}
+                    disabled={isFieldDisabled("name_prefix")}
+                  />
+                </HorizontalField>
+              )}
+
               {shouldRenderField("name_first") && (
                 <HorizontalField
                   label="name_first"
@@ -1372,6 +2117,18 @@ export default function ContactDetail({
                     {...register("name_first")}
                     error={!!errors.name_first?.message}
                     disabled={isFieldDisabled("name_first")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("name_middle") && (
+                <HorizontalField label="name_middle" htmlFor="name_middle">
+                  <Input
+                    type="text"
+                    id="name_middle"
+                    placeholder="Middle name"
+                    {...register("name_middle")}
+                    disabled={isFieldDisabled("name_middle")}
                   />
                 </HorizontalField>
               )}
@@ -1394,96 +2151,6 @@ export default function ContactDetail({
                 </HorizontalField>
               )}
 
-              {shouldRenderField("email") && (
-                <HorizontalField
-                  label="email"
-                  htmlFor="email"
-                  required
-                  error={errors.email?.message}
-                >
-                  <Input
-                    type="email"
-                    id="email"
-                    placeholder="Primary email"
-                    {...register("email")}
-                    error={!!errors.email?.message}
-                    disabled={isFieldDisabled("email")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("phone") && (
-                <HorizontalField label="phone" htmlFor="phone">
-                  <Input
-                    type="text"
-                    id="phone"
-                    placeholder="Primary phone"
-                    {...register("phone" as any)}
-                    disabled={isFieldDisabled("phone")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("address_full") && (
-                <HorizontalField label="address_full" htmlFor="address_full">
-                  <Input
-                    type="text"
-                    id="address_full"
-                    placeholder="Full address"
-                    {...register("address_full" as any)}
-                    disabled={isFieldDisabled("address_full")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("domain") && (
-                <HorizontalField label="domain" htmlFor="domain">
-                  <Input
-                    type="text"
-                    id="domain"
-                    placeholder="Primary domain"
-                    {...register("domain" as any)}
-                    disabled={isFieldDisabled("domain")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("attention") && (
-                <HorizontalField label="attention" htmlFor="attention">
-                  <Input
-                    type="text"
-                    id="attention"
-                    placeholder="Attention / display name"
-                    {...register("attention")}
-                    disabled={isFieldDisabled("attention")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_prefix") && (
-                <HorizontalField label="name_prefix" htmlFor="name_prefix">
-                  <Input
-                    type="text"
-                    id="name_prefix"
-                    placeholder="Mr., Ms., Dr."
-                    {...register("name_prefix")}
-                    disabled={isFieldDisabled("name_prefix")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_middle") && (
-                <HorizontalField label="name_middle" htmlFor="name_middle">
-                  <Input
-                    type="text"
-                    id="name_middle"
-                    placeholder="Middle name"
-                    {...register("name_middle")}
-                    disabled={isFieldDisabled("name_middle")}
-                  />
-                </HorizontalField>
-              )}
-
               {shouldRenderField("name_suffix") && (
                 <HorizontalField label="name_suffix" htmlFor="name_suffix">
                   <Input
@@ -1492,6 +2159,124 @@ export default function ContactDetail({
                     placeholder="Jr., Sr., III"
                     {...register("name_suffix")}
                     disabled={isFieldDisabled("name_suffix")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("email") && (
+                <HorizontalField
+                  label="email"
+                  htmlFor="email"
+                  required
+                  error={errors.email?.message}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="email"
+                      id="email"
+                      placeholder="Primary email"
+                      {...register("email")}
+                      error={!!errors.email?.message}
+                      disabled={isFieldDisabled("email")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("email")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add email"
+                        disabled={isFieldDisabled("email")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("phone") && (
+                <HorizontalField label="phone" htmlFor="phone">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="phone"
+                      placeholder="Primary phone"
+                      {...register("phone" as any)}
+                      disabled={isFieldDisabled("phone")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("phone")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add phone"
+                        disabled={isFieldDisabled("phone")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("address_full") && (
+                <HorizontalField label="address_full" htmlFor="address_full">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="address_full"
+                      placeholder="Full address"
+                      {...register("address_full" as any)}
+                      disabled={isFieldDisabled("address_full")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("address")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add address"
+                        disabled={isFieldDisabled("address_full")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("domain") && (
+                <HorizontalField label="domain" htmlFor="domain">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="domain"
+                      placeholder="Primary domain"
+                      {...register("domain" as any)}
+                      disabled={isFieldDisabled("domain")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("domain")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add domain"
+                        disabled={isFieldDisabled("domain")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("attention") && (
+                <HorizontalField label="attention" htmlFor="attention">
+                  <Input
+                    type="text"
+                    id="attention"
+                    placeholder="Auto from first + last"
+                    {...register("attention")}
+                    disabled
                   />
                 </HorizontalField>
               )}
@@ -1682,9 +2467,6 @@ export default function ContactDetail({
             standardTabs={["actions", "comments", "documents", "raw"]}
             additionalTabs={additionalTabs}
             badges={tabBadges}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
           />
 
           {/* ─── TAB CONTENT (scrollable) ─── */}
@@ -1887,6 +2669,18 @@ export default function ContactDetail({
           if (orgSearchField) handleOrgSelect(org, orgSearchField);
         }}
         onClose={() => setOrgSearchField(null)}
+      />
+
+      {/* ─── Communications Pickers (Basic Info) ─── */}
+      {CommSelectDialog}
+      <CommunicationAddEditModal
+        isOpen={commModalState.open}
+        type={commModalState.type}
+        data={commModalState.data}
+        onClose={() => setCommModalState((s) => ({ ...s, open: false }))}
+        onSave={handleSaveNewComm}
+        isSaving={commSaving}
+        contactId={activeContactId ?? undefined}
       />
     </div>
   );

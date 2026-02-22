@@ -214,9 +214,8 @@ export function OrderItemSearch({ onAddItem }: OrderItemSearchProps) {
                       </td>
                       <td className="px-3 py-1 text-xs text-right text-gray-600 dark:text-gray-300">
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           value={quantity || ""}
                           onChange={(event) =>
                             handleQuantityChange(itemKey, event.target.value)

@@ -72,6 +72,21 @@ export default function OrderList() {
     getOrderData();
   }, [getOrderData]);
 
+  // Auto-refresh when another window saves/transfers a transaction.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail as any;
+      const model = String(detail?.model || "");
+      if (
+        ["order", "invoice", "proposal", "purchase", "workorder"].includes(model)
+      ) {
+        getOrderData();
+      }
+    };
+    window.addEventListener("wcapi:modelChanged", handler as any);
+    return () => window.removeEventListener("wcapi:modelChanged", handler as any);
+  }, [getOrderData]);
+
   // Database search handler for comma-separated terms (AND logic)
   const handleDatabaseSearch = useCallback(async (terms: string[]) => {
     try {
@@ -502,6 +517,7 @@ export default function OrderList() {
                         : null
                       }
                 onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
               />
             )}
           </div>

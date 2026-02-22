@@ -184,6 +184,7 @@ BaseModel composes all mixins. Every concrete model that extends BaseModel gets 
 |-------|-----------|---------|
 | `total` | `DecimalField(18,6)` | `blank=True, null=True, db_index=True` — denormalized from totals.total |
 | `balance` | `DecimalField(18,6)` | `blank=True, null=True, db_index=True` — denormalized from totals.balance |
+| `line_increment` | `IntegerField` | `default=10` — counter for next `line_number` to assign to new lines |
 | `status` | `CharField(32)` | `choices=TRANSACTION_STATUS_CHOICES, default="planned", db_index=True` |
 | `priority` | `CharField(32)` | `blank=True, null=True` |
 | `price_level` | `CharField(50)` | `blank=True, null=True` |
@@ -272,8 +273,7 @@ BaseModel composes all mixins. Every concrete model that extends BaseModel gets 
 ### BaseLineCore fields (all line types)
 
 | Field | Django Type | Details |
-|-------|-----------|---------|
-| `price_level` | `CharField(50)` | `blank=True, null=True` |
+|-------|-----------|---------|| `line_number` | `IntegerField` | `default=0, db_index=True` — stable line identity, auto-assigned from `header.line_increment` in increments of 10 || `price_level` | `CharField(50)` | `blank=True, null=True` |
 | `status` | `CharField(50)` | `blank=True, null=True` |
 | `item` | `JSONField` | `default=dict, blank=True, null=True` |
 | `quantity` | `JSONField` | `default=dict, blank=True, null=True` |

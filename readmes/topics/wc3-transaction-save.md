@@ -95,9 +95,9 @@ POST /wcapi/transaction/save/
 {
   "header": { "id": 123 },
   "lines": [
-    { "id": 1, "action": "skipped", "reason": "not_dirty" },
-    { "id": 2, "action": "updated" },
-    { "id": 789, "action": "created" }
+    { "id": 1, "line_number": 10, "action": "skipped", "reason": "not_dirty" },
+    { "id": 2, "line_number": 20, "action": "updated" },
+    { "id": 789, "line_number": 30, "action": "created" }
   ],
   "lines_saved": 2,
   "lines_skipped": 1,
@@ -148,6 +148,7 @@ In R25, track line changes using `useLineState` or equivalent:
 ```typescript
 interface TransactionLine {
   id?: number;          // Undefined for new lines
+  line_number?: number; // Stable identity (auto-assigned by backend if 0 or absent)
   _dirty: boolean;      // True if created or modified
   quantity: { qty: number };
   price: { unit: number; extended: number };
@@ -270,3 +271,24 @@ Set `verify_calculations: false` during development to bypass math checks (not r
 | Date | Status | Notes |
 |------|--------|-------|
 | 2026-01-14 | ✅ Implemented | Created `transaction_save.py` service and `WCAPITransactionSaveView` |
+| 2026-02-21 | ✅ Refactored | **Collect-then-create pattern** — lines saved with signals suppressed, pending deltas collected into array, Pending records created afterwards with backend-authoritative type/transfer detection, single dispatch. Eliminates duplicate pending records. |
+
+---
+
+## Backend-Authoritative Pending (2026-02-21)
+
+The backend is authoritative for all pending-related decisions during transaction saves:
+
+- **Pending type** (SO/IN/PO/PP/WO) derived from `model_key`, not front-end data
+- **Transfer detection** uses `header.parent_id` + `header.parent_model`
+- **Quantity buckets** set server-side based on type and transfer status
+- **Duplicate prevention** — `(invoice_line_id, order_line_id)` pair stored in every Pending record; duplicates blocked in-memory and at DB level
+
+### Transfer Flow (Order → Invoice)
+
+1. R25 calls `saveTransactionWithLines("invoice", payload)` with `parent_id` and `parent_model: "order"` on the header
+2. Each invoice line should include `refs.source.order_line_id` pointing to the source order line (for traceability)
+3. Backend creates **one Pending per invoice line** capturing `on_in=+qty, on_so=-qty, on_hand=-qty`
+4. R25 calls `saveRecord("order", { id, is_active: false })` to deactivate the source order
+
+> **Do not send pending-related fields from R25.** The backend derives everything it needs from the saved data.

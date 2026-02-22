@@ -22,6 +22,7 @@ import {
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
+import { getNextLineNumber } from '../../../utils/lineHelpers';
 
 // Receipt specific fields that extend base Transaction
 interface Receipt extends Transaction {
@@ -214,6 +215,7 @@ const ReceiptLinesContent: React.FC<{
     
     const newLine: TransactionLine = {
       _dirty: true,
+      line_number: getNextLineNumber(lines),
       item: {
         item_id: itemId as number | null,
         ida_item: idaItem,

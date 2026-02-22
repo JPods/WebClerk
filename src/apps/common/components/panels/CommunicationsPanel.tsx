@@ -1289,7 +1289,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                 ) : (
                   domains.map((domain, idx) => (
                     <DomainItem
-                      key={domain.domain || idx}
+                      key={`${domain.id ?? domain.domain ?? "domain"}-${idx}`}
                       domain={domain}
                       canEdit={canEdit}
                       onSetPrimary={() => handleSetDomainPrimary(idx)}

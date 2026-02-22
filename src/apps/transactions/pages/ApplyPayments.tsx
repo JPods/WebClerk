@@ -19,11 +19,11 @@ import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/us
 
 // Org search result type
 interface OrgSearchResult {
-  id: string;
+  id: number;
   display_name: string;
   ida?: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
 }
 
 const ApplyPayments: React.FC = () => {
@@ -62,12 +62,27 @@ const ApplyPayments: React.FC = () => {
 
     setSearchingOrgs(true);
     try {
-      const result = await getRecords('orgbase', {
-        search: query,
-        org_type: 'customer',
-        limit: 20
+      const trimmed = query.trim();
+      const result = await getRecords('customer', {
+        limit: 20,
+        is_active: true,
+        // Be generous with search params; different deployments may key off different names
+        search: trimmed,
+        q: trimmed,
+        keywords: trimmed,
+        display_name: trimmed,
       });
-      setOrgResults(result.results || []);
+
+      const records: any[] = result?.results || result?.items || [];
+      setOrgResults(
+        records.map((r: any) => ({
+          id: r.id,
+          display_name: r.display_name || r.company || r.name || `#${r.id}`,
+          ida: r.ida,
+          email: r.email,
+          phone: r.phone,
+        })),
+      );
     } catch (err) {
       console.error('Failed to search orgs:', err);
       setOrgResults([]);
@@ -89,7 +104,7 @@ const ApplyPayments: React.FC = () => {
   // Load invoices and payments when org selected
   useEffect(() => {
     if (selectedOrg) {
-      loadCustomerData(selectedOrg.id);
+      loadCustomerData(String(selectedOrg.id));
     } else {
       setInvoices([]);
       setPayments([]);
