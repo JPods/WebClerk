@@ -8,6 +8,8 @@ import Router from "./routes/Router";
 import { DataSetBadge } from './components/DataSetBadge';
 import { DevTools } from './components/DevTools';
 import { AiHelpWidget } from './components/AiHelpWidget';
+import { UserIssueReporter } from './components/UserIssueReporter';
+import { DevIssueReporter } from './components/DevIssueReporter';
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -54,6 +56,9 @@ export default function App() {
               <DevTools position="bottom-left" />
               {/* AI Help Assistant chat widget */}
               <AiHelpWidget position="bottom-right" />
+              {/* Issue reporters — floating buttons for users & devs */}
+              <UserIssueReporter />
+              <DevIssueReporter />
             </div>
           </StaffBadgePrefsProvider>
         </WindowManagerProvider>
