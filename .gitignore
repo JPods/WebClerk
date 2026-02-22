@@ -2,7 +2,6 @@
 !static/
 !static/images/
 !static/images/**
-.github/
 .local/
 .vscode/
 .env

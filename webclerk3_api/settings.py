@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'apps.support',
     'apps.sync',
     'apps.transactions',
-    'common',
+    'common.CommonConfig',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
