@@ -28,7 +28,7 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import DropDown from "@/components/form/input/DropDown";
 import Checkbox from "@/components/form/input/Checkbox";
-import { DevBadge } from '@/components/common/DevBadge';
+import { DevBadge } from "@/components/common/DevBadge";
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
@@ -787,8 +787,7 @@ export default function ContactDetail({
       });
 
       // 2. Update refs.links.<org_type> with selected record data
-      const orgType =
-        org.org_type || ID_FIELD_TO_ORG_TYPE[targetField];
+      const orgType = org.org_type || ID_FIELD_TO_ORG_TYPE[targetField];
       if (orgType && orgType !== "organization") {
         setFetchedData((prev: any) => {
           const existing = prev || data;
@@ -1553,7 +1552,16 @@ export default function ContactDetail({
 
               {/* System IDs */}
               {/* ── Org Association ID Fields with Search ── */}
-              {(["customer_id", "vendor_id", "rep_id", "employee_id", "manufacturer_id", "other_id"] as const).map(
+              {(
+                [
+                  "customer_id",
+                  "vendor_id",
+                  "rep_id",
+                  "employee_id",
+                  "manufacturer_id",
+                  "other_id",
+                ] as const
+              ).map(
                 (fieldName) =>
                   shouldRenderField(fieldName) && (
                     <HorizontalField
@@ -1565,11 +1573,16 @@ export default function ContactDetail({
                         <Input
                           type="number"
                           id={fieldName}
-                          placeholder={`${fieldName.replace("_id", "").replace(/^./, (c) => c.toUpperCase())} ID`}
+                          placeholder={`${fieldName
+                            .replace("_id", "")
+                            .replace(/^./, (c) => c.toUpperCase())} ID`}
                           {...register(fieldName as any, {
                             valueAsNumber: true,
                           })}
-                          disabled={isFieldDisabled(fieldName)}
+                          //disabled={isFieldDisabled(fieldName)}
+                          disabled={
+                            effectiveMode === "edit" || effectiveMode === "add"
+                          }
                         />
                         {effectiveMode !== "view" && (
                           <button
