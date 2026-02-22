@@ -24,12 +24,17 @@
 
 Transaction calculations are **structurally complete** but have **two critical bugs** that cause all extended prices and header totals to be zero:
 
-| Bug | Impact | Severity |
-|-----|--------|----------|
-| **Quantity key mismatch** | R25 sends `quantity.ordered`; backend reads `quantity.placed` → extended = 0 | Critical |
-| **Header totals signal gap** | Only `ProposalLine` auto-recalculates parent totals; Order/Invoice/Purchase/WorkOrder do not | Critical |
+| Bug | Impact | Severity | Status |
+|-----|--------|----------|--------|
+| **Quantity key mismatch** | R25 sends `quantity.ordered`; backend reads `quantity.placed` → extended = 0 | Critical | **FIXED** — R25 now sends `placed` on all transaction detail pages |
+| **Header totals signal gap** | Only `ProposalLine` auto-recalculates parent totals; Order/Invoice/Purchase/WorkOrder do not | Critical | Open |
+| **Line identity fragility** | `line.id ?? idx` broke editing for unsaved/transferred lines | High | **FIXED** — `line_number` scalar field + `lineKey()` helper |
 
-Both bugs are **data-shape issues**, not logic errors — the calculation formulas are correct, they just receive zero input.
+Both quantity/extended bugs were **data-shape issues**, not logic errors — the calculation formulas are correct, they just received zero input.
+
+### Line Number System (2026-02)
+
+A `line_number` `IntegerField` (auto-assigned in increments of 10) was added to `BaseLineCore`, with a companion `line_increment` counter on `TransactionBaseModel`. This replaces the fragile `line.id ?? idx` pattern that failed for unsaved lines. R25 now uses `lineKey(line, idx)` → `line.line_number ?? line.id ?? idx` for all state handlers. See `lineHelpers.ts` in R25 and migration `0003_add_line_number_and_line_increment.py`.
 
 ---
 

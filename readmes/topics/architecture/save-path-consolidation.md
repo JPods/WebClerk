@@ -1,8 +1,8 @@
 # Save Path Consolidation: Security & Inventory Tracking
 
 **Created**: 2026-01-30  
-**Updated**: 2026-02-01  
-**Status**: ✅ Implemented (Signal Safety Net Active)  
+**Updated**: 2026-02-21  
+**Status**: ✅ Implemented (Collect-then-create in transaction_save + Single post() flow + Signal Safety Net)  
 **Priority**: High (Security)
 
 ## Flow Architecture
@@ -72,7 +72,7 @@ All transaction lines (OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine) flow
 
 Transaction line records (OrderLine, InvoiceLine, PurchaseLine, etc.) can be created through **multiple code paths**, each bypassing centralized business logic:
 
-1. **`/wcapi/save/`** → `SaveWcapiView._perform_save()` - Two separate line-handling blocks
+1. **`/wcapi/save/`** → `SaveWcapiView.post()` — single line-processing block (dead `_perform_save()` removed 2026-02-21)
 2. **`/wcapi/transaction/save/`** → `WCAPITransactionSaveView` → `transaction_save.py`
 3. **`/api/transactions/orders/`** → `OrderViewSet` (DRF)
 4. **`/api/tx/order/<id>/lines/`** → `TransactionLineListCreate` (unified views)
@@ -87,17 +87,20 @@ Transaction line records (OrderLine, InvoiceLine, PurchaseLine, etc.) can be cre
 
 ---
 
-## Current Implementation (2026-01-31)
+## Current Implementation (2026-02-21)
 
-### ✅ Explicit Pending Creation
+### ✅ Two Save Paths with Explicit Pending Creation
 
-Patched inventory pending creation in 3 locations with `_pending_created=True` flag:
+| Endpoint | Handler | Pending Strategy | Key Location |
+|----------|---------|------------------|--------------|
+| `/wcapi/save/` | `save_view.py` `post()` | Per-line via `LineItemService._create_pending_for_new_line()` | ~L818 |
+| `/wcapi/transaction/save/` | `transaction_save.py` `save_transaction_with_lines()` | **Collect-then-create** via `_create_pending_from_deltas()` | ~L487 |
 
-| Location | Line | Description |
-|----------|------|-------------|
-| `apps/core/views/save_view.py` | ~868 | Generic line handling block |
-| `apps/core/views/save_view.py` | ~1707 | Order-specific line handling block |
-| `apps/transactions/services/transaction_save.py` | ~373 | Transaction-specific save |
+**Transaction save (collect-then-create):** Lines saved with `_pending_created=True` inside atomic block (suppresses signals). Pending deltas collected into array. After commit, `_create_pending_from_deltas()` creates Pending records with `(invoice_line_id, order_line_id)` pair keys. Single `dispatch_pending_processing()` at end.
+
+**Generic save:** Single line-processing block in `post()` with `_pending_created=True` flag, one `_create_pending_for_new_line()` per line.
+
+> **Note:** The dead `_perform_save()` method was removed 2026-02-21.
 
 ### ✅ Signal Safety Net
 
@@ -283,9 +286,8 @@ class OrderLine(BaseSellLineModel):
 
 | Endpoint | File | Line Creation | Pending Status |
 |----------|------|---------------|----------------|
-| `/wcapi/save/` | `save_view.py:868` | Direct ORM + flag | ✅ Explicit + Signal |
-| `/wcapi/save/` | `save_view.py:1707` | Direct ORM + flag | ✅ Explicit + Signal |
-| `/wcapi/transaction/save/` | `transaction_save.py:373` | Direct ORM | ✅ Explicit |
+| `/wcapi/save/` | `save_view.py` post() | Direct ORM + flag | ✅ Single block + Signal |
+| `/wcapi/transaction/save/` | `transaction_save.py` | Collect-then-create | ✅ Backend-authoritative, duplicate-pair guard |
 | `/api/transactions/orders/` | `order_views.py` | wcapi.save_item | ✅ Signal catches |
 | `/api/tx/order/<id>/lines/` | `unified.py:159` | serializer.save() | ✅ Signal catches |
 | `/api/tx/purchase-lines/` | `line_views.py` | perform_create() | ✅ LineItemService |

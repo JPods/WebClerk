@@ -363,6 +363,11 @@ class BaseLineCore(BaseModel):
     """
     # IMPORTANT: do NOT declare parent_id here; Django will add it from the FK on concrete classes.
 
+    # Stable, user-visible line sequence number.  Auto-assigned from
+    # parent.line_increment on first save when left at 0.
+    # Replaces the old item.line_number JSON key.
+    line_number = models.IntegerField(default=0, db_index=True)
+
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)
 
@@ -435,8 +440,25 @@ class BaseLineCore(BaseModel):
         self.cost = normalize_cost_map(getattr(self, "cost", None))
 
     def save(self, *args, **kwargs):
-        """Save with JSON normalization. Calls ensure_json_defaults() first."""
+        """Save with JSON normalization and auto line_number assignment.
+
+        1. ensure_json_defaults() seeds/normalizes all JSON envelopes.
+        2. If line_number is still 0 and a parent header exists,
+           auto-assign from parent.line_increment and bump increment.
+        """
         self.ensure_json_defaults()
+
+        # Auto-assign line_number from parent header's line_increment
+        if self.line_number == 0:
+            try:
+                parent = self.parent
+                if parent is not None and hasattr(parent, 'line_increment'):
+                    self.line_number = parent.line_increment
+                    parent.line_increment = (parent.line_increment or 10) + 10
+                    parent.save(update_fields=['line_increment'])
+            except Exception:
+                pass  # graceful fallback — line_number stays 0
+
         return super().save(*args, **kwargs)
 
 
