@@ -21,6 +21,7 @@ import TransactionDetailBase, {
 } from "../../../components/TransactionDetailBase";
 import LinesCard from "../../../components/LinesCard";
 import FieldLabel from "../../../components/FieldLabel";
+import { lineKey, getNextLineNumber } from "../../../utils/lineHelpers";
 
 // Import types
 import type {
@@ -390,21 +391,28 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
           priceLevel="base"
           onDeleteLine={(lineId) => {
             if (onLinesChange) {
-              onLinesChange(lines.filter((l) => l.id !== lineId));
+              onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
             }
           }}
           onUpdateLine={(lineId, field, value) => {
             if (onLinesChange) {
               onLinesChange(
-                lines.map((l) => {
-                  if (l.id !== lineId) return l;
+                lines.map((l, i) => {
+                  if (lineKey(l, i) !== lineId) return l;
                   const baseUpdate = { ...l, _dirty: true };
                   switch (field) {
-                    case "qty":
+                    case "qty": {
+                      const newQty = Number(value);
+                      const unitPrice = l.price?.unit ?? 0;
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, ordered: Number(value) },
+                        quantity: { ...l.quantity, placed: newQty },
+                        price: {
+                          ...l.price,
+                          extended: newQty * unitPrice,
+                        },
                       };
+                    }
                     case "description":
                       return {
                         ...baseUpdate,
@@ -430,12 +438,13 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
           }}
           onDuplicateLine={(lineId) => {
             if (onLinesChange) {
-              const lineToDup = lines.find((l) => l.id === lineId);
+              const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);
               if (lineToDup) {
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(),
+                  line_number: getNextLineNumber(lines),
                 };
                 onLinesChange([...lines, newLine]);
               }

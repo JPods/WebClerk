@@ -467,6 +467,10 @@ export interface TransactionLine {
   id: number;
   uuid?: string;
   parent?: number;
+  /** Stable, user-visible line sequence number.  Auto-assigned by backend
+   *  from parent.line_increment when left at 0.  Used as the primary
+   *  identity key in frontend line handlers (replaces id ?? idx fallback). */
+  line_number?: number;
 
   // Line item info
   item?: LineItem;

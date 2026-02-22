@@ -397,6 +397,39 @@ Lines carry a `_dirty` flag:
 
 `item_id` cannot change on existing lines. UI must prevent it; backend validates as backstop.
 
+### Line Identity — `line_number` System
+
+**Stable keys for React state handlers.** Every line carries a scalar `line_number` (auto-assigned by the backend in increments of 10). R25 uses two helpers from `@/apps/transactions/utils/lineHelpers.ts`:
+
+| Helper | Returns | Purpose |
+|--------|---------|--------|
+| `lineKey(line, idx)` | `line.line_number ?? line.id ?? idx` | Stable identity for delete / update / duplicate handlers |
+| `getNextLineNumber(lines)` | `max(line_numbers) + 10` | Assign `line_number` to client-side new/duplicated lines |
+
+**Rules:**
+- All `handleDeleteLine`, `handleLineChange`, `handleDuplicateLine`, and `handleAddItem` handlers **must** use `lineKey(l, i)` for identity.
+- Never use bare `line.id ?? idx` — it breaks for unsaved lines whose `id` is `undefined`.
+- New lines added client-side get `line_number: getNextLineNumber(lines)` immediately.
+- Transfer pre-population assigns sequential `line_number` values (10, 20, 30…).
+- The backend persists `line_number` and returns it in the save response.
+
+### Two Save Endpoints
+
+| Action | Endpoint | SDK Function | When |
+|--------|----------|-------------|------|
+| Save transaction + lines | `POST /wcapi/transaction/save/` | `saveTransactionWithLines(modelName, payload)` | Creating/editing any transaction with lines |
+| Deactivate source doc | `POST /wcapi/save/` | `saveRecord(modelName, { id, is_active: false })` | After transfer (e.g. deactivate order after creating invoice) |
+
+### Transfer Flow (Order → Invoice)
+
+1. R25 builds invoice header from order data, sets `parent_id` and `parent_model: "order"`
+2. R25 stamps each invoice line with `refs.source.order_line_id` pointing to the source order line
+3. R25 calls `saveTransactionWithLines("invoice", payload)` → `POST /wcapi/transaction/save/`
+4. **Backend creates exactly one Pending per line** — captures `on_in`, `on_so` release, and `on_hand` deduction in a single record
+5. R25 calls `saveRecord("order", { id, is_active: false })` → `POST /wcapi/save/` to deactivate the order (no lines, no pending)
+
+> **Backend is authoritative for pending creation.** R25 provides `refs.source` for traceability, but the backend derives pending type, transfer status, and quantity buckets from its own data. Do not send pending-related fields from the frontend.
+
 ---
 
 ## 12. JSONB Fields & refs.links
@@ -483,6 +516,8 @@ pnpm test -- --run --coverage  # With coverage
 | Route definitions | `src/routes/` |
 | Shared components | `src/components/` |
 | App shell / layout | `src/layout/` |
+| Line identity helpers | `src/apps/transactions/utils/lineHelpers.ts` |
+| Transaction types | `src/apps/transactions/types/transactionTypes.ts` |
 | Test setup | `src/test/setup.ts` |
 | Vitest config | `vitest.config.ts` |
 | Vite config | `vite.config.ts` |

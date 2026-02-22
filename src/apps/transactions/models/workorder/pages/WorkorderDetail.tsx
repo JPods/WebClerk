@@ -18,6 +18,7 @@ import FieldLabel from '../../../components/FieldLabel';
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
+import { lineKey, getNextLineNumber } from '../../../utils/lineHelpers';
 
 // Work Order specific fields that extend base Transaction
 interface WorkOrder extends Transaction {
@@ -118,6 +119,7 @@ const WorkOrderLinesContent: React.FC<{
     
     const newLine: TransactionLine = {
       _dirty: true,
+      line_number: getNextLineNumber(lines),
       item: {
         item_id: itemId as number | null,
         ida_item: idaItem,
@@ -294,14 +296,14 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
           priceLevel="base"
           onDeleteLine={(lineId) => {
             if (onLinesChange) {
-              onLinesChange(lines.filter((l) => l.id !== lineId));
+              onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
             }
           }}
           onUpdateLine={(lineId, field, value) => {
             if (onLinesChange) {
               onLinesChange(
-                lines.map((l) => {
-                  if (l.id !== lineId) return l;
+                lines.map((l, i) => {
+                  if (lineKey(l, i) !== lineId) return l;
                   const baseUpdate = { ...l, _dirty: true };
                   switch (field) {
                     case "qty":
@@ -334,12 +336,13 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
           }}
           onDuplicateLine={(lineId) => {
             if (onLinesChange) {
-              const lineToDup = lines.find((l) => l.id === lineId);
+              const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);
               if (lineToDup) {
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(),
+                  line_number: getNextLineNumber(lines),
                 };
                 onLinesChange([...lines, newLine]);
               }

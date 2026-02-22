@@ -95,9 +95,9 @@ POST /wcapi/transaction/save/
 {
   "header": { "id": 123 },
   "lines": [
-    { "id": 1, "action": "skipped", "reason": "not_dirty" },
-    { "id": 2, "action": "updated" },
-    { "id": 789, "action": "created" }
+    { "id": 1, "line_number": 10, "action": "skipped", "reason": "not_dirty" },
+    { "id": 2, "line_number": 20, "action": "updated" },
+    { "id": 789, "line_number": 30, "action": "created" }
   ],
   "lines_saved": 2,
   "lines_skipped": 1,
@@ -148,6 +148,7 @@ In R25, track line changes using `useLineState` or equivalent:
 ```typescript
 interface TransactionLine {
   id?: number;          // Undefined for new lines
+  line_number?: number; // Stable identity (auto-assigned by backend if 0 or absent)
   _dirty: boolean;      // True if created or modified
   quantity: { qty: number };
   price: { unit: number; extended: number };

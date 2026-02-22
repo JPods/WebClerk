@@ -58,6 +58,7 @@ import type {
 } from "../types/transactionTypes";
 import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
+import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
 import { DevBadge } from '@/components/common/DevBadge';
 
 // Extend Transaction type locally to ensure 'lines' exists
@@ -362,19 +363,38 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             // backend can update the source line's quantity.actioned after save.
             const srcType = transferFromType as string;
             const srcId = Number(transferFromId);
-            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => ({
-              ...line,
-              id: undefined,
-              line_id: undefined,
-              refs: {
-                ...((line.refs as Record<string, unknown>) || {}),
-                source: {
-                  [`${srcType}_line_id`]: (line as any).id,
-                  [`${srcType}_id`]: srcId,
-                  converted_from: srcType,
+            let nextLn = 10; // line_number counter for transferred lines
+            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => {
+              // Remap quantity for the target transaction:
+              // placed = source remaining (qty being transferred)
+              // remaining = 0 (new line has nothing remaining to action)
+              // actioned = 0
+              const srcQty = (line.quantity as Record<string, unknown>) || {};
+              const transferQty = Number(srcQty.remaining ?? srcQty.placed ?? 0);
+              const ln = nextLn;
+              nextLn += 10;
+              return {
+                ...line,
+                id: undefined,
+                line_id: undefined,
+                line_number: ln,
+                quantity: {
+                  placed: transferQty,
+                  actioned: 0,
+                  remaining: 0,
+                  precision: srcQty.precision ?? 2,
+                  is_fixed: srcQty.is_fixed ?? false,
                 },
-              },
-            }));
+                refs: {
+                  ...((line.refs as Record<string, unknown>) || {}),
+                  source: {
+                    [`${srcType}_line_id`]: (line as any).id,
+                    [`${srcType}_id`]: srcId,
+                    converted_from: srcType,
+                  },
+                },
+              };
+            });
             // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
             // but our Transaction type and save serializers use _id suffix.
             const customerId = source.customer_id ?? source.customer ?? null;
@@ -1417,28 +1437,48 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onDeleteLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
-                (currentData.lines ?? []).filter((l) => l.id !== lineId),
+                (currentData.lines ?? []).filter((l, i) => lineKey(l, i) !== lineId),
               );
             }
           }}
           onUpdateLine={(lineId, field, value) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
-                (currentData.lines ?? []).map((l) => {
-                  if (l.id !== lineId) return l;
+                (currentData.lines ?? []).map((l, i) => {
+                  if (lineKey(l, i) !== lineId) return l;
                   const baseUpdate = { ...l, _dirty: true };
+                  const lineIsActive = l.item?.is_active !== false;
                   switch (field) {
-                    case "qty":
+                    case "qty": {
+                      const newQty = Number(value);
+                      if (!lineIsActive) {
+                        // Inactive line: persist placed but don't recalculate
+                        return {
+                          ...baseUpdate,
+                          quantity: { ...l.quantity, placed: newQty },
+                        };
+                      }
+                      const actioned = l.quantity?.actioned ?? 0;
+                      const unitPriceForCalc = l.price?.unit ?? 0;
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, placed: Number(value) },
+                        quantity: {
+                          ...l.quantity,
+                          placed: newQty,
+                          remaining: newQty - actioned,
+                        },
+                        price: {
+                          ...l.price,
+                          extended: unitPriceForCalc * newQty,
+                        },
                       };
+                    }
                     case "description":
                       return {
                         ...baseUpdate,
                         item: { ...l.item, description: String(value) },
                       };
-                    case "unit_price":
+                    case "unit_price": {
                       const newPrice = Number(value);
                       const qty = l.quantity?.placed ?? 0;
                       return {
@@ -1446,9 +1486,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                         price: {
                           ...l.price,
                           unit: newPrice,
-                          extended: newPrice * qty,
+                          extended: lineIsActive ? newPrice * qty : (l.price?.extended ?? 0),
                         },
                       };
+                    }
                     default:
                       return { ...baseUpdate, [field]: value };
                   }
@@ -1459,13 +1500,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onDuplicateLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               const lineToDup = (currentData.lines ?? []).find(
-                (l) => l.id === lineId,
+                (l, i) => lineKey(l, i) === lineId,
               );
               if (lineToDup) {
                 const { id, ...rest } = lineToDup;
                 const newLine: TransactionLine = {
                   ...rest,
                   id: Date.now(),
+                  line_number: getNextLineNumber(currentData.lines ?? []),
                 };
                 onLinesChange([...(currentData.lines ?? []), newLine]);
               }
