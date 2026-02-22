@@ -58,6 +58,7 @@ import {
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import DetailReview from "../pages/admin/DetailReview";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
+import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
 import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
@@ -115,6 +116,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.coreTemplateDetail, element: <CoreTemplateDetail /> },
   { path: PageRoutes.coreApiLogList, element: <APILogList /> },
   { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },
+  { path: PageRoutes.coreTeamDashboard, element: <TeamDashboard /> },
   { path: PageRoutes.commDomainList, element: <DomainList /> },
   { path: PageRoutes.commDomainDetail, element: <DomainDetail /> },
   { path: PageRoutes.commEmailList, element: <EmailList /> },

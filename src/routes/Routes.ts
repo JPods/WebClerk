@@ -140,6 +140,7 @@
   static readonly coreTemplateDetail: string = "/core/template/detail/:id?";
   static readonly coreApiLogList: string = "/core/api-log/list";
   static readonly coreUserActivityDashboard: string = "/core/user-activity";
+  static readonly coreTeamDashboard: string = "/core/team-dashboard";
 
   // Docs
   static readonly documentList: string = "/docs/document/list";
