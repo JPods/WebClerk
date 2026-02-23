@@ -969,6 +969,11 @@ class LineItemService:
             'transaction_type': transaction_type,
             'transaction_model': transaction._meta.model_name,
             
+            # Line-pair IDs — one pending per order_line↔invoice_line pair.
+            # Populated by _create_pending_for_new_line when refs.source is present.
+            'invoice_line_id': getattr(self, '_transfer_invoice_line_id', None),
+            'order_line_id': getattr(self, '_transfer_order_line_id', None),
+            
             # Parent links (populated for child transactions)
             'links': {},
         }
@@ -1011,6 +1016,26 @@ class LineItemService:
                     pending_data['links']['workorder'] = {'parent_id': workorder_id}
                     pending_data['reason'] = 'rc line add (releases wo, adds on_hand)'
         
+        # ── Duplicate-pair guard ──────────────────────────────────────
+        # Forbid creating a second pending for the same order_line↔invoice_line pair.
+        _il_id = pending_data.get('invoice_line_id')
+        _ol_id = pending_data.get('order_line_id')
+        if _il_id and _ol_id:
+            dup = Pending.objects.filter(
+                model_name='item',
+                record_id=str(item.pk),
+                purpose=PURPOSE_LINE_ADD,
+                dt_processed=0,
+                data__invoice_line_id=_il_id,
+                data__order_line_id=_ol_id,
+            ).exists()
+            if dup:
+                logger.warning(
+                    'Duplicate pending blocked: invoice_line=%s order_line=%s item=%s',
+                    _il_id, _ol_id, item.pk,
+                )
+                return None  # type: ignore[return-value]
+
         pending = Pending.objects.create(
             model_name='item',
             record_id=str(item.pk),
@@ -1125,8 +1150,28 @@ class LineItemService:
         # Mark line as having pending created (prevents signal from duplicating)
         line._pending_created = True
         
+        # ── Extract transfer line-pair IDs from refs.source ──────────
+        # R25 stamps refs.source.order_line_id on invoice lines created
+        # via transfer.  We store both IDs in the pending so we can
+        # enforce the uniqueness constraint: one pending per pair.
+        refs = line_data.get('refs') or {}
+        source = refs.get('source') or {}
+        # Also check the persisted line.refs in case line_data didn't have it
+        if not source and hasattr(line, 'refs') and isinstance(line.refs, dict):
+            source = (line.refs or {}).get('source') or {}
+        
+        if transaction_type == 'invoice':
+            self._transfer_invoice_line_id = line.pk
+            self._transfer_order_line_id = source.get('order_line_id')
+        elif transaction_type == 'order':
+            self._transfer_order_line_id = line.pk
+            self._transfer_invoice_line_id = source.get('invoice_line_id')
+        else:
+            self._transfer_invoice_line_id = None
+            self._transfer_order_line_id = None
+        
         # Create the pending record using existing method
-        return self._create_pending_for_line_add(
+        result = self._create_pending_for_line_add(
             transaction=parent,
             transaction_type=transaction_type,
             line=line,
@@ -1135,6 +1180,12 @@ class LineItemService:
             unit_cost=unit_cost,
             unit_price=unit_price,
         )
+        
+        # Clean up transfer state
+        self._transfer_invoice_line_id = None
+        self._transfer_order_line_id = None
+        
+        return result
 
     def _create_pending_for_qty_change(
         self,

@@ -187,7 +187,13 @@ creates a `Receipt` with `source_type = workorder_completion`.
 ## 6. Shared JSON Envelopes
 
 ### Header (TransactionBaseModel)
+**Scalar fields (notable additions):**
 
+| Field | Type | Purpose |
+|-------|------|--------|
+| `line_increment` | `IntegerField(default=10)` | Counter for the next `line_number` to assign to new lines |
+
+**JSON fields:**
 | JSON field | Purpose | Default factory |
 |------------|---------|-----------------|
 | `totals` | Flat searchable totals: subtotal, discount, taxable, tax, shipping, other, total, cost, margin, margin_pc, received, balance | `default_totals()` |
@@ -200,9 +206,17 @@ creates a `Receipt` with `source_type = workorder_completion`.
 
 ### Line (BaseLineCore)
 
+**Scalar fields:**
+
+| Field | Type | Purpose |
+|-------|------|--------|
+| `line_number` | `IntegerField(default=0)` | Stable line identity, auto-assigned in increments of 10 from `header.line_increment` |
+
+**JSON fields:**
+
 | JSON field | Purpose | Default factory |
-|------------|---------|-----------------|
-| `item` | Denormalized item snapshot: item_id, ida_item, description, sequence, line_number | `default_item()` |
+|------------|---------|----------------|
+| `item` | Denormalized item snapshot: item_id, ida_item, description, sequence, line_number (legacy, prefer scalar `line_number`) | `default_item()` |
 | `quantity` | placed, actioned, remaining, is_fixed, precision; keys vary by transaction kind | `default_quantity(kind)` |
 | `cost` | unit, unit_base, discount_percent/amount, extended, shipping, handling, freight, commissions, tax | `default_cost()` |
 | `price` | **(BaseSellLineModel only)** unit, unit_base, discount_percent/amount, extended | `default_price()` |

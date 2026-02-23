@@ -74,6 +74,9 @@ This ensures atomicity and consistency across the transaction and its lines.
 ┌─────────────────────────────────────────────────────────────────────┐
 │  4. Process Each Line                                               │
 │     For each line_data in lines:                                    │
+│     ├─ If line_number == 0:                                         │
+│     │    → Assign line_number = header.line_increment               │
+│     │    → Bump header.line_increment += 10                        │
 │     ├─ If id is None or starts with "temp-":                        │
 │     │    → Create new LineModel instance                            │
 │     │    → Set FK field (e.g., purchase_id = parent.id)             │
@@ -133,6 +136,7 @@ All line types share a common structure with type-specific variations:
 ```json
 {
   "id": null,                    // null for new, integer for existing
+  "line_number": 0,              // scalar line identity (auto-assigned in increments of 10)
   "item": {
     "item_id": 236,
     "ida_item": "BBD10",
@@ -267,6 +271,7 @@ const payload = {
       // New line (no id or temp id)
       {
         item: { item_id: 236, ida_item: "BBD10", ... },
+        line_number: 0,                  // 0 = backend auto-assigns
         quantity: { placed: 5 },         // Use placed, NOT ordered
         cost: { unit: 150 },
       }

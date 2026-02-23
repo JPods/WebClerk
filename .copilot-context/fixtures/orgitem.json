@@ -1,0 +1,120 @@
+{
+  "__model__": "products.OrgItem",
+  "__table__": "products_orgitem",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726723,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726723,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726723,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "item": "<fk:Item>",
+  "item_id": "<int:fk>",
+  "status": "<str:max30>",
+  "orgbase": "<fk:OrgBase>",
+  "orgbase_id": "<int:fk>",
+  "catalog": "<fk:Catalog>",
+  "catalog_id": "<int:fk>",
+  "item_ida": "<str:max120>",
+  "description": "<str:max255>",
+  "availability_state": "<choice:['enabled', 'paused', 'retired']>",
+  "quantity_minimum": "<decimal:14.4>",
+  "quantity_maximum": "<decimal:14.4>",
+  "inventory_frequency": "<choice:['daily', 'weekly', 'monthly']>",
+  "dt_last_checked": "<int>",
+  "dt_next_check": "<int>",
+  "data": {
+    "quantity_minimum": null,
+    "quantity_maximum": null,
+    "inventory_frequency": null,
+    "dt_next_check": null,
+    "dt_last_check": null,
+    "count_last_check": null,
+    "checked_by_attention": false,
+    "checked_by_id": null
+  },
+  "metrics": {
+    "plan_last_qty": null,
+    "actual_last_qty": null,
+    "variance_last_qty": null,
+    "plan_accuracy_pct": null,
+    "rolling_daily_usage": null,
+    "rolling_days_of_supply": null
+  }
+}

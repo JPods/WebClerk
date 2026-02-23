@@ -1,0 +1,109 @@
+{
+  "__model__": "products.CatalogLine",
+  "__table__": "products_catalogline",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726717,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "item": "<fk:Item>",
+  "item_id": "<int:fk>",
+  "status": "<str:max30>",
+  "catalog": "<fk:Catalog>",
+  "catalog_id": "<int:fk>",
+  "price_unit": "<decimal:14.4>",
+  "discount_percent": "<decimal:6.3>",
+  "discount_amount": "<decimal:14.4>",
+  "items": {},
+  "metrics": {
+    "item_count": 0,
+    "active_item_count": 0,
+    "dt_last_priced": null,
+    "dt_last_sync": null,
+    "plan_value_total": null,
+    "actual_value_total": null,
+    "variance_value_total": null,
+    "fill_rate_pct": null,
+    "avg_margin_pct": null,
+    "usage_rolling_30d": null,
+    "update_accuracy_pct": null
+  }
+}

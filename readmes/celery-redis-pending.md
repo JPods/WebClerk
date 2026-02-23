@@ -30,10 +30,13 @@ to `Item.data.quantity` buckets (`on_so`, `on_po`, `on_wo`, etc.).
 
 **Two paths trigger pending processing:**
 
-1. **On-save dispatch** — After lines are saved in `save_view.py` or
-   `transaction_save.py`, the view calls `dispatch_pending_processing()`.
-   This helper checks for a live Celery worker (via `inspector.ping()` with
-   a 60 s cache). If a worker is alive, it dispatches via `apply_async()`;
+1. **On-save dispatch** — After lines are saved, the view calls
+   `dispatch_pending_processing()`. In `transaction_save.py` (the
+   collect-then-create path), this is a **single call** after all Pending
+   records have been created from the collected deltas array. In
+   `save_view.py`, it fires after the per-line processing loop. The helper
+   checks for a live Celery worker (via `inspector.ping()` with a 60 s
+   cache). If a worker is alive, it dispatches via `apply_async()`;
    otherwise it processes inline synchronously — guaranteeing records are
    always drained regardless of Celery's state.
 
@@ -121,9 +124,15 @@ Pending (apps.core.models)
 └── dt_created    (from CoreModel)
 ```
 
-When a transaction line is created, changed, or deleted, `LineItemService`
-writes a `Pending` record with the appropriate purpose and delta values in
-`data`.
+When a transaction line is created, changed, or deleted, a `Pending` record
+is written with the appropriate purpose and delta values in `data`.
+
+**Two creation paths:**
+- `/wcapi/transaction/save/` → `_create_pending_from_deltas()` in `transaction_save.py` (collect-then-create, backend-authoritative)
+- `/wcapi/save/` → `LineItemService._create_pending_for_new_line()` (per-line)
+
+Both paths set `_pending_created = True` on line instances to prevent the
+signal safety net from duplicating.
 
 ---
 

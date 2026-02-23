@@ -32,6 +32,11 @@ def _get_sync_status_path():
     return base_dir / 'tools' / '.sync_status.json'
 
 
+def _get_sync_status_path():
+    base_dir = Path(settings.BASE_DIR)
+    return base_dir / 'tools' / '.sync_status.json'
+
+
 def _read_dev_config():
     """Read the dev configuration file."""
     config_path = _get_dev_config_path()
@@ -105,6 +110,33 @@ def dev_config_status(request):
             'restart_required': False,
         }
     })
+
+
+@require_http_methods(["GET"])
+def dev_sync_status(request):
+    """
+    GET /wcapi/dev/sync-status/
+
+    Returns current remote->local sync status for dev tools progress UI.
+    """
+    if not _is_dev_mode():
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Dev tools are only available in development mode'
+        }, status=403)
+
+    status_path = _get_sync_status_path()
+    data = {'state': 'idle', 'progress': 0, 'message': ''}
+    if status_path.exists():
+        try:
+            with open(status_path, 'r') as handle:
+                parsed = json.load(handle)
+                if isinstance(parsed, dict):
+                    data.update(parsed)
+        except Exception:
+            data = {'state': 'failed', 'progress': 100, 'message': 'Unable to parse sync status'}
+
+    return JsonResponse({'status': 'success', 'data': data})
 
 
 @require_http_methods(["GET"])

@@ -1,0 +1,99 @@
+{
+  "__model__": "accounts.Term",
+  "__table__": "terms",
+  "id": "<int:pk>",
+  "uuid": "<uuid>",
+  "ida": "<str:max40>",
+  "dt_created": "<int>",
+  "dt_modified": "<int>",
+  "version": "<int>",
+  "is_active": true,
+  "security_level": "<int>",
+  "is_deleted": false,
+  "is_archived": false,
+  "metadata": {
+    "security": "",
+    "publish": "",
+    "priority": "",
+    "version": "1.0",
+    "access": {
+      "view": [],
+      "edit": []
+    },
+    "resources": {
+      "required": {},
+      "allocated": {}
+    },
+    "flow": {},
+    "source": {},
+    "images": {
+      "primary": "",
+      "gallery": [],
+      "thumbnail": ""
+    },
+    "history": {
+      "created": {
+        "dt": 1771766726729,
+        "contact_id": 0
+      },
+      "modified": {
+        "dt": 1771766726729,
+        "contact_id": 0
+      },
+      "accessed": {
+        "dt": 1771766726729,
+        "contact_id": 0
+      },
+      "verified": {
+        "dt": 0,
+        "contact_id": 0
+      },
+      "synced": {
+        "dt": 0,
+        "contact_id": 0
+      }
+    },
+    "health": {
+      "rating": 0,
+      "completeness": 0,
+      "accuracy": 0,
+      "freshness": 0,
+      "consistency": 0
+    },
+    "undefined": {}
+  },
+  "refs": {
+    "keywords": [],
+    "tags": [],
+    "links": {
+      "contact": [],
+      "item": []
+    },
+    "parents": [],
+    "depends_on": {},
+    "categories": [],
+    "related_ids": []
+  },
+  "prefs": {
+    "userdefined": {}
+  },
+  "actions": {},
+  "comments": {
+    "public": "",
+    "process": "",
+    "partner": "",
+    "notes": []
+  },
+  "health_rating": "<int>",
+  "name": "<str:max255>",
+  "description": "<str:max255>",
+  "approved_by": "<str:max255>",
+  "period_count": "<int>",
+  "days_due": "<int>",
+  "days_in_period": "<int>",
+  "dt_begin": "<date:YYYY-MM-DD>",
+  "discount_rate": "<float>",
+  "days_discount": "<int>",
+  "day_cut_off_invoice": "<int>",
+  "day_cut_off_due": "<int>"
+}
