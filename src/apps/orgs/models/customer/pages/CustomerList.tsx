@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { TableColumn } from "react-data-table-component";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
@@ -7,14 +6,12 @@ import AdvancedDataTable, {
   ColumnFilter,
 } from "../../../../../components/common/AdvancedDataTable";
 import { fetchCustomers } from "../services/customerApi";
-import { useNavigate } from "react-router";
+
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import CustomerDetail from "./CustomerDetail";
 import CustomerListMob from "./CustomerListMob";
-import { deleteRecord, getRecord } from "../../../../../api/wcapi";
-import { useAppSelector } from "../../../../../store/hooks";
-import { CustomerApiTask } from "../types/customerType";
+import { deleteRecord } from "../../../../../api/wcapi";
 
 export default function CustomerList() {
   const dispatch = useDispatch();

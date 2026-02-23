@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,14 +25,10 @@ import {
   FaDollarSign,
   FaAddressCard,
   FaQuestionCircle,
-  FaPlus,
-  FaFileInvoiceDollar,
-  FaShoppingCart,
-  FaClipboardList,
   FaTimes,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
-import { CustomerAddProps, CreateCustomerRequest } from "../types/customerType";
+import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
 
@@ -65,9 +61,12 @@ import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
+import { CreateContactRequest } from "../../../../core/models/contact/types/contactType";
 
 // Professional customer display component for right-side column
-type CustomerFormValues = z.infer<typeof customerSchema>;
+type CustomerFormValues = z.infer<typeof customerSchema> & {
+  refs?: string;
+};
 
 interface Customer {
   id?: number;
@@ -98,6 +97,7 @@ interface Customer {
   data?: any;
   metrics?: any;
   gl_accounts?: any;
+  refs?: any; // <-- Add refs property
 }
 
 const JSON_DEFAULTS: Record<string, any> = {
@@ -232,10 +232,7 @@ export default function CustomerDetail({
   onSaved,
   inline = false,
   onCancelInline,
-  onPrev: onPrevProp,
-  onNext: onNextProp,
   onCancel: onCancelProp,
-  onEdit: onEditProp,
   onDelete: onDeleteProp,
 }: CustomerAddProps) {
   const { id } = useParams();
@@ -313,23 +310,13 @@ export default function CustomerDetail({
    */
   const fetchFkContacts = useCallback(async (custId: number) => {
     if (!Number.isFinite(custId) || custId <= 0) {
-      console.log(
-        "[CustomerDetail.fetchFkContacts] skipped – invalid custId:",
-        custId,
-      );
       return;
     }
-    console.log(
-      `[CustomerDetail.fetchFkContacts] fetching contacts for customer_id=${custId}`,
-    );
+
     setFkContactsLoading(true);
     try {
-      const res = await getRecords("contact", { customer_id: custId });
-      console.log("[CustomerDetail.fetchFkContacts] API response:", res);
+      const res = await getRecords("contact", { customer: custId });
       const results = res?.results ?? [];
-      console.log(
-        `[CustomerDetail.fetchFkContacts] got ${results.length} contact(s)`,
-      );
       // Map raw contact records to RefContact shape
       const mapped = results.map((r: any) => ({
         contact_id: r.id,
@@ -460,45 +447,6 @@ export default function CustomerDetail({
 
   // Removed duplicate openRecord. Using the new openRecord handler below.
 
-  // Prev/Next nav handlers
-  const handlePrev = useMemo(
-    () => (prevId ? () => openRecord(prevId) : undefined),
-    [prevId, openRecord],
-  );
-  const handleNext = useMemo(
-    () => (nextId ? () => openRecord(nextId) : undefined),
-    [nextId, openRecord],
-  );
-
-  const handleEditClick = useCallback(() => {
-    if (onEditProp) {
-      onEditProp();
-      return;
-    }
-    if (inline) {
-      setIsEditing(true); // Just switch to edit mode inline
-      return;
-    }
-    if (!Number.isFinite(customerId)) return;
-    const record = dataProp || fetchedRecord;
-    const path = `${PageRoutes.customerEdit}/${customerId}`;
-    const label =
-      record?.display_name || record?.name || `Customer ${customerId}`;
-    ensureWindow(path, `Edit ${label}`, { maximized: false });
-    activateWindow(path);
-    closeWindow(location.pathname);
-  }, [
-    onEditProp,
-    inline,
-    activateWindow,
-    closeWindow,
-    customerId,
-    ensureWindow,
-    location.pathname,
-    dataProp,
-    fetchedRecord,
-  ]);
-
   const handleDeleteClick = useCallback(async () => {
     const record = dataProp || fetchedRecord;
     if (onDeleteProp) {
@@ -534,10 +482,7 @@ export default function CustomerDetail({
 
   // Resolved props - use provided or derived
   const onCancel = onCancelProp || handleClose;
-  const onEdit = routeMode === "view" ? handleEditClick : undefined;
   const onDelete = routeMode === "view" ? handleDeleteClick : undefined;
-  const onPrev = handlePrev;
-  const onNext = handleNext;
 
   // Additional tabs specific to Customer
   const additionalTabs = [
@@ -741,24 +686,28 @@ export default function CustomerDetail({
       const payload = {
         display_name: formData.display_name,
         status: formData.status,
-        org_type: formData.org_type,
+        org_type: "customer" as const,
         version: formData.version,
         is_active: formData.is_active,
         // New scalar fields from wc3
-        attention: formData.attention || null,
-        contact_id: formData.contact_id || null,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        price_level: formData.price_level || null,
-        terms: formData.terms || null,
-        terms_id: formData.terms_id || null,
-        address_full: formData.address_full || null,
+        attention: formData.attention ?? undefined,
+        contact_id: formData.contact_id ?? undefined,
+        email: formData.email ?? undefined,
+        phone: formData.phone ?? undefined,
+        price_level: formData.price_level ?? undefined,
+        terms: formData.terms ?? undefined,
+        terms_id: formData.terms_id ?? undefined,
+        address_full: formData.address_full ?? undefined,
         ...jsonPayload,
       };
       const res =
         mode === "add"
           ? await createCustomer(payload)
-          : await updateCustomer({ ...payload, id: data && data.id });
+          : await updateCustomer({
+              ...payload,
+              id: data && data.id,
+              org_type: "customer" as const,
+            });
       if (res) {
         dispatch(
           showToast({
@@ -771,7 +720,7 @@ export default function CustomerDetail({
 
         // --- Auto-create contact for new customers ---
         if (mode === "add") {
-          const newCustomerId = res?.record?.id ?? res?.id;
+          const newCustomerId = res?.id;
           if (newCustomerId) {
             try {
               await autoCreateContactForCustomer(
@@ -792,7 +741,7 @@ export default function CustomerDetail({
                   message: `Customer saved, but contact creation failed: ${
                     contactErr?.message || "Unknown error"
                   }`,
-                  type: "warning",
+                  type: "info",
                 }),
               );
             }
@@ -848,13 +797,32 @@ export default function CustomerDetail({
         comment: `Auto-created from customer #${custId}`,
         refs: {
           links: {
-            customer: [custId],
+            rep: [],
+            item: [],
+            email: [],
+            phone: [],
+            order: [],
+            domain: [],
+            contact: [],
+            customer: [String(custId)],
+            document: [],
+            address: [],
+            manufacturer: [],
+            project: [],
+            vendor: [],
           },
+          tags: [],
+          categories: [],
+          keywords: [],
+          related_ids: [],
+          depends_on: [],
         },
       };
 
-      const contactResult = await createContact(contactPayload);
-      const newContactId = contactResult?.record?.id ?? contactResult?.id;
+      const contactResult = await createContact(
+        contactPayload as CreateContactRequest,
+      );
+      const newContactId = contactResult?.id;
 
       if (!newContactId) {
         throw new Error("Contact created but no ID returned");
@@ -1077,42 +1045,6 @@ export default function CustomerDetail({
           version: formData.version,
           is_active: formData.is_active,
         };
-
-  // Function to get data for specific tab
-  const getTabData = (tabId: string) => {
-    const baseData = { ...customerData };
-    const jsonData = Object.fromEntries(
-      Object.entries(JSON_DEFAULTS).map(([key, defaultValue]) => {
-        try {
-          const parsed = JSON.parse(
-            (formData[key as keyof CustomerFormValues] as string) ||
-              JSON.stringify(defaultValue),
-          );
-          return [key, parsed];
-        } catch {
-          return [key, defaultValue];
-        }
-      }),
-    );
-
-    // Define which fields belong to each tab
-    const tabFieldMapping: Record<string, string[]> = {
-      contacts: ["contacts"],
-      financial: ["financial"],
-      documents: ["docs"],
-    };
-
-    const fieldsForTab = tabFieldMapping[tabId] || [];
-    const filteredData: Record<string, any> = {};
-
-    fieldsForTab.forEach((field) => {
-      if (jsonData[field] !== undefined) {
-        filteredData[field] = jsonData[field];
-      }
-    });
-
-    return { ...baseData, ...filteredData };
-  };
 
   // Handle loading and error states for data fetch
   if (loading) {
@@ -1670,7 +1602,6 @@ export default function CustomerDetail({
                           entityType="customer"
                           entityId={data?.id || 0}
                           data={data?.metadata}
-                          isEditing={false}
                         />
                       </SingleWindowSection>
 

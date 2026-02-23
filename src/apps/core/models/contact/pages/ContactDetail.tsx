@@ -660,7 +660,7 @@ export default function ContactDetail({
 
   useEffect(() => {
     if (data?.communications || data?.refs?.links) {
-      setCommunications({
+      const next = {
         emails: getCommsArray(
           data.communications?.emails,
           data.refs?.links?.email,
@@ -677,14 +677,19 @@ export default function ContactDetail({
           data.communications?.domains,
           data.refs?.links?.domain,
         ),
-      });
+      };
+
+      const same = JSON.stringify(communications) === JSON.stringify(next);
+      if (!same) setCommunications(next);
     }
-  }, [data?.communications, data?.refs?.links]);
+  }, [data?.communications, data?.refs?.links, communications]);
 
   // setValue is initialized by useForm later in this component.
   // We store it in a ref so earlier callbacks (defined before useForm) don't hit TDZ.
   const formSetValueRef = useRef<null | ((...args: any[]) => void)>(null);
   const formGetValuesRef = useRef<null | ((name: string) => any)>(null);
+  // Remember last reset id to avoid repeated resets causing render loops
+  const lastResetIdRef = useRef<number | null | undefined>(undefined);
 
   // Prefer the authoritative communications tables when we have a saved contact id.
   // This makes the Basic Info pickers and the Comms tab reflect real records.
@@ -1457,11 +1462,12 @@ export default function ContactDetail({
   // Sync form when data loads
   useEffect(() => {
     if (!data) {
-      // Add mode — don't call reset({}), which would wipe the parent-seeded
-      // defaultValues (customer_id, company, refs.links.<parent>, etc.).
-      // useForm already initialised with the correct defaults.
       return;
     }
+    const currentId = data?.id ?? null;
+    if (lastResetIdRef.current === currentId) return;
+    // Add mode — don't call reset({}) when there's no data; when data exists
+    // reset once for this record id and remember it to avoid loops.
     reset({
       ...data,
       customer_id: normalizeNumber(data.customer_id ?? data.customer),
@@ -1516,6 +1522,7 @@ export default function ContactDetail({
         },
       },
     });
+    lastResetIdRef.current = currentId;
   }, [data, reset]);
 
   // ---------------------------------------------------------------------------
