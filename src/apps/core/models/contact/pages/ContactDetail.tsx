@@ -81,6 +81,8 @@ import {
   FaSpinner,
   FaTrash,
   FaTimes,
+  FaAddressBook,
+  FaBuilding,
 } from "react-icons/fa";
 import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
 
@@ -274,14 +276,18 @@ function commTypeToModelName(type: CommType): string {
   return type;
 }
 
-function commTypeToContactIdField(type: CommType): "email_id" | "phone_id" | "address_id" | "domain_id" {
+function commTypeToContactIdField(
+  type: CommType,
+): "email_id" | "phone_id" | "address_id" | "domain_id" {
   if (type === "email") return "email_id";
   if (type === "phone") return "phone_id";
   if (type === "address") return "address_id";
   return "domain_id";
 }
 
-function commTypeToContactScalarField(type: CommType): "email" | "phone" | "address_full" | "domain" {
+function commTypeToContactScalarField(
+  type: CommType,
+): "email" | "phone" | "address_full" | "domain" {
   if (type === "email") return "email";
   if (type === "phone") return "phone";
   if (type === "address") return "address_full";
@@ -306,7 +312,11 @@ function getCommDisplayValue(type: CommType, item: any): string {
   );
 }
 
-function mapModalToCommModelPayload(type: CommType, formData: CommunicationModalData, contactId: number) {
+function mapModalToCommModelPayload(
+  type: CommType,
+  formData: CommunicationModalData,
+  contactId: number,
+) {
   if (type === "email") {
     const email = String((formData as any).email || "").trim();
     return {
@@ -329,13 +339,17 @@ function mapModalToCommModelPayload(type: CommType, formData: CommunicationModal
     };
   }
   if (type === "domain") {
-    const path = String((formData as any).domain || (formData as any).path || "").trim();
+    const path = String(
+      (formData as any).domain || (formData as any).path || "",
+    ).trim();
     return {
       ...(formData.id ? { id: formData.id } : {}),
       contact_id: contactId,
       path,
       type: (formData as any).type || "",
-      status: (formData as any).verified ? "active" : (formData as any).status || "active",
+      status: (formData as any).verified
+        ? "active"
+        : (formData as any).status || "active",
     };
   }
 
@@ -395,10 +409,9 @@ function HorizontalField({
     <div className="flex items-center gap-2 py-1.5">
       <Label
         htmlFor={htmlFor}
-        className="w-32 shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400"
+        className="w-32 shrink-0 text-left text-sm font-medium text-slate-600 dark:text-slate-400"
       >
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {label} :{required && <span className="text-red-500 ml-0.5">*</span>}
       </Label>
       <div className="flex-1 min-w-0">
         {children}
@@ -417,8 +430,8 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
   value,
 }) => (
   <div className="flex items-center gap-2">
-    <dt className="w-32 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">
-      {label}
+    <dt className="w-32 shrink-0 text-left text-sm text-slate-500 dark:text-slate-400">
+      {label} :
     </dt>
     <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
       {value || "—"}
@@ -449,11 +462,17 @@ const normalizeContactFkFields = (record: any) => {
   const pickId = (v: any) => {
     if (v == null) return undefined;
     if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
+    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v)))
+      return Number(v);
     if (typeof v === "object") {
       const nested = (v as any).id;
       if (typeof nested === "number" && Number.isFinite(nested)) return nested;
-      if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) return Number(nested);
+      if (
+        typeof nested === "string" &&
+        nested.trim() &&
+        !Number.isNaN(Number(nested))
+      )
+        return Number(nested);
     }
     return undefined;
   };
@@ -463,7 +482,8 @@ const normalizeContactFkFields = (record: any) => {
   if (out.rep_id == null) out.rep_id = pickId(out.rep);
   if (out.vendor_id == null) out.vendor_id = pickId(out.vendor);
   if (out.employee_id == null) out.employee_id = pickId(out.employee);
-  if (out.manufacturer_id == null) out.manufacturer_id = pickId(out.manufacturer);
+  if (out.manufacturer_id == null)
+    out.manufacturer_id = pickId(out.manufacturer);
 
   return out;
 };
@@ -571,9 +591,9 @@ export default function ContactDetail({
     return recordMode === "add" ? "add" : "view";
   }, [recordMode]);
 
-  const [effectiveMode, setEffectiveMode] = useState<
-    "add" | "edit" | "view"
-  >(initialUiMode);
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(
+    initialUiMode,
+  );
 
   useEffect(() => {
     setEffectiveMode(initialUiMode);
@@ -596,7 +616,9 @@ export default function ContactDetail({
       if (initialData?.id === contactIdFromUrl) return;
       setIsLoading(true);
       getRecord("contact", contactIdFromUrl)
-        .then((result) => setFetchedData(normalizeContactFkFields(result?.record || result)))
+        .then((result) =>
+          setFetchedData(normalizeContactFkFields(result?.record || result)),
+        )
         .catch((err) =>
           console.error("[ContactDetail] Failed to fetch contact:", err),
         )
@@ -686,15 +708,15 @@ export default function ContactDetail({
             return !Number.isFinite(cid) || cid === activeContactId;
           })
           .map((r: any) => ({
-          id: r.id,
-          name: r.name || "",
-          type: r.type || "",
-          email: r.email,
-          address: r.email,
-          value: r.email,
-          is_primary: !!r.is_primary,
-          is_verified: !!r.is_verified,
-        }));
+            id: r.id,
+            name: r.name || "",
+            type: r.type || "",
+            email: r.email,
+            address: r.email,
+            value: r.email,
+            is_primary: !!r.is_primary,
+            is_verified: !!r.is_verified,
+          }));
 
         const rawPhones = (phoneRes as any)?.results ?? [];
         const phones = rawPhones
@@ -703,13 +725,13 @@ export default function ContactDetail({
             return !Number.isFinite(cid) || cid === activeContactId;
           })
           .map((r: any) => ({
-          id: r.id,
-          name: r.name || "",
-          number: r.number,
-          value: r.number,
-          format: r.format || "",
-          country_code: r.country_code || "",
-        }));
+            id: r.id,
+            name: r.name || "",
+            number: r.number,
+            value: r.number,
+            format: r.format || "",
+            country_code: r.country_code || "",
+          }));
 
         const rawAddresses = (addressRes as any)?.results ?? [];
         const addresses = rawAddresses
@@ -718,16 +740,16 @@ export default function ContactDetail({
             return !Number.isFinite(cid) || cid === activeContactId;
           })
           .map((r: any) => ({
-          id: r.id,
-          name: r.address_type || "",
-          address1: r.address1,
-          address2: r.address2,
-          city: r.city,
-          state: r.state,
-          zip: r.zip,
-          country: r.country,
-          full: r.full,
-        }));
+            id: r.id,
+            name: r.address_type || "",
+            address1: r.address1,
+            address2: r.address2,
+            city: r.city,
+            state: r.state,
+            zip: r.zip,
+            country: r.country,
+            full: r.full,
+          }));
 
         const rawDomains = (domainRes as any)?.results ?? [];
         const domains = rawDomains
@@ -736,13 +758,13 @@ export default function ContactDetail({
             return !Number.isFinite(cid) || cid === activeContactId;
           })
           .map((r: any) => ({
-          id: r.id,
-          name: r.type || "",
-          domain: r.path,
-          path: r.path,
-          value: r.path,
-          status: r.status,
-        }));
+            id: r.id,
+            name: r.type || "",
+            domain: r.path,
+            path: r.path,
+            value: r.path,
+            status: r.status,
+          }));
 
         if (!cancelled) {
           setCommunications({ emails, phones, addresses, domains });
@@ -787,7 +809,8 @@ export default function ContactDetail({
     setCommSelectState({ open: true, type });
   };
 
-  const closeCommSelect = () => setCommSelectState((s) => ({ ...s, open: false }));
+  const closeCommSelect = () =>
+    setCommSelectState((s) => ({ ...s, open: false }));
 
   // Global search results for selector dialog (shows all records; not limited to this contact)
   useEffect(() => {
@@ -823,9 +846,16 @@ export default function ContactDetail({
     const q = commSelectQuery.trim().toLowerCase();
     if (!q) return commGlobalResults;
     return commGlobalResults.filter((item: any) => {
-      const value = getCommDisplayValue(commSelectState.type, item).toLowerCase();
+      const value = getCommDisplayValue(
+        commSelectState.type,
+        item,
+      ).toLowerCase();
       const label = String(item?.name || item?.type || "").toLowerCase();
-      return value.includes(q) || label.includes(q) || String(item?.id || "").includes(q);
+      return (
+        value.includes(q) ||
+        label.includes(q) ||
+        String(item?.id || "").includes(q)
+      );
     });
   }, [commGlobalResults, commSelectQuery, commSelectState.type]);
 
@@ -836,7 +866,11 @@ export default function ContactDetail({
       const existingContact = Number(row?.contact ?? row?.contact_id);
 
       // If record is already attached to this contact, reuse it.
-      if (Number.isFinite(existingContact) && existingContact === activeContactId && row?.id) {
+      if (
+        Number.isFinite(existingContact) &&
+        existingContact === activeContactId &&
+        row?.id
+      ) {
         return Number(row.id);
       }
 
@@ -951,7 +985,9 @@ export default function ContactDetail({
             value: r.path,
             status: r.status,
             is_primary: data?.domain_id ? r.id === data.domain_id : false,
-            verified: r.status ? String(r.status).toLowerCase() === "active" : false,
+            verified: r.status
+              ? String(r.status).toLowerCase() === "active"
+              : false,
           }));
           setCommunications((prev) => ({ ...(prev || {}), domains }));
         }
@@ -982,8 +1018,12 @@ export default function ContactDetail({
           (formGetValuesRef.current?.("email") as string | undefined) ??
           (data?.email as string | undefined) ??
           "";
-        const currentEmail = String(currentEmailRaw || "").trim().toLowerCase();
-        const selectedEmail = String(displayValue || "").trim().toLowerCase();
+        const currentEmail = String(currentEmailRaw || "")
+          .trim()
+          .toLowerCase();
+        const selectedEmail = String(displayValue || "")
+          .trim()
+          .toLowerCase();
         if (!currentEmail || currentEmail === selectedEmail) {
           payload[scalarField] = displayValue;
         }
@@ -993,7 +1033,9 @@ export default function ContactDetail({
       try {
         await updateContact(payload as any);
         if (payload[scalarField] !== undefined) {
-          formSetValueRef.current?.(scalarField as any, displayValue, { shouldDirty: true });
+          formSetValueRef.current?.(scalarField as any, displayValue, {
+            shouldDirty: true,
+          });
         }
       } catch (err: any) {
         const details = err?.response?.data || err;
@@ -1036,15 +1078,18 @@ export default function ContactDetail({
         setCommSaving(false);
       }
     },
-    [activeContactId, commSelectState.type, copyCommToThisContact, refreshCommType, setPrimaryCommWithoutRefetch],
+    [
+      activeContactId,
+      commSelectState.type,
+      copyCommToThisContact,
+      refreshCommType,
+      setPrimaryCommWithoutRefetch,
+    ],
   );
 
-  const handleAddNewComm = useCallback(
-    (type: CommType) => {
-      setCommModalState({ open: true, type, data: undefined });
-    },
-    [],
-  );
+  const handleAddNewComm = useCallback((type: CommType) => {
+    setCommModalState({ open: true, type, data: undefined });
+  }, []);
 
   const handleSaveNewComm = useCallback(
     async (payload: CommunicationModalData) => {
@@ -1054,7 +1099,11 @@ export default function ContactDetail({
       setCommSaving(true);
       try {
         const modelName = commTypeToModelName(type);
-        const modelPayload = mapModalToCommModelPayload(type, payload, activeContactId);
+        const modelPayload = mapModalToCommModelPayload(
+          type,
+          payload,
+          activeContactId,
+        );
         const res: any = await saveRecord(modelName, modelPayload);
         const record = res?.record ?? res;
         const newId = Number(record?.id ?? res?.id);
@@ -1079,12 +1128,24 @@ export default function ContactDetail({
         setCommModalState((s) => ({ ...s, open: false }));
       } catch (e) {
         console.error("[ContactDetail] handleSaveNewComm failed:", e);
-        dispatch(showToast({ message: `Failed to add ${commModalState.type}`, type: "error" }));
+        dispatch(
+          showToast({
+            message: `Failed to add ${commModalState.type}`,
+            type: "error",
+          }),
+        );
       } finally {
         setCommSaving(false);
       }
     },
-    [activeContactId, commModalState.type, dispatch, refreshCommType, saveRecord, setPrimaryCommWithoutRefetch],
+    [
+      activeContactId,
+      commModalState.type,
+      dispatch,
+      refreshCommType,
+      saveRecord,
+      setPrimaryCommWithoutRefetch,
+    ],
   );
 
   const CommSelectDialog = commSelectState.open
@@ -1138,7 +1199,10 @@ export default function ContactDetail({
                   </div>
                 ) : (
                   filteredCommItems.map((item: any, idx: number) => {
-                    const value = getCommDisplayValue(commSelectState.type, item);
+                    const value = getCommDisplayValue(
+                      commSelectState.type,
+                      item,
+                    );
                     const label = item?.name || item?.type || "";
                     return (
                       <button
@@ -1159,7 +1223,9 @@ export default function ContactDetail({
                               </div>
                             ) : null}
                           </div>
-                          <div className="text-xs text-slate-400 font-mono shrink-0">#{item?.id}</div>
+                          <div className="text-xs text-slate-400 font-mono shrink-0">
+                            #{item?.id}
+                          </div>
                         </div>
                       </button>
                     );
@@ -1381,7 +1447,10 @@ export default function ContactDetail({
       .trim();
     const current = String(getValues("attention") || "");
     if (current !== next) {
-      setValue("attention", next, { shouldDirty: false, shouldValidate: false });
+      setValue("attention", next, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
     }
   }, [isEditing, watchedFirstName, watchedLastName, getValues, setValue]);
 
@@ -1399,7 +1468,9 @@ export default function ContactDetail({
       rep_id: normalizeNumber(data.rep_id ?? data.rep),
       vendor_id: normalizeNumber(data.vendor_id ?? data.vendor),
       employee_id: normalizeNumber(data.employee_id ?? data.employee),
-      manufacturer_id: normalizeNumber(data.manufacturer_id ?? data.manufacturer),
+      manufacturer_id: normalizeNumber(
+        data.manufacturer_id ?? data.manufacturer,
+      ),
       other_id: normalizeNumber(data.other_id),
       refs: {
         tags: data.refs?.tags ?? [],
@@ -1632,11 +1703,18 @@ export default function ContactDetail({
           // Disabled inputs are excluded by react-hook-form, so fall back to
           // parent-seeded values (query params) or fetched record values.
           customer_id:
-            formData.customer_id ?? parentCustomerId ?? data?.customer_id ?? data?.customer,
+            formData.customer_id ??
+            parentCustomerId ??
+            data?.customer_id ??
+            data?.customer,
           rep_id: formData.rep_id ?? data?.rep_id ?? data?.rep,
           vendor_id: formData.vendor_id ?? data?.vendor_id ?? data?.vendor,
-          employee_id: formData.employee_id ?? data?.employee_id ?? data?.employee,
-          manufacturer_id: formData.manufacturer_id ?? data?.manufacturer_id ?? data?.manufacturer,
+          employee_id:
+            formData.employee_id ?? data?.employee_id ?? data?.employee,
+          manufacturer_id:
+            formData.manufacturer_id ??
+            data?.manufacturer_id ??
+            data?.manufacturer,
           other_id: formData.other_id ?? data?.other_id,
           refs: mappedRefs,
         };
@@ -2038,24 +2116,33 @@ export default function ContactDetail({
         {effectiveMode === "view" && data ? (
           /* ── Read-only view ── */
           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
               <FaUser size={16} />
               Basic Information
             </h3>
-            <dl
-              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm"
-            >
-              <InfoRow label="name_prefix" value={data.name_prefix} />
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
               <InfoRow label="name_first" value={data.name_first} />
-              <InfoRow label="name_middle" value={data.name_middle} />
               <InfoRow label="name_last" value={data.name_last} />
+              <InfoRow label="attention" value={data.attention} />
+              <InfoRow label="name_prefix" value={data.name_prefix} />
               <InfoRow label="name_suffix" value={data.name_suffix} />
-
+              <InfoRow label="name_middle" value={data.name_middle} />
+            </dl>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaAddressBook size={16} />
+              Contact Information
+            </h3>
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
               <InfoRow label="email" value={data.email} />
               <InfoRow label="phone" value={data.phone} />
               <InfoRow label="address_full" value={data.address_full} />
               <InfoRow label="domain" value={data.domain} />
-              <InfoRow label="attention" value={data.attention} />
+            </dl>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaBuilding size={16} />
+              Company Information
+            </h3>
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
               <InfoRow label="company" value={data.company} />
               <InfoRow label="title" value={data.title} />
               <InfoRow label="department" value={data.department} />
@@ -2088,21 +2175,11 @@ export default function ContactDetail({
             id="contact-form"
             onSubmit={handleSubmit(onSubmit, onValidationError)}
           >
-            <div
-              className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0"
-            >
-              {shouldRenderField("name_prefix") && (
-                <HorizontalField label="name_prefix" htmlFor="name_prefix">
-                  <Input
-                    type="text"
-                    id="name_prefix"
-                    placeholder="Mr., Ms., Dr."
-                    {...register("name_prefix")}
-                    disabled={isFieldDisabled("name_prefix")}
-                  />
-                </HorizontalField>
-              )}
-
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+              <FaUser size={16} />
+              Basic Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
               {shouldRenderField("name_first") && (
                 <HorizontalField
                   label="name_first"
@@ -2117,18 +2194,6 @@ export default function ContactDetail({
                     {...register("name_first")}
                     error={!!errors.name_first?.message}
                     disabled={isFieldDisabled("name_first")}
-                  />
-                </HorizontalField>
-              )}
-
-              {shouldRenderField("name_middle") && (
-                <HorizontalField label="name_middle" htmlFor="name_middle">
-                  <Input
-                    type="text"
-                    id="name_middle"
-                    placeholder="Middle name"
-                    {...register("name_middle")}
-                    disabled={isFieldDisabled("name_middle")}
                   />
                 </HorizontalField>
               )}
@@ -2150,7 +2215,28 @@ export default function ContactDetail({
                   />
                 </HorizontalField>
               )}
-
+              {shouldRenderField("attention") && (
+                <HorizontalField label="attention" htmlFor="attention">
+                  <Input
+                    type="text"
+                    id="attention"
+                    placeholder="Auto from first + last"
+                    {...register("attention")}
+                    disabled
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_prefix") && (
+                <HorizontalField label="name_prefix" htmlFor="name_prefix">
+                  <Input
+                    type="text"
+                    id="name_prefix"
+                    placeholder="Mr., Ms., Dr."
+                    {...register("name_prefix")}
+                    disabled={isFieldDisabled("name_prefix")}
+                  />
+                </HorizontalField>
+              )}
               {shouldRenderField("name_suffix") && (
                 <HorizontalField label="name_suffix" htmlFor="name_suffix">
                   <Input
@@ -2162,7 +2248,24 @@ export default function ContactDetail({
                   />
                 </HorizontalField>
               )}
+              {shouldRenderField("name_middle") && (
+                <HorizontalField label="name_middle" htmlFor="name_middle">
+                  <Input
+                    type="text"
+                    id="name_middle"
+                    placeholder="Middle name"
+                    {...register("name_middle")}
+                    disabled={isFieldDisabled("name_middle")}
+                  />
+                </HorizontalField>
+              )}
+            </div>
 
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaAddressBook size={16} />
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
               {shouldRenderField("email") && (
                 <HorizontalField
                   label="email"
@@ -2268,19 +2371,12 @@ export default function ContactDetail({
                   </div>
                 </HorizontalField>
               )}
-
-              {shouldRenderField("attention") && (
-                <HorizontalField label="attention" htmlFor="attention">
-                  <Input
-                    type="text"
-                    id="attention"
-                    placeholder="Auto from first + last"
-                    {...register("attention")}
-                    disabled
-                  />
-                </HorizontalField>
-              )}
-
+            </div>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaBuilding size={16} />
+              Company Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
               {shouldRenderField("company") && (
                 <HorizontalField label="company" htmlFor="company">
                   <Input

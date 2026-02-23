@@ -6,6 +6,8 @@ import { normalizeRefsLinksContact } from "./ContactPanel";
  * Extended by InvoiceDetail, OrderDetail, etc.
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PrintPreviewModal from "./PrintPreviewModal";
+import { OrderPrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -21,9 +23,7 @@ import {
   FaLink,
   FaEllipsisH,
   FaTasks,
-  FaSlidersH,
   FaQuestionCircle,
-  FaFileAlt,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
 
@@ -37,16 +37,17 @@ import {
 
 // Import toolbar
 import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
-import OrgSearchDialog, { type SearchableOrgType, type OrgSearchResult } from "@/apps/common/components/OrgSearchDialog";
+import OrgSearchDialog, {
+  type SearchableOrgType,
+  type OrgSearchResult,
+} from "@/apps/common/components/OrgSearchDialog";
 
 // Import shared components
 import ContactPanel from "./ContactPanel";
-import ContactLinksTable from "./ContactLinksTable";
-import CommentsPanel from "./CommentsPanel";
-import MetadataPanel from "./MetadataPanel";
-import FinancialsCard from "./FinancialsCard";
 
-import { DocumentsPanel, PrefsPanel } from "@/apps/common/components/panels";
+import CommentsPanel from "./CommentsPanel";
+import FinancialsCard from "./FinancialsCard";
+import { DocumentsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
 import TransactionTabs from "@/components/common/TransactionTabs";
@@ -59,7 +60,7 @@ import type {
 import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
 import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
-import { DevBadge } from '@/components/common/DevBadge';
+import { DevBadge } from "@/components/common/DevBadge";
 
 // Extend Transaction type locally to ensure 'lines' exists
 type Transaction = TransactionBase & {
@@ -73,21 +74,31 @@ type Transaction = TransactionBase & {
 function normalizeFkId(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
+  if (
+    typeof value === "string" &&
+    value.trim() &&
+    !Number.isNaN(Number(value))
+  ) {
     return Number(value);
   }
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     const nested = obj.id;
     if (typeof nested === "number" && Number.isFinite(nested)) return nested;
-    if (typeof nested === "string" && nested.trim() && !Number.isNaN(Number(nested))) {
+    if (
+      typeof nested === "string" &&
+      nested.trim() &&
+      !Number.isNaN(Number(nested))
+    ) {
       return Number(nested);
     }
   }
   return null;
 }
 
-function normalizeTransactionFkFields<T extends Record<string, any>>(input: T): T {
+function normalizeTransactionFkFields<T extends Record<string, any>>(
+  input: T,
+): T {
   if (!input || typeof input !== "object") return input;
   const out: T = { ...(input as any) };
 
@@ -107,7 +118,12 @@ function normalizeTransactionFkFields<T extends Record<string, any>>(input: T): 
   // or legacy fields (e.g. "id_customer"). Normalize to *_id so UI + save path agree.
   setIfMissing("customer_id", out.customer_id, out.customer, out.id_customer);
   setIfMissing("vendor_id", out.vendor_id, out.vendor, out.id_vendor);
-  setIfMissing("manufacturer_id", out.manufacturer_id, out.manufacturer, out.id_manufacturer);
+  setIfMissing(
+    "manufacturer_id",
+    out.manufacturer_id,
+    out.manufacturer,
+    out.id_manufacturer,
+  );
   setIfMissing("contact_id", out.contact_id, out.contact, out.id_contact);
   setIfMissing("terms_id", out.terms_id, out.terms_fk, out.terms);
 
@@ -338,39 +354,47 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   useEffect(() => {
     if (effectiveMode !== "add") return;
 
-      // Check for transfer source params
-      const transferFromType = windowSearchParams?.get("transfer_from_type");
-      const transferFromId = windowSearchParams?.get("transfer_from_id");
+    // Check for transfer source params
+    const transferFromType = windowSearchParams?.get("transfer_from_type");
+    const transferFromId = windowSearchParams?.get("transfer_from_id");
 
-      // Get today's date at midnight (zero time)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayIso = today.toISOString();
+    // Get today's date at midnight (zero time)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
 
-      // If transferring from another transaction, fetch the source and pre-populate
-      if (transferFromType && transferFromId) {
-        setLoading(true);
-        getRecord(transferFromType, Number(transferFromId))
-          .then((apiResult) => {
-            const source = apiResult?.record ?? apiResult;
-            if (!source) {
-              dispatch(showToast({ message: `Could not load source ${transferFromType} #${transferFromId}`, type: "error" }));
-              setLoading(false);
-              return;
-            }
-            // Copy lines from source, resetting IDs so they create as new.
-            // Stamp each line's refs.source with the source line ID so the
-            // backend can update the source line's quantity.actioned after save.
-            const srcType = transferFromType as string;
-            const srcId = Number(transferFromId);
-            let nextLn = 10; // line_number counter for transferred lines
-            const transferredLines = (source.lines || []).map((line: Record<string, unknown>) => {
+    // If transferring from another transaction, fetch the source and pre-populate
+    if (transferFromType && transferFromId) {
+      setLoading(true);
+      getRecord(transferFromType, Number(transferFromId))
+        .then((apiResult) => {
+          const source = apiResult?.record ?? apiResult;
+          if (!source) {
+            dispatch(
+              showToast({
+                message: `Could not load source ${transferFromType} #${transferFromId}`,
+                type: "error",
+              }),
+            );
+            setLoading(false);
+            return;
+          }
+          // Copy lines from source, resetting IDs so they create as new.
+          // Stamp each line's refs.source with the source line ID so the
+          // backend can update the source line's quantity.actioned after save.
+          const srcType = transferFromType as string;
+          const srcId = Number(transferFromId);
+          let nextLn = 10; // line_number counter for transferred lines
+          const transferredLines = (source.lines || []).map(
+            (line: Record<string, unknown>) => {
               // Remap quantity for the target transaction:
               // placed = source remaining (qty being transferred)
               // remaining = 0 (new line has nothing remaining to action)
               // actioned = 0
               const srcQty = (line.quantity as Record<string, unknown>) || {};
-              const transferQty = Number(srcQty.remaining ?? srcQty.placed ?? 0);
+              const transferQty = Number(
+                srcQty.remaining ?? srcQty.placed ?? 0,
+              );
               const ln = nextLn;
               nextLn += 10;
               return {
@@ -394,128 +418,148 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                   },
                 },
               };
-            });
-            // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
-            // but our Transaction type and save serializers use _id suffix.
-            const customerId = source.customer_id ?? source.customer ?? null;
-            const vendorId = source.vendor_id ?? source.vendor ?? null;
-            const manufacturerId = source.manufacturer_id ?? source.manufacturer ?? null;
-            const contactId = source.contact_id ?? source.contact ?? null;
-            const record: Transaction = {
-              id: undefined as unknown as number,
-              customer_id: customerId,
-              vendor_id: vendorId,
-              manufacturer_id: manufacturerId,
-              status: "planned",
-              lines: transferredLines,
-              // Lineage: parent_id / parent_model tell the backend this is
-              // a transferred transaction.  The Pending inventory creator
-              // uses parent_id to release on_so and deduct on_hand.
-              parent_id: srcId,
-              parent_model: srcType,
-              refs: {
-                source: {
-                  [`${srcType}_id`]: srcId,
-                  converted_from: srcType,
-                },
-              } as any,
-              metadata: {} as any,
-              comments: { notes: [] },
-              totals: {},
-              finance: {},
-              dt: todayIso,
-              due_date: todayIso,
-              // Copy common header fields
-              ...(source.terms ? { terms: source.terms } : {}),
-              ...(source.terms_id ?? source.terms_fk ? { terms_id: source.terms_id ?? source.terms_fk } : {}),
-              ...(source.price_level ? { price_level: source.price_level } : {}),
-              ...(source.attention ? { attention: source.attention } : {}),
-              ...(source.phone ? { phone: source.phone } : {}),
-              ...(source.email ? { email: source.email } : {}),
-              ...(source.address_full ? { address_full: source.address_full } : {}),
-              ...(contactId ? { contact_id: contactId } : {}),
-              // Legacy transfer_from (kept for backwards compat)
-              transfer_from: { type: srcType, id: srcId },
-            };
-            setData(record);
-            setEditData(record);
-            setIsEditing(true);
-            setLoading(false);
-          })
-          .catch((err) => {
-            console.warn("[TransactionDetailBase] Transfer source fetch failed:", err);
-            dispatch(showToast({ message: `Failed to load source ${transferFromType}`, type: "error" }));
-            setLoading(false);
-          });
-        return;
-      }
+            },
+          );
+          // wcapi GET returns FK fields without _id suffix (e.g. "customer"),
+          // but our Transaction type and save serializers use _id suffix.
+          const customerId = source.customer_id ?? source.customer ?? null;
+          const vendorId = source.vendor_id ?? source.vendor ?? null;
+          const manufacturerId =
+            source.manufacturer_id ?? source.manufacturer ?? null;
+          const contactId = source.contact_id ?? source.contact ?? null;
+          const record: Transaction = {
+            id: undefined as unknown as number,
+            customer_id: customerId,
+            vendor_id: vendorId,
+            manufacturer_id: manufacturerId,
+            status: "planned",
+            lines: transferredLines,
+            // Lineage: parent_id / parent_model tell the backend this is
+            // a transferred transaction.  The Pending inventory creator
+            // uses parent_id to release on_so and deduct on_hand.
+            parent_id: srcId,
+            parent_model: srcType as TransactionType,
+            refs: {
+              source: {
+                [`${srcType}_id`]: srcId,
+                converted_from: srcType,
+              },
+            } as any,
+            metadata: {} as any,
+            comments: { notes: [] },
+            totals: {},
+            finance: {},
+            dt: todayIso,
+            due_date: todayIso,
+            // Copy common header fields
+            ...(source.terms ? { terms: source.terms } : {}),
+            ...(source.terms_id ?? source.terms_fk
+              ? { terms_id: source.terms_id ?? source.terms_fk }
+              : {}),
+            ...(source.price_level ? { price_level: source.price_level } : {}),
+            ...(source.attention ? { attention: source.attention } : {}),
+            ...(source.phone ? { phone: source.phone } : {}),
+            ...(source.email ? { email: source.email } : {}),
+            ...(source.address_full
+              ? { address_full: source.address_full }
+              : {}),
+            ...(contactId ? { contact_id: contactId } : {}),
+            // Legacy transfer_from (kept for backwards compat)
+            // transfer_from is not a valid property on Transaction, so remove or handle appropriately
+          };
+          setData(record);
+          setEditData(record);
+          setIsEditing(true);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.warn(
+            "[TransactionDetailBase] Transfer source fetch failed:",
+            err,
+          );
+          dispatch(
+            showToast({
+              message: `Failed to load source ${transferFromType}`,
+              type: "error",
+            }),
+          );
+          setLoading(false);
+        });
+      return;
+    }
 
-      // Pre-populate from query params if available
-      const qsCustomerId = windowSearchParams?.get("customer_id");
-      const qsCustomerName = windowSearchParams?.get("customer_name");
-      const qsPriceLevel = windowSearchParams?.get("price_level");
-      const qsAttention = windowSearchParams?.get("attention");
-      const qsPhone = windowSearchParams?.get("phone");
-      const qsEmail = windowSearchParams?.get("email");
-      const qsTerms = windowSearchParams?.get("terms");
-      const qsTermsId = windowSearchParams?.get("terms_id");
-      const qsContactId = windowSearchParams?.get("contact_id");
-      const qsAddressFull = windowSearchParams?.get("address_full");
+    // Pre-populate from query params if available
+    const qsCustomerId = windowSearchParams?.get("customer_id");
+    const qsCustomerName = windowSearchParams?.get("customer_name");
+    const qsPriceLevel = windowSearchParams?.get("price_level");
+    const qsAttention = windowSearchParams?.get("attention");
+    const qsPhone = windowSearchParams?.get("phone");
+    const qsEmail = windowSearchParams?.get("email");
+    const qsTerms = windowSearchParams?.get("terms");
+    const qsTermsId = windowSearchParams?.get("terms_id");
+    const qsContactId = windowSearchParams?.get("contact_id");
+    const qsAddressFull = windowSearchParams?.get("address_full");
 
-      // Build refs.links with customer defaults transferred from query params
-      const links: Record<string, unknown> = {};
-      if (qsCustomerId) {
-        links.customer = [{
+    // Build refs.links with customer defaults transferred from query params
+    const links: Record<string, unknown> = {};
+    if (qsCustomerId) {
+      links.customer = [
+        {
           id: Number(qsCustomerId),
           display_name: qsCustomerName || "",
-        }];
-      }
-      if (qsContactId) {
-        links.contact = [{
+        },
+      ];
+    }
+    if (qsContactId) {
+      links.contact = [
+        {
           id: Number(qsContactId),
           purpose: "billto",
           display_name: qsAttention || "",
           email: qsEmail || "",
           phone: qsPhone || "",
-        }];
-      } else if (qsAttention || qsEmail || qsPhone) {
-        links.contact = [{
+        },
+      ];
+    } else if (qsAttention || qsEmail || qsPhone) {
+      links.contact = [
+        {
           id: 0,
           purpose: "billto",
           display_name: qsAttention || "",
           email: qsEmail || "",
           phone: qsPhone || "",
-        }];
-      }
+        },
+      ];
+    }
 
-      const emptyRecord: Transaction = {
-        id: undefined as unknown as number,
-        customer_id: qsCustomerId ? Number(qsCustomerId) : null,
-        vendor_id: null,
-        manufacturer_id: null,
-        status: "planned",
-        ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
-        ...(qsTerms ? { terms: qsTerms } : {}),
-        ...(qsTermsId ? { terms_id: Number(qsTermsId) } : {}),
-        ...(qsContactId ? { contact_id: Number(qsContactId) } : {}),
-        ...(qsAttention ? { attention: qsAttention } : {}),
-        ...(qsPhone ? { phone: qsPhone } : {}),
-        ...(qsEmail ? { email: qsEmail } : {}),
-        ...(qsAddressFull ? { address_full: qsAddressFull } : {}),
-        lines: [],
-        refs: { links } as any,
-        metadata: {} as any,
-        comments: { notes: [] },
-        totals: {},
-        finance: {},
-        // Initialize all date fields to today at midnight
-        dt: todayIso,
-        due_date: todayIso,
-      };
-      setData(emptyRecord);
-      setEditData(emptyRecord);
-      setIsEditing(true);
-      setLoading(false);
+    const emptyRecord: Transaction = {
+      id: undefined as unknown as number,
+      customer_id: qsCustomerId ? Number(qsCustomerId) : 0,
+      vendor_id: 0,
+      manufacturer_id: 0,
+      status: "planned",
+      ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
+      ...(qsTerms ? { terms: qsTerms } : {}),
+      ...(qsTermsId ? { terms_id: Number(qsTermsId) } : {}),
+      ...(qsContactId ? { contact_id: Number(qsContactId) } : {}),
+      ...(qsAttention ? { attention: qsAttention } : {}),
+      ...(qsPhone ? { phone: qsPhone } : {}),
+      ...(qsEmail ? { email: qsEmail } : {}),
+      ...(qsAddressFull ? { address_full: qsAddressFull } : {}),
+      lines: [],
+      refs: { links } as any,
+      metadata: {} as any,
+      comments: { notes: [] },
+      totals: {},
+      finance: {},
+      // Initialize all date fields to today at midnight
+      dt: todayIso,
+      due_date: todayIso,
+    };
+    setData(emptyRecord);
+    setEditData(emptyRecord);
+    setIsEditing(true);
+    setLoading(false);
   }, [effectiveMode, windowSearchParams]);
 
   // Update isEditing when modeProp changes (for inline usage)
@@ -631,7 +675,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Count pending actions
   const actionCount = useMemo(() => {
-    const actions = data?.actions?.items as Array<{ status?: string }> | undefined;
+    const actions = data?.actions?.items as
+      | Array<{ status?: string }>
+      | undefined;
     if (!Array.isArray(actions)) return 0;
     return actions.filter((a) => a.status === "pending").length;
   }, [data?.actions]);
@@ -725,7 +771,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     // Ensure id is included in payload for updates (omit falsy ids for new records)
     const rawId = data?.id;
     const payloadWithId = {
-      ...stripTransactionFkAliases(normalizeTransactionFkFields(editData as any)),
+      ...stripTransactionFkAliases(
+        normalizeTransactionFkFields(editData as any),
+      ),
       ...(rawId ? { id: rawId } : { id: undefined }),
     };
 
@@ -736,9 +784,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       ? await saveTransactionWithLines(modelName, payloadWithId)
       : await saveRecord(modelName, payloadWithId);
 
-    const normalized = normalizeTransactionFkFields((apiResult.record ?? apiResult) as any);
+    const normalized = normalizeTransactionFkFields(
+      (apiResult.record ?? apiResult) as any,
+    );
 
-    emitModelChanged({ model: modelName, id: (normalized as any)?.id ?? null, action: rawId ? "updated" : "created" });
+    emitModelChanged({
+      model: modelName,
+      id: (normalized as any)?.id ?? null,
+      action: rawId ? "updated" : "created",
+    });
 
     // If this was a Transfer-created record (new target created from a source),
     // deactivate the source record so it disappears from the source list.
@@ -750,7 +804,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           is_active: false,
         });
 
-        emitModelChanged({ model: transferSource.type, id: transferSource.id, action: "deactivated" });
+        emitModelChanged({
+          model: transferSource.type,
+          id: transferSource.id,
+          action: "deactivated",
+        });
       } catch (e) {
         console.warn(
           "[TransactionDetailBase] Failed to deactivate transfer source:",
@@ -760,14 +818,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         dispatch(
           showToast({
             message: `Saved, but could not remove source ${transferSource.type} #${transferSource.id}`,
-            type: "warning",
+            type: "info",
           }),
         );
       }
     }
 
     return normalized;
-  }, [editData, saveData, modelName, data?.id, transferSource, dispatch, emitModelChanged]);
+  }, [
+    editData,
+    saveData,
+    modelName,
+    data?.id,
+    transferSource,
+    dispatch,
+    emitModelChanged,
+  ]);
 
   const handleSave = useCallback(async () => {
     if (!editData) return;
@@ -802,13 +868,18 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Toolbar handlers
   // --- OrgSearchDialog state ---
   const [showOrgDialog, setShowOrgDialog] = useState(false);
-  const [orgDialogType, setOrgDialogType] = useState<SearchableOrgType>("customer");
+  const [orgDialogType, setOrgDialogType] =
+    useState<SearchableOrgType>("customer");
 
   // Determine which org type to assign for this transaction
   // (could be customer, vendor, manufacturer, etc. based on transactionType)
-  const getOrgFieldForType = (type: string): { field: string, orgType: SearchableOrgType } => {
-    if (["order", "invoice", "proposal", "workorder"].includes(type)) return { field: "customer_id", orgType: "customer" };
-    if (["purchase"].includes(type)) return { field: "vendor_id", orgType: "vendor" };
+  const getOrgFieldForType = (
+    type: string,
+  ): { field: string; orgType: SearchableOrgType } => {
+    if (["order", "invoice", "proposal", "workorder"].includes(type))
+      return { field: "customer_id", orgType: "customer" };
+    if (["purchase"].includes(type))
+      return { field: "vendor_id", orgType: "vendor" };
     // Extend as needed for other types
     return { field: "customer_id", orgType: "customer" };
   };
@@ -866,7 +937,18 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel, inline, onCancelInline, windowPath, closeWindow]);
+  }, [
+    editData,
+    performSave,
+    navigate,
+    onSaved,
+    dispatch,
+    typeLabel,
+    inline,
+    onCancelInline,
+    windowPath,
+    closeWindow,
+  ]);
 
   const handleClone = useCallback(async () => {
     if (!data) return;
@@ -879,7 +961,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     navigate(`/transactions/${seg}/detail`, {
       state: { clone: clonedData, mode: "add" },
     });
-  }, [data, transactionType, navigate, dispatch, typeLabel, getTransactionRouteSegment]);
+  }, [
+    data,
+    transactionType,
+    navigate,
+    dispatch,
+    typeLabel,
+    getTransactionRouteSegment,
+  ]);
 
   const handleTransfer = useCallback(
     async (targetType: TransactionType) => {
@@ -898,19 +987,50 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       const seg = getTransactionRouteSegment(targetType);
       const path = `/transactions/${seg}/detail?${params.toString()}`;
       const label = targetType.charAt(0).toUpperCase() + targetType.slice(1);
-      ensureWindow(path, `New ${label} (from ${typeLabel})`, { maximized: false });
+      ensureWindow(path, `New ${label} (from ${typeLabel})`, {
+        maximized: false,
+      });
     },
-    [data, transactionType, ensureWindow, dispatch, typeLabel, getTransactionRouteSegment],
+    [
+      data,
+      transactionType,
+      ensureWindow,
+      dispatch,
+      typeLabel,
+      getTransactionRouteSegment,
+    ],
   );
 
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const handlePrint = useCallback(() => {
     if (onPrint && data) {
       onPrint(data);
     } else {
-      dispatch(showToast({ message: "Opening print dialog...", type: "info" }));
-      window.print();
+      setShowPrintPreview(true);
     }
-  }, [onPrint, data, dispatch]);
+  }, [onPrint, data]);
+  // ...existing code...
+
+  // Print Preview Modal rendering
+  // Only for orders for now, can be extended for invoices, proposals, etc.
+  const renderPrintPreview = () => {
+    if (!showPrintPreview || !data) return null;
+    // Try to get orderNum/invoiceNum if present, fallback to id
+    const docNum =
+      (data as any).orderNum || (data as any).invoiceNum || data.id;
+    // Cast data to OrderPrintData for print (safe if shape matches)
+    console.log("data samir", data);
+    return (
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        documentType={typeLabel}
+        documentNumber={docNum}
+      >
+        <OrderPrintDocument data={data as any} />
+      </PrintPreviewModal>
+    );
+  };
 
   const handleEmail = useCallback(() => {
     if (onEmail && data) {
@@ -974,7 +1094,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       ...currentData.totals,
       subtotal: liveCalc.sell.line_sum_goods,
       discount: liveCalc.sell.discount,
-      taxable: (liveCalc.sell.line_sum_goods ?? 0) - (liveCalc.sell.discount ?? 0),
+      taxable:
+        (liveCalc.sell.line_sum_goods ?? 0) - (liveCalc.sell.discount ?? 0),
       tax: currentData.totals?.tax ?? 0,
       shipping: currentData.totals?.shipping ?? 0,
       other: currentData.totals?.other ?? 0,
@@ -1068,7 +1189,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Render tab content
   const renderTabContent = () => {
     // Check for custom tab first
-    if (renderCustomTab) {
+    if (renderCustomTab && currentData) {
       const customContent = renderCustomTab(
         activeTab,
         currentData,
@@ -1080,7 +1201,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     switch (activeTab) {
       case "actions": {
-        const actions = (currentData.actions?.items ?? []) as Array<{
+        const actions = (currentData?.actions?.items ?? []) as Array<{
           id?: number;
           status?: string;
           action?: string | { en?: string };
@@ -1112,7 +1233,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                           : action.action ?? action.what ?? "--"}
                       </span>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full ${getStatusClass(action.status)}`}
+                        className={`px-2 py-1 text-xs rounded-full ${getStatusClass(
+                          action.status,
+                        )}`}
                       >
                         {action.status ?? "pending"}
                       </span>
@@ -1130,13 +1253,18 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         return (
           <ContactPanel
             contacts={normalizeRefsLinksContact(
-              currentData.refs?.links?.contact ?? [],
+              currentData?.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
             parent_model={modelName}
             parentId={currentData?.id}
-            customer_id={currentData?.customer_id || currentData?.refs?.links?.customer?.[0]?.id}
-            customer_name={currentData?.refs?.links?.customer?.[0]?.display_name}
+            customer_id={
+              currentData?.customer_id ||
+              currentData?.refs?.links?.customer?.[0]?.id
+            }
+            customer_name={
+              currentData?.refs?.links?.customer?.[0]?.display_name
+            }
             onChange={(newContacts) => {
               // Update editData.refs.links.contact in edit mode
               if (isEditing && editData) {
@@ -1246,7 +1374,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           }
         };
 
-        return (
+        return currentData ? (
           <CommentsPanel
             entityType={modelName as any}
             entityId={Number(currentData?.id ?? 0)}
@@ -1257,10 +1385,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             currentUser={displayName}
             currentUserId={user?.id}
           />
-        );
+        ) : null;
 
       case "financials":
-        return (
+        return currentData ? (
           <FinancialsCard
             totals={liveTotals}
             cost={liveCost}
@@ -1268,7 +1396,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             currency={currentData.currency}
             isEditing={isEditing}
           />
-        );
+        ) : null;
 
       case "documents":
         return (
@@ -1331,6 +1459,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   ];
   return (
     <div className="max-w-7xl mx-auto">
+      {renderPrintPreview()}
       <div className="flex items-center justify-between mb-0">
         {/* Edit Button (when not editing) */}
         {!isEditing && canEdit(data) && (
@@ -1400,16 +1529,25 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             allowTypeSwitch={true}
             onSelect={handleOrgSelected}
             onClose={() => setShowOrgDialog(false)}
-            title={`Assign ${orgDialogType.charAt(0).toUpperCase() + orgDialogType.slice(1)}`}
+            title={`Assign ${
+              orgDialogType.charAt(0).toUpperCase() + orgDialogType.slice(1)
+            }`}
           />
         </div>
       )}
       {/* QQQ Summary and Lines item  */}
       <div className="flex items-center justify-between mb-0">
-        <DevBadge label={`${transactionType}Detail`} className="absolute top-1 left-1 z-10" />
+        <DevBadge
+          label={`${transactionType}Detail`}
+          className="absolute top-1 left-1 z-10"
+        />
         {renderHeader ? (
-          renderHeader(currentDataWithTotals as Transaction, isEditing, handleFieldChange)
-        ) : (
+          renderHeader(
+            currentDataWithTotals as Transaction,
+            isEditing,
+            handleFieldChange,
+          )
+        ) : currentData ? (
           <SummaryCard
             data={currentDataWithTotals}
             isEditing={isEditing}
@@ -1422,14 +1560,19 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shippingContact={currentData.refs?.links?.contact?.find(
               (c) => c.purpose === "shipto",
             )}
-            orgLinks={currentData.refs?.links}
+            // orgLinks omitted due to type mismatch
           />
-        )}
+        ) : null}
       </div>
 
       {renderLines ? (
-        renderLines(currentData.lines ?? [], isEditing, currentData, onLinesChange)
-      ) : (
+        renderLines(
+          currentData?.lines ?? [],
+          isEditing,
+          currentData || undefined,
+          onLinesChange,
+        )
+      ) : currentData ? (
         <LinesCard
           lines={currentData.lines ?? []}
           isEditing={isEditing}
@@ -1437,7 +1580,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onDeleteLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
-                (currentData.lines ?? []).filter((l, i) => lineKey(l, i) !== lineId),
+                (currentData.lines ?? []).filter(
+                  (l, i) => lineKey(l, i) !== lineId,
+                ),
               );
             }
           }}
@@ -1486,7 +1631,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                         price: {
                           ...l.price,
                           unit: newPrice,
-                          extended: lineIsActive ? newPrice * qty : (l.price?.extended ?? 0),
+                          extended: lineIsActive
+                            ? newPrice * qty
+                            : l.price?.extended ?? 0,
                         },
                       };
                     }
@@ -1516,7 +1663,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onLinesChange={onLinesChange}
           onAddItem={handleAddItem}
         />
-      )}
+      ) : null}
       {/* Tabs Navbar */}
       <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">
@@ -1560,21 +1707,27 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         const recordId = currentData?.id;
         if (effectiveMode === "add" || !recordId) return null;
 
-        const customerTypes = ['order', 'invoice', 'proposal'];
-        const vendorTypes = ['purchase', 'receipt'];
-        let orgType: 'customer' | 'vendor' | null = null;
+        const customerTypes = ["order", "invoice", "proposal"];
+        const vendorTypes = ["purchase", "receipt"];
+        let orgType: "customer" | "vendor" | null = null;
         let orgId: number | null = null;
-        if (customerTypes.includes(transactionType) && currentData?.customer_id) {
-          orgType = 'customer';
+        if (
+          customerTypes.includes(transactionType) &&
+          currentData?.customer_id
+        ) {
+          orgType = "customer";
           orgId = currentData.customer_id;
-        } else if (vendorTypes.includes(transactionType) && currentData?.vendor_id) {
-          orgType = 'vendor';
+        } else if (
+          vendorTypes.includes(transactionType) &&
+          currentData?.vendor_id
+        ) {
+          orgType = "vendor";
           orgId = currentData.vendor_id;
         } else if (currentData?.customer_id) {
-          orgType = 'customer';
+          orgType = "customer";
           orgId = currentData.customer_id;
         } else if (currentData?.vendor_id) {
-          orgType = 'vendor';
+          orgType = "vendor";
           orgId = currentData.vendor_id;
         }
         if (orgType && orgId) {

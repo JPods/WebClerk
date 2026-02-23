@@ -1,20 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
-
-interface CustomeListMobProps {
+import { CustomerApiTask } from "../types/customerType";
+interface CustomerListMobProps {
   dataProp: dynamicData[];
+  selectedCustomer?: CustomerApiTask | null;
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
+  emptyMessage?: string;
 }
 
 export default function CustomerListMob({
   dataProp,
+  selectedCustomer,
   handleView,
   handleEdit,
-}: CustomeListMobProps) {
+  emptyMessage,
+}: CustomerListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedCustomer?.id && dataProp?.length) {
+      const idx = dataProp.findIndex(
+        (item) => String(item.id) === String(selectedCustomer.id),
+      );
+      setOpenIndex(idx >= 0 ? idx : null);
+    } else {
+      setOpenIndex(null);
+    }
+  }, [selectedCustomer, dataProp]);
+
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (
@@ -28,14 +44,13 @@ export default function CustomerListMob({
             onToggle={() => {
               const willOpen = openIndex !== index;
               setOpenIndex(willOpen ? index : null);
-
               if (willOpen) {
-                handleView(customer); // 👈 FIXED
+                handleView(customer);
               }
             }}
           >
             {/* Accordion Content */}
-            <div className="flex flex-col min-h-[220px]">
+            <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
@@ -47,7 +62,12 @@ export default function CustomerListMob({
                 <p>
                   <strong>version:</strong> {customer.version || "--"}
                 </p>
-
+                <p>
+                  <strong>display_name:</strong> {customer.display_name || "--"}
+                </p>
+                <p>
+                  <strong>company:</strong> {customer.company || "--"}
+                </p>
                 <div className="flex items-center gap-2">
                   <strong>is_active:</strong>
                   {customer.is_active ? (
@@ -57,32 +77,13 @@ export default function CustomerListMob({
                   )}
                 </div>
               </div>
-
-              {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
-                <button
-                  onClick={() => handleView(customer)}
-                  title="View"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-green-600"
-                >
-                  <FaEye className="text-green-600 hover:scale-110" />
-                </button>
-
-                <button
-                  onClick={() => handleEdit(customer)}
-                  title="Edit"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-blue-600"
-                >
-                  <FaEdit className="text-blue-600 hover:scale-110" />
-                </button>
-              </div>
             </div>
           </AccordionItem>
         ))
       ) : (
-        <p className="text-center text-gray-500">No customer found.</p>
+        <p className="text-center text-gray-500">
+          {emptyMessage ?? "No customer found."}
+        </p>
       )}
     </div>
   );

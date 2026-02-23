@@ -33,7 +33,6 @@ import {
   PRIORITY_OPTIONS,
   STATUS_OPTIONS,
   PROGRESS_OPTIONS,
-  STATUS_CONFIG,
 } from "./TransactionTaskModal.types";
 
 // ------------------------------------
@@ -246,7 +245,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
+    <div className="pointer-events-none fixed inset-0 z-200000 flex items-stretch justify-end">
       {/* Backdrop */}
       <div
         className="pointer-events-auto absolute inset-0 bg-black/20 dark:bg-black/40"
@@ -254,7 +253,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
       />
 
       {/* Panel */}
-      <div className="pointer-events-auto relative ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 shadow-2xl sm:w-[480px] lg:w-[500px]">
+      <div className="pointer-events-auto relative ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 shadow-2xl sm:w-120 lg:w-125">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-700 px-5 py-4">
           <div>

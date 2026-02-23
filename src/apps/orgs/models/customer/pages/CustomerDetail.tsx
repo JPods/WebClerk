@@ -23,24 +23,19 @@ import {
   FaEdit,
   FaTrash,
   FaDollarSign,
-  FaFileAlt,
-  FaPhone,
   FaAddressCard,
-  FaCog,
-  FaColumns,
   FaQuestionCircle,
-  FaLink,
-  FaSlidersH,
   FaPlus,
   FaFileInvoiceDollar,
   FaShoppingCart,
   FaClipboardList,
+  FaTimes,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
-import { CustomerAddProps } from "../types/customerType";
+import { CustomerAddProps, CreateCustomerRequest } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
-import CustomerDataPanel from "./CustomerDataPanel";
+
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import {
@@ -63,133 +58,13 @@ import {
   DetailTabs,
   useDetailTabs,
   useColumnCount,
+  ColumnSelector,
 } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
-
-// ---------------------------------------------------------------------------
-// Create Transaction Dropdown
-// ---------------------------------------------------------------------------
-
-const TRANSACTION_OPTIONS = [
-  {
-    value: "proposal",
-    label: "Proposal",
-    icon: FaClipboardList,
-    path: "/transactions/proposal/detail/",
-  },
-  {
-    value: "order",
-    label: "Order",
-    icon: FaShoppingCart,
-    path: "/transactions/order/detail/",
-  },
-  {
-    value: "invoice",
-    label: "Invoice",
-    icon: FaFileInvoiceDollar,
-    path: "/transactions/invoice/detail/",
-  },
-] as const;
-
-interface CreateTransactionDropdownProps {
-  customerId?: number | null;
-  customerName?: string;
-  priceLevel?: string | null;
-  attention?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  terms?: string | null;
-  termsId?: number | null;
-  contactId?: number | null;
-  addressFull?: string | null;
-  ensureWindow: (
-    path: string,
-    title: string,
-    opts?: { maximized?: boolean },
-  ) => void;
-}
-
-function CreateTransactionDropdown({
-  customerId,
-  customerName,
-  priceLevel,
-  attention,
-  phone,
-  email,
-  terms,
-  termsId,
-  contactId,
-  addressFull,
-  ensureWindow,
-}: CreateTransactionDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  const handleSelect = (opt: (typeof TRANSACTION_OPTIONS)[number]) => {
-    setOpen(false);
-    const qs = new URLSearchParams();
-    if (customerId) qs.set("customer_id", String(customerId));
-    if (customerName) qs.set("customer_name", customerName);
-    if (priceLevel) qs.set("price_level", priceLevel);
-    if (attention) qs.set("attention", attention);
-    if (phone) qs.set("phone", phone);
-    if (email) qs.set("email", email);
-    if (terms) qs.set("terms", terms);
-    if (termsId) qs.set("terms_id", String(termsId));
-    if (contactId) qs.set("contact_id", String(contactId));
-    if (addressFull) qs.set("address_full", addressFull);
-    const query = qs.toString();
-    const path = `${opt.path}${query ? `?${query}` : ""}`;
-    ensureWindow(path, `New ${opt.label}`, { maximized: false });
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-        title="Create transaction for this customer"
-      >
-        <FaPlus size={10} />
-        Create
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 py-1">
-          {TRANSACTION_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => handleSelect(opt)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-              >
-                <Icon size={14} className="text-slate-400" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -301,10 +176,9 @@ function HorizontalField({
     <div className="flex items-center gap-1.5 py-1">
       <Label
         htmlFor={htmlFor}
-        className="w-18 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-400"
+        className="w-25 shrink-0 text-left text-xs font-medium text-slate-600 dark:text-slate-400"
       >
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {label} :{required && <span className="text-red-500 ml-0.5">*</span>}
       </Label>
       <div className="flex-1 min-w-0">
         {children}
@@ -337,14 +211,6 @@ function SingleWindowSection({
   );
 }
 
-// Column layout options
-const COLUMN_OPTIONS = [
-  { value: 2, label: "2 Columns" },
-  { value: 3, label: "3 Columns" },
-];
-
-const STORAGE_KEY = "customerDetail_columnCount";
-const TAB_STORAGE_KEY = "customerDetail_activeTab";
 const VALID_TABS = [
   "actions",
   "comments",
@@ -423,7 +289,8 @@ export default function CustomerDetail({
   // Fetch data when in view/edit mode and no dataProp provided
   useEffect(() => {
     if (dataProp) return; // Skip if data provided via props
-    if (routeMode === "add") return; // No fetch needed for add mode
+    // Respect explicit modeProp (inline add) as well as route-derived mode
+    if (modeProp === "add" || routeMode === "add") return; // No fetch needed for add mode
     if (!Number.isFinite(customerId)) return;
 
     setLoading(true);
@@ -437,7 +304,7 @@ export default function CustomerDetail({
         setError(err?.message || "Failed to load customer.");
       })
       .finally(() => setLoading(false));
-  }, [customerId, dataProp, routeMode]);
+  }, [customerId, dataProp, routeMode, modeProp]);
 
   /**
    * FK-based contact fetching:
@@ -496,7 +363,8 @@ export default function CustomerDetail({
 
   // Trigger FK contact fetch when customer id or refresh trigger changes
   useEffect(() => {
-    if (routeMode === "add") return;
+    // Skip when explicitly creating a new customer inline (modeProp) or via route
+    if (modeProp === "add" || routeMode === "add") return;
     if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
       console.log(
         "[CustomerDetail] FK fetch skipped – resolvedCustomerId:",
@@ -507,7 +375,13 @@ export default function CustomerDetail({
       return;
     }
     fetchFkContacts(resolvedCustomerId);
-  }, [resolvedCustomerId, routeMode, fetchFkContacts, fkRefreshTrigger]);
+  }, [
+    resolvedCustomerId,
+    routeMode,
+    fetchFkContacts,
+    fkRefreshTrigger,
+    modeProp,
+  ]);
 
   // Window management - only when NOT rendered inline
   // Use a stable path derived from customer data rather than location.pathname
@@ -531,59 +405,70 @@ export default function CustomerDetail({
     ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
   }, [inline, dataProp, fetchedRecord, ensureWindow, customerId, routeMode]);
 
-  // List navigation (prev/next)
-  const listOrder = useMemo(() => {
+  // ---------------------------------------------------------------------------
+  // Nav Arrows (prev/next from list order)
+  // ---------------------------------------------------------------------------
+  const listOrder: number[] = useMemo(() => {
     try {
       const raw = localStorage.getItem("customer-list-order");
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return raw ? JSON.parse(raw) : [];
     } catch {
-      return [] as number[];
+      return [];
     }
-  }, [customerId]);
+  }, []);
 
-  const currentIndex = useMemo(
-    () => listOrder.indexOf(customerId),
-    [listOrder, customerId],
-  );
+  const currentIndex = resolvedCustomerId
+    ? listOrder.indexOf(resolvedCustomerId)
+    : -1;
   const prevId = currentIndex > 0 ? listOrder[currentIndex - 1] : null;
   const nextId =
     currentIndex >= 0 && currentIndex < listOrder.length - 1
       ? listOrder[currentIndex + 1]
       : null;
 
-  // Navigation handlers
-  const handleClose = useCallback(() => {
-    closeWindow(location.pathname);
-  }, [closeWindow, location.pathname]);
-
   const openRecord = useCallback(
-    (targetId: number, targetMode: "view" | "edit") => {
-      if (inline) return; // Don't open windows when inline
-      const basePath =
-        targetMode === "edit"
-          ? PageRoutes.customerEdit
-          : PageRoutes.customerDetail;
-      const path = `${basePath}/${targetId}`;
-      const prefix = targetMode === "edit" ? "Edit " : "";
-      ensureWindow(path, `${prefix}Customer ${targetId}`, { maximized: false });
-      activateWindow(path);
-      closeWindow(location.pathname);
+    (id: number) => {
+      ensureWindow(`/org/customer/detail/${id}`, `Customer #${id}`, {
+        maximized: false,
+      });
     },
-    [inline, activateWindow, closeWindow, ensureWindow, location.pathname],
+    [ensureWindow],
   );
 
-  const handlePrev = useMemo(() => {
-    if (onPrevProp) return onPrevProp;
-    if (!prevId) return undefined;
-    return () => openRecord(prevId, routeMode === "edit" ? "edit" : "view");
-  }, [onPrevProp, prevId, openRecord, routeMode]);
+  // Navigation handlers
+  const handleClose = useCallback(() => {
+    if (onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    // Use stable path for closing window
+    const record = dataProp || fetchedRecord;
+    const custId = record?.id ?? customerId;
+    const stablePath =
+      routeMode === "add"
+        ? "/org/customer/add"
+        : `/org/customer/detail/${custId}`;
+    closeWindow(stablePath);
+  }, [
+    onCancelInline,
+    closeWindow,
+    dataProp,
+    fetchedRecord,
+    customerId,
+    routeMode,
+  ]);
 
-  const handleNext = useMemo(() => {
-    if (onNextProp) return onNextProp;
-    if (!nextId) return undefined;
-    return () => openRecord(nextId, routeMode === "edit" ? "edit" : "view");
-  }, [onNextProp, nextId, openRecord, routeMode]);
+  // Removed duplicate openRecord. Using the new openRecord handler below.
+
+  // Prev/Next nav handlers
+  const handlePrev = useMemo(
+    () => (prevId ? () => openRecord(prevId) : undefined),
+    [prevId, openRecord],
+  );
+  const handleNext = useMemo(
+    () => (nextId ? () => openRecord(nextId) : undefined),
+    [nextId, openRecord],
+  );
 
   const handleEditClick = useCallback(() => {
     if (onEditProp) {
@@ -1082,30 +967,12 @@ export default function CustomerDetail({
 
   // Action buttons configuration based on mode
   const getActionButtons = () => {
-    const buttons = [];
+    const buttons: React.ReactNode[] = [];
 
-    if (baseMode === "view" && !isEditing) {
-      // View mode - Create Transaction dropdown
-      buttons.push(
-        <CreateTransactionDropdown
-          key="create-txn"
-          customerId={data?.id}
-          customerName={data?.display_name || data?.name}
-          priceLevel={data?.price_level}
-          attention={data?.attention}
-          phone={data?.phone}
-          email={data?.email}
-          terms={data?.terms}
-          termsId={data?.terms_id}
-          contactId={data?.contact_id}
-          addressFull={data?.address_full}
-          ensureWindow={ensureWindow}
-        />,
-      );
-      // Edit button to switch to edit mode
+    if (mode === "view") {
       buttons.push(
         <button
-          key="edit-local"
+          key="edit"
           type="button"
           onClick={() => setIsEditing(true)}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -1115,78 +982,62 @@ export default function CustomerDetail({
           Edit
         </button>,
       );
-      if (onCancel) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancel}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
-      if (onEdit) {
-        buttons.push(
-          <button
-            key="edit"
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-            title="Edit Customer"
-          >
-            <FaEdit size={14} />
-            Edit
-          </button>,
-        );
-      }
-      if (onDelete) {
-        buttons.push(
-          <button
-            key="delete"
-            type="button"
-            onClick={onDelete}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-            title="Delete Customer"
-          >
-            <FaTrash size={14} />
-            Delete
-          </button>,
-        );
-      }
-    } else {
-      // Add/Edit mode — no Create Contact here (use ContactPanel's "+Add" instead)
     }
 
-    // Navigation buttons (always available if callbacks provided)
-    if (onPrev) {
+    // Prev/Next nav arrows
+    if (prevId) {
       buttons.push(
         <button
           key="prev"
           type="button"
-          onClick={onPrev}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-          title="Previous"
+          onClick={() => openRecord(prevId)}
+          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title={`Previous (#${prevId})`}
         >
           <FaChevronLeft size={14} />
-          Prev
         </button>,
       );
     }
-
-    if (onNext) {
+    if (nextId) {
       buttons.push(
         <button
           key="next"
           type="button"
-          onClick={onNext}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-          title="Next"
+          onClick={() => openRecord(nextId)}
+          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title={`Next (#${nextId})`}
         >
-          Next
           <FaChevronRight size={14} />
+        </button>,
+      );
+    }
+
+    // Delete button (right side, before close)
+    if (mode === "view" && data?.id && onDelete) {
+      buttons.push(
+        <button
+          key="delete"
+          type="button"
+          onClick={onDelete}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete customer"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close button (right side)
+    if (onCancel) {
+      buttons.push(
+        <button
+          key="close"
+          type="button"
+          onClick={onCancel}
+          className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Close"
+        >
+          <FaTimes size={14} />
         </button>,
       );
     }
@@ -1276,8 +1127,9 @@ export default function CustomerDetail({
     );
   }
 
-  // For view/edit modes, wait for data before rendering
-  if (routeMode !== "add" && !data && !dataProp) {
+  // For view/edit modes, wait for data before rendering. Use resolved `mode`
+  // (which respects `modeProp`) so inline add mode doesn't block rendering.
+  if (mode !== "add" && !data && !dataProp) {
     return <RippleLoader />;
   }
 
@@ -1383,6 +1235,21 @@ export default function CustomerDetail({
               />
             </HorizontalField>
 
+            <HorizontalField label="org_type" htmlFor="org_type">
+              <Controller
+                name="org_type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={ORG_TYPE_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="org_type"
+                  />
+                )}
+              />
+            </HorizontalField>
+
             <HorizontalField label="email" htmlFor="email">
               <Input
                 type="email"
@@ -1456,24 +1323,9 @@ export default function CustomerDetail({
                 render={({ field }) => (
                   <Select
                     options={STATUS_OPTIONS}
-                    value={field.value}
+                    value={field.value ?? ""}
                     onChange={field.onChange}
                     placeholder="status"
-                  />
-                )}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="org_type" htmlFor="org_type">
-              <Controller
-                name="org_type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={ORG_TYPE_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="org_type"
                   />
                 )}
               />
@@ -1508,349 +1360,353 @@ export default function CustomerDetail({
       </div>
 
       {/* Scrollable content: detail panels · transactions · items */}
-      <div className="flex-1 overflow-y-auto">
-        {/* ── DetailTabs ────────────────────────────────────────── */}
-        <div>
-          <DetailTabs
-            entityType="customer"
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            standardTabs={["actions", "comments", "documents", "raw"]}
-            additionalTabs={additionalTabs}
-            badges={tabBadges}
-            showColumnSelector={true}
-            columnCount={columnCount}
-            onColumnCountChange={handleColumnChange}
-          />
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="p-4">
-              {/* Standard Tabs - Comments */}
-              {activeTab === "comments" && (
-                <CommentsPanel
-                  entityType="customer"
-                  entityId={data?.id || 0}
-                  comments={data?.comments}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(comments) => {
-                    // Update local state - in a real app this would update the form
-                    console.log("Comments updated:", comments);
-                  }}
-                  currentUser={
-                    currentUser?.display_name || currentUser?.username
-                  }
-                  currentUserId={currentUser?.id}
-                />
-              )}
+      {mode !== "add" ? (
+        <div className="flex-1 overflow-y-auto">
+          {/* ── DetailTabs ────────────────────────────────────────── */}
+          <div>
+            <DetailTabs
+              entityType="customer"
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              standardTabs={["actions", "comments", "documents", "raw"]}
+              additionalTabs={additionalTabs}
+              badges={tabBadges}
+              showColumnSelector={true}
+              columnCount={columnCount}
+              onColumnCountChange={handleColumnChange}
+            />
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="p-4">
+                {/* Standard Tabs - Comments */}
+                {activeTab === "comments" && (
+                  <CommentsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    comments={data?.comments}
+                    isEditing={mode !== "view" || isEditing}
+                    onChange={(comments) => {
+                      // Update local state - in a real app this would update the form
+                      console.log("Comments updated:", comments);
+                    }}
+                    currentUser={currentUser?.username}
+                    currentUserId={currentUser?.id}
+                  />
+                )}
 
-              {/* Standard Tabs - Actions */}
-              {activeTab === "actions" && (
-                <ActionsPanel
-                  entityType="customer"
-                  entityId={data?.id || 0}
-                  data={data?.actions?.items}
-                  actionIds={data?.actions?.ids}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(actions) => {
-                    console.log("Actions updated:", actions);
-                  }}
-                />
-              )}
+                {/* Standard Tabs - Actions */}
+                {activeTab === "actions" && (
+                  <ActionsPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data?.actions?.items}
+                    actionIds={data?.actions?.ids}
+                    isEditing={mode !== "view" || isEditing}
+                    onChange={(actions) => {
+                      console.log("Actions updated:", actions);
+                    }}
+                  />
+                )}
 
-              {/* Standard Tabs - Documents */}
-              {activeTab === "documents" && (
-                <DocumentsPanel
-                  parent_model="customer"
-                  parentId={data?.id || 0}
-                  data={data?.refs?.links?.document}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(docs) => {
-                    console.log("Documents updated:", docs);
-                  }}
-                />
-              )}
+                {/* Standard Tabs - Documents */}
+                {activeTab === "documents" && (
+                  <DocumentsPanel
+                    parent_model="customer"
+                    parentId={data?.id || 0}
+                    data={data?.refs?.links?.document}
+                    isEditing={mode !== "view" || isEditing}
+                    onChange={(docs) => {
+                      console.log("Documents updated:", docs);
+                    }}
+                  />
+                )}
 
-              {/* Q&A tab */}
-              {activeTab === "qa" && (
-                <QAPanel
-                  parent_model="customer"
-                  parentId={data?.id || 0}
-                  data={data?.qa}
-                />
-              )}
+                {/* Q&A tab */}
+                {activeTab === "qa" && (
+                  <QAPanel
+                    parent_model="customer"
+                    parentId={data?.id || 0}
+                    data={data?.qa}
+                  />
+                )}
 
-              {/* Standard Tabs - Raw (Admin) */}
-              {activeTab === "raw" && (
-                <RawDataPanel
-                  entityType="customer"
-                  entityId={data?.id || 0}
-                  data={data}
-                />
-              )}
+                {/* Standard Tabs - Raw (Admin) */}
+                {activeTab === "raw" && (
+                  <RawDataPanel
+                    entityType="customer"
+                    entityId={data?.id || 0}
+                    data={data}
+                  />
+                )}
 
-              {/* Model-Specific Tabs */}
-              {mode === "view" ? (
-                <>
-                  {/* Contacts tab – ContactPanel (same as transactions) */}
-                  {activeTab === "contacts" && (
-                    <ContactPanel
-                      contacts={fkContacts}
-                      isEditing={false}
-                      loading={fkContactsLoading}
-                      allowCreate={true}
-                      parent_model="customer"
-                      parentId={customerData.id}
-                      customer_id={customerData.id}
-                      customer_name={customerData.display_name}
-                      primaryContactId={data?.contact_id}
-                      onSetPrimary={handleSetPrimary}
-                      onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                      onSaveSuccess={() => {
-                        // Bump the trigger to re-fetch FK contacts
-                        setFkRefreshTrigger((n) => n + 1);
-                        // Also refresh the parent record
-                        if (customerData.id) {
-                          getRecord("customer", customerData.id)
-                            .then((res: any) => {
-                              const rec = res?.record ?? res;
-                              if (rec) {
-                                setFetchedRecord(rec);
-                                Object.keys(rec).forEach((key) => {
-                                  if (key in JSON_DEFAULTS) {
-                                    setValue(
-                                      key as keyof CustomerFormValues,
-                                      JSON.stringify(
-                                        rec[key] ?? JSON_DEFAULTS[key],
-                                        null,
-                                        2,
-                                      ),
-                                    );
-                                  } else {
-                                    setValue(
-                                      key as keyof CustomerFormValues,
-                                      rec[key],
-                                    );
-                                  }
-                                });
-                              }
-                            })
-                            .catch(() => {});
-                        }
-                      }}
-                    />
-                  )}
+                {/* Model-Specific Tabs */}
+                {mode === "view" ? (
+                  <>
+                    {/* Contacts tab – ContactPanel (same as transactions) */}
+                    {activeTab === "contacts" && (
+                      <ContactPanel
+                        contacts={fkContacts}
+                        isEditing={false}
+                        loading={fkContactsLoading}
+                        allowCreate={true}
+                        parent_model="customer"
+                        parentId={customerData.id}
+                        customer_id={customerData.id}
+                        customer_name={customerData.display_name}
+                        primaryContactId={data?.contact_id}
+                        onSetPrimary={handleSetPrimary}
+                        onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
+                        onSaveSuccess={() => {
+                          // Bump the trigger to re-fetch FK contacts
+                          setFkRefreshTrigger((n) => n + 1);
+                          // Also refresh the parent record
+                          if (customerData.id) {
+                            getRecord("customer", customerData.id)
+                              .then((res: any) => {
+                                const rec = res?.record ?? res;
+                                if (rec) {
+                                  setFetchedRecord(rec);
+                                  Object.keys(rec).forEach((key) => {
+                                    if (key in JSON_DEFAULTS) {
+                                      setValue(
+                                        key as keyof CustomerFormValues,
+                                        JSON.stringify(
+                                          rec[key] ?? JSON_DEFAULTS[key],
+                                          null,
+                                          2,
+                                        ),
+                                      );
+                                    } else {
+                                      setValue(
+                                        key as keyof CustomerFormValues,
+                                        rec[key],
+                                      );
+                                    }
+                                  });
+                                }
+                              })
+                              .catch(() => {});
+                          }
+                        }}
+                      />
+                    )}
 
-                  {/* Financial tab */}
-                  {activeTab === "financial" && (
-                    <OrgFinancialsPanel
-                      financial={customerData.financial}
-                      orgType="customer"
-                      currency="USD"
-                    />
-                  )}
-                </>
-              ) : (
-                /* Edit mode - JSON editors for model-specific tabs */
-                <div className="space-y-4">
-                  {/* Contacts tab in edit mode */}
-                  {activeTab === "contacts" && (
-                    <ContactPanel
-                      contacts={fkContacts}
-                      isEditing={true}
-                      loading={fkContactsLoading}
-                      parent_model="customer"
-                      parentId={customerData.id}
-                      customer_id={customerData.id}
-                      customer_name={customerData.display_name}
-                      primaryContactId={data?.contact_id}
-                      onSetPrimary={handleSetPrimary}
-                      onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                      onChange={(newContacts) => {
-                        const currentRefs = safeParseJson(
-                          formData.refs as unknown as string | undefined,
-                          { links: {} },
-                        );
-                        setValue(
-                          "refs" as keyof CustomerFormValues,
-                          JSON.stringify(
-                            {
-                              ...currentRefs,
-                              links: {
-                                ...currentRefs.links,
-                                contact: newContacts,
-                              },
-                            },
-                            null,
-                            2,
-                          ) as any,
-                          { shouldDirty: true },
-                        );
-                      }}
-                      onSaveSuccess={() => {
-                        setFkRefreshTrigger((n) => n + 1);
-                        if (customerData.id) {
-                          getRecord("customer", customerData.id)
-                            .then((res: any) => {
-                              const rec = res?.record ?? res;
-                              if (rec) {
-                                setFetchedRecord(rec);
-                                Object.keys(rec).forEach((key) => {
-                                  if (key in JSON_DEFAULTS) {
-                                    setValue(
-                                      key as keyof CustomerFormValues,
-                                      JSON.stringify(
-                                        rec[key] ?? JSON_DEFAULTS[key],
-                                        null,
-                                        2,
-                                      ),
-                                    );
-                                  } else {
-                                    setValue(
-                                      key as keyof CustomerFormValues,
-                                      rec[key],
-                                    );
-                                  }
-                                });
-                              }
-                            })
-                            .catch(() => {});
-                        }
-                      }}
-                    />
-                  )}
-
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    <SingleWindowSection title="Financial">
-                      <JsonFieldEditor
-                        label="financial"
-                        value={safeParseJson(
-                          formData.financial as unknown as string | undefined,
-                          JSON_DEFAULTS.financial,
-                        )}
-                        readonly={false}
-                        defaultExpanded
-                        maxHeight="300px"
-                        onChange={(val) => {
+                    {/* Financial tab */}
+                    {activeTab === "financial" && (
+                      <OrgFinancialsPanel
+                        financial={customerData.financial}
+                        orgType="customer"
+                        currency="USD"
+                      />
+                    )}
+                  </>
+                ) : (
+                  /* Edit mode - JSON editors for model-specific tabs */
+                  <div className="space-y-4">
+                    {/* Contacts tab in edit mode */}
+                    {activeTab === "contacts" && (
+                      <ContactPanel
+                        contacts={fkContacts}
+                        isEditing={true}
+                        loading={fkContactsLoading}
+                        parent_model="customer"
+                        parentId={customerData.id}
+                        customer_id={customerData.id}
+                        customer_name={customerData.display_name}
+                        primaryContactId={data?.contact_id}
+                        onSetPrimary={handleSetPrimary}
+                        onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
+                        onChange={(newContacts) => {
+                          const currentRefs = safeParseJson(
+                            formData.refs as unknown as string | undefined,
+                            { links: {} },
+                          );
                           setValue(
-                            "financial",
+                            "refs" as keyof CustomerFormValues,
                             JSON.stringify(
-                              val ?? JSON_DEFAULTS.financial,
+                              {
+                                ...currentRefs,
+                                links: {
+                                  ...currentRefs.links,
+                                  contact: newContacts,
+                                },
+                              },
                               null,
                               2,
                             ) as any,
-                            { shouldDirty: true, shouldValidate: true },
+                            { shouldDirty: true },
                           );
                         }}
-                      />
-                    </SingleWindowSection>
-
-                    <SingleWindowSection title="References">
-                      <RefsPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        data={data?.refs}
-                      />
-                    </SingleWindowSection>
-                  </div>
-
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    <SingleWindowSection title="Comments">
-                      <CommentsPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        comments={data?.comments}
-                        isEditing={true}
-                        onChange={(comments) => {
-                          console.log("Comments updated:", comments);
-                        }}
-                        currentUser={
-                          currentUser?.display_name || currentUser?.username
-                        }
-                        currentUserId={currentUser?.id}
-                      />
-                    </SingleWindowSection>
-
-                    <SingleWindowSection title="Actions">
-                      <ActionsPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        data={data?.actions?.items}
-                        actionIds={data?.actions?.ids}
-                        isEditing={true}
-                        onChange={(actions) => {
-                          console.log("Actions updated:", actions);
+                        onSaveSuccess={() => {
+                          setFkRefreshTrigger((n) => n + 1);
+                          if (customerData.id) {
+                            getRecord("customer", customerData.id)
+                              .then((res: any) => {
+                                const rec = res?.record ?? res;
+                                if (rec) {
+                                  setFetchedRecord(rec);
+                                  Object.keys(rec).forEach((key) => {
+                                    if (key in JSON_DEFAULTS) {
+                                      setValue(
+                                        key as keyof CustomerFormValues,
+                                        JSON.stringify(
+                                          rec[key] ?? JSON_DEFAULTS[key],
+                                          null,
+                                          2,
+                                        ),
+                                      );
+                                    } else {
+                                      setValue(
+                                        key as keyof CustomerFormValues,
+                                        rec[key],
+                                      );
+                                    }
+                                  });
+                                }
+                              })
+                              .catch(() => {});
+                          }
                         }}
                       />
-                    </SingleWindowSection>
-                  </div>
+                    )}
 
-                  <SingleWindowSection title="Documents">
-                    <DocumentsPanel
-                      parent_model="customer"
-                      parentId={data?.id || 0}
-                      data={data?.refs?.links?.document}
-                      isEditing={true}
-                      onChange={(docs) => {
-                        console.log("Documents updated:", docs);
-                      }}
-                    />
-                  </SingleWindowSection>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <SingleWindowSection title="Financial">
+                        <JsonFieldEditor
+                          label="financial"
+                          value={safeParseJson(
+                            formData.financial as unknown as string | undefined,
+                            JSON_DEFAULTS.financial,
+                          )}
+                          readonly={false}
+                          defaultExpanded
+                          maxHeight="300px"
+                          onChange={(val) => {
+                            setValue(
+                              "financial",
+                              JSON.stringify(
+                                val ?? JSON_DEFAULTS.financial,
+                                null,
+                                2,
+                              ) as any,
+                              { shouldDirty: true, shouldValidate: true },
+                            );
+                          }}
+                        />
+                      </SingleWindowSection>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    <SingleWindowSection title="Preferences">
-                      <PrefsPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        data={data?.prefs}
-                      />
-                    </SingleWindowSection>
+                      <SingleWindowSection title="References">
+                        <RefsPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          data={data?.refs}
+                        />
+                      </SingleWindowSection>
+                    </div>
 
-                    <SingleWindowSection title="Q&A">
-                      <QAPanel
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <SingleWindowSection title="Comments">
+                        <CommentsPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          comments={data?.comments}
+                          isEditing={true}
+                          onChange={(comments) => {
+                            console.log("Comments updated:", comments);
+                          }}
+                          currentUser={
+                            currentUser?.display_name || currentUser?.username
+                          }
+                          currentUserId={currentUser?.id}
+                        />
+                      </SingleWindowSection>
+
+                      <SingleWindowSection title="Actions">
+                        <ActionsPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          data={data?.actions?.items}
+                          actionIds={data?.actions?.ids}
+                          isEditing={true}
+                          onChange={(actions) => {
+                            console.log("Actions updated:", actions);
+                          }}
+                        />
+                      </SingleWindowSection>
+                    </div>
+
+                    <SingleWindowSection title="Documents">
+                      <DocumentsPanel
                         parent_model="customer"
                         parentId={data?.id || 0}
-                        data={data?.qa}
-                      />
-                    </SingleWindowSection>
-                  </div>
-
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    <SingleWindowSection title="Metadata">
-                      <MetadataPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        data={data?.metadata}
-                        isEditing={false}
+                        data={data?.refs?.links?.document}
+                        isEditing={true}
+                        onChange={(docs) => {
+                          console.log("Documents updated:", docs);
+                        }}
                       />
                     </SingleWindowSection>
 
-                    <SingleWindowSection title="Raw Data">
-                      <RawDataPanel
-                        entityType="customer"
-                        entityId={data?.id || 0}
-                        data={data}
-                      />
-                    </SingleWindowSection>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <SingleWindowSection title="Preferences">
+                        <PrefsPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          data={data?.prefs}
+                        />
+                      </SingleWindowSection>
+
+                      <SingleWindowSection title="Q&A">
+                        <QAPanel
+                          parent_model="customer"
+                          parentId={data?.id || 0}
+                          data={data?.qa}
+                        />
+                      </SingleWindowSection>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <SingleWindowSection title="Metadata">
+                        <MetadataPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          data={data?.metadata}
+                          isEditing={false}
+                        />
+                      </SingleWindowSection>
+
+                      <SingleWindowSection title="Raw Data">
+                        <RawDataPanel
+                          entityType="customer"
+                          entityId={data?.id || 0}
+                          data={data}
+                        />
+                      </SingleWindowSection>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* ── TransactionTabs ────────────────────────────────────── */}
+          {!!customerData.id && (
+            <div>
+              <TransactionTabs orgType="customer" orgId={customerData.id!} />
             </div>
-          </form>
+          )}
+
+          {/* ── ItemTabs ─────────────────────────────────────────── */}
+          {!!customerData.id && (
+            <div>
+              <ItemTabs orgType="customer" orgId={customerData.id!} />
+            </div>
+          )}
         </div>
-
-        {/* ── TransactionTabs ────────────────────────────────────── */}
-        {!!customerData.id && (
-          <div>
-            <TransactionTabs orgType="customer" orgId={customerData.id!} />
-          </div>
-        )}
-
-        {/* ── ItemTabs ─────────────────────────────────────────── */}
-        {!!customerData.id && (
-          <div>
-            <ItemTabs orgType="customer" orgId={customerData.id!} />
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="flex items-center justify-between py-2 gap-4">
+          <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+        </div>
+      )}
     </div>
   );
 }

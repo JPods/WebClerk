@@ -58,7 +58,7 @@ export default function ContactListMob({
             }}
           >
             {/* Accordion Content */}
-            <div className="flex flex-col min-h-[220px]">
+            <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
