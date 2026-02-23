@@ -90,9 +90,12 @@ const STANDARD_PURPOSES = [
 // Purpose badge colours
 const PURPOSE_COLORS: Record<string, string> = {
   billto: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  shipto: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  attention: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  approver: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  shipto:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  attention:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  approver:
+    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   buyer: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
 };
 
@@ -110,7 +113,9 @@ const extractEmail = (field: RefContact["email"]): string => {
   if (typeof field === "string") return field;
   if (Array.isArray(field) && field.length > 0) {
     const first = field[0];
-    return typeof first === "object" ? (first.value ?? first.name ?? "") : String(first);
+    return typeof first === "object"
+      ? first.value ?? first.name ?? ""
+      : String(first);
   }
   return "";
 };
@@ -121,7 +126,9 @@ const extractPhone = (field: RefContact["phone"]): string => {
   if (typeof field === "string") return field;
   if (Array.isArray(field) && field.length > 0) {
     const first = field[0];
-    return typeof first === "object" ? (first.value ?? first.name ?? "") : String(first);
+    return typeof first === "object"
+      ? first.value ?? first.name ?? ""
+      : String(first);
   }
   return "";
 };
@@ -144,7 +151,15 @@ const ContactRow: React.FC<{
   onEdit?: () => void;
   onOpen?: () => void;
   onSetPrimary?: () => void;
-}> = ({ contact, isEditing, isPrimary, onRemove, onEdit, onOpen, onSetPrimary }) => {
+}> = ({
+  contact,
+  isEditing,
+  isPrimary,
+  onRemove,
+  onEdit,
+  onOpen,
+  onSetPrimary,
+}) => {
   const [comms, setComms] = useState<ContactRowComms | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -190,13 +205,18 @@ const ContactRow: React.FC<{
 
   const email = inlineEmail || comms?.email || "";
   const phone = inlinePhone || comms?.phone || "";
-  const name = displayName !== `Contact #${contact.contact_id}` ? displayName : (comms?.name || displayName);
+  const name =
+    displayName !== `Contact #${contact.contact_id}`
+      ? displayName
+      : comms?.name || displayName;
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
       {/* Purpose badge */}
       <span
-        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center ${purposeBadge(contact.purpose)}`}
+        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center ${purposeBadge(
+          contact.purpose,
+        )}`}
       >
         {contact.purpose || "—"}
       </span>
@@ -321,6 +341,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   title = "Contacts",
   defaultCollapsed = false,
 }) => {
+  console.log("contacts", contacts);
   // Reserved for future edit/create modals
   // const effectiveParentModel = parent_model || (order_id ? "order" : undefined);
   // const effectiveParentId = parentId ?? order_id;
@@ -349,7 +370,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
 
   useEffect(() => {
     window.addEventListener("contact-saved", handleContactSaved);
-    return () => window.removeEventListener("contact-saved", handleContactSaved);
+    return () =>
+      window.removeEventListener("contact-saved", handleContactSaved);
   }, [handleContactSaved]);
 
   // Sort contacts: standard purposes first, then alphabetical
@@ -445,7 +467,10 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
               }}
               disabled={externalLoading}
             >
-              <FaSyncAlt size={10} className={externalLoading ? "animate-spin" : ""} />
+              <FaSyncAlt
+                size={10}
+                className={externalLoading ? "animate-spin" : ""}
+              />
             </button>
           )}
           {isCollapsed ? (
@@ -477,11 +502,16 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
                   key={`${contact.contact_id}-${contact.purpose}-${idx}`}
                   contact={contact}
                   isEditing={isEditing}
-                  isPrimary={!!primaryContactId && contact.contact_id === primaryContactId}
+                  isPrimary={
+                    !!primaryContactId &&
+                    contact.contact_id === primaryContactId
+                  }
                   onRemove={() => handleRemoveContact(contact.contact_id)}
                   onEdit={() => handleEditContact(contact)}
                   onOpen={() => handleOpen(contact)}
-                  onSetPrimary={onSetPrimary ? () => onSetPrimary(contact) : undefined}
+                  onSetPrimary={
+                    onSetPrimary ? () => onSetPrimary(contact) : undefined
+                  }
                 />
               ))}
             </div>
@@ -493,5 +523,3 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
 };
 
 export default ContactPanel;
-
-
