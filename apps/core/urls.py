@@ -6,6 +6,7 @@ from apps.core.token_views import RoleTokenObtainPairView
 from apps.core.views.save_view import SaveWcapiView, SaveWcapiViewWithModel
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import WCAPIGetView, WCAPIGetViewWithModel, WCAPIDeleteView, ModelNameListView, ModelDetailView
+from apps.core.views.manage_view import ManageWcapiView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
@@ -32,6 +33,7 @@ urlpatterns = [
     path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
     path("wcapi/<str:model_name>/save/", SaveWcapiViewWithModel.as_view(), name="wcapi-model-save"),
     path("wcapi/delete/", WCAPIDeleteView.as_view(), name="wcapi-delete"),
+    path("wcapi/manage/", ManageWcapiView.as_view(), name="wcapi-manage"),
     path("wcapi/model_name/list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
