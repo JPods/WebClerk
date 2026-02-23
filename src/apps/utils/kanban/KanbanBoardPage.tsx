@@ -12,7 +12,7 @@ import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
-import { getRecords } from "../../../api/wcapi";
+import { getRecords, manageAction } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
@@ -1071,13 +1071,47 @@ const KanbanBoardPage: React.FC = () => {
   const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Track if any modal is open to pause auto-refresh
-  const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen;
+  const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen || isGenerateOpen;
 
   const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
   const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  // Generate Projects dialog state
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [generateCount, setGenerateCount] = useState(4);
+  const [generateStartDate, setGenerateStartDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [generateInterval, setGenerateInterval] = useState(7);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateResult, setGenerateResult] = useState<string | null>(null);
+
+  const handleGenerateProjects = useCallback(async () => {
+    setIsGenerating(true);
+    setGenerateResult(null);
+    try {
+      const result = await manageAction("generate_kanban_projects", {
+        count: generateCount,
+        start_date: generateStartDate,
+        interval_days: generateInterval,
+      });
+      setGenerateResult(`Created ${result.created} project(s)`);
+      // Close modal after a brief success flash, then let normal refresh cycle pick up new projects
+      setTimeout(() => {
+        setIsGenerateOpen(false);
+        setGenerateResult(null);
+      }, 1500);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to generate projects";
+      setGenerateResult(`Error: ${msg}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generateCount, generateStartDate, generateInterval]);
   const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
   const [isTrashDeleting, setIsTrashDeleting] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
@@ -2308,6 +2342,16 @@ const KanbanBoardPage: React.FC = () => {
             </select>
           </label>
           <button
+            onClick={() => setIsGenerateOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+            title="Generate kanban project records"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Gen Projects
+          </button>
+          <button
             onClick={handleOpenCreateModal}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
           >
@@ -2490,6 +2534,83 @@ const KanbanBoardPage: React.FC = () => {
         currentContacts={selectedProject?.contacts ?? []}
         onContactsUpdated={handleContactsUpdated}
       />
+
+      {/* Generate Kanban Projects Modal */}
+      {isGenerateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              Generate Kanban Projects
+            </h3>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Number of projects</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={generateCount}
+                  onChange={(e) => setGenerateCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</span>
+                <input
+                  type="date"
+                  value={generateStartDate}
+                  onChange={(e) => setGenerateStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Interval (days)</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={generateInterval}
+                  onChange={(e) => setGenerateInterval(Math.max(1, Number(e.target.value)))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </label>
+              <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                Will create <strong>{generateCount}</strong> project(s) named{" "}
+                <code className="text-indigo-600 dark:text-indigo-400">kanban-YYYY-MM-DD</code>,
+                starting <strong>{generateStartDate}</strong>, every <strong>{generateInterval}</strong> day(s).
+              </div>
+              {generateResult && (
+                <div className={clsx(
+                  "rounded-lg p-3 text-sm font-medium",
+                  generateResult.startsWith("Error")
+                    ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                    : "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+                )}>
+                  {generateResult}
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setIsGenerateOpen(false); setGenerateResult(null); }}
+                disabled={isGenerating}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleGenerateProjects()}
+                disabled={isGenerating || !generateStartDate}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGenerating ? "Generating..." : "Generate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -476,6 +476,25 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
 }
 
 /**
+ * Call the /wcapi/manage/ endpoint to run an administrative action.
+ *
+ * @param action  - The action name (e.g. "generate_kanban_projects")
+ * @param params  - Action-specific parameters
+ */
+export async function manageAction(action: string, params: Record<string, any> = {}) {
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/manage/", { action, params });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/manage/", { action, params });
+      return res2.data.data;
+    }
+    throw err;
+  }
+}
+
+/**
  * Log a FK ↔ refs.links mismatch to the backend audit log.
  * Fire-and-forget — errors are logged but never thrown.
  */
