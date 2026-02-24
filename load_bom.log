@@ -1,0 +1,34 @@
+2026-02-24 15:17:27,887 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-24 15:17:27,887 - INFO -   LOAD BOM STARTED: 2026-02-24 15:17:27
+2026-02-24 15:17:27,887 - INFO -   Source: /Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/inventory/bom_children.json
+2026-02-24 15:17:27,887 - INFO -   Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/load_bom.log
+2026-02-24 15:17:27,887 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-24 15:17:27,887 - INFO - 
+2026-02-24 15:17:27,888 - INFO -   Loaded 20 records from JSON
+2026-02-24 15:17:27,888 - INFO -   Building item lookup by SKU...
+2026-02-24 15:17:32,128 - INFO -   Found 116 items with SKUs
+2026-02-24 15:17:33,442 - WARNING -   Error BB404->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:34,741 - WARNING -   Error BB404->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:36,068 - WARNING -   Error BB404->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:37,363 - WARNING -   Error BB110->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:38,684 - WARNING -   Error BB404->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:39,985 - WARNING -   Error BB401->BB1: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:41,318 - WARNING -   Error BB401->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:42,616 - WARNING -   Error BB401->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:43,927 - WARNING -   Error BB401->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:45,225 - WARNING -   Error BB401->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:46,549 - WARNING -   Error BB401->BB100: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:47,846 - WARNING -   Error BB401->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:49,170 - WARNING -   Error BB401_2->BB1: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:50,469 - WARNING -   Error BB401_2->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:51,792 - WARNING -   Error BB401_2->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:53,089 - WARNING -   Error BB401_2->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:54,413 - WARNING -   Error BB401_2->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:55,711 - WARNING -   Error BB401_2->BB100: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:57,035 - WARNING -   Error BB401_2->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:58,335 - WARNING -   Error BB401->BB405: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
+2026-02-24 15:17:58,335 - INFO - 
+2026-02-24 15:17:58,335 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-24 15:17:58,335 - INFO -   COMPLETE: Created 0, Updated 0, Errors 20
+2026-02-24 15:17:58,335 - INFO -   Duration: 30.4s
+2026-02-24 15:17:58,335 - INFO - ═════════════════════════════════════════════════════════════════
