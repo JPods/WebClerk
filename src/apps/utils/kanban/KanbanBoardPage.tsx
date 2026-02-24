@@ -1070,6 +1070,9 @@ const KanbanBoardPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Generate Projects dialog state
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+
   // Track if any modal is open to pause auto-refresh
   const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen || isGenerateOpen;
 
@@ -1078,9 +1081,6 @@ const KanbanBoardPage: React.FC = () => {
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-
-  // Generate Projects dialog state
-  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [generateCount, setGenerateCount] = useState(4);
   const [generateStartDate, setGenerateStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 1);
