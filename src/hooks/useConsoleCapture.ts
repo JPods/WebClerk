@@ -38,7 +38,7 @@ function formatError(
   type: CapturedError["type"],
   message: string,
   stack?: string,
-  source?: string
+  source?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`[${type.toUpperCase()}] ${message}`);
@@ -51,17 +51,20 @@ export function useConsoleCapture() {
   const [errors, setErrors] = useState<CapturedError[]>([]);
   const originalConsoleError = useRef<typeof console.error | null>(null);
 
-  const addError = useCallback((error: Omit<CapturedError, "id" | "timestamp">) => {
-    setErrors((prev) => {
-      const next: CapturedError = {
-        ...error,
-        id: makeId(),
-        timestamp: new Date(),
-      };
-      const updated = [next, ...prev];
-      return updated.slice(0, MAX_ERRORS);
-    });
-  }, []);
+  const addError = useCallback(
+    (error: Omit<CapturedError, "id" | "timestamp">) => {
+      setErrors((prev) => {
+        const next: CapturedError = {
+          ...error,
+          id: makeId(),
+          timestamp: new Date(),
+        };
+        const updated = [next, ...prev];
+        return updated.slice(0, MAX_ERRORS);
+      });
+    },
+    [],
+  );
 
   const clearErrors = useCallback(() => setErrors([]), []);
 
@@ -70,34 +73,69 @@ export function useConsoleCapture() {
   }, []);
 
   useEffect(() => {
-    // ── Intercept console.error ────────────────────────────────
-    originalConsoleError.current = console.error;
+    // Install a single global console.error wrapper and keep a list
+    // of subscriber callbacks (one per hook instance). This prevents
+    // multiple mounts from repeatedly wrapping console.error and
+    // causing infinite recursion.
+    const g = console as any;
 
-    console.error = (...args: unknown[]) => {
-      // Still call the original so DevTools F12 works
-      originalConsoleError.current?.apply(console, args);
+    g.__consoleCaptureSubscribers = g.__consoleCaptureSubscribers || [];
 
-      const message = args
-        .map((a) => {
-          if (a instanceof Error) return a.message;
-          if (typeof a === "string") return a;
+    // Register this hook's addError so the global wrapper can notify it.
+    g.__consoleCaptureSubscribers.push(addError);
+
+    // If wrapper isn't installed yet, capture original and install.
+    if (!g.__consoleCaptureWrapperInstalled) {
+      originalConsoleError.current = console.error;
+
+      const wrapper = (...args: unknown[]) => {
+        // Call the original so DevTools still shows the error.
+        try {
+          originalConsoleError.current?.apply(console, args);
+        } catch (e) {
+          // If calling original fails, still continue to notify subscribers.
+        }
+
+        const message = args
+          .map((a) => {
+            if (a instanceof Error) return a.message;
+            if (typeof a === "string") return a;
+            try {
+              return JSON.stringify(a, null, 2);
+            } catch {
+              return String(a);
+            }
+          })
+          .join(" ");
+
+        const errorArg = args.find((a) => a instanceof Error) as
+          | Error
+          | undefined;
+
+        const payload = {
+          type: "console",
+          message,
+          stack: errorArg?.stack,
+          raw: formatError("console", message, errorArg?.stack),
+        };
+
+        // Notify all subscribers (each useConsoleCapture instance)
+        const subs: Array<
+          (err: Omit<CapturedError, "id" | "timestamp">) => void
+        > = g.__consoleCaptureSubscribers || [];
+        for (const s of subs) {
           try {
-            return JSON.stringify(a, null, 2);
-          } catch {
-            return String(a);
+            s(payload);
+          } catch (e) {
+            // Subscriber errors should not break the loop
           }
-        })
-        .join(" ");
+        }
+      };
 
-      const errorArg = args.find((a) => a instanceof Error) as Error | undefined;
-
-      addError({
-        type: "console",
-        message,
-        stack: errorArg?.stack,
-        raw: formatError("console", message, errorArg?.stack),
-      });
-    };
+      g.__consoleCaptureWrapperInstalled = true;
+      g.__originalConsoleError = originalConsoleError.current;
+      console.error = wrapper;
+    }
 
     // ── Intercept window.onerror ───────────────────────────────
     const handleWindowError = (event: ErrorEvent) => {
@@ -135,10 +173,23 @@ export function useConsoleCapture() {
     window.addEventListener("unhandledrejection", handleRejection);
 
     return () => {
-      // Restore
-      if (originalConsoleError.current) {
-        console.error = originalConsoleError.current;
+      // Unregister subscriber
+      const subs: Array<any> =
+        (console as any).__consoleCaptureSubscribers || [];
+      const idx = subs.indexOf(addError as any);
+      if (idx !== -1) subs.splice(idx, 1);
+
+      // If no subscribers left, restore original console.error
+      if (!subs.length) {
+        const g2 = console as any;
+        if (g2.__originalConsoleError) {
+          console.error = g2.__originalConsoleError;
+        }
+        delete g2.__consoleCaptureSubscribers;
+        delete g2.__consoleCaptureWrapperInstalled;
+        delete g2.__originalConsoleError;
       }
+
       window.removeEventListener("error", handleWindowError);
       window.removeEventListener("unhandledrejection", handleRejection);
     };

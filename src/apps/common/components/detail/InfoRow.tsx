@@ -17,10 +17,7 @@ export interface InfoRowProps {
   isCurrency?: boolean;
 }
 
-export function formatDisplayValue(
-  val: unknown,
-  isCurrency = false,
-): string {
+export function formatDisplayValue(val: unknown, isCurrency = false): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") {
@@ -41,10 +38,8 @@ const InfoRow: React.FC<InfoRowProps> = ({
   highlight = false,
   isCurrency = false,
 }) => {
-  const displayVal =
-    typeof value === "string" || typeof value === "number" || value === null || value === undefined
-      ? formatDisplayValue(value, isCurrency)
-      : value;
+  const isElement = React.isValidElement(value);
+  const displayVal = isElement ? value : formatDisplayValue(value, isCurrency);
 
   return (
     <div className="flex items-baseline gap-2 py-1">
@@ -58,7 +53,7 @@ const InfoRow: React.FC<InfoRowProps> = ({
             : "text-gray-900 dark:text-white"
         }`}
       >
-        {typeof displayVal === "string" ? displayVal : displayVal ?? "—"}
+        {isElement ? displayVal : displayVal ?? "—"}
       </dd>
     </div>
   );
