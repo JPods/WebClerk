@@ -11,6 +11,8 @@ import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import ContactDetail from "./ContactDetail";
+import ContactDetail2 from "./ContactDetail2";
+import ContactDetail3 from "./ContactDetail3";
 import ContactListMob from "./ContactListMob";
 import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
@@ -39,6 +41,7 @@ const ContactList = () => {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null,
   );
+  const [detailVariant, setDetailVariant] = useState<1 | 2 | 3>(1);
   const [searchDatabase, setSearchDatabase] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
   // Helper to extract translated text
@@ -478,13 +481,51 @@ const ContactList = () => {
 
         {formMode && (
           <div className="lg:col-span-2">
-            <ContactDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedContact}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
+            {/* ── Detail variant selector badges ── */}
+            <div className="flex items-center gap-2 mb-2 px-1">
+              {([1, 2, 3] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setDetailVariant(v)}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    detailVariant === v
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                  }`}
+                >
+                  Detail{v > 1 ? ` ${v}` : ""}
+                </button>
+              ))}
+            </div>
+
+            {detailVariant === 1 && (
+              <ContactDetail
+                inline
+                modeProp={formMode}
+                dataProp={selectedContact}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
+            {detailVariant === 2 && (
+              <ContactDetail2
+                inline
+                modeProp={formMode}
+                dataProp={selectedContact}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
+            {detailVariant === 3 && (
+              <ContactDetail3
+                inline
+                modeProp={formMode}
+                dataProp={selectedContact}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
           </div>
         )}
       </div>
