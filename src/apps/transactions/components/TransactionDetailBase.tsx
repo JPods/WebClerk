@@ -26,6 +26,7 @@ import {
   FaQuestionCircle,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // Import API functions
 import {
@@ -1664,6 +1665,44 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           onAddItem={handleAddItem}
         />
       ) : null}
+      {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
+      {!isEditing && currentData && (
+        <div className="space-y-4 px-4 py-2">
+          <ScalarCard
+            title="Transaction Details"
+            fields={[
+              { label: "status", value: currentData.status },
+              { label: "priority", value: currentData.priority },
+              { label: "price_level", value: currentData.price_level },
+              { label: "terms", value: currentData.terms },
+              { label: "total", value: currentData.total, format: "currency" },
+              { label: "balance", value: currentData.balance, format: "currency" },
+              { label: "line_increment", value: currentData.line_increment },
+              { label: "customer_id", value: currentData.customer_id },
+              { label: "vendor_id", value: currentData.vendor_id },
+              { label: "manufacturer_id", value: currentData.manufacturer_id },
+              { label: "contact_id", value: currentData.contact_id },
+              { label: "parent_id", value: currentData.parent_id },
+              { label: "parent_model", value: currentData.parent_model },
+              { label: "attention", value: currentData.attention },
+              { label: "address_full", value: currentData.address_full },
+              { label: "email", value: currentData.email },
+              { label: "phone", value: currentData.phone },
+              { label: "conditions_id", value: currentData.conditions_id },
+              { label: "conditions_description", value: currentData.conditions_description },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Totals" fieldName="totals" data={currentData.totals as Record<string, unknown>} columns={3} />
+          <JsonCard title="Cost" fieldName="cost" data={currentData.cost as Record<string, unknown>} columns={2} />
+          <JsonCard title="Sell" fieldName="sell" data={currentData.sell as Record<string, unknown>} columns={2} />
+          <JsonCard title="Finance" fieldName="finance" data={currentData.finance as Record<string, unknown>} columns={2} />
+          <JsonCard title="Flow" fieldName="flow" data={currentData.flow as Record<string, unknown>} columns={2} />
+          <JsonCard title="Source" fieldName="source" data={currentData.source as Record<string, unknown>} columns={2} />
+          <JsonCard title="Actions" fieldName="actions" data={currentData.actions as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={currentData} />
+        </div>
+      )}
       {/* Tabs Navbar */}
       <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">

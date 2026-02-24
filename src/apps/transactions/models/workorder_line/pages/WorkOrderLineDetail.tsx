@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { workOrderLineSchema } from "../utils/workOrderLineSchema";
 import { WorkOrderLineAddProps } from "../types/workOrderLineType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 export default function WorkOrderLineDetail({
   modeProp,
@@ -123,6 +124,25 @@ export default function WorkOrderLineDetail({
         onCancel={handleCancel}
         onSave={handleSubmit(onSubmit)}
       />
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Line Details"
+            fields={[
+              { label: "line_number", value: data.line_number },
+              { label: "status", value: data.status },
+              { label: "price_level", value: data.price_level },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Item" fieldName="item" data={data.item as Record<string, unknown>} columns={2} />
+          <JsonCard title="Quantity" fieldName="quantity" data={data.quantity as Record<string, unknown>} columns={2} />
+          <JsonCard title="Cost" fieldName="cost" data={data.cost as Record<string, unknown>} columns={2} />
+          <JsonCard title="Tax" fieldName="tax" data={data.tax as Record<string, unknown>} columns={2} />
+          <JsonCard title="Physical" fieldName="physical" data={data.physical as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
+      )}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">

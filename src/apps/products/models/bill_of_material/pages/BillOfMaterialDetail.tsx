@@ -39,6 +39,7 @@ import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 interface BillOfMaterialDetailProps {
   inline?: boolean;
@@ -346,6 +347,36 @@ export default function BillOfMaterialDetail({
             </HorizontalField>
           </div>
         </ComponentCard>
+      )}
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="BOM Fields"
+            icon={<ClipboardList size={14} />}
+            fields={[
+              { label: "name", value: data.name },
+              { label: "product_id", value: data.product_id },
+              { label: "parent_id", value: data.parent_id },
+              { label: "child_id", value: data.child_id },
+              { label: "revision", value: data.revision },
+              { label: "quantity", value: data.quantity },
+              { label: "scrap_factor", value: data.scrap_factor },
+              { label: "yield_pct", value: data.yield_pct },
+              { label: "sequence", value: data.sequence },
+              { label: "is_alternate", value: data.is_alternate },
+              { label: "alternate_group", value: data.alternate_group },
+              { label: "is_optional", value: data.is_optional },
+              { label: "cost_snapshot", value: data.cost_snapshot, isCurrency: true },
+              { label: "dt_effective_from", value: data.dt_effective_from },
+              { label: "dt_effective_to", value: data.dt_effective_to },
+              { label: "change_reason", value: data.change_reason },
+              { label: "description", value: data.description },
+            ]}
+            columns={3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
       )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}

@@ -16,6 +16,7 @@ import OrgFinancialsPanel from './OrgFinancialsPanel';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
 import { QAPanel } from '@/apps/common/components/panels';
+import { ScalarCard, JsonCard, BaseModelCards } from '@/apps/common/components/detail';
 import TransactionTabs from '@/components/common/TransactionTabs';
 import ItemTabs from '@/components/common/ItemTabs';
 
@@ -1039,6 +1040,39 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
           onChange={handleChange}
           columnCount={2}
         />
+        {/* ── Scalar & JSONB cards (view mode) ──────────────── */}
+        {!editing && org && (
+          <div className="space-y-4 px-2 py-2">
+            <ScalarCard
+              title="Organization Details"
+              fields={[
+                { label: "display_name", value: org.display_name },
+                { label: "org_type", value: org.org_type },
+                { label: "email", value: (org as any).email },
+                { label: "email_id", value: (org as any).email_id },
+                { label: "attention", value: (org as any).attention },
+                { label: "phone", value: (org as any).phone },
+                { label: "phone_id", value: (org as any).phone_id },
+                { label: "address_full", value: (org as any).address_full },
+                { label: "address_id", value: (org as any).address_id },
+                { label: "domain", value: (org as any).domain },
+                { label: "domain_id", value: (org as any).domain_id },
+                { label: "price_level", value: (org as any).price_level },
+                { label: "terms", value: (org as any).terms },
+                { label: "status", value: org.status },
+                { label: "contact_id", value: (org as any).contact_id },
+              ]}
+              columns={2}
+            />
+            <JsonCard title="Financial" fieldName="financial" data={org.financial as Record<string, unknown>} columns={2} />
+            <JsonCard title="Connections" fieldName="connections" data={org.connections as Record<string, unknown>} columns={2} />
+            <JsonCard title="Data" fieldName="data" data={org.data as Record<string, unknown>} columns={2} />
+            <JsonCard title="Metrics" fieldName="metrics" data={org.metrics as Record<string, unknown>} columns={2} />
+            <JsonCard title="GL Accounts" fieldName="gl_accounts" data={org.gl_accounts as Record<string, unknown>} columns={2} />
+            <JsonCard title="Relations" fieldName="relations" data={org.relations as Record<string, unknown>} columns={2} />
+            <BaseModelCards data={org as any} />
+          </div>
+        )}
         <ComponentCard>
           {/* Tabs */}
           <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-700">
@@ -1101,6 +1135,39 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         onChange={handleChange}
         columnCount={3}
       />
+      {/* ── Scalar & JSONB cards (view mode) ──────────────── */}
+      {!editing && org && (
+        <div className="space-y-4 px-4 py-2">
+          <ScalarCard
+            title="Organization Details"
+            fields={[
+              { label: "display_name", value: org.display_name },
+              { label: "org_type", value: org.org_type },
+              { label: "email", value: (org as any).email },
+              { label: "email_id", value: (org as any).email_id },
+              { label: "attention", value: (org as any).attention },
+              { label: "phone", value: (org as any).phone },
+              { label: "phone_id", value: (org as any).phone_id },
+              { label: "address_full", value: (org as any).address_full },
+              { label: "address_id", value: (org as any).address_id },
+              { label: "domain", value: (org as any).domain },
+              { label: "domain_id", value: (org as any).domain_id },
+              { label: "price_level", value: (org as any).price_level },
+              { label: "terms", value: (org as any).terms },
+              { label: "status", value: org.status },
+              { label: "contact_id", value: (org as any).contact_id },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Financial" fieldName="financial" data={org.financial as Record<string, unknown>} columns={2} />
+          <JsonCard title="Connections" fieldName="connections" data={org.connections as Record<string, unknown>} columns={2} />
+          <JsonCard title="Data" fieldName="data" data={org.data as Record<string, unknown>} columns={2} />
+          <JsonCard title="Metrics" fieldName="metrics" data={org.metrics as Record<string, unknown>} columns={2} />
+          <JsonCard title="GL Accounts" fieldName="gl_accounts" data={org.gl_accounts as Record<string, unknown>} columns={2} />
+          <JsonCard title="Relations" fieldName="relations" data={org.relations as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={org as any} />
+        </div>
+      )}
       <ComponentCard>
         {/* Tabs */}
         <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700">

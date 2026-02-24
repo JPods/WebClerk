@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { connectionSchema } from "../utils/connectionSchema";
 import { ConnectionAddProps } from "../types/connectionType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
@@ -137,6 +138,31 @@ export default function ConnectionDetail({
         onCancel={handleCancel}
         onSave={handleSubmit(onSubmit)}
       />
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Connection Details"
+            fields={[
+              { label: "name", value: data.name },
+              { label: "type", value: data.type },
+              { label: "status", value: data.status },
+              { label: "action", value: data.action },
+              { label: "purpose", value: data.purpose },
+              { label: "comment", value: data.comment },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Config" fieldName="config" data={data.config as Record<string, unknown>} columns={2} />
+          <JsonCard title="Scripts" fieldName="scripts" data={data.scripts as Record<string, unknown>} columns={2} />
+          <JsonCard title="Relationships" fieldName="relationships" data={data.relationships as Record<string, unknown>} columns={2} />
+          <JsonCard title="Maps" fieldName="maps" data={data.maps as Record<string, unknown>} columns={2} />
+          <JsonCard title="Encryption" fieldName="encryption" data={data.encryption as Record<string, unknown>} columns={2} />
+          <JsonCard title="Rules" fieldName="rules" data={data.rules as Record<string, unknown>} columns={2} />
+          <JsonCard title="Conflicts" fieldName="conflicts" data={data.conflicts as Record<string, unknown>} columns={2} />
+          <JsonCard title="Changes" fieldName="changes" data={data.changes as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
+      )}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">

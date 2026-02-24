@@ -71,6 +71,7 @@ import {
   ActionsPanel,
 } from "@/apps/common/components/panels";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // ============================================================================
 // Types (matching Django Item model)
@@ -1428,6 +1429,32 @@ export default function ItemDetail({
         <ComponentCard>
           <ItemDataView data={data} isAdmin={isAdmin} />
         </ComponentCard>
+
+        {effectiveMode === "view" && data && (
+          <div className="mt-4 space-y-0">
+            <ScalarCard
+              title="Item Scalars"
+              icon={<FaBox size={14} />}
+              fields={[
+                { label: "name", value: data.name },
+                { label: "sku", value: data.sku },
+                { label: "qr_code", value: data.qr_code },
+                { label: "kind", value: data.kind },
+                { label: "uom", value: data.uom },
+                { label: "base_uom", value: data.base_uom },
+                { label: "specification_id", value: data.specification_id },
+                { label: "description", value: data.description },
+              ]}
+              columns={3}
+            />
+            <JsonCard title="Price" icon={<FaDollarSign size={14} />} fieldName="price" data={data.price} />
+            <JsonCard title="Cost" icon={<FaDollarSign size={14} />} fieldName="cost" data={data.cost} />
+            <JsonCard title="GLs" icon={<FaCalculator size={14} />} fieldName="gls" data={data.gls} />
+            <JsonCard title="Tax Code" icon={<FaFileInvoice size={14} />} fieldName="tax_code" data={data.tax_code} />
+            <JsonCard title="Catalog" icon={<FaListAlt size={14} />} fieldName="catalog" data={data.catalog} />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </div>
+        )}
 
         {/* Tab Navigation */}
         {data?.id && (

@@ -28,6 +28,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "itemXrefDetail_columnCount";
 
@@ -255,6 +256,23 @@ export default function ItemXrefDetail({
 
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Item Xref Fields"
+            icon={<Link2 size={14} />}
+            fields={[
+              { label: "item_id_1", value: data.item_id_1 },
+              { label: "item_id_2", value: data.item_id_2 },
+              { label: "relationship_type", value: data.relationship_type },
+              { label: "description", value: data.description },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />

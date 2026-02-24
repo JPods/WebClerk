@@ -15,6 +15,7 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { createGLJournal, updateGLJournal } from "../services/glJournalApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -293,6 +294,23 @@ export default function GLJournalDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="GL Journal Fields"
+            icon={<Calendar size={14} />}
+            fields={[
+              { label: "date", value: data.date },
+              { label: "type", value: data.type },
+              { label: "amount", value: data.amount, isCurrency: true },
+              { label: "description", value: data.description },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs

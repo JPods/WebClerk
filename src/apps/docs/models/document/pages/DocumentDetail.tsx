@@ -59,6 +59,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { documentSchema } from "../utils/documentSchema";
 import { DocumentAddProps } from "../types/documentType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "documentDetail_columnCount";
 
@@ -294,6 +295,34 @@ export default function DocumentDetail({
         onCancel={inline ? onCancelInline || handleCancel : handleCancel}
         onEdit={handleEdit}
       />
+
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Document Details"
+            fields={[
+              { label: "name", value: data.name },
+              { label: "slug", value: data.slug },
+              { label: "status", value: data.status },
+              { label: "model_name", value: data.model_name },
+              { label: "confidential", value: data.confidential },
+              { label: "mime_type", value: data.mime_type },
+              { label: "checksum", value: data.checksum },
+              { label: "size_bytes", value: data.size_bytes },
+              { label: "retention_period", value: data.retention_period },
+              { label: "sequence", value: data.sequence },
+              { label: "count_accessed", value: data.count_accessed },
+              { label: "description", value: data.description },
+              { label: "comment", value: data.comment },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Data" fieldName="data" data={data.data as Record<string, unknown>} columns={2} />
+          <JsonCard title="Copyright" fieldName="copyright" data={data.copyright as Record<string, unknown>} columns={2} />
+          <JsonCard title="Path" fieldName="path" data={data.path as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (

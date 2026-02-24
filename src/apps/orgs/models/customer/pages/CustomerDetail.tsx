@@ -28,6 +28,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
@@ -1290,6 +1291,40 @@ export default function CustomerDetail({
           </div>
         )}
       </div>
+
+      {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
+      {mode === "view" && data && (
+        <div className="space-y-4 px-4 py-2">
+          <ScalarCard
+            title="Organization Details"
+            fields={[
+              { label: "display_name", value: data.display_name },
+              { label: "org_type", value: data.org_type },
+              { label: "email", value: data.email },
+              { label: "email_id", value: data.email_id },
+              { label: "attention", value: data.attention },
+              { label: "phone", value: data.phone },
+              { label: "phone_id", value: data.phone_id },
+              { label: "address_full", value: data.address_full },
+              { label: "address_id", value: data.address_id },
+              { label: "domain", value: data.domain },
+              { label: "domain_id", value: data.domain_id },
+              { label: "price_level", value: data.price_level },
+              { label: "terms", value: data.terms },
+              { label: "status", value: data.status },
+              { label: "contact_id", value: data.contact_id },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Financial" fieldName="financial" data={data.financial as Record<string, unknown>} columns={2} />
+          <JsonCard title="Connections" fieldName="connections" data={data.connections as Record<string, unknown>} columns={2} />
+          <JsonCard title="Data" fieldName="data" data={data.data as Record<string, unknown>} columns={2} />
+          <JsonCard title="Metrics" fieldName="metrics" data={data.metrics as Record<string, unknown>} columns={2} />
+          <JsonCard title="GL Accounts" fieldName="gl_accounts" data={data.gl_accounts as Record<string, unknown>} columns={2} />
+          <JsonCard title="Relations" fieldName="relations" data={data.relations as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
+      )}
 
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (

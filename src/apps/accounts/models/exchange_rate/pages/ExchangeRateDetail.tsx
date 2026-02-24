@@ -15,6 +15,7 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { createExchangeRate, updateExchangeRate } from "../services/exchangeRateApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -280,6 +281,23 @@ export default function ExchangeRateDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Exchange Rate Fields"
+            icon={<ArrowRightLeft size={14} />}
+            fields={[
+              { label: "from_currency", value: data.from_currency },
+              { label: "to_currency", value: data.to_currency },
+              { label: "rate", value: data.rate },
+              { label: "date", value: data.date },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs

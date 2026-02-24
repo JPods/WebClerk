@@ -23,6 +23,7 @@ import { ReportAddProps } from "../types/reportType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "reportDetail_columnCount";
 
@@ -280,6 +281,24 @@ export default function ReportDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Report Fields"
+            icon={<FileText size={14} />}
+            fields={[
+              { label: "title", value: data.title },
+              { label: "type", value: data.type },
+              { label: "description", value: data.description },
+              { label: "parameters", value: data.parameters },
+              { label: "is_active", value: data.is_active },
+            ]}
+            columns={2}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       {recordData?.id && (
