@@ -281,6 +281,16 @@ cd webClerk3/tools
 
 ## 8. Detail Page Pattern
 
+### Default Mode: Always Edit
+
+**All detail pages open in edit mode by default.** There is no separate "display" vs "edit" experience — the form is always editable when a record loads. If a page must be read-only (e.g., audit logs, locked records), enforce that explicitly on a case-by-case basis; do **not** default to view mode.
+
+Implementation by pattern:
+- **Contact-style** (`initialUiMode`): return `"edit"` for existing records, not `"view"`
+- **TransactionDetailBase**: `effectiveMode` returns `"edit"` (not `null`) for existing records
+- **OrgDetail**: `editing` starts `true` when an `id` is present
+- **Simple-style**: already default to `"add"` (editable) — no change needed
+
 ### Standard Layout
 
 ```
