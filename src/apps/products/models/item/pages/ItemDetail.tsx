@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import ComponentCard from "@/components/common/ComponentCard";
@@ -25,6 +25,8 @@ import Label from "@/components/form/Label";
 import { SimpleDetailHeader } from "@/components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "@/components/common/SimpleDetailToolbar";
 import Input from "@/components/form/input/InputField";
+import Select from "@/components/form/Select";
+import Checkbox from "@/components/form/input/Checkbox";
 import {
   Table,
   TableBody,
@@ -38,7 +40,7 @@ import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useParams, useSearchParams } from "react-router";
 import { getRecord, saveRecord } from "@/api/wcapi";
-import { itemSchema } from "../utils/itemSchema";
+import { itemSchema, type ItemFormValues } from "../utils/itemSchema";
 import { ItemAddProps } from "../types/itemType";
 import BOMSection from "../components/BOMSection";
 import { 
@@ -69,6 +71,7 @@ import {
   ActionsPanel,
 } from "@/apps/common/components/panels";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // ============================================================================
 // Types (matching Django Item model)
@@ -1167,18 +1170,138 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
 const ITEM_DETAIL_FIELDS = [
   "name",
   "sku",
+  "qr_code",
   "kind",
   "uom",
+  "base_uom",
   "description",
-  "category",
+  "specification_id",
   "price",
   "cost",
   "quantity",
   "flags",
   "gls",
   "tax_code",
+  "catalog",
   "is_active",
 ] as const;
+
+// ============================================================================
+// Form ↔ Data helpers
+// ============================================================================
+
+/** Map server data → flat form values */
+function dataToFormValues(d: ItemData | null): ItemFormValues {
+  if (!d) {
+    return {
+      name: "", sku: "", qr_code: "", kind: "physical",
+      uom: "", base_uom: "", description: "",
+      specification_id: undefined, is_active: true,
+      price_base: undefined, price_msrp: undefined, price_currency: "USD",
+      cost_standard: undefined, cost_last: undefined, cost_avg: undefined,
+      cost_landed: undefined, cost_currency: "USD",
+      qty_on_hand: undefined, qty_allocated: undefined, qty_available: undefined,
+      qty_on_so: undefined, qty_on_po: undefined, qty_on_p: undefined,
+      qty_on_reciept: undefined, qty_on_in: undefined, qty_on_wo: undefined,
+      flag_back_order_allowed: false, flag_discountable: false, flag_linked: false,
+      flag_not_tracked: false, flag_pacing: false, flag_print_suppressed: false,
+      flag_serialized: false, flag_tally_by_type: false,
+      gls_inventory: "", gls_cogs: "", gls_revenue: "", gls_variance: "",
+      tax_code_code: "", tax_code_jurisdiction: "", tax_code_category: "",
+      tax_code_rate: undefined,
+      catalog_categories: "", catalog_web_slug: "", catalog_web_title: "",
+      catalog_web_short: "",
+    };
+  }
+  const p = typeof d.price === "object" ? (d.price as PriceData) : null;
+  const c = (d.cost as CostData) || {};
+  const q = (d.quantity as QuantityData) || {};
+  const f = (d.flags as FlagsData) || {};
+  const g = (d.gls as GlsData) || {};
+  const t = (d.tax_code as TaxCodeData) || {};
+  const cat = (d.catalog as CatalogData) || {};
+  return {
+    name: d.name || "", sku: d.sku || "", qr_code: d.qr_code || "",
+    kind: d.kind || "physical", uom: d.uom || "", base_uom: d.base_uom || "",
+    description: d.description || "",
+    specification_id: d.specification_id,
+    is_active: d.is_active ?? true,
+    price_base: p?.base ?? (typeof d.price === "number" ? d.price : undefined),
+    price_msrp: p?.msrp, price_currency: p?.currency || "USD",
+    cost_standard: c.standard, cost_last: c.last, cost_avg: c.avg,
+    cost_landed: c.landed, cost_currency: c.currency || "USD",
+    qty_on_hand: q.on_hand, qty_allocated: q.allocated, qty_available: q.available,
+    qty_on_so: q.on_so, qty_on_po: q.on_po, qty_on_p: q.on_p,
+    qty_on_reciept: q.on_reciept, qty_on_in: q.on_in, qty_on_wo: q.on_wo,
+    flag_back_order_allowed: f.back_order_allowed ?? false,
+    flag_discountable: f.discountable ?? false,
+    flag_linked: f.linked ?? false,
+    flag_not_tracked: f.not_tracked ?? false,
+    flag_pacing: f.pacing ?? false,
+    flag_print_suppressed: f.print_suppressed ?? false,
+    flag_serialized: f.serialized ?? false,
+    flag_tally_by_type: f.tally_by_type ?? false,
+    gls_inventory: g.inventory || "", gls_cogs: g.cogs || "",
+    gls_revenue: g.revenue || "", gls_variance: g.variance || "",
+    tax_code_code: t.code || "", tax_code_jurisdiction: t.jurisdiction || "",
+    tax_code_category: t.category || "", tax_code_rate: t.rate,
+    catalog_categories: (cat.categories || []).join(", "),
+    catalog_web_slug: cat.web?.slug || "",
+    catalog_web_title: cat.web?.title || "",
+    catalog_web_short: cat.web?.short || "",
+  };
+}
+
+/** Reconstruct nested API payload from flat form values */
+function formValuesToPayload(fd: ItemFormValues, orig: ItemData | null): Record<string, any> {
+  return {
+    name: fd.name, sku: fd.sku, qr_code: fd.qr_code, kind: fd.kind,
+    uom: fd.uom, base_uom: fd.base_uom, description: fd.description,
+    specification_id: fd.specification_id, is_active: fd.is_active,
+    price: {
+      ...(typeof orig?.price === "object" ? orig.price : {}),
+      base: fd.price_base, msrp: fd.price_msrp, currency: fd.price_currency,
+    },
+    cost: {
+      ...(orig?.cost || {}),
+      standard: fd.cost_standard, last: fd.cost_last, avg: fd.cost_avg,
+      landed: fd.cost_landed, currency: fd.cost_currency,
+    },
+    quantity: {
+      ...(orig?.quantity || {}),
+      on_hand: fd.qty_on_hand, allocated: fd.qty_allocated, available: fd.qty_available,
+      on_so: fd.qty_on_so, on_po: fd.qty_on_po, on_p: fd.qty_on_p,
+      on_reciept: fd.qty_on_reciept, on_in: fd.qty_on_in, on_wo: fd.qty_on_wo,
+    },
+    flags: {
+      ...(orig?.flags || {}),
+      back_order_allowed: fd.flag_back_order_allowed, discountable: fd.flag_discountable,
+      linked: fd.flag_linked, not_tracked: fd.flag_not_tracked,
+      pacing: fd.flag_pacing, print_suppressed: fd.flag_print_suppressed,
+      serialized: fd.flag_serialized, tally_by_type: fd.flag_tally_by_type,
+    },
+    gls: {
+      ...(orig?.gls || {}),
+      inventory: fd.gls_inventory, cogs: fd.gls_cogs,
+      revenue: fd.gls_revenue, variance: fd.gls_variance,
+    },
+    tax_code: {
+      ...(orig?.tax_code || {}),
+      code: fd.tax_code_code, jurisdiction: fd.tax_code_jurisdiction,
+      category: fd.tax_code_category, rate: fd.tax_code_rate,
+    },
+    catalog: {
+      ...(orig?.catalog || {}),
+      categories: fd.catalog_categories
+        ? fd.catalog_categories.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : (orig?.catalog as CatalogData)?.categories || [],
+      web: {
+        ...((orig?.catalog as CatalogData)?.web || {}),
+        slug: fd.catalog_web_slug, title: fd.catalog_web_title, short: fd.catalog_web_short,
+      },
+    },
+  };
+}
 
 // ============================================================================
 // Main Component
@@ -1263,8 +1386,8 @@ export default function ItemDetail({
     }
   }, [itemIdFromUrl, initialData?.id, fetchedData?.id, dispatch]);
   
-  // Allow toggling between view and edit modes
-  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
+  // Detail pages always open in edit mode
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode === "add" ? "add" : "edit");
   const [isSaving, setIsSaving] = useState(false);
   
   // Tab navigation
@@ -1284,7 +1407,7 @@ export default function ItemDetail({
 
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
-    setEffectiveMode(mode);
+    setEffectiveMode(mode === "add" ? "add" : "edit");
   }, [mode]);
   
   // Field access control
@@ -1311,6 +1434,7 @@ export default function ItemDetail({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(itemSchema),
@@ -1410,8 +1534,8 @@ export default function ItemDetail({
       }
 
       const res = mode === "add"
-        ? await createItem(payload)
-        : await updateItem({ ...payload, id: data!.id! });
+        ? await createItem(payload as any)
+        : await updateItem({ ...payload, id: data!.id! } as any);
 
       if (res) {
         dispatch(showToast({ 
@@ -1421,8 +1545,6 @@ export default function ItemDetail({
         if (onSaved) onSaved();
         if (effectiveMode === "add" && onCancelInline) {
           onCancelInline();
-        } else {
-          setEffectiveMode("view");
         }
       }
     } catch (error: unknown) {
@@ -1450,16 +1572,7 @@ export default function ItemDetail({
       onCancelInline?.();
     } else {
       // Reset form to original data
-      if (data) {
-        const normalizedItem = {
-          name: data.name || "",
-          description: data.description || "",
-          price: typeof data.price === "number" ? data.price : (data.price as PriceData)?.base || 0,
-          category: data.category || "",
-        };
-        reset(normalizedItem);
-      }
-      setEffectiveMode("view");
+      reset(dataToFormValues(data));
     }
   };
 
@@ -1498,6 +1611,32 @@ export default function ItemDetail({
         <ComponentCard>
           <ItemDataView data={data} isAdmin={isAdmin} />
         </ComponentCard>
+
+        {effectiveMode === "view" && data && (
+          <div className="mt-4 space-y-0">
+            <ScalarCard
+              title="Item Scalars"
+              icon={<FaBox size={14} />}
+              fields={[
+                { label: "name", value: data.name },
+                { label: "sku", value: data.sku },
+                { label: "qr_code", value: data.qr_code },
+                { label: "kind", value: data.kind },
+                { label: "uom", value: data.uom },
+                { label: "base_uom", value: data.base_uom },
+                { label: "specification_id", value: data.specification_id },
+                { label: "description", value: data.description },
+              ]}
+              columns={3}
+            />
+            <JsonCard title="Price" icon={<FaDollarSign size={14} />} fieldName="price" data={data.price} />
+            <JsonCard title="Cost" icon={<FaDollarSign size={14} />} fieldName="cost" data={data.cost} />
+            <JsonCard title="GLs" icon={<FaCalculator size={14} />} fieldName="gls" data={data.gls} />
+            <JsonCard title="Tax Code" icon={<FaFileInvoice size={14} />} fieldName="tax_code" data={data.tax_code} />
+            <JsonCard title="Catalog" icon={<FaListAlt size={14} />} fieldName="catalog" data={data.catalog} />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </div>
+        )}
 
         {/* Tab Navigation */}
         {data?.id && (
@@ -1552,12 +1691,9 @@ export default function ItemDetail({
 
       <ComponentCard>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* 1. Basic Information Section */}
-          <Section
-            title="Basic Information"
-            icon={<FaBox className="w-4 h-4" />}
-            defaultExpanded={true}
-          >
+
+          {/* ── 1. Identity ────────────────────────────────────────── */}
+          <Section title="Identity" icon={<FaBox className="w-4 h-4" />} defaultExpanded={true}>
             {shouldRenderField("name") && (
               <FieldRow label="Name" htmlFor="name" error={errors.name?.message as string | undefined} required>
                 <Input
@@ -1596,6 +1732,43 @@ export default function ItemDetail({
                 />
               </FieldRow>
             )}
+            {shouldRenderField("kind") && (
+              <FieldRow label="Kind" htmlFor="kind">
+                <Controller name="kind" control={control} render={({ field }) => (
+                  <Select value={field.value ?? "physical"} onChange={field.onChange} disabled={isFieldDisabled("kind")}
+                    options={[{ value: "physical", label: "Physical" }, { value: "service", label: "Service" }, { value: "bundle", label: "Bundle" }]} />
+                )} />
+              </FieldRow>
+            )}
+            {shouldRenderField("uom") && (
+              <FieldRow label="UOM" htmlFor="uom" hint="Unit of measure">
+                <Input type="text" id="uom" placeholder="ea, lb, kg …" {...register("uom")} disabled={isFieldDisabled("uom")} />
+              </FieldRow>
+            )}
+            {shouldRenderField("base_uom") && (
+              <FieldRow label="Base UOM" htmlFor="base_uom">
+                <Input type="text" id="base_uom" placeholder="Base unit" {...register("base_uom")} disabled={isFieldDisabled("base_uom")} />
+              </FieldRow>
+            )}
+            <div className="lg:col-span-2">
+              {shouldRenderField("description") && (
+                <FieldRow label="Description" htmlFor="description">
+                  <textarea id="description" rows={3} placeholder="Item description" {...register("description")}
+                    disabled={isFieldDisabled("description")}
+                    className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
+                </FieldRow>
+              )}
+            </div>
+            {shouldRenderField("specification_id") && (
+              <FieldRow label="Spec ID" htmlFor="specification_id">
+                <Input type="number" id="specification_id" placeholder="Specification ID" {...register("specification_id")} disabled={isFieldDisabled("specification_id")} />
+              </FieldRow>
+            )}
+            <FieldRow label="Active" htmlFor="is_active">
+              <Controller name="is_active" control={control} render={({ field }) => (
+                <Checkbox id="is_active" checked={field.value ?? true} onChange={(c) => field.onChange(c)} disabled={isFieldDisabled("is_active")} label="Item is active" />
+              )} />
+            </FieldRow>
           </Section>
 
           {/* 2. Pricing Section */}
@@ -1705,7 +1878,6 @@ export default function ItemDetail({
             )}
           </Section>
 
-          {/* Panels moved to tab navigation below */}
         </form>
       </ComponentCard>
       

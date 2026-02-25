@@ -19,6 +19,7 @@ import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import QAPanel from "../../../../common/components/panels/QAPanel";
 import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
 
 const STORAGE_KEY = "actionDetail_columnCount";
@@ -569,6 +570,32 @@ export default function ActionDetail({
           </div>
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Action Fields"
+            icon={<Target size={14} />}
+            fields={[
+              { label: "action", value: data.action },
+              { label: "action_by", value: data.action_by },
+              { label: "priority", value: data.priority },
+              { label: "difficulty", value: data.difficulty },
+              { label: "hours", value: data.hours },
+              { label: "percent", value: data.percent },
+              { label: "status", value: data.status },
+              { label: "quality", value: data.quality },
+              { label: "description", value: data.description },
+              { label: "dt_action", value: data.dt_action },
+              { label: "dt_completed", value: data.dt_completed },
+              { label: "dt_deadline", value: data.dt_deadline },
+              { label: "dt_updated", value: data.dt_updated },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs

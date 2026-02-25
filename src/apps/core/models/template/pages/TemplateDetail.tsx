@@ -25,6 +25,7 @@ import { templateSchema } from "../utils/templateSchema";
 import { TemplateAddProps } from "../types/templateType";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "templateDetail_columnCount";
 
@@ -265,6 +266,22 @@ export default function TemplateDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Template Fields"
+            icon={<Target size={14} />}
+            fields={[
+              { label: "name", value: data.name },
+              { label: "purpose", value: data.purpose },
+              { label: "is_active", value: data.is_active },
+            ]}
+            columns={2}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       {recordData?.id && (

@@ -22,6 +22,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { campaignSchema } from "../utils/campaignSchema";
 import { CampaignAddProps } from "../types/campaignType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "campaignDetail_columnCount";
 
@@ -165,6 +166,54 @@ export default function CampaignDetail({
           onCancel={handleCancel}
           onEdit={handleEdit}
         />
+      )}
+
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Campaign Details"
+            fields={[
+              { label: "name", value: data.name },
+              { label: "status", value: data.status },
+              { label: "description", value: data.description },
+              { label: "start_date", value: data.start_date },
+              { label: "end_date", value: data.end_date },
+              { label: "issue", value: data.issue },
+              { label: "effort", value: data.effort },
+              { label: "pace", value: data.pace },
+              { label: "path", value: data.path },
+              { label: "size", value: data.size },
+            ]}
+            columns={3}
+          />
+          <ScalarCard
+            title="Campaign Metrics"
+            fields={[
+              { label: "count_customers_actual", value: data.count_customers_actual },
+              { label: "count_customers_plan", value: data.count_customers_plan },
+              { label: "count_invoices", value: data.count_invoices },
+              { label: "count_invoice_plan", value: data.count_invoice_plan },
+              { label: "count_sos", value: data.count_sos },
+              { label: "count_sos_plan", value: data.count_sos_plan },
+              { label: "count_so_first", value: data.count_so_first },
+              { label: "count_responces_new", value: data.count_responces_new },
+              { label: "value_invoices", value: data.value_invoices, format: "currency" },
+              { label: "value_invoices_plan", value: data.value_invoices_plan, format: "currency" },
+              { label: "value_sos", value: data.value_sos, format: "currency" },
+              { label: "value_sos_plan", value: data.value_sos_plan, format: "currency" },
+              { label: "value_so_first", value: data.value_so_first, format: "currency" },
+              { label: "responses_actual", value: data.responses_actual },
+              { label: "responses_plan", value: data.responses_plan },
+              { label: "cost_actual", value: data.cost_actual, format: "currency" },
+              { label: "cost_plan", value: data.cost_plan, format: "currency" },
+              { label: "cost_sales", value: data.cost_sales, format: "currency" },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Publication" fieldName="publication" data={data.publication as Record<string, unknown>} columns={2} />
+          <JsonCard title="Metrics" fieldName="metrics" data={data.metrics as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
       )}
 
       <ComponentCard>

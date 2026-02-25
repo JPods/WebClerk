@@ -15,6 +15,7 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { createGLAccount, updateGLAccount } from "../services/glAccountApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -353,6 +354,29 @@ export default function GLAccountDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="GL Account Fields"
+            icon={<DollarSign size={14} />}
+            fields={[
+              { label: "code", value: data.code },
+              { label: "name", value: data.name },
+              { label: "used_for", value: data.used_for },
+              { label: "type", value: data.type },
+              { label: "category", value: data.category },
+              { label: "division", value: data.division },
+              { label: "balance", value: data.balance, isCurrency: true },
+              { label: "account_debit", value: data.account_debit },
+              { label: "account_credit", value: data.account_credit },
+              { label: "comment", value: data.comment },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs

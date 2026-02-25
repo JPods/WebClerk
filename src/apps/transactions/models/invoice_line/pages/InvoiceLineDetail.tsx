@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { invoiceLineSchema } from "../utils/invoiceLineSchema";
 import type { InvoiceLine } from "../types/invoiceLineType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 interface InvoiceLineDetailProps {
   modeProp?: "add" | "edit" | "view";
@@ -153,6 +154,26 @@ export default function InvoiceLineDetail({
         onCancel={handleCancel}
         onEdit={handleEdit}
       />
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Line Details"
+            fields={[
+              { label: "line_number", value: data.line_number },
+              { label: "status", value: data.status },
+              { label: "price_level", value: data.price_level },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Item" fieldName="item" data={data.item as Record<string, unknown>} columns={2} />
+          <JsonCard title="Quantity" fieldName="quantity" data={data.quantity as Record<string, unknown>} columns={2} />
+          <JsonCard title="Price" fieldName="price" data={data.price as Record<string, unknown>} columns={2} />
+          <JsonCard title="Cost" fieldName="cost" data={data.cost as Record<string, unknown>} columns={2} />
+          <JsonCard title="Tax" fieldName="tax" data={data.tax as Record<string, unknown>} columns={2} />
+          <JsonCard title="Physical" fieldName="physical" data={data.physical as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
+      )}
 
       <ComponentCard>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

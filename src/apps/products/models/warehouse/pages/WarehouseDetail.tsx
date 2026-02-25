@@ -28,6 +28,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "warehouseDetail_columnCount";
 
@@ -254,6 +255,23 @@ export default function WarehouseDetail({
 
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Warehouse Fields"
+            icon={<Warehouse size={14} />}
+            fields={[
+              { label: "name", value: data.name },
+              { label: "manager", value: data.manager },
+              { label: "capacity", value: data.capacity },
+              { label: "location", value: data.location },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}
       {recordData?.id && (

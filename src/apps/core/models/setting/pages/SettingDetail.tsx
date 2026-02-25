@@ -21,6 +21,7 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "settingDetail_columnCount";
 
@@ -278,6 +279,25 @@ export default function SettingDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Setting Fields"
+            icon={<Database size={14} />}
+            fields={[
+              { label: "name", value: data.name },
+              { label: "purpose", value: data.purpose },
+              { label: "role", value: data.role },
+              { label: "model_name", value: data.model_name },
+              { label: "is_active", value: data.is_active },
+              { label: "data", value: data.data },
+            ]}
+            columns={2}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}
       {recordData?.id && (

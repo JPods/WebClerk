@@ -19,6 +19,7 @@ import { AuditAddProps } from "../types/auditType";
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 export default function AuditDetail({
   modeProp,
@@ -197,6 +198,22 @@ export default function AuditDetail({
           </div>
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Audit Fields"
+            fields={[
+              { label: "date", value: data.date },
+              { label: "action", value: data.action },
+              { label: "user", value: data.user },
+              { label: "description", value: data.description },
+            ]}
+            columns={2}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       {recordData?.id && (

@@ -15,6 +15,7 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 import { DetailTabs, useDetailTabs } from "../../../../../components/common/DetailTabs";
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import ActionsPanel from "../../../../common/components/panels/ActionsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { createCurrency, updateCurrency } from "../services/currencyApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -280,6 +281,23 @@ export default function CurrencyDetail({
           )}
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Currency Fields"
+            icon={<DollarSign size={14} />}
+            fields={[
+              { label: "code", value: data.code },
+              { label: "name", value: data.name },
+              { label: "symbol", value: data.symbol },
+              { label: "rate", value: data.rate },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <DetailTabs

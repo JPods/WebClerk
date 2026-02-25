@@ -281,6 +281,16 @@ cd webClerk3/tools
 
 ## 8. Detail Page Pattern
 
+### Default Mode: Always Edit
+
+**All detail pages open in edit mode by default.** There is no separate "display" vs "edit" experience — the form is always editable when a record loads. If a page must be read-only (e.g., audit logs, locked records), enforce that explicitly on a case-by-case basis; do **not** default to view mode.
+
+Implementation by pattern:
+- **Contact-style** (`initialUiMode`): return `"edit"` for existing records, not `"view"`
+- **TransactionDetailBase**: `effectiveMode` returns `"edit"` (not `null`) for existing records
+- **OrgDetail**: `editing` starts `true` when an `id` is present
+- **Simple-style**: already default to `"add"` (editable) — no change needed
+
 ### Standard Layout
 
 ```
@@ -503,7 +513,47 @@ pnpm test -- --run --coverage  # With coverage
 
 ---
 
-## 15. Key File Locations
+## 15. Development-Mode UI Rules
+
+During active development, every layout that displays or edits a record **must show the record's primary key (ID)** so developers can immediately tell whether a record has been persisted.
+
+### Requirements
+
+| Where | What to show | When no ID exists |
+|-------|-------------|-------------------|
+| **Detail page header** | `#{id}` next to the entity name | Show `(no ID — unsaved)` in amber |
+| **Panel headers** (CommLinkPanel, OrgLinkPanel, etc.) | `c#{contactId}` (or the owning entity ID) | Omit the badge |
+| **CommLinkPanel header** | Additionally show `→ {type}_id:{primaryId}` when a primary FK is set | — |
+| **Email gate / pre-save screens** | `(no ID yet)` after the title | — |
+
+### Implementation Pattern
+
+```tsx
+{/* DEV: record ID badge */}
+{activeContactId ? (
+  <span className="ml-2 text-sm font-normal text-slate-500">#{activeContactId}</span>
+) : (
+  <span className="ml-2 text-xs font-mono text-amber-500">(no ID — unsaved)</span>
+)}
+```
+
+For panel headers use a smaller mono badge:
+
+```tsx
+{contactId && (
+  <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+    c#{contactId}
+  </span>
+)}
+```
+
+### Cleanup
+
+All dev-mode ID badges are marked with a `/* DEV: */` comment. When the project moves to production, search for `DEV:` and remove or gate behind `import.meta.env.DEV`.
+
+---
+
+## 16. Key File Locations
 
 | Purpose | Path |
 |---------|------|
@@ -526,7 +576,7 @@ pnpm test -- --run --coverage  # With coverage
 
 ---
 
-## 16. Documentation Practice
+## 17. Documentation Practice
 
 - **Readmes are essential** — update `readmes/` when architecture decisions change
 - Files `00-` through `03-` are the core onboarding sequence
@@ -536,7 +586,7 @@ pnpm test -- --run --coverage  # With coverage
 
 ---
 
-## 17. Instruction File Sync (MANDATORY)
+## 18. Instruction File Sync (MANDATORY)
 
 Copilot instructions exist in **two locations** in both repos:
 
@@ -563,7 +613,7 @@ In wc3, `.github/` is gitignored, so only `git_bypass/` is committed.
 
 ---
 
-## 18. Session Context
+## 19. Session Context
 
 When starting a coding session, establish:
 

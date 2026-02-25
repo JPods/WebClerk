@@ -44,6 +44,7 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
 import { createDomain, updateDomain } from "../services/domainApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -403,20 +404,23 @@ export default function DomainDetail({
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {effectiveMode === "view" && data ? (
           /* ── Read-only view ── */
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-              <FaGlobe size={16} />
-              Basic Information
-            </h3>
-            <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
-            >
-              <InfoRow label="path" value={data.path} />
-              <InfoRow label="type" value={data.type} />
-            </dl>
-          </div>
+          <>
+            <ScalarCard
+              title="Domain Info"
+              icon={<FaGlobe size={14} />}
+              fields={[
+                { label: "path", value: data.path, highlight: true },
+                { label: "type", value: data.type },
+                { label: "status", value: data.status },
+                { label: "comment", value: data.comment },
+                { label: "security_level", value: data.security_level },
+                { label: "sequence", value: data.sequence },
+                { label: "count_accessed", value: data.count_accessed },
+              ]}
+              columns={columnCount as 1 | 2 | 3}
+            />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </>
         ) : (
           /* ── Editable form ── */
           <form id="domain-form" onSubmit={handleSubmit(onSubmit)}>
