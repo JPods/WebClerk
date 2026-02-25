@@ -18,7 +18,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 
 import ComponentCard from "@/components/common/ComponentCard";
 import { DevBadge } from "@/components/common/DevBadge";
@@ -67,7 +66,6 @@ import { DetailTabs, useDetailTabs, TabConfig } from "@/components/common/Detail
 import {
   CommentsPanel,
   DocumentsPanel,
-  RawDataPanel,
   ActionsPanel,
 } from "@/apps/common/components/panels";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
@@ -102,6 +100,10 @@ interface QtyBreak {
 interface PriceData {
   base?: number;
   msrp?: number;
+  retail?: number;
+  wholesale?: number;
+  distributor?: number;
+  sample?: number;
   tiers?: PriceTier[];
   qty_breaks?: QtyBreak[];
   currency?: string;
@@ -883,10 +885,17 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
           <DataSection title="Pricing" icon={<FaDollarSign className="w-4 h-4" />} defaultOpen={true} noTable>
             {typeof data.price === "object" && data.price ? (
               <>
-                <DataFieldGrid columns={3}>
+                <DataFieldGrid columns={4}>
                   <DataField label=".base" value={(data.price as PriceData).base} highlight isCurrency />
                   <DataField label=".msrp" value={(data.price as PriceData).msrp} isCurrency />
+                  <DataField label=".retail" value={(data.price as PriceData).retail} isCurrency />
+                  <DataField label=".wholesale" value={(data.price as PriceData).wholesale} isCurrency />
+                </DataFieldGrid>
+                <DataFieldGrid columns={4}>
+                  <DataField label=".distributor" value={(data.price as PriceData).distributor} isCurrency />
+                  <DataField label=".sample" value={(data.price as PriceData).sample} isCurrency />
                   <DataField label=".currency" value={(data.price as PriceData).currency || "USD"} />
+                  <DataField label=".history" value={(data.price as PriceData).history?.length ?? 0} />
                 </DataFieldGrid>
                 {/* Tiers */}
                 {(data.price as PriceData).tiers && (data.price as PriceData).tiers!.length > 0 && (
@@ -1303,13 +1312,22 @@ export default function ItemDetail({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<any>({
     resolver: zodResolver(itemSchema),
     defaultValues: {
       name: "",
       description: "",
-      price: 0,
+      price: undefined,
       category: "",
+      price_base: undefined,
+      price_msrp: undefined,
+      price_retail: undefined,
+      price_wholesale: undefined,
+      price_distributor: undefined,
+      price_sample: undefined,
+      price_currency: undefined,
+      price_qty_breaks_json: JSON.stringify([]),
+      price_history_json: JSON.stringify([]),
     },
   });
 
@@ -1320,24 +1338,76 @@ export default function ItemDetail({
       return;
     }
 
+    const priceObj = typeof data.price === "number" ? { base: data.price } : (data.price as PriceData) || {};
+
     const normalizedItem = {
       name: data.name || "",
       description: data.description || "",
-      price: typeof data.price === "number" ? data.price : (data.price as PriceData)?.base || 0,
+      price: typeof data.price === "number" ? data.price : priceObj.base,
       category: data.category || "",
+      price_base: priceObj.base,
+      price_msrp: priceObj.msrp,
+      price_retail: priceObj.retail,
+      price_wholesale: priceObj.wholesale,
+      price_distributor: priceObj.distributor,
+      price_sample: priceObj.sample,
+      price_currency: priceObj.currency,
+      price_qty_breaks_json: JSON.stringify(priceObj.qty_breaks || []),
+      price_history_json: JSON.stringify(priceObj.history || []),
     };
 
     reset(normalizedItem);
   }, [data, reset]);
 
   // Form submission
-  const onSubmit = async (formData: z.infer<typeof itemSchema>) => {
+  const onSubmit = async (formData: any) => {
     try {
       setIsSaving(true);
-      const payload = {
+      // Build price object from individual form fields (all optional)
+      const priceObj: any = {};
+      if (formData.price_base !== undefined && formData.price_base !== null && formData.price_base !== "") priceObj.base = Number(formData.price_base);
+      if (formData.price_msrp !== undefined && formData.price_msrp !== null && formData.price_msrp !== "") priceObj.msrp = Number(formData.price_msrp);
+      if (formData.price_retail !== undefined && formData.price_retail !== null && formData.price_retail !== "") priceObj.retail = Number(formData.price_retail);
+      if (formData.price_wholesale !== undefined && formData.price_wholesale !== null && formData.price_wholesale !== "") priceObj.wholesale = Number(formData.price_wholesale);
+      if (formData.price_distributor !== undefined && formData.price_distributor !== null && formData.price_distributor !== "") priceObj.distributor = Number(formData.price_distributor);
+      if (formData.price_sample !== undefined && formData.price_sample !== null && formData.price_sample !== "") priceObj.sample = Number(formData.price_sample);
+      if (formData.price_currency) priceObj.currency = formData.price_currency;
+      try {
+        if (formData.price_qty_breaks_json) {
+          const parsed = JSON.parse(formData.price_qty_breaks_json);
+          if (Array.isArray(parsed)) priceObj.qty_breaks = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      try {
+        if (formData.price_history_json) {
+          const parsed = JSON.parse(formData.price_history_json);
+          if (Array.isArray(parsed)) priceObj.history = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      const payload: any = {
         ...formData,
         ...(mode === "edit" && data?.id ? { id: data.id } : {}),
       };
+
+      // Remove transient form-only fields
+      delete payload.price_base;
+      delete payload.price_msrp;
+      delete payload.price_retail;
+      delete payload.price_wholesale;
+      delete payload.price_distributor;
+      delete payload.price_sample;
+      delete payload.price_currency;
+      delete payload.price_qty_breaks_json;
+      delete payload.price_history_json;
+
+      if (Object.keys(priceObj).length > 0) {
+        payload.price = priceObj;
+      }
 
       const res = mode === "add"
         ? await createItem(payload)
@@ -1489,7 +1559,7 @@ export default function ItemDetail({
             defaultExpanded={true}
           >
             {shouldRenderField("name") && (
-              <FieldRow label="Name" htmlFor="name" error={errors.name?.message} required>
+              <FieldRow label="Name" htmlFor="name" error={errors.name?.message as string | undefined} required>
                 <Input
                   type="text"
                   id="name"
@@ -1502,7 +1572,7 @@ export default function ItemDetail({
             )}
 
             {shouldRenderField("category") && (
-              <FieldRow label="Category" htmlFor="category" error={errors.category?.message} required>
+              <FieldRow label="Category" htmlFor="category" error={errors.category?.message as string | undefined} required>
                 <Input
                   type="text"
                   id="category"
@@ -1515,7 +1585,7 @@ export default function ItemDetail({
             )}
 
             {shouldRenderField("description") && (
-              <FieldRow label="Description" htmlFor="description" error={errors.description?.message} required>
+              <FieldRow label="Description" htmlFor="description" error={errors.description?.message as string | undefined} required>
                 <Input
                   type="text"
                   id="description"
@@ -1535,24 +1605,110 @@ export default function ItemDetail({
             defaultExpanded={true}
           >
             {shouldRenderField("price") && (
-              <FieldRow label="Price" htmlFor="price" error={errors.price?.message} required>
-                <Input
-                  type="number"
-                  id="price"
-                  placeholder="0.00"
-                  step="0.01"
-                  {...register("price", { valueAsNumber: true })}
-                  error={!!errors.price?.message}
-                  disabled={isFieldDisabled("price")}
-                />
-              </FieldRow>
+              <>
+                <FieldRow label="Base" htmlFor="price_base">
+                  <Input
+                    type="number"
+                    id="price_base"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_base", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="MSRP" htmlFor="price_msrp">
+                  <Input
+                    type="number"
+                    id="price_msrp"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_msrp", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Retail" htmlFor="price_retail">
+                  <Input
+                    type="number"
+                    id="price_retail"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_retail", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Wholesale" htmlFor="price_wholesale">
+                  <Input
+                    type="number"
+                    id="price_wholesale"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_wholesale", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Distributor" htmlFor="price_distributor">
+                  <Input
+                    type="number"
+                    id="price_distributor"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_distributor", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Sample" htmlFor="price_sample">
+                  <Input
+                    type="number"
+                    id="price_sample"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("price_sample", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Currency" htmlFor="price_currency">
+                  <Input
+                    type="text"
+                    id="price_currency"
+                    placeholder="USD"
+                    {...register("price_currency")}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Qty Breaks (JSON)" htmlFor="price_qty_breaks_json" hint='JSON array: [{"min_qty":1,"unit_price":9.99}]'>
+                  <textarea
+                    id="price_qty_breaks_json"
+                    {...register("price_qty_breaks_json")}
+                    className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                    rows={4}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="History (JSON)" htmlFor="price_history_json" hint='JSON array of history objects'>
+                  <textarea
+                    id="price_history_json"
+                    {...register("price_history_json")}
+                    className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                    rows={4}
+                    disabled={isFieldDisabled("price")}
+                  />
+                </FieldRow>
+              </>
             )}
           </Section>
 
           {/* Panels moved to tab navigation below */}
         </form>
       </ComponentCard>
-
+      
       {/* Tab Navigation */}
       {mode !== "add" && activeItemId && (
         <>
