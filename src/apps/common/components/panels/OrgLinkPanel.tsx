@@ -23,9 +23,13 @@ import {
   FaSpinner,
   FaTimes,
   FaBuilding,
+  FaSave,
+  FaEdit,
+  FaPlus,
+  FaUndo,
 } from "react-icons/fa";
 import { ChevronDown, ChevronRight, Building2 } from "lucide-react";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, saveRecord } from "@/api/wcapi";
 import { updateContact } from "@/apps/core/models/contact/services/contactApi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
@@ -53,6 +57,23 @@ export interface OrgField {
   orgType: SearchableOrgType;
 }
 
+export interface OrgScalarField {
+  /** Field name on the contact record (e.g. "company") */
+  fieldName: string;
+  /** Display label */
+  label: string;
+  /** Current value */
+  value: string | null | undefined;
+  /** Input placeholder */
+  placeholder?: string;
+  /** "text" (default) or "select" for dropdown */
+  type?: "text" | "select";
+  /** Select options (when type === "select") */
+  options?: { value: string; label: string }[];
+  /** Disable the input */
+  disabled?: boolean;
+}
+
 export interface OrgLinkPanelProps {
   /** Array of org FK fields to show */
   fields: OrgField[];
@@ -68,7 +89,51 @@ export interface OrgLinkPanelProps {
   ) => void;
   /** Start expanded? */
   defaultExpanded?: boolean;
+  /** Scalar org-related fields (company, title, department, role, etc.) */
+  scalarFields?: OrgScalarField[];
+  /** Called when a scalar field value changes (for live form sync) */
+  onScalarFieldChange?: (fieldName: string, value: string) => void;
+  /** Called when Save button is clicked to persist scalar org fields */
+  onSaveScalars?: (values: Record<string, string>) => Promise<void>;
 }
+
+// ---------------------------------------------------------------------------
+// Per-org-type inline editor field definitions
+// ---------------------------------------------------------------------------
+
+interface OrgRecordFieldDef {
+  key: string;
+  label: string;
+  width?: "full" | "half";
+  placeholder?: string;
+  inputType?: "text" | "select";
+  options?: { value: string; label: string }[];
+}
+
+/** All org types share the same OrgBase table — common editable fields */
+const ORG_RECORD_FIELDS: OrgRecordFieldDef[] = [
+  { key: "display_name", label: "Display Name", width: "full", placeholder: "Company or person name" },
+  { key: "company", label: "Company", width: "half", placeholder: "Company alias" },
+  { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
+  { key: "email", label: "Email", width: "half", placeholder: "Primary email" },
+  { key: "phone", label: "Phone", width: "half", placeholder: "Primary phone" },
+  {
+    key: "status",
+    label: "Status",
+    width: "half",
+    inputType: "select",
+    options: [
+      { value: "active", label: "Active" },
+      { value: "prospect", label: "Prospect" },
+      { value: "suspended", label: "Suspended" },
+      { value: "inactive", label: "Inactive" },
+      { value: "retired", label: "Retired" },
+      { value: "", label: "(none)" },
+    ],
+  },
+  { key: "price_level", label: "Price Level", width: "half", placeholder: "retail, wholesale…" },
+  { key: "notes", label: "Notes", width: "full", placeholder: "Notes" },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -91,6 +156,9 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   contactId,
   onOrgChanged,
   defaultExpanded,
+  scalarFields,
+  onScalarFieldChange,
+  onSaveScalars,
 }) => {
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(
@@ -105,6 +173,20 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   // Search dialog state
   const [searchField, setSearchField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [scalarsSaving, setScalarsSaving] = useState(false);
+  const [scalarsSaved, setScalarsSaved] = useState(false);
+
+  // ----- Inline org record editing state -----
+  /** Which org FK field is currently being edited (e.g. "customer_id") */
+  const [editingOrgField, setEditingOrgField] = useState<string | null>(null);
+  /** Working copy of the org record fields for inline editing */
+  const [editingOrgValues, setEditingOrgValues] = useState<Record<string, any>>({});
+  /** Is the inline org record being saved? */
+  const [orgRecordSaving, setOrgRecordSaving] = useState(false);
+  /** Is the org record being fetched for editing? */
+  const [orgRecordLoading, setOrgRecordLoading] = useState(false);
+  /** Are we creating a new org record? (fieldName → true) */
+  const [creatingNewOrg, setCreatingNewOrg] = useState<string | null>(null);
 
   /** Find the OrgField config for the currently searching field */
   const activeOrgField = fields.find((f) => f.fieldName === searchField);
@@ -246,6 +328,163 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
     [contactId, onOrgChanged, dispatch],
   );
 
+  /** Save scalar org fields (company, title, department, role, etc.) */
+  const handleSaveScalars = useCallback(async () => {
+    if (!onSaveScalars || !scalarFields) return;
+    setScalarsSaving(true);
+    setScalarsSaved(false);
+    try {
+      const values: Record<string, string> = {};
+      for (const sf of scalarFields) {
+        values[sf.fieldName] = sf.value ?? "";
+      }
+      await onSaveScalars(values);
+      setScalarsSaved(true);
+      setTimeout(() => setScalarsSaved(false), 2000);
+    } catch {
+      // parent handles toast
+    } finally {
+      setScalarsSaving(false);
+    }
+  }, [onSaveScalars, scalarFields]);
+
+  // ----- Inline org record editing handlers -----
+
+  /** Open inline editor for an existing org record (fetch its data first) */
+  const handleEditOrgRecord = useCallback(
+    async (field: OrgField) => {
+      if (!field.value) return;
+      setEditingOrgField(field.fieldName);
+      setCreatingNewOrg(null);
+      setOrgRecordLoading(true);
+      try {
+        const model = orgTypeToModelName(field.orgType);
+        const res: any = await getRecord(model, Number(field.value));
+        const record = res?.record ?? res;
+        const values: Record<string, any> = {};
+        for (const fd of ORG_RECORD_FIELDS) {
+          values[fd.key] = record?.[fd.key] ?? "";
+        }
+        setEditingOrgValues(values);
+      } catch (err: any) {
+        console.error("[OrgLinkPanel] Failed to fetch org record:", err);
+        dispatch(showToast({ message: "Failed to load org record", type: "error" }));
+        setEditingOrgField(null);
+      } finally {
+        setOrgRecordLoading(false);
+      }
+    },
+    [dispatch],
+  );
+
+  /** Open inline editor for creating a new org record for a field */
+  const handleCreateNewOrg = useCallback(
+    (field: OrgField) => {
+      setEditingOrgField(field.fieldName);
+      setCreatingNewOrg(field.fieldName);
+      const values: Record<string, any> = {};
+      for (const fd of ORG_RECORD_FIELDS) {
+        values[fd.key] = "";
+      }
+      // Pre-set org_type based on the field
+      values._orgType = field.orgType;
+      setEditingOrgValues(values);
+    },
+    [],
+  );
+
+  /** Cancel org record editing */
+  const handleCancelOrgEdit = useCallback(() => {
+    setEditingOrgField(null);
+    setEditingOrgValues({});
+    setCreatingNewOrg(null);
+  }, []);
+
+  /** Save the inline-edited org record */
+  const handleSaveOrgRecord = useCallback(async () => {
+    if (!editingOrgField) return;
+    const field = fields.find((f) => f.fieldName === editingOrgField);
+    if (!field) return;
+
+    setOrgRecordSaving(true);
+    try {
+      const model = orgTypeToModelName(field.orgType);
+      const payload: Record<string, any> = { ...editingOrgValues };
+      delete payload._orgType;
+
+      if (creatingNewOrg) {
+        // Creating a new org record
+        payload.org_type = field.orgType === "organization" ? "other" : field.orgType;
+        const res: any = await saveRecord(model, payload);
+        const record = res?.record ?? res;
+        const newId = Number(record?.id ?? res?.id);
+        if (!Number.isFinite(newId) || newId <= 0) {
+          throw new Error("Failed to create org record");
+        }
+
+        // Auto-assign this new org to the contact
+        if (contactId) {
+          await updateContact({
+            id: contactId,
+            mode: "update",
+            [field.fieldName]: newId,
+          } as any);
+        }
+
+        setResolvedNames((prev) => ({
+          ...prev,
+          [field.fieldName]:
+            payload.display_name || payload.company || `#${newId}`,
+        }));
+
+        onOrgChanged?.(
+          field.fieldName,
+          newId,
+          payload.display_name || payload.company || null,
+        );
+
+        dispatch(
+          showToast({
+            message: `${field.label} created and assigned`,
+            type: "success",
+          }),
+        );
+      } else {
+        // Updating existing org record
+        payload.id = Number(field.value);
+        await saveRecord(model, payload);
+
+        // Update resolved name
+        setResolvedNames((prev) => ({
+          ...prev,
+          [field.fieldName]:
+            payload.display_name || payload.company || `#${field.value}`,
+        }));
+
+        dispatch(
+          showToast({
+            message: `${field.label} record saved`,
+            type: "success",
+          }),
+        );
+      }
+
+      setEditingOrgField(null);
+      setEditingOrgValues({});
+      setCreatingNewOrg(null);
+    } catch (err: any) {
+      console.error("[OrgLinkPanel] Failed to save org record:", err);
+      dispatch(
+        showToast({
+          message: `Failed to save ${field.label} record`,
+          type: "error",
+        }),
+      );
+    } finally {
+      setOrgRecordSaving(false);
+    }
+  }, [editingOrgField, editingOrgValues, creatingNewOrg, fields, contactId, onOrgChanged, dispatch]);
+
   const disabled = !contactId;
 
   // Count how many fields are populated
@@ -269,11 +508,17 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
           )}
           <Building2 size={14} className="text-slate-500" />
           <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
-            Organization Associations
+            Company & Organizations
           </span>
           {populatedCount > 0 && (
             <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-medium">
               {populatedCount}
+            </span>
+          )}
+          {/* DEV: show contactId for debugging */}
+          {contactId && (
+            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+              c#{contactId}
             </span>
           )}
         </div>
@@ -281,6 +526,82 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
 
       {expanded && (
         <div className="px-4 py-3 bg-white dark:bg-slate-900 space-y-1">
+          {/* ─── Scalar org fields (company, title, department, role, etc.) ─── */}
+          {scalarFields && scalarFields.length > 0 && (
+            <div className="space-y-1 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+              {scalarFields.map((sf) => (
+                <div
+                  key={sf.fieldName}
+                  className="flex items-center gap-2 py-1.5"
+                >
+                  <span className="w-32 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {sf.label} :
+                  </span>
+                  {isEditing ? (
+                    sf.type === "select" && sf.options ? (
+                      <select
+                        value={sf.value || ""}
+                        onChange={(e) =>
+                          onScalarFieldChange?.(sf.fieldName, e.target.value)
+                        }
+                        disabled={sf.disabled || disabled}
+                        className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      >
+                        {sf.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={sf.value || ""}
+                        onChange={(e) =>
+                          onScalarFieldChange?.(sf.fieldName, e.target.value)
+                        }
+                        disabled={sf.disabled || disabled}
+                        placeholder={sf.placeholder || ""}
+                        className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      />
+                    )
+                  ) : (
+                    <span className="text-sm text-slate-900 dark:text-slate-100 flex-1">
+                      {sf.value || "—"}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {/* Save button for scalar fields */}
+              {isEditing && onSaveScalars && (
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveScalars}
+                    disabled={disabled || scalarsSaving}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                      scalarsSaved
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    } disabled:opacity-40`}
+                  >
+                    {scalarsSaving ? (
+                      <FaSpinner className="animate-spin" size={10} />
+                    ) : scalarsSaved ? (
+                      "Saved ✓"
+                    ) : (
+                      <>
+                        <FaSave size={10} />
+                        Save Company Info
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Org FK association rows ─── */}
           {fields.map((field) => {
             const hasValue =
               field.value != null &&
@@ -290,57 +611,122 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
               field.displayName ||
               resolvedNames[field.fieldName] ||
               (hasValue ? `#${field.value}` : null);
+            const isEditingThisOrg = editingOrgField === field.fieldName;
 
             return (
-              <div
-                key={field.fieldName}
-                className="flex items-center gap-2 py-1.5"
-              >
-                {/* Label */}
-                <span className="w-32 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {field.label} :
-                </span>
+              <div key={field.fieldName}>
+                {/* ─── Summary row ─── */}
+                <div
+                  className={`flex items-center gap-2 py-1.5 ${
+                    isEditingThisOrg ? "bg-blue-50/50 dark:bg-blue-900/10 px-2 rounded" : ""
+                  }`}
+                >
+                  {/* Label */}
+                  <span className="w-32 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {field.label} :
+                  </span>
 
-                {/* Value */}
-                {hasValue ? (
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-xs font-mono text-slate-400">
-                      #{field.value}
-                    </span>
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                      {name}
-                    </span>
-                    {isEditing && (
+                  {/* Value */}
+                  {hasValue ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-xs font-mono text-slate-400">
+                        #{field.value}
+                      </span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                        {name}
+                      </span>
+                      {isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleClear(field.fieldName)}
+                          disabled={disabled || saving}
+                          className="shrink-0 p-1 text-slate-400 hover:text-red-500 rounded transition-colors disabled:opacity-40"
+                          title="Clear association"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400 flex-1">—</span>
+                  )}
+
+                  {/* Action buttons (edit mode only) */}
+                  {isEditing && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Edit button — only when org record exists */}
+                      {hasValue && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            isEditingThisOrg
+                              ? handleCancelOrgEdit()
+                              : handleEditOrgRecord(field)
+                          }
+                          disabled={
+                            disabled ||
+                            orgRecordSaving ||
+                            (editingOrgField != null && !isEditingThisOrg)
+                          }
+                          className={`p-1 rounded transition-colors disabled:opacity-30 ${
+                            isEditingThisOrg
+                              ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
+                              : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          }`}
+                          title={isEditingThisOrg ? "Cancel edit" : `Edit ${field.label} record`}
+                        >
+                          <FaEdit size={11} />
+                        </button>
+                      )}
+                      {/* Add new button — only when no org is assigned */}
+                      {!hasValue && (
+                        <button
+                          type="button"
+                          onClick={() => handleCreateNewOrg(field)}
+                          disabled={
+                            disabled ||
+                            orgRecordSaving ||
+                            (editingOrgField != null && !isEditingThisOrg)
+                          }
+                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors disabled:opacity-30"
+                          title={`Create new ${field.label}`}
+                        >
+                          <FaPlus size={11} />
+                        </button>
+                      )}
+                      {/* Search button */}
                       <button
                         type="button"
-                        onClick={() => handleClear(field.fieldName)}
+                        onClick={() => setSearchField(field.fieldName)}
                         disabled={disabled || saving}
-                        className="shrink-0 p-1 text-slate-400 hover:text-red-500 rounded transition-colors disabled:opacity-40"
-                        title="Clear association"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-40"
+                        title={`Search ${field.label}`}
                       >
-                        <FaTimes size={10} />
+                        {saving && searchField === field.fieldName ? (
+                          <FaSpinner className="animate-spin" size={12} />
+                        ) : (
+                          <FaSearch size={12} />
+                        )}
                       </button>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-sm text-slate-400 flex-1">—</span>
-                )}
+                    </div>
+                  )}
+                </div>
 
-                {/* Search button (edit mode only) */}
-                {isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchField(field.fieldName)}
-                    disabled={disabled || saving}
-                    className="shrink-0 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-40"
-                    title={`Search ${field.label}`}
-                  >
-                    {saving && searchField === field.fieldName ? (
-                      <FaSpinner className="animate-spin" size={12} />
-                    ) : (
-                      <FaSearch size={12} />
-                    )}
-                  </button>
+                {/* ─── Inline org record editor ─── */}
+                {isEditingThisOrg && (
+                  <OrgRecordEditor
+                    fieldLabel={field.label}
+                    orgId={creatingNewOrg ? null : Number(field.value)}
+                    values={editingOrgValues}
+                    onChange={(key, val) =>
+                      setEditingOrgValues((prev) => ({ ...prev, [key]: val }))
+                    }
+                    onSave={handleSaveOrgRecord}
+                    onCancel={handleCancelOrgEdit}
+                    saving={orgRecordSaving}
+                    loading={orgRecordLoading}
+                    isNew={!!creatingNewOrg}
+                  />
                 )}
               </div>
             );
@@ -370,3 +756,124 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
 };
 
 export default OrgLinkPanel;
+
+// ---------------------------------------------------------------------------
+// Inline org record editor
+// ---------------------------------------------------------------------------
+
+interface OrgRecordEditorProps {
+  fieldLabel: string;
+  orgId: number | null;
+  values: Record<string, any>;
+  onChange: (key: string, value: any) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  loading: boolean;
+  isNew: boolean;
+}
+
+function OrgRecordEditor({
+  fieldLabel,
+  orgId,
+  values,
+  onChange,
+  onSave,
+  onCancel,
+  saving,
+  loading,
+  isNew,
+}: OrgRecordEditorProps) {
+  if (loading) {
+    return (
+      <div className="px-3 py-4 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-2 text-sm text-slate-500">
+        <FaSpinner className="animate-spin" size={12} />
+        Loading {fieldLabel} record…
+      </div>
+    );
+  }
+
+  return (
+    <div className="ml-4 mr-2 mb-2 mt-1 px-3 py-3 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
+      {/* DEV: editing badge */}
+      <div className="text-[10px] font-mono text-slate-400 mb-1">
+        {isNew ? `new ${fieldLabel}` : `editing ${fieldLabel} #${orgId}`}
+      </div>
+
+      {/* ─── Field grid ─── */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {ORG_RECORD_FIELDS.map((fd) => {
+          const isFullWidth = fd.width === "full";
+
+          if (fd.inputType === "select" && fd.options) {
+            return (
+              <div
+                key={fd.key}
+                className={isFullWidth ? "col-span-2" : "col-span-1"}
+              >
+                <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                  {fd.label}
+                </label>
+                <select
+                  value={values[fd.key] ?? ""}
+                  onChange={(e) => onChange(fd.key, e.target.value)}
+                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                >
+                  {fd.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={fd.key}
+              className={isFullWidth ? "col-span-2" : "col-span-1"}
+            >
+              <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                {fd.label}
+              </label>
+              <input
+                type="text"
+                value={values[fd.key] ?? ""}
+                onChange={(e) => onChange(fd.key, e.target.value)}
+                placeholder={fd.placeholder || ""}
+                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Save / Cancel ─── */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-40"
+        >
+          {saving ? (
+            <FaSpinner className="animate-spin" size={10} />
+          ) : (
+            <FaSave size={10} />
+          )}
+          {isNew ? `Create ${fieldLabel}` : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-40"
+        >
+          <FaUndo size={10} />
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

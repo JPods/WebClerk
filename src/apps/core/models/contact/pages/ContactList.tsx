@@ -401,6 +401,7 @@ const ContactList = () => {
   const handleAdd = () => {
     setSelectedContact(null);
     setFormMode("add");
+    setDetailVariant(1);
   };
 
   // Handle form saved

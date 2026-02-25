@@ -5,13 +5,18 @@
  *   ┌─ Email ─────────────────────────────────────────────┐
  *   │  email: user@example.com          (scalar, editable) │
  *   │  ┌──────────────────────────────────────────────────┐│
- *   │  │ ★ #42  user@example.com   Work           ✎  ✕  ││
- *   │  │   #87  alt@example.com    Personal        ✎  ✕  ││
+ *   │  │ ★ #42  user@example.com   Work     ✎  🗑  ✕    ││
+ *   │  │   ┌─ Editing #42 ──────────────────────────────┐ ││
+ *   │  │   │  email: [          ]  name: [          ]   │ ││
+ *   │  │   │  type:  [          ]  attention: [     ]   │ ││
+ *   │  │   │              [Save]  [Cancel]              │ ││
+ *   │  │   └────────────────────────────────────────────┘ ││
+ *   │  │   #87  alt@example.com    Personal   ✎  🗑  ✕  ││
  *   │  │   + Add   🔍 Search existing                    ││
  *   │  └──────────────────────────────────────────────────┘│
  *   └─────────────────────────────────────────────────────┘
  *
- * Save-as-you-go: each add / set-primary / unlink triggers an immediate API call.
+ * Save-as-you-go: each add / set-primary / edit / delete triggers an immediate API call.
  *
  * @see readmes/contact-save-panel-plan.md §5
  */
@@ -24,9 +29,13 @@ import {
   FaSearch,
   FaSpinner,
   FaTimes,
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaUndo,
 } from "react-icons/fa";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { getRecords, saveRecord } from "@/api/wcapi";
+import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
 
@@ -59,7 +68,66 @@ export interface CommLinkPanelProps {
   onItemsChanged?: () => void;
   /** Start expanded (default: true in edit mode, false in view) */
   defaultExpanded?: boolean;
+  /** Called when user clicks Save to persist the scalar value to the contact */
+  onSaveScalar?: (value: string) => Promise<void>;
 }
+
+// ---------------------------------------------------------------------------
+// Per-model field definitions for inline editing
+// ---------------------------------------------------------------------------
+
+interface CommFieldDef {
+  /** Field key on the record (e.g. "email", "name", "city") */
+  key: string;
+  /** Display label */
+  label: string;
+  /** Input type — "text" (default), "checkbox", "select" */
+  inputType?: "text" | "checkbox" | "select";
+  /** Percent width hint: "full" (100%), "half" (50%) */
+  width?: "full" | "half";
+  /** Placeholder text */
+  placeholder?: string;
+  /** For select inputs — options list */
+  options?: { value: string; label: string }[];
+}
+
+/**
+ * Field layout per comm type. Each model's editable fields are listed
+ * in display order. The key names must match the API record properties.
+ */
+const COMM_FIELD_CONFIGS: Record<CommType, CommFieldDef[]> = {
+  email: [
+    { key: "email", label: "Email", width: "full", placeholder: "user@example.com" },
+    { key: "name", label: "Name / Label", width: "half", placeholder: "Work, Personal…" },
+    { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
+    { key: "type", label: "Type", width: "half", placeholder: "type" },
+    { key: "opt_out", label: "Opt Out", inputType: "checkbox", width: "half" },
+    { key: "is_primary", label: "Primary", inputType: "checkbox", width: "half" },
+  ],
+  phone: [
+    { key: "number", label: "Number", width: "full", placeholder: "555-123-4567" },
+    { key: "name", label: "Name / Label", width: "half", placeholder: "Mobile, Office…" },
+    { key: "country_code", label: "Country Code", width: "half", placeholder: "+1" },
+    { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
+    { key: "format", label: "Format", width: "half", placeholder: "formatted number" },
+    { key: "opt_out", label: "Opt Out", inputType: "checkbox", width: "half" },
+  ],
+  address: [
+    { key: "address1", label: "Address 1", width: "full", placeholder: "Street address" },
+    { key: "address2", label: "Address 2", width: "full", placeholder: "Suite, Unit, etc." },
+    { key: "city", label: "City", width: "half", placeholder: "City" },
+    { key: "state", label: "State", width: "half", placeholder: "State / Province" },
+    { key: "zip", label: "Zip", width: "half", placeholder: "Postal code" },
+    { key: "country", label: "Country", width: "half", placeholder: "Country" },
+    { key: "address_type", label: "Type", width: "half", placeholder: "Billing, Shipping…" },
+    { key: "full", label: "Full (display)", width: "full", placeholder: "Full formatted address" },
+  ],
+  domain: [
+    { key: "path", label: "Domain / URL", width: "full", placeholder: "example.com" },
+    { key: "type", label: "Type", width: "half", placeholder: "website, social…" },
+    { key: "status", label: "Status", width: "half", placeholder: "active" },
+  ],
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -121,12 +189,32 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   onSetPrimary,
   onItemsChanged,
   defaultExpanded,
+  onSaveScalar,
 }) => {
   const dispatch = useDispatch();
   const label = title || COMM_LABELS[type];
   const [expanded, setExpanded] = useState(
     defaultExpanded ?? (isEditing ? true : false),
   );
+
+  // ----- Scalar save state -----
+  const [scalarSaving, setScalarSaving] = useState(false);
+  const [scalarSaved, setScalarSaved] = useState(false);
+
+  const handleSaveScalar = useCallback(async () => {
+    if (!onSaveScalar) return;
+    setScalarSaving(true);
+    setScalarSaved(false);
+    try {
+      await onSaveScalar(scalarValue ?? "");
+      setScalarSaved(true);
+      setTimeout(() => setScalarSaved(false), 2000);
+    } catch {
+      // parent handles toast
+    } finally {
+      setScalarSaving(false);
+    }
+  }, [onSaveScalar, scalarValue]);
 
   // ----- Search dialog state -----
   const [searchOpen, setSearchOpen] = useState(false);
@@ -212,34 +300,16 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
     [contactId, type, onSetPrimary, onItemsChanged, dispatch],
   );
 
-  /** Add a new blank record for this contact */
-  const handleAddNew = useCallback(async () => {
+  /** Add a new blank record for this contact — opens inline editor */
+  const handleAddNew = useCallback(() => {
     if (!contactId) return;
-    setSaving(true);
-    try {
-      const payload = buildBlankPayload(type, contactId);
-      const res: any = await saveRecord(type, payload);
-      const record = res?.record ?? res;
-      const newId = Number(record?.id ?? res?.id);
-      if (!Number.isFinite(newId) || newId <= 0) {
-        throw new Error("Failed to create record");
-      }
-      onItemsChanged?.();
-      dispatch(
-        showToast({
-          message: `${COMM_LABELS[type]} created`,
-          type: "success",
-        }),
-      );
-    } catch (err: any) {
-      console.error("[CommLinkPanel] addNew failed:", err);
-      dispatch(
-        showToast({ message: `Failed to add ${type}`, type: "error" }),
-      );
-    } finally {
-      setSaving(false);
+    const values: Record<string, any> = {};
+    for (const fd of COMM_FIELD_CONFIGS[type]) {
+      values[fd.key] = fd.inputType === "checkbox" ? false : "";
     }
-  }, [contactId, type, onItemsChanged, dispatch]);
+    setEditingValues(values);
+    setEditingItemId("new");
+  }, [contactId, type]);
 
   /** Set a record as primary */
   const handleSetPrimary = useCallback(
@@ -248,6 +318,112 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
       onSetPrimary?.(Number(item.id), displayValue(type, item));
     },
     [type, onSetPrimary],
+  );
+
+  // ----- Inline editing state -----
+  /** ID of the record currently being edited inline, or "new" for a freshly-added blank */
+  const [editingItemId, setEditingItemId] = useState<number | "new" | null>(null);
+  /** Working copy of field values for the record being edited */
+  const [editingValues, setEditingValues] = useState<Record<string, any>>({});
+  /** Per-record save spinner */
+  const [recordSaving, setRecordSaving] = useState(false);
+  /** Per-record delete spinner — tracks which ID is being deleted */
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  /** Open inline editor for an existing record */
+  const handleEditRecord = useCallback(
+    (item: any) => {
+      if (!item?.id) return;
+      const values: Record<string, any> = {};
+      for (const fd of COMM_FIELD_CONFIGS[type]) {
+        values[fd.key] = item[fd.key] ?? (fd.inputType === "checkbox" ? false : "");
+      }
+      setEditingValues(values);
+      setEditingItemId(Number(item.id));
+    },
+    [type],
+  );
+
+  /** Cancel inline editing */
+  const handleCancelEdit = useCallback(() => {
+    setEditingItemId(null);
+    setEditingValues({});
+  }, []);
+
+  /** Save the inline-edited record */
+  const handleSaveRecord = useCallback(async () => {
+    if (editingItemId == null) return;
+    setRecordSaving(true);
+    try {
+      const payload: Record<string, any> = { ...editingValues };
+      if (editingItemId !== "new") {
+        payload.id = editingItemId;
+      } else {
+        payload.contact_id = contactId;
+      }
+      const res: any = await saveRecord(type, payload);
+      const record = res?.record ?? res;
+      const savedId = Number(record?.id ?? res?.id);
+
+      // If it was a new record and it's the first, auto-set as primary
+      if (editingItemId === "new" && items.length === 0 && savedId > 0) {
+        onSetPrimary?.(savedId, displayValue(type, record ?? payload));
+      }
+
+      onItemsChanged?.();
+      setEditingItemId(null);
+      setEditingValues({});
+      dispatch(
+        showToast({
+          message: `${COMM_LABELS[type]} ${editingItemId === "new" ? "created" : "saved"}`,
+          type: "success",
+        }),
+      );
+    } catch (err: any) {
+      console.error("[CommLinkPanel] saveRecord failed:", err);
+      dispatch(
+        showToast({
+          message: `Failed to save ${type} record`,
+          type: "error",
+        }),
+      );
+    } finally {
+      setRecordSaving(false);
+    }
+  }, [editingItemId, editingValues, type, contactId, items.length, onSetPrimary, onItemsChanged, dispatch]);
+
+  /** Delete (soft-delete) a linked record */
+  const handleDeleteRecord = useCallback(
+    async (item: any) => {
+      if (!item?.id) return;
+      const id = Number(item.id);
+      setDeletingId(id);
+      try {
+        await deleteRecord(type, id);
+        onItemsChanged?.();
+        dispatch(
+          showToast({
+            message: `${COMM_LABELS[type]} #${id} deleted`,
+            type: "success",
+          }),
+        );
+        if (editingItemId === id) {
+          setEditingItemId(null);
+          setEditingValues({});
+        }
+      } catch (err: any) {
+        console.error("[CommLinkPanel] deleteRecord failed:", err);
+        dispatch(
+          showToast({
+            message: `Failed to delete ${type} #${id}`,
+            type: "error",
+          }),
+        );
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [type, editingItemId, onItemsChanged, dispatch],
   );
 
   const disabled = !contactId;
@@ -272,6 +448,12 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           <span className="text-xs text-slate-400 ml-1">
             ({items.length})
           </span>
+          {/* DEV: show contactId + primaryId for debugging */}
+          {contactId && (
+            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+              c#{contactId}{primaryId ? ` → ${type}_id:${primaryId}` : ""}
+            </span>
+          )}
           {/* Primary scalar value as a subtle badge in the header */}
           {!expanded && scalarValue && (
             <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
@@ -289,14 +471,36 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
               {SCALAR_LABEL[type]} :
             </span>
             {isEditing ? (
-              <input
-                type="text"
-                value={scalarValue || ""}
-                onChange={(e) => onScalarChange?.(e.target.value)}
-                className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder={`Primary ${type}`}
-                disabled={disabled}
-              />
+              <>
+                <input
+                  type="text"
+                  value={scalarValue || ""}
+                  onChange={(e) => onScalarChange?.(e.target.value)}
+                  className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  placeholder={`Primary ${type}`}
+                  disabled={disabled}
+                />
+                {onSaveScalar && (
+                  <button
+                    type="button"
+                    onClick={handleSaveScalar}
+                    disabled={disabled || scalarSaving}
+                    className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+                      scalarSaved
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    } disabled:opacity-40`}
+                  >
+                    {scalarSaving ? (
+                      <FaSpinner className="animate-spin" size={10} />
+                    ) : scalarSaved ? (
+                      "Saved ✓"
+                    ) : (
+                      "Save"
+                    )}
+                  </button>
+                )}
+              </>
             ) : (
               <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 {scalarValue || "—"}
@@ -311,47 +515,108 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
                 const isPrimary = item.id != null && Number(item.id) === Number(primaryId);
                 const val = displayValue(type, item);
                 const sub = secondaryLabel(type, item);
+                const isEditingThis = editingItemId === Number(item.id);
+                const isDeleting = deletingId === Number(item.id);
                 return (
-                  <div
-                    key={item.id ?? idx}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
-                    {/* Star badge */}
-                    <button
-                      type="button"
-                      onClick={() => isEditing && handleSetPrimary(item)}
-                      className={`shrink-0 ${
-                        isPrimary
-                          ? "text-amber-500"
-                          : "text-slate-300 dark:text-slate-600"
-                      } ${isEditing ? "cursor-pointer hover:text-amber-400" : "cursor-default"}`}
-                      title={isPrimary ? "Primary" : "Set as primary"}
-                      disabled={!isEditing}
-                    >
-                      {isPrimary ? <FaStar size={12} /> : <FaRegStar size={12} />}
-                    </button>
-
-                    {/* ID */}
-                    <span className="text-xs font-mono text-slate-400 w-10 shrink-0">
-                      #{item.id}
-                    </span>
-
-                    {/* Display value */}
-                    <span
-                      className={`flex-1 truncate ${
-                        isPrimary
-                          ? "font-semibold text-slate-900 dark:text-slate-100"
-                          : "text-slate-700 dark:text-slate-300"
+                  <div key={item.id ?? idx}>
+                    {/* ─── Record summary row ─── */}
+                    <div
+                      className={`flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                        isEditingThis ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
                       }`}
                     >
-                      {val || "—"}
-                    </span>
+                      {/* Star badge */}
+                      <button
+                        type="button"
+                        onClick={() => isEditing && handleSetPrimary(item)}
+                        className={`shrink-0 ${
+                          isPrimary
+                            ? "text-amber-500"
+                            : "text-slate-300 dark:text-slate-600"
+                        } ${isEditing ? "cursor-pointer hover:text-amber-400" : "cursor-default"}`}
+                        title={isPrimary ? "Primary" : "Set as primary"}
+                        disabled={!isEditing}
+                      >
+                        {isPrimary ? <FaStar size={12} /> : <FaRegStar size={12} />}
+                      </button>
 
-                    {/* Secondary label */}
-                    {sub && (
-                      <span className="text-xs text-slate-400 shrink-0">
-                        {sub}
+                      {/* ID */}
+                      <span className="text-xs font-mono text-slate-400 w-10 shrink-0">
+                        #{item.id}
                       </span>
+
+                      {/* Display value */}
+                      <span
+                        className={`flex-1 truncate ${
+                          isPrimary
+                            ? "font-semibold text-slate-900 dark:text-slate-100"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        {val || "—"}
+                      </span>
+
+                      {/* Secondary label */}
+                      {sub && (
+                        <span className="text-xs text-slate-400 shrink-0">
+                          {sub}
+                        </span>
+                      )}
+
+                      {/* Edit / Delete buttons (edit mode) */}
+                      {isEditing && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              isEditingThis
+                                ? handleCancelEdit()
+                                : handleEditRecord(item)
+                            }
+                            disabled={
+                              disabled ||
+                              recordSaving ||
+                              (editingItemId != null && !isEditingThis)
+                            }
+                            className={`p-1 rounded transition-colors disabled:opacity-30 ${
+                              isEditingThis
+                                ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
+                                : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            }`}
+                            title={isEditingThis ? "Cancel edit" : "Edit record"}
+                          >
+                            <FaEdit size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRecord(item)}
+                            disabled={disabled || isDeleting || recordSaving}
+                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
+                            title="Delete record"
+                          >
+                            {isDeleting ? (
+                              <FaSpinner className="animate-spin" size={11} />
+                            ) : (
+                              <FaTrash size={11} />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ─── Inline editor for this record ─── */}
+                    {isEditingThis && (
+                      <CommRecordEditor
+                        type={type}
+                        values={editingValues}
+                        onChange={(key, val) =>
+                          setEditingValues((prev) => ({ ...prev, [key]: val }))
+                        }
+                        onSave={handleSaveRecord}
+                        onCancel={handleCancelEdit}
+                        saving={recordSaving}
+                        recordId={Number(item.id)}
+                      />
                     )}
                   </div>
                 );
@@ -359,7 +624,29 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
             </div>
           )}
 
-          {items.length === 0 && (
+          {/* ─── "New record" inline editor ─── */}
+          {editingItemId === "new" && (
+            <div className="border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
+              <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                  New {COMM_LABELS[type]} Record
+                </span>
+              </div>
+              <CommRecordEditor
+                type={type}
+                values={editingValues}
+                onChange={(key, val) =>
+                  setEditingValues((prev) => ({ ...prev, [key]: val }))
+                }
+                onSave={handleSaveRecord}
+                onCancel={handleCancelEdit}
+                saving={recordSaving}
+                recordId={null}
+              />
+            </div>
+          )}
+
+          {items.length === 0 && editingItemId !== "new" && (
             <p className="text-xs text-slate-400 italic">
               No {type} records linked
             </p>
@@ -371,7 +658,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
               <button
                 type="button"
                 onClick={handleAddNew}
-                disabled={disabled || saving}
+                disabled={disabled || saving || editingItemId != null}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-40"
               >
                 {saving ? (
@@ -384,7 +671,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                disabled={disabled || saving}
+                disabled={disabled || saving || editingItemId != null}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-40"
               >
                 <FaSearch size={10} />
@@ -419,6 +706,114 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
 };
 
 export default CommLinkPanel;
+
+// ---------------------------------------------------------------------------
+// Inline record editor — renders per-model fields for a single comm record
+// ---------------------------------------------------------------------------
+
+interface CommRecordEditorProps {
+  type: CommType;
+  values: Record<string, any>;
+  onChange: (key: string, value: any) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  /** null when creating a new record */
+  recordId: number | null;
+}
+
+function CommRecordEditor({
+  type,
+  values,
+  onChange,
+  onSave,
+  onCancel,
+  saving,
+  recordId,
+}: CommRecordEditorProps) {
+  const fields = COMM_FIELD_CONFIGS[type];
+  return (
+    <div className="px-3 py-3 bg-slate-50/50 dark:bg-slate-800/30 space-y-2">
+      {/* DEV: editing record badge */}
+      {recordId && (
+        <div className="text-[10px] font-mono text-slate-400 mb-1">
+          editing {type} #{recordId}
+        </div>
+      )}
+
+      {/* ─── Field grid (half fields sit side by side, full fields span row) ─── */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {fields.map((fd) => {
+          const isFullWidth = fd.width === "full";
+          const isCheckbox = fd.inputType === "checkbox";
+
+          if (isCheckbox) {
+            return (
+              <label
+                key={fd.key}
+                className="flex items-center gap-2 col-span-1"
+              >
+                <input
+                  type="checkbox"
+                  checked={!!values[fd.key]}
+                  onChange={(e) => onChange(fd.key, e.target.checked)}
+                  className="rounded border-slate-300 dark:border-slate-600 text-blue-600"
+                />
+                <span className="text-xs text-slate-600 dark:text-slate-400">
+                  {fd.label}
+                </span>
+              </label>
+            );
+          }
+
+          return (
+            <div
+              key={fd.key}
+              className={isFullWidth ? "col-span-2" : "col-span-1"}
+            >
+              <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                {fd.label}
+              </label>
+              <input
+                type="text"
+                value={values[fd.key] ?? ""}
+                onChange={(e) => onChange(fd.key, e.target.value)}
+                placeholder={fd.placeholder || ""}
+                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Save / Cancel ─── */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-40"
+        >
+          {saving ? (
+            <FaSpinner className="animate-spin" size={10} />
+          ) : (
+            <FaSave size={10} />
+          )}
+          {recordId ? "Save" : "Create"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-40"
+        >
+          <FaUndo size={10} />
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Search dialog (rendered via portal)

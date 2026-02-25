@@ -1,10 +1,8 @@
 /**
- * ContactDetail2.tsx
+ * ContactDetail3.tsx  (legacy)
  *
- * Contact Detail page with ScalarCard / JsonCard / BaseModelCards pattern.
- * Identical to ContactDetail.tsx except the view-mode Basic Information
- * section uses the shared collapsible-card components so every scalar and
- * JSONB first-level field is surfaced, clustered by use.
+ * Original form-based Contact Detail page.
+ * Retained as variant 3 for comparison / fallback.
  *
  * Standard Contact Detail page following the enterprise UI pattern:
  *
@@ -89,20 +87,15 @@ import {
   FaAddressBook,
   FaBuilding,
 } from "react-icons/fa";
-import { History, Link, Phone, SlidersHorizontal, User2, Mail, Building2, ShieldCheck } from "lucide-react";
-
-// Shared detail card components
-import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { History, Link, Phone, SlidersHorizontal } from "lucide-react";
 
 // Panel Components
 import {
   ActionsPanel,
   CommentsPanel,
-  CommLinkPanel,
   CommunicationsPanel,
   DocumentsPanel,
   MetadataPanel,
-  OrgLinkPanel,
   PrefsPanel,
   RawDataPanel,
   RefsPanel,
@@ -435,19 +428,43 @@ function HorizontalField({
 // InfoRow — read-only horizontal label/value pair
 // ---------------------------------------------------------------------------
 
-const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+const InfoRow: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  /** Make the value a clickable link: email→mailto, phone→tel, address→Google Maps */
+  linkType?: "email" | "phone" | "address";
+}> = ({
   label,
   value,
-}) => (
-  <div className="flex items-center gap-2">
-    <dt className="w-32 shrink-0 text-left text-sm text-slate-500 dark:text-slate-400">
-      {label} :
-    </dt>
-    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
-      {value || "—"}
-    </dd>
-  </div>
-);
+  linkType,
+}) => {
+  /** Wrap the rendered value in an <a> tag when linkType is set and value is a non-empty string */
+  const renderLinkedValue = (content: React.ReactNode) => {
+    if (!linkType || typeof value !== "string" || !value) return content;
+    const linkClasses = "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
+    switch (linkType) {
+      case "email":
+        return <a href={`mailto:${value}`} className={linkClasses} title={`Email ${value}`}>{content}</a>;
+      case "phone":
+        return <a href={`tel:${value.replace(/[^+\d]/g, "")}`} className={linkClasses} title={`Call ${value}`}>{content}</a>;
+      case "address":
+        return <a href={`https://maps.google.com/?q=${encodeURIComponent(value)}`} target="_blank" rel="noopener noreferrer" className={linkClasses} title="Open in Maps">{content}</a>;
+      default:
+        return content;
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <dt className="w-32 shrink-0 text-left text-sm text-slate-500 dark:text-slate-400">
+        {label} :
+      </dt>
+      <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+        {renderLinkedValue(value || "—")}
+      </dd>
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1402,7 +1419,6 @@ export default function ContactDetail({
     getValues,
     reset,
     setValue,
-    watch,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
@@ -1453,10 +1469,6 @@ export default function ContactDetail({
   // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
   const watchedFirstName = useWatch({ control, name: "name_first" });
   const watchedLastName = useWatch({ control, name: "name_last" });
-
-  // Watch all reactive form values (used by CommLinkPanel / OrgLinkPanel)
-  const watchedValues = watch();
-
   useEffect(() => {
     if (!isEditing) return;
     const next = [watchedFirstName, watchedLastName]
@@ -2136,115 +2148,64 @@ export default function ContactDetail({
       {/* ─── BASIC INFORMATION (PERSISTENT) ─── */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {effectiveMode === "view" && data ? (
-          /* ── Read-only view — ScalarCard / JsonCard / BaseModelCards ── */
-          <div className="space-y-0">
-            {/* ── Name ── */}
-            <ScalarCard
-              title="Name"
-              icon={<User2 size={14} />}
-              columns={3}
-              fields={[
-                { label: "name_first", value: data.name_first },
-                { label: "name_last", value: data.name_last },
-                { label: "name_middle", value: data.name_middle },
-                { label: "name_prefix", value: data.name_prefix },
-                { label: "name_suffix", value: data.name_suffix },
-                { label: "attention", value: data.attention },
-              ]}
-            />
-
-            {/* ── Communications — CommLinkPanel per type (read-only in view) ── */}
-            {(["email", "phone", "address", "domain"] as const).map((cType) => (
-              <CommLinkPanel
-                key={cType}
-                type={cType}
-                scalarValue={
-                  cType === "email"
-                    ? data.email
-                    : cType === "phone"
-                      ? data.phone
-                      : cType === "address"
-                        ? data.address_full
-                        : data.domain
+          /* ── Read-only view ── */
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+              <FaUser size={16} />
+              Basic Information
+            </h3>
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+              <InfoRow label="name_first" value={data.name_first} />
+              <InfoRow label="name_last" value={data.name_last} />
+              <InfoRow label="name_middle" value={data.name_middle} />
+              <div className="col-span-3">
+                <InfoRow label="attention" value={data.attention} />
+              </div>
+              <InfoRow label="name_prefix" value={data.name_prefix} />
+              <InfoRow label="name_suffix" value={data.name_suffix} />
+            </dl>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaAddressBook size={16} />
+              Contact Information
+            </h3>
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+              <InfoRow label="email" value={data.email} linkType="email" />
+              <InfoRow label="phone" value={data.phone} linkType="phone" />
+              <InfoRow label="domain" value={data.domain} />
+              <div className="col-span-3">
+                <InfoRow label="address_full" value={data.address_full} linkType="address" />
+              </div>
+            </dl>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaBuilding size={16} />
+              Company Information
+            </h3>
+            <dl className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+              <InfoRow label="company" value={data.company} />
+              <InfoRow label="title" value={data.title} />
+              <InfoRow label="department" value={data.department} />
+              <InfoRow label="role" value={data.role} />
+              <InfoRow label="customer_id" value={data.customer_id} />
+              <InfoRow label="vendor_id" value={data.vendor_id} />
+              <InfoRow label="rep_id" value={data.rep_id} />
+              <InfoRow label="employee_id" value={data.employee_id} />
+              <InfoRow label="manufacturer_id" value={data.manufacturer_id} />
+              <InfoRow label="other_id" value={data.other_id} />
+              <InfoRow
+                label="is_active"
+                value={
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
+                      data.is_active !== false
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                    }`}
+                  >
+                    {data.is_active !== false ? "Yes" : "No"}
+                  </span>
                 }
-                primaryId={
-                  cType === "email"
-                    ? data.email_id
-                    : cType === "phone"
-                      ? data.phone_id
-                      : cType === "address"
-                        ? data.address_id
-                        : data.domain_id
-                }
-                items={
-                  cType === "email"
-                    ? communications?.emails || []
-                    : cType === "phone"
-                      ? communications?.phones || []
-                      : cType === "address"
-                        ? communications?.addresses || []
-                        : communications?.domains || []
-                }
-                isEditing={false}
-                contactId={activeContactId}
-                defaultExpanded={false}
               />
-            ))}
-
-            {/* ── Organization Associations — OrgLinkPanel (read-only in view) ── */}
-            <OrgLinkPanel
-              fields={[
-                { fieldName: "customer_id", label: "Customer", value: data.customer_id, orgType: "customer" },
-                { fieldName: "vendor_id", label: "Vendor", value: data.vendor_id, orgType: "vendor" },
-                { fieldName: "rep_id", label: "Rep", value: data.rep_id, orgType: "rep" },
-                { fieldName: "employee_id", label: "Employee", value: data.employee_id, orgType: "employee" },
-                { fieldName: "manufacturer_id", label: "Manufacturer", value: data.manufacturer_id, orgType: "manufacturer" },
-                { fieldName: "other_id", label: "Other Org", value: data.other_id, orgType: "organization" },
-              ]}
-              isEditing={false}
-              contactId={activeContactId}
-              defaultExpanded={false}
-            />
-
-            {/* ── Company / Role scalars ── */}
-            <ScalarCard
-              title="Company & Role"
-              icon={<Building2 size={14} />}
-              columns={3}
-              fields={[
-                { label: "company", value: data.company },
-                { label: "title", value: data.title },
-                { label: "department", value: data.department },
-                { label: "role", value: data.role },
-                { label: "comment", value: data.comment },
-              ]}
-            />
-
-            {/* ── Auth & System ── */}
-            <ScalarCard
-              title="Auth & System"
-              icon={<ShieldCheck size={14} />}
-              columns={3}
-              fields={[
-                { label: "is_active", value: data.is_active },
-                { label: "is_staff", value: data.is_staff },
-                { label: "is_superuser", value: data.is_superuser },
-                { label: "dt_joined", value: data.dt_joined },
-                { label: "last_login", value: data.last_login },
-              ]}
-            />
-
-            {/* ── JSONB — actions ── */}
-            <JsonCard
-              title="Actions"
-              fieldName="actions"
-              data={data.actions as Record<string, unknown> | null | undefined}
-              columns={3}
-              defaultExpanded={false}
-            />
-
-            {/* ── BaseModel Identity + Envelopes ── */}
-            <BaseModelCards data={data as Record<string, unknown>} />
+            </dl>
           </div>
         ) : (
           /* ── Editable form ── */
@@ -2338,60 +2299,116 @@ export default function ContactDetail({
               )}
             </div>
 
-            {/* ── Communications — CommLinkPanel per type (edit mode) ── */}
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
               <FaAddressBook size={16} />
               Contact Information
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-0">
-              {(["email", "phone", "address", "domain"] as const).map((cType) => {
-                const scalarField = commTypeToContactScalarField(cType);
-                const idField = commTypeToContactIdField(cType);
-                const scalarVal =
-                  cType === "email"
-                    ? (watchedValues?.email ?? data?.email)
-                    : cType === "phone"
-                      ? (watchedValues?.phone ?? data?.phone)
-                      : cType === "address"
-                        ? (watchedValues?.address_full ?? data?.address_full)
-                        : (watchedValues?.domain ?? data?.domain);
-                const primaryIdVal =
-                  cType === "email"
-                    ? data?.email_id
-                    : cType === "phone"
-                      ? data?.phone_id
-                      : cType === "address"
-                        ? data?.address_id
-                        : data?.domain_id;
-                const commItems =
-                  cType === "email"
-                    ? communications?.emails || []
-                    : cType === "phone"
-                      ? communications?.phones || []
-                      : cType === "address"
-                        ? communications?.addresses || []
-                        : communications?.domains || [];
-                return (
-                  <CommLinkPanel
-                    key={cType}
-                    type={cType}
-                    scalarValue={scalarVal as string | null | undefined}
-                    primaryId={primaryIdVal as number | null | undefined}
-                    items={commItems}
-                    isEditing={true}
-                    contactId={activeContactId}
-                    onScalarChange={(val) => {
-                      formSetValueRef.current?.(scalarField as any, val, { shouldDirty: true });
-                    }}
-                    onSetPrimary={async (id, displayVal) => {
-                      await setPrimaryCommWithoutRefetch(cType, id, displayVal);
-                      await refreshCommType(cType);
-                    }}
-                    onItemsChanged={() => refreshCommType(cType)}
-                    defaultExpanded={true}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+              {shouldRenderField("email") && (
+                <HorizontalField
+                  label="email"
+                  htmlFor="email"
+                  required
+                  error={errors.email?.message}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="email"
+                      id="email"
+                      placeholder="Primary email"
+                      {...register("email")}
+                      error={!!errors.email?.message}
+                      disabled={isFieldDisabled("email")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("email")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add email"
+                        disabled={isFieldDisabled("email")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("phone") && (
+                <HorizontalField label="phone" htmlFor="phone">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="phone"
+                      placeholder="Primary phone"
+                      {...register("phone" as any)}
+                      disabled={isFieldDisabled("phone")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("phone")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add phone"
+                        disabled={isFieldDisabled("phone")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("address_full") && (
+                <HorizontalField label="address_full" htmlFor="address_full">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="address_full"
+                      placeholder="Full address"
+                      {...register("address_full" as any)}
+                      disabled={isFieldDisabled("address_full")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("address")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add address"
+                        disabled={isFieldDisabled("address_full")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("domain") && (
+                <HorizontalField label="domain" htmlFor="domain">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="domain"
+                      placeholder="Primary domain"
+                      {...register("domain" as any)}
+                      disabled={isFieldDisabled("domain")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("domain")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add domain"
+                        disabled={isFieldDisabled("domain")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
               <FaBuilding size={16} />
@@ -2452,25 +2469,54 @@ export default function ContactDetail({
                 </HorizontalField>
               )}
 
-              {/* ── Organization Associations — OrgLinkPanel (edit mode) ── */}
-              <div className="col-span-full">
-                <OrgLinkPanel
-                  fields={[
-                    { fieldName: "customer_id", label: "Customer", value: watchedValues?.customer_id ?? data?.customer_id, orgType: "customer" },
-                    { fieldName: "vendor_id", label: "Vendor", value: watchedValues?.vendor_id ?? data?.vendor_id, orgType: "vendor" },
-                    { fieldName: "rep_id", label: "Rep", value: watchedValues?.rep_id ?? data?.rep_id, orgType: "rep" },
-                    { fieldName: "employee_id", label: "Employee", value: watchedValues?.employee_id ?? data?.employee_id, orgType: "employee" },
-                    { fieldName: "manufacturer_id", label: "Manufacturer", value: watchedValues?.manufacturer_id ?? data?.manufacturer_id, orgType: "manufacturer" },
-                    { fieldName: "other_id", label: "Other Org", value: watchedValues?.other_id ?? data?.other_id, orgType: "organization" },
-                  ]}
-                  isEditing={true}
-                  contactId={activeContactId}
-                  onOrgChanged={(fieldName, orgId) => {
-                    formSetValueRef.current?.(fieldName as any, orgId, { shouldDirty: true });
-                  }}
-                  defaultExpanded={true}
-                />
-              </div>
+              {/* System IDs */}
+              {/* ── Org Association ID Fields with Search ── */}
+              {(
+                [
+                  "customer_id",
+                  "vendor_id",
+                  "rep_id",
+                  "employee_id",
+                  "manufacturer_id",
+                  "other_id",
+                ] as const
+              ).map(
+                (fieldName) =>
+                  shouldRenderField(fieldName) && (
+                    <HorizontalField
+                      key={fieldName}
+                      label={fieldName}
+                      htmlFor={fieldName}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          id={fieldName}
+                          placeholder={`${fieldName
+                            .replace("_id", "")
+                            .replace(/^./, (c) => c.toUpperCase())} ID`}
+                          {...register(fieldName as any, {
+                            valueAsNumber: true,
+                          })}
+                          //disabled={isFieldDisabled(fieldName)}
+                          disabled={
+                            effectiveMode === "edit" || effectiveMode === "add"
+                          }
+                        />
+                        {effectiveMode !== "view" && (
+                          <button
+                            type="button"
+                            onClick={() => setOrgSearchField(fieldName)}
+                            className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title={`Search ${fieldName.replace("_id", "")}s`}
+                          >
+                            <FaSearch size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </HorizontalField>
+                  ),
+              )}
 
               {/* Passwords — add mode only */}
               {effectiveMode === "add" && shouldRenderField("password") && (

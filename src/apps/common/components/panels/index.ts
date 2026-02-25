@@ -85,10 +85,12 @@ export { default as TransactionsPanel } from "./TransactionsPanel";
 export type { TransactionsPanelProps, TransactionRecord } from "./TransactionsPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
 export { default as CommunicationsPanel } from "./CommunicationsPanel";
+export { default as EmailGatePanel } from "./EmailGatePanel";
+export type { EmailGateResult, EmailGatePanelProps } from "./EmailGatePanel";
 export { default as CommLinkPanel } from "./CommLinkPanel";
 export type { CommType, CommLinkPanelProps } from "./CommLinkPanel";
 export { default as OrgLinkPanel } from "./OrgLinkPanel";
-export type { OrgField, OrgLinkPanelProps } from "./OrgLinkPanel";
+export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";
 
 // Q&A utilities and types
