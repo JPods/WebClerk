@@ -16,9 +16,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 
 import ComponentCard from "@/components/common/ComponentCard";
 import { DevBadge } from "@/components/common/DevBadge";
@@ -26,6 +25,8 @@ import Label from "@/components/form/Label";
 import { SimpleDetailHeader } from "@/components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "@/components/common/SimpleDetailToolbar";
 import Input from "@/components/form/input/InputField";
+import Select from "@/components/form/Select";
+import Checkbox from "@/components/form/input/Checkbox";
 import {
   Table,
   TableBody,
@@ -39,7 +40,7 @@ import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useParams, useSearchParams } from "react-router";
 import { getRecord, saveRecord } from "@/api/wcapi";
-import { itemSchema } from "../utils/itemSchema";
+import { itemSchema, type ItemFormValues } from "../utils/itemSchema";
 import { ItemAddProps } from "../types/itemType";
 import BOMSection from "../components/BOMSection";
 import { 
@@ -1159,18 +1160,138 @@ function ItemDataView({ data, isAdmin, onDataChange }: ItemDataViewProps) {
 const ITEM_DETAIL_FIELDS = [
   "name",
   "sku",
+  "qr_code",
   "kind",
   "uom",
+  "base_uom",
   "description",
-  "category",
+  "specification_id",
   "price",
   "cost",
   "quantity",
   "flags",
   "gls",
   "tax_code",
+  "catalog",
   "is_active",
 ] as const;
+
+// ============================================================================
+// Form ↔ Data helpers
+// ============================================================================
+
+/** Map server data → flat form values */
+function dataToFormValues(d: ItemData | null): ItemFormValues {
+  if (!d) {
+    return {
+      name: "", sku: "", qr_code: "", kind: "physical",
+      uom: "", base_uom: "", description: "",
+      specification_id: undefined, is_active: true,
+      price_base: undefined, price_msrp: undefined, price_currency: "USD",
+      cost_standard: undefined, cost_last: undefined, cost_avg: undefined,
+      cost_landed: undefined, cost_currency: "USD",
+      qty_on_hand: undefined, qty_allocated: undefined, qty_available: undefined,
+      qty_on_so: undefined, qty_on_po: undefined, qty_on_p: undefined,
+      qty_on_reciept: undefined, qty_on_in: undefined, qty_on_wo: undefined,
+      flag_back_order_allowed: false, flag_discountable: false, flag_linked: false,
+      flag_not_tracked: false, flag_pacing: false, flag_print_suppressed: false,
+      flag_serialized: false, flag_tally_by_type: false,
+      gls_inventory: "", gls_cogs: "", gls_revenue: "", gls_variance: "",
+      tax_code_code: "", tax_code_jurisdiction: "", tax_code_category: "",
+      tax_code_rate: undefined,
+      catalog_categories: "", catalog_web_slug: "", catalog_web_title: "",
+      catalog_web_short: "",
+    };
+  }
+  const p = typeof d.price === "object" ? (d.price as PriceData) : null;
+  const c = (d.cost as CostData) || {};
+  const q = (d.quantity as QuantityData) || {};
+  const f = (d.flags as FlagsData) || {};
+  const g = (d.gls as GlsData) || {};
+  const t = (d.tax_code as TaxCodeData) || {};
+  const cat = (d.catalog as CatalogData) || {};
+  return {
+    name: d.name || "", sku: d.sku || "", qr_code: d.qr_code || "",
+    kind: d.kind || "physical", uom: d.uom || "", base_uom: d.base_uom || "",
+    description: d.description || "",
+    specification_id: d.specification_id,
+    is_active: d.is_active ?? true,
+    price_base: p?.base ?? (typeof d.price === "number" ? d.price : undefined),
+    price_msrp: p?.msrp, price_currency: p?.currency || "USD",
+    cost_standard: c.standard, cost_last: c.last, cost_avg: c.avg,
+    cost_landed: c.landed, cost_currency: c.currency || "USD",
+    qty_on_hand: q.on_hand, qty_allocated: q.allocated, qty_available: q.available,
+    qty_on_so: q.on_so, qty_on_po: q.on_po, qty_on_p: q.on_p,
+    qty_on_reciept: q.on_reciept, qty_on_in: q.on_in, qty_on_wo: q.on_wo,
+    flag_back_order_allowed: f.back_order_allowed ?? false,
+    flag_discountable: f.discountable ?? false,
+    flag_linked: f.linked ?? false,
+    flag_not_tracked: f.not_tracked ?? false,
+    flag_pacing: f.pacing ?? false,
+    flag_print_suppressed: f.print_suppressed ?? false,
+    flag_serialized: f.serialized ?? false,
+    flag_tally_by_type: f.tally_by_type ?? false,
+    gls_inventory: g.inventory || "", gls_cogs: g.cogs || "",
+    gls_revenue: g.revenue || "", gls_variance: g.variance || "",
+    tax_code_code: t.code || "", tax_code_jurisdiction: t.jurisdiction || "",
+    tax_code_category: t.category || "", tax_code_rate: t.rate,
+    catalog_categories: (cat.categories || []).join(", "),
+    catalog_web_slug: cat.web?.slug || "",
+    catalog_web_title: cat.web?.title || "",
+    catalog_web_short: cat.web?.short || "",
+  };
+}
+
+/** Reconstruct nested API payload from flat form values */
+function formValuesToPayload(fd: ItemFormValues, orig: ItemData | null): Record<string, any> {
+  return {
+    name: fd.name, sku: fd.sku, qr_code: fd.qr_code, kind: fd.kind,
+    uom: fd.uom, base_uom: fd.base_uom, description: fd.description,
+    specification_id: fd.specification_id, is_active: fd.is_active,
+    price: {
+      ...(typeof orig?.price === "object" ? orig.price : {}),
+      base: fd.price_base, msrp: fd.price_msrp, currency: fd.price_currency,
+    },
+    cost: {
+      ...(orig?.cost || {}),
+      standard: fd.cost_standard, last: fd.cost_last, avg: fd.cost_avg,
+      landed: fd.cost_landed, currency: fd.cost_currency,
+    },
+    quantity: {
+      ...(orig?.quantity || {}),
+      on_hand: fd.qty_on_hand, allocated: fd.qty_allocated, available: fd.qty_available,
+      on_so: fd.qty_on_so, on_po: fd.qty_on_po, on_p: fd.qty_on_p,
+      on_reciept: fd.qty_on_reciept, on_in: fd.qty_on_in, on_wo: fd.qty_on_wo,
+    },
+    flags: {
+      ...(orig?.flags || {}),
+      back_order_allowed: fd.flag_back_order_allowed, discountable: fd.flag_discountable,
+      linked: fd.flag_linked, not_tracked: fd.flag_not_tracked,
+      pacing: fd.flag_pacing, print_suppressed: fd.flag_print_suppressed,
+      serialized: fd.flag_serialized, tally_by_type: fd.flag_tally_by_type,
+    },
+    gls: {
+      ...(orig?.gls || {}),
+      inventory: fd.gls_inventory, cogs: fd.gls_cogs,
+      revenue: fd.gls_revenue, variance: fd.gls_variance,
+    },
+    tax_code: {
+      ...(orig?.tax_code || {}),
+      code: fd.tax_code_code, jurisdiction: fd.tax_code_jurisdiction,
+      category: fd.tax_code_category, rate: fd.tax_code_rate,
+    },
+    catalog: {
+      ...(orig?.catalog || {}),
+      categories: fd.catalog_categories
+        ? fd.catalog_categories.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : (orig?.catalog as CatalogData)?.categories || [],
+      web: {
+        ...((orig?.catalog as CatalogData)?.web || {}),
+        slug: fd.catalog_web_slug, title: fd.catalog_web_title, short: fd.catalog_web_short,
+      },
+    },
+  };
+}
 
 // ============================================================================
 // Main Component
@@ -1255,8 +1376,8 @@ export default function ItemDetail({
     }
   }, [itemIdFromUrl, initialData?.id, fetchedData?.id, dispatch]);
   
-  // Allow toggling between view and edit modes
-  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
+  // Detail pages always open in edit mode
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode === "add" ? "add" : "edit");
   const [isSaving, setIsSaving] = useState(false);
   
   // Tab navigation
@@ -1276,7 +1397,7 @@ export default function ItemDetail({
 
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
-    setEffectiveMode(mode);
+    setEffectiveMode(mode === "add" ? "add" : "edit");
   }, [mode]);
   
   // Field access control
@@ -1303,46 +1424,30 @@ export default function ItemDetail({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
-  } = useForm({
-    resolver: zodResolver(itemSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: 0,
-      category: "",
-    },
+  } = useForm<ItemFormValues>({
+    resolver: zodResolver(itemSchema) as any,
+    defaultValues: dataToFormValues(null),
   });
 
   // Load Edit Data
   useEffect(() => {
-    if (!data) {
-      reset({});
-      return;
-    }
-
-    const normalizedItem = {
-      name: data.name || "",
-      description: data.description || "",
-      price: typeof data.price === "number" ? data.price : (data.price as PriceData)?.base || 0,
-      category: data.category || "",
-    };
-
-    reset(normalizedItem);
+    reset(dataToFormValues(data));
   }, [data, reset]);
 
   // Form submission
-  const onSubmit = async (formData: z.infer<typeof itemSchema>) => {
+  const onSubmit = async (formData: ItemFormValues) => {
     try {
       setIsSaving(true);
       const payload = {
-        ...formData,
+        ...formValuesToPayload(formData, data),
         ...(mode === "edit" && data?.id ? { id: data.id } : {}),
       };
 
       const res = mode === "add"
-        ? await createItem(payload)
-        : await updateItem({ ...payload, id: data!.id! });
+        ? await createItem(payload as any)
+        : await updateItem({ ...payload, id: data!.id! } as any);
 
       if (res) {
         dispatch(showToast({ 
@@ -1352,8 +1457,6 @@ export default function ItemDetail({
         if (onSaved) onSaved();
         if (effectiveMode === "add" && onCancelInline) {
           onCancelInline();
-        } else {
-          setEffectiveMode("view");
         }
       }
     } catch (error: unknown) {
@@ -1381,16 +1484,7 @@ export default function ItemDetail({
       onCancelInline?.();
     } else {
       // Reset form to original data
-      if (data) {
-        const normalizedItem = {
-          name: data.name || "",
-          description: data.description || "",
-          price: typeof data.price === "number" ? data.price : (data.price as PriceData)?.base || 0,
-          category: data.category || "",
-        };
-        reset(normalizedItem);
-      }
-      setEffectiveMode("view");
+      reset(dataToFormValues(data));
     }
   };
 
@@ -1509,74 +1603,212 @@ export default function ItemDetail({
 
       <ComponentCard>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* 1. Basic Information Section */}
-          <Section
-            title="Basic Information"
-            icon={<FaBox className="w-4 h-4" />}
-            defaultExpanded={true}
-          >
+
+          {/* ── 1. Identity ────────────────────────────────────────── */}
+          <Section title="Identity" icon={<FaBox className="w-4 h-4" />} defaultExpanded={true}>
             {shouldRenderField("name") && (
               <FieldRow label="Name" htmlFor="name" error={errors.name?.message} required>
-                <Input
-                  type="text"
-                  id="name"
-                  placeholder="Item name"
-                  {...register("name")}
-                  error={!!errors.name?.message}
-                  disabled={isFieldDisabled("name")}
-                />
+                <Input type="text" id="name" placeholder="Item name" {...register("name")} error={!!errors.name?.message} disabled={isFieldDisabled("name")} />
               </FieldRow>
             )}
-
-            {shouldRenderField("category") && (
-              <FieldRow label="Category" htmlFor="category" error={errors.category?.message} required>
-                <Input
-                  type="text"
-                  id="category"
-                  placeholder="Category"
-                  {...register("category")}
-                  error={!!errors.category?.message}
-                  disabled={isFieldDisabled("category")}
-                />
+            {shouldRenderField("sku") && (
+              <FieldRow label="SKU" htmlFor="sku">
+                <Input type="text" id="sku" placeholder="SKU" {...register("sku")} disabled={isFieldDisabled("sku")} />
               </FieldRow>
             )}
-
-            {shouldRenderField("description") && (
-              <FieldRow label="Description" htmlFor="description" error={errors.description?.message} required>
-                <Input
-                  type="text"
-                  id="description"
-                  placeholder="Description"
-                  {...register("description")}
-                  error={!!errors.description?.message}
-                  disabled={isFieldDisabled("description")}
-                />
+            {shouldRenderField("qr_code") && (
+              <FieldRow label="QR Code" htmlFor="qr_code">
+                <Input type="text" id="qr_code" placeholder="QR / barcode" {...register("qr_code")} disabled={isFieldDisabled("qr_code")} />
               </FieldRow>
             )}
+            {shouldRenderField("kind") && (
+              <FieldRow label="Kind" htmlFor="kind">
+                <Controller name="kind" control={control} render={({ field }) => (
+                  <Select value={field.value ?? "physical"} onChange={field.onChange} disabled={isFieldDisabled("kind")}
+                    options={[{ value: "physical", label: "Physical" }, { value: "service", label: "Service" }, { value: "bundle", label: "Bundle" }]} />
+                )} />
+              </FieldRow>
+            )}
+            {shouldRenderField("uom") && (
+              <FieldRow label="UOM" htmlFor="uom" hint="Unit of measure">
+                <Input type="text" id="uom" placeholder="ea, lb, kg …" {...register("uom")} disabled={isFieldDisabled("uom")} />
+              </FieldRow>
+            )}
+            {shouldRenderField("base_uom") && (
+              <FieldRow label="Base UOM" htmlFor="base_uom">
+                <Input type="text" id="base_uom" placeholder="Base unit" {...register("base_uom")} disabled={isFieldDisabled("base_uom")} />
+              </FieldRow>
+            )}
+            <div className="lg:col-span-2">
+              {shouldRenderField("description") && (
+                <FieldRow label="Description" htmlFor="description">
+                  <textarea id="description" rows={3} placeholder="Item description" {...register("description")}
+                    disabled={isFieldDisabled("description")}
+                    className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
+                </FieldRow>
+              )}
+            </div>
+            {shouldRenderField("specification_id") && (
+              <FieldRow label="Spec ID" htmlFor="specification_id">
+                <Input type="number" id="specification_id" placeholder="Specification ID" {...register("specification_id")} disabled={isFieldDisabled("specification_id")} />
+              </FieldRow>
+            )}
+            <FieldRow label="Active" htmlFor="is_active">
+              <Controller name="is_active" control={control} render={({ field }) => (
+                <Checkbox id="is_active" checked={field.value ?? true} onChange={(c) => field.onChange(c)} disabled={isFieldDisabled("is_active")} label="Item is active" />
+              )} />
+            </FieldRow>
           </Section>
 
-          {/* 2. Pricing Section */}
-          <Section
-            title="Pricing"
-            icon={<FaDollarSign className="w-4 h-4" />}
-            defaultExpanded={true}
-          >
-            {shouldRenderField("price") && (
-              <FieldRow label="Price" htmlFor="price" error={errors.price?.message} required>
-                <Input
-                  type="number"
-                  id="price"
-                  placeholder="0.00"
-                  step="0.01"
-                  {...register("price", { valueAsNumber: true })}
-                  error={!!errors.price?.message}
-                  disabled={isFieldDisabled("price")}
-                />
+          {/* ── 2. Pricing ─────────────────────────────────────────── */}
+          <Section title="Pricing" icon={<FaDollarSign className="w-4 h-4" />} defaultExpanded={true}>
+            {shouldRenderField("price") && (<>
+              <FieldRow label="Base Price" htmlFor="price_base">
+                <Input type="number" id="price_base" step="0.01" placeholder="0.00" {...register("price_base")} disabled={isFieldDisabled("price")} />
               </FieldRow>
-            )}
+              <FieldRow label="MSRP" htmlFor="price_msrp">
+                <Input type="number" id="price_msrp" step="0.01" placeholder="0.00" {...register("price_msrp")} disabled={isFieldDisabled("price")} />
+              </FieldRow>
+              <FieldRow label="Currency" htmlFor="price_currency">
+                <Input type="text" id="price_currency" placeholder="USD" {...register("price_currency")} disabled={isFieldDisabled("price")} />
+              </FieldRow>
+            </>)}
           </Section>
 
-          {/* Panels moved to tab navigation below */}
+          {/* ── 3. Costing ─────────────────────────────────────────── */}
+          <Section title="Costing" icon={<FaCalculator className="w-4 h-4" />} defaultExpanded={true}>
+            {shouldRenderField("cost") && (<>
+              <FieldRow label="Standard" htmlFor="cost_standard">
+                <Input type="number" id="cost_standard" step="0.01" placeholder="0.00" {...register("cost_standard")} disabled={isFieldDisabled("cost")} />
+              </FieldRow>
+              <FieldRow label="Last" htmlFor="cost_last">
+                <Input type="number" id="cost_last" step="0.01" placeholder="0.00" {...register("cost_last")} disabled={isFieldDisabled("cost")} />
+              </FieldRow>
+              <FieldRow label="Average" htmlFor="cost_avg">
+                <Input type="number" id="cost_avg" step="0.01" placeholder="0.00" {...register("cost_avg")} disabled={isFieldDisabled("cost")} />
+              </FieldRow>
+              <FieldRow label="Landed" htmlFor="cost_landed">
+                <Input type="number" id="cost_landed" step="0.01" placeholder="0.00" {...register("cost_landed")} disabled={isFieldDisabled("cost")} />
+              </FieldRow>
+              <FieldRow label="Currency" htmlFor="cost_currency">
+                <Input type="text" id="cost_currency" placeholder="USD" {...register("cost_currency")} disabled={isFieldDisabled("cost")} />
+              </FieldRow>
+            </>)}
+          </Section>
+
+          {/* ── 4. Inventory / Quantity ─────────────────────────────── */}
+          <Section title="Inventory" icon={<FaWarehouse className="w-4 h-4" />} defaultExpanded={true}>
+            {shouldRenderField("quantity") && (<>
+              <FieldRow label="On Hand" htmlFor="qty_on_hand">
+                <Input type="number" id="qty_on_hand" placeholder="0" {...register("qty_on_hand")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="Allocated" htmlFor="qty_allocated">
+                <Input type="number" id="qty_allocated" placeholder="0" {...register("qty_allocated")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="Available" htmlFor="qty_available">
+                <Input type="number" id="qty_available" placeholder="0" {...register("qty_available")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On SO" htmlFor="qty_on_so" hint="Sales orders">
+                <Input type="number" id="qty_on_so" placeholder="0" {...register("qty_on_so")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On PO" htmlFor="qty_on_po" hint="Purchase orders">
+                <Input type="number" id="qty_on_po" placeholder="0" {...register("qty_on_po")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On Proposal" htmlFor="qty_on_p">
+                <Input type="number" id="qty_on_p" placeholder="0" {...register("qty_on_p")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On Receipt" htmlFor="qty_on_reciept">
+                <Input type="number" id="qty_on_reciept" placeholder="0" {...register("qty_on_reciept")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On Inbound" htmlFor="qty_on_in">
+                <Input type="number" id="qty_on_in" placeholder="0" {...register("qty_on_in")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+              <FieldRow label="On WO" htmlFor="qty_on_wo" hint="Work orders">
+                <Input type="number" id="qty_on_wo" placeholder="0" {...register("qty_on_wo")} disabled={isFieldDisabled("quantity")} />
+              </FieldRow>
+            </>)}
+          </Section>
+
+          {/* ── 5. Flags ───────────────────────────────────────────── */}
+          <Section title="Flags" icon={<FaCog className="w-4 h-4" />} defaultExpanded={false}>
+            {shouldRenderField("flags") && (<>
+              {([
+                ["flag_back_order_allowed", "Back Order Allowed"],
+                ["flag_discountable",       "Discountable"],
+                ["flag_linked",             "Linked"],
+                ["flag_not_tracked",        "Not Tracked"],
+                ["flag_pacing",             "Pacing"],
+                ["flag_print_suppressed",   "Print Suppressed"],
+                ["flag_serialized",         "Serialized"],
+                ["flag_tally_by_type",      "Tally by Type"],
+              ] as const).map(([fld, lbl]) => (
+                <div key={fld} className="py-2">
+                  <Controller name={fld} control={control} render={({ field }) => (
+                    <Checkbox id={fld} checked={field.value ?? false} onChange={(c) => field.onChange(c)} disabled={isFieldDisabled("flags")} label={lbl} />
+                  )} />
+                </div>
+              ))}
+            </>)}
+          </Section>
+
+          {/* ── 6. GL Accounts ─────────────────────────────────────── */}
+          <Section title="GL Accounts" icon={<FaListAlt className="w-4 h-4" />} defaultExpanded={false}>
+            {shouldRenderField("gls") && (<>
+              <FieldRow label="Inventory" htmlFor="gls_inventory">
+                <Input type="text" id="gls_inventory" placeholder="GL account" {...register("gls_inventory")} disabled={isFieldDisabled("gls")} />
+              </FieldRow>
+              <FieldRow label="COGS" htmlFor="gls_cogs">
+                <Input type="text" id="gls_cogs" placeholder="GL account" {...register("gls_cogs")} disabled={isFieldDisabled("gls")} />
+              </FieldRow>
+              <FieldRow label="Revenue" htmlFor="gls_revenue">
+                <Input type="text" id="gls_revenue" placeholder="GL account" {...register("gls_revenue")} disabled={isFieldDisabled("gls")} />
+              </FieldRow>
+              <FieldRow label="Variance" htmlFor="gls_variance">
+                <Input type="text" id="gls_variance" placeholder="GL account" {...register("gls_variance")} disabled={isFieldDisabled("gls")} />
+              </FieldRow>
+            </>)}
+          </Section>
+
+          {/* ── 7. Tax Code ────────────────────────────────────────── */}
+          <Section title="Tax Code" icon={<FaFileInvoice className="w-4 h-4" />} defaultExpanded={false}>
+            {shouldRenderField("tax_code") && (<>
+              <FieldRow label="Code" htmlFor="tax_code_code">
+                <Input type="text" id="tax_code_code" placeholder="Tax code" {...register("tax_code_code")} disabled={isFieldDisabled("tax_code")} />
+              </FieldRow>
+              <FieldRow label="Jurisdiction" htmlFor="tax_code_jurisdiction">
+                <Input type="text" id="tax_code_jurisdiction" placeholder="Jurisdiction" {...register("tax_code_jurisdiction")} disabled={isFieldDisabled("tax_code")} />
+              </FieldRow>
+              <FieldRow label="Category" htmlFor="tax_code_category">
+                <Input type="text" id="tax_code_category" placeholder="Category" {...register("tax_code_category")} disabled={isFieldDisabled("tax_code")} />
+              </FieldRow>
+              <FieldRow label="Rate" htmlFor="tax_code_rate">
+                <Input type="number" id="tax_code_rate" step="0.0001" placeholder="0.0000" {...register("tax_code_rate")} disabled={isFieldDisabled("tax_code")} />
+              </FieldRow>
+            </>)}
+          </Section>
+
+          {/* ── 8. Catalog ─────────────────────────────────────────── */}
+          <Section title="Catalog" icon={<FaListAlt className="w-4 h-4" />} defaultExpanded={false}>
+            {shouldRenderField("catalog") && (<>
+              <div className="lg:col-span-2">
+                <FieldRow label="Categories" htmlFor="catalog_categories" hint="Comma-separated list">
+                  <Input type="text" id="catalog_categories" placeholder="cat1, cat2, …" {...register("catalog_categories")} disabled={isFieldDisabled("catalog")} />
+                </FieldRow>
+              </div>
+              <FieldRow label="Web Slug" htmlFor="catalog_web_slug">
+                <Input type="text" id="catalog_web_slug" placeholder="my-item-slug" {...register("catalog_web_slug")} disabled={isFieldDisabled("catalog")} />
+              </FieldRow>
+              <FieldRow label="Web Title" htmlFor="catalog_web_title">
+                <Input type="text" id="catalog_web_title" placeholder="Page title" {...register("catalog_web_title")} disabled={isFieldDisabled("catalog")} />
+              </FieldRow>
+              <div className="lg:col-span-2">
+                <FieldRow label="Web Short" htmlFor="catalog_web_short" hint="Short description for web">
+                  <Input type="text" id="catalog_web_short" placeholder="Brief web description" {...register("catalog_web_short")} disabled={isFieldDisabled("catalog")} />
+                </FieldRow>
+              </div>
+            </>)}
+          </Section>
+
         </form>
       </ComponentCard>
 
