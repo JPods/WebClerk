@@ -1,11 +1,11 @@
 /**
  * BasicInformationPanel - Compact read-only display of org basic information
- * 
+ *
  * Displays common OrgBase scalar fields in a horizontal layout.
  * Reusable across all org apps (customer, vendor, employee, rep, manufacturer).
  */
-import React from 'react';
-import { FaBuilding } from 'react-icons/fa';
+import React from "react";
+import { FaBuilding } from "react-icons/fa";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,8 +52,12 @@ interface RowProps {
 
 const Row: React.FC<RowProps> = ({ label, value }) => (
   <div className="flex items-center gap-2">
-    <dt className="w-20 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">{label}</dt>
-    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">{value || '—'}</dd>
+    <dt className="w-25 shrink text-left text-sm text-slate-500 dark:text-slate-400">
+      {label} :
+    </dt>
+    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+      {value || "—"}
+    </dd>
   </div>
 );
 
@@ -62,12 +66,14 @@ const Row: React.FC<RowProps> = ({ label, value }) => (
 // ---------------------------------------------------------------------------
 
 const ActiveBadge: React.FC<{ isActive: boolean }> = ({ isActive }) => (
-  <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
-    isActive
-      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-      : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-  }`}>
-    {isActive ? 'Yes' : 'No'}
+  <span
+    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
+      isActive
+        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+        : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+    }`}
+  >
+    {isActive ? "Yes" : "No"}
   </span>
 );
 
@@ -79,13 +85,15 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
   data,
   columns = 3,
   showHeader = true,
-  title = 'Basic Information',
-  className = '',
+  title = "Basic Information",
+  className = "",
 }) => {
-  const gridCols = columns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2';
+  const gridCols = columns === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2";
 
   return (
-    <div className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-4 ${className}`}>
+    <div
+      className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-4 ${className}`}
+    >
       {showHeader && (
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
           <FaBuilding size={16} />
@@ -94,18 +102,37 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
       )}
       <dl className={`grid grid-cols-1 ${gridCols} gap-x-6 gap-y-2 text-sm`}>
         <Row label="display_name" value={data.display_name} />
-        <Row label="email" value={data.email} />
+        <Row
+          label="org_type"
+          value={
+            data.org_type ? (
+              <span className="capitalize">{data.org_type}</span>
+            ) : null
+          }
+        />
         <Row label="attention" value={data.attention} />
         <Row label="phone" value={data.phone} />
+        <Row label="email" value={data.email} />
+        <Row label="address_full" value={data.address_full} />
         <Row label="price_level" value={data.price_level} />
         <Row label="terms" value={data.terms} />
-        <Row label="terms_id" value={data.terms_id?.toString()} />
-        <Row label="address_full" value={data.address_full} />
-        <Row label="contact_id" value={data.contact_id?.toString()} />
-        <Row label="status" value={data.status ? <span className="capitalize">{data.status}</span> : null} />
-        <Row label="org_type" value={data.org_type ? <span className="capitalize">{data.org_type}</span> : null} />
+        {/* <Row label="terms_id" value={data.terms_id?.toString()} /> */}
+
+        {/* <Row label="contact_id" value={data.contact_id?.toString()} /> */}
+
+        <Row
+          label="status"
+          value={
+            data.status ? (
+              <span className="capitalize">{data.status}</span>
+            ) : null
+          }
+        />
         <Row label="version" value={data.version?.toString()} />
-        <Row label="is_active" value={<ActiveBadge isActive={data.is_active ?? false} />} />
+        <Row
+          label="is_active"
+          value={<ActiveBadge isActive={data.is_active ?? false} />}
+        />
       </dl>
     </div>
   );

@@ -45,6 +45,7 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
 import { createEmail, updateEmail } from "../services/emailApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -433,50 +434,23 @@ export default function EmailDetail({
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {effectiveMode === "view" && data ? (
           /* ── Read-only view ── */
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-              <FaEnvelope size={16} />
-              Basic Information
-            </h3>
-            <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
-            >
-              <InfoRow label="email" value={data.email} />
-              <InfoRow label="name" value={data.name} />
-              <InfoRow label="attention" value={data.attention} />
-              <InfoRow label="status" value={data.opt_out || "active"} />
-              <InfoRow
-                label="is_primary"
-                value={
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
-                      data.is_primary
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
-                    }`}
-                  >
-                    {data.is_primary ? "Yes" : "No"}
-                  </span>
-                }
-              />
-              <InfoRow
-                label="is_verified"
-                value={
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
-                      data.is_verified
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
-                    }`}
-                  >
-                    {data.is_verified ? "Yes" : "No"}
-                  </span>
-                }
-              />
-            </dl>
-          </div>
+          <>
+            <ScalarCard
+              title="Email Info"
+              icon={<FaEnvelope size={14} />}
+              fields={[
+                { label: "email", value: data.email, highlight: true },
+                { label: "name", value: data.name },
+                { label: "attention", value: data.attention },
+                { label: "opt_out", value: data.opt_out },
+                { label: "is_primary", value: data.is_primary },
+                { label: "is_verified", value: data.is_verified },
+                { label: "status_display", value: data.status_display },
+              ]}
+              columns={columnCount as 1 | 2 | 3}
+            />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </>
         ) : (
           /* ── Editable form ── */
           <form id="email-form" onSubmit={handleSubmit(onSubmit)}>

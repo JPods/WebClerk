@@ -45,6 +45,7 @@ import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import { FinancialsPanel } from "@/apps/common/components/panels";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
 import { createAddress, updateAddress } from "../services/addressApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -398,32 +399,35 @@ export default function AddressDetail({
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {effectiveMode === "view" && data ? (
           /* ── Read-only view ── */
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-              <FaMapMarkerAlt size={16} />
-              Basic Information
-            </h3>
-            <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
-            >
-              <InfoRow label="address1" value={data.address1} />
-              <InfoRow label="address2" value={data.address2} />
-              <InfoRow label="type" value={data.address_type} />
-              <InfoRow label="city" value={data.city} />
-              <InfoRow label="state" value={data.state} />
-              <InfoRow label="zip" value={data.zip} />
-              <InfoRow label="country" value={data.country} />
-              <InfoRow label="latitude" value={data.latitude} />
-              <InfoRow label="longitude" value={data.longitude} />
-            </dl>
-            {data.full && (
-              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <InfoRow label="full" value={data.full} />
-              </div>
-            )}
-          </div>
+          <>
+            <ScalarCard
+              title="Address Info"
+              icon={<FaMapMarkerAlt size={14} />}
+              fields={[
+                { label: "address1", value: data.address1 },
+                { label: "address2", value: data.address2 },
+                { label: "address_type", value: data.address_type },
+                { label: "city", value: data.city },
+                { label: "state", value: data.state },
+                { label: "zip", value: data.zip },
+                { label: "country", value: data.country },
+                { label: "full", value: data.full },
+                { label: "instructions", value: data.instructions },
+              ]}
+              columns={columnCount as 1 | 2 | 3}
+            />
+            <ScalarCard
+              title="Geo"
+              icon={<FaMapMarkerAlt size={14} />}
+              fields={[
+                { label: "latitude", value: data.latitude },
+                { label: "longitude", value: data.longitude },
+              ]}
+              columns={2}
+              defaultExpanded={false}
+            />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </>
         ) : (
           /* ── Editable form ── */
           <form id="address-form" onSubmit={handleSubmit(onSubmit)}>

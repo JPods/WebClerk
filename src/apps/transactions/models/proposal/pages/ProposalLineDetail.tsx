@@ -6,6 +6,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 import { ProposalLine } from "../types/proposalLineType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // Simple schema for proposal line - can be expanded
 const proposalLineSchema = z.object({
@@ -55,6 +56,27 @@ export default function ProposalLineDetail({
   };
 
   return (
+    <>
+      {mode === "view" && line && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Line Details"
+            fields={[
+              { label: "line_number", value: (line as any).line_number },
+              { label: "status", value: (line as any).status },
+              { label: "price_level", value: (line as any).price_level },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Item" fieldName="item" data={line.item as Record<string, unknown>} columns={2} />
+          <JsonCard title="Quantity" fieldName="quantity" data={line.quantity as Record<string, unknown>} columns={2} />
+          <JsonCard title="Price" fieldName="price" data={line.price as Record<string, unknown>} columns={2} />
+          <JsonCard title="Cost" fieldName="cost" data={line.cost as Record<string, unknown>} columns={2} />
+          <JsonCard title="Tax" fieldName="tax" data={(line as any).tax as Record<string, unknown>} columns={2} />
+          <JsonCard title="Physical" fieldName="physical" data={(line as any).physical as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={line as any} />
+        </div>
+      )}
     <ComponentCard>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">
@@ -141,5 +163,6 @@ export default function ProposalLineDetail({
         )}
       </form>
     </ComponentCard>
+    </>
   );
 }

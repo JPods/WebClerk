@@ -44,6 +44,7 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
 import { createPhone, updatePhone } from "../services/phoneApi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -388,33 +389,22 @@ export default function PhoneDetail({
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
         {effectiveMode === "view" && data ? (
           /* ── Read-only view ── */
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-              <FaPhone size={16} />
-              Basic Information
-            </h3>
-            <dl
-              className={`grid grid-cols-1 ${
-                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-              } gap-x-6 gap-y-2 text-sm`}
-            >
-              <InfoRow label="Number" value={data.number} />
-              <InfoRow label="Country Code" value={data.country_code} />
-              <InfoRow label="Format" value={data.format} />
-              <InfoRow label="Name" value={data.name} />
-              <InfoRow label="Attention" value={data.attention} />
-              <InfoRow
-                label="Opt Out"
-                value={
-                  data.opt_out ? (
-                    <span className="text-red-600 dark:text-red-400">Yes</span>
-                  ) : (
-                    "No"
-                  )
-                }
-              />
-            </dl>
-          </div>
+          <>
+            <ScalarCard
+              title="Phone Info"
+              icon={<FaPhone size={14} />}
+              fields={[
+                { label: "number", value: data.number, highlight: true },
+                { label: "country_code", value: data.country_code },
+                { label: "format", value: data.format },
+                { label: "name", value: data.name },
+                { label: "attention", value: data.attention },
+                { label: "opt_out", value: data.opt_out },
+              ]}
+              columns={columnCount as 1 | 2 | 3}
+            />
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </>
         ) : (
           /* ── Editable form ── */
           <form id="phone-form" onSubmit={typedHandleSubmit(onSubmit)}>

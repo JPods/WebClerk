@@ -28,6 +28,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "specificationDetail_columnCount";
 
@@ -253,6 +254,23 @@ export default function SpecificationDetail({
           </HorizontalField>
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Specification Fields"
+            icon={<FileSpreadsheet size={14} />}
+            fields={[
+              { label: "name", value: data.name },
+              { label: "version", value: data.version },
+              { label: "requirements", value: data.requirements },
+              { label: "description", value: data.description },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}
       {recordData?.id && (

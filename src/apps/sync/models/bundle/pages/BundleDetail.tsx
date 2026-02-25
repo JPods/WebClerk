@@ -18,6 +18,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { bundleSchema } from "../utils/bundleSchema";
 import { BundleAddProps } from "../types/bundleType";
+import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
@@ -165,6 +166,31 @@ export default function BundleDetail({
           onCancel={handleCancel}
           onEdit={handleEdit}
         />
+      )}
+
+      {currentMode === "view" && data && (
+        <div className="space-y-4 py-2">
+          <ScalarCard
+            title="Bundle Details"
+            fields={[
+              { label: "connection_id", value: data.connection_id ?? data.connection },
+              { label: "direction", value: data.direction },
+              { label: "status", value: data.status },
+              { label: "alert", value: data.alert },
+              { label: "duration", value: data.duration },
+              { label: "size", value: data.size },
+            ]}
+            columns={3}
+          />
+          <JsonCard title="Config" fieldName="config" data={data.config as Record<string, unknown>} columns={2} />
+          <JsonCard title="Response" fieldName="response" data={data.response as Record<string, unknown>} columns={2} />
+          <JsonCard title="Payload" fieldName="payload" data={data.payload as Record<string, unknown>} columns={2} />
+          <JsonCard title="Maps" fieldName="maps" data={data.maps as Record<string, unknown>} columns={2} />
+          <JsonCard title="Encryption" fieldName="encryption" data={data.encryption as Record<string, unknown>} columns={2} />
+          <JsonCard title="Rules" fieldName="rules" data={data.rules as Record<string, unknown>} columns={2} />
+          <JsonCard title="Conflicts" fieldName="conflicts" data={data.conflicts as Record<string, unknown>} columns={2} />
+          <BaseModelCards data={data} />
+        </div>
       )}
 
       <ComponentCard>

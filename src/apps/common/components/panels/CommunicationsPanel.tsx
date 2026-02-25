@@ -807,10 +807,17 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
       // Map link type to refs.links key
       const linksKey = type;
 
-      // Save to contact's refs.links.{type} via /wcapi/save/
+      // Save to contact's communications JSON and refs.links.{type} for
+      // backwards compatibility via /wcapi/save/
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            [linksKey]: updatedArray,
+          },
+        },
         refs: {
           mode: "update",
           value: {
@@ -847,10 +854,16 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         is_primary: i === index,
       }));
 
-      // Save to contact's refs.links.email
+      // Save to contact's communications JSON and refs.links.email
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            emails: newEmails,
+          },
+        },
         refs: {
           mode: "update",
           value: {
@@ -879,10 +892,16 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
     setIsSaving(true);
     try {
-      // Save to contact's refs.links.phone
+      // Save to contact's communications JSON and refs.links.phone
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            phones: phones,
+          },
+        },
         refs: {
           mode: "update",
           value: {
@@ -911,15 +930,21 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
     setIsSaving(true);
     try {
-      // Save to contact's refs.links.address
+      // Save to contact's communications JSON and refs.links.address
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            addresses: addresses,
+          },
+        },
         refs: {
           mode: "update",
           value: {
             links: {
-              location: addresses,
+              address: addresses,
             },
           },
         },
@@ -949,10 +974,16 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         is_primary: i === index,
       }));
 
-      // Save to contact's refs.links.domain
+      // Save to contact's communications JSON and refs.links.domain
       await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            domains: newDomains,
+          },
+        },
         refs: {
           mode: "update",
           value: {
@@ -1045,10 +1076,16 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         updatedArray: JSON.stringify(updatedArray),
       });
 
-      // Save to contact's refs.links.{type} - send refs field with nested structure
+      // Save to contact's communications JSON and refs.links.{type}
       const result = await saveRecord("contact", {
         id: contactId,
         mode: "update",
+        communications: {
+          mode: "update",
+          value: {
+            [linksKey]: updatedArray,
+          },
+        },
         refs: {
           mode: "update",
           value: {

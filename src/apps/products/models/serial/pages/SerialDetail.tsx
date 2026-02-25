@@ -28,6 +28,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 
 const STORAGE_KEY = "serialDetail_columnCount";
 
@@ -254,6 +255,23 @@ export default function SerialDetail({
 
         </form>
       </ComponentCard>
+
+      {currentMode === "view" && data && (
+        <div className="mt-4 space-y-0">
+          <ScalarCard
+            title="Serial Fields"
+            icon={<Hash size={14} />}
+            fields={[
+              { label: "serial_number", value: data.serial_number },
+              { label: "item_id", value: data.item_id },
+              { label: "status", value: data.status },
+              { label: "description", value: data.description },
+            ]}
+            columns={columnCount as 1 | 2 | 3}
+          />
+          <BaseModelCards data={data as Record<string, unknown>} />
+        </div>
+      )}
 
       {/* Tab Navigation - only show when viewing/editing existing record */}
       {recordData?.id && (
