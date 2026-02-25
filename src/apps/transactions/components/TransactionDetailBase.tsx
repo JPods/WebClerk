@@ -325,18 +325,19 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   }, [windowSearchParams]);
 
   // Determine effective mode: if no ID is available and modeProp isn't set,
-  // treat as "add" mode (e.g. opened from Create Transaction dropdown)
+  // treat as "add" mode (e.g. opened from Create Transaction dropdown).
+  // Detail pages always open in edit mode — switch to read-only only when needed.
   const effectiveMode = useMemo(() => {
     if (modeProp) return modeProp;
     if (!id) return "add" as const;
-    return null;
+    return "edit" as const;
   }, [modeProp, id]);
 
   // State
   const [data, setData] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Start in edit mode if modeProp is 'add' or 'edit'
+  // Always start in edit mode — existing records open editable
   const [isEditing, setIsEditing] = useState(
     effectiveMode === "add" || effectiveMode === "edit",
   );

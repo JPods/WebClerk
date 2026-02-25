@@ -586,7 +586,7 @@ export default function ContactDetail({
   // ---------------------------------------------------------------------------
 
   // recordMode controls validation + save behavior.
-  // UI mode always starts in view for existing records.
+  // Detail pages always open in edit mode — switch to read-only only when needed.
   const recordMode: "add" | "edit" = useMemo(() => {
     if (modeProp === "add") return "add";
     if (contactIdFromUrl != null) return "edit";
@@ -596,7 +596,7 @@ export default function ContactDetail({
   }, [modeProp, contactIdFromUrl]);
 
   const initialUiMode: "add" | "edit" | "view" = useMemo(() => {
-    return recordMode === "add" ? "add" : "view";
+    return recordMode === "add" ? "add" : "edit";
   }, [recordMode]);
 
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(

@@ -62,7 +62,8 @@ export default function BillOfMaterialDetail({
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const dispatch = useDispatch();
-  const initialMode: "add" | "edit" | "view" = modeProp || "view";
+  // Detail pages always open in edit mode — switch to read-only only when needed.
+  const initialMode: "add" | "edit" | "view" = modeProp || "edit";
   const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
 
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);

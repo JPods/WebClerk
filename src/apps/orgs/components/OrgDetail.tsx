@@ -675,7 +675,8 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
   const [org, setOrg] = useState<Organization | null>(isInline ? (inlineOrg ?? null) : null);
   const [loading, setLoading] = useState(!isInline && !!id);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(inlineMode === 'edit' || inlineMode === 'add' || paramMode === 'edit');
+  // Detail pages always open in edit mode — switch to read-only only when needed.
+  const [editing, setEditing] = useState(inlineMode === 'edit' || inlineMode === 'add' || paramMode === 'edit' || (!inlineMode && !!id));
   const [activeTab, setActiveTab] = useState<string>('info');
 
   // Fetch data (standalone mode)
