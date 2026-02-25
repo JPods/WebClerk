@@ -1,7 +1,7 @@
 # Django Canonical Import Paths
 
 > Auto-generated. Every public class/function with its exact import path.
-> Generated: 2026-02-22 13:25
+> Generated: 2026-02-22 15:05
 
 ---
 
@@ -9,6 +9,7 @@
 
 | Class | Import |
 |-------|--------|
+| `APILog` | `from apps.core.models.log import APILog` |
 | `Action` | `from apps.core.models.action import Action` |
 | `Address` | `from apps.communications.models.address import Address` |
 | `Audit` | `from apps.accounts.models.audit import Audit` |
@@ -84,6 +85,7 @@
 | `TaxJurisdiction` | `from apps.accounts.models.tax_jurisdiction import TaxJurisdiction` |
 | `Template` | `from apps.core.models.template import Template` |
 | `Term` | `from apps.accounts.models.term import Term` |
+| `UserDailyLog` | `from apps.core.models.log import UserDailyLog` |
 | `Variant` | `from apps.products.models.variant import Variant` |
 | `Vendor` | `from apps.orgs.models.proxies import Vendor` |
 | `Warehouse` | `from apps.products.models.warehouse import Warehouse` |

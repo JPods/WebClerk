@@ -33,15 +33,15 @@
     },
     "history": {
       "created": {
-        "dt": 1771766726719,
+        "dt": 1771772722348,
         "contact_id": 0
       },
       "modified": {
-        "dt": 1771766726719,
+        "dt": 1771772722348,
         "contact_id": 0
       },
       "accessed": {
-        "dt": 1771766726719,
+        "dt": 1771772722348,
         "contact_id": 0
       },
       "verified": {
@@ -91,16 +91,16 @@
   "description": "<str:max255>",
   "body": "<text>",
   "comment": "<text>",
-  "data": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c6170>",
+  "data": "<django.db.models.fields.NOT_PROVIDED object at 0x118c593b0>",
   "confidential": "<choice:['', 'public', 'internal']>",
-  "copyright": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c4a00>",
+  "copyright": "<django.db.models.fields.NOT_PROVIDED object at 0x118c59400>",
   "count_accessed": "<int>",
   "model_name": "<choice:['', 'readme', 'policy']>",
   "retention_period": "<int>",
   "sequence": "<int>",
   "size_bytes": "<int>",
   "mime_type": "<str:max255>",
-  "path": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c6260>",
+  "path": "<django.db.models.fields.NOT_PROVIDED object at 0x118c594f0>",
   "checksum": "<str:max255>",
   "search_vector": "<searchvectorfield>"
 }

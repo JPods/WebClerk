@@ -32,15 +32,15 @@
     },
     "history": {
       "created": {
-        "dt": 1771766726720,
+        "dt": 1771772722353,
         "contact_id": 0
       },
       "modified": {
-        "dt": 1771766726720,
+        "dt": 1771772722353,
         "contact_id": 0
       },
       "accessed": {
-        "dt": 1771766726720,
+        "dt": 1771772722353,
         "contact_id": 0
       },
       "verified": {
@@ -84,5 +84,5 @@
     "notes": []
   },
   "health_rating": "<int>",
-  "metrics": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c60d0>"
+  "metrics": "<django.db.models.fields.NOT_PROVIDED object at 0x118c58910>"
 }

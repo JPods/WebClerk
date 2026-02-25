@@ -215,4 +215,118 @@ class APILog(BaseModel):
         }
 
 
-__all__ = ["APILog"]
+class UserDailyLog(BaseModel):
+    """
+    Daily per-user aggregate of API activity, response patterns, and
+    diagnostic hints.
+
+    One row per user per calendar day — kept lean for fast dashboard queries.
+    Populated nightly by the ``aggregate_user_daily_logs`` Celery task which
+    crunches the granular APILog table.
+
+    JSON field schemas
+    ──────────────────
+    call_counts:
+        {
+            "total": 152,
+            "by_method":   {"GET": 120, "POST": 32},
+            "by_endpoint": {"get": 100, "save": 30, "query": 15, "manage": 7},
+            "by_model":    {"order": 45, "item": 30, "contact": 25},
+            "by_source":   {"r25": 140, "wc3": 12}
+        }
+
+    response_summary:
+        {
+            "success_count": 145,
+            "error_count": 7,
+            "error_rate": 0.046,
+            "avg_duration_ms": 85,
+            "max_duration_ms": 2400,
+            "status_codes": {"200": 140, "201": 5, "400": 3, "500": 4},
+            "slowest_endpoints": [
+                {"endpoint": "/wcapi/query/", "model": "order", "duration_ms": 2400}
+            ]
+        }
+
+    hints:
+        [
+            {"level": "warning",  "category": "rate_limit",  "message": "Hit rate limit 12 times …", "count": 12},
+            {"level": "error",    "category": "validation",  "message": "3 failed saves on 'order' …", "count": 3},
+            {"level": "info",     "category": "performance", "message": "5 requests over 2 s …", "count": 5}
+        ]
+
+    error_details:
+        [
+            {"endpoint": "/wcapi/save/", "model": "order", "status_code": 400,
+             "error_message": "…", "count": 3, "first_at": "…", "last_at": "…"}
+        ]
+    """
+
+    class Meta:
+        db_table = 'user_daily_logs'
+        unique_together = [('user', 'log_date')]
+        indexes = [
+            models.Index(fields=['log_date']),
+            models.Index(fields=['user', 'log_date']),
+        ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='daily_logs',
+        db_column='user_id',
+        help_text="User this daily summary belongs to",
+    )
+    log_date = models.DateField(
+        help_text="Calendar date (UTC) for the summary",
+    )
+
+    # ── Aggregated counts ──────────────────────────────────────────
+    call_counts = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="API call counts by method, endpoint, model, and source",
+    )
+    response_summary = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Success/error counts, durations, status code distribution",
+    )
+
+    # ── Diagnostics ────────────────────────────────────────────────
+    hints = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Auto-generated diagnostic hints for the day",
+    )
+    error_details = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Top grouped errors with counts and timestamps",
+    )
+
+    # ── Totals (denormalised for fast ORDER BY / filters) ──────────
+    total_calls = models.PositiveIntegerField(
+        default=0,
+        help_text="Total API calls for the day",
+    )
+    total_errors = models.PositiveIntegerField(
+        default=0,
+        help_text="Total error responses (4xx/5xx) for the day",
+    )
+    avg_duration_ms = models.PositiveIntegerField(
+        default=0,
+        help_text="Average request duration in milliseconds",
+    )
+
+    def __str__(self):
+        return f"UserDailyLog: {self.user_id} on {self.log_date} ({self.total_calls} calls)"
+
+    @property
+    def error_rate(self) -> float:
+        if self.total_calls == 0:
+            return 0.0
+        return round(self.total_errors / self.total_calls, 4)
+
+
+__all__ = ["APILog", "UserDailyLog"]

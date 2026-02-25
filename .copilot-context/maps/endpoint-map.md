@@ -1,7 +1,7 @@
 # API Endpoint Map
 
 > Auto-generated from Django URL configuration.
-> Generated: 2026-02-22 13:25
+> Generated: 2026-02-22 15:05
 
 ---
 
