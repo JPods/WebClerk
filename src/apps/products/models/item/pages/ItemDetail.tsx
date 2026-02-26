@@ -1451,6 +1451,28 @@ export default function ItemDetail({
       price_sample: undefined,
       price_currency: undefined,
       price_qty_breaks_json: JSON.stringify([]),
+        // Cost fields (mirror Pricing inputs)
+        cost_standard: undefined,
+        cost_last: undefined,
+        cost_avg: undefined,
+        cost_landed: undefined,
+        cost_currency: undefined,
+        cost_qty_breaks_json: JSON.stringify([]),
+        cost_components_json: JSON.stringify({}),
+        // Catalog fields
+        catalog_categories: "",
+        catalog_web_slug: "",
+        catalog_web_title: "",
+        catalog_web_short: "",
+        catalog_attributes_json: JSON.stringify({}),
+        catalog_flags_json: JSON.stringify({}),
+        // Tax fields
+        tax_code_code: "",
+        tax_code_jurisdiction: "",
+        tax_code_category: "",
+        tax_code_rate: undefined,
+        tax_code_exemptions: "",
+        tax_code_jurisdiction_params_json: JSON.stringify([]),
       price_history_json: JSON.stringify([]),
     },
   });
@@ -1463,6 +1485,9 @@ export default function ItemDetail({
     }
 
     const priceObj = typeof data.price === "number" ? { base: data.price } : (data.price as PriceData) || {};
+    const costObj = (data.cost as CostData) || {};
+
+    const taxObj = (data.tax_code as TaxCodeData) || {};
 
     const normalizedItem = {
       name: data.name || "",
@@ -1478,6 +1503,28 @@ export default function ItemDetail({
       price_currency: priceObj.currency,
       price_qty_breaks_json: JSON.stringify(priceObj.qty_breaks || []),
       price_history_json: JSON.stringify(priceObj.history || []),
+      // Cost fields
+      cost_standard: costObj.standard,
+      cost_last: costObj.last,
+      cost_avg: costObj.avg,
+      cost_landed: costObj.landed,
+      cost_currency: costObj.currency,
+      cost_qty_breaks_json: JSON.stringify(costObj.qty_breaks || []),
+      cost_components_json: JSON.stringify(costObj.components || {}),
+      // Catalog fields
+      catalog_categories: (data.catalog as CatalogData)?.categories ? (data.catalog as CatalogData).categories!.join(", ") : "",
+      catalog_web_slug: (data.catalog as CatalogData)?.web?.slug || "",
+      catalog_web_title: (data.catalog as CatalogData)?.web?.title || "",
+      catalog_web_short: (data.catalog as CatalogData)?.web?.short || "",
+      catalog_attributes_json: JSON.stringify((data.catalog as CatalogData)?.attributes || {}),
+      catalog_flags_json: JSON.stringify((data.catalog as CatalogData)?.flags || {}),
+      // Tax fields
+      tax_code_code: taxObj.code || "",
+      tax_code_jurisdiction: taxObj.jurisdiction || "",
+      tax_code_category: taxObj.category || "",
+      tax_code_rate: taxObj.rate,
+      tax_code_exemptions: taxObj.exemptions ? taxObj.exemptions.join(", ") : "",
+      tax_code_jurisdiction_params_json: JSON.stringify(taxObj.jurisdiction_params || []),
     };
 
     reset(normalizedItem);
@@ -1500,6 +1547,76 @@ export default function ItemDetail({
         if (formData.price_qty_breaks_json) {
           const parsed = JSON.parse(formData.price_qty_breaks_json);
           if (Array.isArray(parsed)) priceObj.qty_breaks = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      // Build cost object from individual form fields (all optional)
+      const costObj: any = {};
+      if (formData.cost_standard !== undefined && formData.cost_standard !== null && formData.cost_standard !== "") costObj.standard = Number(formData.cost_standard);
+      if (formData.cost_last !== undefined && formData.cost_last !== null && formData.cost_last !== "") costObj.last = Number(formData.cost_last);
+      if (formData.cost_avg !== undefined && formData.cost_avg !== null && formData.cost_avg !== "") costObj.avg = Number(formData.cost_avg);
+      if (formData.cost_landed !== undefined && formData.cost_landed !== null && formData.cost_landed !== "") costObj.landed = Number(formData.cost_landed);
+      if (formData.cost_currency) costObj.currency = formData.cost_currency;
+      try {
+        if (formData.cost_qty_breaks_json) {
+          const parsed = JSON.parse(formData.cost_qty_breaks_json);
+          if (Array.isArray(parsed)) costObj.qty_breaks = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      try {
+        if (formData.cost_components_json) {
+          const parsed = JSON.parse(formData.cost_components_json);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) costObj.components = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      // Build catalog object from form fields
+      const catalogObj: any = {};
+      if (formData.catalog_categories) {
+        catalogObj.categories = String(formData.catalog_categories)
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+      const webObj: any = {};
+      if (formData.catalog_web_slug) webObj.slug = formData.catalog_web_slug;
+      if (formData.catalog_web_title) webObj.title = formData.catalog_web_title;
+      if (formData.catalog_web_short) webObj.short = formData.catalog_web_short;
+      if (Object.keys(webObj).length > 0) catalogObj.web = webObj;
+      try {
+        if (formData.catalog_attributes_json) {
+          const parsed = JSON.parse(formData.catalog_attributes_json);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) catalogObj.attributes = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      try {
+        if (formData.catalog_flags_json) {
+          const parsed = JSON.parse(formData.catalog_flags_json);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) catalogObj.flags = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      // Build tax_code object from form fields
+      const taxCodeObj: any = {};
+      if (formData.tax_code_code) taxCodeObj.code = formData.tax_code_code;
+      if (formData.tax_code_jurisdiction) taxCodeObj.jurisdiction = formData.tax_code_jurisdiction;
+      if (formData.tax_code_category) taxCodeObj.category = formData.tax_code_category;
+      if (formData.tax_code_rate !== undefined && formData.tax_code_rate !== null && formData.tax_code_rate !== "") taxCodeObj.rate = Number(formData.tax_code_rate);
+      if (formData.tax_code_exemptions) {
+        taxCodeObj.exemptions = String(formData.tax_code_exemptions).split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+      try {
+        if (formData.tax_code_jurisdiction_params_json) {
+          const parsed = JSON.parse(formData.tax_code_jurisdiction_params_json);
+          if (Array.isArray(parsed)) taxCodeObj.jurisdiction_params = parsed;
         }
       } catch (e) {
         // ignore parse errors
@@ -1529,8 +1646,53 @@ export default function ItemDetail({
       delete payload.price_qty_breaks_json;
       delete payload.price_history_json;
 
+      // Remove transient cost form-only fields
+      delete payload.cost_standard;
+      delete payload.cost_last;
+      delete payload.cost_avg;
+      delete payload.cost_landed;
+      delete payload.cost_currency;
+      delete payload.cost_qty_breaks_json;
+      delete payload.cost_components_json;
+      // Remove transient catalog form-only fields
+      delete payload.catalog_categories;
+      delete payload.catalog_attributes_json;
+      delete payload.catalog_flags_json;
+      delete payload.catalog_web_slug;
+      delete payload.catalog_web_title;
+      delete payload.catalog_web_short;
+      // Remove transient tax fields
+      delete payload.tax_code_code;
+      delete payload.tax_code_jurisdiction;
+      delete payload.tax_code_category;
+      delete payload.tax_code_rate;
+      delete payload.tax_code_exemptions;
+      delete payload.tax_code_jurisdiction_params_json;
+
       if (Object.keys(priceObj).length > 0) {
         payload.price = priceObj;
+      }
+
+      if (Object.keys(costObj).length > 0) {
+        payload.cost = costObj;
+      }
+
+      if (Object.keys(catalogObj).length > 0) {
+        payload.catalog = {
+          ...(data?.catalog || {}),
+          ...catalogObj,
+          web: {
+            ...((data?.catalog as CatalogData)?.web || {}),
+            ...(catalogObj.web || {}),
+          },
+        };
+      }
+
+      if (Object.keys(taxCodeObj).length > 0) {
+        payload.tax_code = {
+          ...(data?.tax_code || {}),
+          ...taxCodeObj,
+        };
       }
 
       const res = mode === "add"
@@ -1769,6 +1931,160 @@ export default function ItemDetail({
                 <Checkbox id="is_active" checked={field.value ?? true} onChange={(c) => field.onChange(c)} disabled={isFieldDisabled("is_active")} label="Item is active" />
               )} />
             </FieldRow>
+          </Section>
+
+          {/* Catalog Section */}
+          <Section title="Catalog" icon={<FaListAlt className="w-4 h-4" />} defaultExpanded={false}>
+            {/* Tax Section: code, jurisdiction, category, rate, exemptions, jurisdiction_params */}
+            <FieldRow label="Tax Code" htmlFor="tax_code_code">
+              <Input type="text" id="tax_code_code" {...register("tax_code_code")} disabled={isFieldDisabled("tax_code")} />
+            </FieldRow>
+
+            <FieldRow label="Jurisdiction" htmlFor="tax_code_jurisdiction">
+              <Input type="text" id="tax_code_jurisdiction" {...register("tax_code_jurisdiction")} disabled={isFieldDisabled("tax_code")} />
+            </FieldRow>
+
+            <FieldRow label="Category" htmlFor="tax_code_category">
+              <Input type="text" id="tax_code_category" {...register("tax_code_category")} disabled={isFieldDisabled("tax_code")} />
+            </FieldRow>
+
+            <FieldRow label="Rate" htmlFor="tax_code_rate">
+              <Input type="number" id="tax_code_rate" step="0.01" {...register("tax_code_rate", { valueAsNumber: true })} disabled={isFieldDisabled("tax_code")} />
+            </FieldRow>
+
+            <FieldRow label="Exemptions" htmlFor="tax_code_exemptions" hint="Comma-separated exemptions">
+              <Input type="text" id="tax_code_exemptions" {...register("tax_code_exemptions")} disabled={isFieldDisabled("tax_code")} />
+            </FieldRow>
+
+            <FieldRow label="Jurisdiction Params (JSON)" htmlFor="tax_code_jurisdiction_params_json" hint='JSON array of params'>
+              <textarea
+                id="tax_code_jurisdiction_params_json"
+                {...register("tax_code_jurisdiction_params_json")}
+                className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                rows={4}
+                disabled={isFieldDisabled("tax_code")}
+              />
+            </FieldRow>
+            <FieldRow label="Categories" htmlFor="catalog_categories" hint="Comma-separated categories">
+              <Input type="text" id="catalog_categories" {...register("catalog_categories")} disabled={isFieldDisabled("catalog")} />
+            </FieldRow>
+
+            <FieldRow label="Attributes (JSON)" htmlFor="catalog_attributes_json" hint='JSON object: {"color":"red"}'>
+              <textarea
+                id="catalog_attributes_json"
+                {...register("catalog_attributes_json")}
+                className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                rows={4}
+                disabled={isFieldDisabled("catalog")}
+              />
+            </FieldRow>
+
+            <FieldRow label="Web Slug" htmlFor="catalog_web_slug">
+              <Input type="text" id="catalog_web_slug" {...register("catalog_web_slug")} disabled={isFieldDisabled("catalog")} />
+            </FieldRow>
+
+            <FieldRow label="Web Title" htmlFor="catalog_web_title">
+              <Input type="text" id="catalog_web_title" {...register("catalog_web_title")} disabled={isFieldDisabled("catalog")} />
+            </FieldRow>
+
+            <FieldRow label="Web Short" htmlFor="catalog_web_short">
+              <Input type="text" id="catalog_web_short" {...register("catalog_web_short")} disabled={isFieldDisabled("catalog")} />
+            </FieldRow>
+
+            <FieldRow label="Flags (JSON)" htmlFor="catalog_flags_json" hint='JSON object of flags e.g. {"featured":true}'>
+              <textarea
+                id="catalog_flags_json"
+                {...register("catalog_flags_json")}
+                className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                rows={3}
+                disabled={isFieldDisabled("catalog")}
+              />
+            </FieldRow>
+          </Section>
+
+          {/* 3. Cost Section (mirror Pricing) */}
+          <Section
+            title="Cost"
+            icon={<FaCalculator className="w-4 h-4" />}
+            defaultExpanded={true}
+          >
+            {shouldRenderField("cost") && (
+              <>
+                <FieldRow label="Standard" htmlFor="cost_standard">
+                  <Input
+                    type="number"
+                    id="cost_standard"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("cost_standard", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Last" htmlFor="cost_last">
+                  <Input
+                    type="number"
+                    id="cost_last"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("cost_last", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Avg" htmlFor="cost_avg">
+                  <Input
+                    type="number"
+                    id="cost_avg"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("cost_avg", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Landed" htmlFor="cost_landed">
+                  <Input
+                    type="number"
+                    id="cost_landed"
+                    placeholder="0.00"
+                    step="0.01"
+                    {...register("cost_landed", { valueAsNumber: true })}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Currency" htmlFor="cost_currency">
+                  <Input
+                    type="text"
+                    id="cost_currency"
+                    placeholder="USD"
+                    {...register("cost_currency")}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Components (JSON)" htmlFor="cost_components_json" hint='JSON object: {"partA":1.23}'>
+                  <textarea
+                    id="cost_components_json"
+                    {...register("cost_components_json")}
+                    className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                    rows={4}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Cost Breaks (JSON)" htmlFor="cost_qty_breaks_json" hint='JSON array: [{"min_qty":1,"unit_cost":1.23}]'>
+                  <textarea
+                    id="cost_qty_breaks_json"
+                    {...register("cost_qty_breaks_json")}
+                    className="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                    rows={4}
+                    disabled={isFieldDisabled("cost")}
+                  />
+                </FieldRow>
+              </>
+            )}
           </Section>
 
           {/* 2. Pricing Section */}
