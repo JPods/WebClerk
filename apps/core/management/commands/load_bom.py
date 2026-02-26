@@ -1,10 +1,12 @@
 """
 Load Bill of Material records from bom_children.json.
-Maps ItemNum -> component_id (parent assembly), ChildItem -> item_id (component part).
 
-BOM Line semantics:
-  - item_id: The component/part item that IS USED in the assembly
-  - component_id: The parent assembly that CONTAINS this component
+JSON format (cleaned):
+  { parent_id, parent_sku, child_id, child_sku, quantity, child_description, cost_snapshot }
+
+BOM model FK mapping:
+  - parent_item_id  (db_column='parent_id')  = parent_id  (the assembly)
+  - child_item_id   (db_column='child_id')   = child_id   (the component)
 """
 import json
 import logging
@@ -17,7 +19,7 @@ LOG_FILE = "/Users/williamjames/Documents/CommerceExpert/webClerk3/load_bom.log"
 
 
 class Command(BaseCommand):
-    help = "Load BOM data from bom_children.json, matching items by sku"
+    help = "Load BOM data from bom_children.json (pre-resolved IDs)"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -57,20 +59,20 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.setup_logging()
-        
+
         source_file = "/Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/inventory/bom_children.json"
         dry_run = options['dry_run']
         clear = options['clear']
-        
+
         start_time = datetime.now()
-        
+
         self.log("═" * 65)
         self.log(f"  LOAD BOM STARTED: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         self.log(f"  Source: {source_file}")
         self.log(f"  Log file: {LOG_FILE}")
         self.log("═" * 65)
         self.log("")
-        
+
         # Load JSON
         try:
             with open(source_file, 'r') as f:
@@ -79,90 +81,81 @@ class Command(BaseCommand):
         except Exception as e:
             self.log(f"  Error reading file: {e}", 'error')
             return
-        
-        # Build SKU -> Item lookup (case-insensitive)
-        self.log("  Building item lookup by SKU...")
-        items_by_sku = {}
-        for item in Item.objects.all():
-            if item.sku:
-                items_by_sku[item.sku.upper()] = item
-        self.log(f"  Found {len(items_by_sku)} items with SKUs")
-        
+
+        # Validate that referenced Item IDs exist
+        all_ids = set()
+        for rec in data:
+            if rec.get('parent_id'):
+                all_ids.add(rec['parent_id'])
+            if rec.get('child_id'):
+                all_ids.add(rec['child_id'])
+        existing_ids = set(Item.objects.filter(id__in=all_ids).values_list('id', flat=True))
+        missing = all_ids - existing_ids
+        if missing:
+            self.log(f"  WARNING: Item IDs not found in DB: {missing}", 'warning')
+
         if clear and not dry_run:
             deleted, _ = BillOfMaterial.objects.all().delete()
             if deleted:
                 self.log(f"  Cleared {deleted} existing BOM records")
-        
+
         created = 0
         updated = 0
         errors = 0
-        skipped_parent = []
-        skipped_child = []
-        
+
         for record in data:
-            item_sku = record.get('ItemNum', '').upper()
-            child_sku = record.get('ChildItem', '').upper()
-            qty = record.get('QtyInAssembly', 1)
-            description = record.get('Description', '')
-            uuid_key = record.get('UUIDKey')
-            unique_id = record.get('UniqueID')
-            plan_cost = record.get('PlanCost', 0)
-            plan_ext_cost = record.get('PlanExtCost', 0)
-            
-            # Lookup parent item
-            parent_item = items_by_sku.get(item_sku)
-            if not parent_item:
-                if item_sku not in skipped_parent:
-                    skipped_parent.append(item_sku)
+            parent_id = record.get('parent_id')
+            child_id = record.get('child_id')
+            parent_sku = record.get('parent_sku', '')
+            child_sku = record.get('child_sku', '')
+            qty = record.get('quantity', 1)
+            description = record.get('child_description', '')
+            cost = record.get('cost_snapshot')
+
+            if not parent_id or not child_id:
                 errors += 1
+                self.log(f"  SKIP missing ID: parent_sku={parent_sku} child_sku={child_sku}", 'warning')
                 continue
-            
-            # Lookup child/component item
-            component_item = items_by_sku.get(child_sku)
-            if not component_item:
-                if child_sku not in skipped_child:
-                    skipped_child.append(child_sku)
+
+            if parent_id not in existing_ids or child_id not in existing_ids:
                 errors += 1
+                self.log(f"  SKIP bad ID: parent={parent_id} child={child_id}", 'warning')
                 continue
-            
+
             if dry_run:
-                self.log(f"  Would create: {item_sku} -> {child_sku} x{qty}")
+                self.log(f"  Would create: {parent_sku}({parent_id}) -> {child_sku}({child_id}) x{qty}")
                 created += 1
                 continue
-            
+
             try:
                 with transaction.atomic():
                     bom, was_created = BillOfMaterial.objects.update_or_create(
-                        item_id=component_item,  # The component/part item in this BOM line
-                        component_id=parent_item,  # The parent assembly this line belongs to
+                        parent_item_id=parent_id,
+                        child_item_id=child_id,
                         defaults={
                             'quantity': qty,
-                            'description': description,
-                            'uuid': uuid_key,
-                            'cost_snapshot': plan_cost  # Store plan_cost as decimal
+                            'child_description': description,
+                            'cost_snapshot': cost,
                         }
                     )
                     if was_created:
                         created += 1
+                        self.log(f"  + {parent_sku} -> {child_sku} x{qty}")
                     else:
                         updated += 1
+                        self.log(f"  ~ {parent_sku} -> {child_sku} x{qty} (updated)")
             except Exception as e:
                 errors += 1
-                self.log(f"  Error {item_sku}->{child_sku}: {str(e)[:80]}", 'warning')
-        
+                self.log(f"  Error {parent_sku}->{child_sku}: {str(e)[:120]}", 'warning')
+
         # Summary
         self.log("")
         self.log("═" * 65)
-        if skipped_parent:
-            self.log(f"  Missing parent SKUs: {', '.join(skipped_parent[:10])}", 'warning')
-        if skipped_child:
-            self.log(f"  Missing child SKUs: {', '.join(skipped_child[:10])}", 'warning')
-        
         if dry_run:
             self.log(f"  DRY RUN: Would create {created} BOM records")
         else:
             self.log(f"  COMPLETE: Created {created}, Updated {updated}, Errors {errors}", 'success')
-        
+
         duration = (datetime.now() - start_time).total_seconds()
         self.log(f"  Duration: {duration:.1f}s")
         self.log("═" * 65)
