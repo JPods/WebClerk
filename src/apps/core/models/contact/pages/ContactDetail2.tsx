@@ -1,9 +1,10 @@
 /**
- * ContactDetail.tsx  (primary)
+ * ContactDetail2.tsx
  *
- * Panel-based Contact Detail with ScalarCard / JsonCard / BaseModelCards,
- * CommLinkPanel, OrgLinkPanel, and EmailGatePanel.
- * View and edit modes share the same panel layout.
+ * Contact Detail page with ScalarCard / JsonCard / BaseModelCards pattern.
+ * Identical to ContactDetail.tsx except the view-mode Basic Information
+ * section uses the shared collapsible-card components so every scalar and
+ * JSONB first-level field is surfaced, clustered by use.
  *
  * Standard Contact Detail page following the enterprise UI pattern:
  *
@@ -31,6 +32,7 @@ import { z } from "zod";
 // UI primitives
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
+import DropDown from "@/components/form/input/DropDown";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
 import RippleLoader from "@/components/common/RippleLoader";
@@ -87,7 +89,7 @@ import {
   FaAddressBook,
   FaBuilding,
 } from "react-icons/fa";
-import { History, Link, Phone, SlidersHorizontal, ShieldCheck } from "lucide-react";
+import { History, Link, Phone, SlidersHorizontal, User2, Mail, Building2, ShieldCheck } from "lucide-react";
 
 // Shared detail card components
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
@@ -96,17 +98,13 @@ import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/d
 import {
   ActionsPanel,
   CommentsPanel,
-  CommLinkPanel,
   CommunicationsPanel,
   DocumentsPanel,
-  EmailGatePanel,
   MetadataPanel,
-  OrgLinkPanel,
   PrefsPanel,
   RawDataPanel,
   RefsPanel,
 } from "@/apps/common/components/panels";
-import type { EmailGateResult } from "@/apps/common/components/panels";
 import {
   CommunicationAddEditModal,
   type CommunicationModalType,
@@ -432,6 +430,24 @@ function HorizontalField({
 }
 
 // ---------------------------------------------------------------------------
+// InfoRow — read-only horizontal label/value pair
+// ---------------------------------------------------------------------------
+
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
+  <div className="flex items-center gap-2">
+    <dt className="w-32 shrink-0 text-left text-sm text-slate-500 dark:text-slate-400">
+      {label} :
+    </dt>
+    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+      {value || "—"}
+    </dd>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -592,46 +608,6 @@ export default function ContactDetail({
   }, [initialUiMode]);
 
   const isEditing = effectiveMode === "edit" || effectiveMode === "add";
-
-  // ---------------------------------------------------------------------------
-  // Email Gate (add-mode only) — forces email search before showing the form
-  // ---------------------------------------------------------------------------
-
-  const isStaffUser = !!(authUser?.is_staff || authUser?.is_superuser ||
-    ["admin", "manager", "staff"].includes(String(authUser?.role || "").toLowerCase()));
-
-  // Gate is active when in add mode AND no data/id has been supplied yet
-  // (i.e. truly a brand-new contact, not an end-user flow with pre-confirmed record)
-  const needsGate = recordMode === "add" && !dataProp?.id && !contactIdFromUrl;
-  const [emailGatePassed, setEmailGatePassed] = useState(!needsGate);
-
-  // Reset gate when recordMode flips back to add
-  useEffect(() => {
-    setEmailGatePassed(!needsGate);
-  }, [needsGate]);
-
-  const handleEmailGateComplete = useCallback(
-    (result: EmailGateResult) => {
-      if (result.action === "open" && result.existingContact) {
-        // Switch to editing the existing contact
-        setFetchedData(normalizeContactFkFields(result.existingContact));
-        setEffectiveMode("edit");
-        setEmailGatePassed(true);
-        return;
-      }
-      // Proceed with new contact — pre-fill email if provided
-      if (result.email) {
-        // setValue may not be initialized yet; schedule via ref
-        setTimeout(() => {
-          formSetValueRef.current?.("email" as any, result.email, {
-            shouldDirty: true,
-          });
-        }, 0);
-      }
-      setEmailGatePassed(true);
-    },
-    [],
-  );
 
   // ---------------------------------------------------------------------------
   // Data Loading
@@ -840,6 +816,11 @@ export default function ContactDetail({
   }>({ open: false, type: "email" });
 
   const [commSaving, setCommSaving] = useState(false);
+
+  const openCommSelect = (type: CommType) => {
+    setCommSelectQuery("");
+    setCommSelectState({ open: true, type });
+  };
 
   const closeCommSelect = () =>
     setCommSelectState((s) => ({ ...s, open: false }));
@@ -1419,7 +1400,6 @@ export default function ContactDetail({
     getValues,
     reset,
     setValue,
-    watch,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
@@ -1470,10 +1450,6 @@ export default function ContactDetail({
   // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
   const watchedFirstName = useWatch({ control, name: "name_first" });
   const watchedLastName = useWatch({ control, name: "name_last" });
-
-  // Watch all reactive form values (used by CommLinkPanel / OrgLinkPanel)
-  const watchedValues = watch();
-
   useEffect(() => {
     if (!isEditing) return;
     const next = [watchedFirstName, watchedLastName]
@@ -2046,13 +2022,11 @@ export default function ContactDetail({
       // Stay on the page, just clear changes back to defaultValues.
       reset();
       setEffectiveMode("add");
-      // Re-activate the email gate so the operator starts fresh
-      if (needsGate) setEmailGatePassed(false);
       return;
     }
     setEffectiveMode("view");
     if (data) reset(data);
-  }, [recordMode, data, reset, needsGate]);
+  }, [recordMode, data, reset]);
 
   // ---------------------------------------------------------------------------
   // Derived display values
@@ -2071,28 +2045,6 @@ export default function ContactDetail({
 
   if (isLoading) return <RippleLoader />;
 
-  // ── Email Gate: show before the full form in add mode ──
-  if (effectiveMode === "add" && !emailGatePassed) {
-    return (
-      <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-        <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            <DevBadge label="Contact" className="mr-2" />
-            New Contact
-            <span className="ml-2 text-xs font-mono text-slate-400">(no ID yet)</span>
-          </h2>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <EmailGatePanel
-            isStaff={isStaffUser}
-            onComplete={handleEmailGateComplete}
-            onCancel={onCancelInline}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* ─── HEADER ─── */}
@@ -2102,13 +2054,9 @@ export default function ContactDetail({
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
               <DevBadge label="Contact" className="mr-2" />
               {displayName}
-              {activeContactId ? (
+              {activeContactId && (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
                   #{activeContactId}
-                </span>
-              ) : (
-                <span className="ml-2 text-xs font-mono text-amber-500 dark:text-amber-400">
-                  (no ID — unsaved)
                 </span>
               )}
             </h2>
@@ -2180,268 +2128,62 @@ export default function ContactDetail({
 
       {/* ─── BASIC INFORMATION (PERSISTENT) ─── */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-        {/* ── Unified layout — same structure for view and edit ── */}
-        <form
-          id="contact-form"
-          onSubmit={handleSubmit(onSubmit, onValidationError)}
-        >
-          {/* ── Name fields ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
-            <FaUser size={16} />
-            Basic Information
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
-            {shouldRenderField("name_first") && (
-              <HorizontalField
-                label="name_first"
-                htmlFor="name_first"
-                required={isEditing}
-                error={errors.name_first?.message}
-              >
-                <Input
-                  type="text"
-                  id="name_first"
-                  placeholder="First name"
-                  {...register("name_first")}
-                  error={!!errors.name_first?.message}
-                  disabled={isFieldDisabled("name_first")}
-                />
-              </HorizontalField>
-            )}
+        {effectiveMode === "view" && data ? (
+          /* ── Read-only view — ScalarCard / JsonCard / BaseModelCards ── */
+          <div className="space-y-0">
+            {/* ── Name ── */}
+            <ScalarCard
+              title="Name"
+              icon={<User2 size={14} />}
+              columns={3}
+              fields={[
+                { label: "name_first", value: data.name_first },
+                { label: "name_last", value: data.name_last },
+                { label: "name_middle", value: data.name_middle },
+                { label: "name_prefix", value: data.name_prefix },
+                { label: "name_suffix", value: data.name_suffix },
+                { label: "attention", value: data.attention },
+              ]}
+            />
 
-            {shouldRenderField("name_last") && (
-              <HorizontalField
-                label="name_last"
-                htmlFor="name_last"
-                required={isEditing}
-                error={errors.name_last?.message}
-              >
-                <Input
-                  type="text"
-                  id="name_last"
-                  placeholder="Last name"
-                  {...register("name_last")}
-                  error={!!errors.name_last?.message}
-                  disabled={isFieldDisabled("name_last")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("attention") && (
-              <HorizontalField label="attention" htmlFor="attention">
-                <Input
-                  type="text"
-                  id="attention"
-                  placeholder="Auto from first + last"
-                  {...register("attention")}
-                  disabled
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_prefix") && (
-              <HorizontalField label="name_prefix" htmlFor="name_prefix">
-                <Input
-                  type="text"
-                  id="name_prefix"
-                  placeholder="Mr., Ms., Dr."
-                  {...register("name_prefix")}
-                  disabled={isFieldDisabled("name_prefix")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_suffix") && (
-              <HorizontalField label="name_suffix" htmlFor="name_suffix">
-                <Input
-                  type="text"
-                  id="name_suffix"
-                  placeholder="Jr., Sr., III"
-                  {...register("name_suffix")}
-                  disabled={isFieldDisabled("name_suffix")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_middle") && (
-              <HorizontalField label="name_middle" htmlFor="name_middle">
-                <Input
-                  type="text"
-                  id="name_middle"
-                  placeholder="Middle name"
-                  {...register("name_middle")}
-                  disabled={isFieldDisabled("name_middle")}
-                />
-              </HorizontalField>
-            )}
-          </div>
+            {/* ── Contact Info ── */}
+            <ScalarCard
+              title="Contact Info"
+              icon={<Mail size={14} />}
+              columns={3}
+              fields={[
+                { label: "email", value: data.email, highlight: true },
+                { label: "email_id", value: data.email_id },
+                { label: "phone", value: data.phone },
+                { label: "phone_id", value: data.phone_id },
+                { label: "address_full", value: data.address_full },
+                { label: "address_id", value: data.address_id },
+                { label: "domain", value: data.domain },
+                { label: "domain_id", value: data.domain_id },
+              ]}
+            />
 
-          {/* ── Communications — CommLinkPanel per type ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
-            <FaAddressBook size={16} />
-            Contact Information
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-0">
-            {(["email", "phone", "address", "domain"] as const).map((cType) => {
-              const scalarField = commTypeToContactScalarField(cType);
-              const scalarVal =
-                cType === "email"
-                  ? (watchedValues?.email ?? data?.email)
-                  : cType === "phone"
-                    ? (watchedValues?.phone ?? data?.phone)
-                    : cType === "address"
-                      ? (watchedValues?.address_full ?? data?.address_full)
-                      : (watchedValues?.domain ?? data?.domain);
-              const primaryIdVal =
-                cType === "email"
-                  ? data?.email_id
-                  : cType === "phone"
-                    ? data?.phone_id
-                    : cType === "address"
-                      ? data?.address_id
-                      : data?.domain_id;
-              const commItems =
-                cType === "email"
-                  ? communications?.emails || []
-                  : cType === "phone"
-                    ? communications?.phones || []
-                    : cType === "address"
-                      ? communications?.addresses || []
-                      : communications?.domains || [];
-              return (
-                <CommLinkPanel
-                  key={cType}
-                  type={cType}
-                  scalarValue={scalarVal as string | null | undefined}
-                  primaryId={primaryIdVal as number | null | undefined}
-                  items={commItems}
-                  isEditing={isEditing}
-                  contactId={activeContactId}
-                  onScalarChange={(val) => {
-                    formSetValueRef.current?.(scalarField as any, val, { shouldDirty: true });
-                  }}
-                  onSaveScalar={async (val) => {
-                    if (!activeContactId) return;
-                    await updateContact({ id: activeContactId, [scalarField]: val } as any);
-                    dispatch(showToast({ message: `${cType} saved`, type: "success" }));
-                  }}
-                  onSetPrimary={async (id, displayVal) => {
-                    await setPrimaryCommWithoutRefetch(cType, id, displayVal);
-                    await refreshCommType(cType);
-                  }}
-                  onItemsChanged={() => refreshCommType(cType)}
-                  defaultExpanded={isEditing}
-                />
-              );
-            })}
-          </div>
+            {/* ── Organization ── */}
+            <ScalarCard
+              title="Organization"
+              icon={<Building2 size={14} />}
+              columns={3}
+              fields={[
+                { label: "company", value: data.company },
+                { label: "title", value: data.title },
+                { label: "department", value: data.department },
+                { label: "role", value: data.role },
+                { label: "comment", value: data.comment },
+                { label: "customer_id", value: data.customer_id },
+                { label: "vendor_id", value: data.vendor_id },
+                { label: "rep_id", value: data.rep_id },
+                { label: "employee_id", value: data.employee_id },
+                { label: "manufacturer_id", value: data.manufacturer_id },
+                { label: "other_id", value: data.other_id },
+              ]}
+            />
 
-          {/* ── Company & Organizations ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
-            <FaBuilding size={16} />
-            Company & Organizations
-          </h3>
-          <OrgLinkPanel
-            fields={[
-              { fieldName: "customer_id", label: "Customer", value: watchedValues?.customer_id ?? data?.customer_id, orgType: "customer" },
-              { fieldName: "vendor_id", label: "Vendor", value: watchedValues?.vendor_id ?? data?.vendor_id, orgType: "vendor" },
-              { fieldName: "rep_id", label: "Rep", value: watchedValues?.rep_id ?? data?.rep_id, orgType: "rep" },
-              { fieldName: "employee_id", label: "Employee", value: watchedValues?.employee_id ?? data?.employee_id, orgType: "employee" },
-              { fieldName: "manufacturer_id", label: "Manufacturer", value: watchedValues?.manufacturer_id ?? data?.manufacturer_id, orgType: "manufacturer" },
-              { fieldName: "other_id", label: "Other Org", value: watchedValues?.other_id ?? data?.other_id, orgType: "organization" },
-            ]}
-            scalarFields={[
-              { fieldName: "company", label: "Company", value: watchedValues?.company ?? data?.company, placeholder: "Company name", disabled: isFieldDisabled("company") },
-              { fieldName: "title", label: "Title", value: watchedValues?.title ?? data?.title, placeholder: "Job title", disabled: isFieldDisabled("title") },
-              { fieldName: "department", label: "Department", value: watchedValues?.department ?? data?.department, placeholder: "Department", disabled: isFieldDisabled("department") },
-              { fieldName: "role", label: "Role", value: watchedValues?.role ?? data?.role, type: "select", options: ROLE_OPTIONS, disabled: isFieldDisabled("role") },
-              { fieldName: "comment", label: "Comment", value: watchedValues?.comment ?? data?.comment, placeholder: "Comment", disabled: isFieldDisabled("comment") },
-            ]}
-            isEditing={isEditing}
-            contactId={activeContactId}
-            onOrgChanged={(fieldName, orgId) => {
-              formSetValueRef.current?.(fieldName as any, orgId, { shouldDirty: true });
-            }}
-            onScalarFieldChange={(fieldName, value) => {
-              formSetValueRef.current?.(fieldName as any, value, { shouldDirty: true });
-            }}
-            onSaveScalars={async (values) => {
-              if (!activeContactId) return;
-              await updateContact({ id: activeContactId, ...values } as any);
-              dispatch(showToast({ message: "Company info saved", type: "success" }));
-            }}
-            defaultExpanded={isEditing}
-          />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
-            {/* Passwords — add mode only */}
-            {effectiveMode === "add" && shouldRenderField("password") && (
-              <HorizontalField
-                label="password"
-                htmlFor="password"
-                required
-                error={(errors as any).password?.message}
-              >
-                <Input
-                  type="password"
-                  id="password"
-                  placeholder="Password"
-                  {...register("password" as any)}
-                  error={!!(errors as any).password?.message}
-                  disabled={isFieldDisabled("password")}
-                />
-              </HorizontalField>
-            )}
-
-            {effectiveMode === "add" && shouldRenderField("cnf_password") && (
-              <HorizontalField
-                label="cnf_password"
-                htmlFor="cnf_password"
-                required
-                error={(errors as any).cnf_password?.message}
-              >
-                <Input
-                  type="password"
-                  id="cnf_password"
-                  placeholder="Confirm password"
-                  {...register("cnf_password" as any)}
-                  error={!!(errors as any).cnf_password?.message}
-                  disabled={isFieldDisabled("cnf_password")}
-                />
-              </HorizontalField>
-            )}
-
-            {/* Checkboxes */}
-            <div className="flex gap-6 py-2 col-span-full">
-              {shouldRenderField("is_active") && (
-                <Controller
-                  name="is_active"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      label="Active"
-                      checked={field.value ?? true}
-                      onChange={field.onChange}
-                      disabled={isFieldDisabled("is_active")}
-                    />
-                  )}
-                />
-              )}
-              {shouldRenderField("is_staff") && (
-                <Controller
-                  name="is_staff"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      label="Staff"
-                      checked={field.value ?? false}
-                      onChange={field.onChange}
-                      disabled={isFieldDisabled("is_staff")}
-                    />
-                  )}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* ── Auth & System (read-only info) ── */}
-          {data && (
+            {/* ── Auth & System ── */}
             <ScalarCard
               title="Auth & System"
               icon={<ShieldCheck size={14} />}
@@ -2454,10 +2196,8 @@ export default function ContactDetail({
                 { label: "last_login", value: data.last_login },
               ]}
             />
-          )}
 
-          {/* ── JSONB — actions ── */}
-          {data && (
+            {/* ── JSONB — actions ── */}
             <JsonCard
               title="Actions"
               fieldName="actions"
@@ -2465,11 +2205,392 @@ export default function ContactDetail({
               columns={3}
               defaultExpanded={false}
             />
-          )}
 
-          {/* ── BaseModel Identity + Envelopes ── */}
-          {data && <BaseModelCards data={data as Record<string, unknown>} />}
-        </form>
+            {/* ── BaseModel Identity + Envelopes ── */}
+            <BaseModelCards data={data as Record<string, unknown>} />
+          </div>
+        ) : (
+          /* ── Editable form ── */
+          <form
+            id="contact-form"
+            onSubmit={handleSubmit(onSubmit, onValidationError)}
+          >
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+              <FaUser size={16} />
+              Basic Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+              {shouldRenderField("name_first") && (
+                <HorizontalField
+                  label="name_first"
+                  htmlFor="name_first"
+                  required
+                  error={errors.name_first?.message}
+                >
+                  <Input
+                    type="text"
+                    id="name_first"
+                    placeholder="First name"
+                    {...register("name_first")}
+                    error={!!errors.name_first?.message}
+                    disabled={isFieldDisabled("name_first")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("name_last") && (
+                <HorizontalField
+                  label="name_last"
+                  htmlFor="name_last"
+                  required
+                  error={errors.name_last?.message}
+                >
+                  <Input
+                    type="text"
+                    id="name_last"
+                    placeholder="Last name"
+                    {...register("name_last")}
+                    error={!!errors.name_last?.message}
+                    disabled={isFieldDisabled("name_last")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("attention") && (
+                <HorizontalField label="attention" htmlFor="attention">
+                  <Input
+                    type="text"
+                    id="attention"
+                    placeholder="Auto from first + last"
+                    {...register("attention")}
+                    disabled
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_prefix") && (
+                <HorizontalField label="name_prefix" htmlFor="name_prefix">
+                  <Input
+                    type="text"
+                    id="name_prefix"
+                    placeholder="Mr., Ms., Dr."
+                    {...register("name_prefix")}
+                    disabled={isFieldDisabled("name_prefix")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_suffix") && (
+                <HorizontalField label="name_suffix" htmlFor="name_suffix">
+                  <Input
+                    type="text"
+                    id="name_suffix"
+                    placeholder="Jr., Sr., III"
+                    {...register("name_suffix")}
+                    disabled={isFieldDisabled("name_suffix")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_middle") && (
+                <HorizontalField label="name_middle" htmlFor="name_middle">
+                  <Input
+                    type="text"
+                    id="name_middle"
+                    placeholder="Middle name"
+                    {...register("name_middle")}
+                    disabled={isFieldDisabled("name_middle")}
+                  />
+                </HorizontalField>
+              )}
+            </div>
+
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaAddressBook size={16} />
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+              {shouldRenderField("email") && (
+                <HorizontalField
+                  label="email"
+                  htmlFor="email"
+                  required
+                  error={errors.email?.message}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="email"
+                      id="email"
+                      placeholder="Primary email"
+                      {...register("email")}
+                      error={!!errors.email?.message}
+                      disabled={isFieldDisabled("email")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("email")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add email"
+                        disabled={isFieldDisabled("email")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("phone") && (
+                <HorizontalField label="phone" htmlFor="phone">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="phone"
+                      placeholder="Primary phone"
+                      {...register("phone" as any)}
+                      disabled={isFieldDisabled("phone")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("phone")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add phone"
+                        disabled={isFieldDisabled("phone")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("address_full") && (
+                <HorizontalField label="address_full" htmlFor="address_full">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="address_full"
+                      placeholder="Full address"
+                      {...register("address_full" as any)}
+                      disabled={isFieldDisabled("address_full")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("address")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add address"
+                        disabled={isFieldDisabled("address_full")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("domain") && (
+                <HorizontalField label="domain" htmlFor="domain">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      id="domain"
+                      placeholder="Primary domain"
+                      {...register("domain" as any)}
+                      disabled={isFieldDisabled("domain")}
+                    />
+                    {activeContactId && effectiveMode !== "view" && (
+                      <button
+                        type="button"
+                        onClick={() => openCommSelect("domain")}
+                        className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Select or add domain"
+                        disabled={isFieldDisabled("domain")}
+                      >
+                        <FaSearch size={13} />
+                      </button>
+                    )}
+                  </div>
+                </HorizontalField>
+              )}
+            </div>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+              <FaBuilding size={16} />
+              Company Information
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+              {shouldRenderField("company") && (
+                <HorizontalField label="company" htmlFor="company">
+                  <Input
+                    type="text"
+                    id="company"
+                    placeholder="Company name"
+                    {...register("company")}
+                    disabled={isFieldDisabled("company")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("title") && (
+                <HorizontalField label="title" htmlFor="title">
+                  <Input
+                    type="text"
+                    id="title"
+                    placeholder="Job title"
+                    {...register("title")}
+                    disabled={isFieldDisabled("title")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("department") && (
+                <HorizontalField label="department" htmlFor="department">
+                  <Input
+                    type="text"
+                    id="department"
+                    placeholder="Department"
+                    {...register("department")}
+                    disabled={isFieldDisabled("department")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("role") && (
+                <HorizontalField label="role" htmlFor="role">
+                  <Controller
+                    name="role"
+                    control={control}
+                    render={({ field }) => (
+                      <DropDown
+                        id="role"
+                        options={ROLE_OPTIONS}
+                        value={field.value || "user"}
+                        onChange={field.onChange}
+                        disabled={isFieldDisabled("role")}
+                      />
+                    )}
+                  />
+                </HorizontalField>
+              )}
+
+              {/* System IDs */}
+              {/* ── Org Association ID Fields with Search ── */}
+              {(
+                [
+                  "customer_id",
+                  "vendor_id",
+                  "rep_id",
+                  "employee_id",
+                  "manufacturer_id",
+                  "other_id",
+                ] as const
+              ).map(
+                (fieldName) =>
+                  shouldRenderField(fieldName) && (
+                    <HorizontalField
+                      key={fieldName}
+                      label={fieldName}
+                      htmlFor={fieldName}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          id={fieldName}
+                          placeholder={`${fieldName
+                            .replace("_id", "")
+                            .replace(/^./, (c) => c.toUpperCase())} ID`}
+                          {...register(fieldName as any, {
+                            valueAsNumber: true,
+                          })}
+                          //disabled={isFieldDisabled(fieldName)}
+                          disabled={
+                            effectiveMode === "edit" || effectiveMode === "add"
+                          }
+                        />
+                        {effectiveMode !== "view" && (
+                          <button
+                            type="button"
+                            onClick={() => setOrgSearchField(fieldName)}
+                            className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title={`Search ${fieldName.replace("_id", "")}s`}
+                          >
+                            <FaSearch size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </HorizontalField>
+                  ),
+              )}
+
+              {/* Passwords — add mode only */}
+              {effectiveMode === "add" && shouldRenderField("password") && (
+                <HorizontalField
+                  label="password"
+                  htmlFor="password"
+                  required
+                  error={(errors as any).password?.message}
+                >
+                  <Input
+                    type="password"
+                    id="password"
+                    placeholder="Password"
+                    {...register("password" as any)}
+                    error={!!(errors as any).password?.message}
+                    disabled={isFieldDisabled("password")}
+                  />
+                </HorizontalField>
+              )}
+
+              {effectiveMode === "add" && shouldRenderField("cnf_password") && (
+                <HorizontalField
+                  label="cnf_password"
+                  htmlFor="cnf_password"
+                  required
+                  error={(errors as any).cnf_password?.message}
+                >
+                  <Input
+                    type="password"
+                    id="cnf_password"
+                    placeholder="Confirm password"
+                    {...register("cnf_password" as any)}
+                    error={!!(errors as any).cnf_password?.message}
+                    disabled={isFieldDisabled("cnf_password")}
+                  />
+                </HorizontalField>
+              )}
+
+              {/* Checkboxes */}
+              <div className="flex gap-6 py-2 col-span-full">
+                {shouldRenderField("is_active") && (
+                  <Controller
+                    name="is_active"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        label="Active"
+                        checked={field.value ?? true}
+                        onChange={field.onChange}
+                        disabled={isFieldDisabled("is_active")}
+                      />
+                    )}
+                  />
+                )}
+                {shouldRenderField("is_staff") && (
+                  <Controller
+                    name="is_staff"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        label="Staff"
+                        checked={field.value ?? false}
+                        onChange={field.onChange}
+                        disabled={isFieldDisabled("is_staff")}
+                      />
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* ─── TAB NAVIGATION ─── */}

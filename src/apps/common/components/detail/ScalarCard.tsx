@@ -17,6 +17,8 @@ export interface ScalarField {
   highlight?: boolean;
   /** Format as currency */
   isCurrency?: boolean;
+  /** Number of grid columns this field should span (default: 1) */
+  colSpan?: 1 | 2 | 3;
 }
 
 export interface ScalarCardProps {
@@ -72,15 +74,29 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
       {isExpanded && (
         <div className="px-4 py-3 bg-white dark:bg-slate-900">
           <dl className={`grid gap-x-6 gap-y-0 ${gridClasses[columns]}`}>
-            {fields.map((f) => (
-              <InfoRow
-                key={f.label}
-                label={f.label}
-                value={f.value as React.ReactNode}
-                highlight={f.highlight}
-                isCurrency={f.isCurrency}
-              />
-            ))}
+            {fields.map((f) => {
+              const span = f.colSpan && f.colSpan > 1
+                ? f.colSpan === 3 ? "col-span-3" : "col-span-2"
+                : undefined;
+              return span ? (
+                <div key={f.label} className={span}>
+                  <InfoRow
+                    label={f.label}
+                    value={f.value as React.ReactNode}
+                    highlight={f.highlight}
+                    isCurrency={f.isCurrency}
+                  />
+                </div>
+              ) : (
+                <InfoRow
+                  key={f.label}
+                  label={f.label}
+                  value={f.value as React.ReactNode}
+                  highlight={f.highlight}
+                  isCurrency={f.isCurrency}
+                />
+              );
+            })}
           </dl>
         </div>
       )}

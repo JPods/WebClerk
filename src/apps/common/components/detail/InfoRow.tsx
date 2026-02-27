@@ -15,6 +15,8 @@ export interface InfoRowProps {
   highlight?: boolean;
   /** Format as currency */
   isCurrency?: boolean;
+  /** Make the value a clickable link: email→mailto, phone→tel, address→Google Maps */
+  linkType?: "email" | "phone" | "address";
 }
 
 export function formatDisplayValue(val: unknown, isCurrency = false): string {
@@ -37,9 +39,26 @@ const InfoRow: React.FC<InfoRowProps> = ({
   value,
   highlight = false,
   isCurrency = false,
+  linkType,
 }) => {
   const isElement = React.isValidElement(value);
   const displayVal = isElement ? value : formatDisplayValue(value, isCurrency);
+
+  /** Wrap the rendered value in an <a> tag when linkType is set and value is a non-empty string */
+  const renderLinkedValue = (content: React.ReactNode) => {
+    if (!linkType || typeof value !== "string" || !value) return content;
+    const linkClasses = "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
+    switch (linkType) {
+      case "email":
+        return <a href={`mailto:${value}`} className={linkClasses} title={`Email ${value}`}>{content}</a>;
+      case "phone":
+        return <a href={`tel:${value.replace(/[^+\d]/g, "")}`} className={linkClasses} title={`Call ${value}`}>{content}</a>;
+      case "address":
+        return <a href={`https://maps.google.com/?q=${encodeURIComponent(value)}`} target="_blank" rel="noopener noreferrer" className={linkClasses} title="Open in Maps">{content}</a>;
+      default:
+        return content;
+    }
+  };
 
   return (
     <div className="flex items-baseline gap-2 py-1">
@@ -53,7 +72,11 @@ const InfoRow: React.FC<InfoRowProps> = ({
             : "text-gray-900 dark:text-white"
         }`}
       >
+<<<<<<< HEAD
         {isElement ? displayVal : displayVal ?? "—"}
+=======
+        {renderLinkedValue(typeof displayVal === "string" ? displayVal : displayVal ?? "—")}
+>>>>>>> 9af940e04dae78d3fb2a25bff5971ff95a6a1218
       </dd>
     </div>
   );
