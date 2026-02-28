@@ -38,6 +38,7 @@ Settings are categorized by `purpose`. The current registered purposes are:
 | `detail_field_access` | Field visibility/editability in detail views   |           | ✓         |
 | `qa_counters`         | Auto-increment counters for Q&A IDs            | ✓         |           |
 | `qa_questions`        | Question definitions with templates            |           | ✓ (group) |
+| `admin`               | Administrative singletons (keyed by `name`)    | ✓ (named) |           |
 
 **Legend:** ✓ = required, ○ = optional per-model override
 
@@ -309,6 +310,95 @@ See: [qa_implementation_plan.md](qa/qa_implementation_plan.md) for full specific
 
 ---
 
+### `admin`
+
+Administrative singleton settings keyed by `name`. Each provides a shared
+configuration dataset that the frontend can fetch for runtime use.
+
+**Lookup:** `purpose='admin'` + `name`
+
+#### `popup_choices` (id 114)
+
+Normalized legacy wc2 popup/choice lists for select dropdowns in r25.
+
+**Seeded by:** `python manage.py create_popup_choices`
+
+```json
+{
+  "purpose": "admin",
+  "name": "popup_choices",
+  "data": {
+    "meta": {
+      "source": "wc2 popups/popupchoices migration",
+      "created_at": "2026-02-23T...",
+      "total_lists": 116,
+      "total_choices": 209
+    },
+    "lists": {
+      "status": {
+        "list_name": "Status",
+        "wc2_array_name": "<>aStatus",
+        "where_used": "...",
+        "choices": [
+          { "value": "INVOICE", "label": "INVOICE", "alternate": "", "sequence": 0 },
+          { "value": "APPROVED", "label": "APPROVED", "alternate": "", "sequence": 0 }
+        ]
+      },
+      "salutation": {
+        "list_name": "Salutation",
+        "wc2_array_name": "<>aSalutation",
+        "where_used": "",
+        "choices": [
+          { "value": "Ms", "label": "Ms", "alternate": "", "sequence": 0 },
+          { "value": "Mrs.", "label": "Mrs.", "alternate": "", "sequence": 0 },
+          { "value": "Mr.", "label": "Mr.", "alternate": "", "sequence": 0 },
+          { "value": "Dr.", "label": "Dr.", "alternate": "", "sequence": 0 }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Key lists** (116 total): `status` (29 choices), `actions` (12), `type_sale` (6),
+`salutation` (4), `prospect` (5), `reasons` (4), `activities` (4),
+`job_type` (7), `items_type` (6), `orders_profile1` (7), etc.
+
+#### `layout_status` (id 113)
+
+Tracks which r25 model layout files exist (Detail, List, Dialog, Panel)
+and their implementation status.
+
+**Seeded by:** `python manage.py create_layout_status`
+
+See: [layout-maintenance.md](../../../../React2025/readmes/layout-maintenance.md) for full specification.
+
+```json
+{
+  "purpose": "admin",
+  "name": "layout_status",
+  "data": {
+    "layouts": [
+      {
+        "app": "transactions",
+        "model": "order",
+        "detail_exists": true,
+        "list_exists": true,
+        "dialog_exists": false,
+        "panel_exists": false,
+        "detail_status": "",
+        "list_status": "",
+        "dialog_status": "",
+        "panel_status": "",
+        "assigned_to": ""
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## API Usage
 
 ### Fetching Settings (GET)
@@ -374,3 +464,6 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
 | [apps/core/choices.py](../../../apps/core/choices.py) | Purpose choices |
 | [React2025/src/api/wcapi.ts](../../../../React2025/src/api/wcapi.ts) | API helper functions |
 | [qa_implementation_plan.md](qa/qa_implementation_plan.md) | Q&A specific settings |
+| [create_popup_choices.py](../../../apps/core/management/commands/create_popup_choices.py) | Seed popup_choices admin setting |
+| [create_layout_status.py](../../../apps/core/management/commands/create_layout_status.py) | Seed layout_status admin setting |
+| [React2025 layout-maintenance.md](../../../../React2025/readmes/layout-maintenance.md) | Layout status detailed docs |
