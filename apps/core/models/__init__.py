@@ -8,5 +8,6 @@ from .audit import AuditLog
 from .report import Report
 from .notification import Notification
 from .refs_mismatch_log import RefsMismatchLog
+from .log import APILog, UserDailyLog
 
-__all__ = ['Contact', 'Action', 'Setting', 'Template', 'Pending', 'SoftDeleteLedger', 'AuditLog', 'Report', 'Notification']
+__all__ = ['Contact', 'Action', 'Setting', 'Template', 'Pending', 'SoftDeleteLedger', 'AuditLog', 'Report', 'Notification', 'APILog', 'UserDailyLog']

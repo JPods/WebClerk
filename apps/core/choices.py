@@ -50,6 +50,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("detail_field_access", "detail_field_access"),
     ("qa_counters", "qa_counters"),
     ("qa_questions", "qa_questions"),
+    ("admin", "admin"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

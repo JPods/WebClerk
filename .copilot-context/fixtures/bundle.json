@@ -33,15 +33,15 @@
     },
     "history": {
       "created": {
-        "dt": 1771766726717,
+        "dt": 1771772722341,
         "contact_id": 0
       },
       "modified": {
-        "dt": 1771766726717,
+        "dt": 1771772722341,
         "contact_id": 0
       },
       "accessed": {
-        "dt": 1771766726717,
+        "dt": 1771772722341,
         "contact_id": 0
       },
       "verified": {
@@ -88,15 +88,15 @@
   "connection": "<fk:Connection>",
   "connection_id": "<int:fk>",
   "direction": "<choice:['', 'push', 'pull']>",
-  "config": "<django.db.models.fields.NOT_PROVIDED object at 0x1193e6f90>",
+  "config": "<django.db.models.fields.NOT_PROVIDED object at 0x118c12cf0>",
   "status": "<choice:['', 'queued', 'running']>",
   "alert": "<choice:['', 'none', 'info']>",
-  "response": "<django.db.models.fields.NOT_PROVIDED object at 0x119384e20>",
+  "response": "<django.db.models.fields.NOT_PROVIDED object at 0x118b96f70>",
   "duration": "<int>",
-  "payload": "<django.db.models.fields.NOT_PROVIDED object at 0x10d3dd6d0>",
+  "payload": "<django.db.models.fields.NOT_PROVIDED object at 0x118bad6d0>",
   "size": "<int>",
-  "maps": "<django.db.models.fields.NOT_PROVIDED object at 0x1191e3d10>",
-  "encryption": "<django.db.models.fields.NOT_PROVIDED object at 0x119434aa0>",
-  "rules": "<django.db.models.fields.NOT_PROVIDED object at 0x119434c00>",
-  "conflicts": "<django.db.models.fields.NOT_PROVIDED object at 0x11943caf0>"
+  "maps": "<django.db.models.fields.NOT_PROVIDED object at 0x118bad790>",
+  "encryption": "<django.db.models.fields.NOT_PROVIDED object at 0x118c662b0>",
+  "rules": "<django.db.models.fields.NOT_PROVIDED object at 0x118c66360>",
+  "conflicts": "<django.db.models.fields.NOT_PROVIDED object at 0x118bfa170>"
 }

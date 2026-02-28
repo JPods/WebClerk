@@ -1,6 +1,6 @@
 {
-  "__model__": "transactions.PurchaseLine",
-  "__table__": "purchase_lines",
+  "__model__": "core.UserDailyLog",
+  "__table__": "user_daily_logs",
   "id": "<int:pk>",
   "uuid": "<uuid>",
   "ida": "<str:max40>",
@@ -33,15 +33,15 @@
     },
     "history": {
       "created": {
-        "dt": 1771772722366,
+        "dt": 1771772722375,
         "contact_id": 0
       },
       "modified": {
-        "dt": 1771772722366,
+        "dt": 1771772722375,
         "contact_id": 0
       },
       "accessed": {
-        "dt": 1771772722366,
+        "dt": 1771772722375,
         "contact_id": 0
       },
       "verified": {
@@ -85,16 +85,14 @@
     "notes": []
   },
   "health_rating": "<int>",
-  "line_number": "<int>",
-  "price_level": "<str:max50>",
-  "status": "<str:max50>",
-  "item_fk": "<fk:Item>",
-  "item_fk_id": "<int:fk>",
-  "item": {},
-  "quantity": {},
-  "cost": {},
-  "tax": {},
-  "physical": {},
-  "purchase": "<fk:Purchase>",
-  "purchase_id": "<int:fk>"
+  "user": "<fk:Contact>",
+  "user_id": "<int:fk>",
+  "log_date": "<date:YYYY-MM-DD>",
+  "call_counts": {},
+  "response_summary": {},
+  "hints": [],
+  "error_details": [],
+  "total_calls": "<int>",
+  "total_errors": "<int>",
+  "avg_duration_ms": "<int>"
 }

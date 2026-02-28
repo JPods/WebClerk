@@ -38,7 +38,7 @@
   "id_gateway_transaction": "<str:max255>",
   "id_gateway_payment_intent": "<str:max255>",
   "status": "<choice:['', 'pending', 'processing']>",
-  "gateway_response": "<django.db.models.fields.NOT_PROVIDED object at 0x1193c6170>",
+  "gateway_response": "<django.db.models.fields.NOT_PROVIDED object at 0x118c593b0>",
   "dt_processed": "<datetime:ISO8601>",
   "reconciled": false,
   "dt_reconciliation": "<datetime:ISO8601>",
