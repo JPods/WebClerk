@@ -1933,9 +1933,8 @@ export default function ItemDetail({
             </FieldRow>
           </Section>
 
-          {/* Catalog Section */}
-          <Section title="Catalog" icon={<FaListAlt className="w-4 h-4" />} defaultExpanded={false}>
-            {/* Tax Section: code, jurisdiction, category, rate, exemptions, jurisdiction_params */}
+          {/* Tax Section */}
+          <Section title="Tax Information" icon={<FaFileInvoice className="w-4 h-4" />} defaultExpanded={false}>
             <FieldRow label="Tax Code" htmlFor="tax_code_code">
               <Input type="text" id="tax_code_code" {...register("tax_code_code")} disabled={isFieldDisabled("tax_code")} />
             </FieldRow>
@@ -1965,6 +1964,10 @@ export default function ItemDetail({
                 disabled={isFieldDisabled("tax_code")}
               />
             </FieldRow>
+          </Section>
+
+          {/* Catalog Section */}
+          <Section title="Catalog" icon={<FaListAlt className="w-4 h-4" />} defaultExpanded={false}>
             <FieldRow label="Categories" htmlFor="catalog_categories" hint="Comma-separated categories">
               <Input type="text" id="catalog_categories" {...register("catalog_categories")} disabled={isFieldDisabled("catalog")} />
             </FieldRow>
