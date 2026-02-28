@@ -15,6 +15,8 @@ Read them fully before generating or modifying any code.
 | Legacy | 4D Sources (**wc2**) + Vue 2020 — migration targets, not active dev |
 | Ports | wc3 → `localhost:8000`, r25 → `localhost:5173` |
 
+**Legacy schema** — The full 4D/wc2 field catalog is at `readmes/topics/wc2/wc2_schema.json` (157 tables). Attach it when working on field migrations or metadata mapping.
+
 ---
 
 ## 2. Architecture at a Glance
