@@ -8,6 +8,7 @@ import { normalizeRefsLinksContact } from "./ContactPanel";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
 import { OrderPrintDocument } from "./print";
+import { InvoicePrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -638,6 +639,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         }
 
         const normalized = normalizeTransactionFkFields(result as any);
+        console.log("Loaded invoice data:", { result, normalized, lines: normalized.lines });
         setData(normalized);
         setEditData(normalized);
       } catch (e) {
@@ -1014,14 +1016,99 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // ...existing code...
 
   // Print Preview Modal rendering
-  // Only for orders for now, can be extended for invoices, proposals, etc.
+  // Uses appropriate print document based on transaction type
   const renderPrintPreview = () => {
     if (!showPrintPreview || !data) return null;
-    // Try to get orderNum/invoiceNum if present, fallback to id
-    const docNum =
-      (data as any).orderNum || (data as any).invoiceNum || data.id;
-    // Cast data to OrderPrintData for print (safe if shape matches)
-    console.log("data samir", data);
+    
+    // Try to get document number based on type
+    const docNum = 
+      transactionType === 'invoice' ? (data as any).invoice_no || (data as any).ida || data.id :
+      transactionType === 'order' ? (data as any).order_no || (data as any).ida || data.id :
+      (data as any).ida || data.id;
+    
+    // Transform transaction data to print format based on type
+    const printContent = (() => {
+      switch (transactionType) {
+        case 'invoice':
+          // Transform Transaction to InvoicePrintData
+          const invoiceData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            invoiceNum: (data as any).invoice_no || (data as any).ida || data.ida,
+            orderNum: (data as any).order_no,
+            status: data.status,
+            
+            // Customer info from refs
+            customerID: data.customer_id,
+            firstName: data.refs?.links?.customer?.[0]?.name_first || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.customer?.[0]?.name_last || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateInvoiced: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateDue: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            packedBy: (data as any).packed_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            downPayment: (data as any).down_payment,
+            amountPaid: (data as any).amount_paid || data.totals?.received,
+            balanceDue: data.totals?.balance,
+            invoices_BalanceDue: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qty: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Invoice data for print:", { invoiceData, lines: invoiceData.lines });
+          return <InvoicePrintDocument data={invoiceData} lines={invoiceData.lines} />;
+          
+        case 'order':
+          return <OrderPrintDocument data={data as any} />;
+          
+        default:
+          // Fallback to order print for other types
+          return <OrderPrintDocument data={data as any} />;
+      }
+    })();
+    
     return (
       <PrintPreviewModal
         isOpen={showPrintPreview}
@@ -1029,7 +1116,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         documentType={typeLabel}
         documentNumber={docNum}
       >
-        <OrderPrintDocument data={data as any} />
+        {printContent}
       </PrintPreviewModal>
     );
   };

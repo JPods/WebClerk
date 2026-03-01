@@ -1630,34 +1630,33 @@ export default function ItemDetail({
         // ignore parse errors
       }
 
-      const payload: any = {
-        ...formData,
-        ...(mode === "edit" && data?.id ? { id: data.id } : {}),
-      };
+      // Build a full payload from form values mapping helper to ensure all sections are present
+      const payload: any = formValuesToPayload(formData, data);
+      if (mode === "edit" && data?.id) payload.id = data.id;
 
-      // Remove transient form-only fields
-      delete payload.price_base;
-      delete payload.price_msrp;
-      delete payload.price_retail;
-      delete payload.price_wholesale;
-      delete payload.price_distributor;
-      delete payload.price_sample;
-      delete payload.price_currency;
-      delete payload.price_qty_breaks_json;
-      delete payload.price_history_json;
+      // In addition to the mapped fields, merge parsed JSON sections we prepared above
+      if (Object.keys(priceObj).length > 0) {
+        payload.price = { ...(payload.price || {}), ...priceObj };
+      }
 
-      // Remove transient cost form-only fields
-      delete payload.cost_standard;
-      delete payload.cost_last;
-      delete payload.cost_avg;
-      delete payload.cost_landed;
-      delete payload.cost_currency;
-      delete payload.cost_qty_breaks_json;
-      delete payload.cost_components_json;
-      // Remove transient catalog form-only fields
-      delete payload.catalog_categories;
-      delete payload.catalog_attributes_json;
-      delete payload.catalog_flags_json;
+      if (Object.keys(costObj).length > 0) {
+        payload.cost = { ...(payload.cost || {}), ...costObj };
+      }
+
+      if (Object.keys(catalogObj).length > 0) {
+        payload.catalog = {
+          ...(payload.catalog || {}),
+          ...catalogObj,
+          web: {
+            ...((payload.catalog as CatalogData)?.web || {}),
+            ...(catalogObj.web || {}),
+          },
+        };
+      }
+
+      if (Object.keys(taxCodeObj).length > 0) {
+        payload.tax_code = { ...(payload.tax_code || {}), ...taxCodeObj };
+      }
       delete payload.catalog_web_slug;
       delete payload.catalog_web_title;
       delete payload.catalog_web_short;
@@ -1694,6 +1693,9 @@ export default function ItemDetail({
           ...taxCodeObj,
         };
       }
+
+      // Debug: show final payload before API call
+      console.debug("ItemDetail: submitting payload", payload);
 
       const res = mode === "add"
         ? await createItem(payload as any)
