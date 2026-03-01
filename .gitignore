@@ -27,3 +27,5 @@ dist-ssr
 # macOS Finder duplicate files (e.g. "foo 2.py")
 * 2.*
 * 2
+# switching databases
+tools/dev-config.json

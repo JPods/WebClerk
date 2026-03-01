@@ -6,10 +6,20 @@ import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "@/api/userProfile";
 import { fetchOrders, fetchOrderDetail } from "../services/orderApi";
-import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import { FaEye, FaEdit, FaPlus, FaTrash, FaFilter } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import OrderDetail from "./OrderDetail";
+
+// Quick-filter presets
+type QuickFilter = "all" | "open" | "last30" | "last60";
+
+const QUICK_FILTER_LABELS: Record<QuickFilter, string> = {
+  all: "All",
+  open: "Open Orders",
+  last30: "Last 30 Days",
+  last60: "Last 60 Days",
+};
 
 // Define the possible order statuses for type safety
 type OrderStatus =
@@ -46,13 +56,27 @@ export default function OrderList() {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
 
   const dispatch = useDispatch();
 
-  const getOrderData = useCallback(async () => {
+  const getOrderData = useCallback(async (filter?: QuickFilter) => {
+    const activeFilter = filter ?? quickFilter;
     try {
       setLoading(true);
-      const res = await fetchOrders();
+
+      // Build params based on quick filter
+      const params: Record<string, any> = {};
+      if (activeFilter === "open") {
+        params.status = "draft,confirmed,shipped";
+      } else if (activeFilter === "last30" || activeFilter === "last60") {
+        const days = activeFilter === "last30" ? 30 : 60;
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        params.dt_created__gte = since.toISOString().split("T")[0];
+      }
+
+      const res = await fetchOrders(params);
       if (res.status === 200) {
         setData(res.data.items);
       } else {
@@ -66,11 +90,19 @@ export default function OrderList() {
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, [dispatch, quickFilter]);
 
   useEffect(() => {
     getOrderData();
   }, [getOrderData]);
+
+  const handleQuickFilter = useCallback(
+    (filter: QuickFilter) => {
+      setQuickFilter(filter);
+      getOrderData(filter);
+    },
+    [getOrderData],
+  );
 
   // Auto-refresh when another window saves/transfers a transaction.
   useEffect(() => {
@@ -464,13 +496,34 @@ export default function OrderList() {
               onSearchModeChange={setSearchDatabase}
               onDatabaseSearch={handleDatabaseSearch}
               customActions={
-                <button
-                  onClick={handleAdd}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <FaPlus className="w-4 h-4" />
-                  Add Order
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Quick-filter buttons */}
+                  {(Object.keys(QUICK_FILTER_LABELS) as QuickFilter[]).map(
+                    (key) => (
+                      <button
+                        key={key}
+                        onClick={() => handleQuickFilter(key)}
+                        className={`flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                          quickFilter === key
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                        }`}
+                      >
+                        {key !== "all" && <FaFilter className="w-3 h-3" />}
+                        {QUICK_FILTER_LABELS[key]}
+                      </button>
+                    ),
+                  )}
+
+                  {/* Add Order button */}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Order
+                  </button>
+                </div>
               }
               onRowClicked={handleView}
             />
