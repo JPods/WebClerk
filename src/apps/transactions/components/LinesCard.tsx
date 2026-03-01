@@ -22,6 +22,7 @@ interface LinesCardProps {
   isEditing: boolean;
   isLocked?: boolean;
   priceLevel?: string | null;
+  transactionType?: string;
   onDeleteLine?: (lineId: number) => void;
   onUpdateLine?: (lineId: number, field: string, value: unknown) => void;
   onUpdateFullLine?: (line: any) => void;
@@ -35,6 +36,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   isEditing,
   isLocked = false,
   priceLevel,
+  transactionType,
   onDeleteLine,
   onUpdateLine,
   onUpdateFullLine,
@@ -308,9 +310,9 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   description: description,
                   unit_measure: unitMeasure,
                 },
-                quantity: {
-                  placed: quantity,
-                },
+                quantity: transactionType === 'invoice'
+                  ? { placed: quantity, actioned: quantity, remaining: 0 }
+                  : { placed: quantity },
                 price: {
                   unit: unitPrice,
                   extended: unitPrice * quantity,
