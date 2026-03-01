@@ -1,34 +1,33 @@
-2026-02-24 15:17:27,887 - INFO - ═════════════════════════════════════════════════════════════════
-2026-02-24 15:17:27,887 - INFO -   LOAD BOM STARTED: 2026-02-24 15:17:27
-2026-02-24 15:17:27,887 - INFO -   Source: /Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/inventory/bom_children.json
-2026-02-24 15:17:27,887 - INFO -   Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/load_bom.log
-2026-02-24 15:17:27,887 - INFO - ═════════════════════════════════════════════════════════════════
-2026-02-24 15:17:27,887 - INFO - 
-2026-02-24 15:17:27,888 - INFO -   Loaded 20 records from JSON
-2026-02-24 15:17:27,888 - INFO -   Building item lookup by SKU...
-2026-02-24 15:17:32,128 - INFO -   Found 116 items with SKUs
-2026-02-24 15:17:33,442 - WARNING -   Error BB404->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:34,741 - WARNING -   Error BB404->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:36,068 - WARNING -   Error BB404->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:37,363 - WARNING -   Error BB110->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:38,684 - WARNING -   Error BB404->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:39,985 - WARNING -   Error BB401->BB1: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:41,318 - WARNING -   Error BB401->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:42,616 - WARNING -   Error BB401->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:43,927 - WARNING -   Error BB401->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:45,225 - WARNING -   Error BB401->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:46,549 - WARNING -   Error BB401->BB100: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:47,846 - WARNING -   Error BB401->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:49,170 - WARNING -   Error BB401_2->BB1: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:50,469 - WARNING -   Error BB401_2->BB105: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:51,792 - WARNING -   Error BB401_2->BB103: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:53,089 - WARNING -   Error BB401_2->BB102: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:54,413 - WARNING -   Error BB401_2->BB101: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:55,711 - WARNING -   Error BB401_2->BB100: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:57,035 - WARNING -   Error BB401_2->BB110: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:58,335 - WARNING -   Error BB401->BB405: Cannot resolve keyword 'component_id' into field. Choices are: actions, alternat
-2026-02-24 15:17:58,335 - INFO - 
-2026-02-24 15:17:58,335 - INFO - ═════════════════════════════════════════════════════════════════
-2026-02-24 15:17:58,335 - INFO -   COMPLETE: Created 0, Updated 0, Errors 20
-2026-02-24 15:17:58,335 - INFO -   Duration: 30.4s
-2026-02-24 15:17:58,335 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-25 04:35:26,161 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-25 04:35:26,161 - INFO -   LOAD BOM STARTED: 2026-02-25 04:35:26
+2026-02-25 04:35:26,161 - INFO -   Source: /Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/inventory/bom_children.json
+2026-02-25 04:35:26,162 - INFO -   Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/load_bom.log
+2026-02-25 04:35:26,162 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-25 04:35:26,162 - INFO - 
+2026-02-25 04:35:26,162 - INFO -   Loaded 20 records from JSON
+2026-02-25 04:35:29,758 - INFO -   Cleared 17 existing BOM records
+2026-02-25 04:35:31,867 - INFO -   + BB404 -> BB102 x2
+2026-02-25 04:35:34,230 - INFO -   + BB404 -> BB101 x1
+2026-02-25 04:35:36,570 - INFO -   + BB404 -> BB103 x1
+2026-02-25 04:35:38,952 - INFO -   + BB110 -> BB105 x10
+2026-02-25 04:35:41,290 - INFO -   + BB404 -> BB110 x1
+2026-02-25 04:35:43,672 - INFO -   + BB401 -> BB1 x5
+2026-02-25 04:35:46,024 - INFO -   + BB401 -> BB105 x7
+2026-02-25 04:35:48,417 - INFO -   + BB401 -> BB103 x10
+2026-02-25 04:35:50,740 - INFO -   + BB401 -> BB102 x1
+2026-02-25 04:35:53,109 - INFO -   + BB401 -> BB101 x11
+2026-02-25 04:35:55,445 - INFO -   + BB401 -> BB100 x1
+2026-02-25 04:35:57,825 - INFO -   + BB401 -> BB110 x1
+2026-02-25 04:36:00,168 - INFO -   + bb401_2 -> BB1 x5
+2026-02-25 04:36:02,544 - INFO -   + bb401_2 -> BB105 x7
+2026-02-25 04:36:04,884 - INFO -   + bb401_2 -> BB103 x10
+2026-02-25 04:36:07,264 - INFO -   + bb401_2 -> BB102 x1
+2026-02-25 04:36:09,609 - INFO -   + bb401_2 -> BB101 x11
+2026-02-25 04:36:11,984 - INFO -   + bb401_2 -> BB100 x1
+2026-02-25 04:36:14,319 - INFO -   + bb401_2 -> BB110 x1
+2026-02-25 04:36:16,705 - INFO -   + BB401 -> BB405 x6
+2026-02-25 04:36:16,945 - INFO - 
+2026-02-25 04:36:16,946 - INFO - ═════════════════════════════════════════════════════════════════
+2026-02-25 04:36:16,946 - INFO -   COMPLETE: Created 20, Updated 0, Errors 0
+2026-02-25 04:36:16,946 - INFO -   Duration: 50.8s
+2026-02-25 04:36:16,946 - INFO - ═════════════════════════════════════════════════════════════════

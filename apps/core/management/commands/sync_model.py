@@ -8,6 +8,9 @@ Usage:
     # Push local → remote  (overwrite remote table with local data)
     python manage.py sync_model contact --direction to-remote
 
+    # Sync ALL blessed models at once (remote → local)
+    python manage.py sync_model all --direction to-local
+
     # Dry-run (count records, show plan, don't touch target)
     python manage.py sync_model action --direction to-local --dry-run
 
@@ -249,9 +252,14 @@ class Command(BaseCommand):
         if not direction:
             raise CommandError("--direction is required (to-local or to-remote).")
 
+        dry_run = options['dry_run']
+
+        # ── "all" mode: sync every blessed model ────────────────────
+        if model_name.lower() == 'all':
+            return self._sync_all(direction, dry_run, options['no_confirm'], conflict_mode)
+
         model = _resolve_model(model_name)
         table = model._meta.db_table
-        dry_run = options['dry_run']
 
         if direction == 'to-local':
             src_alias, tgt_alias = _REMOTE_ALIAS, _LOCAL_ALIAS
@@ -274,6 +282,95 @@ class Command(BaseCommand):
             )
         finally:
             _cleanup_dbs()
+
+    # ────────────────────────────────────────────────────────────────
+    #  Sync all blessed models
+    # ────────────────────────────────────────────────────────────────
+
+    def _sync_all(self, direction, dry_run, no_confirm, conflict_mode):
+        blessed = getattr(settings, 'WCAPI_BLESSED_MODELS', {})
+        if not blessed:
+            raise CommandError("No WCAPI_BLESSED_MODELS defined in settings.")
+
+        if direction == 'to-local':
+            src_alias, tgt_alias = _REMOTE_ALIAS, _LOCAL_ALIAS
+            src_label, tgt_label = 'REMOTE', 'LOCAL'
+        else:
+            src_alias, tgt_alias = _LOCAL_ALIAS, _REMOTE_ALIAS
+            src_label, tgt_label = 'LOCAL', 'REMOTE'
+
+        # Resolve all models first, skip unresolvable ones
+        models_to_sync = []
+        skipped = []
+        for key, app_model in sorted(blessed.items()):
+            app_label, class_name = app_model.split('.')
+            try:
+                model = apps.get_model(app_label, class_name)
+                models_to_sync.append((key, model))
+            except LookupError:
+                skipped.append((key, app_model))
+
+        total = len(models_to_sync)
+        self.stdout.write("")
+        self.stdout.write(self.style.MIGRATE_HEADING(
+            f"  sync_model ALL: {total} models  {src_label} → {tgt_label}"
+        ))
+        if skipped:
+            self.stdout.write(self.style.WARNING(
+                f"  Skipping {len(skipped)} unresolvable: "
+                + ", ".join(k for k, _ in skipped)
+            ))
+        self.stdout.write("")
+
+        if not dry_run and not no_confirm:
+            answer = input(f"  Sync all {total} models {src_label} → {tgt_label}? Type 'yes': ")
+            if answer.strip().lower() != 'yes':
+                self.stdout.write(self.style.ERROR("  Aborted."))
+                return
+
+        local_cfg, remote_cfg = _register_both_dbs()
+        succeeded = 0
+        failed = []
+
+        try:
+            for i, (key, model) in enumerate(models_to_sync, 1):
+                table = model._meta.db_table
+                self.stdout.write(self.style.MIGRATE_HEADING(
+                    f"\n  [{i}/{total}] {key} ({model._meta.label})"
+                ))
+                try:
+                    self._run_sync(
+                        model, table,
+                        src_alias, tgt_alias,
+                        src_label, tgt_label,
+                        local_cfg, remote_cfg,
+                        dry_run, True,  # no_confirm=True (already confirmed above)
+                        conflict_mode,
+                    )
+                    succeeded += 1
+                except Exception as exc:
+                    failed.append((key, str(exc)[:120]))
+                    self.stdout.write(self.style.ERROR(
+                        f"  ✗ {key}: {str(exc)[:120]}"
+                    ))
+        finally:
+            _cleanup_dbs()
+
+        # ── summary ─────────────────────────────────────────────────
+        self.stdout.write("")
+        self.stdout.write("═" * 65)
+        self.stdout.write(self.style.SUCCESS(
+            f"  SYNC ALL COMPLETE: {succeeded}/{total} succeeded"
+        ))
+        if failed:
+            self.stdout.write(self.style.ERROR(f"  Failed ({len(failed)}):"))
+            for key, err in failed:
+                self.stdout.write(self.style.ERROR(f"    - {key}: {err}"))
+        if skipped:
+            self.stdout.write(self.style.WARNING(
+                f"  Skipped ({len(skipped)}): " + ", ".join(k for k, _ in skipped)
+            ))
+        self.stdout.write("═" * 65)
 
     # ────────────────────────────────────────────────────────────────
     #  Core sync logic
