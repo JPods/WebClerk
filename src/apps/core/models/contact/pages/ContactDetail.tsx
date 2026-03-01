@@ -33,6 +33,7 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
+import { DetailFeatureBadge } from "@/components/common/DetailFeatureBadge";
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
@@ -59,6 +60,8 @@ import { useWindowPath } from "@/context/WindowPathContext";
 
 // Hooks
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
+import { useInflightSaves } from "@/hooks/useInflightSaves";
+import { useAutoSaveContact } from "../hooks/useAutoSaveContact";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
@@ -643,6 +646,12 @@ export default function ContactDetail({
   const data = normalizeContactFkFields(fetchedData || initialData);
   const activeContactId = data?.id || contactIdFromUrl || null;
 
+  // ---------------------------------------------------------------------------
+  // In-flight saves tracker (background child-record saves)
+  // ---------------------------------------------------------------------------
+
+  const { track: _track, inflightCount, waitForAll } = useInflightSaves();
+
   useEffect(() => {
     if (contactIdFromUrl != null && contactIdFromUrl !== fetchedData?.id) {
       if (initialData?.id === contactIdFromUrl) return;
@@ -720,6 +729,7 @@ export default function ContactDetail({
   // We store it in a ref so earlier callbacks (defined before useForm) don't hit TDZ.
   const formSetValueRef = useRef<null | ((...args: any[]) => void)>(null);
   const formGetValuesRef = useRef<null | ((name: string) => any)>(null);
+  const formGetAllValuesRef = useRef<null | (() => any)>(null);
   // Remember last reset id to avoid repeated resets causing render loops
   const lastResetIdRef = useRef<number | null | undefined>(undefined);
 
@@ -840,6 +850,50 @@ export default function ContactDetail({
   }>({ open: false, type: "email" });
 
   const [commSaving, setCommSaving] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Auto-save contact on first child-record attempt
+  // ---------------------------------------------------------------------------
+
+  const handleContactCreated = useCallback(
+    (newId: number, res: any) => {
+      const record = res?.record ?? res;
+      setFetchedData(normalizeContactFkFields(record));
+      setEffectiveMode("edit");
+
+      // Broadcast so parent panels can refresh
+      window.dispatchEvent(
+        new CustomEvent("contact-saved", {
+          detail: { contactId: newId, parentModel, parentId },
+        }),
+      );
+
+      // Sync parent org's refs.links.contact[]
+      if (parentModel && parentId) {
+        saveRecord(parentModel, {
+          id: parentId,
+          refs: { links: { contact: [newId] } },
+        }).catch((err: any) =>
+          console.error(
+            `[ContactDetail] Failed to link contact to ${parentModel} #${parentId}:`,
+            err,
+          ),
+        );
+      }
+    },
+    [parentModel, parentId],
+  );
+
+  const { ensureContactId, autoSaveInProgress } = useAutoSaveContact({
+    recordMode,
+    activeContactId,
+    getValues: () => formGetAllValuesRef.current?.() ?? {},
+    parentModel,
+    parentId,
+    parentCustomerId,
+    parentCustomerName,
+    onContactCreated: handleContactCreated,
+  });
 
   const closeCommSelect = () =>
     setCommSelectState((s) => ({ ...s, open: false }));
@@ -1095,7 +1149,8 @@ export default function ContactDetail({
   const handleSelectComm = useCallback(
     async (item: any) => {
       const type = commSelectState.type;
-      if (!activeContactId) return;
+      const cid = await ensureContactId();
+      if (!cid) return;
 
       setCommSaving(true);
       try {
@@ -1111,7 +1166,7 @@ export default function ContactDetail({
       }
     },
     [
-      activeContactId,
+      ensureContactId,
       commSelectState.type,
       copyCommToThisContact,
       refreshCommType,
@@ -1126,7 +1181,8 @@ export default function ContactDetail({
   const handleSaveNewComm = useCallback(
     async (payload: CommunicationModalData) => {
       const type = commModalState.type;
-      if (!activeContactId) return;
+      const contactId = await ensureContactId();
+      if (!contactId) return;
 
       setCommSaving(true);
       try {
@@ -1134,7 +1190,7 @@ export default function ContactDetail({
         const modelPayload = mapModalToCommModelPayload(
           type,
           payload,
-          activeContactId,
+          contactId,
         );
         const res: any = await saveRecord(modelName, modelPayload);
         const record = res?.record ?? res;
@@ -1171,7 +1227,7 @@ export default function ContactDetail({
       }
     },
     [
-      activeContactId,
+      ensureContactId,
       commModalState.type,
       dispatch,
       refreshCommType,
@@ -1465,6 +1521,10 @@ export default function ContactDetail({
 
   useEffect(() => {
     formGetValuesRef.current = (name: string) => (getValues as any)(name);
+  }, [getValues]);
+
+  useEffect(() => {
+    formGetAllValuesRef.current = getValues;
   }, [getValues]);
 
   // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
@@ -1909,13 +1969,17 @@ export default function ContactDetail({
     [windowManager],
   );
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    // Wait for any background child-record saves to finish
+    if (inflightCount > 0) {
+      await waitForAll();
+    }
     if (onCancelInline) {
       onCancelInline();
       return;
     }
     windowManager.closeWindow(windowPath || location.pathname);
-  }, [onCancelInline, windowManager, windowPath, location.pathname]);
+  }, [onCancelInline, windowManager, windowPath, location.pathname, inflightCount, waitForAll]);
 
   const handleDeleteContact = useCallback(async () => {
     const contactId = data?.id;
@@ -2101,6 +2165,7 @@ export default function ContactDetail({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
               <DevBadge label="Contact" className="mr-2" />
+              <DetailFeatureBadge features={{ autoSave: true, bgSaveChildren: true }} className="mr-2" />
               {displayName}
               {activeContactId ? (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
@@ -2135,6 +2200,12 @@ export default function ContactDetail({
               {isEditing && isDirty && (
                 <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
                   Unsaved changes
+                </span>
+              )}
+              {(autoSaveInProgress || inflightCount > 0) && (
+                <span className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center gap-1.5">
+                  <FaSpinner className="animate-spin" size={10} />
+                  {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
                 </span>
               )}
             </div>
@@ -2473,7 +2544,7 @@ export default function ContactDetail({
       </div>
 
       {/* ─── TAB NAVIGATION ─── */}
-      {activeContactId && data?.id && (
+      {activeContactId && data?.id ? (
         <>
           <DetailTabs
             entityType="contact"
@@ -2669,6 +2740,20 @@ export default function ContactDetail({
             </div>
           </div>
         </>
+      ) : (
+        /* Unsaved contact — show hint that tabs appear after save */
+        <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+          {autoSaveInProgress ? (
+            <span className="flex items-center gap-2">
+              <FaSpinner className="animate-spin" size={14} />
+              Saving contact…
+            </span>
+          ) : (
+            <span>
+              Fill in the required fields above. Tabs &amp; related records will appear once the contact is saved.
+            </span>
+          )}
+        </div>
       )}
 
       {/* ─── Org Search Dialog ─── */}

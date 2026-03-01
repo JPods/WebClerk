@@ -205,3 +205,127 @@ className={getGridClassName(columnCount)}
 ```tsx
 const STORAGE_KEY = "emailDetail_columnCount";
 ```
+
+---
+
+## Detail Feature Checklist Badge
+
+### Purpose
+
+Every `model_nameDetail.tsx` page surfaces a small dev-only badge listing which
+standard behaviours are implemented on that page. The badge is gated by the same
+`VITE_DEBUG_BADGES='true'` env-var that controls `DevBadge`.
+
+### Component
+
+`src/components/common/DetailFeatureBadge.tsx`
+
+```tsx
+import { DetailFeatureBadge } from "@/components/common/DetailFeatureBadge";
+
+<DetailFeatureBadge
+  features={{
+    autoSave: true,
+    bgSaveChildren: true,
+    print: false,
+    clone: false,
+    transactions: false,
+  }}
+/>
+```
+
+### Feature Flags
+
+| Key              | Label         | Description                                                      |
+| ---------------- | ------------- | ---------------------------------------------------------------- |
+| `autoSave`       | Auto-Save     | Parent record auto-saves when user creates the first child       |
+| `bgSaveChildren` | BG Children   | Child/related records save in background; close waits for them   |
+| `print`          | Print         | Print / PDF export wired                                         |
+| `clone`          | Clone         | Clone / duplicate record action available                        |
+| `transactions`   | Txn Flow      | Transaction flow support (proposal → order → invoice chain)      |
+
+### Integration Points
+
+The badge is rendered automatically by two shared wrapper components:
+
+| Component              | File                                                | How to enable                                      |
+| ---------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| `SimpleDetailHeader`   | `src/components/common/SimpleDetailHeader.tsx`       | Pass `features={{}}` prop                          |
+| `DetailShell`          | `src/components/common/DetailShell.tsx`              | Pass `features={{}}` prop                          |
+
+Pages that build their own header (e.g. the three `ContactDetail` variants)
+import and render `<DetailFeatureBadge>` directly next to `<DevBadge>`.
+
+### Current Status
+
+| Page                  | autoSave | bgSaveChildren | print | clone | transactions |
+| --------------------- | :------: | :------------: | :---: | :---: | :----------: |
+| `ContactDetail.tsx`   |    ✅    |       ✅       |       |       |              |
+| `ContactDetail2.tsx`  |    ✅    |       ✅       |       |       |              |
+| `ContactDetail3.tsx`  |    ✅    |       ✅       |       |       |              |
+| All other Detail pages|          |                |       |       |              |
+
+---
+
+## Auto-Save & Background Children Pattern
+
+### Problem
+
+When a user opens a **new** record (add mode), the record has no ID yet. But
+child records (communications, actions, documents, comments) need the parent's
+ID as a foreign key. Previously, the user had to save first before linking any
+children — a confusing chicken-and-egg UX.
+
+### Solution — save-as-you-go
+
+Two hooks work together:
+
+| Hook                 | File                                                    | Responsibility                              |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| `useAutoSaveContact` | `src/apps/core/models/contact/hooks/useAutoSaveContact.ts` | `ensureContactId()` — returns existing ID or auto-saves the parent first |
+| `useInflightSaves`   | `src/hooks/useInflightSaves.ts`                         | Tracks background save promises; `waitForAll()` for close guard |
+
+### Flow
+
+```
+User clicks "Search Email" on an unsaved contact
+  → openCommSelect() calls ensureContactId()
+    → No ID exists → auto-save contact with required fields filled
+      → Password auto-generated via crypto.randomUUID()
+      → onContactCreated callback fires:
+          • setFetchedData (transitions add → edit)
+          • broadcasts "contact-saved" event
+          • links to parent org via refs.links
+    → Returns new contact ID
+  → Comm search dialog opens with valid contactId
+```
+
+### Close Guard
+
+`handleClose` is async. If `inflightCount > 0`, it calls `waitForAll()` before
+closing the window, ensuring no background saves are silently dropped.
+
+### Header Indicators
+
+When auto-save or background saves are in progress, a blue spinner badge
+appears in the header next to "Unsaved changes":
+
+```tsx
+{(autoSaveInProgress || inflightCount > 0) && (
+  <span className="... text-blue-700 ...">
+    <FaSpinner className="animate-spin" size={10} />
+    {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
+  </span>
+)}
+```
+
+### Unsaved Placeholder
+
+When there is no `activeContactId`, the tab section renders a placeholder
+instead of tabs:
+
+```
+Fill in the required fields above. Tabs & related records will appear
+once the contact is saved — or use the search buttons to auto-save and
+link records.
+```

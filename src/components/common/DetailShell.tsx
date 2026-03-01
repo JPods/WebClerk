@@ -2,6 +2,7 @@ import React from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import { DevBadge } from './DevBadge';
+import { DetailFeatureBadge, type DetailFeatures } from './DetailFeatureBadge';
 
 type DetailMode = "add" | "edit" | "view";
 
@@ -14,6 +15,8 @@ interface DetailShellProps {
   onCancelInline?: () => void;
   showInlineHeader?: boolean;
   card?: boolean;
+  /** Feature flags shown as a dev-only checklist badge */
+  features?: DetailFeatures;
   children: React.ReactNode;
 }
 
@@ -38,12 +41,14 @@ export default function DetailShell({
   onCancelInline,
   showInlineHeader = true,
   card = true,
+  features,
   children,
 }: DetailShellProps) {
   const inlineHeader = inline && showInlineHeader ? (
     <div className="flex justify-between items-center mb-4">
       <h3 className="dark:text-white text-lg font-semibold">
         <DevBadge label={`${title}Detail`} className="mr-2" />
+        {features && <DetailFeatureBadge features={features} className="mr-2" />}
         {getHeaderTitle(title, mode)}
       </h3>
       {onCancelInline && (
