@@ -65,7 +65,7 @@ def default_cost():
         landed: landed cost (including freight/duties)
         currency: ISO currency
         components: optional breakdown (freight, duty, overhead)
-        breaks: list of quantity-based cost breaks (same pattern as pricing qty_breaks)
+        qty_breaks: list of quantity-based cost breaks (same pattern as pricing qty_breaks)
     """
     return {
         "standard": None,
