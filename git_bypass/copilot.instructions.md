@@ -446,10 +446,63 @@ Lines carry a `_dirty` flag:
 
 Backend models carry JSONB columns: `metadata`, `refs`, `prefs`, `comments`.
 
-- **`refs.links`** stores cross-model relationships: `{ "contact": [{ id: 6, name: "billing", ... }] }`
-- Contact/Org pages show emails, addresses, phones from `refs.links` — **never query communication models separately**
-- Denormalized snapshots are hydrated on save by the backend
-- **Never overwrite entire JSONB** — always merge at the key level
+### `refs.links` — Related Record Source of Truth
+
+`refs.links` stores **denormalized snapshots** of related entities as arrays (or a single dict for 1:1 org roles). This is the **authoritative source** for which records belong to a parent.
+
+```jsonc
+{
+  "refs": {
+    "links": {
+      "customer": { "id": 42, "company": "Acme Corp", ... },       // 1:1 dict
+      "contact":  [{ "id": 6, "display_name": "Jane", ... }, ...], // 1:N array
+      "action":   [{ "id": 101, "ida": "101", "name": "Follow up" }, ...],
+      "document": [{ "id": 55, "name": "PO.pdf" }, ...],
+      "email":    [{ "id": 12, "email": "billing@acme.com" }, ...]
+    }
+  }
+}
+```
+
+### Golden Rule: Tabs Read from `refs.links`, Not Separate Queries
+
+| Correct | Wrong |
+|---------|-------|
+| `data.refs?.links?.contact` | `getRecords("contact", { parent_id })` |
+| `data.refs?.links?.action`  | `getRecords("action", { parent_model, parent_id })` |
+| `data.refs?.links?.email`   | `getRecords("email", { contact_id })` |
+
+Blanket FK queries return **all** records matching the FK — not just those scoped to this parent. `refs.links` is curated and correct.
+
+### Tab Data Binding
+
+```ts
+// Extract IDs from refs.links, then fetch full records by those IDs
+const actionIds = (data.refs?.links?.action ?? [])
+  .map((a: any) => typeof a === "number" ? a : a?.id)
+  .filter((id: any): id is number => typeof id === "number");
+```
+
+### Writing Back
+
+When adding a related record, update `refs.links` on the parent:
+
+```ts
+await saveRecord("order", {
+  id: orderId,
+  refs: { mode: "merge", value: { links: { action: updatedSnapshots } } },
+});
+```
+
+- **Always** use `mode: "merge"` — never overwrite the entire `refs` object
+- Preserve existing snapshot dicts; add `{ id }` stubs for new entries
+- Backend hydrates stubs to full snapshots on next save
+
+### Communication Records
+
+On Contact/Org pages, emails, phones, addresses, domains come from `refs.links` — **never query communication models separately**. Only fetch a full record when the user clicks Edit.
+
+> **Deep dive:** `readmes/topics/refs-links.md` · Backend: `webClerk3/readmes/denorm-fields.md`
 
 ---
 
@@ -493,7 +546,7 @@ pnpm test -- --run --coverage  # With coverage
 - Type all props and state — no `any` except when wrapping untyped third-party code
 - Use path aliases (`@/api/...`, `@/components/...`) — never relative `../../..` beyond two levels
 - Handle loading, error, and empty states in every data-fetching component
-- Use `refs.links` for cross-model relationships on detail pages
+- Use `refs.links` as the source of truth for related records on detail page tabs — never query by FK alone
 - Paginate all list endpoints with `limit`/`offset`
 - Include version in save payloads (optimistic concurrency)
 
@@ -505,6 +558,7 @@ pnpm test -- --run --coverage  # With coverage
 - Don't store access tokens in localStorage or sessionStorage
 - Don't bypass the `ApiEnvelope` type — always unwrap `res.data.data`
 - Don't query communication models separately on Contact/Org pages — use `refs.links`
+- Don't populate detail page tabs (Actions, Contacts, Documents) via blanket FK queries — read IDs from `refs.links` first
 - Don't create per-model REST endpoints — all CRUD goes through wcapi
 - Don't use `class` components — functional components with hooks only
 - Don't use deprecated field names (`dt_end`, `dt_updated`, `duration`)
@@ -573,6 +627,7 @@ All dev-mode ID badges are marked with a `/* DEV: */` comment. When the project 
 | Vite config | `vite.config.ts` |
 | TypeScript config | `tsconfig.app.json` |
 | Readmes | `readmes/` (numbered 00–03 for onboarding, topics/ for deep-dives) |
+| refs.links frontend guide | `readmes/topics/refs-links.md` |
 
 ---
 

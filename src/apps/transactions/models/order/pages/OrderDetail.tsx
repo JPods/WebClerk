@@ -717,16 +717,28 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     dataProp?.id,
   );
 
-  // Track action IDs from order data
-  const [currentActionIds, setCurrentActionIds] = useState<number[]>(
-    (dataProp as Order)?.actions?.ids ?? [],
-  );
+  // Track action IDs from order refs.links.action (source of truth)
+  const [currentActionIds, setCurrentActionIds] = useState<number[]>(() => {
+    const refsActions = (dataProp as Order)?.refs?.links?.action;
+    if (Array.isArray(refsActions) && refsActions.length > 0) {
+      return refsActions
+        .map((a: any) => (typeof a === 'number' ? a : a?.id))
+        .filter((id: any): id is number => typeof id === 'number');
+    }
+    return [];
+  });
 
   // Update action IDs when dataProp changes
-  // Merge server IDs with local state to avoid losing newly created IDs
+  // Read from refs.links.action (denormalized source of truth)
+  // Merge with local state to avoid losing newly created IDs not yet denormalized
   useEffect(() => {
     const orderData = dataProp as Order;
-    const serverActionIds = orderData?.actions?.ids ?? [];
+    const refsActions = orderData?.refs?.links?.action;
+    const serverActionIds = Array.isArray(refsActions)
+      ? (refsActions
+          .map((a: any) => (typeof a === 'number' ? a : a?.id))
+          .filter((id: any): id is number => typeof id === 'number'))
+      : [];
     if (serverActionIds.length > 0) {
       setCurrentActionIds((prevIds) => {
         const merged = [...new Set([...serverActionIds, ...prevIds])];
@@ -963,9 +975,19 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       };
 
       // Handler to auto-save the order with updated action IDs
+      // Saves to both actions.ids (legacy) and refs.links.action (source of truth)
       const handleAutoSaveOrderActions = async (ids: number[]) => {
         if (orderData.id) {
           try {
+            // Build refs.links.action entries — preserve existing snapshots, add new by id
+            const existingRefsActions = orderData.refs?.links?.action ?? [];
+            const updatedRefsActions = ids.map((id) => {
+              const existing = existingRefsActions.find(
+                (a: any) => (typeof a === 'number' ? a : a?.id) === id,
+              );
+              return existing ?? { id };
+            });
+
             await saveRecord("order", {
               id: orderData.id,
               actions: {
@@ -975,22 +997,32 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
                   ids: ids,
                 },
               },
+              refs: {
+                mode: "merge",
+                value: {
+                  links: {
+                    action: updatedRefsActions,
+                  },
+                },
+              },
             });
           } catch (error) {
             console.error(
-              "[OrderDetail] Failed to save order.actions.ids:",
+              "[OrderDetail] Failed to save order action links:",
               error,
             );
           }
         }
       };
 
-      // Get current action IDs - use state which includes newly created task IDs
-      // that may not be in orderData yet
+      // Get current action IDs from refs.links.action (source of truth)
+      // Local state may also include newly created IDs not yet denormalized
       const actionIdsForTable: number[] =
         currentActionIds.length > 0
           ? currentActionIds
-          : orderData.actions?.ids ?? [];
+          : (orderData.refs?.links?.action ?? [])
+              .map((a: any) => (typeof a === 'number' ? a : a?.id))
+              .filter((id: any): id is number => typeof id === 'number');
 
       switch (tabId) {
         case "actions":
