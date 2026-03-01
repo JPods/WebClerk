@@ -33,6 +33,7 @@ import Input from "@/components/form/input/InputField";
 import DropDown from "@/components/form/input/DropDown";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
+import { DetailFeatureBadge } from "@/components/common/DetailFeatureBadge";
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
@@ -59,6 +60,8 @@ import { useWindowPath } from "@/context/WindowPathContext";
 
 // Hooks
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
+import { useInflightSaves } from "@/hooks/useInflightSaves";
+import { useAutoSaveContact } from "../hooks/useAutoSaveContact";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
@@ -638,6 +641,12 @@ export default function ContactDetail({
   const data = normalizeContactFkFields(fetchedData || initialData);
   const activeContactId = data?.id || contactIdFromUrl || null;
 
+  // ---------------------------------------------------------------------------
+  // In-flight saves tracker (background child-record saves)
+  // ---------------------------------------------------------------------------
+
+  const { track: _track, inflightCount, waitForAll } = useInflightSaves();
+
   useEffect(() => {
     if (contactIdFromUrl != null && contactIdFromUrl !== fetchedData?.id) {
       if (initialData?.id === contactIdFromUrl) return;
@@ -717,6 +726,9 @@ export default function ContactDetail({
   const formGetValuesRef = useRef<null | ((name: string) => any)>(null);
   // Remember last reset id to avoid repeated resets causing render loops
   const lastResetIdRef = useRef<number | null | undefined>(undefined);
+
+  // Ref to expose react-hook-form's getValues to auto-save hook (avoids TDZ)
+  const formGetAllValuesRef = useRef<null | (() => any)>(null);
 
   // Prefer the authoritative communications tables when we have a saved contact id.
   // This makes the Basic Info pickers and the Comms tab reflect real records.
@@ -836,7 +848,10 @@ export default function ContactDetail({
 
   const [commSaving, setCommSaving] = useState(false);
 
-  const openCommSelect = (type: CommType) => {
+  const openCommSelect = async (type: CommType) => {
+    // Auto-save contact if not yet persisted
+    const id = await ensureContactId();
+    if (!id) return;  // validation failed, toast already shown
     setCommSelectQuery("");
     setCommSelectState({ open: true, type });
   };
@@ -1095,7 +1110,8 @@ export default function ContactDetail({
   const handleSelectComm = useCallback(
     async (item: any) => {
       const type = commSelectState.type;
-      if (!activeContactId) return;
+      const contactId = await ensureContactId();
+      if (!contactId) return;
 
       setCommSaving(true);
       try {
@@ -1126,7 +1142,8 @@ export default function ContactDetail({
   const handleSaveNewComm = useCallback(
     async (payload: CommunicationModalData) => {
       const type = commModalState.type;
-      if (!activeContactId) return;
+      const contactId = await ensureContactId();
+      if (!contactId) return;
 
       setCommSaving(true);
       try {
@@ -1134,7 +1151,7 @@ export default function ContactDetail({
         const modelPayload = mapModalToCommModelPayload(
           type,
           payload,
-          activeContactId,
+          contactId,
         );
         const res: any = await saveRecord(modelName, modelPayload);
         const record = res?.record ?? res;
@@ -1465,6 +1482,54 @@ export default function ContactDetail({
   useEffect(() => {
     formGetValuesRef.current = (name: string) => (getValues as any)(name);
   }, [getValues]);
+
+  useEffect(() => {
+    formGetAllValuesRef.current = getValues;
+  }, [getValues]);
+
+  // ---------------------------------------------------------------------------
+  // Auto-save contact on first child-record attempt
+  // ---------------------------------------------------------------------------
+
+  const handleContactCreated = useCallback(
+    (newId: number, res: any) => {
+      const record = res?.record ?? res;
+      setFetchedData(normalizeContactFkFields(record));
+      setEffectiveMode("edit");
+
+      // Broadcast so parent panels can refresh
+      window.dispatchEvent(
+        new CustomEvent("contact-saved", {
+          detail: { contactId: newId, parentModel, parentId },
+        }),
+      );
+
+      // Sync parent org's refs.links.contact[]
+      if (parentModel && parentId) {
+        saveRecord(parentModel, {
+          id: parentId,
+          refs: { links: { contact: [newId] } },
+        }).catch((err: any) =>
+          console.error(
+            `[ContactDetail] Failed to link contact to ${parentModel} #${parentId}:`,
+            err,
+          ),
+        );
+      }
+    },
+    [parentModel, parentId],
+  );
+
+  const { ensureContactId, autoSaveInProgress } = useAutoSaveContact({
+    recordMode,
+    activeContactId,
+    getValues: () => formGetAllValuesRef.current?.() ?? {},
+    parentModel,
+    parentId,
+    parentCustomerId,
+    parentCustomerName,
+    onContactCreated: handleContactCreated,
+  });
 
   // Auto-fill attention = "{first} {last}" and keep it in sync while editing.
   const watchedFirstName = useWatch({ control, name: "name_first" });
@@ -1904,13 +1969,17 @@ export default function ContactDetail({
     [windowManager],
   );
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    // Wait for any in-flight background saves to complete before closing
+    if (inflightCount > 0) {
+      await waitForAll();
+    }
     if (onCancelInline) {
       onCancelInline();
       return;
     }
     windowManager.closeWindow(windowPath || location.pathname);
-  }, [onCancelInline, windowManager, windowPath, location.pathname]);
+  }, [onCancelInline, windowManager, windowPath, location.pathname, inflightCount, waitForAll]);
 
   const handleDeleteContact = useCallback(async () => {
     const contactId = data?.id;
@@ -2072,6 +2141,7 @@ export default function ContactDetail({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
               <DevBadge label="Contact" className="mr-2" />
+              <DetailFeatureBadge features={{ autoSave: true, bgSaveChildren: true }} className="mr-2" />
               {displayName}
               {activeContactId && (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
@@ -2102,6 +2172,12 @@ export default function ContactDetail({
               {isEditing && isDirty && (
                 <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
                   Unsaved changes
+                </span>
+              )}
+              {(autoSaveInProgress || inflightCount > 0) && (
+                <span className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center gap-1.5">
+                  <FaSpinner className="animate-spin" size={10} />
+                  {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
                 </span>
               )}
             </div>
@@ -2320,13 +2396,13 @@ export default function ContactDetail({
                       error={!!errors.email?.message}
                       disabled={isFieldDisabled("email")}
                     />
-                    {activeContactId && effectiveMode !== "view" && (
+                    {effectiveMode !== "view" && (
                       <button
                         type="button"
                         onClick={() => openCommSelect("email")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add email"
-                        disabled={isFieldDisabled("email")}
+                        disabled={isFieldDisabled("email") || autoSaveInProgress}
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2345,13 +2421,13 @@ export default function ContactDetail({
                       {...register("phone" as any)}
                       disabled={isFieldDisabled("phone")}
                     />
-                    {activeContactId && effectiveMode !== "view" && (
+                    {effectiveMode !== "view" && (
                       <button
                         type="button"
                         onClick={() => openCommSelect("phone")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add phone"
-                        disabled={isFieldDisabled("phone")}
+                        disabled={isFieldDisabled("phone") || autoSaveInProgress}
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2370,13 +2446,13 @@ export default function ContactDetail({
                       {...register("address_full" as any)}
                       disabled={isFieldDisabled("address_full")}
                     />
-                    {activeContactId && effectiveMode !== "view" && (
+                    {effectiveMode !== "view" && (
                       <button
                         type="button"
                         onClick={() => openCommSelect("address")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add address"
-                        disabled={isFieldDisabled("address_full")}
+                        disabled={isFieldDisabled("address_full") || autoSaveInProgress}
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2395,13 +2471,13 @@ export default function ContactDetail({
                       {...register("domain" as any)}
                       disabled={isFieldDisabled("domain")}
                     />
-                    {activeContactId && effectiveMode !== "view" && (
+                    {effectiveMode !== "view" && (
                       <button
                         type="button"
                         onClick={() => openCommSelect("domain")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add domain"
-                        disabled={isFieldDisabled("domain")}
+                        disabled={isFieldDisabled("domain") || autoSaveInProgress}
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2592,7 +2668,7 @@ export default function ContactDetail({
       </div>
 
       {/* ─── TAB NAVIGATION ─── */}
-      {activeContactId && data?.id && (
+      {activeContactId && data?.id ? (
         <>
           <DetailTabs
             entityType="contact"
@@ -2788,6 +2864,21 @@ export default function ContactDetail({
             </div>
           </div>
         </>
+      ) : (
+        /* Unsaved contact — show hint that tabs appear after save */
+        <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+          {autoSaveInProgress ? (
+            <span className="flex items-center gap-2">
+              <FaSpinner className="animate-spin" size={14} />
+              Saving contact…
+            </span>
+          ) : (
+            <span>
+              Fill in the required fields above. Tabs &amp; related records will appear once the contact is saved
+              {effectiveMode === "add" && " — or use the search buttons to auto-save and link records."}
+            </span>
+          )}
+        </div>
       )}
 
       {/* ─── Org Search Dialog ─── */}

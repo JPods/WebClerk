@@ -10,6 +10,7 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, Pencil, Eye, X } from "lucide-react";
 import { DevBadge } from './DevBadge';
+import { DetailFeatureBadge, type DetailFeatures } from './DetailFeatureBadge';
 
 interface SimpleDetailHeaderProps {
   /** Entity type name (e.g., "Service", "Currency") */
@@ -28,6 +29,8 @@ interface SimpleDetailHeaderProps {
   showBackButton?: boolean;
   /** Close callback for inline/modal mode */
   onClose?: () => void;
+  /** Feature flags shown as a dev-only checklist badge */
+  features?: DetailFeatures;
 }
 
 export function SimpleDetailHeader({
@@ -39,6 +42,7 @@ export function SimpleDetailHeader({
   className = "",
   showBackButton = true,
   onClose,
+  features,
 }: SimpleDetailHeaderProps) {
   const navigate = useNavigate();
 
@@ -101,6 +105,7 @@ export function SimpleDetailHeader({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <DevBadge label={entityName} />
+          {features && <DetailFeatureBadge features={features} />}
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
             {recordName || entityName}
           </h1>
