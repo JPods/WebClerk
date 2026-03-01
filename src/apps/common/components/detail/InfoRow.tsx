@@ -19,10 +19,7 @@ export interface InfoRowProps {
   linkType?: "email" | "phone" | "address";
 }
 
-export function formatDisplayValue(
-  val: unknown,
-  isCurrency = false,
-): string {
+export function formatDisplayValue(val: unknown, isCurrency = false): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") {
@@ -44,22 +41,47 @@ const InfoRow: React.FC<InfoRowProps> = ({
   isCurrency = false,
   linkType,
 }) => {
-  const displayVal =
-    typeof value === "string" || typeof value === "number" || value === null || value === undefined
-      ? formatDisplayValue(value, isCurrency)
-      : value;
+  const isElement = React.isValidElement(value);
+  const displayVal = isElement ? value : formatDisplayValue(value, isCurrency);
 
   /** Wrap the rendered value in an <a> tag when linkType is set and value is a non-empty string */
   const renderLinkedValue = (content: React.ReactNode) => {
     if (!linkType || typeof value !== "string" || !value) return content;
-    const linkClasses = "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
+    const linkClasses =
+      "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
     switch (linkType) {
       case "email":
-        return <a href={`mailto:${value}`} className={linkClasses} title={`Email ${value}`}>{content}</a>;
+        return (
+          <a
+            href={`mailto:${value}`}
+            className={linkClasses}
+            title={`Email ${value}`}
+          >
+            {content}
+          </a>
+        );
       case "phone":
-        return <a href={`tel:${value.replace(/[^+\d]/g, "")}`} className={linkClasses} title={`Call ${value}`}>{content}</a>;
+        return (
+          <a
+            href={`tel:${value.replace(/[^+\d]/g, "")}`}
+            className={linkClasses}
+            title={`Call ${value}`}
+          >
+            {content}
+          </a>
+        );
       case "address":
-        return <a href={`https://maps.google.com/?q=${encodeURIComponent(value)}`} target="_blank" rel="noopener noreferrer" className={linkClasses} title="Open in Maps">{content}</a>;
+        return (
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(value)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClasses}
+            title="Open in Maps"
+          >
+            {content}
+          </a>
+        );
       default:
         return content;
     }
@@ -77,7 +99,9 @@ const InfoRow: React.FC<InfoRowProps> = ({
             : "text-gray-900 dark:text-white"
         }`}
       >
-        {renderLinkedValue(typeof displayVal === "string" ? displayVal : displayVal ?? "—")}
+        {renderLinkedValue(
+          typeof displayVal === "string" ? displayVal : displayVal ?? "—",
+        )}
       </dd>
     </div>
   );

@@ -38,7 +38,7 @@ function formatError(
   type: CapturedError["type"],
   message: string,
   stack?: string,
-  source?: string
+  source?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`[${type.toUpperCase()}] ${message}`);
@@ -52,17 +52,20 @@ export function useConsoleCapture() {
   const originalConsoleError = useRef<typeof console.error | null>(null);
   const handlingConsoleRef = useRef(false);
 
-  const addError = useCallback((error: Omit<CapturedError, "id" | "timestamp">) => {
-    setErrors((prev) => {
-      const next: CapturedError = {
-        ...error,
-        id: makeId(),
-        timestamp: new Date(),
-      };
-      const updated = [next, ...prev];
-      return updated.slice(0, MAX_ERRORS);
-    });
-  }, []);
+  const addError = useCallback(
+    (error: Omit<CapturedError, "id" | "timestamp">) => {
+      setErrors((prev) => {
+        const next: CapturedError = {
+          ...error,
+          id: makeId(),
+          timestamp: new Date(),
+        };
+        const updated = [next, ...prev];
+        return updated.slice(0, MAX_ERRORS);
+      });
+    },
+    [],
+  );
 
   const clearErrors = useCallback(() => setErrors([]), []);
 
@@ -76,7 +79,8 @@ export function useConsoleCapture() {
     // Preserve a single non-wrapper original console.error across multiple mounts
     const baseOriginal = globalConsole.__originalConsoleError || console.error;
     globalConsole.__originalConsoleError = baseOriginal;
-    globalConsole.__consoleCaptureCount = (globalConsole.__consoleCaptureCount || 0) + 1;
+    globalConsole.__consoleCaptureCount =
+      (globalConsole.__consoleCaptureCount || 0) + 1;
 
     originalConsoleError.current = baseOriginal;
 
@@ -130,7 +134,9 @@ export function useConsoleCapture() {
           })
           .join(" ");
 
-        const errorArg = args.find((a) => a instanceof Error) as Error | undefined;
+        const errorArg = args.find((a) => a instanceof Error) as
+          | Error
+          | undefined;
 
         addError({
           type: "console",
@@ -147,7 +153,8 @@ export function useConsoleCapture() {
     (wrapper as any).__isConsoleCaptureWrapper = true;
     console.error = wrapper;
     const globalConsoleAny = console as any;
-    globalConsoleAny.__originalConsoleLog = globalConsoleAny.__originalConsoleLog || console.log;
+    globalConsoleAny.__originalConsoleLog =
+      globalConsoleAny.__originalConsoleLog || console.log;
 
     // ── Intercept window.onerror ───────────────────────────────
     const handleWindowError = (event: ErrorEvent) => {
@@ -186,7 +193,8 @@ export function useConsoleCapture() {
 
     return () => {
       const globalConsole = console as any;
-      globalConsole.__consoleCaptureCount = (globalConsole.__consoleCaptureCount || 1) - 1;
+      globalConsole.__consoleCaptureCount =
+        (globalConsole.__consoleCaptureCount || 1) - 1;
       // Only restore the original console.error when the last capture hook unmounts
       if (globalConsole.__consoleCaptureCount <= 0) {
         if (originalConsoleError.current) {

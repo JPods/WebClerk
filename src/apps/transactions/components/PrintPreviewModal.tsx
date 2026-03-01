@@ -126,7 +126,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     key: K,
     value: PrintOptions[K],
   ) => {
-    setOptions((prev) => ({ ...prev, [key]: value }));
+    setOptions((prev) => ({ ...prev, [key]: value } as PrintOptions));
   };
 
   return (

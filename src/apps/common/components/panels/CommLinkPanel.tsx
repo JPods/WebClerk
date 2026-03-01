@@ -56,6 +56,8 @@ export interface CommLinkPanelProps {
   primaryId: number | null | undefined;
   /** All linked records for this type */
   items: any[];
+  /** Reflinks array or object (optional) */
+  reflinks?: any[] | Record<string, any[]>;
   /** Whether the form is in edit/add mode */
   isEditing: boolean;
   /** Contact ID (null → panels disabled until contact is saved) */
@@ -65,7 +67,7 @@ export interface CommLinkPanelProps {
   /** Called after a record is set as primary (id, displayValue) */
   onSetPrimary?: (id: number, displayValue: string) => void;
   /** Called when the items list changes (caller should refresh state) */
-  onItemsChanged?: () => void;
+  onItemsChanged?: () => Promise<void> | void;
   /** Start expanded (default: true in edit mode, false in view) */
   defaultExpanded?: boolean;
   /** Called when user clicks Save to persist the scalar value to the contact */
@@ -97,34 +99,114 @@ interface CommFieldDef {
  */
 const COMM_FIELD_CONFIGS: Record<CommType, CommFieldDef[]> = {
   email: [
-    { key: "email", label: "Email", width: "full", placeholder: "user@example.com" },
-    { key: "name", label: "Name / Label", width: "half", placeholder: "Work, Personal…" },
-    { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
+    {
+      key: "email",
+      label: "Email",
+      width: "full",
+      placeholder: "user@example.com",
+    },
+    {
+      key: "name",
+      label: "Name / Label",
+      width: "half",
+      placeholder: "Work, Personal…",
+    },
+    {
+      key: "attention",
+      label: "Attention",
+      width: "half",
+      placeholder: "Attn line",
+    },
     { key: "type", label: "Type", width: "half", placeholder: "type" },
     { key: "opt_out", label: "Opt Out", inputType: "checkbox", width: "half" },
-    { key: "is_primary", label: "Primary", inputType: "checkbox", width: "half" },
+    {
+      key: "is_primary",
+      label: "Primary",
+      inputType: "checkbox",
+      width: "half",
+    },
   ],
   phone: [
-    { key: "number", label: "Number", width: "full", placeholder: "555-123-4567" },
-    { key: "name", label: "Name / Label", width: "half", placeholder: "Mobile, Office…" },
-    { key: "country_code", label: "Country Code", width: "half", placeholder: "+1" },
-    { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
-    { key: "format", label: "Format", width: "half", placeholder: "formatted number" },
+    {
+      key: "number",
+      label: "Number",
+      width: "full",
+      placeholder: "555-123-4567",
+    },
+    {
+      key: "name",
+      label: "Name / Label",
+      width: "half",
+      placeholder: "Mobile, Office…",
+    },
+    {
+      key: "country_code",
+      label: "Country Code",
+      width: "half",
+      placeholder: "+1",
+    },
+    {
+      key: "attention",
+      label: "Attention",
+      width: "half",
+      placeholder: "Attn line",
+    },
+    {
+      key: "format",
+      label: "Format",
+      width: "half",
+      placeholder: "formatted number",
+    },
     { key: "opt_out", label: "Opt Out", inputType: "checkbox", width: "half" },
   ],
   address: [
-    { key: "address1", label: "Address 1", width: "full", placeholder: "Street address" },
-    { key: "address2", label: "Address 2", width: "full", placeholder: "Suite, Unit, etc." },
+    {
+      key: "address1",
+      label: "Address 1",
+      width: "full",
+      placeholder: "Street address",
+    },
+    {
+      key: "address2",
+      label: "Address 2",
+      width: "full",
+      placeholder: "Suite, Unit, etc.",
+    },
     { key: "city", label: "City", width: "half", placeholder: "City" },
-    { key: "state", label: "State", width: "half", placeholder: "State / Province" },
+    {
+      key: "state",
+      label: "State",
+      width: "half",
+      placeholder: "State / Province",
+    },
     { key: "zip", label: "Zip", width: "half", placeholder: "Postal code" },
     { key: "country", label: "Country", width: "half", placeholder: "Country" },
-    { key: "address_type", label: "Type", width: "half", placeholder: "Billing, Shipping…" },
-    { key: "full", label: "Full (display)", width: "full", placeholder: "Full formatted address" },
+    {
+      key: "address_type",
+      label: "Type",
+      width: "half",
+      placeholder: "Billing, Shipping…",
+    },
+    {
+      key: "full",
+      label: "Full (display)",
+      width: "full",
+      placeholder: "Full formatted address",
+    },
   ],
   domain: [
-    { key: "path", label: "Domain / URL", width: "full", placeholder: "example.com" },
-    { key: "type", label: "Type", width: "half", placeholder: "website, social…" },
+    {
+      key: "path",
+      label: "Domain / URL",
+      width: "full",
+      placeholder: "example.com",
+    },
+    {
+      key: "type",
+      label: "Type",
+      width: "half",
+      placeholder: "website, social…",
+    },
     { key: "status", label: "Status", width: "half", placeholder: "active" },
   ],
 };
@@ -183,6 +265,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   scalarValue,
   primaryId,
   items,
+  reflinks = [],
   isEditing,
   contactId,
   onScalarChange,
@@ -196,6 +279,8 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   const [expanded, setExpanded] = useState(
     defaultExpanded ?? (isEditing ? true : false),
   );
+
+  console.log("reflinks", reflinks);
 
   // ----- Scalar save state -----
   const [scalarSaving, setScalarSaving] = useState(false);
@@ -277,7 +362,11 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
         }
 
         onSetPrimary?.(linkedId, displayValue(type, item));
-        onItemsChanged?.();
+        // Await parent refresh before closing search dialog
+        await Promise.resolve(onItemsChanged?.());
+        // Give React time to process the prop update
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         setSearchOpen(false);
         dispatch(
           showToast({
@@ -322,7 +411,9 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
 
   // ----- Inline editing state -----
   /** ID of the record currently being edited inline, or "new" for a freshly-added blank */
-  const [editingItemId, setEditingItemId] = useState<number | "new" | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | "new" | null>(
+    null,
+  );
   /** Working copy of field values for the record being edited */
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   /** Per-record save spinner */
@@ -336,7 +427,8 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
       if (!item?.id) return;
       const values: Record<string, any> = {};
       for (const fd of COMM_FIELD_CONFIGS[type]) {
-        values[fd.key] = item[fd.key] ?? (fd.inputType === "checkbox" ? false : "");
+        values[fd.key] =
+          item[fd.key] ?? (fd.inputType === "checkbox" ? false : "");
       }
       setEditingValues(values);
       setEditingItemId(Number(item.id));
@@ -370,12 +462,18 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
         onSetPrimary?.(savedId, displayValue(type, record ?? payload));
       }
 
-      onItemsChanged?.();
+      // Await parent refresh before clearing edit state
+      await Promise.resolve(onItemsChanged?.());
+      // Give React time to process the prop update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       setEditingItemId(null);
       setEditingValues({});
       dispatch(
         showToast({
-          message: `${COMM_LABELS[type]} ${editingItemId === "new" ? "created" : "saved"}`,
+          message: `${COMM_LABELS[type]} ${
+            editingItemId === "new" ? "created" : "saved"
+          }`,
           type: "success",
         }),
       );
@@ -390,7 +488,16 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
     } finally {
       setRecordSaving(false);
     }
-  }, [editingItemId, editingValues, type, contactId, items.length, onSetPrimary, onItemsChanged, dispatch]);
+  }, [
+    editingItemId,
+    editingValues,
+    type,
+    contactId,
+    items.length,
+    onSetPrimary,
+    onItemsChanged,
+    dispatch,
+  ]);
 
   /** Delete (soft-delete) a linked record */
   const handleDeleteRecord = useCallback(
@@ -400,7 +507,14 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
       setDeletingId(id);
       try {
         await deleteRecord(type, id);
-        onItemsChanged?.();
+
+        // Await parent refresh - this should update items prop
+        await Promise.resolve(onItemsChanged?.());
+
+        // Give React time to process the prop update and re-render
+        // The items prop should now exclude the deleted record
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         dispatch(
           showToast({
             message: `${COMM_LABELS[type]} #${id} deleted`,
@@ -427,7 +541,9 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   );
 
   const disabled = !contactId;
-
+  const ref_links_array = Array.isArray(reflinks)
+    ? reflinks
+    : reflinks?.[type] || [];
   return (
     <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden mb-3">
       {/* ─── Header ─── */}
@@ -445,13 +561,12 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
             {label}
           </span>
-          <span className="text-xs text-slate-400 ml-1">
-            ({items.length})
-          </span>
+          <span className="text-xs text-slate-400 ml-1">({items.length})</span>
           {/* DEV: show contactId + primaryId for debugging */}
           {contactId && (
             <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-              c#{contactId}{primaryId ? ` → ${type}_id:${primaryId}` : ""}
+              c#{contactId}
+              {primaryId ? ` → ${type}_id:${primaryId}` : ""}
             </span>
           )}
           {/* Primary scalar value as a subtle badge in the header */}
@@ -509,120 +624,172 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           </div>
 
           {/* ─── Linked records list ─── */}
-          {items.length > 0 && (
-            <div className="border border-slate-100 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800">
-              {items.map((item: any, idx: number) => {
-                const isPrimary = item.id != null && Number(item.id) === Number(primaryId);
-                const val = displayValue(type, item);
-                const sub = secondaryLabel(type, item);
-                const isEditingThis = editingItemId === Number(item.id);
-                const isDeleting = deletingId === Number(item.id);
-                return (
-                  <div key={item.id ?? idx}>
-                    {/* ─── Record summary row ─── */}
-                    <div
-                      className={`flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                        isEditingThis ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
-                      }`}
-                    >
-                      {/* Star badge */}
-                      <button
-                        type="button"
-                        onClick={() => isEditing && handleSetPrimary(item)}
-                        className={`shrink-0 ${
-                          isPrimary
-                            ? "text-amber-500"
-                            : "text-slate-300 dark:text-slate-600"
-                        } ${isEditing ? "cursor-pointer hover:text-amber-400" : "cursor-default"}`}
-                        title={isPrimary ? "Primary" : "Set as primary"}
-                        disabled={!isEditing}
-                      >
-                        {isPrimary ? <FaStar size={12} /> : <FaRegStar size={12} />}
-                      </button>
 
-                      {/* ID */}
-                      <span className="text-xs font-mono text-slate-400 w-10 shrink-0">
-                        #{item.id}
-                      </span>
+          {/*
+            Filter out items already linked in ref_links_array
+            Only show items whose IDs are NOT in the reflinks
+          */}
+          {(() => {
+            const displayItems = items.filter((item: any) => {
+              const itemId = Number(item.id);
+              if (!Number.isFinite(itemId)) return false;
+              // Exclude if already in ref_links_array
+              const isAlreadyLinked = ref_links_array.some((rl: any) => {
+                const rlId = Number(rl.id);
+                return Number.isFinite(rlId) && rlId === itemId;
+              });
+              return !isAlreadyLinked;
+            });
 
-                      {/* Display value */}
-                      <span
-                        className={`flex-1 truncate ${
-                          isPrimary
-                            ? "font-semibold text-slate-900 dark:text-slate-100"
-                            : "text-slate-700 dark:text-slate-300"
+            return displayItems.length > 0 ? (
+              <div className="border border-slate-100 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800">
+                {displayItems.map((item: any, idx: number) => {
+                  // Find matching reflink by comparing IDs
+
+                  const matchingReflink = ref_links_array.find((rl: any) => {
+                    const rlId = Number(rl.id);
+                    const itemId = Number(item.id);
+                    return (
+                      Number.isFinite(rlId) &&
+                      Number.isFinite(itemId) &&
+                      rlId === itemId
+                    );
+                  });
+
+                  const isPrimary =
+                    matchingReflink?.is_primary === true ||
+                    matchingReflink?.is_primary === 1;
+                  const val = displayValue(type, item);
+                  const sub = secondaryLabel(type, item);
+                  const isEditingThis = editingItemId === Number(item.id);
+                  const isDeleting = deletingId === Number(item.id);
+
+                  return (
+                    <div key={item.id ?? idx}>
+                      {/* ─── Record summary row ─── */}
+                      <div
+                        className={`flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                          isEditingThis
+                            ? "bg-blue-50/50 dark:bg-blue-900/10"
+                            : ""
                         }`}
                       >
-                        {val || "—"}
-                      </span>
+                        {/* Star badge */}
+                        <button
+                          type="button"
+                          onClick={() => isEditing && handleSetPrimary(item)}
+                          className={`shrink-0 ${
+                            isPrimary
+                              ? "text-amber-500"
+                              : "text-slate-300 dark:text-slate-600"
+                          } ${
+                            isEditing
+                              ? "cursor-pointer hover:text-amber-400"
+                              : "cursor-default"
+                          }`}
+                          title={isPrimary ? "Primary" : "Set as primary"}
+                          disabled={!isEditing}
+                        >
+                          {isPrimary ? (
+                            <FaStar size={12} />
+                          ) : (
+                            <FaRegStar size={12} />
+                          )}
+                        </button>
 
-                      {/* Secondary label */}
-                      {sub && (
-                        <span className="text-xs text-slate-400 shrink-0">
-                          {sub}
+                        {/* ID */}
+                        <span className="text-xs font-mono text-slate-400 w-10 shrink-0">
+                          #{item.id}
                         </span>
-                      )}
 
-                      {/* Edit / Delete buttons (edit mode) */}
-                      {isEditing && (
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              isEditingThis
-                                ? handleCancelEdit()
-                                : handleEditRecord(item)
-                            }
-                            disabled={
-                              disabled ||
-                              recordSaving ||
-                              (editingItemId != null && !isEditingThis)
-                            }
-                            className={`p-1 rounded transition-colors disabled:opacity-30 ${
-                              isEditingThis
-                                ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
-                                : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            }`}
-                            title={isEditingThis ? "Cancel edit" : "Edit record"}
-                          >
-                            <FaEdit size={11} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRecord(item)}
-                            disabled={disabled || isDeleting || recordSaving}
-                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
-                            title="Delete record"
-                          >
-                            {isDeleting ? (
-                              <FaSpinner className="animate-spin" size={11} />
-                            ) : (
-                              <FaTrash size={11} />
-                            )}
-                          </button>
-                        </div>
+                        {/* Display value */}
+                        <span
+                          className={`flex-1 truncate ${
+                            isPrimary
+                              ? "font-semibold text-slate-900 dark:text-slate-100"
+                              : "text-slate-700 dark:text-slate-300"
+                          }`}
+                        >
+                          {val || "—"}
+                        </span>
+
+                        {/* Secondary label */}
+                        {sub && (
+                          <span className="text-xs text-slate-400 shrink-0">
+                            {sub}
+                          </span>
+                        )}
+
+                        {/* Edit / Delete buttons (edit mode) */}
+                        {isEditing && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                isEditingThis
+                                  ? handleCancelEdit()
+                                  : handleEditRecord(item)
+                              }
+                              disabled={
+                                disabled ||
+                                recordSaving ||
+                                (editingItemId != null && !isEditingThis)
+                              }
+                              className={`p-1 rounded transition-colors disabled:opacity-30 ${
+                                isEditingThis
+                                  ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
+                                  : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              }`}
+                              title={
+                                isEditingThis ? "Cancel edit" : "Edit record"
+                              }
+                            >
+                              <FaEdit size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRecord(item)}
+                              disabled={disabled || isDeleting || recordSaving}
+                              className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
+                              title="Delete record"
+                            >
+                              {isDeleting ? (
+                                <FaSpinner className="animate-spin" size={11} />
+                              ) : (
+                                <FaTrash size={11} />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ─── Inline editor for this record ─── */}
+                      {isEditingThis && (
+                        <CommRecordEditor
+                          type={type}
+                          values={editingValues}
+                          onChange={(key, val) =>
+                            setEditingValues((prev) => ({
+                              ...prev,
+                              [key]: val,
+                            }))
+                          }
+                          onSave={handleSaveRecord}
+                          onCancel={handleCancelEdit}
+                          saving={recordSaving}
+                          recordId={Number(item.id)}
+                        />
                       )}
                     </div>
-
-                    {/* ─── Inline editor for this record ─── */}
-                    {isEditingThis && (
-                      <CommRecordEditor
-                        type={type}
-                        values={editingValues}
-                        onChange={(key, val) =>
-                          setEditingValues((prev) => ({ ...prev, [key]: val }))
-                        }
-                        onSave={handleSaveRecord}
-                        onCancel={handleCancelEdit}
-                        saving={recordSaving}
-                        recordId={Number(item.id)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">
+                No {type} records available
+              </p>
+            );
+          })()}
 
           {/* ─── "New record" inline editor ─── */}
           {editingItemId === "new" && (
@@ -644,12 +811,6 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
                 recordId={null}
               />
             </div>
-          )}
-
-          {items.length === 0 && editingItemId !== "new" && (
-            <p className="text-xs text-slate-400 italic">
-              No {type} records linked
-            </p>
           )}
 
           {/* ─── Action buttons (edit mode only) ─── */}
@@ -688,7 +849,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
       )}
 
       {/* ─── Search dialog (portal) ─── */}
-      {searchOpen &&
+      {searchOpen && (
         <SearchDialog
           type={type}
           query={searchQuery}
@@ -696,11 +857,13 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           results={searchResults}
           loading={searchLoading}
           saving={saving}
-          linkedIds={new Set(items.map((i: any) => Number(i.id)).filter(Number.isFinite))}
+          linkedIds={
+            new Set(items.map((i: any) => Number(i.id)).filter(Number.isFinite))
+          }
           onSelect={handleSearchSelect}
           onClose={() => setSearchOpen(false)}
         />
-      }
+      )}
     </div>
   );
 };
@@ -842,26 +1005,24 @@ function SearchDialog({
   onSelect,
   onClose,
 }: SearchDialogProps) {
-  const filtered = query.trim()
-    ? results.filter((item: any) => {
-        const val = displayValue(type, item).toLowerCase();
-        const label = String(item?.name || item?.type || "").toLowerCase();
-        const q = query.trim().toLowerCase();
-        return (
-          val.includes(q) ||
-          label.includes(q) ||
-          String(item?.id || "").includes(q)
-        );
-      })
-    : results;
+  const filtered = results.filter((item: any) => {
+    // Exclude already-linked records
+    const isLinked = linkedIds.has(Number(item?.id));
+    if (isLinked) return false;
+    // Apply query filter if provided
+    if (!query.trim()) return true;
+    const val = displayValue(type, item).toLowerCase();
+    const label = String(item?.name || item?.type || "").toLowerCase();
+    const q = query.trim().toLowerCase();
+    return (
+      val.includes(q) || label.includes(q) || String(item?.id || "").includes(q)
+    );
+  });
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose} />
       {/* Dialog */}
       <div className="fixed inset-x-0 top-[12vh] z-50 flex justify-center px-4">
         <div
@@ -900,14 +1061,13 @@ function SearchDialog({
                 filtered.map((item: any, idx: number) => {
                   const val = displayValue(type, item);
                   const sub = secondaryLabel(type, item);
-                  const isLinked = linkedIds.has(Number(item?.id));
                   return (
                     <button
                       key={`${item?.id ?? idx}`}
                       type="button"
                       onClick={() => onSelect(item)}
                       disabled={saving}
-                      className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-50"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -920,16 +1080,9 @@ function SearchDialog({
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {isLinked && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                              linked
-                            </span>
-                          )}
-                          <span className="text-xs text-slate-400 font-mono">
-                            #{item?.id}
-                          </span>
-                        </div>
+                        <span className="text-xs text-slate-400 font-mono shrink-0">
+                          #{item?.id}
+                        </span>
                       </div>
                     </button>
                   );
