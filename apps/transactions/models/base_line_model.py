@@ -57,6 +57,18 @@ def _normalize_line_kind(name: str | None) -> str:
     }
     return aliases.get(n, n)
 
+def _is_end_of_chain(transaction_type: str | None) -> bool:
+    """True for transaction types that sit at the end of the transfer chain.
+
+    End-of-chain lines use *actioned-first* semantics:
+      • The user's input IS the actioned quantity (what was invoiced / received).
+      • If the line has no parent, placed = actioned.
+      • remaining is always 0 — nothing downstream acts on these lines.
+    """
+    kind = _normalize_line_kind(transaction_type)
+    return kind in ("invoice",)
+
+
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     """Return the canonical quantity JSONB structure for a line.
 
@@ -65,14 +77,19 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
       - actioned:  quantity acted upon (meaning is context-dependent):
                      Proposal  → converted to order
                      Order     → shipped / invoiced
-                     Invoice   → delivered
+                     Invoice   → invoiced (= placed; remaining always 0)
                      Purchase  → received from vendor
                      WorkOrder → completed
-      - remaining: placed − actioned
+      - remaining: placed − actioned  (always 0 for invoices)
       - is_fixed:  whether quantity is locked from editing
       - precision: decimal places for quantity math
       - is_blanket: blanket/open-ended quantity (optional)
       - increment:  minimum order increment (optional)
+
+    Invoice quantity rules (end-of-chain):
+      • The user edits *actioned* (the qty being invoiced).
+      • If the line has no parent, placed = actioned.
+      • remaining is always 0 — nothing downstream from an invoice.
 
     Legacy keys (ordered, invoiced, received, shipped, packed) are DEPRECATED.
     Transfer services should read/write placed/actioned/remaining only.
@@ -102,7 +119,8 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     elif kind == "invoice":
-        # Invoices: actioned = qty delivered/confirmed
+        # Invoices (end-of-chain): actioned = placed, remaining always 0.
+        # The user's qty input IS actioned.  If standalone, placed = actioned.
         return {
             "placed": 0,
             "actioned": 0,
@@ -203,7 +221,25 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
         except (TypeError, ValueError):
             out["increment"] = 0
 
-    # Recalculate remaining
+    # ── Invoice (end-of-chain) rules ─────────────────────────────────
+    # Invoices: actioned = placed, remaining = 0.  If the caller only
+    # set actioned (user edit) and there is no explicit placed that
+    # differs, we sync placed = actioned.  remaining is always 0.
+    if _is_end_of_chain(transaction_type):
+        placed_val = out.get("placed", 0) or 0
+        actioned_val = out.get("actioned", 0) or 0
+        # If placed wasn't explicitly set (still 0) but actioned was,
+        # treat the user's input as the authoritative quantity.
+        if actioned_val and not placed_val:
+            out["placed"] = actioned_val
+        # If placed was set (e.g. from transfer) and actioned wasn't,
+        # default actioned to placed — the whole qty is being invoiced.
+        elif placed_val and not actioned_val:
+            out["actioned"] = placed_val
+        out["remaining"] = 0
+        return out
+
+    # ── Standard remaining calculation ────────────────────────────────
     placed = out.get("placed", 0) or 0
     actioned = out.get("actioned", 0) or 0
     out["remaining"] = float(_to_decimal(placed - actioned, places=out.get("precision", 2)))
