@@ -85,7 +85,7 @@ COST_SCHEMA_DESC = {
     "landed": "Landed cost including alloc freight/duty/etc",
     "currency": "3-letter ISO currency",
     "components": "Breakdown of alloc components",
-    "breaks": "Qty based cost breaks",
+    "qty_breaks": "Qty based cost breaks",
     "history": "Recent change log (bounded) recording cost field adjustments",
 }
 
