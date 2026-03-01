@@ -104,10 +104,11 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   }
   
   if (['invoice'].includes(kind)) {
+    // End-of-chain: the user's qty IS actioned; placed = actioned; remaining always 0.
     return {
       placed: quantity,
-      packed: 0,
-      remaining: quantity,
+      actioned: quantity,
+      remaining: 0,
       is_fixed: false,
       precision: 2,
       is_blanket: false,
@@ -266,14 +267,30 @@ export class LineItemService {
   }
 
   /**
-   * Update quantity on a line and recalculate extensions
+   * Update quantity on a line and recalculate extensions.
+   *
+   * Invoice lines (end-of-chain) use actioned-first semantics:
+   *   actioned = new qty.  If there is no parent (standalone invoice),
+   *   placed = actioned.  remaining is always 0.
+   * All other types: placed = new qty, remaining recalculated.
    */
-  updateQuantity(line: TransactionLine, quantity: number): TransactionLine {
+  updateQuantity(line: TransactionLine, quantity: number, hasParent = false): TransactionLine {
     const updatedLine = { ...line, _dirty: true };
-    
-    // Update quantity
+    const kind = this.config.transactionType;
+
     if (typeof updatedLine.quantity === 'object' && updatedLine.quantity !== null) {
-      updatedLine.quantity = { ...updatedLine.quantity, placed: quantity };
+      if (kind === 'invoice') {
+        // End-of-chain: user edits actioned
+        updatedLine.quantity = {
+          ...updatedLine.quantity,
+          actioned: quantity,
+          // If standalone (no parent), placed tracks actioned
+          placed: hasParent ? (updatedLine.quantity as Record<string, unknown>).placed as number : quantity,
+          remaining: 0,
+        };
+      } else {
+        updatedLine.quantity = { ...updatedLine.quantity, placed: quantity };
+      }
     } else {
       updatedLine.quantity = getDefaultQuantity(this.config.transactionType, quantity);
     }

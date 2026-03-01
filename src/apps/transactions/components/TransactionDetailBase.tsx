@@ -392,12 +392,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             (line: Record<string, unknown>) => {
               // Remap quantity for the target transaction:
               // placed = source remaining (qty being transferred)
-              // remaining = 0 (new line has nothing remaining to action)
-              // actioned = 0
+              // For invoices (end-of-chain): actioned = placed, remaining = 0
+              // For other types: actioned = 0, remaining = placed
               const srcQty = (line.quantity as Record<string, unknown>) || {};
               const transferQty = Number(
                 srcQty.remaining ?? srcQty.placed ?? 0,
               );
+              const isEndOfChain = transactionType === 'invoice';
               const ln = nextLn;
               nextLn += 10;
               return {
@@ -407,7 +408,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 line_number: ln,
                 quantity: {
                   placed: transferQty,
-                  actioned: 0,
+                  actioned: isEndOfChain ? transferQty : 0,
                   remaining: 0,
                   precision: srcQty.precision ?? 2,
                   is_fixed: srcQty.is_fixed ?? false,
@@ -1666,6 +1667,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           lines={currentData.lines ?? []}
           isEditing={isEditing}
           isLocked={data?.is_locked}
+          transactionType={transactionType}
           onDeleteLine={(lineId) => {
             if (typeof onLinesChange === "function") {
               onLinesChange(
@@ -1692,8 +1694,30 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                           quantity: { ...l.quantity, placed: newQty },
                         };
                       }
-                      const actioned = l.quantity?.actioned ?? 0;
+                      const isInvoice = transactionType === 'invoice';
+                      const hasParent = Boolean(currentData?.parent_id);
                       const unitPriceForCalc = l.price?.unit ?? 0;
+
+                      if (isInvoice) {
+                        // End-of-chain: user edits actioned; remaining always 0.
+                        // Standalone invoice → placed = actioned.
+                        return {
+                          ...baseUpdate,
+                          quantity: {
+                            ...l.quantity,
+                            actioned: newQty,
+                            placed: hasParent ? (l.quantity?.placed ?? newQty) : newQty,
+                            remaining: 0,
+                          },
+                          price: {
+                            ...l.price,
+                            extended: unitPriceForCalc * newQty,
+                          },
+                        };
+                      }
+
+                      // Orders / proposals / purchases: user edits placed
+                      const actioned = l.quantity?.actioned ?? 0;
                       return {
                         ...baseUpdate,
                         quantity: {
