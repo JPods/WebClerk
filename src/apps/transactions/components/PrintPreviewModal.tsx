@@ -61,8 +61,64 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     if (onPrint) {
       onPrint(options);
     } else {
-      // Default browser print
-      window.print();
+      const previewNode = printRef.current;
+      if (!previewNode) {
+        window.print();
+        return;
+      }
+
+      const printWindow = window.open("", "_blank", "width=1024,height=768");
+      if (!printWindow) {
+        window.print();
+        return;
+      }
+
+      const styles = Array.from(
+        document.querySelectorAll('style, link[rel="stylesheet"]'),
+      )
+        .map((node) => node.outerHTML)
+        .join("\n");
+
+      const pageSize = options.paperSize === "a4" ? "A4" : "Letter";
+
+      printWindow.document.open();
+      printWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Print ${documentType} ${documentNumber}</title>
+            ${styles}
+            <style>
+              @page { size: ${pageSize}; margin: 0; }
+              html, body {
+                margin: 0;
+                padding: 0;
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            </style>
+          </head>
+          <body>
+            ${previewNode.innerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      const runPrint = () => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      };
+
+      if (printWindow.document.readyState === "complete") {
+        setTimeout(runPrint, 150);
+      } else {
+        printWindow.onload = () => setTimeout(runPrint, 150);
+      }
     }
   };
 
@@ -80,7 +136,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
       }`}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 print:hidden" onClick={onClose} />
 
       {/* Modal */}
       <div
@@ -91,7 +147,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 print:hidden">
           <div className="flex items-center gap-3">
             <FaPrint className="text-slate-400" />
             <div>
@@ -140,7 +196,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
         {/* Options panel */}
         {showOptions && (
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 print:hidden">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Show prices */}
               <label className="flex items-center gap-2 cursor-pointer">
@@ -232,24 +288,19 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         )}
 
         {/* Preview content */}
-        <div className="flex-1 overflow-auto p-6 bg-slate-100 dark:bg-slate-900">
-          <div
-            ref={printRef}
-            className={`mx-auto bg-white shadow-lg ${
-              options.paperSize === "letter" ? "" : "w-[210mm] min-h-[297mm]"
-            }`}
-            style={
-              options.paperSize === "letter"
-                ? { padding: "0.75in", width: "8.5in", minHeight: "11in" }
-                : { padding: "0.75in" }
-            }
-          >
-            {children}
+        <div className="flex-1 overflow-auto p-6 bg-slate-100 dark:bg-slate-900 print:p-0 print:bg-white print:overflow-visible">
+          <div className="flex justify-center print:block">
+            <div
+              ref={printRef}
+              className="shadow-lg print:shadow-none print:m-0"
+            >
+              {children}
+            </div>
           </div>
         </div>
 
         {/* Footer with actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 print:hidden">
           <div className="text-sm text-slate-500 dark:text-slate-400">
             Paper size:{" "}
             {options.paperSize === "letter" ? '8.5" × 11"' : "210mm × 297mm"}
