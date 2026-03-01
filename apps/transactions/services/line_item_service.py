@@ -393,6 +393,12 @@ class LineItemService:
         """
         Update the quantity on a line and recalculate extensions.
         
+        Invoice lines (end-of-chain) use actioned-first semantics:
+          actioned = new qty.  If there is no parent (standalone invoice),
+          placed = actioned.  remaining is always 0.
+        
+        All other types: placed = new qty, remaining recalculated.
+        
         Creates a Pending record with the quantity delta for deferred
         inventory adjustment.
         
@@ -414,15 +420,27 @@ class LineItemService:
         if not isinstance(line.quantity, dict):
             line.quantity = {}
         
-        line.quantity['placed'] = new_quantity
+        # Determine transaction type
+        transaction = line.parent
+        transaction_type = getattr(transaction, 'model_name', None) or transaction._meta.model_name
+        kind = _normalize_line_kind(transaction_type)
+        
+        if kind == "invoice":
+            # End-of-chain: user edits actioned.
+            line.quantity['actioned'] = new_quantity
+            # If no parent (standalone invoice), placed tracks actioned
+            parent_id = getattr(transaction, 'parent_id', None)
+            if not parent_id:
+                line.quantity['placed'] = new_quantity
+            line.quantity['remaining'] = 0
+        else:
+            line.quantity['placed'] = new_quantity
+
         self._recalculate_line(line)
         line.save()
         
         # Create pending record for the quantity change delta
         if self.create_pending and quantity_delta != 0:
-            transaction = line.parent
-            transaction_type = getattr(transaction, 'model_name', None) or transaction._meta.model_name
-            
             if _should_track_inventory(transaction_type):
                 self._create_pending_for_qty_change(
                     transaction=transaction,
@@ -706,9 +724,22 @@ class LineItemService:
         transaction_type: str,
         quantity: Union[int, float, Decimal]
     ) -> Dict[str, Any]:
-        """Build the quantity JSON envelope."""
+        """Build the quantity JSON envelope.
+
+        Invoice lines (end-of-chain) use actioned-first semantics:
+          actioned = quantity, placed = quantity, remaining = 0.
+        All other types: placed = quantity, actioned = 0, remaining = quantity.
+        """
         envelope = default_quantity(transaction_type)
-        envelope['placed'] = float(quantity)
+        qty = float(quantity)
+        kind = _normalize_line_kind(transaction_type)
+        if kind == "invoice":
+            # End-of-chain: the user's qty IS actioned; placed = actioned
+            envelope['placed'] = qty
+            envelope['actioned'] = qty
+            envelope['remaining'] = 0
+        else:
+            envelope['placed'] = qty
         return envelope
     
     def _build_price_envelope(
