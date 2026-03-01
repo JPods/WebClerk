@@ -41,7 +41,7 @@ import type {
 } from "./types";
 
 // WCAPI for save/delete operations
-import { saveRecord } from "../../../../api/wcapi";
+import { saveRecord, deleteRecord } from "../../../../api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,11 +96,17 @@ const EmailItem: React.FC<EmailItemProps> = ({
   // Try multiple field names: email, value, address
   const emailValue = email.email || email.value || email.address || "";
 
+  /*
+  Code here to get email by id
+
+  */
+
   return (
     <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
       <FaEnvelope size={12} className="text-slate-400 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          <span className="text-muted text-xs">{`(#${email.id})`}</span>
           <a
             href={`mailto:${emailValue}`}
             className="text-sm text-blue-600 hover:underline truncate"
@@ -178,6 +184,7 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
       <FaPhone size={12} className="text-slate-400 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          <span className="text-muted text-xs">{`(#${phone.id})`}</span>
           <a
             href={`tel:${phoneNumber}`}
             className="text-sm text-blue-600 hover:underline"
@@ -261,6 +268,7 @@ const AddressItem: React.FC<AddressItemProps> = ({
       <FaMapMarkerAlt size={12} className="text-slate-400 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          <span className="text-muted text-xs">{`(#${address.id})`}</span>
           <p className="text-sm text-slate-700 dark:text-slate-300">
             {address.address1}
           </p>
@@ -353,6 +361,7 @@ const DomainItem: React.FC<DomainItemProps> = ({
       <FaGlobe size={12} className="text-slate-400 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          <span className="text-muted text-xs">{`(#${domain.id})`}</span>
           <a
             href={`https://${domainValue}`}
             target="_blank"
@@ -541,6 +550,20 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
 
           {type === "phone" && (
             <>
+              <div>
+                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  Country Code
+                </label>
+                <input
+                  type="text"
+                  value={(formData.country_code as string) || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, country_code: e.target.value })
+                  }
+                  placeholder="+1"
+                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                />
+              </div>
               <div>
                 <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
                   Number
@@ -790,51 +813,68 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
     setIsSaving(true);
     try {
-      // Build the updated array without the deleted item
-      let updatedArray: any[];
+      // Get the item to delete
+      let items: any[] = [];
       if (type === "email") {
-        updatedArray = emails.filter((_, i) => i !== index);
+        items = emails;
       } else if (type === "phone") {
-        updatedArray = phones.filter((_, i) => i !== index);
+        items = phones;
       } else if (type === "address") {
-        updatedArray = addresses.filter((_, i) => i !== index);
+        items = addresses;
       } else if (type === "domain") {
-        updatedArray = domains.filter((_, i) => i !== index);
-      } else {
+        items = domains;
+      }
+
+      const itemToDelete = items[index];
+      if (!itemToDelete?.id) {
+        console.warn("[CommunicationsPanel] Item has no ID, cannot delete");
         return;
       }
 
-      // Map link type to refs.links key
-      const linksKey = type;
+      // ── Phase 1: Delete the record from the communication model ──
+      console.log(
+        `[CommunicationsPanel] Phase 1: Delete ${type} record ID ${itemToDelete.id}`,
+      );
+      await deleteRecord(type, itemToDelete.id);
+      console.log(
+        `[CommunicationsPanel] Phase 2: ${type} record deleted successfully`,
+      );
 
-      // Save to contact's communications JSON and refs.links.{type} for
-      // backwards compatibility via /wcapi/save/
-      await saveRecord("contact", {
+      // ── Phase 2: Remove from contact's refs.links ──
+      console.log(`[CommunicationsPanel] Phase 3: Updating contact refs.links`);
+      const updatedArray = items.filter((_, i) => i !== index);
+
+      // Build update payload with clean structure
+      const updatePayload = {
         id: contactId,
-        mode: "update",
-        communications: {
-          mode: "update",
-          value: {
-            [linksKey]: updatedArray,
-          },
-        },
         refs: {
-          mode: "update",
-          value: {
-            links: {
-              [linksKey]: updatedArray,
-            },
+          links: {
+            [type]: updatedArray,
           },
         },
-      });
+      };
 
-      // Update local state
+      console.log(
+        `[CommunicationsPanel] Phase 4: Saving contact refs.links update`,
+        {
+          type,
+          itemsRemaining: updatedArray.length,
+        },
+      );
+      await saveRecord("contact", updatePayload);
+      console.log(
+        `[CommunicationsPanel] Phase 5: Contact refs.links updated successfully`,
+      );
+
+      // ── Phase 3: Update local state ──
       const newData = { ...data };
       if (type === "email") newData.emails = updatedArray;
       else if (type === "phone") newData.phones = updatedArray;
       else if (type === "address") newData.addresses = updatedArray;
       else if (type === "domain") newData.domains = updatedArray;
+
       onChange(newData);
+      console.log(`[CommunicationsPanel] Phase 6: Local state updated`);
     } catch (err) {
       console.error(`Failed to delete ${type}:`, err);
     } finally {
@@ -1019,21 +1059,152 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         return;
       }
 
-      // Build the updated refs.links.{type} array
-      // For edit: replace the item at index; for add: append new item
-      let updatedArray: any[];
-      const newItem = { ...item };
-      // Ensure item has an id (use negative temp id for new items, backend will assign real id)
-      if (!newItem.id) {
-        newItem.id = -Date.now(); // Temp id for new items
+      console.log("[CommunicationsPanel] handleSave Phase 1: Item from form:", {
+        type,
+        isEditMode: !!item.id && item.id > 0,
+        item,
+      });
+
+      // ── Phase 1: Create or update the communication record (email/phone/address/domain) ──
+      let newItem = { ...item };
+      let savedId: number;
+
+      if (index !== undefined && newItem.id && newItem.id > 0) {
+        // EDIT MODE: Update existing record
+        console.log("[CommunicationsPanel] Phase 2a: Update existing record");
+        const payload: Record<string, any> = {
+          id: newItem.id,
+          contact_id: contactId,
+        };
+        if (type === "email") {
+          payload.email = String(newItem.email || "")
+            .trim()
+            .toLowerCase();
+          payload.name = String(newItem.name || "").trim();
+          payload.is_primary = !!(newItem as EmailLink).is_primary;
+          payload.is_verified = !!(newItem as EmailLink).is_verified;
+        } else if (type === "phone") {
+          payload.number = String(newItem.number || "").trim();
+          payload.name = String(newItem.name || "").trim();
+          payload.country_code = String(
+            (newItem as PhoneLink).country_code || "",
+          ).trim();
+          payload.format = String((newItem as PhoneLink).format || "").trim();
+        } else if (type === "address") {
+          payload.address1 = String(newItem.address1 || "").trim();
+          payload.address2 = String(
+            (newItem as AddressLink).address2 || "",
+          ).trim();
+          payload.city = String((newItem as AddressLink).city || "").trim();
+          payload.state = String((newItem as AddressLink).state || "").trim();
+          payload.zip = String((newItem as AddressLink).zip || "").trim();
+          payload.country = String(
+            (newItem as AddressLink).country || "",
+          ).trim();
+        } else if (type === "domain") {
+          payload.path = String(newItem.domain || "")
+            .trim()
+            .toLowerCase();
+          payload.domain = payload.path;
+          payload.type = String(
+            (newItem as DomainLink).name || "website",
+          ).trim();
+        }
+
+        const updateResult: any = await saveRecord(type, payload);
+        const record = updateResult?.record ?? updateResult;
+        savedId = Number(record?.id ?? updateResult?.id);
+        newItem = record || { ...newItem, id: savedId };
+      } else {
+        // CREATE MODE: Create new record
+        console.log("[CommunicationsPanel] Phase 2b: Create new record");
+        const payload: Record<string, any> = { contact_id: contactId };
+
+        if (type === "email") {
+          payload.email = String(newItem.email || "")
+            .trim()
+            .toLowerCase();
+          payload.name = String(newItem.name || "").trim();
+          payload.is_primary = !!(newItem as EmailLink).is_primary;
+          payload.is_verified = !!(newItem as EmailLink).is_verified;
+        } else if (type === "phone") {
+          payload.number = String(newItem.number || "").trim();
+          payload.name = String(newItem.name || "").trim();
+          payload.country_code = String(
+            (newItem as PhoneLink).country_code || "",
+          ).trim();
+          payload.format = String((newItem as PhoneLink).format || "").trim();
+        } else if (type === "address") {
+          payload.address1 = String(newItem.address1 || "").trim();
+          payload.address2 = String(
+            (newItem as AddressLink).address2 || "",
+          ).trim();
+          payload.city = String((newItem as AddressLink).city || "").trim();
+          payload.state = String((newItem as AddressLink).state || "").trim();
+          payload.zip = String((newItem as AddressLink).zip || "").trim();
+          payload.country = String(
+            (newItem as AddressLink).country || "",
+          ).trim();
+        } else if (type === "domain") {
+          payload.path = String(newItem.domain || "")
+            .trim()
+            .toLowerCase();
+          payload.domain = payload.path;
+          payload.type = String(
+            (newItem as DomainLink).name || "website",
+          ).trim();
+        }
+
+        const createResult: any = await saveRecord(type, payload);
+        const record = createResult?.record ?? createResult;
+        savedId = Number(record?.id ?? createResult?.id);
+
+        if (!Number.isFinite(savedId) || savedId <= 0) {
+          throw new Error(
+            `Failed to create ${type} record. Backend returned: ${JSON.stringify(
+              {
+                savedId,
+                record,
+                createResult,
+              },
+            )}`,
+          );
+        }
+
+        newItem = {
+          ...(record || newItem),
+          id: savedId,
+        };
       }
+
+      console.log("[CommunicationsPanel] Phase 3: Successfully saved record:", {
+        type,
+        savedId,
+        newItem,
+      });
+
+      // ── Phase 2: Build the updated refs.links array with the real record ──
+      let updatedArray: any[];
 
       if (type === "email") {
         updatedArray = [...emails];
-        if (index !== undefined) updatedArray[index] = newItem as EmailLink;
-        else updatedArray.push(newItem as EmailLink);
-        // Ensure only one email is primary - clear others when this one is set as primary
-        if ((newItem as EmailLink).is_primary) {
+        const newEmail: EmailLink = {
+          id: savedId,
+          email: String(newItem.email || "")
+            .trim()
+            .toLowerCase(),
+          name: String(newItem.name || "").trim(),
+          type: String((newItem as any).type || "").trim(),
+          is_primary: !!(newItem as EmailLink).is_primary,
+          is_verified: !!(newItem as EmailLink).is_verified,
+        };
+        if (index !== undefined) {
+          updatedArray[index] = newEmail;
+        } else {
+          updatedArray.push(newEmail);
+        }
+        // Ensure only one email is primary
+        if (newEmail.is_primary) {
           const primaryIndex =
             index !== undefined ? index : updatedArray.length - 1;
           updatedArray = updatedArray.map((e, i) => ({
@@ -1043,18 +1214,72 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         }
       } else if (type === "phone") {
         updatedArray = [...phones];
-        if (index !== undefined) updatedArray[index] = newItem as PhoneLink;
-        else updatedArray.push(newItem as PhoneLink);
+        const newPhone: PhoneLink = {
+          id: savedId,
+          number: String(newItem.number || "").trim(),
+          name: String(newItem.name || "").trim(),
+          country_code: String(
+            (newItem as PhoneLink).country_code || "",
+          ).trim(),
+          format: String((newItem as PhoneLink).format || "").trim(),
+        };
+        if (index !== undefined) {
+          updatedArray[index] = newPhone;
+        } else {
+          updatedArray.push(newPhone);
+        }
       } else if (type === "address") {
         updatedArray = [...addresses];
-        if (index !== undefined) updatedArray[index] = newItem as AddressLink;
-        else updatedArray.push(newItem as AddressLink);
+        const addr1 = String(newItem.address1 || "").trim();
+        const addr2 = String((newItem as AddressLink).address2 || "").trim();
+        const city = String((newItem as AddressLink).city || "").trim();
+        const state = String((newItem as AddressLink).state || "").trim();
+        const zip = String((newItem as AddressLink).zip || "").trim();
+        const country = String((newItem as AddressLink).country || "").trim();
+        const fullAddress = [
+          addr1,
+          [city, state, zip].filter(Boolean).join(", "),
+          country,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        const newAddress: AddressLink = {
+          id: savedId,
+          address1: addr1,
+          address2: addr2,
+          city,
+          state,
+          zip,
+          country,
+          full: fullAddress,
+          name: String((newItem as any).name || "").trim(),
+        };
+        if (index !== undefined) {
+          updatedArray[index] = newAddress;
+        } else {
+          updatedArray.push(newAddress);
+        }
       } else if (type === "domain") {
         updatedArray = [...domains];
-        if (index !== undefined) updatedArray[index] = newItem as DomainLink;
-        else updatedArray.push(newItem as DomainLink);
-        // Ensure only one domain is primary - clear others when this one is set as primary
-        if ((newItem as DomainLink).is_primary) {
+        const newDomain: DomainLink = {
+          id: savedId,
+          domain: String(newItem.domain || newItem.path || "")
+            .trim()
+            .toLowerCase(),
+          path: String(newItem.path || newItem.domain || "")
+            .trim()
+            .toLowerCase(),
+          name: String((newItem as DomainLink).name || "").trim(),
+          is_primary: !!(newItem as DomainLink).is_primary,
+        };
+        if (index !== undefined) {
+          updatedArray[index] = newDomain;
+        } else {
+          updatedArray.push(newDomain);
+        }
+        // Ensure only one domain is primary
+        if (newDomain.is_primary) {
           const primaryIndex =
             index !== undefined ? index : updatedArray.length - 1;
           updatedArray = updatedArray.map((d, i) => ({
@@ -1066,17 +1291,15 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         return;
       }
 
-      // Map link type to refs.links key
-      const linksKey = type;
-
-      console.log("[CommunicationsPanel] handleSave:", {
+      console.log("[CommunicationsPanel] Phase 4: Updated refs.links array:", {
         type,
-        linksKey,
-        contactId,
-        updatedArray: JSON.stringify(updatedArray),
+        count: updatedArray.length,
+        updatedArray,
       });
 
-      // Save to contact's communications JSON and refs.links.{type}
+      // ── Phase 3: Update contact's refs.links and communications arrays ──
+      const linksKey = type;
+
       const result = await saveRecord("contact", {
         id: contactId,
         mode: "update",
@@ -1095,9 +1318,15 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
           },
         },
       });
-      console.log("[CommunicationsPanel] saveRecord result:", result);
+      console.log(
+        "[CommunicationsPanel] Phase 5: Successfully updated contact.refs.links:",
+        {
+          type,
+          result,
+        },
+      );
 
-      // Update local state with the array we already built
+      // ── Phase 4: Update local state ──
       const newData = { ...data };
       if (type === "email") {
         newData.emails = updatedArray as EmailLink[];
@@ -1111,9 +1340,16 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
       onChange(newData);
       setModalState({ ...modalState, isOpen: false });
+
+      console.log(
+        "[CommunicationsPanel] Phase 6: Complete - record saved with real ID:",
+        {
+          type,
+          recordId: savedId,
+        },
+      );
     } catch (err) {
-      console.error(`Failed to save ${type}:`, err);
-      // Could show toast here
+      console.error(`[CommunicationsPanel] Failed to save ${type}:`, err);
     } finally {
       setIsSaving(false);
     }

@@ -436,22 +436,45 @@ const InfoRow: React.FC<{
   value: React.ReactNode;
   /** Make the value a clickable link: email→mailto, phone→tel, address→Google Maps */
   linkType?: "email" | "phone" | "address";
-}> = ({
-  label,
-  value,
-  linkType,
-}) => {
+}> = ({ label, value, linkType }) => {
   /** Wrap the rendered value in an <a> tag when linkType is set and value is a non-empty string */
   const renderLinkedValue = (content: React.ReactNode) => {
     if (!linkType || typeof value !== "string" || !value) return content;
-    const linkClasses = "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
+    const linkClasses =
+      "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
     switch (linkType) {
       case "email":
-        return <a href={`mailto:${value}`} className={linkClasses} title={`Email ${value}`}>{content}</a>;
+        return (
+          <a
+            href={`mailto:${value}`}
+            className={linkClasses}
+            title={`Email ${value}`}
+          >
+            {content}
+          </a>
+        );
       case "phone":
-        return <a href={`tel:${value.replace(/[^+\d]/g, "")}`} className={linkClasses} title={`Call ${value}`}>{content}</a>;
+        return (
+          <a
+            href={`tel:${value.replace(/[^+\d]/g, "")}`}
+            className={linkClasses}
+            title={`Call ${value}`}
+          >
+            {content}
+          </a>
+        );
       case "address":
-        return <a href={`https://maps.google.com/?q=${encodeURIComponent(value)}`} target="_blank" rel="noopener noreferrer" className={linkClasses} title="Open in Maps">{content}</a>;
+        return (
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(value)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClasses}
+            title="Open in Maps"
+          >
+            {content}
+          </a>
+        );
       default:
         return content;
     }
@@ -851,7 +874,7 @@ export default function ContactDetail({
   const openCommSelect = async (type: CommType) => {
     // Auto-save contact if not yet persisted
     const id = await ensureContactId();
-    if (!id) return;  // validation failed, toast already shown
+    if (!id) return; // validation failed, toast already shown
     setCommSelectQuery("");
     setCommSelectState({ open: true, type });
   };
@@ -1153,33 +1176,181 @@ export default function ContactDetail({
           payload,
           contactId,
         );
+
+        console.log("[ContactDetail3] Phase 1: Saving communication record:", {
+          type: modelName,
+          contactId,
+          payload: modelPayload,
+        });
+
+        // ── Step 1: Create/Update the communication record
         const res: any = await saveRecord(modelName, modelPayload);
+
+        console.log("[ContactDetail3] Phase 2: saveRecord response:", {
+          status: res?.status,
+          statusCode: res?.statusCode,
+          hasRecord: !!res?.record,
+          hasId: res?.id || (res?.record && res.record.id),
+          fullResponse: res,
+        });
+
         const record = res?.record ?? res;
         const newId = Number(record?.id ?? res?.id);
+
         if (!Number.isFinite(newId) || newId <= 0) {
-          throw new Error("Failed to create communication record");
+          throw new Error(
+            `Failed to create ${modelName} record. Response: ${JSON.stringify({
+              newId,
+              record,
+              resId: res?.id,
+            })}`,
+          );
         }
 
+        console.log(
+          `[ContactDetail3] Phase 3: Successfully created ${modelName} record #${newId}`,
+        );
+
+        // ── Step 2: Normalize the created record for refs.links
+        let refsLinkItem: any = {
+          id: newId,
+          ...(record || {}),
+        };
+
+        if (type === "email") {
+          refsLinkItem = {
+            id: newId,
+            email: record?.email || record?.address || "",
+            name: record?.name || "",
+            type: record?.type || "",
+            is_primary: record?.is_primary || true,
+            is_verified: record?.is_verified || false,
+          };
+        } else if (type === "phone") {
+          refsLinkItem = {
+            id: newId,
+            number: record?.number || "",
+            name: record?.name || "",
+            country_code: record?.country_code || "",
+            format: record?.format || "",
+          };
+        } else if (type === "address") {
+          refsLinkItem = {
+            id: newId,
+            address1: record?.address1 || "",
+            address2: record?.address2 || "",
+            city: record?.city || "",
+            state: record?.state || "",
+            zip: record?.zip || "",
+            country: record?.country || "",
+            full: record?.full || "",
+          };
+        } else if (type === "domain") {
+          refsLinkItem = {
+            id: newId,
+            domain: record?.domain || record?.path || "",
+            path: record?.path || record?.domain || "",
+            type: record?.type || "website",
+            status: record?.status || "active",
+          };
+        }
+
+        console.log("[ContactDetail3] Phase 4: Normalized refs.links item:", {
+          type,
+          refsLinkItem,
+        });
+
+        // ── Step 3: Update contact's refs.links[type] array
+        const linkFieldName = `${type}s`; // e.g., "emails", "phones", "addresses", "domains"
+        const currentLinks =
+          communications?.[linkFieldName as keyof CommunicationsData] || [];
+
+        // Add new item to the array (in edit mode, replace existing item with same ID)
+        const updatedLinks =
+          payload?.id && payload.id > 0
+            ? currentLinks.map((item: any) =>
+                item.id === payload.id ? refsLinkItem : item,
+              )
+            : [...currentLinks, refsLinkItem];
+
+        console.log("[ContactDetail3] Phase 5: Updating contact.refs.links:", {
+          type,
+          linkFieldName,
+          currentCount: currentLinks.length,
+          newCount: updatedLinks.length,
+          updatedLinks,
+        });
+
+        // Save refs.links update to contact
+        await saveRecord("contact", {
+          id: contactId,
+          mode: "update",
+          refs: {
+            mode: "update",
+            value: {
+              links: {
+                [type]: updatedLinks,
+              },
+            },
+          },
+        });
+
+        console.log(
+          `[ContactDetail3] Phase 6: Successfully updated contact.refs.links.${type}`,
+        );
+
+        // ── Step 4: Refresh the communications list
         await refreshCommType(type);
 
-        // Denormalize and set primary on contact
-        const displayValue = getCommDisplayValue(type, {
-          ...(record || {}),
-          // normalize common names for display
-          address: record?.email,
-          email: record?.email,
-          number: record?.number,
-          domain: record?.path,
-          path: record?.path,
+        // ── Step 5: Update the form state to reflect the new primary
+        const displayValue = getCommDisplayValue(type, refsLinkItem);
+
+        console.log("[ContactDetail3] Phase 7: Setting primary comm:", {
+          type,
+          newId,
+          displayValue,
         });
-        await setPrimaryCommWithoutRefetch(type, newId, displayValue);
+
+        // Update the form's scalar field (email, phone, etc.)
+        formSetValueRef.current?.(
+          commTypeToContactScalarField(type) as any,
+          displayValue,
+          {
+            shouldDirty: true,
+          },
+        );
+
+        // Update the contact's FK field (*_id)
+        const idField = commTypeToContactIdField(type);
+        formSetValueRef.current?.(idField as any, newId, {
+          shouldDirty: true,
+        });
+
+        console.log(
+          `[ContactDetail3] Phase 8: Successfully updated contact.${idField} = ${newId}`,
+        );
+
+        dispatch(
+          showToast({
+            message: `${
+              type.charAt(0).toUpperCase() + type.slice(1)
+            } saved successfully and added to contact`,
+            type: "success",
+          }),
+        );
 
         setCommModalState((s) => ({ ...s, open: false }));
       } catch (e) {
-        console.error("[ContactDetail] handleSaveNewComm failed:", e);
+        const errorDetails = e instanceof Error ? e.message : String(e);
+        console.error("[ContactDetail3] handleSaveNewComm failed:", {
+          error: e,
+          errorMessage: errorDetails,
+          type: commModalState.type,
+          contactId,
+        });
         dispatch(
           showToast({
-            message: `Failed to add ${commModalState.type}`,
+            message: `Failed to add ${commModalState.type}: ${errorDetails}`,
             type: "error",
           }),
         );
@@ -1979,7 +2150,14 @@ export default function ContactDetail({
       return;
     }
     windowManager.closeWindow(windowPath || location.pathname);
-  }, [onCancelInline, windowManager, windowPath, location.pathname, inflightCount, waitForAll]);
+  }, [
+    onCancelInline,
+    windowManager,
+    windowPath,
+    location.pathname,
+    inflightCount,
+    waitForAll,
+  ]);
 
   const handleDeleteContact = useCallback(async () => {
     const contactId = data?.id;
@@ -2141,7 +2319,10 @@ export default function ContactDetail({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
               <DevBadge label="Contact" className="mr-2" />
-              <DetailFeatureBadge features={{ autoSave: true, bgSaveChildren: true }} className="mr-2" />
+              <DetailFeatureBadge
+                features={{ autoSave: true, bgSaveChildren: true }}
+                className="mr-2"
+              />
               {displayName}
               {activeContactId && (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
@@ -2177,7 +2358,9 @@ export default function ContactDetail({
               {(autoSaveInProgress || inflightCount > 0) && (
                 <span className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center gap-1.5">
                   <FaSpinner className="animate-spin" size={10} />
-                  {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
+                  {autoSaveInProgress
+                    ? "Auto-saving…"
+                    : `${inflightCount} saving…`}
                 </span>
               )}
             </div>
@@ -2249,7 +2432,11 @@ export default function ContactDetail({
               <InfoRow label="phone" value={data.phone} linkType="phone" />
               <InfoRow label="domain" value={data.domain} />
               <div className="col-span-3">
-                <InfoRow label="address_full" value={data.address_full} linkType="address" />
+                <InfoRow
+                  label="address_full"
+                  value={data.address_full}
+                  linkType="address"
+                />
               </div>
             </dl>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
@@ -2402,7 +2589,9 @@ export default function ContactDetail({
                         onClick={() => openCommSelect("email")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add email"
-                        disabled={isFieldDisabled("email") || autoSaveInProgress}
+                        disabled={
+                          isFieldDisabled("email") || autoSaveInProgress
+                        }
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2427,7 +2616,9 @@ export default function ContactDetail({
                         onClick={() => openCommSelect("phone")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add phone"
-                        disabled={isFieldDisabled("phone") || autoSaveInProgress}
+                        disabled={
+                          isFieldDisabled("phone") || autoSaveInProgress
+                        }
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2452,7 +2643,9 @@ export default function ContactDetail({
                         onClick={() => openCommSelect("address")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add address"
-                        disabled={isFieldDisabled("address_full") || autoSaveInProgress}
+                        disabled={
+                          isFieldDisabled("address_full") || autoSaveInProgress
+                        }
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2477,7 +2670,9 @@ export default function ContactDetail({
                         onClick={() => openCommSelect("domain")}
                         className="shrink-0 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         title="Select or add domain"
-                        disabled={isFieldDisabled("domain") || autoSaveInProgress}
+                        disabled={
+                          isFieldDisabled("domain") || autoSaveInProgress
+                        }
                       >
                         <FaSearch size={13} />
                       </button>
@@ -2874,8 +3069,10 @@ export default function ContactDetail({
             </span>
           ) : (
             <span>
-              Fill in the required fields above. Tabs &amp; related records will appear once the contact is saved
-              {effectiveMode === "add" && " — or use the search buttons to auto-save and link records."}
+              Fill in the required fields above. Tabs &amp; related records will
+              appear once the contact is saved
+              {effectiveMode === "add" &&
+                " — or use the search buttons to auto-save and link records."}
             </span>
           )}
         </div>

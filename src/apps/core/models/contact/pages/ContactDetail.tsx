@@ -90,10 +90,20 @@ import {
   FaAddressBook,
   FaBuilding,
 } from "react-icons/fa";
-import { History, Link, Phone, SlidersHorizontal, ShieldCheck } from "lucide-react";
+import {
+  History,
+  Link,
+  Phone,
+  SlidersHorizontal,
+  ShieldCheck,
+} from "lucide-react";
 
 // Shared detail card components
-import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import {
+  ScalarCard,
+  JsonCard,
+  BaseModelCards,
+} from "@/apps/common/components/detail";
 
 // Panel Components
 import {
@@ -600,8 +610,13 @@ export default function ContactDetail({
   // Email Gate (add-mode only) — forces email search before showing the form
   // ---------------------------------------------------------------------------
 
-  const isStaffUser = !!(authUser?.is_staff || authUser?.is_superuser ||
-    ["admin", "manager", "staff"].includes(String(authUser?.role || "").toLowerCase()));
+  const isStaffUser = !!(
+    authUser?.is_staff ||
+    authUser?.is_superuser ||
+    ["admin", "manager", "staff"].includes(
+      String(authUser?.role || "").toLowerCase(),
+    )
+  );
 
   // Gate is active when in add mode AND no data/id has been supplied yet
   // (i.e. truly a brand-new contact, not an end-user flow with pre-confirmed record)
@@ -613,28 +628,25 @@ export default function ContactDetail({
     setEmailGatePassed(!needsGate);
   }, [needsGate]);
 
-  const handleEmailGateComplete = useCallback(
-    (result: EmailGateResult) => {
-      if (result.action === "open" && result.existingContact) {
-        // Switch to editing the existing contact
-        setFetchedData(normalizeContactFkFields(result.existingContact));
-        setEffectiveMode("edit");
-        setEmailGatePassed(true);
-        return;
-      }
-      // Proceed with new contact — pre-fill email if provided
-      if (result.email) {
-        // setValue may not be initialized yet; schedule via ref
-        setTimeout(() => {
-          formSetValueRef.current?.("email" as any, result.email, {
-            shouldDirty: true,
-          });
-        }, 0);
-      }
+  const handleEmailGateComplete = useCallback((result: EmailGateResult) => {
+    if (result.action === "open" && result.existingContact) {
+      // Switch to editing the existing contact
+      setFetchedData(normalizeContactFkFields(result.existingContact));
+      setEffectiveMode("edit");
       setEmailGatePassed(true);
-    },
-    [],
-  );
+      return;
+    }
+    // Proceed with new contact — pre-fill email if provided
+    if (result.email) {
+      // setValue may not be initialized yet; schedule via ref
+      setTimeout(() => {
+        formSetValueRef.current?.("email" as any, result.email, {
+          shouldDirty: true,
+        });
+      }, 0);
+    }
+    setEmailGatePassed(true);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Data Loading
@@ -1192,33 +1204,247 @@ export default function ContactDetail({
           payload,
           contactId,
         );
+
+        console.log("[ContactDetail] Phase 1: Saving communication record:", {
+          type: modelName,
+          contactId,
+          payload: modelPayload,
+        });
+
+        // ── Step 1: Create/Update the communication record
         const res: any = await saveRecord(modelName, modelPayload);
+
+        console.log("[ContactDetail] Phase 2: saveRecord response:", {
+          status: res?.status,
+          statusCode: res?.statusCode,
+          hasRecord: !!res?.record,
+          hasId: res?.id || (res?.record && res.record.id),
+          fullResponse: res,
+        });
+
         const record = res?.record ?? res;
-        const newId = Number(record?.id ?? res?.id);
+        const responseId = Number(record?.id ?? res?.id);
+
+        // For edit mode, verify the response ID matches the payload ID
+        const newId = payload?.id && payload.id > 0 ? payload.id : responseId;
+
         if (!Number.isFinite(newId) || newId <= 0) {
-          throw new Error("Failed to create communication record");
+          throw new Error(
+            `Failed to ${
+              payload?.id ? "update" : "create"
+            } ${modelName} record. Response: ${JSON.stringify({
+              newId,
+              responseId,
+              record,
+              resId: res?.id,
+              payloadId: payload?.id,
+            })}`,
+          );
         }
 
+        console.log(
+          `[ContactDetail] Phase 3: Successfully ${
+            payload?.id ? "updated" : "created"
+          } ${modelName} record #${newId}`,
+        );
+
+        // ── Step 2: Normalize the created/updated record for refs.links
+        // Use response record data, and fallback to formData for fields that might not be in response
+        let refsLinkItem: any = {
+          id: newId,
+          ...(record || {}),
+        };
+
+        if (type === "email") {
+          refsLinkItem = {
+            id: newId,
+            email: record?.email || (payload as any)?.email || "",
+            name: record?.name || (payload as any)?.name || "",
+            type: record?.type || "",
+            is_primary:
+              record?.is_primary !== undefined
+                ? !!record.is_primary
+                : !!(payload as any)?.is_primary,
+            is_verified: !!record?.is_verified,
+          };
+        } else if (type === "phone") {
+          refsLinkItem = {
+            id: newId,
+            number: record?.number || (payload as any)?.number || "",
+            name: record?.name || (payload as any)?.name || "",
+            country_code: record?.country_code || "",
+            format: record?.format || "",
+          };
+        } else if (type === "address") {
+          refsLinkItem = {
+            id: newId,
+            address1: record?.address1 || (payload as any)?.address1 || "",
+            address2: record?.address2 || (payload as any)?.address2 || "",
+            city: record?.city || (payload as any)?.city || "",
+            state: record?.state || (payload as any)?.state || "",
+            zip: record?.zip || (payload as any)?.zip || "",
+            country: record?.country || (payload as any)?.country || "",
+            full: record?.full || "",
+          };
+        } else if (type === "domain") {
+          refsLinkItem = {
+            id: newId,
+            domain:
+              record?.domain || record?.path || (payload as any)?.domain || "",
+            path:
+              record?.path || record?.domain || (payload as any)?.domain || "",
+            type: record?.type || (payload as any)?.type || "website",
+            status: record?.status || "active",
+          };
+        }
+
+        console.log("[ContactDetail] Phase 4: Normalized refs.links item:", {
+          type,
+          refsLinkItem,
+        });
+
+        // ── Step 3: Update contact's refs.links[type] array
+        const linkFieldName = `${type}s`; // e.g., "emails", "phones", "addresses", "domains"
+        const currentLinks =
+          communications?.[linkFieldName as keyof CommunicationsData] || [];
+
+        // Add new item to the array (in edit mode, replace existing item with same ID)
+        const updatedLinks =
+          payload?.id && payload.id > 0
+            ? currentLinks.map((item: any) =>
+                item.id === payload.id ? refsLinkItem : item,
+              )
+            : [...currentLinks, refsLinkItem];
+
+        console.log("[ContactDetail] Phase 5: Updating contact.refs.links:", {
+          type,
+          linkFieldName,
+          currentCount: currentLinks.length,
+          newCount: updatedLinks.length,
+          updatedLinks,
+          contactId,
+        });
+
+        // Save refs.links update to contact
+        // Fetch current contact data to get the full refs object
+        const currentContactData = await getRecord("contact", contactId);
+        const currentContact =
+          (currentContactData as any)?.record ?? currentContactData;
+        const existingRefs = currentContact?.refs || {};
+
+        const updatePayload = {
+          id: contactId,
+          refs: {
+            ...existingRefs,
+            links: {
+              ...(existingRefs?.links || {}),
+              [type]: updatedLinks,
+            },
+          },
+        };
+
+        console.log("[ContactDetail] Phase 5b: Contact update payload:", {
+          contactId,
+          updatePayload,
+        });
+
+        const updateRes = await saveRecord("contact", updatePayload);
+        console.log("[ContactDetail] Phase 5c: Contact update response:", {
+          status: updateRes?.status,
+          hasRecord: !!updateRes?.record,
+          updateRes,
+        });
+
+        console.log(
+          `[ContactDetail] Phase 6: Successfully updated contact.refs.links.${type}`,
+        );
+
+        // ── Step 4: Refresh the communications list
         await refreshCommType(type);
 
-        // Denormalize and set primary on contact
-        const displayValue = getCommDisplayValue(type, {
-          ...(record || {}),
-          // normalize common names for display
-          address: record?.email,
-          email: record?.email,
-          number: record?.number,
-          domain: record?.path,
-          path: record?.path,
+        console.log("[ContactDetail] Phase 6b: After refreshCommType:", {
+          type,
+          updatedLinks,
         });
-        await setPrimaryCommWithoutRefetch(type, newId, displayValue);
+
+        // ── Step 4b: Update fetchedData to reflect new refs.links in local state
+        // This forces UI re-render without waiting for full refetch
+        if (updateRes?.record) {
+          setFetchedData((prev: any) => ({
+            ...(prev || data),
+            refs: {
+              ...(prev?.refs || data?.refs || {}),
+              links: {
+                ...(prev?.refs?.links || data?.refs?.links || {}),
+                [type]: updatedLinks,
+              },
+            },
+          }));
+        }
+
+        // ── Step 5: Update the form state to reflect the new primary
+        const displayValue = getCommDisplayValue(type, refsLinkItem);
+
+        console.log("[ContactDetail] Phase 7: Setting primary comm:", {
+          type,
+          newId,
+          displayValue,
+        });
+
+        // Update the form's scalar field (email, phone, etc.)
+        formSetValueRef.current?.(
+          commTypeToContactScalarField(type) as any,
+          displayValue,
+          {
+            shouldDirty: true,
+          },
+        );
+
+        // Update the contact's FK field (*_id)
+        const idField = commTypeToContactIdField(type);
+        formSetValueRef.current?.(idField as any, newId, {
+          shouldDirty: true,
+        });
+
+        console.log(
+          `[ContactDetail] Phase 8: Successfully updated contact.${idField} = ${newId}`,
+        );
+
+        console.log(
+          "[ContactDetail] Phase 9: COMPLETE - All steps successful",
+          {
+            type,
+            newId,
+            commRecordId: newId,
+            contactId,
+            updatedLinksCount: updatedLinks.length,
+            formField: commTypeToContactScalarField(type),
+            idField,
+            displayValue,
+          },
+        );
+
+        dispatch(
+          showToast({
+            message: `${
+              type.charAt(0).toUpperCase() + type.slice(1)
+            } saved successfully and added to contact`,
+            type: "success",
+          }),
+        );
 
         setCommModalState((s) => ({ ...s, open: false }));
       } catch (e) {
-        console.error("[ContactDetail] handleSaveNewComm failed:", e);
+        const errorDetails = e instanceof Error ? e.message : String(e);
+        console.error("[ContactDetail] handleSaveNewComm failed:", {
+          error: e,
+          errorMessage: errorDetails,
+          type: commModalState.type,
+          contactId,
+        });
         dispatch(
           showToast({
-            message: `Failed to add ${commModalState.type}`,
+            message: `Failed to add ${commModalState.type}: ${errorDetails}`,
             type: "error",
           }),
         );
@@ -1979,7 +2205,14 @@ export default function ContactDetail({
       return;
     }
     windowManager.closeWindow(windowPath || location.pathname);
-  }, [onCancelInline, windowManager, windowPath, location.pathname, inflightCount, waitForAll]);
+  }, [
+    onCancelInline,
+    windowManager,
+    windowPath,
+    location.pathname,
+    inflightCount,
+    waitForAll,
+  ]);
 
   const handleDeleteContact = useCallback(async () => {
     const contactId = data?.id;
@@ -2143,7 +2376,9 @@ export default function ContactDetail({
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             <DevBadge label="Contact" className="mr-2" />
             New Contact
-            <span className="ml-2 text-xs font-mono text-slate-400">(no ID yet)</span>
+            <span className="ml-2 text-xs font-mono text-slate-400">
+              (no ID yet)
+            </span>
           </h2>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -2165,7 +2400,10 @@ export default function ContactDetail({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
               <DevBadge label="Contact" className="mr-2" />
-              <DetailFeatureBadge features={{ autoSave: true, bgSaveChildren: true }} className="mr-2" />
+              <DetailFeatureBadge
+                features={{ autoSave: true, bgSaveChildren: true }}
+                className="mr-2"
+              />
               {displayName}
               {activeContactId ? (
                 <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
@@ -2205,7 +2443,9 @@ export default function ContactDetail({
               {(autoSaveInProgress || inflightCount > 0) && (
                 <span className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center gap-1.5">
                   <FaSpinner className="animate-spin" size={10} />
-                  {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
+                  {autoSaveInProgress
+                    ? "Auto-saving…"
+                    : `${inflightCount} saving…`}
                 </span>
               )}
             </div>
@@ -2353,28 +2593,28 @@ export default function ContactDetail({
               const scalarField = commTypeToContactScalarField(cType);
               const scalarVal =
                 cType === "email"
-                  ? (watchedValues?.email ?? data?.email)
+                  ? watchedValues?.email ?? data?.email
                   : cType === "phone"
-                    ? (watchedValues?.phone ?? data?.phone)
-                    : cType === "address"
-                      ? (watchedValues?.address_full ?? data?.address_full)
-                      : (watchedValues?.domain ?? data?.domain);
+                  ? watchedValues?.phone ?? data?.phone
+                  : cType === "address"
+                  ? watchedValues?.address_full ?? data?.address_full
+                  : watchedValues?.domain ?? data?.domain;
               const primaryIdVal =
                 cType === "email"
                   ? data?.email_id
                   : cType === "phone"
-                    ? data?.phone_id
-                    : cType === "address"
-                      ? data?.address_id
-                      : data?.domain_id;
+                  ? data?.phone_id
+                  : cType === "address"
+                  ? data?.address_id
+                  : data?.domain_id;
               const commItems =
                 cType === "email"
                   ? communications?.emails || []
                   : cType === "phone"
-                    ? communications?.phones || []
-                    : cType === "address"
-                      ? communications?.addresses || []
-                      : communications?.domains || [];
+                  ? communications?.phones || []
+                  : cType === "address"
+                  ? communications?.addresses || []
+                  : communications?.domains || [];
               return (
                 <CommLinkPanel
                   key={cType}
@@ -2382,21 +2622,66 @@ export default function ContactDetail({
                   scalarValue={scalarVal as string | null | undefined}
                   primaryId={primaryIdVal as number | null | undefined}
                   items={commItems}
+                  reflinks={data?.refs?.links}
                   isEditing={isEditing}
                   contactId={activeContactId}
                   onScalarChange={(val) => {
-                    formSetValueRef.current?.(scalarField as any, val, { shouldDirty: true });
+                    formSetValueRef.current?.(scalarField as any, val, {
+                      shouldDirty: true,
+                    });
                   }}
                   onSaveScalar={async (val) => {
                     if (!activeContactId) return;
-                    await updateContact({ id: activeContactId, [scalarField]: val } as any);
-                    dispatch(showToast({ message: `${cType} saved`, type: "success" }));
+                    await updateContact({
+                      id: activeContactId,
+                      [scalarField]: val,
+                    } as any);
+                    dispatch(
+                      showToast({ message: `${cType} saved`, type: "success" }),
+                    );
                   }}
                   onSetPrimary={async (id, displayVal) => {
                     await setPrimaryCommWithoutRefetch(cType, id, displayVal);
                     await refreshCommType(cType);
                   }}
-                  onItemsChanged={() => refreshCommType(cType)}
+                  onItemsChanged={async () => {
+                    await refreshCommType(cType);
+                  }}
+                  onRemoveItem={async (id) => {
+                    if (!activeContactId) return;
+                    // Remove from refs.links
+                    const linkFieldName = `${cType}s`;
+                    const updatedLinks = commItems.filter(
+                      (item: any) => item.id !== id,
+                    );
+
+                    const currentContactData = await getRecord(
+                      "contact",
+                      activeContactId,
+                    );
+                    const currentContact =
+                      (currentContactData as any)?.record ?? currentContactData;
+                    const existingRefs = currentContact?.refs || {};
+
+                    await saveRecord("contact", {
+                      id: activeContactId,
+                      refs: {
+                        ...existingRefs,
+                        links: {
+                          ...(existingRefs?.links || {}),
+                          [cType]: updatedLinks,
+                        },
+                      },
+                    });
+
+                    await refreshCommType(cType);
+                    dispatch(
+                      showToast({
+                        message: `${cType} removed`,
+                        type: "success",
+                      }),
+                    );
+                  }}
                   defaultExpanded={isEditing}
                 />
               );
@@ -2410,32 +2695,99 @@ export default function ContactDetail({
           </h3>
           <OrgLinkPanel
             fields={[
-              { fieldName: "customer_id", label: "Customer", value: watchedValues?.customer_id ?? data?.customer_id, orgType: "customer" },
-              { fieldName: "vendor_id", label: "Vendor", value: watchedValues?.vendor_id ?? data?.vendor_id, orgType: "vendor" },
-              { fieldName: "rep_id", label: "Rep", value: watchedValues?.rep_id ?? data?.rep_id, orgType: "rep" },
-              { fieldName: "employee_id", label: "Employee", value: watchedValues?.employee_id ?? data?.employee_id, orgType: "employee" },
-              { fieldName: "manufacturer_id", label: "Manufacturer", value: watchedValues?.manufacturer_id ?? data?.manufacturer_id, orgType: "manufacturer" },
-              { fieldName: "other_id", label: "Other Org", value: watchedValues?.other_id ?? data?.other_id, orgType: "organization" },
+              {
+                fieldName: "customer_id",
+                label: "Customer",
+                value: watchedValues?.customer_id ?? data?.customer_id,
+                orgType: "customer",
+              },
+              {
+                fieldName: "vendor_id",
+                label: "Vendor",
+                value: watchedValues?.vendor_id ?? data?.vendor_id,
+                orgType: "vendor",
+              },
+              {
+                fieldName: "rep_id",
+                label: "Rep",
+                value: watchedValues?.rep_id ?? data?.rep_id,
+                orgType: "rep",
+              },
+              {
+                fieldName: "employee_id",
+                label: "Employee",
+                value: watchedValues?.employee_id ?? data?.employee_id,
+                orgType: "employee",
+              },
+              {
+                fieldName: "manufacturer_id",
+                label: "Manufacturer",
+                value: watchedValues?.manufacturer_id ?? data?.manufacturer_id,
+                orgType: "manufacturer",
+              },
+              {
+                fieldName: "other_id",
+                label: "Other Org",
+                value: watchedValues?.other_id ?? data?.other_id,
+                orgType: "organization",
+              },
             ]}
             scalarFields={[
-              { fieldName: "company", label: "Company", value: watchedValues?.company ?? data?.company, placeholder: "Company name", disabled: isFieldDisabled("company") },
-              { fieldName: "title", label: "Title", value: watchedValues?.title ?? data?.title, placeholder: "Job title", disabled: isFieldDisabled("title") },
-              { fieldName: "department", label: "Department", value: watchedValues?.department ?? data?.department, placeholder: "Department", disabled: isFieldDisabled("department") },
-              { fieldName: "role", label: "Role", value: watchedValues?.role ?? data?.role, type: "select", options: ROLE_OPTIONS, disabled: isFieldDisabled("role") },
-              { fieldName: "comment", label: "Comment", value: watchedValues?.comment ?? data?.comment, placeholder: "Comment", disabled: isFieldDisabled("comment") },
+              {
+                fieldName: "company",
+                label: "Company",
+                value: watchedValues?.company ?? data?.company,
+                placeholder: "Company name",
+                disabled: isFieldDisabled("company"),
+              },
+              {
+                fieldName: "title",
+                label: "Title",
+                value: watchedValues?.title ?? data?.title,
+                placeholder: "Job title",
+                disabled: isFieldDisabled("title"),
+              },
+              {
+                fieldName: "department",
+                label: "Department",
+                value: watchedValues?.department ?? data?.department,
+                placeholder: "Department",
+                disabled: isFieldDisabled("department"),
+              },
+              {
+                fieldName: "role",
+                label: "Role",
+                value: watchedValues?.role ?? data?.role,
+                type: "select",
+                options: ROLE_OPTIONS,
+                disabled: isFieldDisabled("role"),
+              },
+              {
+                fieldName: "comment",
+                label: "Comment",
+                value: watchedValues?.comment ?? data?.comment,
+                placeholder: "Comment",
+                disabled: isFieldDisabled("comment"),
+              },
             ]}
             isEditing={isEditing}
             contactId={activeContactId}
             onOrgChanged={(fieldName, orgId) => {
-              formSetValueRef.current?.(fieldName as any, orgId, { shouldDirty: true });
+              formSetValueRef.current?.(fieldName as any, orgId, {
+                shouldDirty: true,
+              });
             }}
             onScalarFieldChange={(fieldName, value) => {
-              formSetValueRef.current?.(fieldName as any, value, { shouldDirty: true });
+              formSetValueRef.current?.(fieldName as any, value, {
+                shouldDirty: true,
+              });
             }}
             onSaveScalars={async (values) => {
               if (!activeContactId) return;
               await updateContact({ id: activeContactId, ...values } as any);
-              dispatch(showToast({ message: "Company info saved", type: "success" }));
+              dispatch(
+                showToast({ message: "Company info saved", type: "success" }),
+              );
             }}
             defaultExpanded={isEditing}
           />
@@ -2650,19 +3002,16 @@ export default function ContactDetail({
                   entityType="contact"
                   entityId={activeContactId}
                   contactId={activeContactId}
-                  data={communications}
+                  data={{
+                    emails: data?.refs?.links?.email || [],
+                    phones: data?.refs?.links?.phone || [],
+                    addresses: data?.refs?.links?.address || [],
+                    domains: data?.refs?.links?.domain || [],
+                  }}
                   onChange={(comms) => {
-                    setCommunications(comms);
-                    // Also sync back to refs.links AND communications so useEffect doesn't overwrite
+                    // Update refs.links directly (single source of truth)
                     setFetchedData((prev: any) => ({
                       ...(prev || data),
-                      communications: {
-                        ...(prev?.communications || data?.communications || {}),
-                        emails: comms.emails || [],
-                        phones: comms.phones || [],
-                        addresses: comms.addresses || [],
-                        domains: comms.domains || [],
-                      },
                       refs: {
                         ...(prev?.refs || data?.refs || {}),
                         links: {
@@ -2750,7 +3099,8 @@ export default function ContactDetail({
             </span>
           ) : (
             <span>
-              Fill in the required fields above. Tabs &amp; related records will appear once the contact is saved.
+              Fill in the required fields above. Tabs &amp; related records will
+              appear once the contact is saved.
             </span>
           )}
         </div>
@@ -2777,7 +3127,9 @@ export default function ContactDetail({
         isOpen={commModalState.open}
         type={commModalState.type}
         data={commModalState.data}
-        onClose={() => setCommModalState((s) => ({ ...s, open: false }))}
+        onClose={() =>
+          setCommModalState({ open: false, type: "email", data: undefined })
+        }
         onSave={handleSaveNewComm}
         isSaving={commSaving}
         contactId={activeContactId ?? undefined}

@@ -74,77 +74,13 @@ export function useConsoleCapture() {
   }, []);
 
   useEffect(() => {
-<<<<<<< HEAD
-    // Install a single global console.error wrapper and keep a list
-    // of subscriber callbacks (one per hook instance). This prevents
-    // multiple mounts from repeatedly wrapping console.error and
-    // causing infinite recursion.
-    const g = console as any;
-
-    g.__consoleCaptureSubscribers = g.__consoleCaptureSubscribers || [];
-
-    // Register this hook's addError so the global wrapper can notify it.
-    g.__consoleCaptureSubscribers.push(addError);
-
-    // If wrapper isn't installed yet, capture original and install.
-    if (!g.__consoleCaptureWrapperInstalled) {
-      originalConsoleError.current = console.error;
-
-      const wrapper = (...args: unknown[]) => {
-        // Call the original so DevTools still shows the error.
-        try {
-          originalConsoleError.current?.apply(console, args);
-        } catch (e) {
-          // If calling original fails, still continue to notify subscribers.
-        }
-
-        const message = args
-          .map((a) => {
-            if (a instanceof Error) return a.message;
-            if (typeof a === "string") return a;
-            try {
-              return JSON.stringify(a, null, 2);
-            } catch {
-              return String(a);
-            }
-          })
-          .join(" ");
-
-        const errorArg = args.find((a) => a instanceof Error) as
-          | Error
-          | undefined;
-
-        const payload = {
-          type: "console",
-          message,
-          stack: errorArg?.stack,
-          raw: formatError("console", message, errorArg?.stack),
-        };
-
-        // Notify all subscribers (each useConsoleCapture instance)
-        const subs: Array<
-          (err: Omit<CapturedError, "id" | "timestamp">) => void
-        > = g.__consoleCaptureSubscribers || [];
-        for (const s of subs) {
-          try {
-            s(payload);
-          } catch (e) {
-            // Subscriber errors should not break the loop
-          }
-        }
-      };
-
-      g.__consoleCaptureWrapperInstalled = true;
-      g.__originalConsoleError = originalConsoleError.current;
-      console.error = wrapper;
-    }
-=======
     // ── Intercept console.error ────────────────────────────────
     const globalConsole = console as any;
     // Preserve a single non-wrapper original console.error across multiple mounts
     const baseOriginal = globalConsole.__originalConsoleError || console.error;
     globalConsole.__originalConsoleError = baseOriginal;
-    globalConsole.__consoleCaptureCount = (globalConsole.__consoleCaptureCount || 0) + 1;
+    globalConsole.__consoleCaptureCount =
+      (globalConsole.__consoleCaptureCount || 0) + 1;
 
     originalConsoleError.current = baseOriginal;
 
@@ -198,7 +134,9 @@ export function useConsoleCapture() {
           })
           .join(" ");
 
-        const errorArg = args.find((a) => a instanceof Error) as Error | undefined;
+        const errorArg = args.find((a) => a instanceof Error) as
+          | Error
+          | undefined;
 
         addError({
           type: "console",
@@ -210,13 +148,13 @@ export function useConsoleCapture() {
         handlingConsoleRef.current = false;
       }
     };
->>>>>>> 9af940e04dae78d3fb2a25bff5971ff95a6a1218
 
     // Mark wrapper to detect it later and store fallback log
     (wrapper as any).__isConsoleCaptureWrapper = true;
     console.error = wrapper;
     const globalConsoleAny = console as any;
-    globalConsoleAny.__originalConsoleLog = globalConsoleAny.__originalConsoleLog || console.log;
+    globalConsoleAny.__originalConsoleLog =
+      globalConsoleAny.__originalConsoleLog || console.log;
 
     // ── Intercept window.onerror ───────────────────────────────
     const handleWindowError = (event: ErrorEvent) => {
@@ -254,25 +192,9 @@ export function useConsoleCapture() {
     window.addEventListener("unhandledrejection", handleRejection);
 
     return () => {
-<<<<<<< HEAD
-      // Unregister subscriber
-      const subs: Array<any> =
-        (console as any).__consoleCaptureSubscribers || [];
-      const idx = subs.indexOf(addError as any);
-      if (idx !== -1) subs.splice(idx, 1);
-
-      // If no subscribers left, restore original console.error
-      if (!subs.length) {
-        const g2 = console as any;
-        if (g2.__originalConsoleError) {
-          console.error = g2.__originalConsoleError;
-        }
-        delete g2.__consoleCaptureSubscribers;
-        delete g2.__consoleCaptureWrapperInstalled;
-        delete g2.__originalConsoleError;
-=======
       const globalConsole = console as any;
-      globalConsole.__consoleCaptureCount = (globalConsole.__consoleCaptureCount || 1) - 1;
+      globalConsole.__consoleCaptureCount =
+        (globalConsole.__consoleCaptureCount || 1) - 1;
       // Only restore the original console.error when the last capture hook unmounts
       if (globalConsole.__consoleCaptureCount <= 0) {
         if (originalConsoleError.current) {
@@ -280,7 +202,6 @@ export function useConsoleCapture() {
         }
         delete globalConsole.__originalConsoleError;
         delete globalConsole.__consoleCaptureCount;
->>>>>>> 9af940e04dae78d3fb2a25bff5971ff95a6a1218
       }
 
       window.removeEventListener("error", handleWindowError);
