@@ -249,6 +249,101 @@ function getEffectiveOptions(
 
 ---
 
+### Admin Settings (Named Singletons)
+
+Administrative settings are singletons keyed by `purpose='admin'` + `name`.
+They hold shared configuration data for the frontend.
+
+#### Popup Choices
+
+Normalized legacy wc2 popup/choice lists for select dropdowns.
+
+```typescript
+interface PopupChoice {
+  value: string;
+  label: string;
+  alternate: string;
+  sequence: number;
+}
+
+interface PopupList {
+  list_name: string;
+  wc2_array_name: string;
+  where_used: string;
+  choices: PopupChoice[];
+}
+
+interface PopupChoicesData {
+  meta: {
+    source: string;
+    created_at: string;
+    total_lists: number;
+    total_choices: number;
+  };
+  lists: Record<string, PopupList>;
+}
+
+async function getPopupChoices(): Promise<PopupChoicesData | null> {
+  const res = await apiClient.get('/wcapi/get/', {
+    params: {
+      model_name: 'setting',
+      purpose: 'admin',
+      name: 'popup_choices',
+    },
+  });
+  const results = res.data.data.results || [];
+  return results.length > 0 ? results[0].data : null;
+}
+
+// Usage — populate a select list
+const data = await getPopupChoices();
+const statusOptions = data?.lists.status.choices ?? [];
+// → [{ value: 'INVOICE', label: 'INVOICE' }, { value: 'APPROVED', ... }, ...]
+
+const salutationOptions = data?.lists.salutation.choices ?? [];
+// → [{ value: 'Ms', label: 'Ms' }, { value: 'Mrs.', ... }, ...]
+```
+
+**Key lists** (116 total, 209 choices): `status` (29), `actions` (12),
+`type_sale` (6), `salutation` (4), `prospect` (5), `reasons` (4),
+`activities` (4), `job_type` (7), `items_type` (6), `orders_profile1` (7)
+
+#### Layout Status
+
+Tracks which model layout files exist and their implementation status.
+
+```typescript
+interface LayoutEntry {
+  app: string;
+  model: string;
+  detail_exists: boolean;
+  list_exists: boolean;
+  dialog_exists: boolean;
+  panel_exists: boolean;
+  detail_status: string;
+  list_status: string;
+  dialog_status: string;
+  panel_status: string;
+  assigned_to: string;
+}
+
+async function getLayoutStatus(): Promise<LayoutEntry[] | null> {
+  const res = await apiClient.get('/wcapi/get/', {
+    params: {
+      model_name: 'setting',
+      purpose: 'admin',
+      name: 'layout_status',
+    },
+  });
+  const results = res.data.data.results || [];
+  return results.length > 0 ? results[0].data?.layouts : null;
+}
+```
+
+See [layout-maintenance.md](../layout-maintenance.md) for full specification.
+
+---
+
 ### Constants (Singleton)
 
 Global user-defined constants.
@@ -425,6 +520,7 @@ function useConstants() {
 | `db_defaults`         | *(singleton)*                      | `getDbDefaults()`             |
 | `qa_counters`         | *(singleton)*                      | `getQACounters()`             |
 | `qa_questions`        | `name` (group)                     | `getQAQuestions()`            |
+| `admin`               | `name` (named singleton)           | `getPopupChoices()` / `getLayoutStatus()` |
 | `keywords`            | `model_target`                     | *(generic fetch)*             |
 
 ---
@@ -436,3 +532,4 @@ function useConstants() {
 | [src/api/wcapi.ts](../../src/api/wcapi.ts) | Existing setting helpers |
 | [src/api/axios.ts](../../src/api/axios.ts) | API client configuration |
 | [webClerk3 Settings Reference](../../../webClerk3/readmes/topics/settings/settings_reference.md) | Backend schema docs |
+| [layout-maintenance.md](../layout-maintenance.md) | Layout status detailed docs |
