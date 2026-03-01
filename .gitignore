@@ -29,3 +29,7 @@ db.sqlite3
 
 # AI Assistant vector store (rebuild with: python manage.py index_docs)
 .chroma_db/
+
+# Dataset switching / local dev config
+tools/dev-config.json
+tools/.sync_status.json
