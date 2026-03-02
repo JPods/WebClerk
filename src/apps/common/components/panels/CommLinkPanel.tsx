@@ -280,7 +280,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
     defaultExpanded ?? (isEditing ? true : false),
   );
 
-  console.log("reflinks", reflinks);
+  //console.log("reflinks", reflinks);
 
   // ----- Scalar save state -----
   const [scalarSaving, setScalarSaving] = useState(false);
