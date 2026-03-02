@@ -88,8 +88,24 @@ Line.save()
 ## 2. Quantity Flow Between Transactions
 
 When a transfer service converts one transaction to another, quantity flows
-from the **source line's `placed`** into the **target line**, and the source
+from the **source line's `remaining`** into the **target line**, and the source
 line's `actioned` is incremented.
+
+### End-of-chain semantics (invoices)
+
+Invoice lines sit at the end of the transfer chain — nothing downstream acts
+on them.  They use **actioned-first** quantity rules:
+
+| Rule | Detail |
+|------|--------|
+| User edits `actioned` | The qty the user types IS the invoiced amount |
+| Standalone (no parent) | `placed = actioned` |
+| Transferred | `placed = source.remaining`, `actioned = placed` |
+| `remaining` | Always **0** — nothing downstream from an invoice |
+
+All other transaction types (orders, proposals, purchases) use **placed-first**
+semantics: the user edits `placed`, `actioned` starts at 0, and
+`remaining = placed − actioned`.
 
 Key code paths:
 - Generic converter: `transfer_utils.py:21` — `convert_quantity_from_source()`
@@ -103,25 +119,26 @@ Key code paths:
 Source Line (e.g. OrderLine)          Target Line (e.g. InvoiceLine)
 ┌──────────────────────────┐          ┌──────────────────────────┐
 │ placed:    10             │ ──────▶ │ placed:    10             │
-│ actioned:   0 → 10       │          │ actioned:   0             │
-│ remaining: 10 →  0       │          │ remaining: 10             │
+│ actioned:   0 → 10       │          │ actioned:  10             │
+│ remaining: 10 →  0       │          │ remaining:  0             │
 └──────────────────────────┘          └──────────────────────────┘
 ```
 
 **Rules:**
-1. Target `placed` = source `placed` (or partial amount if partial transfer)
+1. Target `placed` = source `remaining` (the qty being transferred)
 2. Source `actioned` += transferred amount
 3. Source `remaining` = source `placed` − source `actioned`
-4. Target `actioned` starts at 0 (nothing has acted on it yet)
-5. Target `remaining` = target `placed`
+4. Target `actioned` = target `placed` for invoices (end-of-chain);
+   starts at 0 for orders/proposals
+5. Target `remaining` = 0 for invoices; = target `placed` for orders/proposals
 
 ### Full chain example: Proposal → Order → Invoice
 
 ```
 ProposalLine          OrderLine              InvoiceLine
 placed:    10         placed:    10          placed:    10
-actioned:   0→10      actioned:   0→10       actioned:   0
-remaining: 10→ 0      remaining: 10→ 0       remaining: 10
+actioned:   0→10      actioned:   0→10       actioned:  10
+remaining: 10→ 0      remaining: 10→ 0       remaining:  0
 status: transferred   status: transferred    status: planned
 ```
 
@@ -130,13 +147,13 @@ status: transferred   status: transferred    status: planned
 ```
 OrderLine                InvoiceLine #1
 placed:    10            placed:     6
-actioned:   0→ 6         actioned:   0
-remaining: 10→ 4         remaining:  6
+actioned:   0→ 6         actioned:   6
+remaining: 10→ 4         remaining:  0
 
                          (later) InvoiceLine #2
 OrderLine (updated)      placed:     4
-actioned:   6→10         actioned:   0
-remaining:  4→ 0         remaining:  4
+actioned:   6→10         actioned:   4
+remaining:  4→ 0         remaining:  0
 ```
 
 ### Transfer service implementation
@@ -146,13 +163,16 @@ Each transfer service follows this pattern:
 ```python
 # 1. Read source quantity
 src_qty = source_line.quantity
-base = src_qty.get("placed", 0)          # what was committed
+transfer_amount = src_qty.get("remaining", 0)  # what's left to transfer
 
 # 2. Build target quantity
+# For invoices (end-of-chain): actioned = placed, remaining = 0
+# For orders/proposals: actioned = 0, remaining = placed
+is_end_of_chain = target_type == "invoice"
 target_qty = {
-    "placed": base,                       # (or partial amount)
-    "actioned": 0,
-    "remaining": base,
+    "placed": transfer_amount,
+    "actioned": transfer_amount if is_end_of_chain else 0,
+    "remaining": 0 if is_end_of_chain else transfer_amount,
     "is_fixed": src_qty.get("is_fixed", False),
     "precision": src_qty.get("precision", 2),
 }
