@@ -66,7 +66,7 @@ export interface PrintTotals {
 
 // Document metadata
 export interface PrintDocumentMeta {
-  documentType: 'proposal' | 'order' | 'invoice' | 'purchase';
+  documentType: 'proposal' | 'order' | 'invoice' | 'purchase' | 'workorder' | 'receipt' | 'adjustment';
   documentNumber: string;
   documentDate?: string;
   dueDate?: string;
@@ -146,6 +146,9 @@ export const DOCUMENT_TYPE_LABELS: Record<PrintDocumentMeta['documentType'], str
   order: 'Order',
   invoice: 'Invoice',
   purchase: 'Purchase Order',
+  workorder: 'Work Order',
+  receipt: 'Receipt',
+  adjustment: 'Adjustment',
 };
 
 // Print-specific CSS classes (for @media print)

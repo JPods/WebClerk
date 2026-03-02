@@ -97,6 +97,16 @@ export interface OrderPrintData {
   phoneCell?: string;
   email?: string;
 
+  // Shipping contact info
+  shipAttention?: string;
+  shipAddress1?: string;
+  shipAddress2?: string;
+  shipCity?: string;
+  shipState?: string;
+  shipZip?: string;
+  shipCountry?: string;
+  shipPhone?: string;
+
   // Document details
   dateCreated?: string;
   dateOrdered?: string;
@@ -250,16 +260,16 @@ const transformOrderData = (data: OrderPrintData, lines?: OrderLineData[]) => {
   };
 
   const shipTo: PrintParty = {
-    attention: data.attention,
+    attention: data.shipAttention,
     company: data.company,
-    address1: data.address1,
-    address2: data.address2,
-    city: data.city,
-    state: data.state,
-    zip: data.zip,
-    country: data.country,
-    phone: data.phone,
-    phoneCell: data.phoneCell,
+    address1: data.shipAddress1,
+    address2: data.shipAddress2,
+    city: data.shipCity,
+    state: data.shipState,
+    zip: data.shipZip,
+    country: data.shipCountry,
+    phone: data.shipPhone,
+    phoneCell: data.shipPhone,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map(
@@ -319,283 +329,20 @@ const OrderPrintDocument: React.FC<OrderPrintDocumentProps> = ({
     console.warn("OrderPrintDocument: Company data unavailable:", error);
   }
 
-  // Helper for currency formatting
-  const formatCurrency = (value?: number) =>
-    typeof value === "number"
-      ? value.toLocaleString("en-US", {
-          style: "currency",
-          currency: "USD",
-          minimumFractionDigits: 2,
-        })
-      : "";
-
   return (
-    <div
-      className="container-fluid print-document"
-      style={{ fontSize: 12, color: "#222", background: "#fff", padding: 0 }}
-    >
-      {/* Breadcrumb */}
-      <nav aria-label="breadcrumb" className="brdcrm_margin hidden-print">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <span>Home</span>
-          </li>
-          <li className="breadcrumb-item">
-            <span>Customer Details</span>
-          </li>
-          <li className="breadcrumb-item">
-            <span>Invoice Details</span>
-          </li>
-          <li className="breadcrumb-item active" aria-current="page">
-            Invoice Print
-          </li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="row invoice-header py-2 px-1" id="invoiceHeader">
-        <div className="col-4 text_size">
-          <p>660-849-2525</p>
-          <p>omie@advancedchimneytechniques.com</p>
-          <p>www.advancedchimneytechniques.com</p>
-          <p>365 W Row, Jamestown, MO 65046</p>
-        </div>
-        <div className="col-4 text-center">
-          <img
-            src={logoUrl || "/img/logo.png"}
-            className="img-fluid"
-            alt="Logo"
-            style={{ maxHeight: 60 }}
-          />
-        </div>
-        <div className="col-4" style={{ textAlign: "center" }}>
-          <p>Advanced Chimney Techniques, Inc</p>
-          <h2>INVOICE: {meta.documentNumber}</h2>
-        </div>
-      </div>
-
-      {/* Print Button */}
-      <button
-        className="btn btn-primary hidden-print"
-        style={{ margin: "10px 0" }}
-        onClick={() => {
-          document.title = "Invoice Print";
-          window.print();
-        }}
-      >
-        <span className="glyphicon glyphicon-print" aria-hidden="true"></span>{" "}
-        Print
-      </button>
-
-      {/* Bill/Ship/Contact/Customer */}
-      <div className="flex row gap-6 invoice-content pt-2" id="invoiceContent">
-        <div className="row w-100">
-          <div className="col-6">
-            <p className="almost-gray">Bill To:</p>
-            <p className="gray-ish">Attention Accounts Payable</p>
-            <p className="gray-ish">
-              {billTo.attention}, {billTo.company}
-            </p>
-            <p className="gray-ish">
-              {billTo.address1} {billTo.address2}
-            </p>
-            <p className="gray-ish">
-              {billTo.city} {billTo.state} {billTo.zip} {billTo.country}
-            </p>
-          </div>
-          <div className="col-6">
-            <p className="almost-gray">Ship To:</p>
-            <p className="gray-ish">{shipTo.attention}</p>
-            <p>{shipTo.company}</p>
-            <p className="gray-ish">
-              {shipTo.address1} {shipTo.address2}
-            </p>
-            <p className="gray-ish">
-              {shipTo.city} {shipTo.state} {shipTo.zip} {shipTo.country}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="flex row gap-2 invoice-content pt-2" id="invoiceContent">
-        <div className="col-3">
-          <p className="almost-gray">Contact&nbsp;us:</p>
-          <p className="gray-ish">Phone:&nbsp;{company?.phone}</p>
-          <p className="gray-ish">Cell:&nbsp;{company?.phoneCell}</p>
-        </div>
-        <div className="col-3">
-          <p className="almost-gray">Customer:</p>
-          <p className="gray-ish">Phone:&nbsp;{billTo.phone}</p>
-          <p className="gray-ish">Cell:&nbsp;{data.phoneCell}</p>
-        </div>
-      </div>
-
-      {/* Meta Rows */}
-      <div className="row">
-        <div className="col-1 lable_style">CustPO#:</div>
-        <div className="col-2">{meta.customerPO}</div>
-        <div className="col-1 lable_style">Account:</div>
-        <div className="col-2">{meta.customerId}</div>
-        <div className="col-1 lable_style">Order#:</div>
-        <div className="col-2">{data.orderNum}</div>
-        <div className="col-1 lable_style">Type Sale:</div>
-        <div className="col-2">{meta.typeSale}</div>
-      </div>
-      <div className="row">
-        <div className="col-1 lable_style">Invoice&nbsp;Date&nbsp;:</div>
-        <div className="col-2">{meta.documentDate}</div>
-        <div className="col-1 lable_style">Shipped&nbsp;:</div>
-        <div className="col-2">{data.dateShipped}</div>
-        <div className="col-1 lable_style">Ordered&nbsp;By&nbsp;:</div>
-        <div className="col-2">{meta.orderedBy}</div>
-        <div className="col-1 lable_style">Packed&nbsp;By&nbsp;:</div>
-        <div className="col-2">{data.packedBy}</div>
-      </div>
-      <div className="row">
-        <div className="col-1 lable_style">Sales&nbsp;ID :</div>
-        <div className="col-2">{meta.salesId}</div>
-        <div className="col-1 lable_style">Terms :</div>
-        <div className="col-2">{meta.terms}</div>
-        <div className="col-1 lable_style">FOB :</div>
-        <div className="col-2">{meta.fob}</div>
-        <div className="col-1 lable_style"></div>
-        <div className="col-2"></div>
-      </div>
-
-      {/* Line Items Table */}
-      <div className="row">
-        <div
-          className="col-12 pt-1"
-          style={{ borderTop: "1px solid #ccc", marginTop: "2%" }}
-        >
-          <table className="table table-striped" style={{ width: "100%" }}>
-            <thead>
-              <tr>
-                <th>ItemNum</th>
-                <th>Description</th>
-                <th>QtyShip</th>
-                <th>Disc</th>
-                <th>Unit</th>
-                <th>Extended</th>
-              </tr>
-            </thead>
-            <tbody>
-              {printLines.map((line, idx) => (
-                <tr key={line.itemNum || idx}>
-                  <td>{line.itemNum}</td>
-                  <td>{line.description}</td>
-                  <td className="text-right">
-                    {line.qtyShipped ?? line.qtyOrdered}
-                  </td>
-                  <td className="text-right">{line.discount}</td>
-                  <td className="text-right">
-                    {formatCurrency(line.discountedPrice)}
-                  </td>
-                  <td className="text-right">
-                    {formatCurrency(line.extendedPrice)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Comments and Totals */}
-      <div className="row invoice_details table-responsive mx-auto d-flex">
-        <div className="col-6 pt-3">
-          <h4 className="gray-ish">Thank you for your business.</h4>
-          <p className="pt-3 almost-gray">{comments.pvTermState}</p>
-          <h4 className="gray-ish">Comments</h4>
-          <p className="almost-gray">{comments.public}</p>
-        </div>
-        <div className="col-6 pr-4 sub-table">
-          <table className="table table-borderless">
-            <tbody>
-              <tr>
-                <td className="bold-black">Subtotal</td>
-                <td className="text_size2 text-right">
-                  {formatCurrency(totals.salesAmount)}
-                </td>
-              </tr>
-              <tr>
-                <td className="bold-black">Sales Tax</td>
-                <td className="text_size2 text-right">
-                  {formatCurrency(totals.salesTax)}
-                </td>
-              </tr>
-              <tr>
-                <td className="bold-black">Shipping</td>
-                <td className="text_size2 text-right">
-                  {formatCurrency(totals.shipping)}
-                </td>
-              </tr>
-              <tr className="last-row">
-                <td className="bold-black">Total</td>
-                <td className="text_size2 text-right">
-                  {formatCurrency(totals.total)}
-                </td>
-              </tr>
-              <tr>
-                <td className="bold-black">Balance Due</td>
-                <td className="text_size2 text-right">
-                  {formatCurrency(totals.balanceDue)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Contract Detail and Footer */}
-      <div
-        className="col-12 pt-2"
-        style={{ borderTop: "1px solid #ccc", marginTop: "2%" }}
-      >
-        <h4 className="gray-ish">Contract Detail: {meta.contractDetailTag}</h4>
-        <p className="almost-gray">{comments.contractDetail}</p>
-      </div>
-      <div>
-        <p className="text-center almost-gray">
-          <em>
-            Taxes will be calculated in $ regarding transport and other taxable
-            services.
-          </em>
-        </p>
-      </div>
-      <div className="row">
-        <div className="col-md-6 col-6">
-          <div className="box_1">
-            <p>
-              Acceptance of the Proposal: The above prices, specifications, and
-              conditions are satisfactory and are hereby accepted. Advanced
-              Chimney Techniques, Inc. is authorized to do the work as
-              specified. Payment will be made according to your terms.
-            </p>
-          </div>
-        </div>
-        <div className="col-md-6 col-6">
-          <div className="sign">
-            Signature: <span></span>
-          </div>
-          <div className="sign2">
-            Accepted: <span></span> Date: <span></span>
-          </div>
-        </div>
-      </div>
-      <div className="row po_sec">
-        <div className="col-md-4">
-          <p>Invoice# {meta.documentNumber}</p>
-        </div>
-        <div className="col-md-4">
-          <p>Customer# {meta.customerId}</p>
-        </div>
-        <div className="col-md-4">
-          <div className="po_style">
-            Your PO#: <span></span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PrintDocumentLayout
+      company={company}
+      meta={meta}
+      billTo={billTo}
+      shipTo={shipTo}
+      lines={printLines}
+      totals={totals}
+      comments={comments}
+      showPrices={showPrices}
+      showSignature={showSignature}
+      paperSize={paperSize}
+      logoUrl={logoUrl}
+    />
   );
 };
 

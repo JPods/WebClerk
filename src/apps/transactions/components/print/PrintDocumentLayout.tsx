@@ -289,7 +289,7 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
       )}
 
       {/* Signature Block */}
-      {showSignature && (meta.documentType === 'proposal' || meta.documentType === 'order') && (
+      {showSignature && (meta.documentType === 'proposal' || meta.documentType === 'order' || meta.documentType === 'workorder' || meta.documentType === 'adjustment') && (
         <div className="flex gap-6 mt-6 pt-4 border-t border-gray-300">
           <div className="flex-1 text-xs">
             <div className="border border-gray-300 p-3 bg-gray-50">

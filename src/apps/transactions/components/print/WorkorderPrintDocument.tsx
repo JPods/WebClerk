@@ -1,26 +1,27 @@
 /**
- * ProposalPrintDocument - Print-ready proposal/quote document
+ * WorkorderPrintDocument - Print-ready work order document
  * US Letter (8.5" x 11") format
  */
 import React from 'react';
 import PrintDocumentLayout from './PrintDocumentLayout';
 import { useDefaultCompany } from '@/hooks/useDefaultCompany';
-import type { 
-  PrintDocumentMeta, 
-  PrintParty, 
-  PrintLineItem, 
+import type {
+  PrintDocumentMeta,
+  PrintParty,
+  PrintLineItem,
   PrintTotals,
   PrintComments,
   PaperSize,
 } from './printTypes';
 
-// Props interface for raw proposal data (from API)
-export interface ProposalPrintData {
+// Props interface for raw work order data (from API)
+export interface WorkorderPrintData {
   id: number;
   ida?: string;
-  proposalNum?: string;
+  workorderNum?: string;
+  orderNum?: string;
   status?: string;
-  
+
   // Customer/Party info
   customerID?: number | string;
   firstName?: string;
@@ -49,73 +50,69 @@ export interface ProposalPrintData {
   
   // Document details
   dateCreated?: string;
+  dateStarted?: string;
+  dateCompleted?: string;
   dateNeeded?: string;
-  inquiryCode?: string;
   custPONum?: string;
-  salesNameId?: string;
+  technicianId?: string;
+  priority?: string;
   terms?: string;
   fob?: string;
-  typeSale?: string;
-  taxJuris?: string;
-  requestedBy?: string;
-  actionBy?: string;
-  contractDetailTag?: string;
-  
+  workDescription?: string;
+
   // Financials
   amount?: number;
+  laborCost?: number;
+  materialCost?: number;
   salesTax?: number;
-  shipTotal?: number;
   total?: number;
-  
+
   // Comments
   comment?: string;
   contractDetail?: string;
   pvTermState?: string;
-  
+
   // Lines
-  lines?: ProposalLineData[];
+  lines?: WorkorderLineData[];
 }
 
-export interface ProposalLineData {
+export interface WorkorderLineData {
   id?: number;
   lineNum?: number;
   itemNum?: string;
   description?: string;
   qty?: number;
   unitPrice?: number;
-  msrp?: number;
-  discount?: number;
-  discountedPrice?: number;
+  laborHours?: number;
+  laborRate?: number;
   extendedPrice?: number;
 }
 
-export interface ProposalPrintDocumentProps {
-  data: ProposalPrintData;
-  lines?: ProposalLineData[];
+export interface WorkorderPrintDocumentProps {
+  data: WorkorderPrintData;
+  lines?: WorkorderLineData[];
   showPrices?: boolean;
   showSignature?: boolean;
   paperSize?: PaperSize;
   logoUrl?: string;
 }
 
-// Transform raw proposal data to print format
-const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData[]) => {
+// Transform raw work order data to print format
+const transformWorkorderData = (data: WorkorderPrintData, lines?: WorkorderLineData[]) => {
   const meta: PrintDocumentMeta = {
-    documentType: 'proposal',
-    documentNumber: data.proposalNum || data.ida || String(data.id),
+    documentType: 'workorder',
+    documentNumber: data.workorderNum || data.ida || String(data.id),
     documentDate: data.dateCreated,
     status: data.status,
-    customerPO: data.custPONum || data.inquiryCode,
+    customerPO: data.custPONum,
     customerId: data.customerID,
-    salesId: data.salesNameId,
+    salesId: data.technicianId,
     terms: data.terms,
     fob: data.fob,
-    typeSale: data.typeSale,
-    taxJuris: data.taxJuris,
-    dateNeeded: data.dateNeeded,
-    requestedBy: data.requestedBy,
-    actionBy: data.actionBy,
-    contractDetailTag: data.contractDetailTag,
+    priority: data.priority,
+    dateStarted: data.dateStarted,
+    dateCompleted: data.dateCompleted,
+    workDescription: data.workDescription,
   };
 
   const billTo: PrintParty = {
@@ -133,7 +130,7 @@ const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData
     email: data.email,
   };
 
-  // Ship-to can be same as bill-to or different
+  // Ship-to can be same as bill-to for work orders
   const shipTo: PrintParty = {
     attention: data.shipAttention,
     company: data.company,
@@ -151,18 +148,15 @@ const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData
     itemNum: line.itemNum,
     description: line.description,
     qty: line.qty,
-    qtyOrdered: line.qty,
     unitPrice: line.unitPrice,
-    msrp: line.msrp || line.unitPrice,
-    discount: line.discount,
-    discountedPrice: line.discountedPrice || line.unitPrice,
     extendedPrice: line.extendedPrice,
   }));
 
   const totals: PrintTotals = {
     salesAmount: data.amount,
+    laborCost: data.laborCost,
+    materialCost: data.materialCost,
     salesTax: data.salesTax,
-    shipping: data.shipTotal,
     total: data.total,
   };
 
@@ -175,7 +169,7 @@ const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData
   return { meta, billTo, shipTo, printLines, totals, comments };
 };
 
-const ProposalPrintDocument: React.FC<ProposalPrintDocumentProps> = ({
+const WorkorderPrintDocument: React.FC<WorkorderPrintDocumentProps> = ({
   data,
   lines,
   showPrices = true,
@@ -184,8 +178,8 @@ const ProposalPrintDocument: React.FC<ProposalPrintDocumentProps> = ({
   logoUrl,
 }) => {
   const { company, loading, error } = useDefaultCompany();
-  
-  const { meta, billTo, shipTo, printLines, totals, comments } = transformProposalData(data, lines);
+
+  const { meta, billTo, shipTo, printLines, totals, comments } = transformWorkorderData(data, lines);
 
   if (loading) {
     return (
@@ -196,7 +190,7 @@ const ProposalPrintDocument: React.FC<ProposalPrintDocumentProps> = ({
   }
 
   if (error && !company) {
-    console.warn('ProposalPrintDocument: Company data unavailable:', error);
+    console.warn('WorkorderPrintDocument: Company data unavailable:', error);
   }
 
   return (
@@ -216,4 +210,4 @@ const ProposalPrintDocument: React.FC<ProposalPrintDocumentProps> = ({
   );
 };
 
-export default ProposalPrintDocument;
+export default WorkorderPrintDocument;

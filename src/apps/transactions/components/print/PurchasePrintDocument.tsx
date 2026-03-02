@@ -38,6 +38,16 @@ export interface PurchasePrintData {
   fax?: string;
   email?: string;
   
+  // Shipping contact info
+  shipAttention?: string;
+  shipAddress1?: string;
+  shipAddress2?: string;
+  shipCity?: string;
+  shipState?: string;
+  shipZip?: string;
+  shipCountry?: string;
+  shipPhone?: string;
+  
   // Document details
   dateCreated?: string;
   dateOrdered?: string;
@@ -130,13 +140,14 @@ const transformPurchaseData = (data: PurchasePrintData, lines?: PurchaseLineData
 
   // Ship-to is our receiving location
   const shipTo: PrintParty = {
-    name: data.shipToName,
-    address1: data.shipToAddress1,
-    address2: data.shipToAddress2,
-    city: data.shipToCity,
-    state: data.shipToState,
-    zip: data.shipToZip,
-    country: data.shipToCountry,
+    attention: data.shipAttention,
+    address1: data.shipAddress1,
+    address2: data.shipAddress2,
+    city: data.shipCity,
+    state: data.shipState,
+    zip: data.shipZip,
+    country: data.shipCountry,
+    phone: data.shipPhone,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
