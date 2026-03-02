@@ -1,10 +1,10 @@
 /**
  * RefsPanel - Display and edit entity .refs object (relationships & lineage)
- * 
+ *
  * Role-based access:
  * - View: Admin only (default)
  * - Edit: Admin only (default)
- * 
+ *
  * @example
  * <RefsPanel
  *   entityType="contact"
@@ -13,20 +13,32 @@
  *   onChange={(refs) => setContact({ ...contact, refs })}
  * />
  */
-import React, { useState } from 'react';
-import { 
-  FaLink, FaChevronDown, FaChevronUp, FaTrash, 
-  FaUser, FaBuilding, FaFileAlt, FaEnvelope, FaPhone, FaMapMarkerAlt,
-  FaShoppingCart, FaFileInvoice, FaBox, FaGlobe, FaProjectDiagram
-} from 'react-icons/fa';
-import { usePermissions } from './usePermissions';
-import type { BasePanelProps, EntityRefs, RefLink } from './types';
+import React, { useState } from "react";
+import {
+  FaLink,
+  FaChevronDown,
+  FaChevronUp,
+  FaTrash,
+  FaUser,
+  FaBuilding,
+  FaFileAlt,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaShoppingCart,
+  FaFileInvoice,
+  FaBox,
+  FaGlobe,
+  FaProjectDiagram,
+} from "react-icons/fa";
+import { usePermissions } from "./usePermissions";
+import type { BasePanelProps, EntityRefs, RefLink } from "./types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface RefsPanelProps extends Omit<BasePanelProps<EntityRefs>, 'data'> {
+interface RefsPanelProps extends Omit<BasePanelProps<EntityRefs>, "data"> {
   /** Refs object */
   data?: EntityRefs;
   /** Whether to show link navigation */
@@ -73,13 +85,13 @@ interface LinkListProps {
   onDelete?: (type: string, id: number) => void;
 }
 
-const LinkList: React.FC<LinkListProps> = ({ 
-  type, 
-  links, 
-  canEdit, 
+const LinkList: React.FC<LinkListProps> = ({
+  type,
+  links,
+  canEdit,
   navigable,
-  onNavigate, 
-  onDelete 
+  onNavigate,
+  onDelete,
 }) => {
   const [isExpanded, setIsExpanded] = useState(links.length <= 5);
   const icon = LINK_ICONS[type] || <FaLink size={12} />;
@@ -89,13 +101,13 @@ const LinkList: React.FC<LinkListProps> = ({
   return (
     <div className="border-b border-slate-100 dark:border-slate-700 last:border-b-0 py-2">
       {/* Header */}
-      <div 
+      <div
         className="flex items-center gap-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <span className="text-slate-400">{icon}</span>
         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 capitalize">
-          {type.replace(/_/g, ' ')}
+          {type.replace(/_/g, " ")}
         </span>
         <span className="text-xs text-slate-400">({links.length})</span>
         {isExpanded ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
@@ -105,22 +117,34 @@ const LinkList: React.FC<LinkListProps> = ({
       {isExpanded && (
         <div className="mt-2 ml-6 space-y-1">
           {links.map((link, idx) => (
-            <div 
-              key={link.id || idx} 
-              className="flex items-center gap-2 group"
-            >
-              <span className="text-xs text-slate-500 font-mono">#{link.id}</span>
+            <div key={link.id || idx} className="flex items-center gap-2 group">
+              <span className="text-xs text-slate-500 font-mono">
+                #{link.id}
+              </span>
               {link.ida && (
                 <span className="text-xs text-slate-400">[{link.ida}]</span>
               )}
-              <span 
+              <span
                 className={`text-xs text-slate-700 dark:text-slate-300 flex-1 truncate ${
-                  navigable && onNavigate ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
+                  navigable && onNavigate
+                    ? "cursor-pointer hover:text-blue-600 hover:underline"
+                    : ""
                 }`}
-                onClick={() => navigable && onNavigate && link.id && onNavigate(type, link.id)}
-                title={link.display || link.name || ''}
+                onClick={() =>
+                  navigable &&
+                  onNavigate &&
+                  link.id &&
+                  onNavigate(type, link.id)
+                }
+                title={link.display || link.name || ""}
               >
-                {link.display || link.name || `${type} #${link.id}`}
+                {link.email ||
+                  link.number ||
+                  link.full ||
+                  link.domain ||
+                  link.display ||
+                  link.name ||
+                  `${type} #${link.id}`}
               </span>
               {link.purpose && (
                 <span className="text-xs px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded">
@@ -149,12 +173,16 @@ const LinkList: React.FC<LinkListProps> = ({
 // ---------------------------------------------------------------------------
 
 interface LineageProps {
-  lineage: EntityRefs['lineage'];
+  lineage: EntityRefs["lineage"];
   navigable: boolean;
   onNavigate?: (type: string, id: number) => void;
 }
 
-const Lineage: React.FC<LineageProps> = ({ lineage, navigable, onNavigate }) => {
+const Lineage: React.FC<LineageProps> = ({
+  lineage,
+  navigable,
+  onNavigate,
+}) => {
   if (!lineage) return null;
 
   const { parent_id, parent_model, source_id, source_type } = lineage;
@@ -166,17 +194,23 @@ const Lineage: React.FC<LineageProps> = ({ lineage, navigable, onNavigate }) => 
     <div className="border-b border-slate-100 dark:border-slate-700 py-2">
       <div className="flex items-center gap-2 mb-2">
         <FaProjectDiagram className="text-slate-400" size={12} />
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Lineage</span>
+        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+          Lineage
+        </span>
       </div>
       <div className="ml-6 space-y-1">
         {parent_id && parent_model && (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500">Parent:</span>
-            <span 
+            <span
               className={`text-slate-700 dark:text-slate-300 ${
-                navigable && onNavigate ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
+                navigable && onNavigate
+                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  : ""
               }`}
-              onClick={() => navigable && onNavigate && onNavigate(parent_model, parent_id)}
+              onClick={() =>
+                navigable && onNavigate && onNavigate(parent_model, parent_id)
+              }
             >
               {parent_model} #{parent_id}
             </span>
@@ -185,11 +219,15 @@ const Lineage: React.FC<LineageProps> = ({ lineage, navigable, onNavigate }) => 
         {source_id && source_type && (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500">Source:</span>
-            <span 
+            <span
               className={`text-slate-700 dark:text-slate-300 ${
-                navigable && onNavigate ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
+                navigable && onNavigate
+                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  : ""
               }`}
-              onClick={() => navigable && onNavigate && onNavigate(source_type, source_id)}
+              onClick={() =>
+                navigable && onNavigate && onNavigate(source_type, source_id)
+              }
             >
               {source_type} #{source_id}
             </span>
@@ -212,9 +250,9 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   readOnly = false,
   viewRoles,
   editRoles,
-  className = '',
+  className = "",
   compact = false,
-  title = 'References',
+  title = "References",
   defaultCollapsed = true,
   navigable = true,
   onNavigate,
@@ -222,8 +260,12 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   // Check permissions (admin only by default)
-  const { canView, canEdit: permCanEdit, isAdmin } = usePermissions({
-    panelType: 'refs',
+  const {
+    canView,
+    canEdit: permCanEdit,
+    isAdmin,
+  } = usePermissions({
+    panelType: "refs",
     viewRoles,
     editRoles,
     forceReadOnly: readOnly,
@@ -252,7 +294,7 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
 
   // Count total links
   const links = data?.links || {};
-  const linkTypes = Object.keys(links).filter(key => {
+  const linkTypes = Object.keys(links).filter((key) => {
     const arr = links[key];
     return Array.isArray(arr) && arr.length > 0;
   });
@@ -262,7 +304,9 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   }, 0);
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-cyan-200 dark:border-cyan-800 ${className}`}>
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-lg border border-cyan-200 dark:border-cyan-800 ${className}`}
+    >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-200 dark:border-cyan-800 cursor-pointer rounded-t-lg"
@@ -270,12 +314,14 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
       >
         <div className="flex items-center gap-2">
           <FaLink className="text-cyan-500" size={14} />
-          <h3 className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">{title}</h3>
+          <h3 className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">
+            {title}
+          </h3>
           <span className="px-1.5 py-0.5 text-xs bg-cyan-200 dark:bg-cyan-800 text-cyan-700 dark:text-cyan-300 rounded">
             Admin
           </span>
           <span className="text-xs text-cyan-600 dark:text-cyan-400">
-            {totalLinks} {totalLinks === 1 ? 'link' : 'links'}
+            {totalLinks} {totalLinks === 1 ? "link" : "links"}
           </span>
         </div>
         {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
@@ -283,10 +329,10 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
 
       {/* Content */}
       {!isCollapsed && (
-        <div className={`${compact ? 'p-2' : 'p-4'}`}>
+        <div className={`${compact ? "p-2" : "p-4"}`}>
           {/* Lineage */}
-          <Lineage 
-            lineage={data?.lineage} 
+          <Lineage
+            lineage={data?.lineage}
             navigable={navigable}
             onNavigate={onNavigate}
           />

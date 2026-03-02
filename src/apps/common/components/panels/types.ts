@@ -170,6 +170,10 @@ export interface RefLink {
   ida?: string;
   display?: string;
   name?: string;
+  email?: string;
+  full?: string;
+  number?: string;
+  domain?: string;
   type?: string;
   purpose?: string;
   [key: string]: unknown;
