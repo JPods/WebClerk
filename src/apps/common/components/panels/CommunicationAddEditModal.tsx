@@ -335,5 +335,6 @@ export const CommunicationAddEditModal: React.FC<
         </form>
       </div>
     </div>,
+    document.body,
   );
 };

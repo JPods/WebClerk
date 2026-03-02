@@ -262,7 +262,7 @@ const AddressItem: React.FC<AddressItemProps> = ({
   const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(
     fullAddress,
   )}`;
-
+  const address_type = address.address_type;
   return (
     <div className="flex items-start gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
       <FaMapMarkerAlt size={12} className="text-slate-400 shrink-0 mt-0.5" />
@@ -288,6 +288,11 @@ const AddressItem: React.FC<AddressItemProps> = ({
         {address.country && address.country !== "US" && (
           <p className="text-xs text-slate-400">{address.country}</p>
         )}
+        {address_type && String(address_type).trim() ? (
+          <p className="text-xs text-slate-400">
+            {String(address_type).trim()}
+          </p>
+        ) : null}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <a
@@ -639,6 +644,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
@@ -664,6 +670,21 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
                       setFormData({ ...formData, country: e.target.value })
                     }
                     placeholder="US"
+                    className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                    address_type
+                  </label>
+                  <input
+                    type="text"
+                    value={(formData.address_type as string) || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address_type: e.target.value })
+                    }
                     className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
                   />
                 </div>
@@ -1101,6 +1122,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
           payload.country = String(
             (newItem as AddressLink).country || "",
           ).trim();
+          payload.address_type = String(
+            (newItem as AddressLink).address_type || "",
+          ).trim();
         } else if (type === "domain") {
           payload.path = String(newItem.domain || "")
             .trim()
@@ -1144,6 +1168,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
           payload.zip = String((newItem as AddressLink).zip || "").trim();
           payload.country = String(
             (newItem as AddressLink).country || "",
+          ).trim();
+          payload.address_type = String(
+            (newItem as AddressLink).address_type || "",
           ).trim();
         } else if (type === "domain") {
           payload.path = String(newItem.domain || "")
@@ -1236,6 +1263,10 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         const state = String((newItem as AddressLink).state || "").trim();
         const zip = String((newItem as AddressLink).zip || "").trim();
         const country = String((newItem as AddressLink).country || "").trim();
+        const address_type = String(
+          (newItem as AddressLink).address_type || "",
+        ).trim();
+
         const fullAddress = [
           addr1,
           [city, state, zip].filter(Boolean).join(", "),
@@ -1254,6 +1285,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
           country,
           full: fullAddress,
           name: String((newItem as any).name || "").trim(),
+          address_type: address_type,
         };
         if (index !== undefined) {
           updatedArray[index] = newAddress;

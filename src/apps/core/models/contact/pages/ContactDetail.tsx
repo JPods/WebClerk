@@ -375,19 +375,21 @@ function mapModalToCommModelPayload(
         : (formData as any).status || "active",
     };
   }
-
-  // address
-  const address1 = String((formData as any).address1 || "").trim();
-  return {
-    ...(formData.id ? { id: formData.id } : {}),
-    contact_id: contactId,
-    address1,
-    address2: (formData as any).address2 || "",
-    city: (formData as any).city || "",
-    state: (formData as any).state || "",
-    zip: (formData as any).zip || "",
-    country: (formData as any).country || "",
-  };
+  if (type === "address") {
+    // address
+    const address1 = String((formData as any).address1 || "").trim();
+    return {
+      ...(formData.id ? { id: formData.id } : {}),
+      contact_id: contactId,
+      address1,
+      address2: (formData as any).address2 || "",
+      city: (formData as any).city || "",
+      state: (formData as any).state || "",
+      zip: (formData as any).zip || "",
+      country: (formData as any).country || "",
+      address_type: (formData as any).address_type || "",
+    };
+  }
 }
 
 /** Maps parent org model name → the foreign-key field on Contact */
@@ -694,7 +696,7 @@ export default function ContactDetail({
 
   const [communications, setCommunications] = useState<CommunicationsData>({
     emails: getCommsArray(
-      data?.communications?.emails,
+      data?.communications?.emails /* we pull optionally in communications */,
       data?.refs?.links?.email,
     ),
     phones: getCommsArray(
@@ -1285,6 +1287,7 @@ export default function ContactDetail({
             zip: record?.zip || (payload as any)?.zip || "",
             country: record?.country || (payload as any)?.country || "",
             full: record?.full || "",
+            address_type: record?.address_type || "",
           };
         } else if (type === "domain") {
           refsLinkItem = {
@@ -2647,41 +2650,41 @@ export default function ContactDetail({
                   onItemsChanged={async () => {
                     await refreshCommType(cType);
                   }}
-                  onRemoveItem={async (id) => {
-                    if (!activeContactId) return;
-                    // Remove from refs.links
-                    const linkFieldName = `${cType}s`;
-                    const updatedLinks = commItems.filter(
-                      (item: any) => item.id !== id,
-                    );
+                  // onRemoveItem={async (id) => {
+                  //   if (!activeContactId) return;
+                  //   // Remove from refs.links
+                  //   const linkFieldName = `${cType}s`;
+                  //   const updatedLinks = commItems.filter(
+                  //     (item: any) => item.id !== id,
+                  //   );
 
-                    const currentContactData = await getRecord(
-                      "contact",
-                      activeContactId,
-                    );
-                    const currentContact =
-                      (currentContactData as any)?.record ?? currentContactData;
-                    const existingRefs = currentContact?.refs || {};
+                  //   const currentContactData = await getRecord(
+                  //     "contact",
+                  //     activeContactId,
+                  //   );
+                  //   const currentContact =
+                  //     (currentContactData as any)?.record ?? currentContactData;
+                  //   const existingRefs = currentContact?.refs || {};
 
-                    await saveRecord("contact", {
-                      id: activeContactId,
-                      refs: {
-                        ...existingRefs,
-                        links: {
-                          ...(existingRefs?.links || {}),
-                          [cType]: updatedLinks,
-                        },
-                      },
-                    });
+                  //   await saveRecord("contact", {
+                  //     id: activeContactId,
+                  //     refs: {
+                  //       ...existingRefs,
+                  //       links: {
+                  //         ...(existingRefs?.links || {}),
+                  //         [cType]: updatedLinks,
+                  //       },
+                  //     },
+                  //   });
 
-                    await refreshCommType(cType);
-                    dispatch(
-                      showToast({
-                        message: `${cType} removed`,
-                        type: "success",
-                      }),
-                    );
-                  }}
+                  //   await refreshCommType(cType);
+                  //   dispatch(
+                  //     showToast({
+                  //       message: `${cType} removed`,
+                  //       type: "success",
+                  //     }),
+                  //   );
+                  // }}
                   defaultExpanded={isEditing}
                 />
               );
