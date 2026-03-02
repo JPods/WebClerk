@@ -7,8 +7,7 @@ import { normalizeRefsLinksContact } from "./ContactPanel";
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
-import { OrderPrintDocument } from "./print";
-import { InvoicePrintDocument } from "./print";
+import { OrderPrintDocument, InvoicePrintDocument, ProposalPrintDocument, PurchasePrintDocument, WorkorderPrintDocument, ReceiptPrintDocument, AdjustmentPrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -18,6 +17,7 @@ import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaArrowLeft,
   FaEdit,
+  FaPrint,
   FaAddressCard,
   FaComments,
   FaDollarSign,
@@ -1102,7 +1102,529 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           return <InvoicePrintDocument data={invoiceData} lines={invoiceData.lines} />;
           
         case 'order':
-          return <OrderPrintDocument data={data as any} />;
+          // Transform Transaction to OrderPrintData with contact extraction
+          const orderData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            orderNum: (data as any).order_no || data.ida,
+            status: data.status,
+            
+            // Customer info from refs - handle both array and object formats
+            customerID: data.customer_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: Array.isArray(data.refs?.links?.customer) 
+              ? data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name
+              : (data.refs?.links?.customer as any)?.company || (data.refs?.links?.customer as any)?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: Array.isArray(data.refs?.links?.customer)
+              ? data.refs?.links?.customer?.[0]?.address_full
+              : (data.refs?.links?.customer as any)?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || (Array.isArray(data.refs?.links?.customer) 
+              ? data.refs?.links?.customer?.[0]?.phone
+              : (data.refs?.links?.customer as any)?.phone),
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || (Array.isArray(data.refs?.links?.customer)
+              ? data.refs?.links?.customer?.[0]?.email
+              : (data.refs?.links?.customer as any)?.email),
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: (() => {
+              try {
+                return data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            dateOrdered: (() => {
+              try {
+                return (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            dateShipped: (() => {
+              try {
+                return (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            dateNeeded: (() => {
+              try {
+                return (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description || '',
+              qtyOrdered: line.quantity?.placed || 0,
+              qtyShipped: line.quantity?.actioned || 0,
+              unitPrice: line.price?.unit || 0,
+              msrp: line.price?.unit || 0,
+              discount: line.price?.discount_amount || 0,
+              discountedPrice: line.price?.unit || 0,
+              extendedPrice: line.price?.extended || 0,
+            })),
+          };
+          
+          console.log("Order data for print:", { orderData, lines: orderData.lines });
+          return <OrderPrintDocument data={orderData} lines={orderData.lines} />;
+          
+        case 'proposal':
+          // Transform Transaction to ProposalPrintData with contact extraction
+          const proposalData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            proposalNum: (data as any).proposal_no || (data as any).ida || data.ida,
+            status: data.status,
+            
+            // Customer info from refs
+            customerID: data.customer_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qtyOrdered: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Proposal data for print:", { proposalData, lines: proposalData.lines });
+          return <ProposalPrintDocument data={proposalData} lines={proposalData.lines} />;
+          
+        case 'purchase':
+          // Transform Transaction to PurchasePrintData with contact extraction
+          const purchaseData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            purchaseNum: (data as any).purchase_no || (data as any).ida || data.ida,
+            status: data.status,
+            
+            // Vendor info from refs
+            vendorID: data.vendor_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qtyOrdered: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Purchase data for print:", { purchaseData, lines: purchaseData.lines });
+          return <PurchasePrintDocument data={purchaseData} lines={purchaseData.lines} />;
+          
+        case 'workorder':
+          // Transform Transaction to WorkorderPrintData with contact extraction
+          const workorderData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            workorderNum: (data as any).workorder_no || (data as any).ida || data.ida,
+            status: data.status,
+            
+            // Customer info from refs
+            customerID: data.customer_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qtyOrdered: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Workorder data for print:", { workorderData, lines: workorderData.lines });
+          return <WorkorderPrintDocument data={workorderData} lines={workorderData.lines} />;
+          
+        case 'receipt':
+          // Transform Transaction to ReceiptPrintData with contact extraction
+          const receiptData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            receiptNum: (data as any).receipt_no || (data as any).ida || data.ida,
+            status: data.status,
+            
+            // Vendor info from refs
+            vendorID: data.vendor_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qtyOrdered: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Receipt data for print:", { receiptData, lines: receiptData.lines });
+          return <ReceiptPrintDocument data={receiptData} lines={receiptData.lines} />;
+          
+        case 'adjustment':
+          // Transform Transaction to AdjustmentPrintData with contact extraction
+          const adjustmentData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            adjustmentNum: (data as any).adjustment_no || (data as any).ida || data.ida,
+            status: data.status,
+            
+            // Customer/Vendor info from refs
+            customerID: data.customer_id,
+            vendorID: data.vendor_id,
+            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
+            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
+            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
+            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
+            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
+            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
+            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
+            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
+            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            email: data.email || data.refs?.links?.customer?.[0]?.email,
+            
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
+            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
+            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
+            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
+            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
+            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
+            
+            // Document details
+            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
+            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
+            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
+            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            custPONum: (data as any).po_number,
+            salesNameId: (data as any).sales_name_id,
+            terms: (data as any).terms || data.terms,
+            fob: (data as any).fob,
+            shipVia: (data as any).ship_via,
+            typeSale: data.price_level,
+            taxJuris: (data as any).tax_jurisdiction,
+            orderedBy: (data as any).ordered_by,
+            actionBy: (data as any).action_by,
+            contractDetailTag: (data as any).contract_detail_tag,
+            
+            // Financials
+            amount: data.totals?.subtotal,
+            salesTax: data.totals?.tax,
+            shipTotal: data.totals?.shipping,
+            total: data.totals?.total,
+            balanceDueEstimated: data.totals?.balance,
+            
+            // Comments
+            comment: data.comments?.public,
+            contractDetail: (data as any).contract_detail || data.conditions_description,
+            pvTermState: (data as any).pv_term_state,
+            shipInstruct: (data as any).ship_instruct,
+            
+            // Lines
+            lines: (data.lines || []).map((line: any, idx: number) => ({
+              id: line.id,
+              lineNum: line.line_number || idx + 1,
+              itemNum: line.item?.ida_item,
+              description: line.item?.description,
+              qtyOrdered: line.quantity?.placed,
+              qtyShipped: line.quantity?.actioned,
+              unitPrice: line.price?.unit,
+              msrp: line.price?.unit,
+              discount: line.price?.discount_amount,
+              discountedPrice: line.price?.unit,
+              extendedPrice: line.price?.extended,
+            })),
+          };
+          
+          console.log("Adjustment data for print:", { adjustmentData, lines: adjustmentData.lines });
+          return <AdjustmentPrintDocument data={adjustmentData} lines={adjustmentData.lines} />;
           
         default:
           // Fallback to order print for other types
@@ -1562,13 +2084,25 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 <FaArrowLeft />
               </button>
             </div>
-            <button
-              onClick={handleEdit}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <FaEdit size={14} />
-              Edit
-            </button>
+            <div className="flex items-center gap-2">
+              {data?.id && (
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-colors flex items-center gap-2"
+                  title="Print Preview"
+                >
+                  <FaPrint size={14} />
+                  Print
+                </button>
+              )}
+              <button
+                onClick={handleEdit}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <FaEdit size={14} />
+                Edit
+              </button>
+            </div>
           </>
         )}
 
