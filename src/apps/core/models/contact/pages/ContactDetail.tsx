@@ -734,10 +734,12 @@ export default function ContactDetail({
         ),
       };
 
-      const same = JSON.stringify(communications) === JSON.stringify(next);
-      if (!same) setCommunications(next);
+      setCommunications((prev) => {
+        const same = JSON.stringify(prev) === JSON.stringify(next);
+        return same ? prev : next;
+      });
     }
-  }, [data?.communications, data?.refs?.links, communications]);
+  }, [data?.communications, data?.refs?.links]);
 
   // setValue is initialized by useForm later in this component.
   // We store it in a ref so earlier callbacks (defined before useForm) don't hit TDZ.
@@ -2764,13 +2766,6 @@ export default function ContactDetail({
                 type: "select",
                 options: ROLE_OPTIONS,
                 disabled: isFieldDisabled("role"),
-              },
-              {
-                fieldName: "comment",
-                label: "Comment",
-                value: watchedValues?.comment ?? data?.comment,
-                placeholder: "Comment",
-                disabled: isFieldDisabled("comment"),
               },
             ]}
             isEditing={isEditing}

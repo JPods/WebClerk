@@ -799,6 +799,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
                   New {COMM_LABELS[type]} Record
                 </span>
               </div>
+              {/* This component for Primary contact record */}
               <CommRecordEditor
                 type={type}
                 values={editingValues}
@@ -1152,17 +1153,4 @@ function buildCreatePayload(
     full: source?.full || "",
     address_type: source?.address_type || source?.name || "",
   };
-}
-
-function buildBlankPayload(
-  type: CommType,
-  contactId: number,
-): Record<string, any> {
-  const base = { contact_id: contactId };
-  if (type === "email") return { ...base, email: "", name: "" };
-  if (type === "phone") return { ...base, number: "", name: "" };
-  if (type === "domain")
-    return { ...base, path: "", type: "", status: "active" };
-  // address
-  return { ...base, address1: "", city: "", state: "", zip: "", country: "" };
 }
