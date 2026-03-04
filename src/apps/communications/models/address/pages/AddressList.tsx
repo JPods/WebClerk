@@ -245,12 +245,24 @@ export default function AddressList() {
         width: "6%",
       },
       {
+        name: "contact",
+        selector: (row) => {
+          row?.refs?.links?.contact?.[0]?.contact?.display_name;
+        },
+        cell: (row) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name
+            ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
+            : "--",
+        sortable: true,
+        width: "15%",
+      },
+      {
         name: "address1",
         selector: (row: dynamicData) => row.address1 || "--",
         cell: (row: dynamicData) =>
           row.address1 ? row.address1.toString() : "--",
         sortable: true,
-        width: "30%",
+        width: "20%",
       },
       {
         name: "city",

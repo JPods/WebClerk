@@ -233,11 +233,23 @@ export default function PhoneList() {
       },
       { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
       {
+        name: "contact",
+        selector: (row) => {
+          row?.refs?.links?.contact?.[0]?.contact?.display_name;
+        },
+        cell: (row) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name
+            ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
+            : "--",
+        sortable: true,
+        width: "15%",
+      },
+      {
         name: "number",
         selector: (row) => row.number || "--",
         cell: (row) => (row.number ? row.number.toString() : "--"),
         sortable: true,
-        width: "25%",
+        width: "20%",
       },
       {
         name: "name",

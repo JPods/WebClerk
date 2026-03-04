@@ -235,6 +235,18 @@ export default function EmailList() {
         width: "5%",
       },
       {
+        name: "contact",
+        selector: (row) => {
+          row?.refs?.links?.contact?.[0]?.contact?.display_name;
+        },
+        cell: (row) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name
+            ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
+            : "--",
+        sortable: true,
+        width: "15%",
+      },
+      {
         name: "email",
         selector: (row: dynamicData) => row.email || "--",
         cell: (row: dynamicData) => (row.email ? row.email.toString() : "--"),

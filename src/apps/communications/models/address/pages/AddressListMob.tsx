@@ -15,7 +15,10 @@ export default function AddressListMob({
   handleView,
 }: AddressListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-
+  // console.log(
+  //   "address?.refs?.links",
+  //   selectedAddress?.refs?.links?.contact?.[0]?.contact?.display_name,
+  // );
   useEffect(() => {
     if (selectedAddress?.id && dataProp?.length) {
       const idx = dataProp.findIndex(
@@ -48,7 +51,10 @@ export default function AddressListMob({
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
-                  <strong>contact:</strong> {address.contact || "--"}
+                  <strong>contact:</strong>{" "}
+                  {address?.refs?.links?.contact?.[0]?.contact?.display_name
+                    ? `[id: ${address?.refs?.links?.contact?.[0]?.contact?.id}] ${address?.refs?.links?.contact?.[0]?.contact?.display_name}`
+                    : "--"}
                 </p>
                 <p>
                   <strong>city:</strong> {address.city || "--"}
