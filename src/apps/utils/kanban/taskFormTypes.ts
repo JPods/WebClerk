@@ -46,6 +46,7 @@ export type TaskFormState = BaseModelFields &
     progress_value: string;
     status_code: string;
     is_active?: boolean;
+    attachments?: TaskAttachment[];
   };
 
 export type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;
