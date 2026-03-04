@@ -32,7 +32,7 @@ export default function EmailListMob({
         dataProp.map((contact, index) => (
           <AccordionItem
             key={contact.id}
-            title={`email: ${contact.email ?? "--"} (id: ${contact.id})`}
+            title={`[id: ${contact.id}] ${contact.email ?? "--"}`}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
@@ -48,12 +48,22 @@ export default function EmailListMob({
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
+                  <strong>contact:</strong> {contact.contact || "--"}
+                </p>
+                <p>
                   <strong>name:</strong> {contact.name || "--"}
                 </p>
                 <p>
                   <strong>attention:</strong> {contact.attention || "--"}
                 </p>
-
+                <div className="flex items-center gap-2">
+                  <strong>opt_out:</strong>
+                  {contact.opt_out === "opted_out" ? (
+                    <p className="text-green-600">Yes</p>
+                  ) : (
+                    <p className="text-red-500">No</p>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <strong>is_primary:</strong>
                   {contact.is_primary ? (

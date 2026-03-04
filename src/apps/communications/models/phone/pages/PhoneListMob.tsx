@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
@@ -14,7 +13,6 @@ export default function PhoneListMob({
   dataProp,
   selectedPhone,
   handleView,
-  handleEdit,
 }: ContactListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -34,7 +32,7 @@ export default function PhoneListMob({
         dataProp.map((contact, index) => (
           <AccordionItem
             key={contact.id}
-            title={`name: ${contact.name ?? "--"} (id: ${contact.id})`}
+            title={`[id: ${contact.id}] ${contact.name ?? "--"} `}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
@@ -50,12 +48,17 @@ export default function PhoneListMob({
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
+                  <strong>contact:</strong> {contact.contact || "--"}
+                </p>
+                <p>
                   <strong>number:</strong> {contact.number || "--"}
                 </p>
                 <p>
                   <strong>country_code:</strong> {contact.country_code || "--"}
                 </p>
-
+                <p>
+                  <strong>attention:</strong> {contact.attention || "--"}
+                </p>
                 <div className="flex items-center gap-2">
                   <strong>opt_out:</strong>
                   {contact.opt_out ? (

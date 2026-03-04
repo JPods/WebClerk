@@ -22,37 +22,28 @@ import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FaEdit, FaPhone } from "react-icons/fa";
+import { FaEdit, FaPhone, FaTrash } from "react-icons/fa";
 
 // UI primitives
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Checkbox from "@/components/form/input/Checkbox";
-import { DevBadge } from '@/components/common/DevBadge';
+import { DevBadge } from "@/components/common/DevBadge";
 
-// Tab navigation
-import {
-  DetailTabs,
-  useDetailTabs,
-  useColumnCount,
-} from "@/components/common/DetailTabs";
+// Column count
+import { useColumnCount } from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-// Panel Components
-//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
-import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
-import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
-import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
-import { createPhone, updatePhone } from "../services/phoneApi";
+import { createPhone, updatePhone, deletePhone } from "../services/phoneApi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
-//import { ColumnSelector } from "@/components/common/DetailTabs";
+
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
 // ---------------------------------------------------------------------------
@@ -179,10 +170,9 @@ export default function PhoneDetail({
   }, [data, reset, setValue, effectiveMode]);
 
   // ---------------------------------------------------------------------------
-  // Tab Navigation
+  // Column Count
   // ---------------------------------------------------------------------------
-  const { activeTab, setActiveTab } = useDetailTabs("phone", "comments");
-  const { columnCount, setColumnCount } = useColumnCount("phone", 3);
+  const { columnCount } = useColumnCount("phone", 3);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -230,6 +220,39 @@ export default function PhoneDetail({
   }, [onCancelInline, initialMode, navigate, data, setValue]);
 
   // ---------------------------------------------------------------------------
+  // Delete Handler
+  // ---------------------------------------------------------------------------
+
+  const handleDeletePhone = useCallback(async () => {
+    const phoneId = data?.id;
+    if (!phoneId) return;
+    if (!window.confirm(`Delete phone #${phoneId}?`)) return;
+
+    try {
+      await deletePhone(phoneId);
+      dispatch(
+        showToast({
+          message: `Phone #${phoneId} deleted`,
+          type: "success",
+        }),
+      );
+      if (onSaved) onSaved();
+      if (onCancelInline) {
+        onCancelInline();
+      } else {
+        navigate(-1);
+      }
+    } catch (err) {
+      dispatch(
+        showToast({
+          message: `Failed to delete phone: ${err}`,
+          type: "error",
+        }),
+      );
+    }
+  }, [data?.id, dispatch, onSaved, onCancelInline, navigate]);
+
+  // ---------------------------------------------------------------------------
   // Action Buttons (header)
   // ---------------------------------------------------------------------------
 
@@ -249,19 +272,36 @@ export default function PhoneDetail({
           Edit
         </button>,
       );
-      if (onCancelInline) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancelInline}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
+    }
+
+    // Delete (view mode with existing record)
+    if (effectiveMode === "view" && data?.id) {
+      buttons.push(
+        <button
+          key="delete-phone"
+          type="button"
+          onClick={handleDeletePhone}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete phone"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close button (when inline)
+    if (onCancelInline) {
+      buttons.push(
+        <button
+          key="close"
+          type="button"
+          onClick={onCancelInline}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Close"
+        >
+          Close
+        </button>,
+      );
     }
 
     return buttons;
@@ -276,54 +316,6 @@ export default function PhoneDetail({
     : "New Phone";
 
   const optOut = watch("opt_out") ?? data?.opt_out;
-  // ---------------------------------------------------------------------------
-  // Render Tab Content
-  // ---------------------------------------------------------------------------
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "comments":
-        return (
-          <CommentsPanel
-            entityType="phone"
-            entityId={data?.id}
-            comments={data?.comments}
-            isEditing={isEditing}
-            currentUser="Current User"
-          />
-        );
-
-      case "actions":
-        return (
-          <ActionsPanel
-            entityType="phone"
-            entityId={data?.id}
-            data={data?.actions?.items}
-            isEditing={isEditing}
-          />
-        );
-
-      case "documents":
-        return (
-          <DocumentsPanel
-            parent_model="phone"
-            parentId={data?.id}
-            data={data?.refs?.links?.document}
-            isEditing={isEditing}
-          />
-        );
-
-      case "raw":
-        return (
-          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   // ---------------------------------------------------------------------------
   // Render
@@ -414,7 +406,7 @@ export default function PhoneDetail({
               } gap-x-6 gap-y-0`}
             >
               <HorizontalField
-                label="Number"
+                label="number"
                 htmlFor="number"
                 required
                 error={errors.number?.message}
@@ -429,7 +421,7 @@ export default function PhoneDetail({
               </HorizontalField>
 
               <HorizontalField
-                label="Country Code"
+                label="country_code"
                 htmlFor="country_code"
                 error={errors.country_code?.message}
               >
@@ -443,7 +435,7 @@ export default function PhoneDetail({
               </HorizontalField>
 
               <HorizontalField
-                label="Format"
+                label="format"
                 htmlFor="format"
                 error={errors.format?.message}
               >
@@ -457,7 +449,7 @@ export default function PhoneDetail({
               </HorizontalField>
 
               <HorizontalField
-                label="Name"
+                label="name"
                 htmlFor="name"
                 error={errors.name?.message}
               >
@@ -471,7 +463,7 @@ export default function PhoneDetail({
               </HorizontalField>
 
               <HorizontalField
-                label="Attention"
+                label="attention"
                 htmlFor="attention"
                 error={errors.attention?.message}
               >
@@ -484,7 +476,7 @@ export default function PhoneDetail({
                 />
               </HorizontalField>
 
-              <HorizontalField label="Opt Out" htmlFor="opt_out">
+              <HorizontalField label="opt_out" htmlFor="opt_out">
                 <Controller
                   name="opt_out"
                   control={control}
@@ -502,27 +494,6 @@ export default function PhoneDetail({
           </form>
         )}
       </div>
-
-      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
-      {/* ─── TAB NAVIGATION ─── */}
-      {activePhoneId && data?.id && (
-        <>
-          <DetailTabs
-            entityType="phone"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            standardTabs={["comments", "actions", "documents", "raw"]}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
-          />
-
-          {/* ─── TAB CONTENT (scrollable) ─── */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">{renderTabContent()}</div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

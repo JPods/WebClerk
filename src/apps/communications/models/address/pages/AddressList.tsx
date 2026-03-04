@@ -63,12 +63,12 @@ export default function AddressList() {
     [dispatch],
   );
 
-  const handleView = (row: dynamicData) => {
+  const handleView = useCallback((row: dynamicData) => {
     setSelectedAddress(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = async (row: dynamicData) => {
+  const handleEdit = useCallback(async (row: dynamicData) => {
     // Set selected item immediately using row data
     setSelectedAddress(row);
     setFormMode("edit");
@@ -86,15 +86,17 @@ export default function AddressList() {
     } catch (error) {
       // Keep using row data on error
     }
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedAddress(null);
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete address ${row.address1}?`)) {
+  const handleDelete = useCallback(
+    async (row: dynamicData) => {
+      if (!window.confirm(`Delete address ${row.address1}?`)) return;
+
       try {
         await deleteAddress(row.id);
         dispatch(
@@ -104,10 +106,9 @@ export default function AddressList() {
           }),
         );
         getAddressData();
-        if (selectedAddress && selectedAddress.id === row.id) {
-          setFormMode(null);
-          setSelectedAddress(null);
-        }
+        // Clear selection if deleted row was selected
+        setSelectedAddress((prev) => (prev?.id === row.id ? null : prev));
+        setFormMode((prev) => (selectedAddress?.id === row.id ? null : prev));
       } catch (error) {
         dispatch(
           showToast({
@@ -116,8 +117,9 @@ export default function AddressList() {
           }),
         );
       }
-    }
-  };
+    },
+    [dispatch, getAddressData, selectedAddress?.id],
+  );
 
   const handleFormSaved = () => {
     getAddressData();
@@ -164,7 +166,7 @@ export default function AddressList() {
     return next;
   }, [data]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (!selectedAddresses.length) return;
     if (!window.confirm(`Delete ${selectedAddresses.length} addresses?`))
       return;
@@ -187,10 +189,55 @@ export default function AddressList() {
         }),
       );
     }
-  };
+  }, [selectedAddresses, dispatch, getAddressData]);
+
+  const toggleSelectAddress = useCallback((row: dynamicData) => {
+    setSelectedAddresses((prev) => {
+      const exists = prev.some((r) => r.id === row.id);
+      if (exists) {
+        return prev.filter((r) => r.id !== row.id);
+      }
+      return [...prev, row];
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedAddresses((prev) => {
+      if (prev.length === data.length) {
+        return [];
+      }
+      return [...data];
+    });
+  }, [data]);
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
+      {
+        name: (
+          <input
+            type="checkbox"
+            checked={
+              selectedAddresses.length === data.length && data.length > 0
+            }
+            onChange={toggleSelectAll}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        cell: (row: dynamicData) => (
+          <input
+            type="checkbox"
+            checked={selectedAddresses.some((r) => r.id === row.id)}
+            onChange={() => toggleSelectAddress(row)}
+            className="w-4 h-4 cursor-pointer text-xs"
+          />
+        ),
+        ignoreRowClick: true,
+        allowOverflow: true,
+        button: true,
+        width: "100px",
+        sortable: false,
+        reorder: false,
+      },
       {
         name: "id",
         selector: (row: dynamicData) => row.id,
@@ -232,12 +279,6 @@ export default function AddressList() {
         name: "action",
         cell: (row: dynamicData) => (
           <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
             <button onClick={() => handleDelete(row)} title="Delete">
               <FaTrash className="text-red-600 hover:scale-110 transition" />
             </button>
@@ -250,7 +291,15 @@ export default function AddressList() {
         sortable: false,
       },
     ],
-    [handleDelete, handleEdit, handleView],
+    [
+      handleDelete,
+      handleEdit,
+      handleView,
+      selectedAddresses,
+      data.length,
+      toggleSelectAddress,
+      toggleSelectAll,
+    ],
   );
 
   return (
@@ -277,12 +326,11 @@ export default function AddressList() {
                 loading={loading}
                 filters={filters}
                 enableExport={true}
-                enableSelection={true}
+                enableSelection={false}
                 enableDatabaseSearch={true}
                 searchDatabase={searchDatabase}
                 onSearchModeChange={setSearchDatabase}
                 onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedAddresses}
                 exportFileName="addresses_export"
                 searchPlaceholder="Search addresses..."
                 noDataMessage="No addresses found"

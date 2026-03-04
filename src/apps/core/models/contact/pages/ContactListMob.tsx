@@ -46,7 +46,7 @@ export default function ContactListMob({
         dataProp.map((contact, index) => (
           <AccordionItem
             key={contact.id}
-            title={`email: ${contact.email ?? "--"} (id: ${contact.id})`}
+            title={`[id: ${contact.id}] ${contact.email ?? "--"} `}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
