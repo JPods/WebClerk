@@ -60,7 +60,7 @@ import {
   FaThumbsUp,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
-import { getRecords } from "../../../../api/wcapi";
+import { getRecords, saveRecord } from "../../../../api/wcapi";
 import { SearchableSelect } from "../../../../components/ui/dropdown/SearchableSelect";
 import type {
   BasePanelProps,
@@ -123,6 +123,14 @@ interface ActionsPanelProps
   assigneeOptions?: Array<{ id: string; label: string }>;
   /** Project options for the searchable dropdown */
   projectOptions?: Array<{ id: string; name?: string; intent?: string }>;
+  /** WCAPI model name to use when persisting actions (default: "action") */
+  actionModelName?: string;
+  /** Parent model to attach (defaults to entityType) */
+  parentModelName?: string;
+  /** Parent id override (defaults to entityId) */
+  parentIdOverride?: number;
+  /** Auto-persist actions to wcapi/save before updating parent lists (default: true) */
+  autoPersistActions?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -259,6 +267,98 @@ const apiToActionEntry = (action: ApiActionItem): ActionEntry => {
     assigned_to?: Array<{ id: number | string; name: string }>;
   };
 };
+
+// ---------------------------------------------------------------------------
+// Payload Mapping Helpers
+// ---------------------------------------------------------------------------
+
+const statusToBackend = (status?: ActionStatus): string => {
+  switch (status) {
+    case "in_progress":
+      return "In progress";
+    case "on_hold":
+      return "On hold";
+    case "completed":
+      return "done";
+    case "cancelled":
+      return "canceled";
+    case "pending":
+    default:
+      return "pending";
+  }
+};
+
+const priorityToBackend = (priority?: ActionEntry["priority"]): number => {
+  switch (priority) {
+    case "low":
+      return 1;
+    case "high":
+      return 3;
+    case "urgent":
+      return 4;
+    case "normal":
+    default:
+      return 2;
+  }
+};
+
+const buildActionPayload = (
+  action: ActionEntry,
+  opts: {
+    parentModel?: string;
+    parentId?: number;
+  },
+): Record<string, unknown> => {
+  const toMillis = (val?: number | string): number | undefined => {
+    if (val === undefined || val === null || val === "") return undefined;
+    const asNumber = Number(val);
+    if (!Number.isNaN(asNumber)) return asNumber;
+    const dt = new Date(val);
+    return Number.isNaN(dt.getTime()) ? undefined : dt.getTime();
+  };
+
+  const deadline = toMillis(
+    (action.dt_deadline || action.when) as number | string | undefined,
+  );
+  const payload: Record<string, unknown> = {
+    action_en: action.what,
+    description_en: action.notes,
+    languages: action.what ? ["en"] : [],
+    priority: priorityToBackend(action.priority),
+    difficulty: action.difficulty,
+    status: statusToBackend(action.status),
+    percent_complete:
+      action.progress ?? (action.status === "completed" ? 100 : undefined),
+    dt_start: toMillis(action.dt_start as number | string | undefined),
+    dt_deadline: deadline,
+    dt_completed: toMillis(action.dt_completed as number | string | undefined),
+    project_id: action.project_id,
+    project_name: action.project_name,
+    assigned_to: action.assigned_to,
+    is_active: (action as ActionEntry & { is_active?: boolean }).is_active,
+  };
+
+  if (opts.parentModel) payload.parent_model = opts.parentModel;
+  if (opts.parentId) payload.parent_id = opts.parentId;
+
+  if (opts.parentModel === "contact" && opts.parentId) {
+    payload.contact_id = opts.parentId;
+  }
+
+  // If assigned_to has a single id, pass through as contact_id for convenience
+  if (!payload.parent_model && action.assigned_to?.length === 1) {
+    const firstId = action.assigned_to[0]?.id;
+    if (firstId !== undefined && firstId !== null) {
+      const maybeNum = Number(firstId);
+      payload.contact_id = Number.isNaN(maybeNum) ? firstId : maybeNum;
+    }
+  }
+
+  return payload;
+};
+
+const extractActionId = (res: any): number | string | undefined =>
+  res?.id ?? res?.record?.id ?? res?.data?.id ?? res?.data?.record?.id;
 
 // ---------------------------------------------------------------------------
 // Action Card Component
@@ -1228,6 +1328,10 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   defaultCollapsed = false,
   assigneeOptions = [],
   projectOptions = [],
+  actionModelName = "action",
+  parentModelName,
+  parentIdOverride,
+  autoPersistActions = true,
 }) => {
   console.log("[ActionsPanel] assigneeOptions:", assigneeOptions);
   console.log("[ActionsPanel] projectOptions:", projectOptions);
@@ -1235,6 +1339,9 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingAction, setEditingAction] = useState<ActionEntry | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+
+  const parentModel = parentModelName ?? _entityType;
+  const parentId = parentIdOverride ?? _entityId;
 
   // API-loaded actions state (for actionIds mode)
   const [apiActions, setApiActions] = useState<ActionEntry[]>([]);
@@ -1253,7 +1360,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
       setIsLoadingApi(true);
       setApiError(null);
       try {
-        const response = await getRecords("action", { ids: actionIds });
+        const response = await getRecords(actionModelName, { ids: actionIds });
         // Handle various response formats
         const resp = response as
           | { results?: unknown[]; data?: unknown[] }
@@ -1283,7 +1390,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
     };
 
     loadActions();
-  }, [actionIds]);
+  }, [actionIds, actionModelName]);
 
   // Check permissions
   const { canView, canEdit: permCanEdit } = usePermissions({
@@ -1371,43 +1478,81 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   };
 
   const handleSave = async (action: ActionEntry) => {
-    if (!onChange) return;
+    // When persisting, we always update local UI state; persistence is optional
+    let newActions: ActionEntry[] = [...actions];
 
-    let newActions: ActionEntry[];
+    // Helper to persist to wcapi/save when enabled
+    const persistIfNeeded = async (
+      nextAction: ActionEntry,
+      existingId?: number | string,
+    ) => {
+      if (!autoPersistActions) return existingId;
+      const payload = buildActionPayload(nextAction, {
+        parentModel,
+        parentId,
+      });
+      if (existingId !== undefined) payload.id = existingId;
+      const res = await saveRecord(actionModelName, payload);
+      const persistedId = extractActionId(res) ?? existingId;
+      return persistedId;
+    };
 
-    if (editingAction?.id !== undefined) {
-      // Update existing - always use findIndex to locate by id
-      const index = actions.findIndex((a) => a.id === editingAction.id);
-      if (index !== -1) {
-        newActions = [...actions];
-        newActions[index] = { ...action, id: editingAction.id };
+    setIsSaving(true);
+    try {
+      if (editingAction?.id !== undefined) {
+        // Update existing
+        const index = actions.findIndex((a) => a.id === editingAction.id);
+        const updated = { ...action, id: editingAction.id } as ActionEntry;
+        const persistedId = await persistIfNeeded(updated, editingAction.id);
+        if (persistedId !== undefined) {
+          updated.id = persistedId;
+        }
+        if (index !== -1) {
+          newActions[index] = updated;
+        } else {
+          newActions = [...newActions, updated];
+        }
       } else {
-        // Fallback: append if not found
-        newActions = [...actions, { ...action, id: editingAction.id }];
+        // Create new — persist first to get backend id
+        const tempId = Date.now();
+        const candidate = {
+          ...action,
+          id: tempId,
+          created_at: new Date().toISOString(),
+        } as ActionEntry;
+        const persistedId = await persistIfNeeded(candidate);
+        const finalId = persistedId ?? tempId;
+        const created = { ...candidate, id: finalId };
+        newActions = [...newActions, created];
+
+        // If we are in id-based mode, also surface ids to parent callback
+        if (onActionIdsChange) {
+          const numericId =
+            typeof finalId === "string" ? parseInt(finalId, 10) : finalId;
+          const nextIds = [...(actionIds || [])];
+          if (!Number.isNaN(numericId as number)) {
+            nextIds.push(numericId as number);
+            onActionIdsChange(nextIds);
+          }
+        }
       }
-    } else {
-      // Add new
-      const newAction = {
-        ...action,
-        id: Date.now(),
-        created_at: new Date().toISOString(),
-      };
-      newActions = [...actions, newAction];
-    }
 
-    // Update local state first
-    onChange(newActions);
+      // Update UI state/local caller
+      if (isActionIdsMode) {
+        setApiActions(newActions);
+      }
+      if (onChange) {
+        onChange(newActions);
+      }
 
-    // Auto-save to database
-    if (onSave) {
-      setIsSaving(true);
-      try {
+      // Persist parent actions blob if provided
+      if (onSave) {
         await onSave(newActions);
-      } catch (error) {
-        console.error("[ActionsPanel] Auto-save failed:", error);
-      } finally {
-        setIsSaving(false);
       }
+    } catch (error) {
+      console.error("[ActionsPanel] Auto-save failed:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 

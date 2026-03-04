@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 import { CustomerApiTask } from "../types/customerType";
@@ -15,7 +14,6 @@ export default function CustomerListMob({
   dataProp,
   selectedCustomer,
   handleView,
-  handleEdit,
   emptyMessage,
 }: CustomerListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -37,9 +35,7 @@ export default function CustomerListMob({
         dataProp.map((customer, index) => (
           <AccordionItem
             key={customer.id}
-            title={`display_name: ${customer.display_name ?? "--"} (id: ${
-              customer.id
-            })`}
+            title={`[id: ${customer.id}] ${customer.display_name ?? "--"} `}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
@@ -53,6 +49,9 @@ export default function CustomerListMob({
             <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
+                <p>
+                  <strong>attention:</strong> {customer.attention || "--"}
+                </p>
                 <p>
                   <strong>org_type:</strong> {customer.org_type || "--"}
                 </p>
