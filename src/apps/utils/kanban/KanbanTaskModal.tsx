@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment } from "./taskFormTypes";
 
 interface LanguageOption {
   value: string;
@@ -31,7 +31,7 @@ interface KanbanTaskModalProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   modalError?: string | null;
   formState: TaskFormState;
-  onFieldChange: (field: TaskFormEditableField, value: string) => void;
+  onFieldChange: (field: TaskFormEditableField, value: string | TaskAttachment[]) => void;
   columnOptions: Array<{ id: string; title: string }>;
   projectOptions?: Array<{ id: string; name?: string; intent?: string }>;
   priorityOptions: TaskPriority[];
@@ -93,6 +93,91 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   useEffect(() => {
     setAssigneeSelection("");
   }, [isOpen]);
+
+  // File upload handling
+  const handleFileSelect = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newAttachments: TaskAttachment[] = [];
+    Array.from(files).forEach((file) => {
+      const attachment: TaskAttachment = {
+        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        type: file.type,
+        name: file.name,
+        size: file.size,
+      };
+
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        attachment.previewUrl = URL.createObjectURL(file);
+      }
+
+      newAttachments.push(attachment);
+    });
+
+    // Update form state with new attachments
+    const currentAttachments = formState.attachments || [];
+    const updatedAttachments = [...currentAttachments, ...newAttachments];
+    onFieldChange("attachments", updatedAttachments);
+  }, [formState.attachments, onFieldChange]);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = event.dataTransfer.files;
+    if (!files) return;
+
+    const newAttachments: TaskAttachment[] = [];
+    Array.from(files).forEach((file) => {
+      const attachment: TaskAttachment = {
+        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        type: file.type,
+        name: file.name,
+        size: file.size,
+      };
+
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        attachment.previewUrl = URL.createObjectURL(file);
+      }
+
+      newAttachments.push(attachment);
+    });
+
+    // Update form state with new attachments
+    const currentAttachments = formState.attachments || [];
+    const updatedAttachments = [...currentAttachments, ...newAttachments];
+    onFieldChange("attachments", updatedAttachments);
+  }, [formState.attachments, onFieldChange]);
+
+  const removeAttachment = useCallback((attachmentId: string) => {
+    const currentAttachments = formState.attachments || [];
+    const updatedAttachments = currentAttachments.filter(att => {
+      if (att.id === attachmentId && att.previewUrl) {
+        URL.revokeObjectURL(att.previewUrl);
+      }
+      return att.id !== attachmentId;
+    });
+    onFieldChange("attachments", updatedAttachments);
+  }, [formState.attachments, onFieldChange]);
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) return '📄';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📽️';
+    if (fileType.includes('zip') || fileType.includes('archive')) return '📦';
+    return '📎';
+  };
 
   const handleAssigneeSelect = (event: ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value;
@@ -741,6 +826,107 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* File Upload Section */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Attachments
+              </label>
+              <div
+                className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-center transition hover:border-indigo-400 hover:bg-indigo-50/50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-900/20"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center justify-center space-y-1">
+                  <svg
+                    className="mx-auto h-8 w-8 text-gray-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex flex-col items-center justify-center text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-semibold">Click to upload</span>
+                    <span>or drag and drop</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    PDF, DOC, XLS, Images (MAX. 10MB each)
+                  </p>
+                </div>
+                <input
+                  id="dropzone-file"
+                  type="file"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                  onChange={handleFileSelect}
+                  disabled={isSaving}
+                />
+              </div>
+            </div>
+
+            {/* Attachment Previews */}
+            {formState.attachments && formState.attachments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Attached Files: ({formState.attachments.length})
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {formState.attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="relative group flex w-full min-w-0 flex-col items-center rounded-lg bg-gray-50 p-2 dark:bg-gray-800"
+                    >
+                      <div className="mb-2 flex-shrink-0">
+                        {attachment.previewUrl ? (
+                          <img
+                            src={attachment.previewUrl}
+                            alt={attachment.name}
+                            className="h-12 w-12 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-200 text-xl dark:bg-gray-700">
+                            {getFileIcon(attachment.type)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex w-full min-w-0 flex-col items-center text-center">
+                        <p
+                          className="block w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-900 dark:text-white"
+                          title={attachment.name}
+                        >
+                          {attachment.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(attachment.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white group-hover:block dark:bg-gray-700">
+                        {attachment.name}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(attachment.id)}
+                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        disabled={isSaving}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </form>
 

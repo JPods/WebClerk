@@ -9,7 +9,7 @@ import KanbanTaskModal from "./KanbanTaskModal";
 import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords, manageAction } from "../../../api/wcapi";
@@ -415,6 +415,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => {
     difficulty: DEFAULT_DIFFICULTY_STRING,
     percent_complete: DEFAULT_PROGRESS_STRING,
     is_active: "true",
+    attachments: [],
   };
 };
 
@@ -816,7 +817,7 @@ const pickColumnForStatus = (
 const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
-  value: string,
+  value: string | TaskAttachment[],
   options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
 ): TaskFormState => {
   if (field === "dt_start") {
@@ -923,6 +924,10 @@ const updateTaskFormState = (
       }
     }
     return next;
+  }
+
+  if (field === "attachments") {
+    return { ...prev, attachments: value as TaskAttachment[] };
   }
 
   return prev;
@@ -1684,7 +1689,7 @@ const KanbanBoardPage: React.FC = () => {
     setEditLanguagePickerError(null);
   };
 
-  const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
+  const handleCreateTaskChange = (field: TaskFormEditableField, value: string | TaskAttachment[]) => {
     setCreateTaskState((prev) =>
       updateTaskFormState(prev, field, value, {
         columns: columnOptions,
@@ -1693,7 +1698,7 @@ const KanbanBoardPage: React.FC = () => {
     );
   };
 
-  const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
+  const handleEditTaskChange = (field: TaskFormEditableField, value: string | TaskAttachment[]) => {
     setEditTaskState((prev) =>
       updateTaskFormState(prev, field, value, {
         columns: columnOptions,
