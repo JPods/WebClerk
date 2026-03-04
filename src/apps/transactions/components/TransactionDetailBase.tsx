@@ -249,6 +249,22 @@ interface TransactionDetailBaseProps {
   taskCount?: number;
 }
 
+/**
+ * Extract a renderable string from comments.public which may be
+ * either a plain string or an array of comment objects ({mgs, time, user, user_id}).
+ */
+const extractPublicComment = (publicField: unknown): string | undefined => {
+  if (!publicField) return undefined;
+  if (typeof publicField === 'string') return publicField;
+  if (Array.isArray(publicField)) {
+    return publicField
+      .map((c: any) => (typeof c === 'string' ? c : c?.mgs))
+      .filter(Boolean)
+      .join('\n');
+  }
+  return String(publicField);
+};
+
 const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   transactionType,
   typeLabel,
@@ -1077,7 +1093,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             invoices_BalanceDue: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1191,7 +1207,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1273,7 +1289,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1355,7 +1371,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1437,7 +1453,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1519,7 +1535,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1602,7 +1618,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
