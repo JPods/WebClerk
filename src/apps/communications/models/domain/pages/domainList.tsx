@@ -4,30 +4,15 @@ import AdvancedDataTable, {
   ColumnFilter,
 } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchDomains, deleteDomain } from "../services/domainApi";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import DomainListMob from "./DomainListMob";
-
-type DomainColumnConfig = {
-  key: string;
-  label: string;
-  width?: string;
-  sortable?: boolean;
-  getValue: (row: dynamicData) => string;
-  renderCell?: (row: dynamicData) => ReactNode;
-};
 
 export default function DomainList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -206,41 +191,8 @@ export default function DomainList() {
       return [...data];
     });
   }, [data]);
-  /* ---------------- Columns ---------------- */
-  const columnConfig = useMemo<DomainColumnConfig[]>(
-    () => [
-      {
-        key: "id",
-        label: "id",
-        width: "5%",
-        sortable: true,
-        getValue: (row) => (row.id !== undefined ? String(row.id) : "--"),
-      },
-      {
-        key: "path",
-        label: "path",
-        width: "75%",
-        sortable: true,
-        getValue: (row) =>
-          row.path
-            ? String(
-                (row.path ?? "--").length > 160
-                  ? `${(row.path ?? "--").slice(0, 160)}...`
-                  : row.path ?? "--",
-              )
-            : "--",
-      },
-      {
-        key: "type",
-        label: "type",
-        width: "10%",
-        sortable: true,
-        getValue: (row) => (row.type ? String(row.type) : "--"),
-      },
-    ],
-    [],
-  );
 
+  /* ---------------- Columns ---------------- */
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
       {
@@ -267,13 +219,41 @@ export default function DomainList() {
         sortable: false,
         reorder: false,
       },
-      ...columnConfig.map((col) => ({
-        name: col.label,
-        selector: (row: dynamicData) => col.getValue(row),
-        cell: col.renderCell ?? ((row: dynamicData) => col.getValue(row)),
-        sortable: col.sortable,
-        width: col.width,
-      })),
+      {
+        name: "id",
+        selector: (row: dynamicData) =>
+          row.id !== undefined ? String(row.id) : "--",
+        sortable: true,
+        width: "5%",
+      },
+      {
+        name: "contact",
+        selector: (row: dynamicData) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name ?? "--",
+        cell: (row: dynamicData) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name
+            ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
+            : "--",
+        sortable: true,
+        width: "15%",
+      },
+      {
+        name: "path",
+        selector: (row: dynamicData) =>
+          row.path
+            ? String(row.path).length > 160
+              ? `${String(row.path).slice(0, 160)}...`
+              : String(row.path)
+            : "--",
+        sortable: true,
+        width: "60%",
+      },
+      {
+        name: "type",
+        selector: (row: dynamicData) => (row.type ? String(row.type) : "--"),
+        sortable: true,
+        width: "10%",
+      },
       {
         name: "action",
         cell: (row: dynamicData) => (
@@ -289,7 +269,6 @@ export default function DomainList() {
       },
     ],
     [
-      columnConfig,
       handleDelete,
       selectedDomains,
       data.length,
@@ -340,7 +319,7 @@ export default function DomainList() {
                       </button>
                     )}
                     <button
-                      onClick={handleView}
+                      onClick={handleAdd}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       <FaPlus className="w-4 h-4" />

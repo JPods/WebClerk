@@ -52,7 +52,10 @@ export default function DomainListMob({
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
-                  <strong>contact:</strong> {contact.contact || "--"}
+                  <strong>contact:</strong>{" "}
+                  {contact?.refs?.links?.contact?.[0]?.contact?.display_name
+                    ? `[id: ${contact?.refs?.links?.contact?.[0]?.contact?.id}] ${contact?.refs?.links?.contact?.[0]?.contact?.display_name}`
+                    : "--"}
                 </p>
                 <p>
                   <strong>path:</strong> {contact.path || "--"}
