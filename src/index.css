@@ -920,7 +920,7 @@ span.flatpickr-weekday,
 .rdt_TableBody .rdt_TableRow {
   border-bottom: 1px solid #f1f5f9 !important;
   transition: all 0.15s ease !important;
-  min-height: 52px !important;
+  min-height: 43px !important;
 }
 .dark .rdt_TableBody .rdt_TableRow {
   border-bottom-color: #1e293b !important;
@@ -952,7 +952,7 @@ span.flatpickr-weekday,
 
 /* Table Cell Styles */
 .rdt_TableCell {
-  font-size: 0.875rem !important;
+  font-size: 0.8rem !important;
   color: #334155 !important;
   padding: 0.75rem 1rem !important;
   background: transparent !important;
@@ -981,20 +981,11 @@ span.flatpickr-weekday,
 /* Checkbox Styles */
 .rdt_TableCell input[type="checkbox"],
 .rdt_TableCol input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
+  width: 0.8rem;
+  height: 0.8rem;
   border-radius: 0.25rem;
-  border-color: #cbd5e1;
-  color: #2563eb;
-}
-.rdt_TableCell input[type="checkbox"]:focus,
-.rdt_TableCol input[type="checkbox"]:focus {
-  ring-color: #3b82f6;
-  ring-offset: 0;
-}
-.dark .rdt_TableCell input[type="checkbox"],
-.dark .rdt_TableCol input[type="checkbox"] {
   border-color: #475569;
+  color: #2563eb;
 }
 
 /* Pagination Styles */
@@ -1197,7 +1188,10 @@ span.flatpickr-weekday,
 .wx-bar.wx-task:not(.wx-split),
 .wx-bar.wx-task .wx-segment {
   background-color: var(--wx-gantt-task-color) !important;
-  border-color: var(--wx-gantt-task-border-color, var(--wx-gantt-task-color)) !important;
+  border-color: var(
+    --wx-gantt-task-border-color,
+    var(--wx-gantt-task-color)
+  ) !important;
   color: var(--wx-gantt-task-font-color, #fff) !important;
 }
 
@@ -1219,7 +1213,10 @@ span.flatpickr-weekday,
 .wx-bars .wx-bar.wx-summary,
 .wx-bar.wx-summary {
   background-color: var(--wx-gantt-task-color) !important;
-  border-color: var(--wx-gantt-task-border-color, var(--wx-gantt-task-color)) !important;
+  border-color: var(
+    --wx-gantt-task-border-color,
+    var(--wx-gantt-task-color)
+  ) !important;
   color: var(--wx-gantt-task-font-color, #fff) !important;
 }
 
@@ -1237,7 +1234,10 @@ span.flatpickr-weekday,
 .wx-gantt .wx-bar .wx-progress-wrapper .wx-progress-percent,
 .wx-bar .wx-progress-wrapper .wx-progress-percent,
 .wx-bar .wx-progress-percent {
-  background-color: var(--wx-gantt-task-fill-color, var(--wx-gantt-task-color)) !important;
+  background-color: var(
+    --wx-gantt-task-fill-color,
+    var(--wx-gantt-task-color)
+  ) !important;
   filter: brightness(0.85);
 }
 
@@ -1268,9 +1268,8 @@ span.flatpickr-weekday,
 /* Selected state - add glow using task color */
 .wx-gantt .wx-bar.wx-selected:not(.wx-split),
 .wx-bar.wx-selected:not(.wx-split) {
-  box-shadow: 0 0 0 2px var(--wx-gantt-task-color), 
-              0px 1px 2px rgba(44, 47, 60, 0.06), 
-              0px 3px 10px rgba(44, 47, 60, 0.12) !important;
+  box-shadow: 0 0 0 2px var(--wx-gantt-task-color),
+    0px 1px 2px rgba(44, 47, 60, 0.06), 0px 3px 10px rgba(44, 47, 60, 0.12) !important;
 }
 /* ============================================
    End SVAR Gantt Styles

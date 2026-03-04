@@ -22,32 +22,28 @@ import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { FaEdit, FaMapMarkerAlt, FaPlus } from "react-icons/fa";
+import { FaEdit, FaMapMarkerAlt, FaPlus, FaTrash } from "react-icons/fa";
 
 // UI primitives
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import { CustTextArea } from "@/components/wrapper";
-import { DevBadge } from '@/components/common/DevBadge';
+import { DevBadge } from "@/components/common/DevBadge";
 
 // Tab navigation
-import {
-  DetailTabs,
-  useDetailTabs,
-  useColumnCount,
-} from "@/components/common/DetailTabs";
+import { useColumnCount } from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 // Panel Components
 //import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
-import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
-import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
-import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
-import { FinancialsPanel } from "@/apps/common/components/panels";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
-import { createAddress, updateAddress } from "../services/addressApi";
+import {
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from "../services/addressApi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
@@ -89,24 +85,6 @@ function HorizontalField({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// InfoRow — read-only horizontal label/value pair
-// ---------------------------------------------------------------------------
-
-const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
-  label,
-  value,
-}) => (
-  <div className="flex items-center gap-2">
-    <dt className="w-32 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">
-      {label}
-    </dt>
-    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
-      {value || "—"}
-    </dd>
-  </div>
-);
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -174,7 +152,6 @@ export default function AddressDetail({
   // ---------------------------------------------------------------------------
   // Tab Navigation
   // ---------------------------------------------------------------------------
-  const { activeTab, setActiveTab } = useDetailTabs("address", "comments");
   const { columnCount, setColumnCount } = useColumnCount("address", 3);
 
   // ---------------------------------------------------------------------------
@@ -223,6 +200,39 @@ export default function AddressDetail({
   }, [onCancelInline, initialMode, navigate, data, setValue]);
 
   // ---------------------------------------------------------------------------
+  // Delete Handler
+  // ---------------------------------------------------------------------------
+
+  const handleDeleteAddress = useCallback(async () => {
+    const addressId = data?.id;
+    if (!addressId) return;
+    if (!window.confirm(`Delete address #${addressId}?`)) return;
+
+    try {
+      await deleteAddress(addressId);
+      dispatch(
+        showToast({
+          message: `Address #${addressId} deleted`,
+          type: "success",
+        }),
+      );
+      if (onSaved) onSaved();
+      if (onCancelInline) {
+        onCancelInline();
+      } else {
+        navigate(-1);
+      }
+    } catch (err) {
+      dispatch(
+        showToast({
+          message: `Failed to delete address: ${err}`,
+          type: "error",
+        }),
+      );
+    }
+  }, [data?.id, dispatch, onSaved, onCancelInline, navigate]);
+
+  // ---------------------------------------------------------------------------
   // Action Buttons (header)
   // ---------------------------------------------------------------------------
 
@@ -242,19 +252,36 @@ export default function AddressDetail({
           Edit
         </button>,
       );
-      if (onCancelInline) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancelInline}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
+    }
+
+    // Delete (view mode with existing record)
+    if (effectiveMode === "view" && data?.id) {
+      buttons.push(
+        <button
+          key="delete-address"
+          type="button"
+          onClick={handleDeleteAddress}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete address"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close button (when inline)
+    if (onCancelInline) {
+      buttons.push(
+        <button
+          key="close"
+          type="button"
+          onClick={onCancelInline}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Close"
+        >
+          Close
+        </button>,
+      );
     }
 
     return buttons;
@@ -267,68 +294,6 @@ export default function AddressDetail({
   const displayName = data
     ? data.name || data.address1 || data.full || `Address #${data.id}`
     : "New Address";
-  // ---------------------------------------------------------------------------
-  // Render Tab Content
-  // ---------------------------------------------------------------------------
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "comments":
-        return (
-          <CommentsPanel
-            entityType="address"
-            entityId={data?.id}
-            comments={data?.comments}
-            isEditing={isEditing}
-            currentUser="Current User"
-          />
-        );
-
-      case "actions":
-        return (
-          <ActionsPanel
-            entityType="address"
-            entityId={data?.id}
-            data={data?.actions?.items}
-            isEditing={isEditing}
-          />
-        );
-
-      case "documents":
-        return (
-          <DocumentsPanel
-            parent_model="address"
-            parentId={data?.id}
-            data={data?.refs?.links?.document}
-            isEditing={isEditing}
-          />
-        );
-
-      case "financials":
-        return (
-          <FinancialsPanel
-            totals={data?.financial?.totals}
-            cost={data?.financial?.cost}
-            sell={data?.financial?.sell}
-            currency="USD"
-          />
-        );
-
-      case "raw":
-        return (
-          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
@@ -465,7 +430,7 @@ export default function AddressDetail({
               </HorizontalField>
 
               <HorizontalField
-                label="type"
+                label="address_type"
                 htmlFor="address_type"
                 error={errors.address_type?.message}
               >
@@ -582,33 +547,6 @@ export default function AddressDetail({
           </form>
         )}
       </div>
-
-      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
-      {/* ─── TAB NAVIGATION ─── */}
-      {activeAddressId && data?.id && (
-        <>
-          <DetailTabs
-            entityType="address"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            standardTabs={[
-              "comments",
-              "actions",
-              "documents",
-              "financials",
-              "raw",
-            ]}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
-          />
-
-          {/* ─── TAB CONTENT (scrollable) ─── */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">{renderTabContent()}</div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

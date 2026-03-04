@@ -474,7 +474,7 @@ const ContactList = () => {
                     </button>
                   </div>
                 }
-                onRowClicked={handleEdit}
+                onRowClicked={handleView}
               />
             )}
           </ComponentCard>

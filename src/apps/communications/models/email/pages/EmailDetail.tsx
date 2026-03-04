@@ -22,38 +22,28 @@ import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
-import { FaEdit, FaEnvelope } from "react-icons/fa";
+import { FaEdit, FaEnvelope, FaTrash } from "react-icons/fa";
 
 // UI primitives
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import DropDown from "@/components/form/input/DropDown";
-import { DevBadge } from '@/components/common/DevBadge';
+import { DevBadge } from "@/components/common/DevBadge";
 import Checkbox from "@/components/form/input/Checkbox";
 
 // Column count
-import {
-  DetailTabs,
-  useDetailTabs,
-  useColumnCount,
-} from "@/components/common/DetailTabs";
+import { useColumnCount } from "@/components/common/DetailTabs";
 
 // Toolbar
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-// Panel Components
-//import ContactLinksPanel from "@/apps/transactions/components/ContactPanel";
-import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
-import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
-import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 // API & State
-import { createEmail, updateEmail } from "../services/emailApi";
+import { createEmail, updateEmail, deleteEmail } from "../services/emailApi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
-//import { ColumnSelector } from "@/components/common/DetailTabs";
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -90,24 +80,6 @@ function HorizontalField({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// InfoRow — read-only horizontal label/value pair
-// ---------------------------------------------------------------------------
-
-const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
-  label,
-  value,
-}) => (
-  <div className="flex items-center gap-2">
-    <dt className="w-32 shrink-0 text-right text-sm text-slate-500 dark:text-slate-400">
-      {label}
-    </dt>
-    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
-      {value || "—"}
-    </dd>
-  </div>
-);
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -182,13 +154,11 @@ export default function EmailDetail({
     }
   }, [data, reset, setValue, effectiveMode]);
 
-  const { activeTab, setActiveTab } = useDetailTabs("email", "comments");
-
   // ---------------------------------------------------------------------------
   // Column Count
   // ---------------------------------------------------------------------------
 
-  const { columnCount, setColumnCount } = useColumnCount("email", 3);
+  const { columnCount } = useColumnCount("email", 3);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -235,6 +205,39 @@ export default function EmailDetail({
     }
   }, [onCancelInline, initialMode, navigate, data, setValue]);
 
+  // ---------------------------------------------------------------------------
+  // Delete Handler
+  // ---------------------------------------------------------------------------
+
+  const handleDeleteEmail = useCallback(async () => {
+    const emailId = data?.id;
+    if (!emailId) return;
+    if (!window.confirm(`Delete email #${emailId}?`)) return;
+
+    try {
+      await deleteEmail("email", emailId);
+      dispatch(
+        showToast({
+          message: `Email #${emailId} deleted`,
+          type: "success",
+        }),
+      );
+      if (onSaved) onSaved();
+      if (onCancelInline) {
+        onCancelInline();
+      } else {
+        navigate(-1);
+      }
+    } catch (err) {
+      dispatch(
+        showToast({
+          message: `Failed to delete email: ${err}`,
+          type: "error",
+        }),
+      );
+    }
+  }, [data?.id, dispatch, onSaved, onCancelInline, navigate]);
+
   const statusOptions = [
     { value: "active", label: "Active" },
     { value: "opted_out", label: "Opted Out" },
@@ -275,19 +278,36 @@ export default function EmailDetail({
           Edit
         </button>,
       );
-      if (onCancelInline) {
-        buttons.push(
-          <button
-            key="close"
-            type="button"
-            onClick={onCancelInline}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-            title="Close"
-          >
-            Close
-          </button>,
-        );
-      }
+    }
+
+    // Delete (view mode with existing record)
+    if (effectiveMode === "view" && data?.id) {
+      buttons.push(
+        <button
+          key="delete-email"
+          type="button"
+          onClick={handleDeleteEmail}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete email"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close button (when inline)
+    if (onCancelInline) {
+      buttons.push(
+        <button
+          key="close"
+          type="button"
+          onClick={onCancelInline}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Close"
+        >
+          Close
+        </button>,
+      );
     }
 
     return buttons;
@@ -302,55 +322,6 @@ export default function EmailDetail({
     : "New Email";
 
   const statusLabel = watch("opt_out") || "active";
-
-  // ---------------------------------------------------------------------------
-  // Render Tab Content
-  // ---------------------------------------------------------------------------
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "comments":
-        return (
-          <CommentsPanel
-            entityType="email"
-            entityId={data?.id}
-            comments={data?.comments}
-            isEditing={isEditing}
-            currentUser="Current User"
-          />
-        );
-
-      case "actions":
-        return (
-          <ActionsPanel
-            entityType="email"
-            entityId={data?.id}
-            data={data?.actions?.items}
-            isEditing={isEditing}
-          />
-        );
-
-      case "documents":
-        return (
-          <DocumentsPanel
-            parent_model="email"
-            parentId={data?.id}
-            data={data?.refs?.links?.document}
-            isEditing={isEditing}
-          />
-        );
-
-      case "raw":
-        return (
-          <pre className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded overflow-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   // ---------------------------------------------------------------------------
   // Render
@@ -546,26 +517,6 @@ export default function EmailDetail({
           </form>
         )}
       </div>
-      {/* <ColumnSelector value={columnCount} onChange={setColumnCount} /> */}
-      {/* ─── TAB NAVIGATION ─── */}
-      {activeEmailId && data?.id && (
-        <>
-          <DetailTabs
-            entityType="email"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            standardTabs={["comments", "actions", "documents", "raw"]}
-            showColumnSelector
-            columnCount={columnCount}
-            onColumnCountChange={setColumnCount}
-          />
-
-          {/* ─── TAB CONTENT (scrollable) ─── */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">{renderTabContent()}</div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

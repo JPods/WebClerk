@@ -15,6 +15,8 @@ import React from "react";
 import { Fingerprint, Layers } from "lucide-react";
 import ScalarCard from "./ScalarCard";
 import JsonCard from "./JsonCard";
+import { FaCode } from "react-icons/fa";
+import RawJsonCard from "./rawJsonCard";
 
 export interface BaseModelCardsProps {
   /** The full record object */
@@ -49,6 +51,8 @@ const BaseModelCards: React.FC<BaseModelCardsProps> = ({
 }) => {
   if (!data) return null;
 
+  //const data = { ...data, rawJson: data };
+  //console.log("data2", data);
   return (
     <>
       {showIdentity && (
@@ -95,11 +99,18 @@ const BaseModelCards: React.FC<BaseModelCardsProps> = ({
             data={data.prefs as Record<string, unknown> | null}
             defaultExpanded={defaultExpanded}
           />
-          <JsonCard
+          {/* <JsonCard
             title="Comments"
             icon={<Layers size={14} />}
             fieldName="comments"
             data={data.comments as Record<string, unknown> | null}
+            defaultExpanded={defaultExpanded}
+          /> */}
+          <RawJsonCard
+            title="Raw"
+            icon={<FaCode size={14} />}
+            fieldName="rawJson"
+            data={data as Record<string, unknown> | null}
             defaultExpanded={defaultExpanded}
           />
         </>

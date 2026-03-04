@@ -64,12 +64,12 @@ export default function EmailList() {
     [dispatch],
   );
 
-  const handleView = (row: dynamicData) => {
+  const handleView = useCallback((row: dynamicData) => {
     setSelectedEmail(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = async (row: dynamicData) => {
+  const handleEdit = useCallback(async (row: dynamicData) => {
     // Set selected item immediately using row data
     setSelectedEmail(row);
     setFormMode("edit");
@@ -87,15 +87,17 @@ export default function EmailList() {
     } catch (error) {
       // Keep using row data on error
     }
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedEmail(null);
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete email ${row.id}?`)) {
+  const handleDelete = useCallback(
+    async (row: dynamicData) => {
+      if (!window.confirm(`Delete email ${row.id}?`)) return;
+
       try {
         await deleteEmail("email", row.id);
         dispatch(
@@ -104,11 +106,10 @@ export default function EmailList() {
             type: "success",
           }),
         );
-        getEmailData(); // Refresh data
-        if (selectedEmail && selectedEmail.id === row.id) {
-          setFormMode(null);
-          setSelectedEmail(null);
-        }
+        getEmailData();
+        // Clear selection if deleted row was selected
+        setSelectedEmail((prev) => (prev?.id === row.id ? null : prev));
+        setFormMode((prev) => (selectedEmail?.id === row.id ? null : prev));
       } catch (error) {
         dispatch(
           showToast({
@@ -117,8 +118,9 @@ export default function EmailList() {
           }),
         );
       }
-    }
-  };
+    },
+    [dispatch, getEmailData, selectedEmail?.id],
+  );
 
   const handleFormSaved = () => {
     getEmailData();
@@ -155,7 +157,7 @@ export default function EmailList() {
     [],
   );
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (!selectedEmails.length) return;
     if (!window.confirm(`Delete ${selectedEmails.length} emails?`)) return;
 
@@ -179,38 +181,87 @@ export default function EmailList() {
         }),
       );
     }
-  };
+  }, [selectedEmails, dispatch, getEmailData]);
+
+  const toggleSelectEmail = useCallback((row: dynamicData) => {
+    setSelectedEmails((prev) => {
+      const exists = prev.some((r) => r.id === row.id);
+      if (exists) {
+        return prev.filter((r) => r.id !== row.id);
+      }
+      return [...prev, row];
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedEmails((prev) => {
+      if (prev.length === data.length) {
+        return [];
+      }
+      return [...data];
+    });
+  }, [data]);
   /* ---------------- Columns ---------------- */
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
+      {
+        name: (
+          <input
+            type="checkbox"
+            checked={selectedEmails.length === data.length && data.length > 0}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        cell: (row: dynamicData) => (
+          <input
+            type="checkbox"
+            checked={selectedEmails.some((r) => r.id === row.id)}
+            onChange={() => toggleSelectEmail(row)}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        ignoreRowClick: true,
+        allowOverflow: true,
+        button: true,
+        width: "50px",
+        sortable: false,
+        reorder: false,
+      },
+      {
+        name: "id",
+        selector: (row: dynamicData) => row.id,
+        sortable: true,
+        width: "5%",
+      },
       {
         name: "email",
-        selector: (row) => row.email || "--",
-        cell: (row) => (row.email ? row.email.toString() : "--"),
+        selector: (row: dynamicData) => row.email || "--",
+        cell: (row: dynamicData) => (row.email ? row.email.toString() : "--"),
         sortable: true,
         width: "15%",
       },
       {
         name: "name",
-        selector: (row) => row.name || "--",
-        cell: (row) => (row.name ? row.name.toString() : "--"),
+        selector: (row: dynamicData) => row.name || "--",
+        cell: (row: dynamicData) => (row.name ? row.name.toString() : "--"),
         sortable: true,
         width: "20%",
       },
 
       {
         name: "attention",
-        selector: (row) => row.attention || "--",
-        cell: (row) => (row.attention ? row.attention.toString() : "--"),
+        selector: (row: dynamicData) => row.attention || "--",
+        cell: (row: dynamicData) =>
+          row.attention ? row.attention.toString() : "--",
         sortable: true,
         width: "25%",
       },
 
       {
         name: "is_primary",
-        selector: (row) => (row.is_primary ? "Yes" : "No"), // Plain string for filtering
-        cell: (row) => (
+        selector: (row: dynamicData) => (row.is_primary ? "Yes" : "No"), // Plain string for filtering
+        cell: (row: dynamicData) => (
           <>
             <Badge size="sm" color={row.is_primary ? "success" : "warning"}>
               {row.is_primary ? "Yes" : "No"}
@@ -222,8 +273,8 @@ export default function EmailList() {
       },
       {
         name: "is_verified",
-        selector: (row) => (row.is_verified ? "Yes" : "No"), // Plain string for filtering
-        cell: (row) => (
+        selector: (row: dynamicData) => (row.is_verified ? "Yes" : "No"), // Plain string for filtering
+        cell: (row: dynamicData) => (
           <>
             <Badge size="sm" color={row.is_verified ? "success" : "warning"}>
               {row.is_verified ? "Yes" : "No"}
@@ -235,14 +286,8 @@ export default function EmailList() {
       },
       {
         name: "action",
-        cell: (row) => (
+        cell: (row: dynamicData) => (
           <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
             <button onClick={() => handleDelete(row)} title="Delete">
               <FaTrash className="text-red-600 hover:scale-110 transition" />
             </button>
@@ -253,7 +298,13 @@ export default function EmailList() {
         button: true,
       },
     ],
-    [handleDelete, handleEdit, handleView],
+    [
+      handleDelete,
+      selectedEmails,
+      data.length,
+      toggleSelectEmail,
+      toggleSelectAll,
+    ],
   );
 
   return (
@@ -280,12 +331,11 @@ export default function EmailList() {
                 loading={loading}
                 filters={filters}
                 enableExport={true}
-                enableSelection={true}
+                enableSelection={false}
                 enableDatabaseSearch={true}
                 searchDatabase={searchDatabase}
                 onSearchModeChange={setSearchDatabase}
                 onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedEmails}
                 exportFileName="emails_export"
                 searchPlaceholder="Search emails, names, attention..."
                 noDataMessage="No emails found"
@@ -309,7 +359,7 @@ export default function EmailList() {
                     </button>
                   </div>
                 }
-                onRowClicked={handleEdit}
+                onRowClicked={handleView}
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}
                 rowKeyField="id"

@@ -76,12 +76,12 @@ export default function DomainList() {
     [dispatch],
   );
 
-  const handleView = (row: dynamicData) => {
+  const handleView = useCallback((row: dynamicData) => {
     setSelectedEmail(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = async (row: dynamicData) => {
+  const handleEdit = useCallback(async (row: dynamicData) => {
     // Set selected item immediately using row data
     setSelectedEmail(row);
     setFormMode("edit");
@@ -99,15 +99,17 @@ export default function DomainList() {
     } catch (error) {
       // Keep using row data on error
     }
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedEmail(null);
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete domain ${row.id}?`)) {
+  const handleDelete = useCallback(
+    async (row: dynamicData) => {
+      if (!window.confirm(`Delete domain ${row.id}?`)) return;
+
       try {
         await deleteDomain(row.id);
         dispatch(
@@ -116,11 +118,10 @@ export default function DomainList() {
             type: "success",
           }),
         );
-        getEmailData(); // Refresh data
-        if (selectedEmail && selectedEmail.id === row.id) {
-          setFormMode(null);
-          setSelectedEmail(null);
-        }
+        getEmailData();
+        // Clear selection if deleted row was selected
+        setSelectedEmail((prev) => (prev?.id === row.id ? null : prev));
+        setFormMode((prev) => (selectedEmail?.id === row.id ? null : prev));
       } catch (error) {
         dispatch(
           showToast({
@@ -129,8 +130,9 @@ export default function DomainList() {
           }),
         );
       }
-    }
-  };
+    },
+    [dispatch, getEmailData, selectedEmail?.id],
+  );
 
   const handleFormSaved = () => {
     getEmailData();
@@ -162,7 +164,7 @@ export default function DomainList() {
       : [];
   }, [data]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (!selectedDomains.length) return;
     if (!window.confirm(`Delete ${selectedDomains.length} domains?`)) return;
 
@@ -184,7 +186,26 @@ export default function DomainList() {
         }),
       );
     }
-  };
+  }, [selectedDomains, dispatch, getEmailData]);
+
+  const toggleSelectDomain = useCallback((row: dynamicData) => {
+    setSelectedDomains((prev) => {
+      const exists = prev.some((r) => r.id === row.id);
+      if (exists) {
+        return prev.filter((r) => r.id !== row.id);
+      }
+      return [...prev, row];
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedDomains((prev) => {
+      if (prev.length === data.length) {
+        return [];
+      }
+      return [...data];
+    });
+  }, [data]);
   /* ---------------- Columns ---------------- */
   const columnConfig = useMemo<DomainColumnConfig[]>(
     () => [
@@ -200,7 +221,14 @@ export default function DomainList() {
         label: "path",
         width: "75%",
         sortable: true,
-        getValue: (row) => (row.path ? String(row.path) : "--"),
+        getValue: (row) =>
+          row.path
+            ? String(
+                (row.path ?? "--").length > 160
+                  ? `${(row.path ?? "--").slice(0, 160)}...`
+                  : row.path ?? "--",
+              )
+            : "--",
       },
       {
         key: "type",
@@ -215,6 +243,30 @@ export default function DomainList() {
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
+      {
+        name: (
+          <input
+            type="checkbox"
+            checked={selectedDomains.length === data.length && data.length > 0}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        cell: (row: dynamicData) => (
+          <input
+            type="checkbox"
+            checked={selectedDomains.some((r) => r.id === row.id)}
+            onChange={() => toggleSelectDomain(row)}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        ignoreRowClick: true,
+        allowOverflow: true,
+        button: true,
+        width: "80px",
+        sortable: false,
+        reorder: false,
+      },
       ...columnConfig.map((col) => ({
         name: col.label,
         selector: (row: dynamicData) => col.getValue(row),
@@ -226,12 +278,6 @@ export default function DomainList() {
         name: "action",
         cell: (row: dynamicData) => (
           <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
             <button onClick={() => handleDelete(row)} title="Delete">
               <FaTrash className="text-red-600 hover:scale-110 transition" />
             </button>
@@ -242,7 +288,14 @@ export default function DomainList() {
         button: true,
       },
     ],
-    [columnConfig, handleDelete, handleEdit, handleView],
+    [
+      columnConfig,
+      handleDelete,
+      selectedDomains,
+      data.length,
+      toggleSelectDomain,
+      toggleSelectAll,
+    ],
   );
 
   return (
@@ -267,12 +320,11 @@ export default function DomainList() {
                 loading={loading}
                 filters={filters}
                 enableExport={true}
-                enableSelection={true}
+                enableSelection={false}
                 enableDatabaseSearch={true}
                 searchDatabase={searchDatabase}
                 onSearchModeChange={setSearchDatabase}
                 onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedDomains}
                 exportFileName="domains_export"
                 searchPlaceholder="Search domains..."
                 noDataMessage="No domains found"
@@ -288,7 +340,7 @@ export default function DomainList() {
                       </button>
                     )}
                     <button
-                      onClick={handleAdd}
+                      onClick={handleView}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       <FaPlus className="w-4 h-4" />

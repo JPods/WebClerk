@@ -61,12 +61,12 @@ export default function PhoneList() {
     [dispatch],
   );
 
-  const handleView = (row: dynamicData) => {
+  const handleView = useCallback((row: dynamicData) => {
     setSelectedPhone(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = async (row: dynamicData) => {
+  const handleEdit = useCallback(async (row: dynamicData) => {
     // Set selected item immediately using row data
     setSelectedPhone(row);
     setFormMode("edit");
@@ -84,15 +84,17 @@ export default function PhoneList() {
     } catch (error) {
       // Keep using row data on error
     }
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedPhone(null);
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete phone ${row.number}?`)) {
+  const handleDelete = useCallback(
+    async (row: dynamicData) => {
+      if (!window.confirm(`Delete phone ${row.number}?`)) return;
+
       try {
         await deletePhone(row.id);
         dispatch(
@@ -102,10 +104,9 @@ export default function PhoneList() {
           }),
         );
         getPhoneData();
-        if (selectedPhone && selectedPhone.id === row.id) {
-          setFormMode(null);
-          setSelectedPhone(null);
-        }
+        // Clear selection if deleted row was selected
+        setSelectedPhone((prev) => (prev?.id === row.id ? null : prev));
+        setFormMode((prev) => (selectedPhone?.id === row.id ? null : prev));
       } catch (error) {
         dispatch(
           showToast({
@@ -114,8 +115,9 @@ export default function PhoneList() {
           }),
         );
       }
-    }
-  };
+    },
+    [dispatch, getPhoneData, selectedPhone?.id],
+  );
 
   const handleFormSaved = () => {
     getPhoneData();
@@ -160,7 +162,7 @@ export default function PhoneList() {
     ];
   }, [data]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (!selectedPhones.length) return;
     if (!window.confirm(`Delete ${selectedPhones.length} phones?`)) return;
 
@@ -182,10 +184,53 @@ export default function PhoneList() {
         }),
       );
     }
-  };
+  }, [selectedPhones, dispatch, getPhoneData]);
+
+  const toggleSelectPhone = useCallback((row: dynamicData) => {
+    setSelectedPhones((prev) => {
+      const exists = prev.some((r) => r.id === row.id);
+      if (exists) {
+        return prev.filter((r) => r.id !== row.id);
+      }
+      return [...prev, row];
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedPhones((prev) => {
+      if (prev.length === data.length) {
+        return [];
+      }
+      return [...data];
+    });
+  }, [data]);
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
+      {
+        name: (
+          <input
+            type="checkbox"
+            checked={selectedPhones.length === data.length && data.length > 0}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        cell: (row: dynamicData) => (
+          <input
+            type="checkbox"
+            checked={selectedPhones.some((r) => r.id === row.id)}
+            onChange={() => toggleSelectPhone(row)}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ),
+        ignoreRowClick: true,
+        allowOverflow: true,
+        button: true,
+        width: "50px",
+        sortable: false,
+        reorder: false,
+      },
       { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
       {
         name: "number",
@@ -222,12 +267,6 @@ export default function PhoneList() {
         name: "action",
         cell: (row) => (
           <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
             <button onClick={() => handleDelete(row)} title="Delete">
               <FaTrash className="text-red-600 hover:scale-110 transition" />
             </button>
@@ -238,7 +277,13 @@ export default function PhoneList() {
         button: true,
       },
     ],
-    [handleDelete, handleEdit, handleView],
+    [
+      handleDelete,
+      selectedPhones,
+      data.length,
+      toggleSelectPhone,
+      toggleSelectAll,
+    ],
   );
 
   return (
@@ -265,12 +310,11 @@ export default function PhoneList() {
                 loading={loading}
                 filters={filters}
                 enableExport={true}
-                enableSelection={true}
+                enableSelection={false}
                 enableDatabaseSearch={true}
                 searchDatabase={searchDatabase}
                 onSearchModeChange={setSearchDatabase}
                 onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedPhones}
                 exportFileName="phones_export"
                 searchPlaceholder="Search phones..."
                 noDataMessage="No phones found"
@@ -294,7 +338,7 @@ export default function PhoneList() {
                     </button>
                   </div>
                 }
-                onRowClicked={handleEdit}
+                onRowClicked={handleView}
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}
                 rowKeyField="id"

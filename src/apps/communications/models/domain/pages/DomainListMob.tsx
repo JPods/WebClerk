@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
@@ -14,7 +13,6 @@ export default function DomainListMob({
   dataProp,
   selectedDomain,
   handleView,
-  handleEdit,
 }: DomainListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -34,7 +32,11 @@ export default function DomainListMob({
         dataProp.map((contact, index) => (
           <AccordionItem
             key={contact.id}
-            title={`path: ${contact.path ?? "--"} (id: ${contact.id})`}
+            title={`[id: ${contact.id}]  ${
+              (contact.path ?? "--").length > 40
+                ? `${(contact.path ?? "--").slice(0, 40)}...`
+                : contact.path ?? "--"
+            }`}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
@@ -49,6 +51,12 @@ export default function DomainListMob({
             <div className="flex flex-col min-h-auto">
               {/* Content */}
               <div className="space-y-1 text-sm border-t">
+                <p>
+                  <strong>contact:</strong> {contact.contact || "--"}
+                </p>
+                <p>
+                  <strong>path:</strong> {contact.path || "--"}
+                </p>
                 <p>
                   <strong>type:</strong> {contact.type || "--"}
                 </p>
