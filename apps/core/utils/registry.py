@@ -47,6 +47,12 @@ def resolve(key: str):
         return None
     skey = str(key).strip().strip('/')
 
+    # 0) aliases for models whose class name != API model_name
+    _RESOLVE_ALIASES = {
+        "organization": "orgbase",
+    }
+    skey = _RESOLVE_ALIASES.get(skey, skey)
+
     # 1) registry
     cfg = get(skey)
     if cfg:

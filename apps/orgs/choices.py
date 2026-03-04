@@ -12,6 +12,7 @@ ORG_TYPE_CHOICES: Final[ChoiceList] = tuple(OrgType.choices)  # reuse TextChoice
 ORG_STATUS_CHOICES: Final[ChoiceList] = (
     ("", "Unspecified"),
     ("active", "Active"),
+    ("default_company", "Default Company"),
     ("prospect", "Prospect"),
     ("suspended", "Suspended"),
     ("inactive", "Inactive"),
