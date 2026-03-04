@@ -1656,6 +1656,15 @@ const KanbanBoardPage: React.FC = () => {
     const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
     const normalizedIsActive = task.is_active;
 
+    const taskAttachments: TaskAttachment[] = (task.attachments || []).map(att => ({
+      id: `existing-${att.id}`,
+      documentId: att.id,
+      type: att.mime_type,
+      name: att.name,
+      size: att.size_bytes,
+      previewUrl: att.url,
+    }));
+
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
@@ -1669,6 +1678,7 @@ const KanbanBoardPage: React.FC = () => {
       difficulty: normalizedDifficulty,
       percent_complete: String(normalizedProgress),
       is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
+      attachments: taskAttachments,
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -2119,6 +2129,16 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     payloadItem.is_active = state.is_active !== "false";
+
+    // Add attachments if present
+    if (state.attachments && state.attachments.length > 0) {
+      const documentIds = state.attachments
+        .map(att => att.documentId)
+        .filter(id => id !== undefined);
+      if (documentIds.length > 0) {
+        payloadItem.attachments = documentIds;
+      }
+    }
 
     // Backend doesn't process 'bulk' arrays - always send action directly
     return { payload: cleanActionPayload(payloadItem) };

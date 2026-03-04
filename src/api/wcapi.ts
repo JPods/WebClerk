@@ -513,3 +513,39 @@ export async function logRefsMismatch(payload: {
     console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
   }
 }
+
+// Document upload functions
+export interface DocumentUploadResponse {
+  document_id: number;
+  path: string;
+  checksum: string;
+  is_duplicate: boolean;
+  url: string;
+  name: string;
+  size_bytes: number;
+  mime_type: string;
+  document: any;
+}
+
+export async function uploadDocument(
+  file: File,
+  modelName?: string,
+  parentId?: number,
+  purpose: string = "attachment",
+  description?: string
+): Promise<DocumentUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (modelName) formData.append("model_name", modelName);
+  if (parentId) formData.append("parent_id", parentId.toString());
+  formData.append("purpose", purpose);
+  if (description) formData.append("description", description);
+
+  const response = await apiClient.post("/wcapi/upload/", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+}

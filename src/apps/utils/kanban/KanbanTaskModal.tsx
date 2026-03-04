@@ -58,6 +58,8 @@ interface KanbanTaskModalProps {
   isRemoving?: boolean;
 }
 
+import { uploadDocument } from "../../../api/wcapi";
+
 export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   mode,
   isOpen,
@@ -95,69 +97,81 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   }, [isOpen]);
 
   // File upload handling
-  const handleFileSelect = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const uploadFiles = useCallback(async (files: FileList | File[]): Promise<TaskAttachment[]> => {
+    const fileArray = Array.from(files);
+    const uploadedAttachments: TaskAttachment[] = [];
+
+    for (const file of fileArray) {
+      try {
+        const uploadResponse = await uploadDocument(file, "action", undefined, "attachment");
+        
+        const attachment: TaskAttachment = {
+          id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          documentId: uploadResponse.document_id,
+          type: file.type,
+          name: file.name,
+          size: file.size,
+        };
+
+        // Create preview URL for images
+        if (file.type.startsWith('image/')) {
+          attachment.previewUrl = uploadResponse.url;
+        }
+
+        uploadedAttachments.push(attachment);
+      } catch (error) {
+        console.error("Failed to upload file:", file.name, error);
+        // Still add the attachment but mark it as failed
+        const attachment: TaskAttachment = {
+          id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          type: file.type,
+          name: file.name,
+          size: file.size,
+        };
+
+        if (file.type.startsWith('image/')) {
+          attachment.previewUrl = URL.createObjectURL(file);
+        }
+
+        uploadedAttachments.push(attachment);
+      }
+    }
+
+    return uploadedAttachments;
+  }, []);
+
+  const handleFileSelect = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    const newAttachments: TaskAttachment[] = [];
-    Array.from(files).forEach((file) => {
-      const attachment: TaskAttachment = {
-        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        type: file.type,
-        name: file.name,
-        size: file.size,
-      };
-
-      // Create preview URL for images
-      if (file.type.startsWith('image/')) {
-        attachment.previewUrl = URL.createObjectURL(file);
-      }
-
-      newAttachments.push(attachment);
-    });
+    const uploadedAttachments = await uploadFiles(files);
 
     // Update form state with new attachments
     const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...newAttachments];
+    const updatedAttachments = [...currentAttachments, ...uploadedAttachments];
     onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange]);
+  }, [formState.attachments, onFieldChange, uploadFiles]);
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback((event: React.DragEvent) => {
+  const handleDrop = useCallback(async (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
     const files = event.dataTransfer.files;
     if (!files) return;
 
-    const newAttachments: TaskAttachment[] = [];
-    Array.from(files).forEach((file) => {
-      const attachment: TaskAttachment = {
-        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        type: file.type,
-        name: file.name,
-        size: file.size,
-      };
-
-      // Create preview URL for images
-      if (file.type.startsWith('image/')) {
-        attachment.previewUrl = URL.createObjectURL(file);
-      }
-
-      newAttachments.push(attachment);
-    });
+    const uploadedAttachments = await uploadFiles(files);
 
     // Update form state with new attachments
     const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...newAttachments];
+    const updatedAttachments = [...currentAttachments, ...uploadedAttachments];
     onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange]);
+  }, [formState.attachments, onFieldChange, uploadFiles]);
 
   const removeAttachment = useCallback((attachmentId: string) => {
     const currentAttachments = formState.attachments || [];
