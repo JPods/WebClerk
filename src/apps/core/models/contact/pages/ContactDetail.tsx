@@ -2922,6 +2922,8 @@ export default function ContactDetail({
                   }
                   viewMode="table"
                   isEditing={isEditing}
+                  parentModelName="contact"
+                  parentIdOverride={data.id}
                   onChange={(actions) =>
                     setFetchedData((prev: any) => ({
                       ...(prev || data),
