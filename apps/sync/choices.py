@@ -12,6 +12,7 @@ CONNECTION_TYPE_CHOICES: Final[ChoiceList] = (
     ("database", "Database"),
     ("webhook", "Webhook"),
     ("manual", "Manual"),
+    ("internal", "Internal"),
 )
 
 CONNECTION_STATUS_CHOICES: Final[ChoiceList] = (

@@ -51,6 +51,9 @@ except ImportError:
 
 logger = logging.getLogger('wcapi.sync_model')
 
+# ── sync_model Connection name (get_or_create'd on first run) ───────
+_SYNC_CONNECTION_NAME = 'sync_model'
+
 # ── database alias names used within this command only ──────────────
 _LOCAL_ALIAS = '_sync_local'
 _REMOTE_ALIAS = '_sync_remote'
@@ -459,7 +462,10 @@ class Command(BaseCommand):
                         batch = objects[i:i + batch_size]
                         for obj in batch:
                             try:
-                                obj.save(using=tgt_alias)
+                                # Savepoint per row so a single IntegrityError
+                                # doesn't poison the whole PostgreSQL transaction.
+                                with transaction.atomic(using=tgt_alias):
+                                    obj.save(using=tgt_alias)
                                 inserted += 1
                             except IntegrityError as exc:
                                 pk = obj.object.pk
@@ -490,7 +496,7 @@ class Command(BaseCommand):
                                             existing.save(using=tgt_alias)
                                             updated += 1
                                         else:
-                                            pass
+                                            inserted += 1  # row already matches
                                     else:
                                         if conflict_mode == 'new':
                                             # Create new record at destination
@@ -500,7 +506,7 @@ class Command(BaseCommand):
                                         else:
                                             conflict_info = {
                                                 'pk': pk,
-                                                'fields': obj.object.__dict__,
+                                                'fields': {k: repr(v) for k, v in obj.object.__dict__.items() if k != '_state'},
                                                 'error': str(exc),
                                                 'reason': 'UUID mismatch',
                                             }
@@ -513,7 +519,7 @@ class Command(BaseCommand):
                                     else:
                                         conflict_info = {
                                             'pk': pk,
-                                            'fields': obj.object.__dict__,
+                                            'fields': {k: repr(v) for k, v in obj.object.__dict__.items() if k != '_state'},
                                             'error': str(exc),
                                             'reason': 'No target row with matching PK',
                                         }
@@ -533,6 +539,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(" done"))
 
             elapsed = time.time() - t0
+            elapsed_ms = int(elapsed * 1000)
             self.stdout.write("")
             self.stdout.write(self.style.SUCCESS(
                 f"  ✓ {model._meta.label}: {inserted:,} rows synced, {updated:,} updated "
@@ -543,6 +550,18 @@ class Command(BaseCommand):
                     f"  FK conflicts detected: {len(fk_conflicts)} rows failed to insert"
                 ))
             self.stdout.write("")
+
+            # ── Bundle record ───────────────────────────────────────
+            self._save_bundle(
+                model_label=model._meta.label, table=table,
+                src_label=src_label, tgt_label=tgt_label,
+                src_host=src_host, tgt_host=tgt_host,
+                src_count=src_count, tgt_count=tgt_count,
+                rows_synced=inserted, updated=updated,
+                elapsed_ms=elapsed_ms,
+                fk_conflicts=fk_conflicts,
+            )
+
             # ── audit log ───────────────────────────────────────────
             _log_audit(
                 model_label=model._meta.label, table=table,
@@ -566,6 +585,66 @@ class Command(BaseCommand):
                 status='ERROR', error=str(exc),
             )
             raise
+
+    # ────────────────────────────────────────────────────────────────
+    #  Bundle logging
+    # ────────────────────────────────────────────────────────────────
+
+    def _save_bundle(self, *, model_label, table, src_label, tgt_label,
+                     src_host, tgt_host, src_count, tgt_count,
+                     rows_synced, updated, elapsed_ms, fk_conflicts):
+        """Create a lightweight sync.Bundle record for this sync run."""
+        try:
+            from apps.sync.models import Bundle, Connection
+
+            connection, _ = Connection.objects.using('default').get_or_create(
+                name=_SYNC_CONNECTION_NAME,
+                defaults={
+                    'type': 'internal',
+                    'config': {
+                        'description': 'Internal sync_model management command',
+                    },
+                    'purpose': 'sync',
+                    'status': 'active',
+                },
+            )
+
+            direction = 'pull' if tgt_label == 'LOCAL' else 'push'
+            has_conflicts = bool(fk_conflicts)
+
+            if has_conflicts:
+                status = 'warning'
+                alert = 'warning'
+            else:
+                status = 'success'
+                alert = 'none'
+
+            Bundle.objects.using('default').create(
+                connection=connection,
+                direction=direction,
+                config={
+                    'model': model_label,
+                    'table': table,
+                    'src': f"{src_label}@{src_host}",
+                    'tgt': f"{tgt_label}@{tgt_host}",
+                    'src_count': src_count,
+                    'tgt_count': tgt_count,
+                    'updated': updated,
+                },
+                status=status,
+                alert=alert,
+                duration=elapsed_ms,
+                size=rows_synced,
+                conflicts=fk_conflicts if has_conflicts else None,
+            )
+            self.stdout.write(f"  Bundle recorded (direction={direction}, "
+                             f"status={status}, size={rows_synced})")
+        except Exception as exc:
+            # Non-fatal: don't let bundle logging break a successful sync
+            logger.warning("Could not save Bundle record: %s", exc)
+            self.stdout.write(self.style.WARNING(
+                f"  Bundle record skipped: {exc}"
+            ))
 
     # ────────────────────────────────────────────────────────────────
     #  List mode
