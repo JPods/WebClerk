@@ -46,6 +46,46 @@ export interface GetDetailPayload {
   related?: Record<string, any[]>;
 }
 
+function getBackendErrorMessage(err: any, fallback: string): string {
+  const data = err?.response?.data;
+  if (!data) {
+    return err?.message || fallback;
+  }
+
+  if (typeof data === "string") {
+    return data;
+  }
+
+  const detail = data?.detail;
+  const error = data?.error;
+  const message = data?.message;
+
+  if (detail === "Insufficient inventory") {
+    const sku = data?.sku || data?.item_id || "item";
+    const required = data?.required;
+    const available = data?.available;
+    if (required !== undefined && available !== undefined) {
+      return `Transfer failed: insufficient inventory for ${sku} (required ${required}, available ${available})`;
+    }
+  }
+
+  if (detail === "Transfer quantity exceeds source remaining") {
+    const sourceModel = data?.source_model || "source";
+    const sourceLineId = data?.source_line_id;
+    const requested = data?.requested;
+    const remaining = data?.remaining;
+    if (
+      sourceLineId !== undefined &&
+      requested !== undefined &&
+      remaining !== undefined
+    ) {
+      return `Transfer failed: ${sourceModel} line #${sourceLineId} requested ${requested} but only ${remaining} remaining`;
+    }
+  }
+
+  return detail || error || message || err?.message || fallback;
+}
+
 export async function getModelNames() {
   try {
     const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>(
@@ -188,7 +228,7 @@ export async function saveRecord(model_name: string, payload: any) {
       const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
       return res2.data.data;
     }
-    throw err;
+    throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
 }
 
@@ -246,7 +286,7 @@ export async function saveTransactionWithLines(
       );
       return res2.data.data ?? res2.data;
     }
-    throw err;
+    throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }
 }
 
