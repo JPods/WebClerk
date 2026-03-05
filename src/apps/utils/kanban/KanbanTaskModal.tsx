@@ -89,9 +89,11 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   if (!isOpen) return null;
 
   const [assigneeSelection, setAssigneeSelection] = useState<string>("");
+  const [modalSide, setModalSide] = useState<"left" | "right">("right");
 
   useEffect(() => {
     setAssigneeSelection("");
+    setModalSide("right");
   }, [isOpen]);
 
   // File upload handling
@@ -378,9 +380,47 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   const controlClass = `mt-1 ${controlBaseClass}`;
   const textareaClass = `${controlBaseClass} mt-1 h-5 min-h-[1.5rem] resize-y`;
 
+  const isLeftSide = modalSide === "left";
+
   const modal = (
-    <div className="pointer-events-none fixed inset-0 z-200000 flex items-stretch justify-end">
-      <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-gray-200 bg-white shadow-2xl no-scrollbar dark:border-gray-800 dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
+    <div
+      className={`pointer-events-none fixed inset-0 z-200000 flex items-stretch ${
+        isLeftSide ? "justify-start" : "justify-end"
+      }`}
+    >
+      <div className="pointer-events-auto flex h-full items-stretch">
+        {!isLeftSide && (
+          <button
+            type="button"
+            onClick={() => setModalSide("left")}
+            disabled={isSaving}
+            aria-label="Move modal to left side"
+            className="flex h-full w-6 items-center justify-center border-x border-gray-200 bg-white/95 text-gray-500 transition hover:bg-gray-100 hover:text-indigo-600 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-800 dark:bg-gray-900/95 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12.5 4.5L7 10l5.5 5.5"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
+
+        <div
+          className={`flex h-full w-full max-h-screen flex-col overflow-hidden bg-white no-scrollbar dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px] ${
+            isLeftSide
+              ? "border-r border-gray-200 dark:border-gray-800"
+              : "border-l border-gray-200 dark:border-gray-800"
+          }`}
+        >
         <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -967,6 +1007,32 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             {submitLabel}
           </button>
         </div>
+      </div>
+
+        {isLeftSide && (
+          <button
+            type="button"
+            onClick={() => setModalSide("right")}
+            disabled={isSaving}
+            aria-label="Move modal to right side"
+            className="flex h-full w-6 items-center justify-center border-x border-gray-200 bg-white/95 text-gray-500 transition hover:bg-gray-100 hover:text-indigo-600 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-800 dark:bg-gray-900/95 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M7.5 4.5L13 10l-5.5 5.5"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
