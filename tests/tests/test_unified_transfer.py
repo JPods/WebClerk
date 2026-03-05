@@ -13,6 +13,7 @@ from apps.transactions.models import (
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
+    WorkOrder, WorkOrderLine,
 )
 from apps.orgs.models import OrgBase
 from apps.transactions.services.transfer import execute_transfer, TransferError
@@ -104,6 +105,30 @@ def _make_purchase_line(purchase, placed=10, actioned=0, remaining=None, **kw):
     }
     defaults.update(kw)
     return PurchaseLine.objects.create(**defaults)
+
+
+def _make_workorder(**kw):
+    defaults = {"status": "open"}
+    defaults.update(kw)
+    return WorkOrder.objects.create(**defaults)
+
+
+def _make_workorder_line(workorder, placed=10, actioned=0, remaining=None, **kw):
+    if remaining is None:
+        remaining = placed - actioned
+    defaults = {
+        "workorder": workorder,
+        "item": {"description": "Widget", "sku": "WDG-100"},
+        "cost": {"unit": 12.0, "extended": 12.0 * placed},
+        "quantity": {
+            "placed": placed,
+            "actioned": actioned,
+            "remaining": remaining,
+            "precision": 2,
+        },
+    }
+    defaults.update(kw)
+    return WorkOrderLine.objects.create(**defaults)
 
 
 # ===================================================================
@@ -448,6 +473,50 @@ class TestCrossTypePurchaseToOrder:
         assert ol.quantity["placed"] == 20
         assert ol.quantity["actioned"] == 0
         assert ol.quantity["remaining"] == 20
+
+
+# ===================================================================
+# 5b. WORKORDER TRANSFER MATRIX SUPPORT
+# ===================================================================
+
+@pytest.mark.django_db
+class TestWorkOrderTransferSupport:
+
+    def test_order_to_workorder(self):
+        order = _make_order()
+        ol = _make_order_line(order, placed=6, actioned=0, remaining=6)
+
+        result = execute_transfer(
+            source_type="order",
+            source_id=order.pk,
+            target_type="workorder",
+        )
+
+        assert result["success"] is True
+        wo = WorkOrder.objects.get(pk=result["target_id"])
+        assert wo.parent_model == "order"
+        assert wo.parent_id == order.pk
+
+        wol = WorkOrderLine.objects.get(pk=result["line_mapping"][ol.pk])
+        assert wol.quantity["placed"] == 6
+
+    def test_workorder_to_invoice(self):
+        wo = _make_workorder()
+        wol = _make_workorder_line(wo, placed=4, actioned=0, remaining=4)
+
+        result = execute_transfer(
+            source_type="workorder",
+            source_id=wo.pk,
+            target_type="invoice",
+        )
+
+        assert result["success"] is True
+        inv = Invoice.objects.get(pk=result["target_id"])
+        assert inv.parent_model == "workorder"
+        assert inv.parent_id == wo.pk
+
+        il = InvoiceLine.objects.get(pk=result["line_mapping"][wol.pk])
+        assert il.quantity["placed"] == 4
 
 
 # ===================================================================

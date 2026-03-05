@@ -167,6 +167,8 @@ class WCAPITransactionSaveView(APIView):
             calculate_header_totals,
             CalculationMismatchError,
             ItemIdChangeError,
+            TransferQuantityError,
+            InsufficientInventoryError,
         )
         from common.write_through import is_write_through, forward_transaction_and_store
         
@@ -258,6 +260,26 @@ class WCAPITransactionSaveView(APIView):
                 "line_id": e.line_id,
                 "old_item_id": e.old_item_id,
                 "new_item_id": e.new_item_id,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except TransferQuantityError as e:
+            return Response({
+                "detail": "Transfer quantity exceeds source remaining",
+                "error": str(e),
+                "source_model": e.source_model,
+                "source_line_id": e.source_line_id,
+                "requested": e.requested,
+                "remaining": e.remaining,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except InsufficientInventoryError as e:
+            return Response({
+                "detail": "Insufficient inventory",
+                "error": str(e),
+                "item_id": e.item_id,
+                "sku": e.sku,
+                "required": e.required,
+                "available": e.available,
             }, status=status.HTTP_400_BAD_REQUEST)
             
         except LookupError as e:

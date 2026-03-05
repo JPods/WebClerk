@@ -89,6 +89,15 @@ def _create_pending_from_deltas(
     created_count = 0
     seen_pairs: set = set()
 
+    def _bucket_key_for_type_code(type_code: str) -> str | None:
+        return {
+            'SO': 'on_so',
+            'PO': 'on_po',
+            'WO': 'on_wo',
+            'PP': 'on_p',
+            'IN': 'on_in',
+        }.get(type_code)
+
     for delta in pending_deltas:
         item_id = delta['item_id']
         line_id = delta['line_id']           # the saved new-line PK
@@ -160,22 +169,26 @@ def _create_pending_from_deltas(
             'links': {},
         }
 
-        if pending_type == 'SO':
-            pending_data['on_so'] = quantity
-        elif pending_type == 'PO':
-            pending_data['on_po'] = quantity
-        elif pending_type == 'WO':
-            pending_data['on_wo'] = quantity
-        elif pending_type == 'PP':
-            pending_data['on_p'] = quantity  # probability handled during apply
-        elif pending_type == 'IN':
-            pending_data['on_in'] = quantity
-            if is_transfer and parent_model == 'order':
-                # Invoice from order: release SO commitment + deduct on_hand
-                pending_data['on_so'] = -quantity
-                pending_data['on_hand'] = -quantity
-                pending_data['links']['order'] = {'parent_id': parent_id}
-                pending_data['reason'] = 'in line add (releases so, deducts on_hand)'
+        target_bucket = _bucket_key_for_type_code(pending_type)
+        if target_bucket:
+            pending_data[target_bucket] = quantity
+
+        if is_transfer and parent_model:
+            source_type_code = _PENDING_TYPE_MAP.get(str(parent_model).lower())
+            source_bucket = _bucket_key_for_type_code(source_type_code or '')
+            if source_bucket:
+                pending_data[source_bucket] = pending_data.get(source_bucket, 0) - quantity
+                pending_data['links'][str(parent_model).lower()] = {'parent_id': parent_id}
+                pending_data['reason'] = (
+                    f"{pending_type.lower()} line add (releases {source_bucket})"
+                )
+
+        if pending_type == 'IN':
+            pending_data['on_hand'] = pending_data.get('on_hand', 0) - quantity
+            if is_transfer and parent_model:
+                pending_data['reason'] = (
+                    f"in line add (releases source, deducts on_hand)"
+                )
 
         # Look up item.ida for the name field
         item_ida = delta.get('item_ida', str(item_id))
@@ -245,6 +258,125 @@ class ItemIdChangeError(Exception):
             f"Current: {old_item_id}, Attempted: {new_item_id}. "
             f"To change the item, delete this line and add a new line with the correct item."
         )
+
+
+class TransferQuantityError(Exception):
+    """Raised when a transfer line requests more than source remaining qty."""
+
+    def __init__(self, source_model: str, source_line_id: int, requested: float, remaining: float):
+        self.source_model = source_model
+        self.source_line_id = source_line_id
+        self.requested = requested
+        self.remaining = remaining
+        super().__init__(
+            f"Transfer quantity exceeds source remaining for "
+            f"{source_model}_line #{source_line_id}: requested={requested}, remaining={remaining}"
+        )
+
+
+class InsufficientInventoryError(Exception):
+    """Raised when transfer requires more inventory than currently available."""
+
+    def __init__(self, item_id: int, sku: str, required: float, available: float):
+        self.item_id = item_id
+        self.sku = sku
+        self.required = required
+        self.available = available
+        super().__init__(
+            f"Insufficient inventory for item {sku} (id={item_id}): "
+            f"required={required}, available={available}"
+        )
+
+
+def _line_placed_qty(line_data: Dict[str, Any]) -> float:
+    qty_data = line_data.get('quantity') or {}
+    if not isinstance(qty_data, dict):
+        return 0.0
+    return float(qty_data.get('placed', 0) or qty_data.get('ordered', 0) or 0)
+
+
+def _validate_transfer_quantities_and_inventory(
+    *,
+    model_key: str,
+    parent_model: str,
+    lines_data: List[Dict[str, Any]],
+) -> None:
+    """Validate transfer requests before creating/updating lines.
+
+    Rules:
+    1) Sum transferred qty per source line and block if request > source.remaining.
+    2) For transfer-to-invoice, block when required qty exceeds item available stock.
+    """
+    from apps.core.utils import registry
+
+    source_line_key = f"{parent_model}line"
+    SourceLineModel = registry.resolve(source_line_key)
+    if SourceLineModel is None:
+        logger.warning("Transfer validation skipped; unresolved source line model: %s", source_line_key)
+        return
+
+    requested_by_source_line: Dict[int, float] = {}
+    requested_by_item: Dict[int, float] = {}
+
+    for line_data in lines_data:
+        if line_data.get('id') is not None:
+            continue
+
+        qty_placed = _line_placed_qty(line_data)
+        if qty_placed <= 0:
+            continue
+
+        refs = line_data.get('refs') or {}
+        source_info = refs.get('source') or {}
+        src_line_id = source_info.get(f'{parent_model}_line_id')
+        if src_line_id:
+            src_line_id = int(src_line_id)
+            requested_by_source_line[src_line_id] = requested_by_source_line.get(src_line_id, 0.0) + qty_placed
+
+        item_data = line_data.get('item', {}) or {}
+        item_id = item_data.get('id') or item_data.get('item_id')
+        if item_id:
+            item_id = int(item_id)
+            requested_by_item[item_id] = requested_by_item.get(item_id, 0.0) + qty_placed
+
+    if requested_by_source_line:
+        source_lines = {
+            src.pk: src
+            for src in SourceLineModel.objects.select_for_update().filter(
+                pk__in=list(requested_by_source_line.keys())
+            )
+        }
+
+        for src_line_id, requested in requested_by_source_line.items():
+            src_line = source_lines.get(src_line_id)
+            if src_line is None:
+                raise TransferQuantityError(parent_model, src_line_id, requested, 0.0)
+
+            src_qty = dict(getattr(src_line, 'quantity', None) or {})
+            remaining = float(src_qty.get('remaining', 0) or 0)
+            if requested > remaining + 1e-9:
+                raise TransferQuantityError(parent_model, src_line_id, requested, remaining)
+
+    if requested_by_item:
+        from apps.products.models import Item
+
+        item_map = {
+            item.pk: item
+            for item in Item.objects.select_for_update().filter(
+                pk__in=list(requested_by_item.keys())
+            )
+        }
+
+        for item_id, required_qty in requested_by_item.items():
+            item_obj = item_map.get(item_id)
+            if item_obj is None:
+                raise InsufficientInventoryError(item_id, str(item_id), required_qty, 0.0)
+
+            quantity = dict(getattr(item_obj, 'quantity', None) or {})
+            available = float(quantity.get('available', quantity.get('on_hand', 0)) or 0)
+            if required_qty > available + 1e-9:
+                sku = item_obj.sku or item_obj.ida or str(item_id)
+                raise InsufficientInventoryError(item_id, sku, required_qty, available)
 
 
 def _update_source_lines_after_transfer(
@@ -589,6 +721,16 @@ def save_transaction_with_lines(
             logger.warning("Failed to denormalize org links for %s #%s: %s", model_key, header_id, org_err)
 
         result['header'] = {'id': header_obj.pk}
+
+        # Validate transfer quantities against source.remaining before line saves.
+        parent_model = getattr(header_obj, 'parent_model', None)
+        parent_id = getattr(header_obj, 'parent_id', None)
+        if parent_model and parent_id:
+            _validate_transfer_quantities_and_inventory(
+                model_key=model_key,
+                parent_model=str(parent_model),
+                lines_data=lines_data,
+            )
 
         # ── Phase 1: Save all lines (signals suppressed) ────────────
         # Track the line_increment counter for auto-assigning line_number

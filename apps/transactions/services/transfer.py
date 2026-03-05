@@ -22,6 +22,7 @@ from apps.transactions.models import (
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
+    WorkOrder, WorkOrderLine,
 )
 from .transfer_utils import build_line_payload, select_lines
 
@@ -50,12 +51,15 @@ def _sanitize_for_json(obj):
 
 SELL_TYPES = {"proposal", "order", "invoice"}
 BUY_TYPES = {"purchase"}
+EXEC_TYPES = {"workorder"}
+ALL_TRANSFER_TYPES = SELL_TYPES | BUY_TYPES | EXEC_TYPES
 
 HEADER_MODELS: Dict[str, Type[Model]] = {
     "proposal": Proposal,
     "order":    Order,
     "invoice":  Invoice,
     "purchase": Purchase,
+    "workorder": WorkOrder,
 }
 
 LINE_MODELS: Dict[str, Type[Model]] = {
@@ -63,6 +67,7 @@ LINE_MODELS: Dict[str, Type[Model]] = {
     "order":    OrderLine,
     "invoice":  InvoiceLine,
     "purchase": PurchaseLine,
+    "workorder": WorkOrderLine,
 }
 
 # FK field name on the line model that points to the header
@@ -71,6 +76,7 @@ LINE_FK_FIELD: Dict[str, str] = {
     "order":    "order",
     "invoice":  "invoice",
     "purchase": "purchase",
+    "workorder": "workorder",
 }
 
 DEFAULT_TARGET_STATUS: Dict[str, str] = {
@@ -78,6 +84,7 @@ DEFAULT_TARGET_STATUS: Dict[str, str] = {
     "order":    "confirmed",
     "invoice":  "pending",
     "purchase": "open",
+    "workorder": "open",
 }
 
 
@@ -90,14 +97,15 @@ def _get_transfer_mode(source_type: str, target_type: str) -> str:
         raise TransferError(
             f"Unsupported transfer: {source_type} → {target_type}"
         )
+
+    if source_type not in ALL_TRANSFER_TYPES or target_type not in ALL_TRANSFER_TYPES:
+        raise TransferError(
+            f"Unsupported transfer: {source_type} → {target_type}"
+        )
+
     if source_type in SELL_TYPES and target_type in SELL_TYPES:
         return "convert"
-    if (source_type in SELL_TYPES and target_type in BUY_TYPES) or \
-       (source_type in BUY_TYPES and target_type in SELL_TYPES):
-        return "cross"
-    raise TransferError(
-        f"Unsupported transfer: {source_type} → {target_type}"
-    )
+    return "cross"
 
 
 # ---------------------------------------------------------------------------

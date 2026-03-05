@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
-from apps.transactions.models import Proposal, Order, Invoice
+from apps.transactions.models import Proposal, Order, Invoice, Purchase, WorkOrder
 
 
 class ValidationResult:
@@ -202,9 +202,9 @@ def validate_transaction_flow(
     Validate that a transaction can flow to the next stage.
 
     Args:
-        source_type: 'proposal', 'order', 'purchase'
+        source_type: 'proposal', 'order', 'invoice', 'purchase', 'workorder'
         source_id: ID of source transaction
-        target_type: 'order', 'invoice', 'payment'
+        target_type: any supported target in transfer matrix
     """
     errors = []
     warnings = []
@@ -218,6 +218,10 @@ def validate_transaction_flow(
         source = Order.objects.filter(id=source_id).first()
     elif source_type == 'invoice':
         source = Invoice.objects.filter(id=source_id).first()
+    elif source_type == 'purchase':
+        source = Purchase.objects.filter(id=source_id).first()
+    elif source_type == 'workorder':
+        source = WorkOrder.objects.filter(id=source_id).first()
 
     if not source:
         return ValidationResult(False, [f"{source_type} {source_id} not found"])
@@ -229,6 +233,8 @@ def validate_transaction_flow(
         return validate_order_for_invoicing(source)
     elif source_type == 'invoice' and target_type == 'payment':
         return validate_invoice_for_payment(source)
+    elif target_type in {'proposal', 'order', 'invoice', 'purchase', 'workorder'} and source_type in {'proposal', 'order', 'invoice', 'purchase', 'workorder'} and source_type != target_type:
+        return ValidationResult(True, [], [], {'source_id': source_id})
     else:
         errors.append(f"Invalid flow: {source_type} -> {target_type}")
 
