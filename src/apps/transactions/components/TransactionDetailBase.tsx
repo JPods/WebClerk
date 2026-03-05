@@ -9,6 +9,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
 import { OrderPrintDocument, InvoicePrintDocument, ProposalPrintDocument, PurchasePrintDocument, WorkorderPrintDocument, ReceiptPrintDocument, AdjustmentPrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
+import { useTransactionDefaults, computeDueDate } from "@/hooks/useTransactionDefaults";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
@@ -249,6 +250,22 @@ interface TransactionDetailBaseProps {
   taskCount?: number;
 }
 
+/**
+ * Extract a renderable string from comments.public which may be
+ * either a plain string or an array of comment objects ({mgs, time, user, user_id}).
+ */
+const extractPublicComment = (publicField: unknown): string | undefined => {
+  if (!publicField) return undefined;
+  if (typeof publicField === 'string') return publicField;
+  if (Array.isArray(publicField)) {
+    return publicField
+      .map((c: any) => (typeof c === 'string' ? c : c?.mgs))
+      .filter(Boolean)
+      .join('\n');
+  }
+  return String(publicField);
+};
+
 const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   transactionType,
   typeLabel,
@@ -333,6 +350,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     if (!id) return "add" as const;
     return "edit" as const;
   }, [modeProp, id]);
+
+  // Fetch singleton transaction defaults from the settings table
+  const { defaults: txDefaults } = useTransactionDefaults();
 
   // State
   const [data, setData] = useState<Transaction | null>(null);
@@ -454,8 +474,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             totals: {},
             finance: {},
             dt: todayIso,
-            due_date: todayIso,
-            // Copy common header fields
+            due_date: computeDueDate(todayIso, txDefaults.due_date_period),
+            // Apply setting defaults first, then override from source
+            terms: txDefaults.terms,
+            price_level: txDefaults.price_level,
+            priority: txDefaults.priority,
+            // Copy common header fields (source overrides defaults)
             ...(source.terms ? { terms: source.terms } : {}),
             ...(source.terms_id ?? source.terms_fk
               ? { terms_id: source.terms_id ?? source.terms_fk }
@@ -542,6 +566,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       vendor_id: 0,
       manufacturer_id: 0,
       status: "planned",
+      // Apply setting defaults first
+      terms: txDefaults.terms,
+      price_level: txDefaults.price_level,
+      priority: txDefaults.priority,
+      // Query-param overrides (take precedence over defaults)
       ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
       ...(qsTerms ? { terms: qsTerms } : {}),
       ...(qsTermsId ? { terms_id: Number(qsTermsId) } : {}),
@@ -556,15 +585,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       comments: { notes: [] },
       totals: {},
       finance: {},
-      // Initialize all date fields to today at midnight
+      // Initialize dt to today; due_date = today + due_date_period
       dt: todayIso,
-      due_date: todayIso,
+      due_date: computeDueDate(todayIso, txDefaults.due_date_period),
     };
     setData(emptyRecord);
     setEditData(emptyRecord);
     setIsEditing(true);
     setLoading(false);
-  }, [effectiveMode, windowSearchParams]);
+  }, [effectiveMode, windowSearchParams, txDefaults]);
 
   // Update isEditing when modeProp changes (for inline usage)
   useEffect(() => {
@@ -1077,7 +1106,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             invoices_BalanceDue: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1191,7 +1220,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1273,7 +1302,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1355,7 +1384,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1437,7 +1466,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1519,7 +1548,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
@@ -1602,7 +1631,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             balanceDueEstimated: data.totals?.balance,
             
             // Comments
-            comment: data.comments?.public,
+            comment: extractPublicComment(data.comments?.public),
             contractDetail: (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,

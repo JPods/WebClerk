@@ -788,25 +788,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     const apiResult = await getRecord("order", Number(id));
     const record = (apiResult as { record?: Transaction }).record ?? apiResult;
 
-    try {
-      const totalsRes = await apiClient.get(
-        `/api/transactions/orders/${id}/totals/`,
-        { cache: false } as any,
-      );
-      const totalsPayload = totalsRes.data?.data ?? totalsRes.data;
-      if (totalsPayload?.totals) {
-        record.totals = totalsPayload.totals;
-      }
-      if (totalsPayload?.cost) {
-        record.cost = totalsPayload.cost;
-      }
-      if (totalsPayload?.sell) {
-        record.sell = totalsPayload.sell;
-      }
-    } catch (err) {
-      console.warn("[OrderDetail] totals fetch failed, using record totals", err);
-    }
-
+    // Totals are included in the wcapi order record — no extra fetch needed
     return record;
   }, []);
 

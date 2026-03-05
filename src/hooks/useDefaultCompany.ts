@@ -97,7 +97,7 @@ export function useDefaultCompany(): UseDefaultCompanyResult {
     try {
       // Fetch organization with status = "DefaultCompany"
       const response = await orgApi.list({
-        status: 'DefaultCompany' as never, // Cast to bypass strict typing
+        status: 'default_company' as never,
         is_active: true,
         limit: 1,
       });

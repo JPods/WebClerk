@@ -238,7 +238,7 @@ DB_MODE=remote
 
 **After changing, restart the Django server.**
 
-See [webClerk3/readmes/data-set-identification.md](../../webClerk3/readmes/data-set-identification.md) for full backend documentation.
+See [webClerk3 Data Sync Consolidated](../../webClerk3/readmes/topics/infrastructure/data-sync-consolidated.md) for full backend documentation.
 
 ## Files
 
