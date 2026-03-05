@@ -9,6 +9,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
 import { OrderPrintDocument, InvoicePrintDocument, ProposalPrintDocument, PurchasePrintDocument, WorkorderPrintDocument, ReceiptPrintDocument, AdjustmentPrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
+import { useTransactionDefaults, computeDueDate } from "@/hooks/useTransactionDefaults";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
@@ -350,6 +351,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     return "edit" as const;
   }, [modeProp, id]);
 
+  // Fetch singleton transaction defaults from the settings table
+  const { defaults: txDefaults } = useTransactionDefaults();
+
   // State
   const [data, setData] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -470,8 +474,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             totals: {},
             finance: {},
             dt: todayIso,
-            due_date: todayIso,
-            // Copy common header fields
+            due_date: computeDueDate(todayIso, txDefaults.due_date_period),
+            // Apply setting defaults first, then override from source
+            terms: txDefaults.terms,
+            price_level: txDefaults.price_level,
+            priority: txDefaults.priority,
+            // Copy common header fields (source overrides defaults)
             ...(source.terms ? { terms: source.terms } : {}),
             ...(source.terms_id ?? source.terms_fk
               ? { terms_id: source.terms_id ?? source.terms_fk }
@@ -558,6 +566,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       vendor_id: 0,
       manufacturer_id: 0,
       status: "planned",
+      // Apply setting defaults first
+      terms: txDefaults.terms,
+      price_level: txDefaults.price_level,
+      priority: txDefaults.priority,
+      // Query-param overrides (take precedence over defaults)
       ...(qsPriceLevel ? { price_level: qsPriceLevel } : {}),
       ...(qsTerms ? { terms: qsTerms } : {}),
       ...(qsTermsId ? { terms_id: Number(qsTermsId) } : {}),
@@ -572,15 +585,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       comments: { notes: [] },
       totals: {},
       finance: {},
-      // Initialize all date fields to today at midnight
+      // Initialize dt to today; due_date = today + due_date_period
       dt: todayIso,
-      due_date: todayIso,
+      due_date: computeDueDate(todayIso, txDefaults.due_date_period),
     };
     setData(emptyRecord);
     setEditData(emptyRecord);
     setIsEditing(true);
     setLoading(false);
-  }, [effectiveMode, windowSearchParams]);
+  }, [effectiveMode, windowSearchParams, txDefaults]);
 
   // Update isEditing when modeProp changes (for inline usage)
   useEffect(() => {
