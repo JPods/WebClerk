@@ -6,24 +6,9 @@ import React, {
   useEffect,
 } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { useDrag, useDrop, DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDrag, useDrop } from "react-dnd";
 import { useTheme } from "@/context/ThemeContext";
-import {
-  FaGripVertical,
-  FaPlus,
-  FaEdit,
-  FaFileImport,
-  FaTimes,
-  FaFilter,
-  FaDownload,
-  FaPrint,
-  FaCheckSquare,
-  FaSearch,
-  FaFileExcel,
-  FaFilePdf,
-  FaFileCode,
-} from "react-icons/fa";
+import { FaGripVertical } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -164,7 +149,7 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   );
 };
 
-type AdvancedDataTableHandle<T> = {
+export type AdvancedDataTableHandle<T> = {
   exportToExcel: (selectedOnly?: boolean) => void;
   exportToPDF: (selectedOnly?: boolean) => void;
   exportToJSON: (selectedOnly?: boolean) => void;
@@ -182,24 +167,15 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     columns: initialColumns,
     title = "Data Table",
     loading = false,
-    filters = [],
-    hideHeader = false,
     externalSearchTerm,
     onExternalSearchTermChange,
     filtersOpen,
     onFiltersOpenChange,
-    onAdd,
-    onEditSelected,
-    onDeleteSelected,
     onImportFile,
-    importAccept = ".json,.csv",
-    onPrint,
     storageKey,
-    enableExport = true,
     enableSelection = false,
     onSelectionChange,
     onVisibleRowsChange,
-    customActions,
     exportFileName = "export",
     onRowClicked,
     onRowActivate,
@@ -210,9 +186,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     rowClickMode = "onlyIdAndActions",
     rowClickAllowedColumnNames,
     rowClickAllowedColumnIds,
-    searchPlaceholder = "Search...",
     noDataMessage = "No data available",
-    enableDatabaseSearch = false,
     searchDatabase: searchDatabaseProp,
     onSearchModeChange,
     onDatabaseSearch,
@@ -225,10 +199,9 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchDatabaseInternal, setSearchDatabaseInternal] = useState(false);
-  
+
   // Controlled or uncontrolled search mode
   const searchDatabase = searchDatabaseProp ?? searchDatabaseInternal;
-  const setSearchDatabase = onSearchModeChange ?? setSearchDatabaseInternal;
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [selectionAnchorKey, setSelectionAnchorKey] = useState<string | null>(
@@ -238,8 +211,6 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [showFilters, setShowFiltersState] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [showGlobalMenuState, setShowGlobalMenuState] =
-    useState<boolean>(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [columns, setColumns] = useState<TableColumn<T>[]>(initialColumns);
@@ -255,32 +226,6 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   const effectiveSearchTerm = externalSearchTerm ?? searchTerm;
   const setEffectiveSearchTerm = onExternalSearchTermChange ?? setSearchTerm;
-
-  const effectiveShowFilters = filtersOpen ?? showFilters;
-  const setEffectiveShowFilters = useCallback(
-    (open: boolean) => {
-      if (onFiltersOpenChange) {
-        onFiltersOpenChange(open);
-      } else {
-        setShowFiltersState(open);
-      }
-    },
-    [onFiltersOpenChange],
-  );
-
-  const handleImportClick = useCallback(() => {
-    importInputRef.current?.click();
-  }, []);
-
-  const handleImportChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      onImportFile?.(file);
-      event.target.value = "";
-    },
-    [onImportFile],
-  );
 
   const getColumnPersistKey = useCallback(
     (col: TableColumn<T>, index: number) => {
@@ -409,52 +354,6 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showExportDropdown, showColumnManager]);
-
-  // Move column position
-  const moveColumn = useCallback((dragIndex: number, hoverIndex: number) => {
-    setColumns((prevColumns) => {
-      const newColumns = [...prevColumns];
-      const [draggedColumn] = newColumns.splice(dragIndex, 1);
-      newColumns.splice(hoverIndex, 0, draggedColumn);
-      return newColumns;
-    });
-    setColumnVisibility((prevVisibility) => {
-      const newVisibility = [...prevVisibility];
-      const [draggedVisibility] = newVisibility.splice(dragIndex, 1);
-      newVisibility.splice(hoverIndex, 0, draggedVisibility);
-      return newVisibility;
-    });
-  }, []);
-
-  // Toggle column visibility
-  const toggleColumnVisibility = useCallback((index: number) => {
-    setColumnVisibility((prev) => {
-      const newVisibility = [...prev];
-      newVisibility[index] = !newVisibility[index];
-      return newVisibility;
-    });
-  }, []);
-
-  // Show/Hide all columns
-  const toggleAllColumns = useCallback(
-    (visible: boolean) => {
-      setColumnVisibility(columns.map(() => visible));
-    },
-    [columns],
-  );
-
-  // Reset columns to original order and visibility
-  const resetColumnOrder = useCallback(() => {
-    setColumns(initialColumns);
-    setColumnVisibility(initialColumns.map(() => true));
-    if (columnStorageKey) {
-      try {
-        localStorage.removeItem(columnStorageKey);
-      } catch {
-        // ignore
-      }
-    }
-  }, [initialColumns, columnStorageKey]);
 
   // Get visible columns
   const visibleColumns = useMemo(() => {
@@ -621,7 +520,12 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       const isActionLike = (c: TableColumn<T>) => {
         const name = typeof c.name === "string" ? normalize(c.name) : "";
         const id = typeof c.id === "string" ? normalize(c.id) : "";
-        return name === "actions" || name === "action" || id === "actions" || id === "action";
+        return (
+          name === "actions" ||
+          name === "action" ||
+          id === "actions" ||
+          id === "action"
+        );
       };
 
       let fillerIndex = -1;
@@ -639,7 +543,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         // Remove any explicit width so flex-grow can actually fill.
         width: undefined,
         // Ensure the column can expand.
-        grow: typeof (filler as any).grow === "number" ? (filler as any).grow : 1,
+        grow:
+          typeof (filler as any).grow === "number" ? (filler as any).grow : 1,
       } as TableColumn<T>;
     }
 
@@ -672,43 +577,50 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
    * Check if a row matches ALL search terms (AND logic).
    * Searches all scalar fields and refs.keywords.
    */
-  const rowMatchesAllTerms = useCallback((row: Record<string, any>, terms: string[]): boolean => {
-    if (!terms.length) return true;
+  const rowMatchesAllTerms = useCallback(
+    (row: Record<string, any>, terms: string[]): boolean => {
+      if (!terms.length) return true;
 
-    // Collect all searchable text from the row
-    const searchableValues: string[] = [];
+      // Collect all searchable text from the row
+      const searchableValues: string[] = [];
 
-    // Add all scalar field values
-    Object.entries(row).forEach(([key, value]) => {
-      if (value === null || value === undefined) return;
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        searchableValues.push(String(value).toLowerCase());
+      // Add all scalar field values
+      Object.entries(row).forEach(([key, value]) => {
+        if (value === null || value === undefined) return;
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
+          searchableValues.push(String(value).toLowerCase());
+        }
+      });
+
+      // Add refs.keywords if present
+      const refs = row.refs;
+      if (refs && typeof refs === "object") {
+        const keywords = refs.keywords;
+        if (typeof keywords === "string") {
+          searchableValues.push(keywords.toLowerCase());
+        } else if (Array.isArray(keywords)) {
+          keywords.forEach((kw) => {
+            if (typeof kw === "string") {
+              searchableValues.push(kw.toLowerCase());
+            }
+          });
+        }
       }
-    });
 
-    // Add refs.keywords if present
-    const refs = row.refs;
-    if (refs && typeof refs === 'object') {
-      const keywords = refs.keywords;
-      if (typeof keywords === 'string') {
-        searchableValues.push(keywords.toLowerCase());
-      } else if (Array.isArray(keywords)) {
-        keywords.forEach((kw) => {
-          if (typeof kw === 'string') {
-            searchableValues.push(kw.toLowerCase());
-          }
-        });
-      }
-    }
-
-    // Check that ALL terms match somewhere in the searchable values
-    const searchableText = searchableValues.join(' ');
-    return terms.every((term) => searchableText.includes(term));
-  }, []);
+      // Check that ALL terms match somewhere in the searchable values
+      const searchableText = searchableValues.join(" ");
+      return terms.every((term) => searchableText.includes(term));
+    },
+    [],
+  );
 
   // Filter and search logic
   const filteredData = useMemo(() => {
-    // If database search mode is active and we have a search term, 
+    // If database search mode is active and we have a search term,
     // filtering is handled externally via onDatabaseSearch callback
     if (searchDatabase && effectiveSearchTerm && onDatabaseSearch) {
       // Return all data - parent component handles database query results
@@ -736,7 +648,15 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     });
 
     return result;
-  }, [data, effectiveSearchTerm, filterValues, searchDatabase, onDatabaseSearch, parseSearchTerms, rowMatchesAllTerms]);
+  }, [
+    data,
+    effectiveSearchTerm,
+    filterValues,
+    searchDatabase,
+    onDatabaseSearch,
+    parseSearchTerms,
+    rowMatchesAllTerms,
+  ]);
 
   // Trigger database search callback when in database mode
   useEffect(() => {
@@ -1026,12 +946,6 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     [visibleColumns, filteredData, selectedRows, exportFileName],
   );
 
-  // Clear filters
-  const clearFilters = useCallback(() => {
-    setEffectiveSearchTerm("");
-    setFilterValues({});
-  }, [setEffectiveSearchTerm]);
-
   const openColumnManagerImpl = useCallback(
     (anchor?: HTMLElement | DOMRect | null) => {
       if (!anchor) {
@@ -1135,445 +1049,9 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
   return (
     <div className="w-full space-y-4">
       {/* Header Section */}
-      {!hideHeader && (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* ...existing buttons... */}
-
-            {/* Search Bar + Delete (right-aligned) */}
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-              {/* ...search bar and delete button... */}
-              {/* Search Bar + Delete (right-aligned) */}
-              <div className="flex items-center gap-2 w-full lg:w-auto">
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <FaSearch className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={effectiveSearchTerm}
-                    onChange={(e) => setEffectiveSearchTerm(e.target.value)}
-                    placeholder={searchPlaceholder}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  />
-                  {effectiveSearchTerm && (
-                    <button
-                      onClick={() => setEffectiveSearchTerm("")}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <FaTimes className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                {/* Database Search Toggle */}
-                {enableDatabaseSearch && (
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={searchDatabase}
-                      onChange={(e) => setSearchDatabase(e.target.checked)}
-                      className="w-3.5 h-3.5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                    />
-                    <span>Query DB</span>
-                  </label>
-                )}
-              </div>
-            </div>
-            {/* Custom Actions */}
-            {customActions}
-          </div>
-          {/* Hamburger menu (triple dot vertical icon) at right side */}
-          <div className="flex items-center justify-end lg:ml-auto">
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowColumnManager(false);
-                  setShowExportDropdown(false);
-                  setEffectiveShowFilters(false);
-                  // Toggle global menu
-                  setShowGlobalMenuState(!showGlobalMenuState);
-                }}
-                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                title="Menu"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <circle cx="12" cy="6" r="1.5" />
-                  <circle cx="12" cy="12" r="1.5" />
-                  <circle cx="12" cy="18" r="1.5" />
-                </svg>
-              </button>
-
-              {/* Dropdown menu under hamburger */}
-              {showGlobalMenuState && (
-                <div className="absolute right-0 z-20 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                  <div className="p-4 flex flex-col gap-2">
-                    {/* Column Manager */}
-                    <div className="relative" ref={columnManagerRef}>
-                      <button
-                        onClick={() => setShowColumnManager(!showColumnManager)}
-                        className="flex items-center w-full gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        <FaGripVertical className="w-4 h-4" />
-                        Columns
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-600 text-white">
-                          {columnVisibility.filter(Boolean).length}/
-                          {columns.length}
-                        </span>
-                      </button>
-                      {/* Column Manager Dropdown */}
-                      {showColumnManager && (
-                        <div className="absolute right-0 top-10 z-999999 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                          {/* ...column manager content... */}
-                          <div className="p-4">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                                Manage Columns
-                              </h3>
-                              <button
-                                onClick={resetColumnOrder}
-                                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                              >
-                                Reset All
-                              </button>
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <button
-                                onClick={() => toggleAllColumns(true)}
-                                className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
-                              >
-                                Show All
-                              </button>
-                              <button
-                                onClick={() => toggleAllColumns(false)}
-                                className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
-                              >
-                                Hide All
-                              </button>
-                            </div>
-
-                            {/* Instructions */}
-                            <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                              <p className="text-xs text-blue-700 dark:text-blue-300">
-                                <strong>✓</strong> Check/uncheck to show/hide
-                                columns
-                                <br />
-                                <strong>↕</strong> Drag to reorder columns
-                              </p>
-                            </div>
-
-                            {/* Column List */}
-                            <DndProvider backend={HTML5Backend}>
-                              <div className="space-y-1 max-h-96 overflow-y-auto">
-                                {columns.map((col, index) => (
-                                  <div
-                                    key={getColumnPersistKey(col, index)}
-                                    className={`flex items-center gap-2 p-3 rounded transition-colors ${
-                                      columnVisibility[index]
-                                        ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                        : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
-                                    }`}
-                                  >
-                                    <DraggableColumnHeader
-                                      column={String(col.name)}
-                                      index={index}
-                                      visible={columnVisibility[index]}
-                                      moveColumn={moveColumn}
-                                      toggleVisibility={toggleColumnVisibility}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            </DndProvider>
-
-                            {/* Footer Info */}
-                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                                Visible:{" "}
-                                <span className="font-medium text-blue-600 dark:text-blue-400">
-                                  {columnVisibility.filter(Boolean).length}
-                                </span>{" "}
-                                / Total:{" "}
-                                <span className="font-medium">
-                                  {columns.length}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Export Dropdown */}
-                    {enableExport && (
-                      <div className="relative" ref={exportDropdownRef}>
-                        <button
-                          onClick={() =>
-                            setShowExportDropdown(!showExportDropdown)
-                          }
-                          className="flex items-center w-full gap-2 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 text-white bg-green-600 rounded-lg hover:bg-green-700 "
-                        >
-                          <FaDownload className="w-4 h-4" />
-                          Export
-                          {selectedRows.length > 0 && (
-                            <span className="px-2  text-xs rounded-full bg-white text-green-600">
-                              {selectedRows.length}
-                            </span>
-                          )}
-                        </button>
-                        {/* Dropdown Menu */}
-                        {showExportDropdown && (
-                          <div className="absolute right-0 left-10 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                            {/* ...export dropdown content... */}
-                            <div className="py-1">
-                              <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                Export All Data
-                              </div>
-                              <button
-                                onClick={() => exportToExcel(false)}
-                                className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                              >
-                                <FaFileExcel className="w-4 h-4 text-green-600" />
-                                Excel ({filteredData.length} rows)
-                              </button>
-                              <button
-                                onClick={() => exportToPDF(false)}
-                                className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                              >
-                                <FaFilePdf className="w-4 h-4 text-red-600" />
-                                PDF ({tableData.length} rows)
-                              </button>
-                              <button
-                                onClick={() => exportToJSON(false)}
-                                className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                              >
-                                <FaFileCode className="w-4 h-4 text-blue-600" />
-                                JSON ({filteredData.length} rows)
-                              </button>
-
-                              {enableSelection && selectedRows.length > 0 && (
-                                <>
-                                  <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
-                                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    Export Selected
-                                  </div>
-                                  <button
-                                    onClick={() => exportToExcel(true)}
-                                    className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                                  >
-                                    <FaFileExcel className="w-4 h-4 text-green-600" />
-                                    Excel ({selectedRows.length} selected)
-                                  </button>
-                                  <button
-                                    onClick={() => exportToPDF(true)}
-                                    className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                                  >
-                                    <FaFilePdf className="w-4 h-4 text-red-600" />
-                                    PDF ({selectedRows.length} selected)
-                                  </button>
-                                  <button
-                                    onClick={() => exportToJSON(true)}
-                                    className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                                  >
-                                    <FaFileCode className="w-4 h-4 text-blue-600" />
-                                    JSON ({selectedRows.length} selected)
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Bulk Delete UI intentionally removed. Delete actions belong on the detail page header. */}
-
-                    {/* Place all the action buttons here */}
-                    {/* <button
-                      onClick={onAdd}
-                      disabled={!onAdd}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                      title="Add"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      Add
-                    </button> */}
-                    {/* <button
-                      onClick={() =>
-                        selectedRows.length === 1 &&
-                        onEditSelected?.(selectedRows[0])
-                      }
-                      disabled={!onEditSelected || selectedRows.length !== 1}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                      title="Edit"
-                    >
-                      <FaEdit className="w-4 h-4" />
-                      Edit
-                    </button> */}
-                    {/* <button
-                      onClick={handleImportClick}
-                      disabled={!onImportFile}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-slate-600 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
-                      title="Import"
-                    >
-                      <FaFileImport className="w-4 h-4" />
-                      Import
-                    </button> */}
-                    <input
-                      ref={importInputRef}
-                      type="file"
-                      accept={importAccept}
-                      className="hidden"
-                      onChange={handleImportChange}
-                    />
-                    {filters.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setEffectiveShowFilters(!effectiveShowFilters);
-                          setShowColumnManager(false);
-                          setShowExportDropdown(false);
-                        }}
-                        className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg transition-colors ${
-                          effectiveShowFilters
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                        }`}
-                      >
-                        <FaFilter className="w-4 h-4" />
-                        Filters
-                        {Object.values(filterValues).filter(Boolean).length >
-                          0 && (
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-white text-blue-600 dark:bg-gray-800 dark:text-blue-400">
-                            {Object.values(filterValues).filter(Boolean).length}
-                          </span>
-                        )}
-                      </button>
-                    )}
-                    {(effectiveSearchTerm ||
-                      Object.values(filterValues).some(Boolean)) && (
-                      <button
-                        onClick={clearFilters}
-                        className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                      >
-                        <FaTimes className="w-4 h-4" />
-                        Clear
-                      </button>
-                    )}
-                    <button
-                      onClick={onPrint}
-                      disabled={!onPrint}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
-                      title="Print"
-                    >
-                      <FaPrint className="w-4 h-4" />
-                      Print
-                    </button>
-
-                    {/* Selected-only filter */}
-                    {enableSelection &&
-                      enableSelectedOnlyFilter &&
-                      selectionMode === "rowClick" &&
-                      selectedRowKeys.length > 0 && (
-                        <button
-                          onClick={() => setShowSelectedOnly((v) => !v)}
-                          className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-colors ${
-                            showSelectedOnly
-                              ? "bg-blue-600 text-white hover:bg-blue-700"
-                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                          }`}
-                        >
-                          {showSelectedOnly ? "Show All" : "Show Selected"}
-                          <span
-                            className={`px-2 py-0.5 text-xs rounded-full ${
-                              showSelectedOnly
-                                ? "bg-white text-blue-600"
-                                : "bg-blue-600 text-white"
-                            }`}
-                          >
-                            {selectedRowKeys.length}
-                          </span>
-                        </button>
-                      )}
-                    {/* Clear selection */}
-                    {enableSelection &&
-                      selectionMode === "rowClick" &&
-                      selectedRowKeys.length > 0 && (
-                        <button
-                          onClick={clearSelection}
-                          className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                        >
-                          <FaTimes className="w-4 h-4" />
-                          Clear Selection
-                        </button>
-                      )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {hideHeader && customActions && (
-        <div className="flex flex-wrap items-center gap-2">{customActions}</div>
-      )}
-
-      {/* Filters Panel */}
-      {effectiveShowFilters && filters.length > 0 && (
-        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filters.map((filter) => (
-              <div key={filter.key}>
-                <label className="block mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {filter.label}
-                </label>
-                {filter.type === "select" && filter.options ? (
-                  <select
-                    value={filterValues[filter.key] || ""}
-                    onChange={(e) =>
-                      setFilterValues((prev) => ({
-                        ...prev,
-                        [filter.key]: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  >
-                    <option value="">All</option>
-                    {filter.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={filter.type || "text"}
-                    value={filterValues[filter.key] || ""}
-                    onChange={(e) =>
-                      setFilterValues((prev) => ({
-                        ...prev,
-                        [filter.key]: e.target.value,
-                      }))
-                    }
-                    placeholder={`Filter by ${filter.label.toLowerCase()}`}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Stats Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      {/* <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
           <span className="font-medium">
             Total:{" "}
@@ -1612,125 +1090,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
             </span>
           </span>
         </div>
-      </div>
-
-      {/* Column Manager (rendered when header is hidden) */}
-      {/* {showColumnManager && (
-        <div
-          style={
-            columnManagerAnchorRect
-              ? (() => {
-                  const rect = columnManagerAnchorRect;
-                  const panelWidth = 384; // w-96
-                  const top = Math.min(
-                    window.innerHeight - 48,
-                    rect.bottom + 8,
-                  );
-                  // center under button, but keep within viewport with 8px padding
-                  let left = Math.round(
-                    rect.left + rect.width / 2 - panelWidth / 2,
-                  );
-                  left = Math.max(
-                    8,
-                    Math.min(window.innerWidth - panelWidth - 8, left),
-                  );
-                  return {
-                    position: "fixed",
-                    top,
-                    left,
-                    zIndex: 50,
-                  } as React.CSSProperties;
-                })()
-              : { position: "fixed", right: 24, top: 96, zIndex: 50 }
-          }
-          ref={columnManagerRef}
-        >
-          <div className="w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                  Manage Columns
-                </h3>
-                <button
-                  onClick={resetColumnOrder}
-                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                >
-                  Reset All
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => toggleAllColumns(true)}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
-                >
-                  Show All
-                </button>
-                <button
-                  onClick={() => toggleAllColumns(false)}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
-                >
-                  Hide All
-                </button>
-              </div>
-
-              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  <strong>✓</strong> Check/uncheck to show/hide columns
-                </p>
-              </div>
-
-              <div className="max-h-64 overflow-y-auto">
-                {columns.map((c, i) => (
-                  <div
-                    key={String(c.name || i)}
-                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900"
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={!!columnVisibility[i]}
-                        onChange={() => toggleColumnVisibility(i)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                      <span className="text-xs">
-                        {String(c.name || c.selector || `col-${i}`)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => moveColumn(i, i - 1)}
-                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                        title="Move up"
-                        disabled={i === 0}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        onClick={() => moveColumn(i, i + 1)}
-                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                        title="Move down"
-                        disabled={i === columns.length - 1}
-                      >
-                        ▼
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-3 text-right">
-                <button
-                  onClick={() => setShowColumnManager(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
+      </div> */}
 
       {/* Data Table */}
       <div className="w-full overflow-x-auto bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">

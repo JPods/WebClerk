@@ -2635,6 +2635,348 @@ export default function ContactDetail({
               </HorizontalField>
             )}
           </div>
+          {/* Checkboxes */}
+          <div className="flex gap-6 py-2 col-span-full">
+            {shouldRenderField("is_active") && (
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    label="Active"
+                    checked={field.value ?? true}
+                    onChange={field.onChange}
+                    disabled={isFieldDisabled("is_active")}
+                  />
+                )}
+              />
+            )}
+            {shouldRenderField("is_staff") && (
+              <Controller
+                name="is_staff"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    label="Staff"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    disabled={isFieldDisabled("is_staff")}
+                  />
+                )}
+              />
+            )}
+          </div>
+          {/* ── Company & Organizations ── */}
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+            <FaBuilding size={16} />
+            Company & Organizations
+          </h3>
+          <OrgLinkPanel
+            fields={[
+              {
+                fieldName: "customer_id",
+                label: "Customer",
+                value: watchedValues?.customer_id ?? data?.customer_id,
+                orgType: "customer",
+              },
+              {
+                fieldName: "vendor_id",
+                label: "Vendor",
+                value: watchedValues?.vendor_id ?? data?.vendor_id,
+                orgType: "vendor",
+              },
+              {
+                fieldName: "rep_id",
+                label: "Rep",
+                value: watchedValues?.rep_id ?? data?.rep_id,
+                orgType: "rep",
+              },
+              {
+                fieldName: "employee_id",
+                label: "Employee",
+                value: watchedValues?.employee_id ?? data?.employee_id,
+                orgType: "employee",
+              },
+              {
+                fieldName: "manufacturer_id",
+                label: "Manufacturer",
+                value: watchedValues?.manufacturer_id ?? data?.manufacturer_id,
+                orgType: "manufacturer",
+              },
+              {
+                fieldName: "other_id",
+                label: "Other Org",
+                value: watchedValues?.other_id ?? data?.other_id,
+                orgType: "organization",
+              },
+            ]}
+            scalarFields={[
+              {
+                fieldName: "company",
+                label: "Company",
+                value: watchedValues?.company ?? data?.company,
+                placeholder: "Company name",
+                disabled: isFieldDisabled("company"),
+              },
+              {
+                fieldName: "title",
+                label: "Title",
+                value: watchedValues?.title ?? data?.title,
+                placeholder: "Job title",
+                disabled: isFieldDisabled("title"),
+              },
+              {
+                fieldName: "department",
+                label: "Department",
+                value: watchedValues?.department ?? data?.department,
+                placeholder: "Department",
+                disabled: isFieldDisabled("department"),
+              },
+              {
+                fieldName: "role",
+                label: "Role",
+                value: watchedValues?.role ?? data?.role,
+                type: "select",
+                options: ROLE_OPTIONS,
+                disabled: isFieldDisabled("role"),
+              },
+            ]}
+            isEditing={isEditing}
+            contactId={activeContactId}
+            onOrgChanged={(fieldName, orgId) => {
+              formSetValueRef.current?.(fieldName as any, orgId, {
+                shouldDirty: true,
+              });
+            }}
+            onScalarFieldChange={(fieldName, value) => {
+              formSetValueRef.current?.(fieldName as any, value, {
+                shouldDirty: true,
+              });
+            }}
+            onSaveScalars={async (values) => {
+              if (!activeContactId) return;
+              await updateContact({ id: activeContactId, ...values } as any);
+              dispatch(
+                showToast({ message: "Company info saved", type: "success" }),
+              );
+            }}
+            defaultExpanded={isEditing}
+          />
+
+          {/* ─── TAB NAVIGATION ─── */}
+          {activeContactId && data?.id ? (
+            <>
+              <DetailTabs
+                entityType="contact"
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                standardTabs={["actions", "comments", "documents", "raw"]}
+                additionalTabs={additionalTabs}
+                badges={tabBadges}
+              />
+
+              {/* ─── TAB CONTENT (scrollable) ─── */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-4">
+                  {activeTab === "actions" && (
+                    <ActionsPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={
+                        Array.isArray(data.actions) ? data.actions : undefined
+                      }
+                      actionIds={
+                        data.actions &&
+                        typeof data.actions === "object" &&
+                        "ids" in data.actions
+                          ? (data.actions as { ids?: number[] }).ids
+                          : undefined
+                      }
+                      viewMode="table"
+                      isEditing={isEditing}
+                      parentModelName="contact"
+                      parentIdOverride={data.id}
+                      onChange={(actions) =>
+                        setFetchedData((prev: any) => ({
+                          ...(prev || data),
+                          actions,
+                        }))
+                      }
+                      onActionIdsChange={(ids) =>
+                        setFetchedData((prev: any) => ({
+                          ...(prev || data),
+                          actions: { ids },
+                        }))
+                      }
+                      onSave={async (actions) => {
+                        try {
+                          await updateContact({ id: data.id, actions } as any);
+                          dispatch(
+                            showToast({
+                              message: "Action saved",
+                              type: "success",
+                            }),
+                          );
+                        } catch {
+                          dispatch(
+                            showToast({
+                              message: "Failed to save action",
+                              type: "error",
+                            }),
+                          );
+                        }
+                      }}
+                      assigneeOptions={contactOptions}
+                      projectOptions={projectOptions}
+                    />
+                  )}
+
+                  {activeTab === "comments" && (
+                    <CommentsPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      comments={data.comments}
+                      isEditing={isEditing}
+                      onChange={(comments) =>
+                        setFetchedData((prev: any) => ({
+                          ...(prev || data),
+                          comments,
+                        }))
+                      }
+                      onSave={async (comments) => {
+                        try {
+                          await updateContact({
+                            id: data.id,
+                            comments: { mode: "update", value: comments },
+                          } as any);
+                          dispatch(
+                            showToast({
+                              message: "Comments saved",
+                              type: "success",
+                            }),
+                          );
+                        } catch {
+                          dispatch(
+                            showToast({
+                              message: "Failed to save comments",
+                              type: "error",
+                            }),
+                          );
+                        }
+                      }}
+                      currentUser={currentUserName}
+                      currentUserId={currentUserId}
+                    />
+                  )}
+
+                  {activeTab === "communications" && activeContactId && (
+                    <CommunicationsPanel
+                      entityType="contact"
+                      entityId={activeContactId}
+                      contactId={activeContactId}
+                      data={{
+                        emails: data?.refs?.links?.email || [],
+                        phones: data?.refs?.links?.phone || [],
+                        addresses: data?.refs?.links?.address || [],
+                        domains: data?.refs?.links?.domain || [],
+                      }}
+                      onChange={(comms) => {
+                        // Update refs.links directly (single source of truth)
+                        setFetchedData((prev: any) => ({
+                          ...(prev || data),
+                          refs: {
+                            ...(prev?.refs || data?.refs || {}),
+                            links: {
+                              ...(prev?.refs?.links || data?.refs?.links || {}),
+                              email: comms.emails || [],
+                              phone: comms.phones || [],
+                              address: comms.addresses || [],
+                              domain: comms.domains || [],
+                            },
+                          },
+                        }));
+                      }}
+                      primaryEmailId={data?.email_id}
+                      primaryPhoneId={data?.phone_id}
+                      primaryAddressId={data?.address_id}
+                      primaryDomainId={data?.domain_id}
+                      onSetPrimaryItem={handleSetPrimaryItem}
+                    />
+                  )}
+
+                  {activeTab === "documents" && (
+                    <DocumentsPanel
+                      parent_model="contact"
+                      parentId={data.id}
+                      data={data?.refs?.links?.document}
+                      isEditing={isEditing}
+                    />
+                  )}
+
+                  {activeTab === "history" && (
+                    <MetadataPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={data?.metadata}
+                    />
+                  )}
+
+                  {activeTab === "metadata" && (
+                    <MetadataPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={data?.metadata}
+                    />
+                  )}
+
+                  {activeTab === "prefs" && (
+                    <PrefsPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={data?.prefs}
+                    />
+                  )}
+
+                  {activeTab === "raw" && (
+                    <RawDataPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={data}
+                    />
+                  )}
+
+                  {activeTab === "refs" && (
+                    <RefsPanel
+                      entityType="contact"
+                      entityId={data.id}
+                      data={data?.refs}
+                      onChange={(refs: any) =>
+                        setFetchedData((prev: any) => ({
+                          ...(prev || data),
+                          refs,
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Unsaved contact — show hint that tabs appear after save */
+            <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+              {autoSaveInProgress ? (
+                <span className="flex items-center gap-2">
+                  <FaSpinner className="animate-spin" size={14} />
+                  Saving contact…
+                </span>
+              ) : (
+                <span>
+                  Fill in the required fields above. Tabs &amp; related records
+                  will appear once the contact is saved.
+                </span>
+              )}
+            </div>
+          )}
 
           {/* ── Communications — CommLinkPanel per type ── */}
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
@@ -2741,103 +3083,6 @@ export default function ContactDetail({
             })}
           </div>
 
-          {/* ── Company & Organizations ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
-            <FaBuilding size={16} />
-            Company & Organizations
-          </h3>
-          <OrgLinkPanel
-            fields={[
-              {
-                fieldName: "customer_id",
-                label: "Customer",
-                value: watchedValues?.customer_id ?? data?.customer_id,
-                orgType: "customer",
-              },
-              {
-                fieldName: "vendor_id",
-                label: "Vendor",
-                value: watchedValues?.vendor_id ?? data?.vendor_id,
-                orgType: "vendor",
-              },
-              {
-                fieldName: "rep_id",
-                label: "Rep",
-                value: watchedValues?.rep_id ?? data?.rep_id,
-                orgType: "rep",
-              },
-              {
-                fieldName: "employee_id",
-                label: "Employee",
-                value: watchedValues?.employee_id ?? data?.employee_id,
-                orgType: "employee",
-              },
-              {
-                fieldName: "manufacturer_id",
-                label: "Manufacturer",
-                value: watchedValues?.manufacturer_id ?? data?.manufacturer_id,
-                orgType: "manufacturer",
-              },
-              {
-                fieldName: "other_id",
-                label: "Other Org",
-                value: watchedValues?.other_id ?? data?.other_id,
-                orgType: "organization",
-              },
-            ]}
-            scalarFields={[
-              {
-                fieldName: "company",
-                label: "Company",
-                value: watchedValues?.company ?? data?.company,
-                placeholder: "Company name",
-                disabled: isFieldDisabled("company"),
-              },
-              {
-                fieldName: "title",
-                label: "Title",
-                value: watchedValues?.title ?? data?.title,
-                placeholder: "Job title",
-                disabled: isFieldDisabled("title"),
-              },
-              {
-                fieldName: "department",
-                label: "Department",
-                value: watchedValues?.department ?? data?.department,
-                placeholder: "Department",
-                disabled: isFieldDisabled("department"),
-              },
-              {
-                fieldName: "role",
-                label: "Role",
-                value: watchedValues?.role ?? data?.role,
-                type: "select",
-                options: ROLE_OPTIONS,
-                disabled: isFieldDisabled("role"),
-              },
-            ]}
-            isEditing={isEditing}
-            contactId={activeContactId}
-            onOrgChanged={(fieldName, orgId) => {
-              formSetValueRef.current?.(fieldName as any, orgId, {
-                shouldDirty: true,
-              });
-            }}
-            onScalarFieldChange={(fieldName, value) => {
-              formSetValueRef.current?.(fieldName as any, value, {
-                shouldDirty: true,
-              });
-            }}
-            onSaveScalars={async (values) => {
-              if (!activeContactId) return;
-              await updateContact({ id: activeContactId, ...values } as any);
-              dispatch(
-                showToast({ message: "Company info saved", type: "success" }),
-              );
-            }}
-            defaultExpanded={isEditing}
-          />
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
             {/* Passwords — add mode only */}
             {effectiveMode === "add" && shouldRenderField("password") && (
@@ -2875,38 +3120,6 @@ export default function ContactDetail({
                 />
               </HorizontalField>
             )}
-
-            {/* Checkboxes */}
-            <div className="flex gap-6 py-2 col-span-full">
-              {shouldRenderField("is_active") && (
-                <Controller
-                  name="is_active"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      label="Active"
-                      checked={field.value ?? true}
-                      onChange={field.onChange}
-                      disabled={isFieldDisabled("is_active")}
-                    />
-                  )}
-                />
-              )}
-              {shouldRenderField("is_staff") && (
-                <Controller
-                  name="is_staff"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      label="Staff"
-                      checked={field.value ?? false}
-                      onChange={field.onChange}
-                      disabled={isFieldDisabled("is_staff")}
-                    />
-                  )}
-                />
-              )}
-            </div>
           </div>
 
           {/* ── Auth & System (read-only info) ── */}
@@ -2940,219 +3153,6 @@ export default function ContactDetail({
           {data && <BaseModelCards data={data as Record<string, unknown>} />}
         </form>
       </div>
-
-      {/* ─── TAB NAVIGATION ─── */}
-      {activeContactId && data?.id ? (
-        <>
-          <DetailTabs
-            entityType="contact"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            standardTabs={["actions", "comments", "documents", "raw"]}
-            additionalTabs={additionalTabs}
-            badges={tabBadges}
-          />
-
-          {/* ─── TAB CONTENT (scrollable) ─── */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">
-              {activeTab === "actions" && (
-                <ActionsPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={Array.isArray(data.actions) ? data.actions : undefined}
-                  actionIds={
-                    data.actions &&
-                    typeof data.actions === "object" &&
-                    "ids" in data.actions
-                      ? (data.actions as { ids?: number[] }).ids
-                      : undefined
-                  }
-                  viewMode="table"
-                  isEditing={isEditing}
-                  parentModelName="contact"
-                  parentIdOverride={data.id}
-                  onChange={(actions) =>
-                    setFetchedData((prev: any) => ({
-                      ...(prev || data),
-                      actions,
-                    }))
-                  }
-                  onActionIdsChange={(ids) =>
-                    setFetchedData((prev: any) => ({
-                      ...(prev || data),
-                      actions: { ids },
-                    }))
-                  }
-                  onSave={async (actions) => {
-                    try {
-                      await updateContact({ id: data.id, actions } as any);
-                      dispatch(
-                        showToast({
-                          message: "Action saved",
-                          type: "success",
-                        }),
-                      );
-                    } catch {
-                      dispatch(
-                        showToast({
-                          message: "Failed to save action",
-                          type: "error",
-                        }),
-                      );
-                    }
-                  }}
-                  assigneeOptions={contactOptions}
-                  projectOptions={projectOptions}
-                />
-              )}
-
-              {activeTab === "comments" && (
-                <CommentsPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  comments={data.comments}
-                  isEditing={isEditing}
-                  onChange={(comments) =>
-                    setFetchedData((prev: any) => ({
-                      ...(prev || data),
-                      comments,
-                    }))
-                  }
-                  onSave={async (comments) => {
-                    try {
-                      await updateContact({
-                        id: data.id,
-                        comments: { mode: "update", value: comments },
-                      } as any);
-                      dispatch(
-                        showToast({
-                          message: "Comments saved",
-                          type: "success",
-                        }),
-                      );
-                    } catch {
-                      dispatch(
-                        showToast({
-                          message: "Failed to save comments",
-                          type: "error",
-                        }),
-                      );
-                    }
-                  }}
-                  currentUser={currentUserName}
-                  currentUserId={currentUserId}
-                />
-              )}
-
-              {activeTab === "communications" && activeContactId && (
-                <CommunicationsPanel
-                  entityType="contact"
-                  entityId={activeContactId}
-                  contactId={activeContactId}
-                  data={{
-                    emails: data?.refs?.links?.email || [],
-                    phones: data?.refs?.links?.phone || [],
-                    addresses: data?.refs?.links?.address || [],
-                    domains: data?.refs?.links?.domain || [],
-                  }}
-                  onChange={(comms) => {
-                    // Update refs.links directly (single source of truth)
-                    setFetchedData((prev: any) => ({
-                      ...(prev || data),
-                      refs: {
-                        ...(prev?.refs || data?.refs || {}),
-                        links: {
-                          ...(prev?.refs?.links || data?.refs?.links || {}),
-                          email: comms.emails || [],
-                          phone: comms.phones || [],
-                          address: comms.addresses || [],
-                          domain: comms.domains || [],
-                        },
-                      },
-                    }));
-                  }}
-                  primaryEmailId={data?.email_id}
-                  primaryPhoneId={data?.phone_id}
-                  primaryAddressId={data?.address_id}
-                  primaryDomainId={data?.domain_id}
-                  onSetPrimaryItem={handleSetPrimaryItem}
-                />
-              )}
-
-              {activeTab === "documents" && (
-                <DocumentsPanel
-                  parent_model="contact"
-                  parentId={data.id}
-                  data={data?.refs?.links?.document}
-                  isEditing={isEditing}
-                />
-              )}
-
-              {activeTab === "history" && (
-                <MetadataPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={data?.metadata}
-                />
-              )}
-
-              {activeTab === "metadata" && (
-                <MetadataPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={data?.metadata}
-                />
-              )}
-
-              {activeTab === "prefs" && (
-                <PrefsPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={data?.prefs}
-                />
-              )}
-
-              {activeTab === "raw" && (
-                <RawDataPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={data}
-                />
-              )}
-
-              {activeTab === "refs" && (
-                <RefsPanel
-                  entityType="contact"
-                  entityId={data.id}
-                  data={data?.refs}
-                  onChange={(refs: any) =>
-                    setFetchedData((prev: any) => ({
-                      ...(prev || data),
-                      refs,
-                    }))
-                  }
-                />
-              )}
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Unsaved contact — show hint that tabs appear after save */
-        <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
-          {autoSaveInProgress ? (
-            <span className="flex items-center gap-2">
-              <FaSpinner className="animate-spin" size={14} />
-              Saving contact…
-            </span>
-          ) : (
-            <span>
-              Fill in the required fields above. Tabs &amp; related records will
-              appear once the contact is saved.
-            </span>
-          )}
-        </div>
-      )}
 
       {/* ─── Org Search Dialog ─── */}
       <OrgSearchDialog
