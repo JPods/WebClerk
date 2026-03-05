@@ -74,6 +74,52 @@ type Transaction = TransactionBase & {
   due_date?: string; // Due date
 };
 
+function getDisplayErrorMessage(error: unknown, fallback: string): string {
+  const anyError = error as any;
+  const responseData = anyError?.response?.data;
+
+  if (responseData) {
+    if (typeof responseData === "string") {
+      if (responseData.trim() && responseData !== "[object Object]") {
+        return responseData;
+      }
+    }
+
+    const detail = responseData?.detail;
+    const backendError = responseData?.error;
+    const message = responseData?.message;
+
+    if (typeof backendError === "string" && backendError.trim()) {
+      return backendError;
+    }
+    if (typeof detail === "string" && detail.trim()) {
+      return detail;
+    }
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  if (
+    error instanceof Error &&
+    typeof error.message === "string" &&
+    error.message.trim() &&
+    error.message !== "[object Object]"
+  ) {
+    return error.message;
+  }
+
+  if (
+    typeof anyError?.message === "string" &&
+    anyError.message.trim() &&
+    anyError.message !== "[object Object]"
+  ) {
+    return anyError.message;
+  }
+
+  return fallback;
+}
+
 function normalizeFkId(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -429,7 +475,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 quantity: {
                   placed: transferQty,
                   actioned: isEndOfChain ? transferQty : 0,
-                  remaining: 0,
+                  remaining: isEndOfChain ? 0 : transferQty,
                   precision: srcQty.precision ?? 2,
                   is_fixed: srcQty.is_fixed ?? false,
                 },
@@ -673,7 +719,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         setData(normalized);
         setEditData(normalized);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load data");
+        setError(getDisplayErrorMessage(e, `Failed to load ${typeLabel}`));
       } finally {
         setLoading(false);
       }
@@ -829,20 +875,43 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     });
 
     // If this was a Transfer-created record (new target created from a source),
-    // deactivate the source record so it disappears from the source list.
-    // This matches the expected "move" semantics for Transfer.
+    // deactivate the source record only when every source line is fully transferred.
     if (!rawId && transferSource) {
       try {
-        await saveRecord(transferSource.type, {
-          id: transferSource.id,
-          is_active: false,
-        });
+        const sourceResult = await getRecord(
+          transferSource.type,
+          transferSource.id,
+        );
+        const sourceRecord = (sourceResult?.record ?? sourceResult) as any;
+        const sourceLines = Array.isArray(sourceRecord?.lines)
+          ? sourceRecord.lines
+          : [];
 
-        emitModelChanged({
-          model: transferSource.type,
-          id: transferSource.id,
-          action: "deactivated",
-        });
+        const isFullyTransferred =
+          sourceLines.length > 0 &&
+          sourceLines.every((line: any) => {
+            const qty = line?.quantity || {};
+            const placed = Number(qty.placed ?? 0);
+            const actioned = Number(qty.actioned ?? 0);
+            const rawRemaining = qty.remaining;
+            const remaining = Number(
+              rawRemaining ?? (Number.isFinite(placed) ? placed - actioned : 0),
+            );
+            return Number.isFinite(remaining) ? remaining <= 0 : false;
+          });
+
+        if (isFullyTransferred) {
+          await saveRecord(transferSource.type, {
+            id: transferSource.id,
+            is_active: false,
+          });
+
+          emitModelChanged({
+            model: transferSource.type,
+            id: transferSource.id,
+            action: "deactivated",
+          });
+        }
       } catch (e) {
         console.warn(
           "[TransactionDetailBase] Failed to deactivate transfer source:",
@@ -891,7 +960,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       );
       onSaved?.(result);
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : "Failed to save";
+      const errorMsg = getDisplayErrorMessage(e, "Failed to save");
       setError(errorMsg);
       dispatch(showToast({ message: errorMsg, type: "error" }));
     } finally {
@@ -965,7 +1034,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       // Fallback for non-window navigation
       navigate(-1);
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : "Failed to save";
+      const errorMsg = getDisplayErrorMessage(e, "Failed to save");
       setError(errorMsg);
       dispatch(showToast({ message: errorMsg, type: "error" }));
     } finally {
@@ -1699,7 +1768,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       );
       navigate(`/transactions/${transactionType}s`);
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : "Failed to delete";
+      const errorMsg = getDisplayErrorMessage(e, "Failed to delete");
       setError(errorMsg);
       dispatch(showToast({ message: errorMsg, type: "error" }));
     }
@@ -2258,18 +2327,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                         };
                       }
                       const isInvoice = transactionType === 'invoice';
-                      const hasParent = Boolean(currentData?.parent_id);
                       const unitPriceForCalc = l.price?.unit ?? 0;
 
                       if (isInvoice) {
-                        // End-of-chain: user edits actioned; remaining always 0.
-                        // Standalone invoice → placed = actioned.
+                        // End-of-chain: user edits shipped qty; keep placed/actioned
+                        // aligned so transfer accounting uses the edited quantity.
                         return {
                           ...baseUpdate,
                           quantity: {
                             ...l.quantity,
                             actioned: newQty,
-                            placed: hasParent ? (l.quantity?.placed ?? newQty) : newQty,
+                            placed: newQty,
                             remaining: 0,
                           },
                           price: {
