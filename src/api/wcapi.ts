@@ -513,3 +513,57 @@ export async function logRefsMismatch(payload: {
     console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
   }
 }
+
+// Document upload functions
+export interface DocumentUploadResponse {
+  document_id: number;
+  path: string;
+  checksum: string;
+  is_duplicate: boolean;
+  url: string;
+  name: string;
+  size_bytes: number;
+  mime_type: string;
+  document: any;
+}
+
+export async function uploadDocument(
+  file: File,
+  modelName?: string,
+  parentId?: number,
+  purpose: string = "attachment",
+  description?: string
+): Promise<DocumentUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (modelName) formData.append("model_name", modelName);
+  if (parentId) formData.append("parent_id", parentId.toString());
+  formData.append("purpose", purpose);
+  if (description) formData.append("description", description);
+
+  const response = await apiClient.post("/wcapi/upload/", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  const raw = response.data as any;
+  const payload = raw?.data ?? raw;
+  const documentId = payload?.document_id ?? payload?.document?.id;
+
+  if (!documentId) {
+    throw new Error("Upload response missing document_id");
+  }
+
+  return {
+    document_id: Number(documentId),
+    path: payload?.path ?? "",
+    checksum: payload?.checksum ?? "",
+    is_duplicate: Boolean(payload?.is_duplicate),
+    url: payload?.url ?? `/wcapi/document/${documentId}/`,
+    name: payload?.name ?? file.name,
+    size_bytes: Number(payload?.size_bytes ?? file.size),
+    mime_type: payload?.mime_type ?? file.type,
+    document: payload?.document ?? null,
+  };
+}

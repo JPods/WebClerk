@@ -48,6 +48,13 @@ export interface KanbanTask {
   created_by?: any;
   updated_by?: any;
   expected_by?: any;
+  attachments?: Array<{
+    id: number;
+    name: string;
+    size_bytes: number;
+    mime_type: string;
+    url?: string;
+  }>;
   due_by?: any;
   completed_by?: any;
   start_by?: any;

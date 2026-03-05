@@ -8,6 +8,16 @@ export type TranslationFormEntry = {
   description: string;
 };
 
+export type TaskAttachment = {
+  id: string;
+  file?: File;
+  documentId?: number;
+  type: string;
+  name: string;
+  size: number;
+  previewUrl?: string;
+};
+
 export type CoreModelFields = {
   id: number | null;
   uuid: string | null;
