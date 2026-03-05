@@ -1,10 +1,8 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter,
-} from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchDomains, deleteDomain } from "../services/domainApi";
 import { FaTrash, FaPlus } from "react-icons/fa";
@@ -13,6 +11,7 @@ import { useDispatch } from "react-redux";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import DomainListMob from "./DomainListMob";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function DomainList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -23,6 +22,13 @@ export default function DomainList() {
   );
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const dispatch = useDispatch();
   const getEmailData = useCallback(async (emailId?: number) => {
@@ -308,10 +314,56 @@ export default function DomainList() {
     [userColumns],
   );
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Domain List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ButtonToolbar
+        pageTitle="Domain List"
+        title="Domain"
+        modelKey="domain"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedDomains}
+        selectedCount={selectedDomains.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="domain-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
             {formMode ? (
@@ -335,7 +387,8 @@ export default function DomainList() {
               />
             ) : (
               <AdvancedDataTable
-                data={data}
+              ref={tableRef}
+                data={filteredData}
                 columns={userColumns}
                 title="Domains"
                 storageKey="communications.domain.list"
@@ -355,7 +408,10 @@ export default function DomainList() {
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}
                 rowKeyField="id"
-              />
+              
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
             )}
           </ComponentCard>
         </div>

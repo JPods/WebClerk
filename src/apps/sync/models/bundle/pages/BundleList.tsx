@@ -1,14 +1,14 @@
-import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../components/common/ComponentCard";
-import AdvancedDataTable from "../../../../components/common/AdvancedDataTable";
+import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef} from "react";
 import { deleteAction } from "../../../../api/userProfile";
 import { fetchBundles } from "../services/bundleApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import BundleDetail from "./BundleDetail";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function BundleList() {
   const [data, setData] = useState<any[]>([]);
@@ -16,6 +16,13 @@ export default function BundleList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const dispatch = useDispatch();
 
@@ -138,10 +145,52 @@ export default function BundleList() {
     },
   ];
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Bundle List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ButtonToolbar
+        pageTitle="Bundle List"
+        title="Bundle"
+        modelKey="bundle"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="bundle-list"
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="flex justify-end mb-4">
@@ -155,11 +204,12 @@ export default function BundleList() {
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
               <AdvancedDataTable
+              ref={tableRef}
                 columns={userColumns.map((col) => ({
                   ...col,
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
-                data={data}
+                data={filteredData}
                 storageKey="bundle_list"
                 highlightOnHover
                 pointerOnHover
@@ -171,7 +221,10 @@ export default function BundleList() {
                 searchDatabase={searchDatabase}
                 onSearchModeChange={setSearchDatabase}
                 onDatabaseSearch={handleDatabaseSearch}
-              />
+              
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
             </div>
           </ComponentCard>
         </div>

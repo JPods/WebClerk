@@ -1,17 +1,16 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter,
-} from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchInvoices } from "../services/invoiceApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { PageRoutes } from "@/routes/Routes";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 // Invoice row type for the data table
 interface InvoiceRow {
@@ -36,6 +35,13 @@ export default function InvoiceList() {
   const [_selectedInvoices, setSelectedInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -360,11 +366,53 @@ export default function InvoiceList() {
   //   return acc;
   // }, {} as Record<string, number>);
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Invoice List" />
-
-      {/* Summary Cards */}
+      <ButtonToolbar
+        pageTitle="Invoice List"
+        title="Invoice"
+        modelKey="invoice"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="invoice-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+{/* Summary Cards */}
       {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <ComponentCard>
           <div className="text-center">
@@ -411,7 +459,8 @@ export default function InvoiceList() {
       <div>
         <ComponentCard>
           <AdvancedDataTable
-            data={data}
+              ref={tableRef}
+            data={filteredData}
             columns={userColumns}
             title="Invoices"
             loading={loading}
@@ -431,7 +480,10 @@ export default function InvoiceList() {
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <FaPlus className="w-4 h-4" />
+                <FaPlus className="w-4 h-4" 
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
                 Add Invoice
               </button>
             }

@@ -1,10 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef} from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter,
-} from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { fetchVendors } from "../services/vendorApi";
 
 import { useDispatch } from "react-redux";
@@ -12,6 +10,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import VendorDetail from "./VendorDetail";
 import VendorListMob from "./VendorListMob";
 import { deleteRecord } from "../../../../../api/wcapi";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function VendorList() {
   const dispatch = useDispatch();
@@ -24,6 +23,13 @@ export default function VendorList() {
   );
   const [searchDatabase, setSearchDatabase] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch actions
   const fetchActions = useCallback(async () => {
@@ -319,10 +325,55 @@ export default function VendorList() {
     },
   ];
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Vendor List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ButtonToolbar
+        pageTitle="Vendor List"
+        title="Vendor"
+        modelKey="vendor"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedVendors}
+        selectedCount={selectedVendors.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="vendor-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className="cus-bg-purple-light rounded-md">
             {formMode ? (
@@ -348,8 +399,9 @@ export default function VendorList() {
               </div>
             ) : (
               <AdvancedDataTable
-                data={data}
-                columns={columns}
+              ref={tableRef}
+                data={filteredData}
+                columns={visibleColumns}
                 title="Vendor"
                 loading={loading}
                 filters={filters}
@@ -365,7 +417,10 @@ export default function VendorList() {
                 noDataMessage="No vendor found"
                 customActions={customActions}
                 onRowClicked={handleView}
-              />
+              
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
             )}
           </ComponentCard>
         </div>

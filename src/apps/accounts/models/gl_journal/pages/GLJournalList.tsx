@@ -1,13 +1,13 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter } from "@/components/common/AdvancedDataTable";
+import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { fetchGLJournals, deleteGLJournal } from "../services/glJournalApi";
 import GLJournalDetail from "./GLJournalDetail";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function GLJournalList() {
   const dispatch = useDispatch();
@@ -17,6 +17,13 @@ export default function GLJournalList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const getGLJournalData = useCallback(async () => {
     try {
@@ -143,15 +150,62 @@ export default function GLJournalList() {
     },
   ], [handleDelete, handleEdit, handleView]);
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="GL Journal List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ButtonToolbar
+        pageTitle="GL Journal List"
+        title="GL Journal"
+        modelKey="gl_journal"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedGLJournals}
+        selectedCount={selectedGLJournals.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="gl_journal-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
-              data={data}
-              columns={columns}
+              ref={tableRef}
+              data={filteredData}
+              columns={visibleColumns}
               title="GL Journals"
               loading={loading}
               filters={filters}
@@ -174,7 +228,10 @@ export default function GLJournalList() {
                       onClick={handleBulkDelete}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                     >
-                      <FaTrash className="w-4 h-4" />
+                      <FaTrash className="w-4 h-4" 
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
                       Delete ({selectedGLJournals.length})
                     </button>
                   )}

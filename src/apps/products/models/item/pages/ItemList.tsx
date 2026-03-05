@@ -1,8 +1,7 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef} from "react";
 import { FaEdit, FaEye, FaPlus, FaTrash, FaTachometerAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { PageRoutes } from "../../../../../routes/Routes";
@@ -11,6 +10,7 @@ import { deleteAction } from "../../../../../api/userProfile";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { fetchItems } from "../services/itemApi";
 import ItemDetail from "./ItemDetail";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 type ItemListMode = "add" | "edit" | "view" | null;
 
@@ -64,6 +64,13 @@ export default function ItemList() {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const getItemId = useCallback((row: any) => {
     return valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ?? null;
@@ -275,15 +282,62 @@ export default function ItemList() {
     ];
   }, [handleDelete, handleEdit, handleView]);
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Item List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ButtonToolbar
+        pageTitle="Item List"
+        title="Item"
+        modelKey="item"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedItems}
+        selectedCount={selectedItems.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="item-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
+              ref={tableRef}
               data={items}
-              columns={columns}
+              columns={visibleColumns}
               title="Items"
               loading={loading}
               filters={filters}
@@ -306,7 +360,10 @@ export default function ItemList() {
                       onClick={handleBulkDelete}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                     >
-                      <FaTrash className="w-4 h-4" />
+                      <FaTrash className="w-4 h-4" 
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
                       Delete ({selectedItems.length})
                     </button>
                   )}

@@ -1,14 +1,14 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable from "@/components/common/AdvancedDataTable";
+import AdvancedDataTable, { type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecords } from "@/api/wcapi";
 import { FaEye, FaCheck, FaTimes, FaSync } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import APILogDetail from "./APILogDetail";
 import Badge from "@/components/ui/badge/Badge";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 interface APILogRecord {
   id: number;
@@ -31,6 +31,13 @@ export default function APILogList() {
   const [selectedLog, setSelectedLog] = useState<APILogRecord | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -223,10 +230,52 @@ export default function APILogList() {
     []
   );
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="API Logs" />
-      <ComponentCard title="API Request Logs">
+      <ButtonToolbar
+        pageTitle="API Logs"
+        title="API Logs"
+        modelKey="api_logs"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="api_logs-list"
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+<ComponentCard title="API Request Logs">
         <div className="mb-4 flex justify-end">
           <button
             onClick={fetchData}
@@ -237,8 +286,9 @@ export default function APILogList() {
           </button>
         </div>
         <AdvancedDataTable
-          data={data}
-          columns={columns}
+              ref={tableRef}
+          data={filteredData}
+          columns={visibleColumns}
           loading={loading}
           enableExport={true}
           enableSelection={false}
@@ -246,7 +296,10 @@ export default function APILogList() {
           searchDatabase={searchDatabase}
           onSearchModeChange={setSearchDatabase}
           onDatabaseSearch={handleDatabaseSearch}
-        />
+        
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
       </ComponentCard>
 
       {/* Detail Modal */}

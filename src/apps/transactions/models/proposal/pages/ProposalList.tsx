@@ -1,14 +1,14 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadcrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchProposals, fetchProposal } from "../services/proposalApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import ProposalDetail from "./ProposalDetail";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function ProposalList() {
   const [data, setData] = useState<any[]>([]);
@@ -18,6 +18,13 @@ export default function ProposalList() {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const dispatch = useDispatch();
 
@@ -308,11 +315,55 @@ export default function ProposalList() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Filter data based on filterValues from ButtonToolbar
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+    return data.filter((row: any) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true;
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  // Filter columns based on visibility from ButtonToolbar
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Proposal List" />
-
-      {/* Summary Cards */}
+      <ButtonToolbar
+        pageTitle="Proposal List"
+        title="Proposal"
+        modelKey="proposal"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedProposals}
+        selectedCount={selectedProposals.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={getData}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="proposal-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+{/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <ComponentCard>
           <div className="text-center">
@@ -344,7 +395,8 @@ export default function ProposalList() {
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
-              data={data}
+              ref={tableRef}
+              data={filteredData}
               columns={userColumns}
               title="Proposals"
               loading={loading}
@@ -364,7 +416,10 @@ export default function ProposalList() {
                   onClick={handleAdd}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <FaPlus className="w-4 h-4" />
+                  <FaPlus className="w-4 h-4" 
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              hideHeader={true}/>
                   Add Proposal
                 </button>
               }
