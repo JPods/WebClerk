@@ -168,6 +168,10 @@ interface BreadcrumbProps<T = any> {
   onColumnVisibilityChange?: (visibility: boolean[]) => void;
   onColumnsChange?: (columns: TableColumn<T>[]) => void;
   storageKey?: string;
+  // Custom content slots
+  customActions?: React.ReactNode;
+  summaryContent?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const ButtonToolbar = <T extends Record<string, any> = any>({
@@ -205,6 +209,10 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   onColumnVisibilityChange,
   onColumnsChange,
   storageKey,
+  // Custom content slots
+  customActions,
+  summaryContent,
+  children,
 }: BreadcrumbProps<T>) => {
   // exportFileName available for future use if needed
   void _exportFileName;
@@ -642,6 +650,9 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           >
             <FaTrash className="w-4 h-4" />
           </button>
+
+          {/* Custom Actions Slot */}
+          {customActions}
           {/* </div> */}
         </div>
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
@@ -757,7 +768,13 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
             </span>
           </span>
         )}
+
+        {/* Custom Summary Content Slot */}
+        {summaryContent}
       </div>
+
+      {/* Children Slot */}
+      {children}
 
       {/* Export Dropdown - Fixed position to avoid overflow clipping */}
       {showExportDropdown && exportDropdownPosition && (

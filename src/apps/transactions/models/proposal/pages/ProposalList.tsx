@@ -329,9 +329,9 @@ export default function ProposalList() {
 
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
-    if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
-  }, [columns, columnVisibility]);
+    if (columnVisibility.length === 0) return userColumns;
+    return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [userColumns, columnVisibility]);
   return (
     <>
       <ButtonToolbar
@@ -353,7 +353,7 @@ export default function ProposalList() {
         enableDatabaseSearch
         searchDatabase={searchDatabase}
         onSearchModeChange={setSearchDatabase}
-        columns={columns}
+        columns={userColumns}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
         storageKey="proposal-list"

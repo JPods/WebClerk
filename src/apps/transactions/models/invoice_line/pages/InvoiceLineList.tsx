@@ -1,7 +1,7 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useRef} from "react";
+import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteInvoiceLine, fetchInvoiceLines } from "../services/invoiceLineApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -180,9 +180,9 @@ export default function InvoiceLineList() {
 
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
-    if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
-  }, [columns, columnVisibility]);
+    if (columnVisibility.length === 0) return userColumns;
+    return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
+  }, [userColumns, columnVisibility]);
   return (
     <>
       <ButtonToolbar
@@ -202,7 +202,7 @@ export default function InvoiceLineList() {
         enableDatabaseSearch
         searchDatabase={searchDatabase}
         onSearchModeChange={setSearchDatabase}
-        columns={columns}
+        columns={userColumns}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
         storageKey="invoice_line-list"
