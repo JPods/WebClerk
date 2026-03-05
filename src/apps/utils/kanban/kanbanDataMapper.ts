@@ -74,6 +74,13 @@ export interface ApiKanbanItem {
     public?: string;
     [key: string]: unknown;
   };
+  attachments?: Array<{
+    id: number;
+    name: string;
+    size_bytes: number;
+    mime_type: string;
+    url?: string;
+  }>;
   progress?: number | string | null;
   progress_percent?: number | string | null;
   progress_percentage?: number | string | null;
@@ -536,6 +543,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       percent_complete: progressValue,
       sequence: sequenceValue,
       refs: item.refs,
+      attachments: item.attachments,
     };
   });
 

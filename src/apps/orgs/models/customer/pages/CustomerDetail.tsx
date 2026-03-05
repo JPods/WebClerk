@@ -293,6 +293,7 @@ function CustomerDetail({
   const dispatch = useDispatch();
   const { ensureWindow, activateWindow, closeWindow } = useWindowManager();
   const currentUser = useAppSelector((state) => state.auth.user);
+  //console.log("currentUser", currentUser);
   const { activeTab, setActiveTab: handleTabChange } = useDetailTabs(
     "customer",
     "actions",
@@ -429,7 +430,7 @@ function CustomerDetail({
         phone: r.phone || "",
         full: r.display_name || r.full || "",
       }));
-      console.log("[CustomerDetail.fetchFkContacts] mapped contacts:", mapped);
+      //console.log("[CustomerDetail.fetchFkContacts] mapped contacts:", mapped);
       setFkContacts(mapped);
 
       // --- Mismatch detection (FK vs refs.links.contact) ---
@@ -455,15 +456,7 @@ function CustomerDetail({
   useEffect(() => {
     // Skip when explicitly creating a new customer inline (modeProp) or via route
     if (modeProp === "add" || routeMode === "add") return;
-    if (!Number.isFinite(resolvedCustomerId) || resolvedCustomerId <= 0) {
-      console.log(
-        "[CustomerDetail] FK fetch skipped – resolvedCustomerId:",
-        resolvedCustomerId,
-        "useParams id:",
-        id,
-      );
-      return;
-    }
+
     fetchFkContacts(resolvedCustomerId);
   }, [
     resolvedCustomerId,
@@ -1496,7 +1489,7 @@ function CustomerDetail({
                         );
                       }
                     }}
-                    currentUser={currentUser?.username}
+                    currentUser={`${currentUser?.name_first} ${currentUser?.name_last}`}
                     currentUserId={currentUser?.id}
                   />
                 )}

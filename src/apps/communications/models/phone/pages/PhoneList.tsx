@@ -298,6 +298,37 @@ export default function PhoneList() {
     ],
   );
 
+  const customActions = (
+    <div className="flex gap-2">
+      <button
+        onClick={handleAdd}
+        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <FaPlus className="w-4 h-4" />
+      </button>
+      {selectedPhones.length > 0 && (
+        <button
+          onClick={handleBulkDelete}
+          className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+        >
+          <FaTrash className="w-3 h-3" />({selectedPhones.length})
+        </button>
+      )}
+    </div>
+  );
+
+  const exportColumns = useMemo(
+    () =>
+      userColumns
+        .filter((col) => typeof col.name === "string")
+        .map((col) => ({
+          name: typeof col.name === "string" ? col.name : undefined,
+          selector:
+            typeof col.selector === "function" ? col.selector : undefined,
+        })),
+    [userColumns],
+  );
+
   return (
     <>
       <PageBreadcrumb pageTitle="Phone List" />
@@ -311,6 +342,18 @@ export default function PhoneList() {
                   selectedPhone={selectedPhone}
                   handleView={handleView}
                   handleEdit={handleEdit}
+                  emptyMessage="No phones found"
+                  filters={filters}
+                  searchPlaceholder="Search phones..."
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
+                  enableExport={true}
+                  exportFileName="phones_export"
+                  customActions={customActions}
+                  loading={loading}
+                  columnsForExport={exportColumns}
                 />
               </div>
             ) : (
@@ -330,26 +373,7 @@ export default function PhoneList() {
                 exportFileName="phones_export"
                 searchPlaceholder="Search phones..."
                 noDataMessage="No phones found"
-                customActions={
-                  <div className="flex gap-2">
-                    {selectedPhones.length > 0 && (
-                      <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                        Delete ({selectedPhones.length})
-                      </button>
-                    )}
-                    <button
-                      onClick={handleAdd}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      New Phone
-                    </button>
-                  </div>
-                }
+                customActions={customActions}
                 onRowClicked={handleView}
                 rowClickMode="onlyIdAndActions"
                 rowClickAllowedColumnNames={["id", "action", "actions"]}

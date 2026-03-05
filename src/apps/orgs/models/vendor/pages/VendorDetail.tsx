@@ -1,64 +1,576 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+import { Input, Select } from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import DetailTabs from "@/components/common/DetailTabs";
-import { DevBadge } from "@/components/common/DevBadge";
-import { createVendor, updateVendor } from "../services/vendorApi";
+import {
+  createVendor,
+  updateVendor,
+  fetchVendors,
+  deleteVendor,
+} from "../services/vendorApi";
+import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
+import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  FaAddressCard,
+  FaChevronLeft,
+  FaChevronRight,
+  FaEdit,
+  FaTrash,
   FaDollarSign,
-  FaFileAlt,
-  FaLink,
+  FaAddressCard,
   FaQuestionCircle,
-  FaSlidersH,
+  FaTimes,
+  FaProductHunt,
+  FaComment,
+  FaTruckLoading,
 } from "react-icons/fa";
 import { vendorSchema } from "../utils/vendorSchema";
-import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import {
+  ScalarCard,
+  JsonCard,
+  BaseModelCards,
+} from "@/apps/common/components/detail";
 import { VendorAddProps } from "../types/vendorType";
 import Checkbox from "@/components/form/input/Checkbox";
+import { DevBadge } from "@/components/common/DevBadge";
+
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import {
-  ActionsPanel,
+  BasicInformationPanel,
   CommentsPanel,
+  ActionsPanel,
   DocumentsPanel,
   MetadataPanel,
-  PrefsPanel,
-  QAPanel,
   RawDataPanel,
   ContactPanel,
-  RefsPanel,
   normalizeRefsLinksContact,
+  QAPanel,
+  RefsPanel,
+  PrefsPanel,
 } from "@/apps/common/components/panels";
 import TransactionTabs from "@/components/common/TransactionTabs";
 import ItemTabs from "@/components/common/ItemTabs";
-import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
-import { getRecord, saveRecord } from "@/api/wcapi";
+import {
+  DetailTabs,
+  useDetailTabs,
+  useColumnCount,
+  ColumnSelector,
+} from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { useWindowManager } from "../../../../../context/WindowManagerContext";
+import { PageRoutes } from "../../../../../routes/Routes";
+import { dynamicData } from "../../../../../model/dynamicData";
+import RippleLoader from "@/components/common/RippleLoader";
+import { CreateContactRequest } from "../../../../core/models/contact/types/contactType";
+
+// Professional vendor display component for right-side column
+type VendorFormValues = z.infer<typeof vendorSchema> & {
+  refs?: string;
+};
+
+interface Vendor {
+  id?: number;
+  display_name?: string;
+  status?: string;
+  org_type?: string;
+  version?: number;
+  is_active?: boolean;
+  // New scalar fields from wc3
+  attention?: string | null;
+  contact_id?: number | null;
+  email?: string | null;
+  phone?: string | null;
+  price_level?: string | null;
+  terms?: string | null;
+  terms_id?: number | null;
+  address_full?: string | null;
+  // JSON aspect fields
+  contacts?: any;
+  addresses?: any;
+  domains?: any;
+  phones?: any;
+  emails?: any;
+  docs?: any;
+  connections?: any;
+  relations?: any;
+  financial?: any;
+  data?: any;
+  metrics?: any;
+  gl_accounts?: any;
+  refs?: any; // <-- Add refs property
+}
+
+const JSON_DEFAULTS: Record<string, any> = {
+  contacts: [],
+  addresses: [],
+  domains: [],
+  phones: [],
+  emails: [],
+  docs: [],
+  connections: {},
+  relations: { parents: [], children: [], linked_ids: [] },
+  financial: {
+    credit: { limit: 0, used: 0 },
+    balances: { open: 0, current: 0 },
+    metrics: { ytd: { sales: 0 } },
+  },
+  data: {},
+  metrics: { counts: {}, periods: {} },
+  gl_accounts: {},
+};
+
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "pending", label: "Pending" },
+  { value: "suspended", label: "Suspended" },
+  { value: "archived", label: "Archived" },
+];
+
+const ORG_TYPE_OPTIONS = [
+  { value: "vendor", label: "Vendor" },
+  { value: "partner", label: "Partner" },
+  { value: "internal", label: "Internal" },
+];
+
+const TERMS_OPTIONS = [
+  { value: "Net 30", label: "Net 30" },
+  { value: "Net 60", label: "Net 60" },
+  { value: "Net 90", label: "Net 90" },
+  { value: "Due on Receipt", label: "Due on Receipt" },
+  { value: "COD", label: "COD" },
+  { value: "Prepaid", label: "Prepaid" },
+  { value: "2/10 Net 30", label: "2/10 Net 30" },
+];
+
+const PRICE_LEVEL_OPTIONS = [
+  { value: "A", label: "A - Retail" },
+  { value: "B", label: "B - Wholesale" },
+  { value: "C", label: "C - Distributor" },
+  { value: "D", label: "D - Volume" },
+  { value: "E", label: "E - Special" },
+];
+
+/* ----------------------------------
+   Horizontal Field Row Component
+   Label on left, input on right (Enterprise standard)
+   Compact version for 2-column grid layout
+---------------------------------- */
+interface HorizontalFieldProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  required?: boolean;
+}
+
+function HorizontalField({
+  label,
+  htmlFor,
+  children,
+  error,
+  required,
+}: HorizontalFieldProps) {
+  return (
+    <div className="flex items-center gap-1.5 py-1">
+      <Label
+        htmlFor={htmlFor}
+        className="w-25 shrink-0 text-left text-xs font-medium text-slate-600 dark:text-slate-400"
+      >
+        {label} :{required && <span className="text-red-500 ml-0.5">*</span>}
+      </Label>
+      <div className="flex-1 min-w-0">
+        {children}
+        {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+interface SingleWindowSectionProps {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function SingleWindowSection({
+  title,
+  children,
+  className = "",
+}: SingleWindowSectionProps) {
+  return (
+    <section
+      className={`rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 ${className}`}
+    >
+      <div className="px-2 py-1 text-[10px] font-semibold tracking-wide uppercase text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700">
+        {title}
+      </div>
+      <div className="p-2">{children}</div>
+    </section>
+  );
+}
+
+const VALID_TABS = [
+  "actions",
+  "comments",
+  "contacts",
+  "documents",
+  "financial",
+  "history",
+  "metadata",
+  "prefs",
+  "qa",
+  "raw",
+  "refs",
+];
+
+export const VENDOR_STANDARD_TABS = ["actions", "comments", "documents", "raw"];
+
+export const VENDOR_ADDITIONAL_TABS = [
+  { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
+  { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
+  { id: "items", label: "Items", icon: <FaTruckLoading size={14} /> },
+  { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
+];
+
+export const buildVendorTabBadges = (
+  data: any,
+  fkContacts: Array<unknown>,
+): Record<string, number> => {
+  const getCommentCount = () => {
+    if (!data?.comments) return 0;
+    const c = data.comments;
+    return (
+      (c.public?.length || 0) +
+      (c.process?.length || 0) +
+      (c.partner?.length || 0) +
+      (c.notes?.length || 0)
+    );
+  };
+
+  const getActionCount = () =>
+    data?.actions?.items?.filter((a: any) => a.status === "pending").length ||
+    0;
+
+  const getDocumentCount = () => data?.refs?.links?.document?.length || 0;
+
+  return {
+    comments: getCommentCount(),
+    actions: getActionCount(),
+    documents: getDocumentCount(),
+    contacts: fkContacts.length,
+  };
+};
+>>>>>>> origin/dev
 
 function VendorDetail({
   modeProp,
   dataProp,
-  hideBreadcrumb,
+  hideBreadcrumb: _hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
+  onCancel: onCancelProp,
+  onDelete: onDeleteProp,
 }: VendorAddProps) {
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const currentUser = useMemo(() => {
-    if (!user) return "You";
-    return `${user.name_first ?? ""}${user.name_last ?? ""}`.trim() || "You";
-  }, [user]);
+  const { ensureWindow, activateWindow, closeWindow } = useWindowManager();
+  const currentUser = useAppSelector((state) => state.auth.user);
+  //console.log("currentUser", currentUser);
+  const { activeTab, setActiveTab: handleTabChange } = useDetailTabs(
+    "vendor",
+    "actions",
+    VALID_TABS,
+  );
+  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
+    "vendor",
+    3,
+  );
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Data fetching state (used when no dataProp provided)
+  const [fetchedRecord, setFetchedRecord] = useState<dynamicData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // FK-based contact loading (replaces refs.links.contact)
+  const [fkContacts, setFkContacts] = useState<
+    ReturnType<typeof normalizeRefsLinksContact>
+  >([]);
+  const [fkContactsLoading, setFkContactsLoading] = useState(false);
+  const [fkRefreshTrigger, setFkRefreshTrigger] = useState(0);
+
+  // Action dropdown options (assignees + projects)
+  const [contactOptions, setContactOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+  const [projectOptions, setProjectOptions] = useState<
+    Array<{ id: string; name?: string; intent?: string }>
+  >([]);
+
+  // Detect mode from route if modeProp not provided
+  const routeMode = useMemo(() => {
+    const path = location.pathname;
+    if (path.includes("/vendor/add")) return "add";
+    if (path.includes("/vendor/edit/")) return "edit";
+    if (path.includes("/vendor/detail/")) return "view";
+    return "view";
+  }, [location.pathname]);
+
+  const vendorId = Number(id);
+
+  // Resolved vendor ID — useParams may be empty in floating windows,
+  // so fall back to the record's own id from dataProp or fetchedRecord.
+  const resolvedVendorId = useMemo(() => {
+    if (Number.isFinite(vendorId) && vendorId > 0) return vendorId;
+    const fromData = dataProp?.id ?? fetchedRecord?.id;
+    return fromData ? Number(fromData) : 0;
+  }, [vendorId, dataProp, fetchedRecord]);
+
+  // Fetch data when in view/edit mode and no dataProp provided
+  useEffect(() => {
+    if (dataProp) return; // Skip if data provided via props
+    // Respect explicit modeProp (inline add) as well as route-derived mode
+    if (modeProp === "add" || routeMode === "add") return; // No fetch needed for add mode
+    if (!Number.isFinite(vendorId)) return;
+
+    setLoading(true);
+    setError(null);
+    fetchVendors(vendorId)
+      .then((res) => {
+        const data = res?.data?.items || res?.data;
+        setFetchedRecord(data || null);
+      })
+      .catch((err) => {
+        setError(err?.message || "Failed to load vendor.");
+      })
+      .finally(() => setLoading(false));
+  }, [vendorId, dataProp, routeMode, modeProp]);
+
+  // Load assignee options (contacts)
+  useEffect(() => {
+    getRecords("contact", { is_active: true, limit: 500 })
+      .then((response: any) => {
+        const records: any[] =
+          response?.results || response?.data || response?.items || [];
+        setContactOptions(
+          records
+            .filter((r: any) => r.id != null)
+            .map((r: any) => ({
+              id: String(r.id),
+              label: r.attention || r.name || `Contact #${r.id}`,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load project options
+  useEffect(() => {
+    getRecords("project", { is_active: true, limit: 500 })
+      .then((response: any) => {
+        const records: any[] =
+          response?.results || response?.data || response?.items || [];
+        setProjectOptions(
+          records
+            .filter((r: any) => r.id != null)
+            .map((r: any) => ({
+              id: String(r.id),
+              name: r.name || undefined,
+              intent: r.intent || undefined,
+            }))
+            .sort((a, b) =>
+              (a.name || a.intent || "").localeCompare(
+                b.name || b.intent || "",
+              ),
+            ),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  /**
+   * FK-based contact fetching:
+   * Query contacts by vendor_id FK instead of reading refs.links.contact.
+   * Also compares FK result with refs.links and logs any mismatches.
+   */
+  const fetchFkContacts = useCallback(async (vendorIdVal: number) => {
+    if (!Number.isFinite(vendorIdVal) || vendorIdVal <= 0) {
+      return;
+    }
+
+    setFkContactsLoading(true);
+    try {
+      const res = await getRecords("contact", { vendor: vendorIdVal });
+      const results = res?.results ?? [];
+      // Map raw contact records to RefContact shape
+      const mapped = results.map((r: any) => ({
+        contact_id: r.id,
+        purpose: r.purpose || "",
+        attention: r.attention || "",
+        email: r.email || "",
+        phone: r.phone || "",
+        full: r.display_name || r.full || "",
+      }));
+      //console.log("[VendorDetail.fetchFkContacts] mapped contacts:", mapped);
+      setFkContacts(mapped);
+
+      // --- Mismatch detection (FK vs refs.links.contact) ---
+      // Use a snapshot; don't depend on fetchedRecord to avoid dep loops
+      const fkIds = mapped.map((c: any) => c.contact_id).sort();
+      logRefsMismatch({
+        parent_model: "vendor",
+        parent_id: vendorIdVal,
+        related_model: "contact",
+        fk_field: "vendor_id",
+        fk_ids: fkIds,
+        refs_ids: [], // refs comparison deferred – avoids dep loop
+        caller: "VendorDetail.fetchFkContacts",
+      });
+    } catch (err) {
+      console.error("[VendorDetail] FK contact fetch failed:", err);
+    } finally {
+      setFkContactsLoading(false);
+    }
+  }, []); // no deps — stable function reference
+
+  // Trigger FK contact fetch when vendor id or refresh trigger changes
+  useEffect(() => {
+    // Skip when explicitly creating a new vendor inline (modeProp) or via route
+    if (modeProp === "add" || routeMode === "add") return;
+
+    fetchFkContacts(resolvedVendorId);
+  }, [
+    resolvedVendorId,
+    routeMode,
+    fetchFkContacts,
+    fkRefreshTrigger,
+    modeProp,
+  ]);
+
+  // Window management - only when NOT rendered inline
+  // Use a stable path derived from vendor data rather than location.pathname
+  // to avoid re-triggering when other windows change the browser URL.
+  useEffect(() => {
+    if (inline) return; // Skip window management for inline rendering
+    const record = dataProp || fetchedRecord;
+    if (!record && routeMode !== "add") return;
+    const title =
+      record?.display_name ||
+      record?.name ||
+      (routeMode === "add" ? "New Vendor" : `Vendor ${record?.id ?? vendorId}`);
+    const prefix = routeMode === "edit" ? "Edit " : "";
+    const vendorIdVal = record?.id ?? vendorId;
+    const stablePath =
+      routeMode === "add"
+        ? "/org/vendor/add"
+        : `/org/vendor/detail/${vendorIdVal}`;
+    ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
+  }, [inline, dataProp, fetchedRecord, ensureWindow, vendorId, routeMode]);
+
+  // ---------------------------------------------------------------------------
+  // Nav Arrows (prev/next from list order)
+  // ---------------------------------------------------------------------------
+  const listOrder: number[] = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("vendor-list-order");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const currentIndex = resolvedVendorId
+    ? listOrder.indexOf(resolvedVendorId)
+    : -1;
+  const prevId = currentIndex > 0 ? listOrder[currentIndex - 1] : null;
+  const nextId =
+    currentIndex >= 0 && currentIndex < listOrder.length - 1
+      ? listOrder[currentIndex + 1]
+      : null;
+
+  const openRecord = useCallback(
+    (id: number) => {
+      ensureWindow(`/org/vendor/detail/${id}`, `Vendor #${id}`, {
+        maximized: false,
+      });
+    },
+    [ensureWindow],
+  );
+
+  // Navigation handlers
+  const handleClose = useCallback(() => {
+    if (onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    // Use stable path for closing window
+    const record = dataProp || fetchedRecord;
+    const vendorIdVal = record?.id ?? vendorId;
+    const stablePath =
+      routeMode === "add"
+        ? "/org/vendor/add"
+        : `/org/vendor/detail/${vendorIdVal}`;
+    closeWindow(stablePath);
+  }, [
+    onCancelInline,
+    closeWindow,
+    dataProp,
+    fetchedRecord,
+    vendorId,
+    routeMode,
+  ]);
+
+  // Removed duplicate openRecord. Using the new openRecord handler below.
+
+  const handleDeleteClick = useCallback(async () => {
+    const record = dataProp || fetchedRecord;
+    if (onDeleteProp) {
+      onDeleteProp();
+      return;
+    }
+    if (!record?.id) return;
+    if (
+      !window.confirm(
+        `Delete vendor ${record.display_name || record.name || record.id}?`,
+      )
+    )
+      return;
+    try {
+      await deleteVendor(record.id);
+      dispatch(
+        showToast({
+          message: "Vendor deleted successfully",
+          type: "success",
+        }),
+      );
+      handleClose();
+      navigate(PageRoutes.vendorList);
+    } catch (err: any) {
+      dispatch(
+        showToast({
+          message: err?.message || "Failed to delete vendor",
+          type: "error",
+        }),
+      );
+    }
+  }, [onDeleteProp, dispatch, handleClose, navigate, dataProp, fetchedRecord]);
+
+  // Resolved props - use provided or derived
+  const onCancel = onCancelProp || handleClose;
+  const onDelete = routeMode === "view" ? handleDeleteClick : undefined;
 
   const {
     register,
@@ -68,655 +580,1101 @@ function VendorDetail({
     reset,
     control,
     watch,
-  } = useForm<z.infer<typeof vendorSchema>>({
-    resolver: zodResolver(vendorSchema),
-    defaultValues: { is_active: false, version: 1, org_type: "Vendor" },
+  } = useForm<VendorFormValues>({
+    resolver: zodResolver(vendorSchema) as any,
+    defaultValues: {
+      is_active: false,
+      version: 1,
+      org_type: "vendor",
+      ...Object.fromEntries(
+        Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+      ),
+    },
   });
 
-  const location = useLocation();
   const routeState = (location.state as any) || {};
-  const baseMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const baseMode: "add" | "edit" | "view" =
+    modeProp ||
+    routeMode ||
+    (routeState.mode as "add" | "edit" | "view") ||
+    "add";
+  // Allow local edit override when in view mode
+  const mode: "add" | "edit" | "view" =
+    baseMode === "view" && isEditing ? "edit" : baseMode;
+  const data = useMemo(() => {
+    if (dataProp || fetchedRecord) {
+      // Prefer live fetched changes over initial prop payload to ensure tabs render updates
+      return { ...(dataProp || {}), ...(fetchedRecord || {}) } as any;
+    }
+    return routeState.data || null;
+  }, [dataProp, fetchedRecord, routeState.data]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [columnCount, setColumnCount] = useState<2 | 3>(3);
+  // Tab badges (memoized for reuse/generalization)
+  const tabBadges = useMemo(
+    () => buildVendorTabBadges(data, fkContacts),
+    [data, fkContacts],
+  );
 
-  const mode: "add" | "edit" | "view" = (baseMode === "view" && isEditing) ? "edit" : baseMode;
-  const data = dataProp || routeState.data || null;
-  const vendorData = data ?? {};
-
-  const [panelRecord, setPanelRecord] = useState<any>(data ?? {});
   useEffect(() => {
     if (mode === "add") {
-      reset();
-      setPanelRecord({});
-    } else if (data) {
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "vendor",
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
+      });
+      return;
+    }
+    if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
-          setValue(key, data[key]);
+          if (key in JSON_DEFAULTS) {
+            setValue(
+              key,
+              JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2),
+            );
+          } else {
+            setValue(key, data[key]);
+          }
         }
       });
-      setPanelRecord(data);
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        if (data[key] === undefined) {
+          setValue(
+            key as keyof VendorFormValues,
+            JSON.stringify(JSON_DEFAULTS[key]),
+          );
+        }
+      });
     } else {
-      reset({});
-      setPanelRecord({});
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "vendor",
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
+      });
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof vendorSchema>) => {
+  const parseJsonField = (label: string, raw?: string) => {
+    if (!raw || raw.trim() === "") return undefined;
     try {
-      const res =
-        mode === "add"
-          ? await createVendor(formData)
-          : await updateVendor({ ...formData, id: data && data.id });
-      if (res) {
-        const maybeRecord = (res as any)?.record ?? res;
-        if (maybeRecord && typeof maybeRecord === "object") {
-          setPanelRecord((prev: any) => ({ ...prev, ...maybeRecord }));
-        }
-        dispatch(
-          showToast({
-            message: `Vendor ${
-              mode === "add" ? "created" : "updated"
-            } successfully`,
-            type: "success",
-          })
-        );
-        if (onSaved) {
-          onSaved();
-        }
-      }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+      return JSON.parse(raw);
+    } catch {
+      dispatch(
+        showToast({ message: `${label} must be valid JSON`, type: "error" }),
+      );
+      throw new Error(`${label} JSON invalid`);
     }
+  };
+
+  const safeParseJson = (raw: string | undefined, fallback: unknown) => {
+    if (!raw || raw.trim() === "") return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  };
+
+  const resetToDefaults = () => {
+    if (mode === "add") {
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "vendor",
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
+      });
+      return;
+    }
+
+    if (data) {
+      const nextValues: Record<string, unknown> = {
+        is_active: data.is_active ?? false,
+        version: data.version ?? 1,
+        org_type: data.org_type ?? "vendor",
+        display_name: data.display_name ?? "",
+        status: data.status ?? "",
+      };
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        nextValues[key] = JSON.stringify(
+          data[key] ?? JSON_DEFAULTS[key],
+          null,
+          2,
+        );
+      });
+      reset(nextValues as VendorFormValues);
+      return;
+    }
+
+    reset({
+      is_active: false,
+      version: 1,
+      org_type: "vendor",
+      ...Object.fromEntries(
+        Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+      ),
+    });
   };
 
   const handleCancel = () => {
     // If we're in local edit mode, just go back to view
     if (isEditing) {
       setIsEditing(false);
-      if (data) reset(data);
+      resetToDefaults();
       return;
     }
     if (inline && onCancelInline) {
       onCancelInline();
       return;
     }
-    if (mode === "add") {
-      reset();
-    } else if (data) {
-      reset(data);
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    resetToDefaults();
+  };
+
+  const saveVendor = async (formData: VendorFormValues) => {
+    try {
+      const jsonPayload: Record<string, any> = {};
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        const parsed = parseJsonField(
+          key,
+          formData[key as keyof VendorFormValues] as string | undefined,
+        );
+        if (parsed !== undefined) {
+          jsonPayload[key] = parsed;
+        }
+      });
+      const payload = {
+        display_name: formData.display_name,
+        status: formData.status,
+        org_type: "vendor" as const,
+        version: formData.version,
+        is_active: formData.is_active,
+        // New scalar fields from wc3
+        attention: formData.attention ?? undefined,
+        contact_id: formData.contact_id ?? undefined,
+        email: formData.email ?? undefined,
+        phone: formData.phone ?? undefined,
+        price_level: formData.price_level ?? undefined,
+        terms: formData.terms ?? undefined,
+        terms_id: formData.terms_id ?? undefined,
+        address_full: formData.address_full ?? undefined,
+        ...jsonPayload,
+      };
+      const res =
+        mode === "add"
+          ? await createVendor(payload)
+          : await updateVendor({
+              ...payload,
+              id: data && data.id,
+              org_type: "vendor" as const,
+            });
+      if (res) {
+        dispatch(
+          showToast({
+            message: `Vendor ${
+              mode === "add" ? "created" : "updated"
+            } successfully`,
+            type: "success",
+          }),
+        );
+
+        // --- Auto-create contact for new vendors ---
+        if (mode === "add") {
+          const newVendorId = res?.id;
+          if (newVendorId) {
+            try {
+              await autoCreateContactForVendor(
+                newVendorId,
+                formData.display_name,
+                formData.attention || "",
+                formData.email || "",
+                formData.phone || "",
+              );
+            } catch (contactErr: any) {
+              // Contact creation is best-effort; don't block vendor save
+              console.error(
+                "[VendorDetail] Auto-contact creation failed:",
+                contactErr,
+              );
+              dispatch(
+                showToast({
+                  message: `Vendor saved, but contact creation failed: ${
+                    contactErr?.message || "Unknown error"
+                  }`,
+                  type: "info",
+                }),
+              );
+            }
+          }
+        }
+
+        // Return to view mode after successful save
+        if (isEditing) {
+          setIsEditing(false);
+        }
+        if (onSaved) {
+          onSaved();
+        }
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message, type: "error" }));
+      return false;
     }
   };
 
-  const headerDisplayName =
-    watch("display_name") || data?.display_name || "New Vendor";
-  const headerIsActive = Boolean(watch("is_active") ?? data?.is_active);
-  const headerOrgType = watch("org_type") || data?.org_type || "Vendor";
-  const headerVersion = watch("version") ?? data?.version ?? 1;
+  /**
+   * Auto-create a contact from new vendor data, link the records
+   * via refs.links, set vendor.contact_id, then open the contact
+   * detail page so the user can add an address.
+   */
+  const autoCreateContactForVendor = useCallback(
+    async (
+      vendorIdVal: number,
+      displayName: string,
+      attention: string,
+      email: string,
+      phone: string,
+    ) => {
+      // Parse attention into first/last name
+      const nameParts = attention.trim().split(/\s+/);
+      const firstName = nameParts[0] || displayName.split(/\s+/)[0] || "";
+      const lastName =
+        nameParts.length > 1
+          ? nameParts.slice(1).join(" ")
+          : displayName.split(/\s+/).slice(1).join(" ") || "";
 
-  const vendorId: number | undefined = panelRecord?.id ?? data?.id;
-  const canEditPanels = mode !== "view" && !!vendorId;
-
-  const handleVendorCommentsSave: NonNullable<
-    ComponentProps<typeof CommentsPanel>["onSave"]
-  > = async (newComments) => {
-    if (!vendorId) return;
-
-    const payload = {
-      id: vendorId,
-      comments: {
-        ...(panelRecord?.comments ?? {}),
-        ...newComments,
-      },
-    };
-
-    const apiResult = await saveRecord("vendor", payload);
-    const saved = (apiResult as any)?.record ?? apiResult;
-    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
-  };
-
-  const handleVendorDocumentsChange = async (nextDocs: any[]) => {
-    if (!vendorId) return;
-    const nextRefs = {
-      ...(panelRecord?.refs ?? {}),
-      links: {
-        ...(panelRecord?.refs?.links ?? {}),
-        document: nextDocs,
-      },
-    };
-
-    // Optimistic local update for snappy UI
-    setPanelRecord((prev: any) => ({ ...prev, refs: nextRefs }));
-
-    const apiResult = await saveRecord("vendor", {
-      id: vendorId,
-      refs: nextRefs,
-    });
-    const saved = (apiResult as any)?.record ?? apiResult;
-    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
-  };
-
-  const handleVendorContactsRefresh = async () => {
-    if (!vendorId) return;
-    const apiResult = await getRecord("vendor", vendorId);
-    const saved = (apiResult as any)?.record ?? apiResult;
-    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
-  };
-
-  const handleVendorContactsChange = (nextContacts: any[]) => {
-    // Convert RefContact[] (panel shape) -> refs.links.contact (API shape)
-    const asArray = Array.isArray(nextContacts) ? nextContacts : [];
-    const contactLinks = asArray
-      .map((c: any) => {
-        const normalizeField = (field: any) => {
-          if (Array.isArray(field)) {
-            return field.map((item: any, idx: number) => ({
-              id: item?.id ?? idx,
-              name: item?.name ?? "",
-              value: item?.value ?? "",
-            }));
-          }
-          if (typeof field === "string") {
-            return field
-              .split(",")
-              .map((val, idx) => ({ id: idx, name: "", value: val.trim() }))
-              .filter((x) => x.value);
-          }
-          return [];
-        };
-
-        const id = Number(c?.contact_id ?? c?.contact?.id ?? c?.id ?? 0);
-        const purpose = String(c?.purpose ?? "");
-        if (!id || !purpose) return null;
-
-        const address = Array.isArray(c?.address)
-          ? c.address.map((a: any, idx: number) => ({
-              id: a?.id ?? idx,
-              name: a?.name ?? "",
-              full: a?.full ?? "",
-            }))
-          : typeof c?.full === "string" && c.full.trim()
-            ? [{ id: 0, name: "", full: c.full }]
-            : [];
-
-        return {
-          purpose,
-          contact: {
-            id,
-            email: normalizeField(c?.email),
-            phone: normalizeField(c?.phone),
-            domain: normalizeField(c?.domain),
-            address,
+      // 1. Create the contact with a link back to this vendor
+      const contactPayload = {
+        name_first: firstName,
+        name_last: lastName,
+        attention: attention || displayName,
+        email: email || `contact${vendorIdVal}@placeholder.com`,
+        phone: phone || undefined,
+        company: displayName,
+        vendor_id: vendorIdVal,
+        comment: `Auto-created from vendor #${vendorIdVal}`,
+        refs: {
+          links: {
+            rep: [],
+            item: [],
+            email: [],
+            phone: [],
+            order: [],
+            domain: [],
+            contact: [],
+            vendor: [String(vendorIdVal)],
+            document: [],
+            address: [],
+            manufacturer: [],
+            project: [],
           },
-        };
-      })
-      .filter(Boolean);
-
-    setPanelRecord((prev: any) => ({
-      ...prev,
-      refs: {
-        ...(prev?.refs ?? {}),
-        links: {
-          ...(prev?.refs?.links ?? {}),
-          contact: contactLinks,
+          tags: [],
+          categories: [],
+          keywords: [],
+          related_ids: [],
+          depends_on: [],
         },
-      },
-    }));
-  };
+      };
 
-  const handleVendorContactRemove = async (contactId: number) => {
-    if (!vendorId) return;
-    const existing = panelRecord?.refs?.links?.contact;
-    const existingArray = Array.isArray(existing) ? existing : [];
-    const filtered = existingArray.filter(
-      (c: any) => Number(c?.contact?.id ?? c?.id ?? 0) !== Number(contactId),
-    );
+      const contactResult = await createContact(
+        contactPayload as CreateContactRequest,
+      );
+      const newContactId = contactResult?.id;
 
-    const nextRefs = {
-      ...(panelRecord?.refs ?? {}),
-      links: {
-        ...(panelRecord?.refs?.links ?? {}),
-        contact: filtered,
-      },
-    };
+      if (!newContactId) {
+        throw new Error("Contact created but no ID returned");
+      }
 
-    setPanelRecord((prev: any) => ({ ...prev, refs: nextRefs }));
+      // 2. Update the vendor with contact_id and refs.links.contact
+      await updateVendor({
+        id: vendorIdVal,
+        contact_id: newContactId,
+        refs: {
+          links: {
+            contact: [newContactId],
+          },
+        },
+      } as any);
 
-    const apiResult = await saveRecord("vendor", {
-      id: vendorId,
-      refs: nextRefs,
-    });
-    const saved = (apiResult as any)?.record ?? apiResult;
-    if (saved) setPanelRecord((prev: any) => ({ ...prev, ...saved }));
-  };
+      dispatch(
+        showToast({
+          message: `Contact #${newContactId} created — opening to add address…`,
+          type: "success",
+        }),
+      );
 
-  const handleTabChange = useCallback((tab: string) => setActiveTab(tab), []);
-  const handleColumnChange = useCallback((c: 2 | 3) => setColumnCount(c), []);
-
-  // Additional tabs (alphabetized) matching CustomerDetail pattern
-  const additionalTabs = useMemo(
-    () => [
-      { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
-      { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-      { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
-    ],
-    [],
+      // 3. Open the new contact detail page for address entry
+      const contactPath = `/core/contact/detail/${newContactId}`;
+      ensureWindow(contactPath, `Contact ${firstName} ${lastName}`.trim(), {
+        maximized: false,
+      });
+      activateWindow(contactPath);
+    },
+    [dispatch, ensureWindow, activateWindow],
   );
 
-  const tabBadges = useMemo(() => {
-    const badges: Record<string, number> = {};
-    const commentCount = Object.keys(panelRecord?.comments?.items ?? {}).length;
-    if (commentCount) badges.comments = commentCount;
-    const contactCount = (panelRecord?.refs?.links?.contact ?? []).length;
-    if (contactCount) badges.contacts = contactCount;
-    return badges;
-  }, [panelRecord]);
+  const onSubmit = async (formData: VendorFormValues) => {
+    await saveVendor(formData);
+  };
+
+  // ---------------------------------------------------------------------------
+  // Set Primary Contact – saves contact_id + denormalized fields on the org
+  // ---------------------------------------------------------------------------
+  const handleSetPrimary = useCallback(
+    async (contact: {
+      contact_id: number;
+      attention?: string;
+      email?: string | any[];
+      phone?: string | any[];
+    }) => {
+      const vendorIdVal = data?.id;
+      if (!vendorIdVal) return;
+
+      // Extract scalar values from possibly polymorphic email/phone
+      const emailStr =
+        typeof contact.email === "string"
+          ? contact.email
+          : Array.isArray(contact.email) && contact.email.length > 0
+          ? typeof contact.email[0] === "object"
+            ? contact.email[0].value ?? ""
+            : String(contact.email[0])
+          : "";
+      const phoneStr =
+        typeof contact.phone === "string"
+          ? contact.phone
+          : Array.isArray(contact.phone) && contact.phone.length > 0
+          ? typeof contact.phone[0] === "object"
+            ? contact.phone[0].value ?? ""
+            : String(contact.phone[0])
+          : "";
+
+      try {
+        await updateVendor({
+          id: vendorIdVal,
+          contact_id: contact.contact_id,
+          attention: contact.attention || null,
+          email: emailStr || null,
+          phone: phoneStr || null,
+        } as any);
+
+        // Update local form state so UI reflects the change immediately
+        setValue("contact_id" as keyof VendorFormValues, contact.contact_id);
+        if (contact.attention)
+          setValue("attention" as keyof VendorFormValues, contact.attention);
+        if (emailStr) setValue("email" as keyof VendorFormValues, emailStr);
+        if (phoneStr) setValue("phone" as keyof VendorFormValues, phoneStr);
+
+        // Refresh the parent record from the server
+        const res = await getRecord("vendor", vendorIdVal);
+        const rec = res?.record ?? res;
+        if (rec) {
+          setFetchedRecord(rec);
+        }
+
+        dispatch(
+          showToast({
+            message: `Contact #${contact.contact_id} set as primary`,
+            type: "success",
+          }),
+        );
+      } catch (err) {
+        console.error("[VendorDetail.handleSetPrimary] failed:", err);
+        dispatch(
+          showToast({
+            message: "Failed to set primary contact",
+            type: "error",
+          }),
+        );
+      }
+    },
+    [data?.id, dispatch, setValue],
+  );
+
+  // Action buttons configuration based on mode
+  const getActionButtons = () => {
+    const buttons: React.ReactNode[] = [];
+
+    if (mode === "view") {
+      buttons.push(
+        <button
+          key="edit"
+          type="button"
+          onClick={() => setIsEditing(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          title="Edit Vendor"
+        >
+          <FaEdit size={14} />
+          Edit
+        </button>,
+      );
+    }
+
+    // Prev/Next nav arrows
+    if (prevId) {
+      buttons.push(
+        <button
+          key="prev"
+          type="button"
+          onClick={() => openRecord(prevId)}
+          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title={`Previous (#${prevId})`}
+        >
+          <FaChevronLeft size={14} />
+        </button>,
+      );
+    }
+    if (nextId) {
+      buttons.push(
+        <button
+          key="next"
+          type="button"
+          onClick={() => openRecord(nextId)}
+          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title={`Next (#${nextId})`}
+        >
+          <FaChevronRight size={14} />
+        </button>,
+      );
+    }
+
+    // Delete button (right side, before close)
+    if (mode === "view" && data?.id && onDelete) {
+      buttons.push(
+        <button
+          key="delete"
+          type="button"
+          onClick={onDelete}
+          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Delete vendor"
+        >
+          <FaTrash size={14} />
+        </button>,
+      );
+    }
+
+    // Close button (right side)
+    if (onCancel) {
+      buttons.push(
+        <button
+          key="close"
+          type="button"
+          onClick={onCancel}
+          className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Close"
+        >
+          <FaTimes size={14} />
+        </button>,
+      );
+    }
+
+    return buttons;
+  };
+
+  const formData = watch();
+
+  // In view mode, prefer direct data from props; in edit/add mode, use form values
+  const vendorData: Vendor =
+    mode === "view" && data
+      ? {
+          ...data,
+          id: data.id,
+          display_name: data.display_name,
+          status: data.status,
+          org_type: data.org_type,
+          version: data.version,
+          is_active: data.is_active,
+          attention: data.attention,
+          contact_id: data.contact_id,
+          email: data.email,
+          phone: data.phone,
+          price_level: data.price_level,
+          terms: data.terms,
+          terms_id: data.terms_id,
+          address_full: data.address_full,
+          financial: data.financial,
+        }
+      : {
+          ...formData,
+          id: data?.id,
+          display_name: formData.display_name,
+          status: formData.status,
+          org_type: formData.org_type,
+          version: formData.version,
+          is_active: formData.is_active,
+        };
+
+  // Handle loading and error states for data fetch
+  if (loading) {
+    return <RippleLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-red-600 dark:text-red-400">{error}</div>
+      </div>
+    );
+  }
+
+  // For view/edit modes, wait for data before rendering. Use resolved `mode`
+  // (which respects `modeProp`) so inline add mode doesn't block rendering.
+  if (mode !== "add" && !data && !dataProp) {
+    return <RippleLoader />;
+  }
 
   return (
-    <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Vendor"
-              : mode === "view"
-              ? "View Vendor"
-              : "Vendor Detail"
-          }
-        />
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* Compact Header */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <DevBadge label="VendorDetail" className="mr-2" />
+              {vendorData.display_name || "New Vendor"}
+              {vendorData.id && (
+                <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+                  #{vendorData.id}
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                  vendorData.is_active
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                }`}
+              >
+                {vendorData.is_active ? "Active" : "Inactive"}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {vendorData.org_type || "vendor"} • v{vendorData.version ?? 1}
+              </span>
+              {(mode === "edit" || mode === "add") && isDirty && (
+                <span className="px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded">
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 ml-3">
+            {getActionButtons()}
+          </div>
+        </div>
+      </div>
+
+      {/* Transaction-style Toolbar (edit/add mode) */}
+      {(mode === "edit" || mode === "add") && (
+        <div className="sticky top-0 z-20 mx-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+          <TransactionToolbar
+            transactionType="order"
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            isEditing
+            onSave={handleSubmit(async (fd) => {
+              await saveVendor(fd);
+            })}
+            onSaveAndClose={
+              (inline ? !!onCancelInline : !!onCancel)
+                ? handleSubmit(async (fd) => {
+                    const ok = await saveVendor(fd);
+                    if (ok) handleCancel();
+                  })
+                : undefined
+            }
+            onCancel={handleCancel}
+            canClone={false}
+            canTransfer={false}
+            canDelete={false}
+            showTaskButton={false}
+          />
+        </div>
       )}
 
-      <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-        {/* Header */}
-        <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-                <DevBadge label="VendorDetail" className="mr-2" />
-                {headerDisplayName}
-                {data?.id && <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">#{data.id}</span>}
-              </h2>
-              <div className="flex items-center gap-3 mt-1">
-                <span
-                  className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                    headerIsActive
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
-                  }`}
-                >
-                  {headerIsActive ? "Active" : "Inactive"}
-                </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  {headerOrgType} • v{headerVersion}
-                </span>
-                {(mode === "edit" || mode === "add") && isDirty && (
-                  <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                    Unsaved changes
-                  </span>
+      {/* Persistent Basic Information Panel - always visible in view mode */}
+      {/* In edit/add mode, show editable form fields instead */}
+      <div className="shrink-0 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+        {mode === "view" ? (
+          <BasicInformationPanel data={vendorData} columns={columnCount} />
+        ) : (
+          /* Editable Basic Information - Horizontal Layout */
+          <div
+            className={`grid grid-cols-1 ${
+              columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+            } gap-x-6 gap-y-1`}
+          >
+            <HorizontalField
+              label="display_name"
+              htmlFor="display_name"
+              required
+              error={errors.display_name?.message}
+            >
+              <Input
+                type="text"
+                id="display_name"
+                placeholder="display_name"
+                {...register("display_name")}
+                error={
+                  errors.display_name && errors.display_name.message
+                    ? true
+                    : false
+                }
+              />
+            </HorizontalField>
+
+            <HorizontalField label="org_type" htmlFor="org_type">
+              <Controller
+                name="org_type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={ORG_TYPE_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="org_type"
+                  />
                 )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 ml-4">
-              {baseMode === "view" && !isEditing && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                >
-                  Edit
-                </button>
-              )}
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                  title="Close"
-                >
-                  Close
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+              />
+            </HorizontalField>
 
-        {/* Toolbar (edit/add mode) */}
-        {(mode === "edit" || mode === "add") && (
-          <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-            <TransactionToolbar
-              transactionType="order"
-              transactionId={data?.id}
-              isDirty={isDirty}
-              isSaving={isSubmitting}
-              isEditing
-              onSave={handleSubmit(async (fd) => {
-                await onSubmit(fd);
-                if (isEditing) setIsEditing(false);
-              })}
-              onSaveAndClose={
-                (inline ? !!onCancelInline : false)
-                  ? handleSubmit(async (fd) => {
-                      await onSubmit(fd);
-                      if (onCancelInline) onCancelInline();
-                    })
-                  : undefined
-              }
-              onCancel={handleCancel}
-              canClone={false}
-              canTransfer={false}
-              canDelete={false}
-              showTaskButton={false}
-            />
-          </div>
-        )}
+            <HorizontalField label="email" htmlFor="email">
+              <Input
+                type="email"
+                id="email"
+                placeholder="email"
+                {...register("email")}
+              />
+            </HorizontalField>
 
-        {/* Basic Information Panel (persistent) */}
-        <div className="shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          {mode === "view" ? (
-            <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
-              <div><span className="text-sm text-slate-500">Name:</span> <span className="font-medium">{vendorData.display_name}</span></div>
-              <div><span className="text-sm text-slate-500">Email:</span> <span className="font-medium">{vendorData.email || '—'}</span></div>
-              <div><span className="text-sm text-slate-500">Phone:</span> <span className="font-medium">{vendorData.phone || '—'}</span></div>
-              <div><span className="text-sm text-slate-500">Attention:</span> <span className="font-medium">{vendorData.attention || '—'}</span></div>
-              <div><span className="text-sm text-slate-500">Address:</span> <span className="font-medium">{vendorData.address_full || '—'}</span></div>
-            </div>
-          ) : (
-            <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
-              <div>
-                <Label htmlFor="display_name">Display Name *</Label>
-                <Input
-                  type="text"
-                  id="display_name"
-                  placeholder="Display Name"
-                  {...register("display_name")}
-                  error={!!errors.display_name}
-                  hint={errors.display_name?.message}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  type="email"
-                  id="email"
-                  placeholder="Primary email"
-                  {...register("email")}
-                  error={!!errors.email}
-                  hint={errors.email?.message}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  type="tel"
-                  id="phone"
-                  placeholder="Primary phone"
-                  {...register("phone")}
-                  error={!!errors.phone}
-                  hint={errors.phone?.message}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="attention">Attention</Label>
-                <Input
-                  type="text"
-                  id="attention"
-                  placeholder="Attention"
-                  {...register("attention" as any)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="address_full">Address</Label>
-                <Input
-                  type="text"
-                  id="address_full"
-                  placeholder="Full address"
-                  {...register("address_full" as any)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+            <HorizontalField label="attention" htmlFor="attention">
+              <Input
+                type="text"
+                id="attention"
+                placeholder="attention"
+                {...register("attention")}
+              />
+            </HorizontalField>
 
-        {/* ── Scalar & JSONB cards (view mode) ──────────────────── */}
-        {mode === "view" && data && (
-          <div className="space-y-4 px-4 py-2">
-            <ScalarCard
-              title="Vendor Details"
-              fields={[
-                { label: "display_name", value: data.display_name },
-                { label: "org_type", value: data.org_type },
-                { label: "email", value: data.email },
-                { label: "email_id", value: data.email_id },
-                { label: "attention", value: data.attention },
-                { label: "phone", value: data.phone },
-                { label: "phone_id", value: data.phone_id },
-                { label: "address_full", value: data.address_full },
-                { label: "address_id", value: data.address_id },
-                { label: "domain", value: data.domain },
-                { label: "domain_id", value: data.domain_id },
-                { label: "price_level", value: data.price_level },
-                { label: "terms", value: data.terms },
-                { label: "status", value: data.status },
-                { label: "contact_id", value: data.contact_id },
-              ]}
-              columns={3}
-            />
-            <JsonCard title="Financial" fieldName="financial" data={data.financial as Record<string, unknown>} columns={2} />
-            <JsonCard title="Connections" fieldName="connections" data={data.connections as Record<string, unknown>} columns={2} />
-            <JsonCard title="Data" fieldName="data" data={data.data as Record<string, unknown>} columns={2} />
-            <JsonCard title="Metrics" fieldName="metrics" data={data.metrics as Record<string, unknown>} columns={2} />
-            <JsonCard title="GL Accounts" fieldName="gl_accounts" data={data.gl_accounts as Record<string, unknown>} columns={2} />
-            <JsonCard title="Relations" fieldName="relations" data={data.relations as Record<string, unknown>} columns={2} />
-            <BaseModelCards data={data} />
+            <HorizontalField label="phone" htmlFor="phone">
+              <Input
+                type="tel"
+                id="phone"
+                placeholder="phone"
+                {...register("phone")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="price_level" htmlFor="price_level">
+              <Controller
+                name="price_level"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={PRICE_LEVEL_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="price_level"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="terms" htmlFor="terms">
+              <Controller
+                name="terms"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={TERMS_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="terms"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="address_full" htmlFor="address_full">
+              <Input
+                type="text"
+                id="address_full"
+                placeholder="address_full"
+                {...register("address_full")}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="status" htmlFor="status" required>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    options={STATUS_OPTIONS}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="status"
+                  />
+                )}
+              />
+            </HorizontalField>
+
+            <HorizontalField label="version" htmlFor="version">
+              <Input
+                type="number"
+                id="version"
+                placeholder="1"
+                {...register("version", { valueAsNumber: true })}
+              />
+            </HorizontalField>
+
+            <div className="flex items-center gap-1.5 py-1">
+              <div className="w-18 shrink-0" />
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_active"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="is_active"
+                  />
+                )}
+              />
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Scrollable content: detail panels · transactions · items */}
+      {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
+      {mode === "view" && data && (
+        <div className="space-y-4 px-4 py-2">
+          <ScalarCard
+            title="Organization Details"
+            fields={[
+              { label: "display_name", value: data.display_name },
+              { label: "org_type", value: data.org_type },
+              { label: "email", value: data.email },
+              { label: "email_id", value: data.email_id },
+              { label: "attention", value: data.attention },
+              { label: "phone", value: data.phone },
+              { label: "phone_id", value: data.phone_id },
+              { label: "address_full", value: data.address_full },
+              { label: "address_id", value: data.address_id },
+              { label: "domain", value: data.domain },
+              { label: "domain_id", value: data.domain_id },
+              { label: "price_level", value: data.price_level },
+              { label: "terms", value: data.terms },
+              { label: "status", value: data.status },
+              { label: "contact_id", value: data.contact_id },
+            ]}
+            columns={3}
+          />
+          <JsonCard
+            title="Financial"
+            fieldName="financial"
+            data={data.financial as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Connections"
+            fieldName="connections"
+            data={data.connections as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Data"
+            fieldName="data"
+            data={data.data as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Metrics"
+            fieldName="metrics"
+            data={data.metrics as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="GL Accounts"
+            fieldName="gl_accounts"
+            data={data.gl_accounts as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Relations"
+            fieldName="relations"
+            data={data.relations as Record<string, unknown>}
+            columns={2}
+          />
+          <BaseModelCards data={data} />
+        </div>
+      )}
+
+      {/* Scrollable content: detail panels · transactions · items */}
+      {mode !== "add" ? (
         <div className="flex-1 overflow-y-auto">
-
-          {/* ── DetailTabs ──────────────────────────────────────── */}
+          {/* ── DetailTabs ────────────────────────────────────────── */}
           <div>
             <DetailTabs
               entityType="vendor"
               activeTab={activeTab}
               onTabChange={handleTabChange}
-              standardTabs={['actions', 'comments', 'documents', 'overview', 'raw']}
-              additionalTabs={additionalTabs}
+              standardTabs={VENDOR_STANDARD_TABS}
+              additionalTabs={VENDOR_ADDITIONAL_TABS}
               badges={tabBadges}
               showColumnSelector={true}
               columnCount={columnCount}
               onColumnCountChange={handleColumnChange}
             />
-            <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="p-4">
-              {/* Overview Tab - Additional fields */}
-              {activeTab === "overview" && (
-                <div className={`grid grid-cols-1 ${columnCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
-                  <div>
-                    <Label htmlFor="attention">Attention</Label>
-                    <Input
-                      type="text"
-                      id="attention"
-                      placeholder="Attn: line for mailing"
-                      {...register("attention")}
-                      error={!!errors.attention}
-                      hint={errors.attention?.message}
-                      disabled={mode === "view"}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="status">Status</Label>
-                    <Input
-                      type="text"
-                      id="status"
-                      placeholder="Status"
-                      {...register("status")}
-                      error={!!errors.status}
-                      hint={errors.status?.message}
-                      disabled={mode === "view"}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="price_level">Price Level</Label>
-                    <Input
-                      type="text"
-                      id="price_level"
-                      placeholder="e.g. retail, wholesale"
-                      {...register("price_level")}
-                      error={!!errors.price_level}
-                      hint={errors.price_level?.message}
-                      disabled={mode === "view"}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex items-center pt-6">
-                    <Controller
-                      name="is_active"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          id="is_active"
-                          checked={field.value ?? false}
-                          onChange={field.onChange}
-                          label="Active"
-                          disabled={mode === "view"}
-                        />
-                      )}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Actions Tab */}
-              {activeTab === "actions" && data?.id && (
-                <ActionsPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data.actions?.items}
-                  actionIds={data.actions?.ids}
-                  isEditing={mode !== "view" || isEditing}
-                  onChange={(actions: any) => console.log('Actions updated:', actions)}
-                />
-              )}
-
-              {/* Comments Tab */}
-              {activeTab === "comments" && (
-                <CommentsPanel
-                  entityType="vendor"
-                  entityId={vendorId ?? 0}
-                  comments={panelRecord?.comments}
-                  isEditing={canEditPanels}
-                  onChange={(next) =>
-                    setPanelRecord((prev: any) => ({ ...prev, comments: next }))
-                  }
-                  onSave={canEditPanels ? handleVendorCommentsSave : undefined}
-                  currentUser={currentUser}
-                  currentUserId={user?.id}
-                  message={!vendorId ? "Save vendor to add comments" : undefined}
-                />
-              )}
-
-              {/* Contacts Tab */}
-              {activeTab === "contacts" && (
-                <>
-                  {!vendorId && (
-                    <div className="text-sm text-slate-500 dark:text-slate-400 italic mb-4">
-                      Save vendor to manage linked contacts
-                    </div>
-                  )}
-                  <ContactPanel
-                    parent_model="vendor"
-                    parentId={vendorId}
-                    contacts={normalizeRefsLinksContact(
-                      panelRecord?.refs?.links?.contact ?? [],
-                    )}
-                    isEditing={canEditPanels}
-                    onChange={handleVendorContactsChange}
-                    onRemove={canEditPanels ? handleVendorContactRemove : undefined}
-                    onSaveSuccess={handleVendorContactsRefresh}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4">
+                {/* Standard Tabs - Comments */}
+                {activeTab === "comments" && (
+                  <CommentsPanel
+                    entityType="vendor"
+                    entityId={data?.id || 0}
+                    comments={data?.comments}
+                    isEditing={mode !== "view" || isEditing}
+                    onChange={(comments) =>
+                      setFetchedRecord(
+                        (prev) =>
+                          ({
+                            ...(prev || data || {}),
+                            comments,
+                          } as any),
+                      )
+                    }
+                    onSave={async (comments) => {
+                      if (!data?.id) return;
+                      try {
+                        await updateVendor({
+                          id: data.id,
+                          comments: { mode: "update", value: comments },
+                        } as any);
+                        dispatch(
+                          showToast({
+                            message: "Comments saved",
+                            type: "success",
+                          }),
+                        );
+                      } catch {
+                        dispatch(
+                          showToast({
+                            message: "Failed to save comments",
+                            type: "error",
+                          }),
+                        );
+                      }
+                    }}
+                    currentUser={`${currentUser?.name_first} ${currentUser?.name_last}`}
+                    currentUserId={currentUser?.id}
                   />
-                </>
-              )}
+                )}
 
-              {/* Documents Tab */}
-              {activeTab === "documents" && (
-                <DocumentsPanel
-                  parent_model="vendor"
-                  parentId={vendorId}
-                  data={panelRecord?.refs?.links?.document ?? []}
-                  readOnly={!canEditPanels}
-                  onChange={canEditPanels ? handleVendorDocumentsChange : undefined}
-                />
-              )}
+                {/* Standard Tabs - Actions */}
 
-              {/* Financial Tab */}
-              {activeTab === "financial" && data?.financial && (
-                <OrgFinancialsPanel
-                  financial={data.financial}
-                  orgType="vendor"
-                  currency="USD"
-                />
-              )}
+                {activeTab === "actions" && (
+                  <ActionsPanel
+                    entityType="vendor"
+                    entityId={data?.id || 0}
+                    data={
+                      Array.isArray(data?.actions) ? data.actions : undefined
+                    }
+                    actionIds={
+                      data?.actions &&
+                      typeof data.actions === "object" &&
+                      "ids" in data.actions
+                        ? (data.actions as { ids?: number[] }).ids
+                        : undefined
+                    }
+                    viewMode="table"
+                    isEditing={isEditing}
+                    parentModelName="vendor"
+                    parentIdOverride={data?.id}
+                    onChange={(actions) =>
+                      setFetchedRecord(
+                        (prev) =>
+                          ({
+                            ...(prev || data || {}),
+                            actions,
+                          } as any),
+                      )
+                    }
+                    onActionIdsChange={(ids) =>
+                      setFetchedRecord(
+                        (prev) =>
+                          ({
+                            ...(prev || data || {}),
+                            actions: { ids },
+                          } as any),
+                      )
+                    }
+                    onSave={async (actions) => {
+                      if (!data?.id) return;
+                      try {
+                        await updateVendor({ id: data.id, actions } as any);
+                        // Refresh from server to capture latest refs/actions snapshot
+                        try {
+                          const refreshed = await getRecord("vendor", data.id);
+                          const next = (refreshed as any)?.record ?? refreshed;
+                          if (next) {
+                            setFetchedRecord(next as any);
+                          }
+                        } catch (refreshErr) {
+                          console.error(
+                            "[VendorDetail] Action refresh failed",
+                            refreshErr,
+                          );
+                        }
+                        dispatch(
+                          showToast({
+                            message: "Action saved",
+                            type: "success",
+                          }),
+                        );
+                      } catch {
+                        dispatch(
+                          showToast({
+                            message: "Failed to save action",
+                            type: "error",
+                          }),
+                        );
+                      }
+                    }}
+                    assigneeOptions={contactOptions}
+                    projectOptions={projectOptions}
+                  />
+                )}
+                {activeTab === "contacts" && (
+                  <ContactPanel
+                    contacts={fkContacts}
+                    isEditing={true}
+                    loading={fkContactsLoading}
+                    parent_model="vendor"
+                    parentId={vendorData.id}
+                    vendor_id={vendorData.id}
+                    vendor_name={vendorData.display_name}
+                    primaryContactId={data?.contact_id}
+                    onSetPrimary={handleSetPrimary}
+                    onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
+                    onChange={(newContacts) => {
+                      const currentRefs = safeParseJson(
+                        formData.refs as unknown as string | undefined,
+                        { links: {} },
+                      );
+                      setValue(
+                        "refs" as keyof VendorFormValues,
+                        JSON.stringify(
+                          {
+                            ...currentRefs,
+                            links: {
+                              ...currentRefs.links,
+                              contact: newContacts,
+                            },
+                          },
+                          null,
+                          2,
+                        ) as any,
+                        { shouldDirty: true },
+                      );
+                    }}
+                    onSaveSuccess={() => {
+                      setFkRefreshTrigger((n) => n + 1);
+                      if (vendorData.id) {
+                        getRecord("vendor", vendorData.id)
+                          .then((res: any) => {
+                            const rec = res?.record ?? res;
+                            if (rec) {
+                              setFetchedRecord(rec);
+                              Object.keys(rec).forEach((key) => {
+                                if (key in JSON_DEFAULTS) {
+                                  setValue(
+                                    key as keyof VendorFormValues,
+                                    JSON.stringify(
+                                      rec[key] ?? JSON_DEFAULTS[key],
+                                      null,
+                                      2,
+                                    ),
+                                  );
+                                } else {
+                                  setValue(
+                                    key as keyof VendorFormValues,
+                                    rec[key],
+                                  );
+                                }
+                              });
+                            }
+                          })
+                          .catch(() => {});
+                      }
+                    }}
+                  />
+                )}
 
-              {/* Q&A Tab */}
-              {activeTab === "qa" && (
-                <QAPanel
-                  parent_model="vendor"
-                  parentId={Number(vendorId ?? 0)}
-                  data={panelRecord?.data}
-                />
-              )}
+                {/* Standard Tabs - Documents */}
+                {activeTab === "documents" && (
+                  <DocumentsPanel
+                    parent_model="vendor"
+                    parentId={data?.id || 0}
+                    data={data?.refs?.links?.document}
+                    isEditing={mode !== "view" || isEditing}
+                    onChange={(docs) => {
+                      console.log("Documents updated:", docs);
+                    }}
+                  />
+                )}
 
-              {/* Raw Tab */}
-              {activeTab === "raw" && data?.id && (
-                <RawDataPanel
-                  entityType="vendor"
-                  entityId={data.id}
-                  data={data}
-                />
-              )}
+                {/* Q&A tab */}
+                {activeTab === "qa" && (
+                  <QAPanel
+                    parent_model="vendor"
+                    parentId={data?.id || 0}
+                    data={data?.qa}
+                  />
+                )}
 
-              {/* Empty state for tabs without data */}
-              {!data?.id && activeTab !== "overview" && (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                  Save the vendor first to access {activeTab} features.
-                </div>
-              )}
+                {/* Standard Tabs - Raw (Admin) */}
+                {activeTab === "raw" && (
+                  <RawDataPanel
+                    entityType="vendor"
+                    entityId={data?.id || 0}
+                    data={data}
+                  />
+                )}
+
+                {/* ── TransactionTabs ────────────────────────────────────── */}
+
+                {activeTab === "financial" && (
+                  <TransactionTabs orgType="vendor" orgId={vendorData.id!} />
+                )}
+                {/* ── ItemTabs ────────────────────────────────────── */}
+
+                {activeTab === "items" && (
+                  <ItemTabs orgType="vendor" orgId={vendorData.id!} />
+                )}
+              </div>
             </div>
-            </form>
           </div>
-
-          {/* ── TransactionTabs ──────────────────────────────────── */}
-          {vendorId && (
-            <div>
-              <TransactionTabs
-                orgType="vendor"
-                orgId={vendorId}
-              />
-            </div>
-          )}
-
-          {/* ── ItemTabs ───────────────────────────────────────── */}
-          {vendorId && (
-            <div>
-              <ItemTabs
-                orgType="vendor"
-                orgId={vendorId}
-              />
-            </div>
-          )}
-
         </div>
-      </div>
-    </>
+      ) : (
+        <div className="flex items-center justify-between py-2 gap-4">
+          <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+        </div>
+      )}
+    </div>
   );
 }
 

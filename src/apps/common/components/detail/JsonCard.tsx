@@ -39,7 +39,7 @@ const JsonCard: React.FC<JsonCardProps> = ({
   icon,
   fieldName,
   data,
-  defaultExpanded = true,
+  defaultExpanded = false,
   columns = 2,
   skipKeys = [],
 }) => {

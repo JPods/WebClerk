@@ -104,8 +104,7 @@ const ItemTabs: React.FC<ItemTabsProps> = ({
 
   const windowManager = useWindowManager();
 
-  const filterField =
-    orgType === "customer" ? "customer_id" : "vendor_id";
+  const filterField = orgType === "customer" ? "customer_id" : "vendor_id";
 
   // Fetch lines and serials in parallel
   useEffect(() => {
@@ -114,12 +113,12 @@ const ItemTabs: React.FC<ItemTabsProps> = ({
     setLoading(true);
 
     Promise.all([
-      getRecords("line", { [filterField]: orgId, limit: 200 }).catch(
-        () => ({ results: [] }),
-      ),
-      getRecords("serial", { [filterField]: orgId, limit: 200 }).catch(
-        () => ({ results: [] }),
-      ),
+      getRecords("line", { [filterField]: orgId, limit: 200 }).catch(() => ({
+        results: [],
+      })),
+      getRecords("serial", { [filterField]: orgId, limit: 200 }).catch(() => ({
+        results: [],
+      })),
     ]).then(([lineResult, serialResult]) => {
       if (cancelled) return;
       setLines((lineResult as any)?.results ?? []);

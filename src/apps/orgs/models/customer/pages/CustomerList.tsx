@@ -23,6 +23,7 @@ export default function CustomerList() {
     null,
   );
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [detailKey, setDetailKey] = useState(0);
 
   // Fetch actions
   const fetchActions = useCallback(async () => {
@@ -75,11 +76,13 @@ export default function CustomerList() {
   const handleView = useCallback((row: any) => {
     setSelectedCustomer(row);
     setFormMode("view");
+    setDetailKey((k) => k + 1);
   }, []);
 
   const handleEdit = useCallback(async (row: any) => {
     setSelectedCustomer(row);
     setFormMode("edit");
+    setDetailKey((k) => k + 1);
     // Optionally fetch fresh data here if needed
   }, []);
 
@@ -112,6 +115,7 @@ export default function CustomerList() {
   const handleAdd = () => {
     setSelectedCustomer(null);
     setFormMode("add");
+    setDetailKey((k) => k + 1);
   };
 
   // Form saved handler
@@ -226,7 +230,7 @@ export default function CustomerList() {
                 title="View"
                 className="p-2 text-blue-600 text-xs hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
               >
-                <FaEye className="w-4 h-4" />
+                <FaEye className="w-3 h-3" />
               </button>
               <button
                 onClick={(e) => {
@@ -236,7 +240,7 @@ export default function CustomerList() {
                 title="Edit"
                 className="p-2 text-green-600 text-xs hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
               >
-                <FaEdit className="w-4 h-4" />
+                <FaEdit className="w-3 h-3" />
               </button>
               <button
                 onClick={(e) => {
@@ -246,7 +250,7 @@ export default function CustomerList() {
                 title="Delete"
                 className="p-2 text-red-600 text-xs hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
               >
-                <FaTrash className="w-4 h-4" />
+                <FaTrash className="w-3 h-3" />
               </button>
             </div>
           ),
@@ -256,6 +260,17 @@ export default function CustomerList() {
     );
 
   const columns = useCustomerColumns(handleEdit, handleView, handleDelete);
+
+  const customActions = (
+    <div className="flex gap-2">
+      <button
+        onClick={handleAdd}
+        className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <FaPlus className="w-3 h-3" />
+      </button>
+    </div>
+  );
 
   const filters: ColumnFilter[] = [
     {
@@ -319,6 +334,17 @@ export default function CustomerList() {
                   handleView={handleView}
                   handleEdit={handleEdit}
                   emptyMessage="No customer found."
+                  filters={filters}
+                  searchPlaceholder="Search customer, display_name, org_type..."
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
+                  enableExport={true}
+                  exportFileName="customer_export"
+                  customActions={customActions}
+                  loading={loading}
+                  columnsForExport={columns}
                 />
               </div>
             ) : (
@@ -338,17 +364,7 @@ export default function CustomerList() {
                 exportFileName="customer_export"
                 searchPlaceholder="Search customer, display_name, org_type..."
                 noDataMessage="No customer found"
-                customActions={
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAdd}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      New Customer
-                    </button>
-                  </div>
-                }
+                customActions={customActions}
                 onRowClicked={handleView}
               />
             )}
@@ -357,6 +373,7 @@ export default function CustomerList() {
         {formMode && (
           <div className="lg:col-span-2">
             <CustomerDetail
+              key={detailKey}
               inline
               modeProp={formMode}
               dataProp={selectedCustomer}

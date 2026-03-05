@@ -12,7 +12,7 @@ import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
-import { getRecords, manageAction } from "../../../api/wcapi";
+import { getRecords, manageAction, uploadDocument } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
@@ -1657,6 +1657,15 @@ const KanbanBoardPage: React.FC = () => {
     const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
     const normalizedIsActive = task.is_active;
 
+    const taskAttachments: TaskAttachment[] = (task.attachments || []).map(att => ({
+      id: `existing-${att.id}`,
+      documentId: att.id,
+      type: att.mime_type,
+      name: att.name,
+      size: att.size_bytes,
+      previewUrl: att.url,
+    }));
+
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
@@ -1670,6 +1679,7 @@ const KanbanBoardPage: React.FC = () => {
       difficulty: normalizedDifficulty,
       percent_complete: String(normalizedProgress),
       is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
+      attachments: taskAttachments,
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -2121,9 +2131,56 @@ const KanbanBoardPage: React.FC = () => {
 
     payloadItem.is_active = state.is_active !== "false";
 
+    // Add attachments if present
+    if (state.attachments && state.attachments.length > 0) {
+      const documentIds = state.attachments
+        .map(att => att.documentId)
+        .filter(id => id !== undefined);
+      if (documentIds.length > 0) {
+        payloadItem.attachments = documentIds;
+      }
+    }
+
     // Backend doesn't process 'bulk' arrays - always send action directly
     return { payload: cleanActionPayload(payloadItem) };
   };
+
+  const uploadPendingAttachments = useCallback(async (attachments?: TaskAttachment[]): Promise<TaskAttachment[]> => {
+    if (!attachments?.length) {
+      return [];
+    }
+
+    const finalized: TaskAttachment[] = [];
+    for (const attachment of attachments) {
+      if (attachment.documentId) {
+        finalized.push(attachment);
+        continue;
+      }
+
+      if (!attachment.file) {
+        finalized.push(attachment);
+        continue;
+      }
+
+      const uploadResponse = await uploadDocument(
+        attachment.file,
+        "action",
+        undefined,
+        "attachment"
+      );
+
+      finalized.push({
+        ...attachment,
+        documentId: uploadResponse.document_id,
+        previewUrl:
+          attachment.previewUrl ||
+          uploadResponse.url ||
+          `/wcapi/document/${uploadResponse.document_id}/`,
+      });
+    }
+
+    return finalized;
+  }, []);
 
   const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2132,17 +2189,25 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setCreateModalError(null);
-    const result = buildActionPayload("create", createTaskState);
-
-    if ("error" in result) {
-      setCreateModalError(result.error);
-      return;
-    }
-
     setIsSavingCreate(true);
 
-    void patchAction(result.payload)
-      .then((response) => {
+    void (async () => {
+      try {
+        let submitState = createTaskState;
+        if (createTaskState.attachments?.length) {
+          const uploadedAttachments = await uploadPendingAttachments(createTaskState.attachments);
+          submitState = { ...createTaskState, attachments: uploadedAttachments };
+          setCreateTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
+        }
+
+        const result = buildActionPayload("create", submitState);
+
+        if ("error" in result) {
+          setCreateModalError(result.error);
+          return;
+        }
+
+        const response = await patchAction(result.payload);
         console.log("Create task response:", response);
         const body: any = (response as any)?.data ?? response;
         
@@ -2173,18 +2238,17 @@ const KanbanBoardPage: React.FC = () => {
             contactId: selectedContactId || undefined,
           });
         }, 300);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Failed to create kanban task", error);
         const message =
           (error as any)?.response?.data?.message ||
           (error as any)?.message ||
           "Failed to create task. Please try again.";
         setCreateModalError(message);
-      })
-      .finally(() => {
+      } finally {
         setIsSavingCreate(false);
-      });
+      }
+    })();
   };
 
   const handleEditTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -2194,24 +2258,32 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setEditModalError(null);
-    const result = buildActionPayload("edit", editTaskState, editingTask);
-
-    if ("error" in result) {
-      setEditModalError(result.error);
-      return;
-    }
-
     setIsSavingEdit(true);
 
-    // Debug: log the outgoing edit payload to help diagnose 400 responses
-    try {
-      console.debug("[Kanban] Edit payload:", result.payload);
-    } catch (e) {
-      // ignore
-    }
+    void (async () => {
+      try {
+        let submitState = editTaskState;
+        if (editTaskState.attachments?.length) {
+          const uploadedAttachments = await uploadPendingAttachments(editTaskState.attachments);
+          submitState = { ...editTaskState, attachments: uploadedAttachments };
+          setEditTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
+        }
 
-    void patchAction(result.payload)
-      .then((response) => {
+        const result = buildActionPayload("edit", submitState, editingTask);
+
+        if ("error" in result) {
+          setEditModalError(result.error);
+          return;
+        }
+
+        // Debug: log the outgoing edit payload to help diagnose 400 responses
+        try {
+          console.debug("[Kanban] Edit payload:", result.payload);
+        } catch (e) {
+          // ignore
+        }
+
+        const response = await patchAction(result.payload);
         const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
@@ -2221,19 +2293,23 @@ const KanbanBoardPage: React.FC = () => {
           projectId: selectedProjectId || undefined,
           contactId: selectedContactId || undefined,
         });
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Failed to update kanban task", error);
+        const message =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          "Failed to update task. Please try again.";
+        setEditModalError(message);
         try {
           // If the backend returned a structured error response, log it for diagnostics
           console.error("Update error response body:", (error as any)?.response?.data ?? (error as any)?.response ?? null);
         } catch (e) {
           // ignore
         }
-      })
-      .finally(() => {
+      } finally {
         setIsSavingEdit(false);
-      });
+      }
+    })();
   };
 
   const handleRemoveTaskFromKanban = async () => {
