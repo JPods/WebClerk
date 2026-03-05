@@ -1570,6 +1570,11 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
           <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
             {title}
           </h3>
+          {actions.length > 0 && (
+            <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+              {actions.length}
+            </span>
+          )}
           {pendingCount > 0 && (
             <span className="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded-full">
               {pendingCount} pending
