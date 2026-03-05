@@ -29,10 +29,11 @@ import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "usageDetail_columnCount";
 
-export default function UsageDetail({
+function UsageDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -317,3 +318,5 @@ export default function UsageDetail({
     </>
   );
 }
+
+export default withDevIdentifier(UsageDetail, 'UsageDetail');

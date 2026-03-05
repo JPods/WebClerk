@@ -20,8 +20,9 @@ import { AuditAddProps } from "../types/auditType";
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function AuditDetail({
+function AuditDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -238,3 +239,5 @@ export default function AuditDetail({
     </>
   );
 }
+
+export default withDevIdentifier(AuditDetail, 'AuditDetail');

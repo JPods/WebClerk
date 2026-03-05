@@ -29,10 +29,11 @@ import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "matricsDetail_columnCount";
 
-export default function MatricsDetail({
+function MatricsDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -383,3 +384,5 @@ export default function MatricsDetail({
     </>
   );
 }
+
+export default withDevIdentifier(MatricsDetail, 'MatricsDetail');

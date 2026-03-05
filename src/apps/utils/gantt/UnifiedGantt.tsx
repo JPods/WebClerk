@@ -48,6 +48,7 @@ import type { GanttMappedTask } from "./ganttDataMapper";
 import { getGanttDateRange } from "./ganttDataMapper";
 import { GanttTaskTemplate } from "./GanttTaskTemplate";
 import { DualScrollbar } from "../../../components/common/DualScrollbar";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // =============================================================================
 // Types
@@ -2573,4 +2574,4 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   );
 };
 
-export default UnifiedGantt;
+export default withDevIdentifier(UnifiedGantt, 'UnifiedGantt');

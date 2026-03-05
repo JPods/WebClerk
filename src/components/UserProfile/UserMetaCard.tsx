@@ -7,8 +7,9 @@ import { useEffect } from "react";
 import { userDetails } from "../../api/auth";
 //import { dynamicData } from "../../model/dynamicData";
 import { useAppSelector } from "../../store/hooks";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function UserMetaCard() {
+function UserMetaCard() {
   //const [ setUserProfile] = useState<dynamicData[]>([])
   const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAppSelector((state) => state.auth);
@@ -258,3 +259,5 @@ export default function UserMetaCard() {
     </>
   );
 }
+
+export default withDevIdentifier(UserMetaCard, 'UserMetaCard', 'amber');

@@ -12,6 +12,7 @@ import type {
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import { ApiKanbanItem, createBoardDataFromApi } from "./kanbanDataMapper";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const rawKanbanData: ApiKanbanItem[] = [
   {
@@ -506,4 +507,4 @@ const KanbanBoardDataPage: React.FC = () => {
   );
 };
 
-export default KanbanBoardDataPage;
+export default withDevIdentifier(KanbanBoardDataPage, 'KanbanBoardDataPage');

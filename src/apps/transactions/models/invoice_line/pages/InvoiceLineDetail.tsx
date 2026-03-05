@@ -17,6 +17,7 @@ import { useLocation } from "react-router";
 import { invoiceLineSchema } from "../utils/invoiceLineSchema";
 import type { InvoiceLine } from "../types/invoiceLineType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface InvoiceLineDetailProps {
   modeProp?: "add" | "edit" | "view";
@@ -27,7 +28,7 @@ interface InvoiceLineDetailProps {
   onCancelInline?: () => void;
 }
 
-export default function InvoiceLineDetail({
+function InvoiceLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -275,3 +276,5 @@ export default function InvoiceLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(InvoiceLineDetail, 'InvoiceLineDetail');

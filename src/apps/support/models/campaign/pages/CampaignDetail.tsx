@@ -23,10 +23,11 @@ import { useLocation, useNavigate } from "react-router";
 import { campaignSchema } from "../utils/campaignSchema";
 import { CampaignAddProps } from "../types/campaignType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "campaignDetail_columnCount";
 
-export default function CampaignDetail({
+function CampaignDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -341,3 +342,5 @@ export default function CampaignDetail({
     </>
   );
 }
+
+export default withDevIdentifier(CampaignDetail, 'CampaignDetail');

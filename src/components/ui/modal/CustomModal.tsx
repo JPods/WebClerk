@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface ModalProps {
   mode: "add" | "edit" | "view";
@@ -105,4 +106,4 @@ export const CustomeModal: React.FC<ModalProps> = ({
     </div>
   );
 };
-export default CustomeModal;
+export default withDevIdentifier(CustomeModal, 'CustomeModal', 'rose');

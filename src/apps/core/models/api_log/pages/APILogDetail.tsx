@@ -2,6 +2,7 @@ import { FaTimes, FaCopy, FaCheck } from "react-icons/fa";
 import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import { DevBadge } from "@/components/common/DevBadge";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface APILogRecord {
   id: number;
@@ -28,7 +29,7 @@ interface APILogDetailProps {
   onClose: () => void;
 }
 
-export default function APILogDetail({ log, onClose }: APILogDetailProps) {
+function APILogDetail({ log, onClose }: APILogDetailProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"request" | "response">("request");
 
@@ -398,3 +399,5 @@ export default function APILogDetail({ log, onClose }: APILogDetailProps) {
     </div>
   );
 }
+
+export default withDevIdentifier(APILogDetail, 'APILogDetail');

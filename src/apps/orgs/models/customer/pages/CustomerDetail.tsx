@@ -70,6 +70,7 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
 import { CreateContactRequest } from "../../../../core/models/contact/types/contactType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema> & {
@@ -276,7 +277,7 @@ export const buildCustomerTabBadges = (
   };
 };
 
-export default function CustomerDetail({
+function CustomerDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -1699,3 +1700,5 @@ export default function CustomerDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(CustomerDetail, 'CustomerDetail');

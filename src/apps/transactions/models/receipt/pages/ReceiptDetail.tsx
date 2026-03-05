@@ -23,6 +23,7 @@ import {
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
 import { getNextLineNumber } from '../../../utils/lineHelpers';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Receipt specific fields that extend base Transaction
 interface Receipt extends Transaction {
@@ -332,4 +333,4 @@ const ReceiptDetail: React.FC<ReceiptDetailProps> = (props) => {
   );
 };
 
-export default ReceiptDetail;
+export default withDevIdentifier(ReceiptDetail, 'ReceiptDetail');

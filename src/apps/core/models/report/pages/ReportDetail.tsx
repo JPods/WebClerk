@@ -24,10 +24,11 @@ import Checkbox from "../../../../../components/form/input/Checkbox";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "reportDetail_columnCount";
 
-export default function ReportDetail({
+function ReportDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -323,3 +324,5 @@ export default function ReportDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ReportDetail, 'ReportDetail');

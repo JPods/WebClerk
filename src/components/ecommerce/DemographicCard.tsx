@@ -3,8 +3,9 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
 import CountryMap from "./CountryMap";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function DemographicCard() {
+function DemographicCard() {
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
@@ -112,3 +113,5 @@ export default function DemographicCard() {
     </div>
   );
 }
+
+export default withDevIdentifier(DemographicCard, 'DemographicCard', 'amber');

@@ -43,6 +43,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -102,7 +103,7 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function PhoneDetail({
+function PhoneDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -497,3 +498,5 @@ export default function PhoneDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(PhoneDetail, 'PhoneDetail');

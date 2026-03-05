@@ -14,6 +14,7 @@ import { getAddress, getEmail, getPhone, patchUserProfile, postEmail, postPhone 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -22,7 +23,7 @@ const phoneTypeOptions = [
     { value: "fax", label: "Fax" },
   ];
 
-export default function UserInfoCard() {
+function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
    const { user } = useAppSelector((state) => state.auth);
    const dispatch = useDispatch()
@@ -459,3 +460,4 @@ export default function UserInfoCard() {
   );
 }
 
+export default withDevIdentifier(UserInfoCard, 'UserInfoCard', 'amber');

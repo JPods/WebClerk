@@ -18,8 +18,9 @@ import { purchaseLineSchema } from "../utils/purchaseLineSchema";
 import { PurchaseLineAddProps } from "../types/purchaseLineType";
 import { coerceFormValue, coerceNumber } from "../../common/valueNormalization";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function PurchaseLineDetail({
+function PurchaseLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -287,3 +288,5 @@ export default function PurchaseLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(PurchaseLineDetail, 'PurchaseLineDetail');

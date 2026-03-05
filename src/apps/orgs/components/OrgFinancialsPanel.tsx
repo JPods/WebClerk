@@ -16,6 +16,7 @@ import type {
   OrgFinancialRep, OrgFinancialEmployee, OrgFinancialManufacturer,
   OrgFinancialCommon, OrgType
 } from '../types/orgTypes';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -511,4 +512,4 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
   );
 };
 
-export default OrgFinancialsPanel;
+export default withDevIdentifier(OrgFinancialsPanel, 'OrgFinancialsPanel', 'teal');

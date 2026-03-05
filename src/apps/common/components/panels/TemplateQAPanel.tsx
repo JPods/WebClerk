@@ -24,6 +24,7 @@ import {
   type QAAnswerRecord,
   type QAEffectiveOptions,
 } from './qaUtils';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -556,4 +557,4 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
   );
 };
 
-export default TemplateQAPanel;
+export default withDevIdentifier(TemplateQAPanel, 'TemplateQAPanel', 'teal');

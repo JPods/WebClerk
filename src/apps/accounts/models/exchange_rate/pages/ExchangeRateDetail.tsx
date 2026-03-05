@@ -22,10 +22,11 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { exchangeRateSchema } from "../utils/exchangeRateSchema";
 import { ExchangeRateAddProps } from "../types/exchangeRateType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "exchangeRateDetail_columnCount";
 
-export default function ExchangeRateDetail({
+function ExchangeRateDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -314,3 +315,5 @@ export default function ExchangeRateDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ExchangeRateDetail, 'ExchangeRateDetail');

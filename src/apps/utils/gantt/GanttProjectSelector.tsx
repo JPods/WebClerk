@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface ProjectPrefs {
   action?: {
@@ -250,4 +251,4 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   );
 };
 
-export default GanttProjectSelector;
+export default withDevIdentifier(GanttProjectSelector, 'GanttProjectSelector');

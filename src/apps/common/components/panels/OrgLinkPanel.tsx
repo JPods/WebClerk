@@ -39,6 +39,7 @@ import type {
   OrgSearchResult,
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -755,8 +756,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   );
 };
 
-export default OrgLinkPanel;
-
+export default withDevIdentifier(OrgLinkPanel, 'OrgLinkPanel', 'teal');
 // ---------------------------------------------------------------------------
 // Inline org record editor
 // ---------------------------------------------------------------------------

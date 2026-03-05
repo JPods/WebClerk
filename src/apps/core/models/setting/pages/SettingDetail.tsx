@@ -22,10 +22,11 @@ import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDeta
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "settingDetail_columnCount";
 
-export default function SettingDetail({
+function SettingDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -322,3 +323,5 @@ export default function SettingDetail({
     </>
   );
 }
+
+export default withDevIdentifier(SettingDetail, 'SettingDetail');

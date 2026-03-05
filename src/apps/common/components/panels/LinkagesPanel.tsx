@@ -31,6 +31,7 @@ import {
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps, UserRole } from './types';
 import { ADMIN_ROLES, ALL_ROLES } from './types';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -526,4 +527,4 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
   );
 };
 
-export default LinkagesPanel;
+export default withDevIdentifier(LinkagesPanel, 'LinkagesPanel', 'teal');

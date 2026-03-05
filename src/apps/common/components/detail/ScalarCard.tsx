@@ -7,6 +7,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import InfoRow from "./InfoRow";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface ScalarField {
   /** Label — should match schema field name exactly */
@@ -104,4 +105,4 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
   );
 };
 
-export default ScalarCard;
+export default withDevIdentifier(ScalarCard, 'ScalarCard', 'amber');

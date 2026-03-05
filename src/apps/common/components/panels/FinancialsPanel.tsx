@@ -16,6 +16,7 @@ import type {
   TransactionCost,
   TransactionSell,
 } from "@/apps/transactions/types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface FinancialsPanelProps {
   totals?: TransactionTotals;
@@ -261,4 +262,4 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   );
 };
 
-export default FinancialsPanel;
+export default withDevIdentifier(FinancialsPanel, 'FinancialsPanel', 'teal');

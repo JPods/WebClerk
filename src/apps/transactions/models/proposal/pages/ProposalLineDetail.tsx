@@ -7,6 +7,7 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 import { ProposalLine } from "../types/proposalLineType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Simple schema for proposal line - can be expanded
 const proposalLineSchema = z.object({
@@ -24,7 +25,7 @@ interface ProposalLineDetailProps {
   onCancel?: () => void;
 }
 
-export default function ProposalLineDetail({
+function ProposalLineDetail({
   proposalId,
   line,
   mode,
@@ -166,3 +167,5 @@ export default function ProposalLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ProposalLineDetail, 'ProposalLineDetail');

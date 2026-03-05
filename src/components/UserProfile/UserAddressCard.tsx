@@ -11,8 +11,9 @@ import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
 import { getAddress, getDomain } from "../../api/userProfile";
 import { useEffect } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function UserAddressCard() {
+function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
 
   
@@ -357,3 +358,5 @@ export default function UserAddressCard() {
     </>
   );
 }
+
+export default withDevIdentifier(UserAddressCard, 'UserAddressCard', 'amber');

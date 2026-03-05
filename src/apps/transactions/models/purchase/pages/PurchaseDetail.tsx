@@ -26,6 +26,7 @@ import type { ItemSearchResult } from '../../../components/TransactionItemSearch
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
 import { lineKey, getNextLineNumber } from '../../../utils/lineHelpers';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Purchase-specific fields that extend base Transaction
 interface Purchase extends Transaction {
@@ -378,4 +379,4 @@ const PurchaseDetail: React.FC<PurchaseDetailProps> = (props) => {
   );
 };
 
-export default PurchaseDetail;
+export default withDevIdentifier(PurchaseDetail, 'PurchaseDetail');

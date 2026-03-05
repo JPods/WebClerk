@@ -34,6 +34,7 @@ import {
   STATUS_OPTIONS,
   PROGRESS_OPTIONS,
 } from "./TransactionTaskModal.types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ------------------------------------
 // Helper Functions
@@ -642,4 +643,4 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
   return createPortal(modalContent, document.body);
 };
 
-export default TransactionTaskModal;
+export default withDevIdentifier(TransactionTaskModal, 'TransactionTaskModal', 'rose');

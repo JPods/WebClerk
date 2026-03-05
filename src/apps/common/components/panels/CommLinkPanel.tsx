@@ -38,6 +38,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -869,8 +870,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   );
 };
 
-export default CommLinkPanel;
-
+export default withDevIdentifier(CommLinkPanel, 'CommLinkPanel', 'teal');
 // ---------------------------------------------------------------------------
 // Inline record editor — renders per-model fields for a single comm record
 // ---------------------------------------------------------------------------

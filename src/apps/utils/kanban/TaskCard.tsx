@@ -4,6 +4,7 @@ import { getEmptyImage } from "react-dnd-html5-backend";
 import clsx from "clsx";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
@@ -220,4 +221,4 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
 };
 
 export const TaskCard = memo(TaskCardComponent);
-export default TaskCard;
+export default withDevIdentifier(TaskCard, 'TaskCard', 'amber');

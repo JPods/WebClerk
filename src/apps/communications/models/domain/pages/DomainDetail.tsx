@@ -47,6 +47,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -106,7 +107,7 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function DomainDetail({
+function DomainDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -461,3 +462,5 @@ export default function DomainDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(DomainDetail, 'DomainDetail');

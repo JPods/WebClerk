@@ -29,10 +29,11 @@ import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "serialDetail_columnCount";
 
-export default function SerialDetail({
+function SerialDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -384,3 +385,5 @@ export default function SerialDetail({
     </>
   );
 }
+
+export default withDevIdentifier(SerialDetail, 'SerialDetail');

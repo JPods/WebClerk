@@ -49,6 +49,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 //import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -90,7 +91,7 @@ function HorizontalField({
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function AddressDetail({
+function AddressDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -550,3 +551,5 @@ export default function AddressDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(AddressDetail, 'AddressDetail');

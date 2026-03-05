@@ -4,6 +4,7 @@ import clsx from "clsx";
 import type { KanbanColumn as KanbanColumnType, KanbanTask } from "../../type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 import { TaskCard } from "./TaskCard";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface TaskWithIndent {
   task: KanbanTask;
@@ -155,4 +156,4 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
 };
 
 export const KanbanColumn = memo(KanbanColumnComponent);
-export default KanbanColumn;
+export default withDevIdentifier(KanbanColumn, 'KanbanColumn');

@@ -4,8 +4,9 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ModelScaffold from "./ModelScaffold";
 import { modelRegistry, ModelRegistration } from "./modelRegistry";
 import { kebabCaseToTitle } from "./scaffoldUtils";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function AllModelsWorkbench() {
+function AllModelsWorkbench() {
   const [selected, setSelected] = useState<ModelRegistration | null>(null);
 
   const grouped = useMemo(() => {
@@ -68,3 +69,5 @@ export default function AllModelsWorkbench() {
     </div>
   );
 }
+
+export default withDevIdentifier(AllModelsWorkbench, 'AllModelsWorkbench');

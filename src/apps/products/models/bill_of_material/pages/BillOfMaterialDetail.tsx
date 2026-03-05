@@ -40,6 +40,7 @@ import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface BillOfMaterialDetailProps {
   inline?: boolean;
@@ -51,7 +52,7 @@ interface BillOfMaterialDetailProps {
 
 const STORAGE_KEY = "billOfMaterialDetail_columnCount";
 
-export default function BillOfMaterialDetail({
+function BillOfMaterialDetail({
   inline = false,
   modeProp,
   dataProp,
@@ -455,3 +456,5 @@ export default function BillOfMaterialDetail({
     </>
   );
 }
+
+export default withDevIdentifier(BillOfMaterialDetail, 'BillOfMaterialDetail');

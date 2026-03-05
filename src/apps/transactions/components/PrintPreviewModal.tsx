@@ -12,6 +12,7 @@ import {
   FaCog,
   FaEnvelope,
 } from "react-icons/fa";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface PrintOptions {
   showPrices: boolean;
@@ -344,4 +345,4 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   );
 };
 
-export default PrintPreviewModal;
+export default withDevIdentifier(PrintPreviewModal, 'PrintPreviewModal', 'rose');

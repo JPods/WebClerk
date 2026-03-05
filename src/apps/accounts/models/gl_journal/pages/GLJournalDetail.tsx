@@ -22,10 +22,11 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { glJournalSchema } from "../utils/glJournalSchema";
 import { GLJournalAddProps } from "../types/glJournalType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "glJournalDetail_columnCount";
 
-export default function GLJournalDetail({
+function GLJournalDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -327,3 +328,5 @@ export default function GLJournalDetail({
     </>
   );
 }
+
+export default withDevIdentifier(GLJournalDetail, 'GLJournalDetail');

@@ -60,10 +60,11 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { documentSchema } from "../utils/documentSchema";
 import { DocumentAddProps } from "../types/documentType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "documentDetail_columnCount";
 
-export default function DocumentDetail({
+function DocumentDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -642,3 +643,5 @@ export default function DocumentDetail({
     </>
   );
 }
+
+export default withDevIdentifier(DocumentDetail, 'DocumentDetail');

@@ -68,6 +68,7 @@ import type {
   ActionStatus,
   ActionKind,
 } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1702,4 +1703,4 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   );
 };
 
-export default ActionsPanel;
+export default withDevIdentifier(ActionsPanel, 'ActionsPanel', 'teal');

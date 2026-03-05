@@ -26,10 +26,11 @@ import { TemplateAddProps } from "../types/templateType";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "templateDetail_columnCount";
 
-export default function TemplateDetail({
+function TemplateDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -324,3 +325,5 @@ export default function TemplateDetail({
     </>
   );
 }
+
+export default withDevIdentifier(TemplateDetail, 'TemplateDetail');

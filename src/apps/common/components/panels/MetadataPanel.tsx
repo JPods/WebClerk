@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { FaDatabase, FaChevronDown, FaChevronUp, FaPlus, FaTrash, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps, EntityMetadata } from './types';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -437,4 +438,4 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
   );
 };
 
-export default MetadataPanel;
+export default withDevIdentifier(MetadataPanel, 'MetadataPanel', 'teal');

@@ -132,6 +132,7 @@ import type {
   OrgSearchResult,
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -499,7 +500,7 @@ const normalizeContactFkFields = (record: any) => {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function ContactDetail({
+function ContactDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -3137,3 +3138,5 @@ export default function ContactDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(ContactDetail, 'ContactDetail');

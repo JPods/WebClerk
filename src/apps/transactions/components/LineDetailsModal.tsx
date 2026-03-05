@@ -13,6 +13,7 @@ import {
   FaWarehouse,
 } from "react-icons/fa";
 import type { TransactionLine } from "../types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface LineDetailsModalProps {
   line: TransactionLine | null;
@@ -525,4 +526,4 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   );
 };
 
-export default LineDetailsModal;
+export default withDevIdentifier(LineDetailsModal, 'LineDetailsModal');

@@ -42,6 +42,7 @@ import type {
 
 // WCAPI for save/delete operations
 import { saveRecord, deleteRecord } from "../../../../api/wcapi";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1623,4 +1624,4 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   );
 };
 
-export default CommunicationsPanel;
+export default withDevIdentifier(CommunicationsPanel, 'CommunicationsPanel', 'teal');

@@ -17,6 +17,7 @@ import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from
 import { Link } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
 import RippleLoader from "@/components/common/RippleLoader";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const priorityPalette: Record<TaskPriority, string> = {
   low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -2620,4 +2621,4 @@ const KanbanBoardPage: React.FC = () => {
   );
 };
 
-export default KanbanBoardPage;
+export default withDevIdentifier(KanbanBoardPage, 'KanbanBoardPage');

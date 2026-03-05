@@ -27,6 +27,7 @@ import {
   getDocumentUrl,
   formatFileSize as formatSize,
 } from './documentUpload';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -501,4 +502,4 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   );
 };
 
-export default DocumentsPanel;
+export default withDevIdentifier(DocumentsPanel, 'DocumentsPanel', 'teal');

@@ -28,6 +28,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   );
 };
 import { FaLock, FaShoppingCart, FaMoneyBillWave, FaUser } from "react-icons/fa";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface SummaryCardProps {
   data: any;
@@ -734,4 +735,4 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   );
 };
 
-export default SummaryCard;
+export default withDevIdentifier(SummaryCard, 'SummaryCard', 'amber');

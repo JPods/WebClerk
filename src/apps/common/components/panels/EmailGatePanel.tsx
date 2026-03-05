@@ -34,6 +34,7 @@ import {
 } from "react-icons/fa";
 import { Mail } from "lucide-react";
 import { getRecords } from "@/api/wcapi";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -301,4 +302,4 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
   );
 };
 
-export default EmailGatePanel;
+export default withDevIdentifier(EmailGatePanel, 'EmailGatePanel', 'teal');

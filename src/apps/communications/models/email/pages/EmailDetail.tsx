@@ -44,6 +44,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -85,7 +86,7 @@ function HorizontalField({
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function EmailDetail({
+function EmailDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
@@ -520,3 +521,5 @@ export default function EmailDetail({
     </div>
   );
 }
+
+export default withDevIdentifier(EmailDetail, 'EmailDetail');

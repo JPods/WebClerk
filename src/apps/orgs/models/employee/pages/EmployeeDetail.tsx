@@ -7,6 +7,7 @@ import OrgDetail from '../../../components/OrgDetail';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { PageRoutes } from '@/routes/Routes';
 import type { EmployeeAddProps } from '../types/employeeType';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Inline detail component (used by OrgList)
 const EmployeeDetail: React.FC<EmployeeAddProps & { onClose?: () => void }> = ({
@@ -43,4 +44,4 @@ export function EmployeeDetailPage() {
   );
 }
 
-export default EmployeeDetail;
+export default withDevIdentifier(EmployeeDetail, 'EmployeeDetail');

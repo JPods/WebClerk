@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
 import { getRecords, saveRecord } from "../../../api/wcapi";
 import { useAuth } from "../../../hooks/useAuth";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 /**
  * ProjectContactManager
@@ -376,4 +377,4 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
   );
 };
 
-export default ProjectContactManager;
+export default withDevIdentifier(ProjectContactManager, 'ProjectContactManager');

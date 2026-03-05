@@ -32,6 +32,7 @@ import { lineKey, getNextLineNumber } from "@/apps/transactions/utils/lineHelper
 import { saveRecord, getRecord } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 import { ShippingPanel } from "@/apps/common/components/panels";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -1199,4 +1200,4 @@ onUpdateLine={(lineId, field, value) => {
   );
 };
 
-export default OrderDetail;
+export default withDevIdentifier(OrderDetail, 'OrderDetail');

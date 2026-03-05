@@ -17,8 +17,9 @@ import { useLocation } from "react-router";
 import { workOrderLineSchema } from "../utils/workOrderLineSchema";
 import { WorkOrderLineAddProps } from "../types/workOrderLineType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function WorkOrderLineDetail({
+function WorkOrderLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -251,3 +252,5 @@ export default function WorkOrderLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(WorkOrderLineDetail, 'WorkOrderLineDetail');

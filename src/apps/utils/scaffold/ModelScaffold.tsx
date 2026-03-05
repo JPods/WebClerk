@@ -19,6 +19,7 @@ import {
 import { showToast } from "../../../store/slices/toastSlice";
 import { TableColumn } from "react-data-table-component";
 import { kebabCaseToTitle, safeString } from "./scaffoldUtils";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export type FieldPreference = {
   list: string[];
@@ -69,7 +70,7 @@ const guessFieldType = (field: string, value: unknown): "boolean" | "number" | "
   return "string";
 };
 
-export default function ModelScaffold({
+function ModelScaffold({
   modelName,
   title,
   defaultFields = defaultPrefs,
@@ -532,3 +533,5 @@ export default function ModelScaffold({
     </div>
   );
 }
+
+export default withDevIdentifier(ModelScaffold, 'ModelScaffold');

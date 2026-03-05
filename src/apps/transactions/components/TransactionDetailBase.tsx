@@ -64,6 +64,7 @@ import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
 import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
 import { DevBadge } from "@/components/common/DevBadge";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Extend Transaction type locally to ensure 'lines' exists
 type Transaction = TransactionBase & {
@@ -2457,4 +2458,4 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 };
 
-export default TransactionDetailBase;
+export default withDevIdentifier(TransactionDetailBase, 'TransactionDetailBase');

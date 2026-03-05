@@ -15,6 +15,7 @@ import FieldLabel from "../../../components/FieldLabel";
 
 // Import types
 import type { Transaction, TransactionStatus } from "../../../types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Project specific fields that extend base Transaction
 interface Project extends Transaction {
@@ -318,4 +319,4 @@ const ProjectDetail: React.FC<ProjectDetailProps> = (props) => {
   );
 };
 
-export default ProjectDetail;
+export default withDevIdentifier(ProjectDetail, 'ProjectDetail');

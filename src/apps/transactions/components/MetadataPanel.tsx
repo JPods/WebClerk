@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { FaChevronDown, FaChevronRight, FaHistory, FaHeart, FaLock, FaFlag, FaCodeBranch, FaShieldAlt } from 'react-icons/fa';
 import type { TransactionMetadata } from '../types/transactionTypes';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface MetadataPanelProps {
   metadata: TransactionMetadata | undefined;
@@ -162,4 +163,4 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
   );
 };
 
-export default MetadataPanel;
+export default withDevIdentifier(MetadataPanel, 'MetadataPanel', 'teal');

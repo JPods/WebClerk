@@ -16,6 +16,7 @@ import React, { useState, useMemo } from 'react';
 import { FaCode, FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaDownload, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps } from './types';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -356,4 +357,4 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   );
 };
 
-export default RawDataPanel;
+export default withDevIdentifier(RawDataPanel, 'RawDataPanel', 'teal');

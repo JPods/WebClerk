@@ -43,8 +43,9 @@ import ItemTabs from "@/components/common/ItemTabs";
 import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function VendorDetail({
+function VendorDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -718,3 +719,5 @@ export default function VendorDetail({
     </>
   );
 }
+
+export default withDevIdentifier(VendorDetail, 'VendorDetail');

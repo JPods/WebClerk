@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const formatLabel = (value: string) => value;
 const isObjectValue = (value: unknown) => typeof value === "object" && value !== null;
@@ -121,4 +122,4 @@ export function ModelDataPanel({ data, showScalars = true, grouped = false, onSe
   );
 }
 
-export default ModelDataPanel;
+export default withDevIdentifier(ModelDataPanel, 'ModelDataPanel', 'teal');

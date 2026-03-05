@@ -11,6 +11,7 @@ import type { FC } from "react";
 import type { ITask, IApi } from "@svar-ui/react-gantt";
 import type { GanttMappedTask, AssignedUser, BadgePrefs } from "./ganttDataMapper";
 import { useStaffBadgePrefsOptional } from "../../../context/StaffBadgePrefsContext";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Priority colors matching kanban TaskCard
 const priorityColors: Record<string, { bg: string; text: string }> = {
@@ -250,4 +251,4 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   );
 };
 
-export default GanttTaskTemplate;
+export default withDevIdentifier(GanttTaskTemplate, 'GanttTaskTemplate');

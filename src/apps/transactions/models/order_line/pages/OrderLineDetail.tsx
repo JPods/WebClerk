@@ -17,8 +17,9 @@ import { useLocation } from "react-router";
 import { orderLineSchema } from "../utils/orderLineSchema";
 import { OrderLineAddProps } from "../types/orderLineType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function OrderLineDetail({
+function OrderLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -269,3 +270,5 @@ export default function OrderLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(OrderLineDetail, 'OrderLineDetail');

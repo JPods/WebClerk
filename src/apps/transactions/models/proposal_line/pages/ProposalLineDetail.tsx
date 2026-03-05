@@ -17,8 +17,9 @@ import { useLocation } from "react-router";
 import { proposalLineSchema } from "../utils/proposalLineSchema";
 import { ProposalLineAddProps } from "../types/proposalLineType";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function ProposalLineDetail({
+function ProposalLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -269,3 +270,5 @@ export default function ProposalLineDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ProposalLineDetail, 'ProposalLineDetail');

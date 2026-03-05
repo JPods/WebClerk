@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { FaTruck, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
 import type { BasePanelProps } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 type AnyRecord = Record<string, any>;
 
@@ -158,4 +159,4 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
   );
 };
 
-export default ShippingPanel;
+export default withDevIdentifier(ShippingPanel, 'ShippingPanel', 'teal');

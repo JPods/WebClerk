@@ -34,6 +34,7 @@ export { normalizeRefsLinksContact } from "./ContactPanelx2";
 
 // Import the type locally for use in this file
 import type { RefContact } from "./ContactPanelx2";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -522,4 +523,4 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   );
 };
 
-export default ContactPanel;
+export default withDevIdentifier(ContactPanel, 'ContactPanel', 'teal');

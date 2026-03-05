@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { FaCog, FaChevronDown, FaChevronUp, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps, EntityPrefs } from './types';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -294,4 +295,4 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
   );
 };
 
-export default PrefsPanel;
+export default withDevIdentifier(PrefsPanel, 'PrefsPanel', 'teal');

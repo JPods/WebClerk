@@ -17,6 +17,7 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaSpinner } from "react-icons/fa";
 import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ------------------------------------
 // Types
@@ -927,7 +928,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   return createPortal(modal, document.body);
 };
 
-export default ActionsModal;
-
+export default withDevIdentifier(ActionsModal, 'ActionsModal', 'rose');
 // Re-export types for consumers
 export type { ActionsModalProps as ActionModalProps };

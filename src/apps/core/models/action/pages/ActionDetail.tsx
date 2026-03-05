@@ -21,6 +21,7 @@ import QAPanel from "../../../../common/components/panels/QAPanel";
 import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "actionDetail_columnCount";
 
@@ -52,7 +53,7 @@ interface ActionDetailProps {
   onCancelInline?: () => void;
 }
 
-export default function ActionDetail({
+function ActionDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -643,3 +644,5 @@ export default function ActionDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ActionDetail, 'ActionDetail');

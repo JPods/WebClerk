@@ -37,6 +37,7 @@ import type {
   CommentMessage,
   RawEntityComments,
 } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -654,4 +655,4 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   );
 };
 
-export default CommentsPanel;
+export default withDevIdentifier(CommentsPanel, 'CommentsPanel', 'teal');

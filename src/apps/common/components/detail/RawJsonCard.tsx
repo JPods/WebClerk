@@ -9,6 +9,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { FaCode } from "react-icons/fa";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface RawJsonCardProps {
   /** The JSON object to render */
@@ -66,4 +67,4 @@ const RawJsonCard: React.FC<RawJsonCardProps> = ({
   );
 };
 
-export default RawJsonCard;
+export default withDevIdentifier(RawJsonCard, 'RawJsonCard', 'amber');

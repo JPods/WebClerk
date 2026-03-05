@@ -3,6 +3,7 @@ import { useDragLayer } from "react-dnd";
 import clsx from "clsx";
 import type { KanbanTask } from "../../type/kanban";
 import { DRAG_TYPE_TASK, type DragItem } from "./dndTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const layerStyles: CSSProperties = {
   position: "fixed",
@@ -99,4 +100,4 @@ interface KanbanDragLayerProps {
   );
 };
 
-export default KanbanDragLayer;
+export default withDevIdentifier(KanbanDragLayer, 'KanbanDragLayer');

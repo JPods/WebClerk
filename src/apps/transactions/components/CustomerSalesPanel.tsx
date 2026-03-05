@@ -28,6 +28,7 @@ import type { Organization } from "@/apps/orgs/types/orgTypes";
 import ComponentCard from "@/components/common/ComponentCard";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { getModelDetailPath, getModelWindowTitle } from "@/apps/common/components/panels/getModelDetailPath";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------- Constants ----------
 
@@ -967,4 +968,4 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
   );
 };
 
-export default CustomerSalesPanel;
+export default withDevIdentifier(CustomerSalesPanel, 'CustomerSalesPanel', 'teal');

@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import apiClient from '@/api/axios';
 import { getRecords } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface PaymentMethod {
   id: number;
@@ -291,4 +292,4 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   );
 };
 
-export default AddPaymentModal;
+export default withDevIdentifier(AddPaymentModal, 'AddPaymentModal', 'rose');

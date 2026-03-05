@@ -22,10 +22,11 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { exchangeTransactionSchema } from "../utils/exchangeTransactionSchema";
 import { ExchangeTransactionAddProps } from "../types/exchangeTransactionType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "exchangeTransactionDetail_columnCount";
 
-export default function ExchangeTransactionDetail({
+function ExchangeTransactionDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -379,3 +380,5 @@ export default function ExchangeTransactionDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ExchangeTransactionDetail, 'ExchangeTransactionDetail');

@@ -28,6 +28,7 @@ import type {
   Transaction,
   TransactionLine,
 } from "../../../types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Invoice-specific fields that extend base Transaction
 interface Invoice extends Transaction {
@@ -479,4 +480,4 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
   );
 };
 
-export default InvoiceDetail;
+export default withDevIdentifier(InvoiceDetail, 'InvoiceDetail');

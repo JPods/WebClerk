@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaDollarSign, FaCheck, FaSpinner } from 'react-icons/fa';
 import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface ApplyPaymentModalProps {
   isOpen: boolean;
@@ -313,4 +314,4 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   );
 };
 
-export default ApplyPaymentModal;
+export default withDevIdentifier(ApplyPaymentModal, 'ApplyPaymentModal', 'rose');

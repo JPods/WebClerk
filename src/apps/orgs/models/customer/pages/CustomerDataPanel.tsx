@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Dev mode: return raw field names for alignment
 const formatLabel = (value: string) => value;
@@ -125,4 +126,4 @@ export function CustomerDataPanel({ data, showScalars = true, grouped = false, o
   );
 }
 
-export default CustomerDataPanel;
+export default withDevIdentifier(CustomerDataPanel, 'CustomerDataPanel', 'teal');

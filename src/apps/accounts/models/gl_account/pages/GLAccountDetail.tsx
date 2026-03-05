@@ -22,10 +22,11 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { glAccountSchema } from "../utils/glAccountSchema";
 import { GLAccountAddProps } from "../types/glAccountType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "glAccountDetail_columnCount";
 
-export default function GLAccountDetail({
+function GLAccountDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -393,3 +394,5 @@ export default function GLAccountDetail({
     </>
   );
 }
+
+export default withDevIdentifier(GLAccountDetail, 'GLAccountDetail');

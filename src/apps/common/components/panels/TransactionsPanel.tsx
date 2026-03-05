@@ -24,6 +24,7 @@ import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -324,4 +325,4 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   );
 };
 
-export default TransactionsPanel;
+export default withDevIdentifier(TransactionsPanel, 'TransactionsPanel', 'teal');

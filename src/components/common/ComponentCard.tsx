@@ -1,3 +1,4 @@
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 interface ComponentCardProps {
   title?: string;
   children: React.ReactNode;
@@ -37,4 +38,4 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   );
 };
 
-export default ComponentCard;
+export default withDevIdentifier(ComponentCard, 'ComponentCard', 'amber');

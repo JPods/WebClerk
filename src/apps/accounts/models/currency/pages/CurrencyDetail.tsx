@@ -22,10 +22,11 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { currencySchema } from "../utils/currencySchema";
 import { CurrencyAddProps } from "../types/currencyType";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "currencyDetail_columnCount";
 
-export default function CurrencyDetail({
+function CurrencyDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -314,3 +315,5 @@ export default function CurrencyDetail({
     </>
   );
 }
+
+export default withDevIdentifier(CurrencyDetail, 'CurrencyDetail');

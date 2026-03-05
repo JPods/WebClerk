@@ -1,3 +1,4 @@
+// is used on all order, invoice, and transfer transaction types, so it has some conditional logic based on transactionType prop and the shape of the line objects (which can vary between transactions and between existing lines vs new lines being added from the item search)
 import React from "react";
 import {
   FaShoppingCart,
@@ -14,6 +15,7 @@ import LineDetailsModal from "../components/LineDetailsModal";
 import InventoryCheckDialog from "../components/InventoryCheckDialog";
 import OrderItemSearch from "../models/order/components/OrderItemSearch";
 import { lineKey } from "../utils/lineHelpers";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // You may need to import types for TransactionLine, ItemSearchResult, etc.
 
@@ -765,4 +767,4 @@ const LinesCard: React.FC<LinesCardProps> = ({
   );
 };
 
-export default LinesCard;
+export default withDevIdentifier(LinesCard, 'LinesCard', 'amber');

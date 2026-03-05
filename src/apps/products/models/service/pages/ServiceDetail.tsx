@@ -29,10 +29,11 @@ import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
 import RefsPanel from "@/apps/common/components/panels/RefsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "serviceDetail_columnCount";
 
-export default function ServiceDetail({
+function ServiceDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -383,3 +384,5 @@ export default function ServiceDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ServiceDetail, 'ServiceDetail');

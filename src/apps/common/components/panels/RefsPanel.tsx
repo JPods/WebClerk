@@ -33,6 +33,7 @@ import {
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
 import type { BasePanelProps, EntityRefs, RefLink } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -373,4 +374,4 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   );
 };
 
-export default RefsPanel;
+export default withDevIdentifier(RefsPanel, 'RefsPanel', 'teal');

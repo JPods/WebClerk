@@ -14,6 +14,7 @@ import {
   FaCalendarAlt
 } from 'react-icons/fa';
 import type { TransactionLine } from '../types/transactionTypes';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface SplitAllocation {
   id: number;
@@ -337,4 +338,4 @@ const SplitLineModal: React.FC<SplitLineModalProps> = ({
   );
 };
 
-export default SplitLineModal;
+export default withDevIdentifier(SplitLineModal, 'SplitLineModal', 'rose');

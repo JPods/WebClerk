@@ -9,6 +9,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import InfoRow from "./InfoRow";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface JsonCardProps {
   /** Card title (e.g. "Price", "Totals") */
@@ -87,4 +88,4 @@ const JsonCard: React.FC<JsonCardProps> = ({
   );
 };
 
-export default JsonCard;
+export default withDevIdentifier(JsonCard, 'JsonCard', 'amber');

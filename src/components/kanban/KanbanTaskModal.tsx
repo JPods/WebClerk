@@ -2,6 +2,7 @@ import { FormEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "../../apps/utils/kanban/type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface LanguageOption {
   value: string;
@@ -466,4 +467,4 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   return createPortal(modal, document.body);
 };
 
-export default KanbanTaskModal;
+export default withDevIdentifier(KanbanTaskModal, 'KanbanTaskModal', 'rose');

@@ -15,6 +15,7 @@ import FieldLabel from "../../../components/FieldLabel";
 
 // Import types
 import type { Transaction, TransactionStatus } from "../../../types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Requisition specific fields that extend base Transaction
 interface Requisition extends Transaction {
@@ -317,4 +318,4 @@ const RequisitionDetail: React.FC<RequisitionDetailProps> = (props) => {
   );
 };
 
-export default RequisitionDetail;
+export default withDevIdentifier(RequisitionDetail, 'RequisitionDetail');

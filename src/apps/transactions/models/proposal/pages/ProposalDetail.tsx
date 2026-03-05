@@ -26,6 +26,7 @@ import type {
   Transaction,
   TransactionLine,
 } from "../../../types/transactionTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Proposal specific fields that extend base Transaction
 interface Proposal extends Transaction {
@@ -347,4 +348,4 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
   );
 };
 
-export default ProposalDetail;
+export default withDevIdentifier(ProposalDetail, 'ProposalDetail');

@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import { UnifiedGantt } from "./UnifiedGantt";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const UnifiedGanttPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -55,4 +56,4 @@ const UnifiedGanttPage: React.FC = () => {
   );
 };
 
-export default UnifiedGanttPage;
+export default withDevIdentifier(UnifiedGanttPage, 'UnifiedGanttPage');

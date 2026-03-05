@@ -22,10 +22,11 @@ import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/d
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const STORAGE_KEY = "bundleDetail_columnCount";
 
-export default function BundleDetail({
+function BundleDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -309,3 +310,5 @@ export default function BundleDetail({
     </>
   );
 }
+
+export default withDevIdentifier(BundleDetail, 'BundleDetail');

@@ -20,6 +20,7 @@ import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { EntityType, UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -259,4 +260,4 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
   );
 };
 
-export default SerialPanel;
+export default withDevIdentifier(SerialPanel, 'SerialPanel', 'teal');

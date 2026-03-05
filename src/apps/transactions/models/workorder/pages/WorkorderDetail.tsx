@@ -79,6 +79,7 @@ const formatCurrency = (value?: number | null): string => {
 
 // Custom Work Order Header Component
 import SummaryCard from '../../../components/SummaryCard';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 const WorkOrderHeader: React.FC<{
   data: WorkOrder;
   isEditing: boolean;
@@ -383,4 +384,4 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
   );
 };
 
-export default WorkorderDetail;
+export default withDevIdentifier(WorkorderDetail, 'WorkorderDetail');

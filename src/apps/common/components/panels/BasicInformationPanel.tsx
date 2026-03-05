@@ -6,6 +6,7 @@
  */
 import React from "react";
 import { FaBuilding } from "react-icons/fa";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -138,4 +139,4 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
   );
 };
 
-export default BasicInformationPanel;
+export default withDevIdentifier(BasicInformationPanel, 'BasicInformationPanel', 'teal');

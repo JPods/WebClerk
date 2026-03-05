@@ -72,6 +72,7 @@ import {
 } from "@/apps/common/components/panels";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ============================================================================
 // Types (matching Django Item model)
@@ -1307,7 +1308,7 @@ function formValuesToPayload(fd: ItemFormValues, orig: ItemData | null): Record<
 // Main Component
 // ============================================================================
 
-export default function ItemDetail({
+function ItemDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -2231,3 +2232,5 @@ export default function ItemDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ItemDetail, 'ItemDetail');

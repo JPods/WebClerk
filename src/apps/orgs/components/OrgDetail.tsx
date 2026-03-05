@@ -19,6 +19,7 @@ import { QAPanel } from '@/apps/common/components/panels';
 import { ScalarCard, JsonCard, BaseModelCards } from '@/apps/common/components/detail';
 import TransactionTabs from '@/components/common/TransactionTabs';
 import ItemTabs from '@/components/common/ItemTabs';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // --- Types ---
 type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'qa' | 'relations' | 'refs' | 'prefs' | 'metadata';
@@ -1205,4 +1206,4 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
   );
 };
 
-export default OrgDetail;
+export default withDevIdentifier(OrgDetail, 'OrgDetail');

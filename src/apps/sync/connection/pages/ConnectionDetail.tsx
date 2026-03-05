@@ -20,8 +20,9 @@ import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/d
 
 // Tab navigation
 import { DetailTabs, useDetailTabs } from "@/components/common/DetailTabs";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-export default function ConnectionDetail({
+function ConnectionDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -318,3 +319,5 @@ export default function ConnectionDetail({
     </>
   );
 }
+
+export default withDevIdentifier(ConnectionDetail, 'ConnectionDetail');
