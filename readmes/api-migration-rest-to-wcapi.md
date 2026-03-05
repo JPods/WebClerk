@@ -18,13 +18,14 @@ All data access should use these standardized endpoints:
 
 ## Current API File Audit
 
-### Summary (Updated: Feb 9, 2026)
+### Summary (Updated: Mar 5, 2026)
 
 | Category | Count | Status |
 |----------|-------|--------|
 | ✅ Using centralized wcapi | 21 | **Good - No changes needed** |
 | ✅ Delete patterns fixed | 37 | **COMPLETED** |
 | ✅ Hybrid migration | 4 | **COMPLETED** |
+| ✅ Axios REST→wcapi interceptor | 1 | **COMPLETED** |
 | 🔶 Direct apiClient + PostLoginURL | 1 | **orgApi.ts - Factory pattern, lower priority** |
 | 📌 Custom endpoints | 2 | **OK - Special cases** |
 
@@ -248,6 +249,73 @@ After migrating a file, verify:
 
 ---
 
+## REST → WCAPI Automatic Conversion (Dual Layer)
+
+Developers can continue writing RESTful-style API calls — both the frontend and backend will transparently convert them to standardized `/wcapi/…` endpoints. This "strangler fig" approach lets legacy code work while all traffic flows through the wcapi gateway.
+
+### Layer 1: Frontend — Axios Request Interceptor
+
+**File:** `src/api/axios.ts` → `attachRestToWcapiInterceptor()`
+
+The Axios client intercepts outbound requests **before they leave the browser**. Any URL matching a known REST pattern (e.g. `/api/orgs/customer/42`, `/communications/phones/`) is rewritten to the equivalent wcapi call. This eliminates the extra 301 round-trip that would otherwise occur.
+
+**How it works:**
+
+```
+Developer writes:  apiClient.get('/api/orgs/customer/42')
+Interceptor sees:  GET /api/orgs/customer/42
+Rewrites to:       GET /wcapi/get/?model_name=customer&id=42
+Network sends:     GET /wcapi/get/?model_name=customer&id=42  ← direct, no redirect
+```
+
+**Conversion rules:**
+
+| Original Method | Original Path | → WCAPI Endpoint | → Method |
+|----------------|---------------|-------------------|----------|
+| GET | `/api/orgs/customer/` | `/wcapi/get/?model_name=customer` | GET |
+| GET | `/api/orgs/customer/42` | `/wcapi/get/?model_name=customer&id=42` | GET |
+| POST | `/api/orgs/customer/` | `/wcapi/save/` (body: `{model_name, data}`) | POST |
+| PUT | `/api/orgs/customer/42` | `/wcapi/save/` (body: `{model_name, id, data}`) | POST |
+| DELETE | `/api/orgs/customer/42` | `/wcapi/delete/?model_name=customer&id=42` | GET |
+
+**Skipped paths** (not rewritten):
+- `/wcapi/…` — already using wcapi
+- `/admin/…` — Django admin
+- `/integrations/…` — Notion etc.
+- `/kanban/…` — Kanban board
+- `/static/…`, `/media/…` — Static files
+
+**DEV mode logging:**
+In development, conversions are logged to the console:
+```
+[REST→WCAPI] GET /api/orgs/customer/42  →  GET /wcapi/get/ { model_name: 'customer', id: 42 }
+```
+
+### Layer 2: Backend — Django Middleware (Safety Net)
+
+**File:** `wc3 common/middleware/rest_redirect.py`
+
+If a REST call somehow bypasses the frontend interceptor (direct HTTP calls, third-party tools, etc.), the server-side middleware catches it and returns a **301 redirect** to the equivalent `/wcapi/…` URL. Covered by 46 tests.
+
+```
+Browser sends:     GET /api/orgs/customer/42
+Middleware returns: 301 → /wcapi/get/?model_name=customer&id=42
+Browser follows:   GET /wcapi/get/?model_name=customer&id=42
+```
+
+### Why Two Layers?
+
+| Concern | Frontend Interceptor | Backend Middleware |
+|---------|---------------------|--------------------|
+| **Round-trips** | Zero extra (rewrite before send) | +1 redirect (301) |
+| **Coverage** | Only Axios calls from R25 | All HTTP clients |
+| **Debugging** | Console logs in DEV | Server logs |
+| **Fallback** | Graceful (passes through if unknown) | Returns 301 or 404 |
+
+**Best practice:** Write new code using `/wcapi/…` directly. The interceptors exist as a safety net for legacy patterns, not as an excuse to keep writing REST paths.
+
+---
+
 ## Related Files
 
 ### Backend (webClerk3)
@@ -263,6 +331,7 @@ After migrating a file, verify:
 
 | File | Purpose |
 |------|---------|
-| `src/api/restToWcapi.ts` | Client-side REST→wcapi converter |
+| `src/api/axios.ts` | Axios client with REST→wcapi request interceptor *(added Mar 2026)* |
+| `src/api/restToWcapi.ts` | Client-side REST→wcapi converter (used by interceptor) |
 | `src/api/modelNameResolver.ts` | Canonical model-name resolution |
 | `src/pages/tools/WhitelistTester.tsx` | Interactive API tester with REST + wcapi presets |
