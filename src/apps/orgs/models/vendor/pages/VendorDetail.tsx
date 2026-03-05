@@ -269,7 +269,6 @@ export const buildVendorTabBadges = (
     contacts: fkContacts.length,
   };
 };
->>>>>>> origin/dev
 
 function VendorDetail({
   modeProp,
