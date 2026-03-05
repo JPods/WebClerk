@@ -43,6 +43,7 @@ const ContactList = () => {
   );
   const [detailVariant, setDetailVariant] = useState<1 | 2 | 3>(1);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [detailKey, setDetailKey] = useState(0);
   const { user } = useAppSelector((state) => state.auth);
   // Helper to extract translated text
   const getTranslatedText = useCallback(
@@ -351,6 +352,7 @@ const ContactList = () => {
   function handleView(row: ContactData) {
     setSelectedContact(row);
     setFormMode("view");
+    setDetailKey((k) => k + 1);
   }
 
   // Handle edit action
@@ -358,6 +360,7 @@ const ContactList = () => {
     // Set selected item immediately using row data
     setSelectedContact(row);
     setFormMode("edit");
+    setDetailKey((k) => k + 1);
 
     // Optionally fetch fresh data
     try {
@@ -402,6 +405,7 @@ const ContactList = () => {
     setSelectedContact(null);
     setFormMode("add");
     setDetailVariant(1);
+    setDetailKey((k) => k + 1);
   };
 
   // Handle form saved
@@ -430,6 +434,26 @@ const ContactList = () => {
     [roleLabel],
   );
 
+  const customActions = (
+    <div className="flex gap-2">
+      <button
+        onClick={handleAdd}
+        className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <FaPlus className="w-3 h-3" />
+      </button>
+    </div>
+  );
+
+  const exportColumns = useMemo(
+    () =>
+      columns.map((col) => ({
+        name: typeof col.name === "string" ? col.name : undefined,
+        selector: typeof col.selector === "function" ? col.selector : undefined,
+      })),
+    [columns],
+  );
+
   return (
     <>
       <PageBreadcrumb pageTitle="Contact List" />
@@ -444,6 +468,17 @@ const ContactList = () => {
                   handleView={handleView}
                   handleEdit={handleEdit}
                   emptyMessage={emptyStateMessage}
+                  filters={filters}
+                  searchPlaceholder="Search contact, name_first, name_last..."
+                  enableDatabaseSearch={true}
+                  searchDatabase={searchDatabase}
+                  onSearchModeChange={setSearchDatabase}
+                  onDatabaseSearch={handleDatabaseSearch}
+                  enableExport={true}
+                  exportFileName="contact_export"
+                  customActions={customActions}
+                  loading={loading}
+                  columnsForExport={exportColumns}
                 />
               </div>
             ) : (
@@ -463,17 +498,7 @@ const ContactList = () => {
                 exportFileName="contact_export"
                 searchPlaceholder="Search contact, name_first, name_last..."
                 noDataMessage="No contact found"
-                customActions={
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAdd}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      New Contact
-                    </button>
-                  </div>
-                }
+                customActions={customActions}
                 onRowClicked={handleView}
               />
             )}
@@ -502,6 +527,7 @@ const ContactList = () => {
 
             {detailVariant === 1 && (
               <ContactDetail
+                key={`${detailKey}-1`}
                 inline
                 modeProp={formMode}
                 dataProp={selectedContact}
@@ -511,6 +537,7 @@ const ContactList = () => {
             )}
             {detailVariant === 2 && (
               <ContactDetail2
+                key={`${detailKey}-2`}
                 inline
                 modeProp={formMode}
                 dataProp={selectedContact}
@@ -520,6 +547,7 @@ const ContactList = () => {
             )}
             {detailVariant === 3 && (
               <ContactDetail3
+                key={`${detailKey}-3`}
                 inline
                 modeProp={formMode}
                 dataProp={selectedContact}

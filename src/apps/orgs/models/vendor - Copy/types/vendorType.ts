@@ -31,11 +31,6 @@ export interface VendorAddProps {
   onSaved?: () => void;
   inline?: boolean;
   onCancelInline?: () => void;
-  onPrev?: () => void;
-  onNext?: () => void;
-  onCancel?: () => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -133,4 +128,4 @@ export interface UpdateVendorRequest extends Partial<CreateVendorRequest> {
  * Full vendor record type — alias for Organization with org_type narrowed.
  * Prefer using Organization from orgTypes.ts directly when possible.
  */
-export type VendorType = Organization & { org_type: "vendor" };
+export type VendorType = Organization & { org_type: "vendor" }
