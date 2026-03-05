@@ -547,5 +547,23 @@ export async function uploadDocument(
     },
   });
 
-  return response.data;
+  const raw = response.data as any;
+  const payload = raw?.data ?? raw;
+  const documentId = payload?.document_id ?? payload?.document?.id;
+
+  if (!documentId) {
+    throw new Error("Upload response missing document_id");
+  }
+
+  return {
+    document_id: Number(documentId),
+    path: payload?.path ?? "",
+    checksum: payload?.checksum ?? "",
+    is_duplicate: Boolean(payload?.is_duplicate),
+    url: payload?.url ?? `/wcapi/document/${documentId}/`,
+    name: payload?.name ?? file.name,
+    size_bytes: Number(payload?.size_bytes ?? file.size),
+    mime_type: payload?.mime_type ?? file.type,
+    document: payload?.document ?? null,
+  };
 }

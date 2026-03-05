@@ -58,8 +58,6 @@ interface KanbanTaskModalProps {
   isRemoving?: boolean;
 }
 
-import { uploadDocument } from "../../../api/wcapi";
-
 export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   mode,
   isOpen,
@@ -96,82 +94,57 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     setAssigneeSelection("");
   }, [isOpen]);
 
-  // File upload handling
-  const uploadFiles = useCallback(async (files: FileList | File[]): Promise<TaskAttachment[]> => {
+  // File selection handling (deferred upload: files are uploaded on form submit)
+  const stageFiles = useCallback((files: FileList | File[]): TaskAttachment[] => {
     const fileArray = Array.from(files);
-    const uploadedAttachments: TaskAttachment[] = [];
+    return fileArray.map((file) => {
+      const attachment: TaskAttachment = {
+        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        type: file.type,
+        name: file.name,
+        size: file.size,
+      };
 
-    for (const file of fileArray) {
-      try {
-        const uploadResponse = await uploadDocument(file, "action", undefined, "attachment");
-        
-        const attachment: TaskAttachment = {
-          id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          documentId: uploadResponse.document_id,
-          type: file.type,
-          name: file.name,
-          size: file.size,
-        };
-
-        // Create preview URL for images
-        if (file.type.startsWith('image/')) {
-          attachment.previewUrl = uploadResponse.url;
-        }
-
-        uploadedAttachments.push(attachment);
-      } catch (error) {
-        console.error("Failed to upload file:", file.name, error);
-        // Still add the attachment but mark it as failed
-        const attachment: TaskAttachment = {
-          id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          file,
-          type: file.type,
-          name: file.name,
-          size: file.size,
-        };
-
-        if (file.type.startsWith('image/')) {
-          attachment.previewUrl = URL.createObjectURL(file);
-        }
-
-        uploadedAttachments.push(attachment);
+      if (file.type.startsWith("image/")) {
+        attachment.previewUrl = URL.createObjectURL(file);
       }
-    }
 
-    return uploadedAttachments;
+      return attachment;
+    });
   }, []);
 
-  const handleFileSelect = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    const uploadedAttachments = await uploadFiles(files);
+    const stagedAttachments = stageFiles(files);
 
     // Update form state with new attachments
     const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...uploadedAttachments];
+    const updatedAttachments = [...currentAttachments, ...stagedAttachments];
     onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange, uploadFiles]);
+  }, [formState.attachments, onFieldChange, stageFiles]);
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback(async (event: React.DragEvent) => {
+  const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
     const files = event.dataTransfer.files;
     if (!files) return;
 
-    const uploadedAttachments = await uploadFiles(files);
+    const stagedAttachments = stageFiles(files);
 
     // Update form state with new attachments
     const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...uploadedAttachments];
+    const updatedAttachments = [...currentAttachments, ...stagedAttachments];
     onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange, uploadFiles]);
+  }, [formState.attachments, onFieldChange, stageFiles]);
 
   const removeAttachment = useCallback((attachmentId: string) => {
     const currentAttachments = formState.attachments || [];
