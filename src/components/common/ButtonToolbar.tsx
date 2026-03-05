@@ -170,7 +170,7 @@ interface BreadcrumbProps<T = any> {
   storageKey?: string;
 }
 
-const PageBreadcrumb = <T extends Record<string, any> = any>({
+const ButtonToolbar = <T extends Record<string, any> = any>({
   pageTitle,
   title,
   modelKey,
@@ -938,4 +938,4 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
   );
 };
 
-export default PageBreadcrumb;
+export default ButtonToolbar;

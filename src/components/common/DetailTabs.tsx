@@ -333,7 +333,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
       <div
         className={`shrink-0 border-b border-slate-200 dark:border-slate-700 ${className}`}
       >
-        <nav className="px-4">
+        <nav className="px-0">
           <div className="flex items-center justify-between py-2 gap-4">
             <div className="flex gap-1 overflow-x-auto">
               {tabs.map((tab) => (

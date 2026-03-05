@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
+  AdvancedDataTableHandle,
 } from "../../../../../components/common/AdvancedDataTable";
 import { fetchContacts } from "../services/contactApi";
 import { useNavigate } from "react-router";
@@ -16,6 +17,7 @@ import ContactDetail3 from "./ContactDetail3";
 import ContactListMob from "./ContactListMob";
 import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 interface ContactData {
   id: string | number;
   email?: string;
@@ -45,6 +47,14 @@ const ContactList = () => {
   const [searchDatabase, setSearchDatabase] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
   const { user } = useAppSelector((state) => state.auth);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+  const tableRef = useRef<AdvancedDataTableHandle<ContactData>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
   // Helper to extract translated text
   const getTranslatedText = useCallback(
     (
@@ -454,13 +464,93 @@ const ContactList = () => {
     [columns],
   );
 
+  // Filter columns based on visibility from PageBreadcrumb
+  const visibleColumns = useMemo(() => {
+    if (columnVisibility.length === 0) return columns;
+    return columns.filter((_, index) => columnVisibility[index] !== false);
+  }, [columns, columnVisibility]);
+
+  // Filter data based on filterValues from PageBreadcrumb
+  const filteredData = useMemo(() => {
+    if (Object.keys(filterValues).length === 0) return data;
+
+    return data.filter((row) => {
+      return Object.entries(filterValues).every(([key, value]) => {
+        if (!value) return true; // Skip empty filters
+        const rowValue = String(row[key] || "").toLowerCase();
+        return rowValue.includes(value.toLowerCase());
+      });
+    });
+  }, [data, filterValues]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedContacts.length) return;
+    if (!window.confirm(`Delete ${selectedContacts.length} contact(s)?`))
+      return;
+    setLoading(true);
+    try {
+      for (const row of selectedContacts) {
+        const id = Number(row?.id);
+        if (Number.isFinite(id) && id > 0) {
+          await deleteRecord("contact", id);
+        }
+      }
+      setData((prev) =>
+        prev.filter(
+          (r) =>
+            !selectedContacts.some((sc) => Number(sc?.id) === Number(r?.id)),
+        ),
+      );
+      setSelectedContacts([]);
+      dispatch(showToast({ message: "Contacts deleted", type: "success" }));
+    } catch (error) {
+      console.error("[ContactList] bulk delete failed:", error);
+      dispatch(
+        showToast({ message: "Failed to delete contacts", type: "error" }),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedContacts, dispatch]);
   return (
     <>
-      <PageBreadcrumb pageTitle="Contact List" />
+      <ButtonToolbar
+        pageTitle="Contact List"
+        title="Contact"
+        modelKey="contact"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedContacts}
+        selectedCount={selectedContacts.length}
+        totalCount={data.length}
+        filteredCount={filteredData.length}
+        onRefresh={fetchActions}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        // Column management
+        columns={columns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="contact-list"
+        // Filters
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            {formMode ? (
+            {/* {formMode ? (
               <div className="flex flex-col">
                 <ContactListMob
                   dataProp={data}
@@ -481,27 +571,33 @@ const ContactList = () => {
                   columnsForExport={exportColumns}
                 />
               </div>
-            ) : (
-              <AdvancedDataTable
-                data={data}
-                columns={columns}
-                title="Contact"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={true}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedContacts}
-                exportFileName="contact_export"
-                searchPlaceholder="Search contact, name_first, name_last..."
-                noDataMessage="No contact found"
-                customActions={customActions}
-                onRowClicked={handleView}
-              />
-            )}
+            ) : ( */}
+            <AdvancedDataTable
+              ref={tableRef}
+              data={filteredData}
+              columns={visibleColumns}
+              title="Contact"
+              loading={loading}
+              hideHeader={true}
+              enableExport={true}
+              enableSelection={true}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
+              onSelectionChange={setSelectedContacts}
+              onDeleteSelected={handleBulkDelete}
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              exportFileName="contact_export"
+              searchPlaceholder="Search contact, name_first, name_last..."
+              noDataMessage="No contact found"
+              customActions={customActions}
+              onRowClicked={handleView}
+            />
+            {/* )} */}
           </ComponentCard>
         </div>
 
