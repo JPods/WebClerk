@@ -2019,6 +2019,9 @@ export default function ContactDetail({
 
         const basePayload = {
           email: formData.email,
+          phone: formData.phone,
+          domain: formData.domain,
+          address_full: formData.address_full,
           name_first: formData.name_first,
           name_last: formData.name_last,
           name_middle: formData.name_middle,
@@ -2374,28 +2377,28 @@ export default function ContactDetail({
   if (isLoading) return <RippleLoader />;
 
   // ── Email Gate: show before the full form in add mode ──
-  if (effectiveMode === "add" && !emailGatePassed) {
-    return (
-      <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-        <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            <DevBadge label="Contact" className="mr-2" />
-            New Contact
-            <span className="ml-2 text-xs font-mono text-slate-400">
-              (no ID yet)
-            </span>
-          </h2>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <EmailGatePanel
-            isStaff={isStaffUser}
-            onComplete={handleEmailGateComplete}
-            onCancel={onCancelInline}
-          />
-        </div>
-      </div>
-    );
-  }
+  // if (effectiveMode === "add" && !emailGatePassed) {
+  //   return (
+  //     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+  //       <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+  //         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+  //           <DevBadge label="Contact" className="mr-2" />
+  //           New Contact
+  //           <span className="ml-2 text-xs font-mono text-slate-400">
+  //             (no ID yet)
+  //           </span>
+  //         </h2>
+  //       </div>
+  //       <div className="flex-1 overflow-y-auto">
+  //         <EmailGatePanel
+  //           isStaff={isStaffUser}
+  //           onComplete={handleEmailGateComplete}
+  //           onCancel={onCancelInline}
+  //         />
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
@@ -2583,6 +2586,51 @@ export default function ContactDetail({
                   placeholder="Middle name"
                   {...register("name_middle")}
                   disabled={isFieldDisabled("name_middle")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("email") && (
+              <HorizontalField label="email" htmlFor="email">
+                <Input
+                  type="text"
+                  id="email"
+                  placeholder="email"
+                  {...register("email")}
+                  disabled={isFieldDisabled("email")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("phone") && (
+              <HorizontalField label="phone" htmlFor="phone">
+                <Input
+                  type="text"
+                  id="phone"
+                  placeholder="phone"
+                  {...register("phone")}
+                  disabled={isFieldDisabled("phone")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("domain") && (
+              <HorizontalField label="domain" htmlFor="domain">
+                <Input
+                  type="text"
+                  id="domain"
+                  placeholder="domain"
+                  {...register("domain")}
+                  disabled={isFieldDisabled("domain")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("address_full") && (
+              <HorizontalField label="address_full" htmlFor="address_full">
+                <Input
+                  type="text"
+                  id="address_full"
+                  placeholder="address_full"
+                  {...register("address_full")}
+                  disabled={isFieldDisabled("address_full")}
+                  className="w-100"
                 />
               </HorizontalField>
             )}

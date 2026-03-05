@@ -112,12 +112,13 @@ export interface CreateContactRequest {
   attention?: string;
   // Login / communication
   email: string;
+  phone?: string;
   // Org associations (BigIntegerField FKs)
   company?: string;
   title?: string;
   department?: string;
   comment?: string;
-  role?: string;             // choices: "" | "user" | "employee" | "admin"
+  role?: string; // choices: "" | "user" | "employee" | "admin"
   customer_id?: number;
   rep_id?: number;
   vendor_id?: number;

@@ -5,7 +5,7 @@
  * Each tab shows a filtered list of transactions for that sub-type.
  *
  * Customer tabs: All · Proposals · Orders · Invoices · Ledgers · Payments
- * Vendor tabs:   All · Purchases · Receipts
+ * Vendor tabs:   All · Proposals · Orders · Invoices · Ledgers · Payments · Purchases · Receipts
  *
  * @see readmes/tab-navigation.md — Tier 2 Org Tabs → transactions
  */
@@ -24,7 +24,10 @@ import {
 } from "react-icons/fa";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { getRecords } from "@/api/wcapi";
-import { getModelDetailPath, getModelWindowTitle } from "@/apps/common/components/panels/getModelDetailPath";
+import {
+  getModelDetailPath,
+  getModelWindowTitle,
+} from "@/apps/common/components/panels/getModelDetailPath";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,16 +68,81 @@ export interface TransactionTabsProps {
 // ---------------------------------------------------------------------------
 
 const CUSTOMER_TABLES: SubTable[] = [
-  { model: "proposal",  label: "Proposals", filterField: "customer_id", icon: <FaClipboardList size={12} /> },
-  { model: "order",     label: "Orders",    filterField: "customer_id", icon: <FaShoppingCart size={12} /> },
-  { model: "invoice",   label: "Invoices",  filterField: "customer_id", icon: <FaFileInvoiceDollar size={12} /> },
-  { model: "ledger",    label: "Ledgers",   filterField: "customer_id", icon: <FaBook size={12} /> },
-  { model: "payment",   label: "Payments",  filterField: "customer_id", icon: <FaMoneyCheckAlt size={12} /> },
+  {
+    model: "proposal",
+    label: "Proposals",
+    filterField: "customer_id",
+    icon: <FaClipboardList size={12} />,
+  },
+  {
+    model: "order",
+    label: "Orders",
+    filterField: "customer_id",
+    icon: <FaShoppingCart size={12} />,
+  },
+  {
+    model: "invoice",
+    label: "Invoices",
+    filterField: "customer_id",
+    icon: <FaFileInvoiceDollar size={12} />,
+  },
+  {
+    model: "ledger",
+    label: "Ledgers",
+    filterField: "customer_id",
+    icon: <FaBook size={12} />,
+  },
+  {
+    model: "payment",
+    label: "Payments",
+    filterField: "customer_id",
+    icon: <FaMoneyCheckAlt size={12} />,
+  },
 ];
 
 const VENDOR_TABLES: SubTable[] = [
-  { model: "purchase", label: "Purchases", filterField: "vendor_id", icon: <FaTruck size={12} /> },
-  { model: "receipt",  label: "Receipts",  filterField: "vendor_id", icon: <FaReceipt size={12} /> },
+  {
+    model: "proposal",
+    label: "Proposals",
+    filterField: "vendor_id",
+    icon: <FaClipboardList size={12} />,
+  },
+  {
+    model: "order",
+    label: "Orders",
+    filterField: "vendor_id",
+    icon: <FaShoppingCart size={12} />,
+  },
+  {
+    model: "invoice",
+    label: "Invoices",
+    filterField: "vendor_id",
+    icon: <FaFileInvoiceDollar size={12} />,
+  },
+  {
+    model: "ledger",
+    label: "Ledgers",
+    filterField: "vendor_id",
+    icon: <FaBook size={12} />,
+  },
+  {
+    model: "payment",
+    label: "Payments",
+    filterField: "vendor_id",
+    icon: <FaMoneyCheckAlt size={12} />,
+  },
+  {
+    model: "purchase",
+    label: "Purchases",
+    filterField: "vendor_id",
+    icon: <FaTruck size={12} />,
+  },
+  {
+    model: "receipt",
+    label: "Receipts",
+    filterField: "vendor_id",
+    icon: <FaReceipt size={12} />,
+  },
 ];
 
 const SUB_TABLES: Record<OrgType, SubTable[]> = {
@@ -129,15 +197,19 @@ const TransactionTabs: React.FC<TransactionTabsProps> = ({
     Promise.all(
       tables.map(async (t) => {
         try {
-          const result = await getRecords(t.model, {
+          const params: Record<string, unknown> = {
             [t.filterField]: orgId,
             limit: 100,
-          });
+          };
+          if (orgType === "vendor") {
+            params.org_type = "vendor";
+          }
+          const result = await getRecords(t.model, params);
           return { model: t.model, records: result?.results ?? [] };
         } catch {
           return { model: t.model, records: [] };
         }
-      })
+      }),
     ).then((results) => {
       if (cancelled) return;
       const map: Record<string, TransactionRecord[]> = {};
@@ -148,7 +220,9 @@ const TransactionTabs: React.FC<TransactionTabsProps> = ({
       setLoading(false);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [orgId, tables]);
 
   const totalCount = tables.reduce(
@@ -173,15 +247,27 @@ const TransactionTabs: React.FC<TransactionTabsProps> = ({
   const visibleRecords = useMemo(() => {
     if (activeModel === null) {
       // All — flatten all sub-tables, newest first
-      return tables.flatMap((t) =>
-        (data[t.model] ?? []).map((r) => ({ ...r, _model: t.model, _label: t.label })),
-      ).sort((a, b) => (b.dt_created ?? 0) - (a.dt_created ?? 0));
+      return tables
+        .flatMap((t) =>
+          (data[t.model] ?? []).map((r) => ({
+            ...r,
+            _model: t.model,
+            _label: t.label,
+          })),
+        )
+        .sort((a, b) => (b.dt_created ?? 0) - (a.dt_created ?? 0));
     }
-    return (data[activeModel] ?? []).map((r) => ({ ...r, _model: activeModel, _label: "" }));
+    return (data[activeModel] ?? []).map((r) => ({
+      ...r,
+      _model: activeModel,
+      _label: "",
+    }));
   }, [activeModel, data, tables]);
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}>
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+    >
       {/* Transaction Tab Bar */}
       <div className="border-b border-slate-200 dark:border-slate-700">
         <nav className="px-4">
