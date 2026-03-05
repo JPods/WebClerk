@@ -93,6 +93,81 @@ class WCAPIGetView(APIView):
         "workorder": "workorderline",
     }
 
+    def _action_attachments_map(self, action_ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+        if not action_ids:
+            return {}
+
+        try:
+            from apps.docs.models import Document, LinkageEntry
+        except Exception:
+            return {}
+
+        action_entries = list(
+            LinkageEntry.objects.filter(
+                model_name="action",
+                record_id__in=action_ids,
+                purpose="attachment",
+            ).values("record_id", "group_id")
+        )
+        if not action_entries:
+            return {}
+
+        group_to_actions: Dict[int, List[int]] = {}
+        for row in action_entries:
+            group_id = row.get("group_id")
+            record_id = row.get("record_id")
+            if not isinstance(group_id, int) or not isinstance(record_id, int):
+                continue
+            group_to_actions.setdefault(group_id, []).append(record_id)
+
+        if not group_to_actions:
+            return {}
+
+        group_ids = list(group_to_actions.keys())
+        doc_entries = list(
+            LinkageEntry.objects.filter(
+                model_name="document",
+                group_id__in=group_ids,
+                purpose="attachment",
+            ).values("group_id", "record_id")
+        )
+
+        document_ids = {
+            row.get("record_id")
+            for row in doc_entries
+            if isinstance(row.get("record_id"), int)
+        }
+        documents = {
+            doc.id: doc
+            for doc in Document.objects.filter(id__in=document_ids)
+        }
+
+        result: Dict[int, List[Dict[str, Any]]] = {action_id: [] for action_id in action_ids}
+        for row in doc_entries:
+            group_id = row.get("group_id")
+            doc_id = row.get("record_id")
+            if not isinstance(group_id, int) or not isinstance(doc_id, int):
+                continue
+            doc = documents.get(doc_id)
+            if not doc:
+                continue
+
+            doc_path = doc.path if isinstance(doc.path, dict) else {}
+            url = doc_path.get("url") or f"/wcapi/document/{doc.id}/"
+            attachment_payload = {
+                "id": doc.id,
+                "name": doc.name,
+                "mime_type": doc.mime_type,
+                "size_bytes": doc.size_bytes,
+                "url": url,
+                "path": doc.path,
+            }
+
+            for action_id in group_to_actions.get(group_id, []):
+                result.setdefault(action_id, []).append(attachment_payload)
+
+        return result
+
     @staticmethod
     def _normalize_model_key(model_key: str | None) -> str:
         return (model_key or "").replace("/", "").replace("_", "").lower()
@@ -594,6 +669,9 @@ class WCAPIGetView(APIView):
             else:
                 if "results" in payload and "results" not in field_names and isinstance(payload["results"], list):
                     payload.pop("results", None)
+
+            if self._normalize_model_key(model_key) == "action":
+                payload["attachments"] = self._action_attachments_map([obj.pk]).get(obj.pk, [])
             return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
@@ -643,6 +721,14 @@ class WCAPIGetView(APIView):
             except Exception:
                 pass
             results.append(payload)
+
+        if self._normalize_model_key(model_key) == "action":
+            action_ids = [obj.pk for obj in items if isinstance(getattr(obj, "pk", None), int)]
+            attachment_map = self._action_attachments_map(action_ids)
+            for payload in results:
+                action_id = payload.get("id")
+                if isinstance(action_id, int):
+                    payload["attachments"] = attachment_map.get(action_id, [])
         
         # Build response with pagination metadata
         page_number = (offset // limit) + 1 if limit > 0 else 1

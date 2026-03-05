@@ -148,6 +148,9 @@ def enforce_write_policy(
     # Always strip system-only fields for non-admins even if not in policy
     filtered = {}
     for k, v in (data or {}).items():
+        if isinstance(k, str) and k.startswith("_"):
+            filtered[k] = v
+            continue
         if k in PASSTHROUGH_KEYS:
             filtered[k] = v
         elif k in SYSTEM_ONLY_FIELDS:
