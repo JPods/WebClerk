@@ -90,6 +90,45 @@ class DocumentUploadView(APIView):
         checksum = _compute_checksum(upload)
         existing = Document.objects.filter(checksum=checksum).first()
         if existing:
+            if purpose == "attachment":
+                metadata = default_document_metadata()
+                now_ms = int(timezone.now().timestamp() * 1000)
+                metadata.setdefault("history", {})
+                metadata["history"]["created"] = {"dt": now_ms, "contact_id": 0}
+                metadata["history"]["modified"] = {"dt": now_ms, "contact_id": 0}
+                metadata["original_name"] = filename
+                metadata["purpose"] = purpose
+
+                cloned_path = dict(existing.path) if isinstance(existing.path, dict) else existing.path
+                cloned = Document.objects.create(
+                    name=filename,
+                    description=description,
+                    mime_type=existing.mime_type or mime_type,
+                    size_bytes=existing.size_bytes or upload.size,
+                    path=cloned_path,
+                    checksum=checksum,
+                    model_name=model_name or None,
+                    data={"parent_id": parent_id, "purpose": purpose, "source_document_id": existing.id},
+                    metadata=metadata,
+                )
+
+                if isinstance(cloned.path, dict):
+                    cloned.path["url"] = cloned.path.get("url") or f"/wcapi/document/{cloned.id}/"
+                    cloned.save(update_fields=["path"])
+
+                payload = {
+                    "document_id": cloned.id,
+                    "path": (cloned.path or {}).get("key") if isinstance(cloned.path, dict) else None,
+                    "checksum": cloned.checksum,
+                    "is_duplicate": True,
+                    "url": (cloned.path or {}).get("url") if isinstance(cloned.path, dict) else f"/wcapi/document/{cloned.id}/",
+                    "name": cloned.name,
+                    "size_bytes": cloned.size_bytes,
+                    "mime_type": cloned.mime_type,
+                    "document": _serialize_document(cloned),
+                }
+                return Response(payload, status=status.HTTP_201_CREATED)
+
             payload = {
                 "document_id": existing.id,
                 "path": (existing.path or {}).get("key") if isinstance(existing.path, dict) else None,
@@ -113,7 +152,8 @@ class DocumentUploadView(APIView):
                 f.write(chunk)
 
         rel_key = storage["key"]
-        url = f"/static/{rel_key}"
+        # Don't set URL here - will set after document creation
+        url = None
         metadata = default_document_metadata()
         now_ms = int(timezone.now().timestamp() * 1000)
         metadata.setdefault("history", {})
@@ -153,19 +193,23 @@ class DocumentUploadView(APIView):
             description=description,
             mime_type=mime_type,
             size_bytes=upload.size,
-            path={"storage": "local", "key": rel_key, "url": url, "full": full_path},
+            path={"storage": "local", "key": rel_key, "url": f"/wcapi/document/{0}/", "full": full_path},  # Placeholder URL
             checksum=checksum,
             model_name=model_name or None,
             data={"parent_id": parent_id, "purpose": purpose},
             metadata=metadata,
         )
 
+        # Update the path with the correct URL now that we have the document ID
+        doc.path["url"] = f"/wcapi/document/{doc.id}/"
+        doc.save(update_fields=['path'])
+
         payload = {
             "document_id": doc.id,
             "path": rel_key,
             "checksum": checksum,
             "is_duplicate": False,
-            "url": url,
+            "url": doc.path.get("url") if isinstance(doc.path, dict) else f"/wcapi/document/{doc.id}/",
             "name": doc.name,
             "size_bytes": doc.size_bytes,
             "mime_type": doc.mime_type,

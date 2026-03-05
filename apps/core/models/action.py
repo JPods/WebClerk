@@ -1,8 +1,11 @@
 from django.db import models
+import logging
 
 from common.models import BaseModel
 from apps.core.choices import ACTION_DIFFICULTY_LEVELS, ACTION_KANBAN_COLUMNS
 from apps.core.services.keywords import build_keywords_for_record
+
+console_logger = logging.getLogger('console')
 
 class Action(BaseModel):
     # Parent-child relationship
@@ -161,6 +164,73 @@ class Action(BaseModel):
         merged_langs = sorted((existing_langs | derived_langs) - {''})
         if derived_langs:
             data['languages'] = {'mode': 'update', 'value': merged_langs or ['en']}
+
+        # Handle attachments - create LinkageEntry records
+        attachments_raw = data.pop('attachments', None)
+        attachments_val = _extract_value(attachments_raw)
+        if attachments_val and isinstance(attachments_val, list):
+            # Store attachment document IDs for post-save processing
+            data['_pending_attachments'] = attachments_val
+
+        return None
+
+    def post_save_hook(self, data, is_update=False, context=None):
+        """Handle attachments after save by creating LinkageEntry records."""
+        if not isinstance(data, dict):
+            return None
+
+        pending_attachments = data.get('_pending_attachments')
+        if not pending_attachments or not isinstance(pending_attachments, list):
+            return None
+
+        try:
+            from apps.docs.models import LinkageEntry
+            from django.db import transaction
+
+            with transaction.atomic():
+                # Get or create a group ID for this action's attachments
+                existing_entries = LinkageEntry.objects.filter(
+                    model_name='action',
+                    record_id=self.id
+                )
+                
+                if existing_entries.exists():
+                    # Use existing group
+                    group_id = existing_entries.first().group_id
+                    # Remove existing entries for this action
+                    existing_entries.delete()
+                else:
+                    # Create new group
+                    group_id = LinkageEntry.next_group_id()
+
+                # Create entry for the action
+                LinkageEntry.objects.create(
+                    group_id=group_id,
+                    model_name='action',
+                    record_id=self.id,
+                    purpose='attachment',
+                    name=f'Action {self.id} attachments',
+                    role='parent'
+                )
+
+                # Create entries for each document
+                for doc_id in pending_attachments:
+                    try:
+                        doc_id_int = int(doc_id)
+                        LinkageEntry.objects.create(
+                            group_id=group_id,
+                            model_name='document',
+                            record_id=doc_id_int,
+                            purpose='attachment',
+                            name=f'Attachment for Action {self.id}',
+                            role='child'
+                        )
+                    except (ValueError, TypeError):
+                        continue
+
+        except Exception as e:
+            console_logger.error(f"[Action.post_save_hook] Failed to create attachment linkages: {e}")
+            return f"Failed to link attachments: {str(e)}"
 
         return None
 
