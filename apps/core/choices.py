@@ -51,6 +51,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("qa_counters", "qa_counters"),
     ("qa_questions", "qa_questions"),
     ("admin", "admin"),
+    ("React_settings", "React_settings"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
