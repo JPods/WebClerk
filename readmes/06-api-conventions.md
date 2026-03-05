@@ -86,3 +86,10 @@ Accepted aliases (examples):
 - Flexible refs.links inputs: easier authoring; backend normalizes to stable buckets.
 
 If you need additional aliases or buckets, open a PR or note here and we’ll extend the normalization list.
+---
+
+## Related Documentation
+
+- [07-react-integration.md](07-react-integration.md) — React2025 integration guide
+- [08-transaction-save.md](08-transaction-save.md) — Transaction save patterns
+- [05-model-registry.md](05-model-registry.md) — Available models and configurations

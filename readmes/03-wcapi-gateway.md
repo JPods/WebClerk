@@ -1,6 +1,6 @@
 # Web Clerk API Gateway (wcapi)
 
-> **Reading order**: [← 02-dev-setup](02-dev-setup.md) | [04-wcapi-usage →](04-wcapi-usage.md)
+> **Reading order**: [← 02-dev-setup](02-dev-setup.md) | [04-wcapi-usage →](04-wcapi-usage.md) | [08-transaction-save](08-transaction-save.md)
 
 ---
 
@@ -102,3 +102,5 @@ See [api_response_envelope.md](api_response_envelope.md) for detailed documentat
 
 - [04-wcapi-usage.md](04-wcapi-usage.md) - Practical examples and patterns
 - [06-api-conventions.md](06-api-conventions.md) - Naming conventions and related data
+- [08-transaction-save.md](08-transaction-save.md) - Transaction save patterns (header + lines)
+- [celery-redis-pending.md](celery-redis-pending.md) - Background pending processing

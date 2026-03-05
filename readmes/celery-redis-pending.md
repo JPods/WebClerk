@@ -1,5 +1,9 @@
 # Celery & Redis — Background Task Processing
 
+> **Reading order**: [← 08-transaction-save](08-transaction-save.md) | **End of sequence**
+
+---
+
 ## Overview
 
 webClerk3 uses **Celery 5.5** with a **Redis** broker to run background tasks.
@@ -333,3 +337,11 @@ DB_MODE=remote python manage.py process_pending_inventory --skip-stacks --limit=
 The `--skip-stacks` flag is required because the stack adjustment processor
 references a field (`dt_created`) that does not exist on the
 `PendingInventoryAdjustment` model — a known issue to fix separately.
+
+---
+
+## Related Documentation
+
+- [08-transaction-save.md](08-transaction-save.md) — How pending records are created during transaction saves
+- [03-wcapi-gateway.md](03-wcapi-gateway.md) — WCAPI gateway overview
+- [04-wcapi-usage.md](04-wcapi-usage.md) — API usage examples

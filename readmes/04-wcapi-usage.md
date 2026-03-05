@@ -1,6 +1,6 @@
 # WCAPI Usage Guide
 
-> **Reading order**: [← 03-wcapi-gateway](03-wcapi-gateway.md) | [05-model-registry →](05-model-registry.md)
+> **Reading order**: [← 03-wcapi-gateway](03-wcapi-gateway.md) | [05-model-registry →](05-model-registry.md) | [08-transaction-save →](08-transaction-save.md)
 
 ---
 
@@ -365,4 +365,20 @@ print(data['results'])
 ```bash
 curl -X GET "http://localhost:8000/wcapi/get/?model_name=invoice&limit=20" \
   -H "Authorization: Bearer <token>"
-  
+```
+
+---
+
+## Transaction Saves
+
+For saving transactions with lines (orders, invoices, purchases, work orders), see [08-transaction-save.md](08-transaction-save.md).
+
+---
+
+## Related Documentation
+
+- [03-wcapi-gateway.md](03-wcapi-gateway.md) — Gateway overview and endpoint reference
+- [05-model-registry.md](05-model-registry.md) — Available models and their configurations
+- [06-api-conventions.md](06-api-conventions.md) — Model naming and data conventions
+- [08-transaction-save.md](08-transaction-save.md) — Transaction save patterns (collect-then-create)
+- [celery-redis-pending.md](celery-redis-pending.md) — Background processing of Pending records
