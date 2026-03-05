@@ -103,7 +103,9 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     phone_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary phone record if needed")
     domain = models.CharField(max_length=255, blank=True, null=True, help_text="Primary domain extracted from email for quick search")
     domain_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary domain record if needed")
-    
+    company = models.CharField(max_length=200, blank=True, help_text="Company name")
+    title = models.CharField(max_length=100, blank=True, help_text="Job title")
+    department = models.CharField(max_length=100, blank=True, help_text="Department")
     
     # Business Fields — FK-first: proper ForeignKey for all org references.
     # A person can be associated with multiple orgs (vendor, manufacturer, customer, rep).
