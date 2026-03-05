@@ -176,7 +176,7 @@ export default function CurrencyList() {
         selectedCount={selectedCurrencies.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getCurrencyData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

@@ -186,7 +186,7 @@ export default function WorkOrderLineList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getWorkOrderLineData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

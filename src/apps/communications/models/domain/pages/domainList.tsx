@@ -348,7 +348,7 @@ export default function DomainList() {
         selectedCount={selectedDomains.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getEmailData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

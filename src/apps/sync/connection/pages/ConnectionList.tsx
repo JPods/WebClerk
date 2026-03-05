@@ -188,7 +188,7 @@ export default function ConnectionList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getConnectionData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

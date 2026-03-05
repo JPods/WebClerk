@@ -176,7 +176,7 @@ export default function SpecificationList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getSpecificationData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

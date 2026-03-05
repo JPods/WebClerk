@@ -385,7 +385,7 @@ export default function AddressList() {
         selectedCount={selectedAddresses.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getAddressData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

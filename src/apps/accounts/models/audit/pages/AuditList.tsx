@@ -177,7 +177,7 @@ export default function AuditList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getAuditData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

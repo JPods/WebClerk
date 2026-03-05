@@ -195,7 +195,7 @@ export default function SettingList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getSettingData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

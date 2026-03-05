@@ -255,13 +255,12 @@ export default function APILogList() {
         modelKey="api_logs"
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
-        handleAddInline={handleAdd}
         tableRef={tableRef}
         columnBtnRef={columnBtnRef}
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={fetchData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

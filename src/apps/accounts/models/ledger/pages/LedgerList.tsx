@@ -179,7 +179,7 @@ export default function LedgerList() {
         selectedCount={selectedLedgers.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getLedgerData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

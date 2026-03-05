@@ -176,7 +176,7 @@ export default function BundleList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getBundleData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

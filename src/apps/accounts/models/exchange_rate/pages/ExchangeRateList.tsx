@@ -162,7 +162,7 @@ export default function ExchangeRateList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getExchangeRateData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

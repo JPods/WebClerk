@@ -176,7 +176,7 @@ export default function VariantList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getVariantData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

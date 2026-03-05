@@ -197,7 +197,7 @@ export default function ReportList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getReportData}
         enableDatabaseSearch
         searchDatabase={searchDatabase}
         onSearchModeChange={setSearchDatabase}

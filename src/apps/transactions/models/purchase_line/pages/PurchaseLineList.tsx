@@ -186,7 +186,7 @@ export default function PurchaseLineList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getPurchaseLineData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

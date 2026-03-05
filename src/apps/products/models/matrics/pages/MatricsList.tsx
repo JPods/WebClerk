@@ -180,7 +180,7 @@ export default function MatricsList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getMatricsData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

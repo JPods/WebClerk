@@ -316,7 +316,7 @@ export default function ItemList() {
         selectedCount={selectedItems.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getItems}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

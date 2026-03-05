@@ -181,7 +181,7 @@ export default function ReceiptList() {
         selectedCount={selectedReceipts.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getReceiptData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

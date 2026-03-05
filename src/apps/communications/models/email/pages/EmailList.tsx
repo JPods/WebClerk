@@ -390,7 +390,7 @@ export default function EmailList() {
         selectedCount={selectedEmails.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getEmailData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

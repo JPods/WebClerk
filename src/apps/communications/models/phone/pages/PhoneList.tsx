@@ -369,7 +369,7 @@ export default function PhoneList() {
         selectedCount={selectedPhones.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getPhoneData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

@@ -348,7 +348,7 @@ export default function ProposalList() {
         selectedCount={selectedProposals.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getProposalData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

@@ -359,7 +359,7 @@ export default function CustomerList() {
         selectedCount={selectedCustomers.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={fetchActions}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

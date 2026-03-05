@@ -188,7 +188,7 @@ export default function CampaignList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getCampaignData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

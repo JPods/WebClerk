@@ -157,7 +157,7 @@ export default function TagList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getTagData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

@@ -157,7 +157,7 @@ export default function QuestionAnswerList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getQuestionAnswerData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

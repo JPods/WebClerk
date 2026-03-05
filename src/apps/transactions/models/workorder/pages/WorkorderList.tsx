@@ -226,7 +226,7 @@ export default function WorkorderList() {
         selectedCount={selectedWorkorders.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getWorkorderData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

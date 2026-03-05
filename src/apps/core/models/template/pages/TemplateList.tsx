@@ -189,7 +189,7 @@ export default function TemplateList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getTemplateData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

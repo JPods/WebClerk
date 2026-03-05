@@ -184,7 +184,7 @@ export default function GLJournalList() {
         selectedCount={selectedGLJournals.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getGLJournalData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

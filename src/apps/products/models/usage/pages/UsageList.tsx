@@ -182,7 +182,7 @@ export default function UsageList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getUsageData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

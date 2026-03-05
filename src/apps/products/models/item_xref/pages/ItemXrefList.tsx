@@ -182,7 +182,7 @@ export default function ItemXrefList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getItemXrefData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

@@ -179,7 +179,7 @@ export default function RequisitionList() {
         selectedCount={selectedRequisitions.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getRequisitionData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

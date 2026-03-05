@@ -197,7 +197,7 @@ export default function InvoiceLineList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getInvoiceLineData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

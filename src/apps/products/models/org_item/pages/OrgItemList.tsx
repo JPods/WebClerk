@@ -182,7 +182,7 @@ export default function OrgItemList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getOrgItemData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

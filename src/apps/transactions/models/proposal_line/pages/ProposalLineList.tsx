@@ -186,7 +186,7 @@ export default function ProposalLineList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getProposalLineData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

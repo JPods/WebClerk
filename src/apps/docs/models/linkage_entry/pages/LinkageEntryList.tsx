@@ -159,7 +159,7 @@ export default function LinkageEntryList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getLinkageEntryData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

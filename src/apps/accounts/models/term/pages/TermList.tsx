@@ -149,7 +149,7 @@ export default function TermList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getTermData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

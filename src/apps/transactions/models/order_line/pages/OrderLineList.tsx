@@ -186,7 +186,7 @@ export default function OrderLineList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getOrderLineData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

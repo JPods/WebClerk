@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
+import { convertRestToWcapi, isWcapiPath } from "./restToWcapi";
 import {
   onRequestStart,
   onResponseSuccess,
@@ -190,6 +191,86 @@ export const authClient = axios.create({
   withCredentials: true,
 });
 
+// ─── REST → WCAPI Interceptor ─────────────────────────────────────────────
+// Transparently rewrites legacy /api/… REST calls to /wcapi/… before they
+// leave the browser.  This eliminates the extra 301 round-trip that the
+// server-side rest_redirect middleware would otherwise add.
+//
+// Paths already targeting /wcapi/ or non-REST endpoints (auth, kanban,
+// integrations, static) pass through untouched.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Paths that should never be rewritten (already wcapi, auth, or special). */
+const INTERCEPTOR_SKIP_PATTERNS = [
+  '/wcapi/',          // already using wcapi
+  '/admin/',          // Django admin
+  '/integrations/',   // Notion etc.
+  '/kanban/',         // Kanban board
+  '/static/',         // static files
+  '/media/',          // media files
+];
+
+const shouldSkipRewrite = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  return INTERCEPTOR_SKIP_PATTERNS.some((p) => lower.includes(p));
+};
+
+/**
+ * Detect whether a URL looks like a RESTful /api/… path that should be
+ * rewritten. Matches patterns like:
+ *   /api/orgs/customer/42
+ *   /communications/phones/
+ *   /orgs/vendor/
+ * But NOT:
+ *   /wcapi/get/   (already wcapi)
+ *   /kanban/tasks/ (special endpoint)
+ */
+const REST_PATTERN = /^\/?(?:api\/)?(?:orgs|transactions|products|communications|accounts|core|docs|support|sync)\//i;
+
+const isRestPath = (url: string): boolean => REST_PATTERN.test(url);
+
+const attachRestToWcapiInterceptor = (client: AxiosInstance) => {
+  client.interceptors.request.use((config) => {
+    const url = config.url ?? '';
+
+    // Skip if already wcapi or a non-REST path
+    if (shouldSkipRewrite(url) || isWcapiPath(url) || !isRestPath(url)) {
+      return config;
+    }
+
+    try {
+      const method = (config.method ?? 'GET').toUpperCase();
+      const converted = convertRestToWcapi(url, method, config.data);
+
+      if (import.meta.env.DEV) {
+        console.debug(
+          `[REST→WCAPI] ${method} ${url}  →  ${converted.method} ${converted.endpoint}`,
+          converted.params ?? converted.body ?? '',
+        );
+      }
+
+      // Rewrite the request
+      config.url = converted.endpoint;
+      config.method = converted.method.toLowerCase();
+
+      if (converted.params) {
+        config.params = { ...config.params, ...converted.params };
+      }
+      if (converted.body) {
+        config.data = converted.body;
+      }
+    } catch (err) {
+      // If conversion fails (unknown model/path), let the original request
+      // through — the server-side middleware will handle it or return 404.
+      if (import.meta.env.DEV) {
+        console.warn(`[REST→WCAPI] Could not convert ${url}:`, err);
+      }
+    }
+
+    return config;
+  });
+};
+
 const attachAuthInterceptors = (client: AxiosInstance) => {
   client.interceptors.request.use((config) => {
     updateLoading(1);
@@ -334,6 +415,10 @@ const attachLoadingOnly = (client: AxiosInstance) => {
     },
   );
 };
+
+// REST→WCAPI interceptor runs FIRST (before auth) so the rewritten URL
+// gets the correct Authorization header and caching behaviour.
+attachRestToWcapiInterceptor(apiClient);
 
 attachAuthInterceptors(apiClient);
 attachAuthInterceptors(notionClient);

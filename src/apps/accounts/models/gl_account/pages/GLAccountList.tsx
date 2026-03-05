@@ -199,7 +199,7 @@ export default function GLAccountList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getGLAccountData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

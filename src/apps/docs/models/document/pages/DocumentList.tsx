@@ -183,7 +183,7 @@ export default function DocumentList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getDocumentData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

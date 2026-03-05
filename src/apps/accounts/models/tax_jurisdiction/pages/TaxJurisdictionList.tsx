@@ -179,7 +179,7 @@ export default function TaxJurisdictionList() {
         selectedCount={selectedTaxJurisdictions.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getTaxJurisdictionData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

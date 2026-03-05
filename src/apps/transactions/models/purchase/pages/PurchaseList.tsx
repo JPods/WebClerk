@@ -277,7 +277,7 @@ export default function PurchaseList() {
         selectedCount={selectedPurchases.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getPurchaseData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

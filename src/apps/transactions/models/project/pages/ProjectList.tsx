@@ -186,7 +186,7 @@ export default function ProjectList() {
         selectedCount={selectedProjects.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getProjectData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

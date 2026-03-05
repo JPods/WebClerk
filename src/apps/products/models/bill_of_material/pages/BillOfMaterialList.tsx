@@ -288,7 +288,7 @@ export default function BillOfMaterialList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getBillOfMaterialData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

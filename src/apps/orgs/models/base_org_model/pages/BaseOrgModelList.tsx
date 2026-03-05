@@ -182,7 +182,7 @@ export default function BaseOrgModelList() {
         selectedCount={selectedBaseOrgModels.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getBaseOrgModelData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

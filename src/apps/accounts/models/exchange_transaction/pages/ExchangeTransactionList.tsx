@@ -192,7 +192,7 @@ export default function ExchangeTransactionList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getExchangeTransactionData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}

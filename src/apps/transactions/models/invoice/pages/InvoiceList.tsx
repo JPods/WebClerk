@@ -397,7 +397,7 @@ export default function InvoiceList() {
         importInputRef={importInputRef}
         totalCount={data.length}
         filteredCount={filteredData.length}
-        onRefresh={getData}
+        onRefresh={getInvoiceData}
         loading={loading}
         enableDatabaseSearch
         searchDatabase={searchDatabase}
