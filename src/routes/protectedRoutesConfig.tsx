@@ -63,6 +63,7 @@ import WhitelistTester from "../pages/tools/WhitelistTester";
 import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
 import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
 import FlowList from "../apps/products/models/flow/pages/FlowList";
+import ItemDetail from "../apps/products/models/item/pages/ItemDetail";
 import ItemList from "../apps/products/models/item/pages/ItemList";
 import ItemXrefList from "../apps/products/models/item_xref/pages/ItemXrefList";
 import MatricsList from "../apps/products/models/matrics/pages/MatricsList";
@@ -151,6 +152,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.productsCatalogList, element: <CatalogList /> },
   { path: PageRoutes.productsFlowList, element: <FlowList /> },
   { path: PageRoutes.productsItemList, element: <ItemList /> },
+  { path: PageRoutes.productsItemDetail, element: <ItemDetail /> },
   { path: PageRoutes.productsItemXrefList, element: <ItemXrefList /> },
   { path: PageRoutes.productsMatricsList, element: <MatricsList /> },
   { path: PageRoutes.productsOrgItemList, element: <OrgItemList /> },

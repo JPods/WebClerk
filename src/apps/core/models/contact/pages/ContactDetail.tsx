@@ -134,7 +134,7 @@ import type {
 } from "@/apps/common/components/OrgSearchDialog";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import DropDown from "@/components/form/input/DropDown";
-
+import { useColumnCount, ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
 // ---------------------------------------------------------------------------
@@ -536,7 +536,10 @@ function ContactDetail({
   const currentUserId = authUser?.id;
 
   const routeState = (location.state as any) || {};
-
+  const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
+    "contact",
+    3,
+  );
   // ---------------------------------------------------------------------------
   // Parent context (when opened from an org detail page)
   // Query params like ?parent_model=customer&parent_id=42&customer_name=Acme
@@ -2489,220 +2492,228 @@ function ContactDetail({
           id="contact-form"
           onSubmit={handleSubmit(onSubmit, onValidationError)}
         >
-          {/* ── Name fields ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
-            <FaUser size={16} />
-            Communications Information
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
-            {shouldRenderField("name_first") && (
-              <HorizontalField
-                label="name_first"
-                htmlFor="name_first"
-                required={isEditing}
-                error={errors.name_first?.message}
-              >
-                <Input
-                  type="text"
-                  id="name_first"
-                  placeholder="First name"
-                  {...register("name_first")}
-                  error={!!errors.name_first?.message}
-                  disabled={isFieldDisabled("name_first")}
-                />
-              </HorizontalField>
-            )}
+          <div className="shrink-0 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            {/* ── Name fields ── */}
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+              <FaUser size={16} />
+              Communications Information
+            </h3>
 
-            {shouldRenderField("name_last") && (
-              <HorizontalField
-                label="name_last"
-                htmlFor="name_last"
-                required={isEditing}
-                error={errors.name_last?.message}
-              >
-                <Input
-                  type="text"
-                  id="name_last"
-                  placeholder="Last name"
-                  {...register("name_last")}
-                  error={!!errors.name_last?.message}
-                  disabled={isFieldDisabled("name_last")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("attention") && (
-              <HorizontalField label="attention" htmlFor="attention">
-                <Input
-                  type="text"
-                  id="attention"
-                  placeholder="Auto from first + last"
-                  {...register("attention")}
-                  disabled
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_prefix") && (
-              <HorizontalField label="name_prefix" htmlFor="name_prefix">
-                <Input
-                  type="text"
-                  id="name_prefix"
-                  placeholder="Mr., Ms., Dr."
-                  {...register("name_prefix")}
-                  disabled={isFieldDisabled("name_prefix")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_suffix") && (
-              <HorizontalField label="name_suffix" htmlFor="name_suffix">
-                <Input
-                  type="text"
-                  id="name_suffix"
-                  placeholder="Jr., Sr., III"
-                  {...register("name_suffix")}
-                  disabled={isFieldDisabled("name_suffix")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("name_middle") && (
-              <HorizontalField label="name_middle" htmlFor="name_middle">
-                <Input
-                  type="text"
-                  id="name_middle"
-                  placeholder="Middle name"
-                  {...register("name_middle")}
-                  disabled={isFieldDisabled("name_middle")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("email") && (
-              <HorizontalField label="email" htmlFor="email">
-                <Input
-                  type="text"
-                  id="email"
-                  placeholder="email"
-                  {...register("email")}
-                  disabled={isFieldDisabled("email")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("phone") && (
-              <HorizontalField label="phone" htmlFor="phone">
-                <Input
-                  type="text"
-                  id="phone"
-                  placeholder="phone"
-                  {...register("phone")}
-                  disabled={isFieldDisabled("phone")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("domain") && (
-              <HorizontalField label="domain" htmlFor="domain">
-                <Input
-                  type="text"
-                  id="domain"
-                  placeholder="domain"
-                  {...register("domain")}
-                  disabled={isFieldDisabled("domain")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("address_full") && (
-              <HorizontalField label="address_full" htmlFor="address_full">
-                <Input
-                  type="text"
-                  id="address_full"
-                  placeholder="address_full"
-                  {...register("address_full")}
-                  disabled={isFieldDisabled("address_full")}
-                  className="w-100"
-                />
-              </HorizontalField>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
-            {shouldRenderField("company") && (
-              <HorizontalField label="company" htmlFor="company">
-                <Input
-                  type="text"
-                  id="company"
-                  placeholder="company"
-                  {...register("company")}
-                  disabled={isFieldDisabled("company")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("title") && (
-              <HorizontalField label="title" htmlFor="title">
-                <Input
-                  type="text"
-                  id="title"
-                  placeholder="title"
-                  {...register("title")}
-                  disabled={isFieldDisabled("title")}
-                />
-              </HorizontalField>
-            )}
-            {shouldRenderField("department") && (
-              <HorizontalField label="department" htmlFor="department">
-                <Input
-                  type="text"
-                  id="department"
-                  placeholder="department"
-                  {...register("department")}
-                  disabled={isFieldDisabled("department")}
-                />
-              </HorizontalField>
-            )}
-
-            {shouldRenderField("role") && (
-              <HorizontalField
-                label="role"
-                htmlFor="role"
-                error={errors.role?.message}
-              >
-                <DropDown
-                  id="role"
-                  options={ROLE_OPTIONS}
-                  placeholder="Select role"
-                  value={watch("role")}
-                  onChange={handleRoleChange}
-                  className="dark:bg-dark-900"
-                />
-              </HorizontalField>
-            )}
-          </div>
-          {/* Checkboxes */}
-          <div className="flex gap-6 py-2 col-span-full">
-            {shouldRenderField("is_active") && (
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    label="Active"
-                    checked={field.value ?? true}
-                    onChange={field.onChange}
-                    disabled={isFieldDisabled("is_active")}
+            <div
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-0`}
+            >
+              {shouldRenderField("name_first") && (
+                <HorizontalField
+                  label="name_first"
+                  htmlFor="name_first"
+                  required={isEditing}
+                  error={errors.name_first?.message}
+                >
+                  <Input
+                    type="text"
+                    id="name_first"
+                    placeholder="First name"
+                    {...register("name_first")}
+                    error={!!errors.name_first?.message}
+                    disabled={isFieldDisabled("name_first")}
                   />
-                )}
-              />
-            )}
-            {shouldRenderField("is_staff") && (
-              <Controller
-                name="is_staff"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    label="Staff"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    disabled={isFieldDisabled("is_staff")}
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("name_last") && (
+                <HorizontalField
+                  label="name_last"
+                  htmlFor="name_last"
+                  required={isEditing}
+                  error={errors.name_last?.message}
+                >
+                  <Input
+                    type="text"
+                    id="name_last"
+                    placeholder="Last name"
+                    {...register("name_last")}
+                    error={!!errors.name_last?.message}
+                    disabled={isFieldDisabled("name_last")}
                   />
-                )}
-              />
-            )}
+                </HorizontalField>
+              )}
+              {shouldRenderField("attention") && (
+                <HorizontalField label="attention" htmlFor="attention">
+                  <Input
+                    type="text"
+                    id="attention"
+                    placeholder="Auto from first + last"
+                    {...register("attention")}
+                    disabled
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_prefix") && (
+                <HorizontalField label="name_prefix" htmlFor="name_prefix">
+                  <Input
+                    type="text"
+                    id="name_prefix"
+                    placeholder="Mr., Ms., Dr."
+                    {...register("name_prefix")}
+                    disabled={isFieldDisabled("name_prefix")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_suffix") && (
+                <HorizontalField label="name_suffix" htmlFor="name_suffix">
+                  <Input
+                    type="text"
+                    id="name_suffix"
+                    placeholder="Jr., Sr., III"
+                    {...register("name_suffix")}
+                    disabled={isFieldDisabled("name_suffix")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("name_middle") && (
+                <HorizontalField label="name_middle" htmlFor="name_middle">
+                  <Input
+                    type="text"
+                    id="name_middle"
+                    placeholder="Middle name"
+                    {...register("name_middle")}
+                    disabled={isFieldDisabled("name_middle")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("email") && (
+                <HorizontalField label="email" htmlFor="email">
+                  <Input
+                    type="text"
+                    id="email"
+                    placeholder="email"
+                    {...register("email")}
+                    disabled={isFieldDisabled("email")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("phone") && (
+                <HorizontalField label="phone" htmlFor="phone">
+                  <Input
+                    type="text"
+                    id="phone"
+                    placeholder="phone"
+                    {...register("phone")}
+                    disabled={isFieldDisabled("phone")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("domain") && (
+                <HorizontalField label="domain" htmlFor="domain">
+                  <Input
+                    type="text"
+                    id="domain"
+                    placeholder="domain"
+                    {...register("domain")}
+                    disabled={isFieldDisabled("domain")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("address_full") && (
+                <HorizontalField label="address_full" htmlFor="address_full">
+                  <Input
+                    type="text"
+                    id="address_full"
+                    placeholder="address_full"
+                    {...register("address_full")}
+                    disabled={isFieldDisabled("address_full")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("company") && (
+                <HorizontalField label="company" htmlFor="company">
+                  <Input
+                    type="text"
+                    id="company"
+                    placeholder="company"
+                    {...register("company")}
+                    disabled={isFieldDisabled("company")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("title") && (
+                <HorizontalField label="title" htmlFor="title">
+                  <Input
+                    type="text"
+                    id="title"
+                    placeholder="title"
+                    {...register("title")}
+                    disabled={isFieldDisabled("title")}
+                  />
+                </HorizontalField>
+              )}
+              {shouldRenderField("department") && (
+                <HorizontalField label="department" htmlFor="department">
+                  <Input
+                    type="text"
+                    id="department"
+                    placeholder="department"
+                    {...register("department")}
+                    disabled={isFieldDisabled("department")}
+                  />
+                </HorizontalField>
+              )}
+
+              {shouldRenderField("role") && (
+                <HorizontalField
+                  label="role"
+                  htmlFor="role"
+                  error={errors.role?.message}
+                >
+                  <DropDown
+                    id="role"
+                    options={ROLE_OPTIONS}
+                    placeholder="Select role"
+                    value={watch("role")}
+                    onChange={handleRoleChange}
+                    className="dark:bg-dark-900"
+                    disabled={isFieldDisabled("role")}
+                  />
+                </HorizontalField>
+              )}
+            </div>
+            {/* Checkboxes */}
+            <div className="flex gap-6 py-2 col-span-full">
+              {shouldRenderField("is_active") && (
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      label="Active"
+                      checked={field.value ?? true}
+                      onChange={field.onChange}
+                      disabled={isFieldDisabled("is_active")}
+                    />
+                  )}
+                />
+              )}
+              {shouldRenderField("is_staff") && (
+                <Controller
+                  name="is_staff"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      label="Staff"
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      disabled={isFieldDisabled("is_staff")}
+                    />
+                  )}
+                />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between py-2 gap-4">
+            <ColumnSelector value={columnCount} onChange={handleColumnChange} />
           </div>
           {/* ── Company & Organizations ── */}
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
@@ -2781,10 +2792,13 @@ function ContactDetail({
                 standardTabs={["actions", "comments", "documents", "raw"]}
                 additionalTabs={additionalTabs}
                 badges={tabBadges}
+                showColumnSelector={false}
+                columnCount={columnCount}
+                onColumnCountChange={handleColumnChange}
               />
 
               {/* ─── TAB CONTENT (scrollable) ─── */}
-              <div className="flex-1 cus-bg-purple-light rounded-md">
+              <div className="flex-1 cus-bg-black-light rounded-md">
                 <div className="p-4">
                   {activeTab === "actions" && (
                     <ActionsPanel
@@ -3056,7 +3070,11 @@ function ContactDetail({
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+          <div
+            className={`grid grid-cols-1 ${
+              columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+            } gap-x-6 gap-y-0`}
+          >
             {/* Passwords — add mode only */}
             {effectiveMode === "add" && shouldRenderField("password") && (
               <HorizontalField
