@@ -1,0 +1,22 @@
+#!/bin/bash
+# Git post-commit hook for WebClerk3
+# Automatically analyzes commits for schema drift
+#
+# To install: ln -sf ../../tools/git-hooks/post-commit .git/hooks/post-commit
+
+# Get the latest commit hash
+COMMIT_HASH=$(git rev-parse HEAD)
+
+# Get the repository root
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+# Activate virtual environment if available
+if [ -f "$REPO_ROOT/venv312/bin/activate" ]; then
+    source "$REPO_ROOT/venv312/bin/activate"
+fi
+
+# Run the analyze_commits command (async, don't block the commit)
+cd "$REPO_ROOT"
+python manage.py analyze_commits --commit "$COMMIT_HASH" --quiet &>/dev/null &
+
+exit 0

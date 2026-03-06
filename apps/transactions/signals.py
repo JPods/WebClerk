@@ -50,6 +50,25 @@ def _get_quantity(line) -> Decimal:
     return Decimal(str(staged))
 
 
+def _emit_line_event(event_type: str, line, transaction, quantity_before=None):
+    """Emit inventory event for LLM observational learning."""
+    try:
+        from apps.ai_assistant.services.event_emitter import (
+            InventoryEventEmitter,
+            is_inventory_events_enabled,
+        )
+        if not is_inventory_events_enabled():
+            return
+        InventoryEventEmitter.emit_line_event(
+            event_type=event_type,
+            line=line,
+            transaction=transaction,
+            quantity_before=quantity_before,
+        )
+    except Exception:
+        pass  # Silent fail - don't break transaction processing
+
+
 # =============================================================================
 # GENERIC SIGNAL FACTORIES
 # =============================================================================
@@ -101,6 +120,7 @@ def register_line_inventory_signals(
 
         parent = getattr(instance, parent_attr, None)
         new_qty = _get_quantity(instance)
+        original_qty = getattr(instance, '_original_quantity', Decimal('0'))
         service = LineItemService(create_pending=True)
 
         if created:
@@ -111,8 +131,9 @@ def register_line_inventory_signals(
                     line=instance,
                     line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
                 )
+                # Emit inventory event for LLM learning
+                _emit_line_event(f'{transaction_type}_line_add', instance, parent, None)
         else:
-            original_qty = getattr(instance, '_original_quantity', Decimal('0'))
             original_item_id = getattr(instance, '_original_item_id', None)
 
             if original_item_id and original_item_id != item_id:
@@ -131,6 +152,8 @@ def register_line_inventory_signals(
                         line=instance,
                         line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
                     )
+                # Emit inventory event for item change
+                _emit_line_event(f'{transaction_type}_line_item_change', instance, parent, original_qty)
             else:
                 delta = float(new_qty - original_qty)
                 if delta != 0:
@@ -140,6 +163,8 @@ def register_line_inventory_signals(
                         line=instance,
                         quantity_delta=delta,
                     )
+                    # Emit inventory event for quantity change
+                    _emit_line_event(f'{transaction_type}_line_update', instance, parent, original_qty)
 
     @receiver(post_delete, sender=line_model)
     def update_inventory_on_delete(sender, instance, **kwargs):
@@ -159,6 +184,8 @@ def register_line_inventory_signals(
                 line=instance,
                 quantity_released=float(qty),
             )
+            # Emit inventory event for LLM learning
+            _emit_line_event(f'{transaction_type}_line_delete', instance, parent, qty)
 
 
 def register_line_header_links(line_model, parent_attr: str, link_key: str):

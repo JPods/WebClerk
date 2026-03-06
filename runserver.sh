@@ -91,9 +91,41 @@ stop_celery() {
   pkill -f "celery -A webclerk3_api" 2>/dev/null || true
 }
 
+# ── Ensure Ollama is running for LLM features ───────────────────
+ensure_ollama() {
+  # Check if ollama is installed
+  if ! command -v ollama &>/dev/null; then
+    echo "Warning: Ollama not installed - LLM features will not work"
+    echo "Install with: brew install ollama"
+    return 1
+  fi
+
+  if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+    echo "Ollama is already running"
+    return 0
+  fi
+
+  echo "Starting Ollama in background..."
+  ollama serve >> "$WC3_DIR/logs/ollama.log" 2>&1 &
+  OLLAMA_PID=$!
+  
+  # Wait for Ollama to be ready (up to 10 seconds)
+  for i in {1..10}; do
+    if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+      echo "Ollama started (PID: $OLLAMA_PID, log: logs/ollama.log)"
+      return 0
+    fi
+    sleep 1
+  done
+  
+  echo "Warning: Ollama failed to start - LLM features may not work"
+  return 1
+}
+
 # Ensure log directory exists
 mkdir -p "$WC3_DIR/logs"
 start_celery
+ensure_ollama
 
 # Stop celery on script exit
 trap stop_celery EXIT
