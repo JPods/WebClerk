@@ -668,7 +668,121 @@ In wc3, `.github/` is gitignored, so only `git_bypass/` is committed.
 
 ---
 
-## 19. Session Context
+## 19. AI Inventory Observer (Backend Integration)
+
+The wc3 backend includes an **LLM-powered inventory observational learning system**. While the implementation lives in wc3, the frontend may eventually expose query interfaces.
+
+### Backend Capabilities
+
+| Feature | Backend Endpoint (Future) | Purpose |
+|---------|--------------------------|---------|
+| Event stream | `/api/inventory-events/` | Real-time event feed |
+| Item narrative | `/api/item/{id}/narrative/` | LLM-generated item history |
+| Pattern insights | `/api/inventory/patterns/` | Trend analysis dashboard |
+| Q&A interface | `/api/inventory/ask/` | Natural language queries |
+
+### Event Types
+
+All transaction line operations automatically emit `InventoryEvent` records in wc3:
+- `{type}_line_add`, `{type}_line_update`, `{type}_line_delete`, `{type}_line_item_change`
+- Alerts: `below_reorder`, `below_safety`, `overstock`
+
+### AGT Patent Alignment
+
+The inventory observer architecture supports future integration with **U.S. Patent Application 19/356,062** (*3-Tiered Cargo Shipments*):
+- Sensor data capture via `InventoryEvent.payload`
+- LLM-defined scheduling windows via pattern detection
+- Chain-of-custody audit trail via immutable event log
+
+### Frontend Considerations (Future)
+
+When building inventory observer UI:
+- Use `react-query` for event stream subscription
+- Display LLM summaries in activity feeds
+- Pattern insights → dashboard charts
+- Q&A → chat-style interface component
+
+### Documentation
+
+- wc3 implementation: `webClerk3/readmes/llm-inventory-observer.md`
+- Patent reference: `webClerk3/readmes/topics/ai/patent.md`
+
+---
+
+## 20. Coding Journal (Backend)
+
+The wc3 backend captures **coding sessions** for LLM learning from our development efforts.
+
+### CLI Commands (in wc3)
+
+```bash
+# Log a session after completing work
+python manage.py log_session --type feature \
+  --problem "What I worked on" \
+  --solution "How I solved it" \
+  --apps transactions orgs \
+  --tags "tag1,tag2"
+
+# Ask about coding history
+python manage.py journal ask "How did we handle X?"
+
+# Find similar sessions
+python manage.py journal find "signal totals"
+
+# View recent sessions
+python manage.py journal recent
+```
+
+### When to Log
+
+Log a session after significant work:
+- Implementing a new feature
+- Fixing a non-trivial bug
+- Learning something important about the codebase
+- Refactoring that required deep understanding
+
+This builds institutional knowledge that helps the LLM assist with similar problems later.
+
+---
+
+## 21. Git Observer (Backend)
+
+The wc3 backend includes a **Git Observer** that watches commits for schema drift and outdated code. This catches when team members push code using deprecated field names or banned patterns.
+
+### CLI Commands (in wc3)
+
+```bash
+# Scan recent commits for drift issues
+python manage.py analyze_commits
+
+# Analyze a specific commit
+python manage.py analyze_commits --commit abc123
+
+# Check staged files before commit
+python manage.py analyze_commits --check-staged
+
+# Show only commits with drift issues
+python manage.py analyze_commits --drift-only
+```
+
+### What It Catches
+
+| Issue | Example |
+|-------|---------|
+| Deprecated fields | `quantity.placed` (should be `quantity.staged`) |
+| Banned patterns | `print()` instead of logging |
+| Stale imports | Importing from moved modules |
+
+### Frontend Impact
+
+When the backend detects drift, coordinate with the team to:
+1. Update TypeScript types if field names changed
+2. Update API calls if shapes changed
+3. Run `pnpm generate:types` to regenerate types
+
+---
+
+## 22. Session Context
 
 When starting a coding session, establish:
 
