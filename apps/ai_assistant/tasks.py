@@ -247,6 +247,7 @@ def layout_drift_task(use_llm: bool = False) -> dict:
 
     Compares model fields against actual field references in page components
     (Detail forms, List columns, Display views).
+    Records correction history for LLM learning.
     """
     logger.info("Starting layout drift detection")
     started = timezone.now()
@@ -255,6 +256,9 @@ def layout_drift_task(use_llm: bool = False) -> dict:
 
     detector = LayoutDriftDetector(use_llm=use_llm)
     report = detector.detect_all()
+
+    # Generate full report and record in correction history
+    detector.generate_full_report(report, save=True)
 
     duration = (timezone.now() - started).total_seconds()
     report["duration_seconds"] = duration

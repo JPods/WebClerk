@@ -1,0 +1,12 @@
+{
+  "dismissed": {
+    "contact:cnf_password:phantom_field": {
+      "model": "contact",
+      "field": "cnf_password",
+      "issue_type": "phantom_field",
+      "reason": "UI-only password confirmation field",
+      "dismissed_at": "2026-03-06T15:58:14.139243"
+    }
+  },
+  "version": 1
+}

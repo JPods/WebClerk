@@ -246,14 +246,17 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Aspect | Detail |
 |---|---|
 | Goal | Detect mismatches between Django model fields and the field references actually used in React page components (Detail forms, List columns, Display views) |
-| AI Role | **Static analysis + optional LLM triage.** Scans R25 page files for `register()`, `Controller`, `ScalarCard`, `JsonCard`, `handleFieldChange`, `valueFrom`, and `selector` patterns. Compares extracted field names against Django model introspection. Ollama classifies issues as real problems vs. intentional omissions. |
+| AI Role | **Static analysis + optional LLM triage.** Scans R25 page files for `register()`, `Controller`, `ScalarCard`, `JsonCard`, `handleFieldChange`, `valueFrom`, and `selector` patterns. Compares extracted field names against Django model introspection. Ollama classifies issues as real problems vs. intentional omissions. **Learns from corrections** — tracks what was fixed between runs and feeds correction history into LLM prompts for smarter recommendations. |
 | Data Sources | Django `_meta.get_fields()`, R25 `src/apps/**/pages/*Detail.tsx`, `*List.tsx`, `*Display.tsx` |
 | Detection Types | **phantom_field** (layout references non-existent field, HIGH), **unrendered_field** (Django field absent from all layouts, MEDIUM/LOW), **unrendered_json** (JSONField with no sub-field inputs or JsonCard, LOW), **detail_only** (field in Detail but not List, INFO) |
 | Implementation | Regex-based extraction from page files, JSON sub-field prefix resolution (e.g., `price_base` → `price` JSONField), BaseModelCards fields auto-excluded. Weekly Celery task. |
+| Features | **Dismissals** — mark intentional mismatches so they stop recurring. **Correction history** — diffs between runs track what was fixed and when. **LLM learning** — past corrections + dismissals fed into prompts for smarter analysis. **Persistent report** — saves full markdown report to `readmes/topics/ai/layout-drift-report.md`. |
+| CLI | `--task layout` (scan), `--report-file` (save report), `--dismiss model:field:type --reason '...'` (dismiss), `--undismiss model:field:type` (undo), `--history` (view corrections) |
 | Risk | Low — read-only static analysis, no data modification |
 | Priority | Medium — catches stale field references and missing form inputs before they hit production |
-| Service | `apps/ai_assistant/services/layout_drift_detector.py` — `LayoutDriftDetector` class with `detect_model()`, `detect_all()`, `llm_analyze_drift()`, `format_report()` |
-| Task | `layout_drift_task(use_llm)` — weekly, scans all models with R25 pages |
+| Service | `apps/ai_assistant/services/layout_drift_detector.py` — `LayoutDriftDetector` class with `detect_model()`, `detect_all()`, `dismiss_issue()`, `get_correction_history()`, `generate_full_report()`, `llm_analyze_drift()` |
+| Task | `layout_drift_task(use_llm)` — weekly, scans all models with R25 pages, saves report and records history |
+| Data Files | `apps/ai_assistant/data/layout_dismissals.json` (dismissed issues), `apps/ai_assistant/data/layout_history.json` (run snapshots + corrections) |
 
 #### Phase 5 Sequencing
 

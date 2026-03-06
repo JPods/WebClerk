@@ -9,6 +9,12 @@ exist in the model, or model fields missing from all layouts.
 This complements SchemaDriftDetector (5D) which checks TypeScript
 *type definitions*. This checks the *rendered UI components*.
 
+Features:
+    - Full scan of all React forms/lists/views → persistent markdown report
+    - Dismissal system for intentional mismatches (don't re-flag accepted issues)
+    - Correction history tracking (diff between runs, learn from fixes)
+    - LLM learning from past corrections → smarter recommendations
+
 Usage:
     from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector
 
@@ -16,11 +22,23 @@ Usage:
     report = detector.detect_all()              # full scan
     report = detector.detect_model('item')      # single model
     print(detector.format_report(report))
+
+    # Generate persistent report and save correction history
+    detector.generate_full_report(report)
+
+    # Dismiss an intentional mismatch
+    detector.dismiss_issue('contact', 'cnf_password', 'phantom_field',
+                           reason='UI-only confirmation field')
+
+    # View correction history (what changed between runs)
+    history = detector.get_correction_history()
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +50,13 @@ logger = logging.getLogger(__name__)
 
 # ── R25 project root (sibling of webClerk3) ────────────────────────────────
 R25_ROOT = Path(settings.BASE_DIR).parent / "React2025"
+
+# ── Persistent data directories ────────────────────────────────────────────
+DATA_DIR = Path(settings.BASE_DIR) / "apps" / "ai_assistant" / "data"
+DISMISSALS_FILE = DATA_DIR / "layout_dismissals.json"
+HISTORY_FILE = DATA_DIR / "layout_history.json"
+REPORT_DIR = Path(settings.BASE_DIR) / "readmes" / "topics" / "ai"
+REPORT_FILE = REPORT_DIR / "layout-drift-report.md"
 
 
 # ── Regex patterns for extracting field references from page components ────
@@ -107,6 +132,29 @@ JSON_FIELD_PREFIXES: dict[str, list[str]] = {
     "metrics": ["metrics_ytd_sales", "metrics_ytd_purchases",
                 "metrics_lifetime_sales"],
     "relations": ["relations_parent_id", "relations_default_warehouse"],
+}
+
+# ── Recommendation templates by issue type ─────────────────────────────────
+RECOMMENDATIONS: dict[str, str] = {
+    "phantom_field": (
+        "Remove the field reference from the React component, or add a matching "
+        "field to the Django model.  If this is a UI-only field (e.g., password "
+        "confirmation), dismiss it with --dismiss."
+    ),
+    "unrendered_field": (
+        "Add a form input (register/Controller) or ScalarCard entry for this "
+        "field in the Detail page, or a column in the List page.  If intentionally "
+        "hidden, dismiss it."
+    ),
+    "unrendered_json": (
+        "Add a JsonCard for this JSONField, or individual sub-field form inputs "
+        "if users need to edit its contents."
+    ),
+    "detail_only": (
+        "Consider adding a column for this field in the List page for quick "
+        "scanning.  Not always needed — dismiss if the field is too verbose for "
+        "a list view."
+    ),
 }
 
 
@@ -669,3 +717,482 @@ class LayoutDriftDetector:
             lines.append("")
 
         return "\n".join(lines)
+
+    # ── Dismissal system ──────────────────────────────────────────────
+
+    def _load_dismissals(self) -> dict[str, Any]:
+        """Load dismissed issues from persistent JSON file."""
+        if not DISMISSALS_FILE.exists():
+            return {"dismissed": {}, "version": 1}
+        try:
+            return json.loads(DISMISSALS_FILE.read_text())
+        except Exception:
+            return {"dismissed": {}, "version": 1}
+
+    def _save_dismissals(self, data: dict[str, Any]) -> None:
+        """Save dismissals to persistent JSON file."""
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        DISMISSALS_FILE.write_text(json.dumps(data, indent=2, default=str))
+
+    def dismiss_issue(
+        self, model: str, field: str, issue_type: str, reason: str = ""
+    ) -> dict[str, str]:
+        """Mark an issue as intentionally dismissed.
+
+        Dismissed issues won't appear in future reports.
+        The reason is stored for audit and LLM learning.
+        """
+        data = self._load_dismissals()
+        key = f"{model}:{field}:{issue_type}"
+        data["dismissed"][key] = {
+            "model": model,
+            "field": field,
+            "issue_type": issue_type,
+            "reason": reason,
+            "dismissed_at": datetime.now().isoformat(),
+        }
+        self._save_dismissals(data)
+        logger.info("Dismissed layout issue: %s — %s", key, reason)
+        return {"status": "dismissed", "key": key}
+
+    def undismiss_issue(self, model: str, field: str, issue_type: str) -> dict[str, str]:
+        """Remove a dismissal so the issue appears again."""
+        data = self._load_dismissals()
+        key = f"{model}:{field}:{issue_type}"
+        if key in data["dismissed"]:
+            del data["dismissed"][key]
+            self._save_dismissals(data)
+            return {"status": "undismissed", "key": key}
+        return {"status": "not_found", "key": key}
+
+    def list_dismissals(self) -> list[dict[str, Any]]:
+        """List all currently dismissed issues."""
+        data = self._load_dismissals()
+        return list(data.get("dismissed", {}).values())
+
+    def _is_dismissed(self, model: str, field: str, issue_type: str) -> bool:
+        """Check if a specific issue has been dismissed."""
+        data = self._load_dismissals()
+        key = f"{model}:{field}:{issue_type}"
+        return key in data.get("dismissed", {})
+
+    def _filter_dismissed(
+        self, model_name: str, issues: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Split issues into active and dismissed lists."""
+        active = []
+        dismissed = []
+        for issue in issues:
+            if self._is_dismissed(model_name, issue["field"], issue["type"]):
+                dismissed.append(issue)
+            else:
+                active.append(issue)
+        return active, dismissed
+
+    # ── Correction history tracking ───────────────────────────────────
+
+    def _load_history(self) -> dict[str, Any]:
+        """Load correction history from persistent JSON file."""
+        if not HISTORY_FILE.exists():
+            return {"runs": [], "corrections": [], "version": 1}
+        try:
+            return json.loads(HISTORY_FILE.read_text())
+        except Exception:
+            return {"runs": [], "corrections": [], "version": 1}
+
+    def _save_history(self, data: dict[str, Any]) -> None:
+        """Save correction history to persistent JSON file."""
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        # Keep last 50 runs to prevent unbounded growth
+        if len(data.get("runs", [])) > 50:
+            data["runs"] = data["runs"][-50:]
+        # Keep last 200 corrections
+        if len(data.get("corrections", [])) > 200:
+            data["corrections"] = data["corrections"][-200:]
+        HISTORY_FILE.write_text(json.dumps(data, indent=2, default=str))
+
+    def _record_run(self, report: dict[str, Any]) -> dict[str, Any]:
+        """Record a scan run and diff against the previous run.
+
+        Returns a summary of what changed since last run.
+        """
+        history = self._load_history()
+        now = datetime.now().isoformat()
+
+        # Build current issue fingerprint set
+        current_issues: set[str] = set()
+        for model_name, data in report.get("per_model", {}).items():
+            for issue in data.get("issues", []):
+                fingerprint = f"{model_name}:{issue['field']}:{issue['type']}"
+                current_issues.add(fingerprint)
+
+        # Compare against last run
+        changes: dict[str, Any] = {"resolved": [], "new": [], "persistent": []}
+        if history["runs"]:
+            last_run = history["runs"][-1]
+            previous_issues = set(last_run.get("issue_fingerprints", []))
+
+            resolved = previous_issues - current_issues
+            new_issues = current_issues - previous_issues
+            persistent = previous_issues & current_issues
+
+            changes["resolved"] = sorted(resolved)
+            changes["new"] = sorted(new_issues)
+            changes["persistent"] = sorted(persistent)
+
+            # Record corrections (resolved issues = someone fixed them)
+            for fp in resolved:
+                parts = fp.split(":", 2)
+                if len(parts) == 3:
+                    history["corrections"].append({
+                        "model": parts[0],
+                        "field": parts[1],
+                        "issue_type": parts[2],
+                        "resolved_at": now,
+                        "prior_run": last_run.get("timestamp", ""),
+                    })
+
+        # Save this run
+        run_snapshot = {
+            "timestamp": now,
+            "models_checked": report.get("models_checked", 0),
+            "total_issues": report.get("total_issues", 0),
+            "severity_counts": report.get("severity_counts", {}),
+            "issue_fingerprints": sorted(current_issues),
+        }
+        history["runs"].append(run_snapshot)
+        self._save_history(history)
+
+        return changes
+
+    def get_correction_history(self) -> dict[str, Any]:
+        """Get the correction history with run diffs and learned patterns.
+
+        Returns:
+            {
+                'total_runs': int,
+                'total_corrections': int,
+                'recent_corrections': [...],
+                'correction_patterns': {issue_type: count},
+                'trend': 'improving' | 'stable' | 'declining',
+            }
+        """
+        history = self._load_history()
+        corrections = history.get("corrections", [])
+        runs = history.get("runs", [])
+
+        # Count corrections by type
+        pattern_counts: dict[str, int] = {}
+        for c in corrections:
+            pattern_counts[c["issue_type"]] = pattern_counts.get(c["issue_type"], 0) + 1
+
+        # Determine trend from last 5 runs
+        trend = "stable"
+        if len(runs) >= 3:
+            recent_counts = [r.get("total_issues", 0) for r in runs[-5:]]
+            if recent_counts[-1] < recent_counts[0]:
+                trend = "improving"
+            elif recent_counts[-1] > recent_counts[0]:
+                trend = "declining"
+
+        return {
+            "total_runs": len(runs),
+            "total_corrections": len(corrections),
+            "recent_corrections": corrections[-20:],
+            "correction_patterns": pattern_counts,
+            "trend": trend,
+        }
+
+    # ── LLM learning from corrections ─────────────────────────────────
+
+    def _build_learning_context(self) -> str:
+        """Build context from correction history for LLM prompts.
+
+        Teaches the LLM what corrections were made so it can provide
+        smarter recommendations for remaining issues.
+        """
+        history = self.get_correction_history()
+        if not history["total_corrections"]:
+            return ""
+
+        lines = [
+            "## Learned Correction Patterns",
+            f"Total corrections made: {history['total_corrections']}",
+            f"Trend: {history['trend']}",
+            "",
+            "### Corrections by type:",
+        ]
+        for issue_type, count in history["correction_patterns"].items():
+            lines.append(f"- {issue_type}: {count} fixes")
+
+        lines.append("")
+        lines.append("### Recent corrections:")
+        for c in history["recent_corrections"][-10:]:
+            lines.append(
+                f"- {c['model']}.{c['field']} ({c['issue_type']}) "
+                f"resolved {c['resolved_at'][:10]}"
+            )
+
+        # Include dismissed issues as "accepted" patterns
+        dismissals = self.list_dismissals()
+        if dismissals:
+            lines.append("")
+            lines.append("### Accepted (intentional) mismatches:")
+            for d in dismissals:
+                lines.append(
+                    f"- {d['model']}.{d['field']} ({d['issue_type']}): {d.get('reason', 'no reason')}"
+                )
+
+        return "\n".join(lines)
+
+    def llm_analyze_drift(self, report: dict[str, Any]) -> str:
+        """Use Ollama to generate a narrative analysis of layout drift.
+
+        Includes correction history context so the LLM learns from
+        how past issues were resolved.
+        """
+        client = self._get_client()
+        if not client:
+            return "LLM not available — enable with use_llm=True"
+
+        issues_summary = []
+        for model_name, data in report.get("per_model", {}).items():
+            for issue in data.get("issues", []):
+                if issue["severity"] == "info":
+                    continue
+                issues_summary.append(
+                    f"[{issue['severity'].upper()}] {model_name}.{issue['field']} "
+                    f"({issue['type']}): {issue['detail']}"
+                )
+
+        if not issues_summary:
+            return "No layout drift detected."
+
+        # Build learning context from past corrections
+        learning_context = self._build_learning_context()
+
+        prompt = (
+            "You are analyzing layout drift between Django model fields and "
+            "React page components for a commerce/ERP application.\n\n"
+        )
+
+        if learning_context:
+            prompt += (
+                "### What the team has corrected previously:\n"
+                f"{learning_context}\n\n"
+                "Use these patterns to prioritize your recommendations. "
+                "Issues similar to past corrections are likely real bugs. "
+                "Issues similar to dismissed items are likely intentional.\n\n"
+            )
+
+        prompt += (
+            "### Current issues to analyze:\n"
+            + "\n".join(issues_summary[:50])
+            + "\n\n"
+            "For each issue:\n"
+            "1. Is it likely a real bug or intentional? (reference past patterns)\n"
+            "2. What concrete action should be taken?\n"
+            "3. Priority: fix now, fix later, or dismiss?\n"
+            "Group by model and sort by priority."
+        )
+
+        try:
+            return client.generate(prompt, mode="developer")
+        except Exception as e:
+            return f"LLM analysis failed: {e}"
+
+    # ── Full report generation with dismissals ────────────────────────
+
+    def generate_full_report(
+        self, report: dict[str, Any] | None = None, save: bool = True
+    ) -> str:
+        """Generate a comprehensive report, save to disk, and record history.
+
+        This is the main entry point for the "loop through all forms" workflow:
+        1. Scans all models with React pages
+        2. Filters out dismissed issues
+        3. Adds recommendations for each issue
+        4. Records run in correction history (diffs against last run)
+        5. Saves persistent markdown report to readmes/topics/ai/
+
+        Returns the markdown report string.
+        """
+        if report is None:
+            report = self.detect_all()
+
+        # Record this run and get diff
+        changes = self._record_run(report)
+
+        # Build the report
+        from django.utils import timezone
+        now = timezone.now()
+
+        lines = [
+            "# Layout ↔ Schema Drift Report",
+            "",
+            f"> Generated: {now:%Y-%m-%d %H:%M}  ",
+            f"> Models scanned: {report.get('models_checked', 0)}  ",
+            f"> Total issues (excl. info): {report.get('total_issues', 0)}",
+            "",
+        ]
+
+        # Add run diff summary
+        if changes.get("resolved") or changes.get("new"):
+            lines.append("## Changes Since Last Scan")
+            lines.append("")
+            if changes["resolved"]:
+                lines.append(f"### ✅ Resolved ({len(changes['resolved'])})")
+                lines.append("")
+                for fp in changes["resolved"]:
+                    lines.append(f"- ~~{fp}~~")
+                lines.append("")
+            if changes["new"]:
+                lines.append(f"### 🆕 New Issues ({len(changes['new'])})")
+                lines.append("")
+                for fp in changes["new"]:
+                    lines.append(f"- {fp}")
+                lines.append("")
+            if changes["persistent"]:
+                lines.append(
+                    f"*{len(changes['persistent'])} issues unchanged from last run.*"
+                )
+                lines.append("")
+
+        # Correction history trend
+        hist = self.get_correction_history()
+        if hist["total_runs"] > 1:
+            trend_icon = {"improving": "📈", "stable": "➡️", "declining": "📉"}
+            lines.append(
+                f"**Trend:** {trend_icon.get(hist['trend'], '')} {hist['trend']} "
+                f"({hist['total_corrections']} total corrections over "
+                f"{hist['total_runs']} scans)"
+            )
+            lines.append("")
+
+        # Severity summary
+        severity = report.get("severity_counts", {})
+        lines.append("## Summary")
+        lines.append("")
+        lines.append("| Severity | Count |")
+        lines.append("|----------|-------|")
+        lines.append(f"| 🔴 High (phantom fields) | {severity.get('high', 0)} |")
+        lines.append(f"| 🟡 Medium (required unrendered) | {severity.get('medium', 0)} |")
+        lines.append(f"| 🔵 Low (optional unrendered) | {severity.get('low', 0)} |")
+        lines.append(f"| ℹ️  Info (detail-only) | {severity.get('info', 0)} |")
+        lines.append("")
+
+        # Per-model sections
+        for model_name, data in sorted(report.get("per_model", {}).items()):
+            if "error" in data:
+                lines.append(f"## {model_name.title()}")
+                lines.append(f"⚠️ {data['error']}")
+                lines.append("")
+                continue
+
+            all_issues = data.get("issues", [])
+            active_issues, dismissed_issues = self._filter_dismissed(model_name, all_issues)
+
+            pages = data.get("pages_found", {})
+            page_counts = {k: len(v) for k, v in pages.items() if v}
+            layout = data.get("layout_fields", {})
+
+            lines.append(f"## {model_name.title()}")
+            lines.append("")
+            lines.append(
+                f"Django fields: {data.get('django_fields', 0)} | "
+                f"Pages: {', '.join(f'{k}({c})' for k, c in page_counts.items())}"
+            )
+
+            # Show field coverage per page type
+            for page_type in ("detail", "list", "display"):
+                field_list = layout.get(page_type, [])
+                if field_list:
+                    lines.append(
+                        f"  **{page_type.title()}** ({len(field_list)} fields): "
+                        f"`{'`, `'.join(field_list[:12])}`"
+                        f"{'...' if len(field_list) > 12 else ''}"
+                    )
+            lines.append("")
+
+            if not active_issues and not dismissed_issues:
+                lines.append("✅ No issues detected")
+                lines.append("")
+                continue
+
+            # Active issues with recommendations
+            if active_issues:
+                for issue in active_issues:
+                    icon = {
+                        "high": "🔴", "medium": "🟡", "low": "🔵", "info": "ℹ️"
+                    }[issue["severity"]]
+                    lines.append(
+                        f"- {icon} **{issue['field']}** (`{issue['type']}`): "
+                        f"{issue['detail']}"
+                    )
+                    # Add recommendation
+                    rec = RECOMMENDATIONS.get(issue["type"], "")
+                    if rec:
+                        lines.append(f"  - 💡 *{rec}*")
+                    # Add dismiss hint
+                    lines.append(
+                        f"  - To dismiss: "
+                        f"`manage.py ai_intelligence --task layout --dismiss "
+                        f"{model_name}:{issue['field']}:{issue['type']}`"
+                    )
+                lines.append("")
+
+            # Dismissed issues (collapsed)
+            if dismissed_issues:
+                lines.append(
+                    f"<details><summary>Dismissed ({len(dismissed_issues)} issues)</summary>"
+                )
+                lines.append("")
+                for issue in dismissed_issues:
+                    lines.append(f"- ~~{issue['field']}~~ ({issue['type']})")
+                lines.append("")
+                lines.append("</details>")
+                lines.append("")
+
+        # Page file inventory
+        lines.append("---")
+        lines.append("")
+        lines.append("## Page File Inventory")
+        lines.append("")
+        lines.append("| Model | Detail | List | Display |")
+        lines.append("|-------|--------|------|---------|")
+        for model_name, data in sorted(report.get("per_model", {}).items()):
+            pages = data.get("pages_found", {})
+            detail = len(pages.get("detail", []))
+            lst = len(pages.get("list", []))
+            display = len(pages.get("display", []))
+            lines.append(f"| {model_name} | {detail or '—'} | {lst or '—'} | {display or '—'} |")
+        lines.append("")
+
+        # Workflow guide
+        lines.append("---")
+        lines.append("")
+        lines.append("## Workflow")
+        lines.append("")
+        lines.append("1. **Review** this report — focus on 🔴 High issues first")
+        lines.append("2. **Fix** real mismatches in the React/Django code")
+        lines.append(
+            "3. **Dismiss** intentional mismatches: "
+            "`manage.py ai_intelligence --task layout --dismiss model:field:type "
+            "--reason 'explanation'`"
+        )
+        lines.append("4. **Re-scan**: `manage.py ai_intelligence --task layout --report`")
+        lines.append(
+            "5. **Review corrections**: resolved issues are tracked automatically — "
+            "the LLM learns from your fixes"
+        )
+        lines.append("")
+
+        report_text = "\n".join(lines)
+
+        # Save to disk
+        if save:
+            REPORT_DIR.mkdir(parents=True, exist_ok=True)
+            REPORT_FILE.write_text(report_text)
+            logger.info("Layout drift report saved to %s", REPORT_FILE)
+
+        return report_text
