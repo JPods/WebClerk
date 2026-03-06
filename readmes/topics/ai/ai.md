@@ -139,6 +139,140 @@ True continuous learning from user behavior requires fine-tuning infrastructure.
 21. **Scheduled reindex** — Celery periodic task for full reindex overnight
 
 > **Setup guide for team members:** see [setup-guide.md](setup-guide.md)
+
+### Phase 5 — Autonomous Data Intelligence ✅ DONE
+
+Ollama + Celery tasks that continuously analyze, clean, and optimize live data without manual intervention.
+
+**Implementation files:**
+- Services: `apps/ai_assistant/services/` — `health_scorer.py`, `schema_drift_detector.py`, `data_parser.py`, `json_optimizer.py`, `margin_tracker.py`, `sync_advisor.py`
+- Celery tasks: `apps/ai_assistant/tasks.py` — 7 task functions + `full_intelligence_run()`
+- Management command: `python manage.py ai_intelligence` — CLI entry point with `--task`, `--llm`, `--apply`, `--report`, `--limit`, `--model` flags
+- User guide: `readmes/topics/ai/improving-ai-tasks.md` — how to improve AI task results through data practices
+
+#### 5A. Database Sync Conflict Advisor ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Keep wc3 (PostgreSQL) and wc2 (4D) databases in sync during migration period |
+| AI Role | **Advisory only** — conflict resolution, not transport. Sync engine is deterministic (Celery + row versioning + change-data-capture). Ollama evaluates ambiguous merge conflicts (e.g., both sides edited `refs.links`) and proposes the smarter resolution. |
+| Implementation | Celery periodic task compares `row_version` / checksums between databases. On conflict, serializes both versions and asks Ollama to score which is more complete/current. Human approval required initially. |
+| Risk | Low — AI is suggestion layer, never writes without approval |
+| Priority | Medium — needed while wc2 coexists |
+| Service | `apps/ai_assistant/services/sync_advisor.py` — `SyncConflictAdvisor` class with `detect_conflicts()`, `auto_resolve()`, `resolve_all()`, `format_report()` |
+| Task | `apps/ai_assistant/tasks.py` — not yet scheduled (requires 4D bridge) |
+
+#### 5B. JSON Envelope Optimization (.refs, .prefs, .metadata) ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Reduce bloat in denormalized JSON fields; promote high-value data, prune dead weight |
+| AI Role | **Analysis + recommendation.** Celery task scans access patterns (which `refs.keywords` get searched, which `prefs` keys the frontend reads, which `metadata.flags` are checked). Ollama scores each key's utility and suggests: prune, keep, or promote to indexed field. |
+| Targets | `refs.links` — orphaned foreign keys to deleted records; `refs.keywords` — duplicates, low-value terms; `prefs` — keys never read by r25; `metadata.history` — entries beyond retention window; `metadata.flags` — stale one-off flags |
+| Implementation | Nightly Celery task → generates optimization report → optional auto-compact with `AtomicJSONMixin.atomic_json_set()` for safe partial updates |
+| Risk | Low if advisory-first; medium if auto-pruning enabled without approval gate |
+| Priority | High — directly improves query performance and storage |
+| Service | `apps/ai_assistant/services/json_optimizer.py` — `JSONOptimizer` class with `analyze_refs()`, `analyze_prefs()`, `analyze_metadata()`, `compact_record()`, `compact_all()`, `format_report()` |
+| Task | `json_optimize_task(limit, dry_run)` — nightly, advisory by default, `--apply` to compact |
+
+#### 5C. Data Input Parsing (addresses, phones, vCards) ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Clean and normalize contact data on ingestion |
+| AI Role | **Fuzzy fallback.** Deterministic libraries handle structured parsing: `vobject` (vCards), `phonenumbers` (phones), `usaddress`/`libpostal` (addresses). Ollama handles the 20% that rules can't: OCR-mangled addresses, partial input inference, international format normalization. |
+| Integration Points | `Address.queue_verification()` stub (already exists), `Phone` model normalization, new `/wcapi/ai/parse/` endpoint for bulk import cleanup |
+| Implementation | On save signal or bulk import: run deterministic parser → if confidence < threshold, pass to Ollama for best-guess normalization → flag for human review if still uncertain |
+| Risk | Low — worst case falls back to original input |
+| Priority | High — data quality at the gate prevents downstream problems |
+| Service | `apps/ai_assistant/services/data_parser.py` — `DataParser` class with `parse_phone()`, `parse_address()`, `parse_vcard()`, `clean_address_record()`, `bulk_clean_addresses()`, `bulk_clean_phones()` |
+| Task | `data_cleanup_task(limit, use_llm)` — nightly, deterministic-first with LLM fallback |
+
+#### 5D. Schema ↔ TypeScript Drift Detection ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Detect mismatches between Django model fields and r25 TypeScript interfaces / Zod schemas |
+| AI Role | **Structural comparison.** Celery task introspects Django model fields (type, required, default, choices) and compares against `.ts` interfaces in `src/apps/*/models/*/types/` and Zod schemas in `src/validations/`. Ollama reads both representations and flags: missing fields, wrong types (`number` vs `string`), required/optional mismatches, fields present in TS but removed from Django. |
+| Output | Drift report (markdown or JSON) surfaced in AI widget developer mode; optionally auto-generates corrected `.ts` interface stubs |
+| Implementation | Extend `generate_context` management command to emit field-type comparison; Ollama evaluates semantic equivalence (e.g., `BigIntegerField` → `number` vs `string`) |
+| Risk | Low — read-only analysis; generated stubs require developer approval |
+| Priority | Very High — prevents the #1 cause of runtime bugs (schema mismatch) |
+| Service | `apps/ai_assistant/services/schema_drift_detector.py` — `SchemaDriftDetector` class with `detect_model()`, `detect_all()`, `llm_analyze_drift()`, `format_report()` |
+| Task | `schema_drift_task(use_llm)` — weekly, read-only analysis |
+
+#### 5E. Record Data Health Scoring ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Populate `HealthMixin.health_rating` (0-100) with meaningful per-record quality scores |
+| AI Role | **Hybrid scoring.** Deterministic rules handle the 80% (field completeness, recency, link integrity). Ollama evaluates subjective quality: is the description meaningful, are keywords relevant, does the address look plausible? |
+| Scoring Example (Contact) | Has email +10, has phone +10, has valid address +15, has org link +10, keywords populated +5, recent activity +20, verified address +15, description quality (AI) +15 |
+| Implementation | Nightly Celery task iterates models with `HealthMixin`; applies model-specific rule config; writes `health_rating` via bulk update. AI evaluation sampled (not every record every night) to manage Ollama load. |
+| Risk | Low — `health_rating` is informational, doesn't gate business logic |
+| Priority | High — enables data quality dashboards and targeted cleanup campaigns |
+| Service | `apps/ai_assistant/services/health_scorer.py` — `HealthScorer` class with `score_record()`, `score_model()`, `score_all()`, `generate_report()` |
+| Task | `health_scoring_task(limit, use_llm)` — nightly, updates `health_rating` field on every BaseModel record |
+
+#### 5F. Margin & Profitability Tracking ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Continuous margin analysis across transactions, items, customers, and reps |
+| AI Role | **Anomaly detection + narrative.** The math is deterministic (margin = (price - cost) / price, using `Item.price`, `Item.cost`, and line-level data). Ollama adds: anomaly alerts (margin suddenly dropped — why?), trend forecasting (predict next quarter from `ItemUsage` history), and natural-language summaries for dashboards. |
+| Data Sources | `Item.cost` / `Item.price` JSON fields, `ItemUsage.metrics` (`margin.factor`, `sales.actual`, `cost.actual`), transaction line `unit_cost` / `unit_price` from Pending `data` |
+| Implementation | Celery task aggregates margin data into `ItemUsage` monthly snapshots (already structured for this). Ollama generates plain-English margin reports per item/customer/period. Alert thresholds configurable in `Setting` model. |
+| Risk | Low — read-only analytics layer |
+| Priority | Medium-High — direct business value but requires clean cost data first |
+| Service | `apps/ai_assistant/services/margin_tracker.py` — `MarginTracker` class with `compute_item_margins()`, `compute_usage_margins()`, `llm_margin_analysis()`, `format_report()` |
+| Task | `margin_tracking_task(limit, use_llm)` — weekly, writes margin stats to `ItemUsage` |
+
+#### 5G. Inventory Velocity & Investment Efficiency ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Measure margin earned per unit of time capital is tied up in inventory: `velocity = margin / carrying_time` |
+| AI Role | **Predictive analytics.** Calculates velocity from `ItemUsage.metrics` (`turns.actual`, `turns.target`) combined with `Item.cost` and transaction timing. Ollama ranks items by investment efficiency, identifies slow-movers burning carrying cost, recommends reorder adjustments, and flags items where velocity is declining. |
+| Data Sources | `ItemUsage` monthly snapshots (`turns.*`, `inventory.*`, `sales.*`), `Item.quantity` (on_hand, on_po, on_so), `Item.cost` (average, landed), transaction dates for carrying-time calculation |
+| Metrics | Inventory turns ratio, days-of-supply, carrying cost per item, margin velocity ($/day/item), dead stock identification |
+| Implementation | Weekly Celery task computes velocity metrics → stores in `ItemUsage.metrics` (new keys: `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`). Ollama generates investment-efficiency report with actionable recommendations. |
+| Risk | Medium — recommendations could influence purchasing decisions; require human review |
+| Priority | High — strongest differentiator; directly impacts capital efficiency |
+| Service | `apps/ai_assistant/services/margin_tracker.py` — `MarginTracker.compute_velocity()`, `update_usage_velocity()`, `llm_velocity_analysis()` |
+| Task | `velocity_task(limit, use_llm)` — weekly, stores `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`, `velocity.investment` in `ItemUsage.metrics` |
+
+#### 5H. Layout ↔ Schema Drift Detection ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Detect mismatches between Django model fields and the field references actually used in React page components (Detail forms, List columns, Display views) |
+| AI Role | **Static analysis + optional LLM triage.** Scans R25 page files for `register()`, `Controller`, `ScalarCard`, `JsonCard`, `handleFieldChange`, `valueFrom`, and `selector` patterns. Compares extracted field names against Django model introspection. Ollama classifies issues as real problems vs. intentional omissions. **Learns from corrections** — tracks what was fixed between runs and feeds correction history into LLM prompts for smarter recommendations. |
+| Data Sources | Django `_meta.get_fields()`, R25 `src/apps/**/pages/*Detail.tsx`, `*List.tsx`, `*Display.tsx` |
+| Detection Types | **phantom_field** (layout references non-existent field, HIGH), **unrendered_field** (Django field absent from all layouts, MEDIUM/LOW), **unrendered_json** (JSONField with no sub-field inputs or JsonCard, LOW), **detail_only** (field in Detail but not List, INFO) |
+| Implementation | Regex-based extraction from page files, JSON sub-field prefix resolution (e.g., `price_base` → `price` JSONField), BaseModelCards fields auto-excluded. Weekly Celery task. |
+| Features | **Dismissals** — mark intentional mismatches so they stop recurring. **Correction history** — diffs between runs track what was fixed and when. **LLM learning** — past corrections + dismissals fed into prompts for smarter analysis. **Persistent report** — saves full markdown report to `readmes/topics/ai/layout-drift-report.md`. |
+| CLI | `--task layout` (scan), `--report-file` (save report), `--dismiss model:field:type --reason '...'` (dismiss), `--undismiss model:field:type` (undo), `--history` (view corrections) |
+| Risk | Low — read-only static analysis, no data modification |
+| Priority | Medium — catches stale field references and missing form inputs before they hit production |
+| Service | `apps/ai_assistant/services/layout_drift_detector.py` — `LayoutDriftDetector` class with `detect_model()`, `detect_all()`, `dismiss_issue()`, `get_correction_history()`, `generate_full_report()`, `llm_analyze_drift()` |
+| Task | `layout_drift_task(use_llm)` — weekly, scans all models with R25 pages, saves report and records history |
+| Data Files | `apps/ai_assistant/data/layout_dismissals.json` (dismissed issues), `apps/ai_assistant/data/layout_history.json` (run snapshots + corrections) |
+
+#### Phase 5 Sequencing
+
+| Order | Task | Status | Service File |
+|---|---|---|---|
+| 1 | 5E Health Scoring | ✅ Done | `health_scorer.py` |
+| 2 | 5D Schema Drift Detection | ✅ Done | `schema_drift_detector.py` |
+| 3 | 5C Data Input Parsing | ✅ Done | `data_parser.py` |
+| 4 | 5B JSON Envelope Optimization | ✅ Done | `json_optimizer.py` |
+| 5 | 5F Margin Tracking | ✅ Done | `margin_tracker.py` |
+| 6 | 5G Inventory Velocity | ✅ Done | `margin_tracker.py` |
+| 7 | 5A Sync Conflict Advisor | ✅ Done | `sync_advisor.py` |
+| 8 | 5H Layout Drift Detection | ✅ Done | `layout_drift_detector.py` |
+
+> **User guide:** see [improving-ai-tasks.md](improving-ai-tasks.md) for how users can improve LLM task results through data practices.
+
 ---
 
 ## Key Design Decisions
