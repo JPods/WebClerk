@@ -29,7 +29,7 @@ WebClerk3 uses a composable model system built on Django's ORM:
 ```aaa
 CoreModel (minimal identity + timestamps + version)
 ├── MetadataMixin (historized metadata, flags, versioning)
-├── RefsMixin (keywords, tags, lightweight links)
+├── RefsMixin (keywords, tags, lightweight links) → see topics/architecture/refs-pattern.md
 ├── PrefsMixin (user preferences, settings)
 ├── CommentsMixin (threaded notes, audit trails)
 ├── ActionsMixin (next-step metadata, status tracking)
@@ -96,9 +96,12 @@ CoreModel (minimal identity + timestamps + version)
 #### Security & Permissions
 
 - **Authentication**: JWT or session-based
-- **Authorization**: Field-level permissions via settings matrices
+- **Authorization**: Role-based access control (RBAC) with query filtering and field-level permissions
+- **RBAC System**: 10 roles (portal + internal), per-model query filters, view/edit field lists
 - **Audit**: Request logging, change tracking in metadata
 - **Encryption**: Configurable for sensitive connection data
+
+See [topics/architecture/role-based-access-plan.md](topics/architecture/role-based-access-plan.md) for full RBAC documentation.
 
 #### API Features
 

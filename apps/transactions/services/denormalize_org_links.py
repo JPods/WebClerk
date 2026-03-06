@@ -38,6 +38,13 @@ logger = logging.getLogger(__name__)
 from common.denorm_registry import get_org_denorm_fields as _get_org_fields
 ORG_LINK_FIELDS = tuple(_get_org_fields())
 
+# Import link templates for keyword extraction
+try:
+    from apps.core.services.link_defaults import get_keyword_fields, extract_keywords
+    _HAS_LINK_DEFAULTS = True
+except ImportError:
+    _HAS_LINK_DEFAULTS = False
+
 # Which transaction types treat which role as "primary" (always captured)
 # and which roles are "optional" (captured only when FK is set).
 _SALES_TYPES: Set[str] = {"proposal", "order", "invoice"}
@@ -131,6 +138,24 @@ def denormalize_org_links(obj: "Model", model_key: str) -> bool:
     for role in _ORG_ROLES:
         if role not in fk_map and role in links:
             del links[role]
+            mutated = True
+
+    # Extract keywords from linked orgs for search
+    if _HAS_LINK_DEFAULTS and fk_map:
+        all_keywords: set = set()
+        existing_keywords = refs.get("keywords", [])
+        if isinstance(existing_keywords, list):
+            all_keywords.update(existing_keywords)
+        
+        for role, org_id in fk_map.items():
+            org = orgs_by_id.get(org_id)
+            if org:
+                keywords = extract_keywords(org, role)
+                all_keywords.update(keywords)
+        
+        new_keywords = sorted(all_keywords)
+        if refs.get("keywords") != new_keywords:
+            refs["keywords"] = new_keywords
             mutated = True
 
     if mutated:

@@ -9,5 +9,10 @@ from .report import Report
 from .notification import Notification
 from .refs_mismatch_log import RefsMismatchLog
 from .log import APILog, UserDailyLog
+from .rbac import RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile
 
-__all__ = ['Contact', 'Action', 'Setting', 'Template', 'Pending', 'SoftDeleteLedger', 'AuditLog', 'Report', 'Notification', 'APILog', 'UserDailyLog']
+__all__ = [
+    'Contact', 'Action', 'Setting', 'Template', 'Pending', 'SoftDeleteLedger',
+    'AuditLog', 'Report', 'Notification', 'APILog', 'UserDailyLog',
+    'RoleConfig', 'ModelRoleConfig', 'ModelLinkConfig', 'UserProfile',
+]

@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 
 from apps.core.services import wcapi as services
+from apps.core.services.role_filter import inject_role_filters
+from apps.core.services.field_projection import filter_response_data
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
 from common.api_responses import api_response
@@ -609,6 +611,14 @@ class WCAPIGetView(APIView):
             if not obj:
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
+            # Verify user has access to this record via role filters
+            if request.user and request.user.is_authenticated and not request.user.is_superuser:
+                role_q = inject_role_filters(request.user, model_key)
+                if role_q:
+                    ModelCls = type(obj)
+                    if not ModelCls.objects.filter(pk=obj.pk).filter(role_q).exists():
+                        return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
+
             allow = policy.field_allowlist(type(obj), request=request)
             logger = logging.getLogger(__name__)
             field_names: Set[str] = set()
@@ -672,10 +682,21 @@ class WCAPIGetView(APIView):
 
             if self._normalize_model_key(model_key) == "action":
                 payload["attachments"] = self._action_attachments_map([obj.pk]).get(obj.pk, [])
+            
+            # Apply RBAC field filtering for single record
+            if request.user and request.user.is_authenticated:
+                payload = filter_response_data(request.user, model_key, payload)
+            
             return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
         ModelCls, qs = services.get_queryset(model_key, request=request)
+        
+        # Apply role-based access filters (RBAC)
+        if request.user and request.user.is_authenticated:
+            role_q = inject_role_filters(request.user, model_key)
+            if role_q:
+                qs = qs.filter(role_q)
         
         # Apply search first (before filters for better performance with indexes)
         search_query = self._parse_search(request, model_key, ModelCls)
@@ -720,6 +741,9 @@ class WCAPIGetView(APIView):
                 payload["refs"] = normalize_refs_for_response(payload.get("refs"))
             except Exception:
                 pass
+            # Apply RBAC field filtering
+            if request.user and request.user.is_authenticated:
+                payload = filter_response_data(request.user, model_key, payload)
             results.append(payload)
 
         if self._normalize_model_key(model_key) == "action":

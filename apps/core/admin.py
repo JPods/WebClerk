@@ -13,7 +13,10 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
-from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report
+from .models import (
+    Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report,
+    RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile,
+)
 
 
 @admin.register(Contact)
@@ -293,6 +296,74 @@ class ReportAdmin(admin.ModelAdmin):
     list_filter = ('purpose', 'model_name', 'is_active')
     search_fields = ('name', 'purpose', 'model_name', 'record_id')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+
+
+# =============================================================================
+# RBAC Admin
+# =============================================================================
+
+@admin.register(RoleConfig)
+class RoleConfigAdmin(admin.ModelAdmin):
+    """Admin interface for Role configurations."""
+    list_display = ('role', 'description', 'is_portal', 'is_active', 'parent_role')
+    list_filter = ('is_portal', 'is_active')
+    search_fields = ('role', 'description')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    fieldsets = (
+        (None, {'fields': ('role', 'description', 'is_portal', 'is_active', 'parent_role')}),
+        ('Permissions', {'fields': ('permissions',)}),
+        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(ModelRoleConfig)
+class ModelRoleConfigAdmin(admin.ModelAdmin):
+    """Admin interface for per-model role configurations."""
+    list_display = ('model_name', 'role', 'allow_create', 'allow_delete')
+    list_filter = ('model_name', 'role', 'allow_create', 'allow_delete')
+    search_fields = ('model_name', 'role')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    fieldsets = (
+        (None, {'fields': ('model_name', 'role')}),
+        ('Query Filtering', {'fields': ('query_filters',)}),
+        ('Field Access', {'fields': ('view_fields', 'edit_fields')}),
+        ('Permissions', {'fields': ('allow_create', 'allow_delete')}),
+        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(ModelLinkConfig)
+class ModelLinkConfigAdmin(admin.ModelAdmin):
+    """Admin interface for model link/denormalization templates."""
+    list_display = ('model_name', 'dt_modified')
+    search_fields = ('model_name',)
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    fieldsets = (
+        (None, {'fields': ('model_name',)}),
+        ('Keywords', {'fields': ('keyword_fields',)}),
+        ('Link Template', {'fields': ('link_template',)}),
+        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    """Admin interface for User Profiles (user-contact-role linkage)."""
+    list_display = ('id', 'user', 'contact', 'get_roles')
+    search_fields = ('user__username', 'user__email', 'contact__email', 'contact__company')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'cached_roles')
+    raw_id_fields = ('user', 'contact')
+    fieldsets = (
+        (None, {'fields': ('user', 'contact')}),
+        ('Cached Data', {'fields': ('cached_roles',)}),
+        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
+    )
+    
+    @admin.display(description='Roles')
+    def get_roles(self, obj):
+        roles = obj.get_roles()
+        return ', '.join(roles) if roles else '-'
+
 
 def _threepane_redirect(self, request, extra_context=None):
     if not self.has_permission(request):
