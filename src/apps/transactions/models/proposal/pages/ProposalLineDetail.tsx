@@ -44,7 +44,7 @@ function ProposalLineDetail({
   useEffect(() => {
     if (line && mode === "edit") {
       setValue("item_description", line.item?.description || "");
-      setValue("quantity_placed", line.quantity?.placed || 0);
+      setValue("quantity_placed", line.quantity?.staged ?? quantity?.placed || 0);
       setValue("price_unit", line.price?.unit || 0);
       setValue("cost_unit", line.cost?.unit || 0);
     }

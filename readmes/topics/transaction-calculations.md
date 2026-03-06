@@ -67,7 +67,7 @@ interface LineCalculation {
 
 export function useLineCalculator(line: TransactionLine): LineCalculation {
   return useMemo(() => {
-    const qty = line.quantity?.placed ?? 0;
+    const qty = line.quantity?.staged ?? 0;
     const unitPrice = line.price?.unit ?? 0;
     const discountPc = line.price?.discount_percent ?? 0;
     const unitCost = line.cost?.unit ?? 0;
@@ -98,7 +98,7 @@ export function useLineCalculator(line: TransactionLine): LineCalculation {
       marginPc: round(marginPc),
     };
   }, [
-    line.quantity?.placed,
+    line.quantity?.staged,
     line.price?.unit,
     line.price?.discount_percent,
     line.cost?.unit,
@@ -125,8 +125,8 @@ const LineQuantityInput: React.FC<{
     <div className="flex items-center gap-4">
       <input
         type="number"
-        value={line.quantity?.placed ?? 0}
-        onChange={(e) => onChange('quantity.placed', parseFloat(e.target.value) || 0)}
+        value={line.quantity?.staged ?? 0}
+        onChange={(e) => onChange('quantity.staged', parseFloat(e.target.value) || 0)}
         className="w-20 text-right"
       />
       <span className="text-sm text-slate-500">×</span>
@@ -306,7 +306,7 @@ const TransactionEditor: React.FC = () => {
   const handleQuantityChange = (lineId: number, quantity: number) => {
     setLines(prev => prev.map(line => 
       line.id === lineId 
-        ? { ...line, quantity: { ...line.quantity, placed: quantity } }
+        ? { ...line, quantity: { ...line.quantity, staged: quantity } }
         : line
     ));
     // Header recalculates automatically via useHeaderCalculator
@@ -703,7 +703,7 @@ const handlePriceLevelChange = async (newPriceLevel: string) => {
       const priceInfo = await wcapi.priceLookup({
         item_id: line.item?.item_id,
         customer_id: transaction.customer_id,
-        quantity: line.quantity?.placed,
+        quantity: line.quantity?.staged,
         price_level: newPriceLevel,
       });
       
@@ -1542,7 +1542,7 @@ const ReturnLineSelector: React.FC<{
   
   const handleQtyChange = (lineId: number, qty: number) => {
     const line = invoiceLines.find(l => l.id === lineId);
-    const maxQty = (line?.quantity?.placed ?? 0) - (line?.quantity?.returned ?? 0);
+    const maxQty = (line?.quantity?.staged ?? 0) - (line?.quantity?.returned ?? 0);
     
     setReturnQtys(prev => ({
       ...prev,
@@ -1555,7 +1555,7 @@ const ReturnLineSelector: React.FC<{
       const returnQty = returnQtys[line.id] ?? 0;
       if (returnQty === 0) return sum;
       
-      const unitPrice = (line.price?.extended ?? 0) / (line.quantity?.placed ?? 1);
+      const unitPrice = (line.price?.extended ?? 0) / (line.quantity?.staged ?? 1);
       return sum + (returnQty * unitPrice);
     }, 0);
   }, [invoiceLines, returnQtys]);
@@ -1573,7 +1573,7 @@ const ReturnLineSelector: React.FC<{
         <div key={line.id} className="flex items-center gap-4 py-2 border-b">
           <span className="flex-1">{line.item?.description1}</span>
           <span className="text-gray-500">
-            Max: {(line.quantity?.placed ?? 0) - (line.quantity?.returned ?? 0)}
+            Max: {(line.quantity?.staged ?? 0) - (line.quantity?.returned ?? 0)}
           </span>
           <NumericInput
             value={returnQtys[line.id] ?? 0}

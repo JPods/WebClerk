@@ -1079,9 +1079,21 @@ onUpdateLine={(lineId, field, value) => {
                   // Map field names to nested structure
                   switch (field) {
                     case "qty":
+                      const newActive = Number(value);
+                      const unitPrice = l.price?.unit ?? 0;
+                      // For standalone order edit: staged=active=remaining (nothing transferred yet)
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, placed: Number(value) },
+                        quantity: { 
+                          ...l.quantity, 
+                          active: newActive,
+                          staged: newActive,
+                          remaining: newActive,
+                        },
+                        price: {
+                          ...l.price,
+                          extended: unitPrice * newActive,
+                        },
                       };
                     case "description":
                       return {
@@ -1090,7 +1102,7 @@ onUpdateLine={(lineId, field, value) => {
                       };
                     case "unit_price":
                       const newPrice = Number(value);
-                      const qty = l.quantity?.placed ?? 0;
+                      const qty = l.quantity?.active ?? 0;
                       return {
                         ...baseUpdate,
                         price: {

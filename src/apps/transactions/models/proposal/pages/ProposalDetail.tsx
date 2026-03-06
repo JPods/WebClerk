@@ -228,7 +228,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
                       };
                     case "unit_price":
                       const newPrice = Number(value);
-                      const qty = l.quantity?.placed ?? 0;
+                      const qty = l.quantity?.staged ?? quantity?.placed ?? 0;
                       return {
                         ...baseUpdate,
                         price: {

@@ -560,15 +560,15 @@ function recalculateLineFinancials(line: InvoiceLineRecord): void {
       quantityRaw && typeof quantityRaw === "object"
         ? { ...(quantityRaw as Record<string, unknown>) }
         : {};
-    const placedValue = toNumeric(
-      extractValue(quantityObject, "placed") ??
+    const stagedValue = toNumeric(
+      extractValue(quantityObject, "staged") ??
         extractValue(quantityObject, "ordered") ??
         0
     );
-    quantityObject.placed = placedValue;
+    quantityObject.staged = stagedValue;
     if ("ordered" in quantityObject) {
       const orderedValue = toNumeric(quantityObject.ordered);
-      quantityObject.remaining = Math.max(orderedValue - placedValue, 0);
+      quantityObject.remaining = Math.max(orderedValue - stagedValue, 0);
     }
     container.quantity = quantityObject;
   }
@@ -580,7 +580,7 @@ function recalculateLineFinancials(line: InvoiceLineRecord): void {
     if (container.quantity && typeof container.quantity === "object") {
       const quantityObject = container.quantity as Record<string, unknown>;
       return toNumeric(
-        extractValue(quantityObject, "placed") ??
+        extractValue(quantityObject, "staged") ??
           extractValue(quantityObject, "ordered") ??
           0
       );
@@ -704,7 +704,7 @@ function buildLineFromItem(
     key_tags: item.key_tags ?? item.keyTags ?? undefined,
   };
   container.quantity = {
-    placed: normalizedQuantity,
+    staged: normalizedQuantity,
     ordered: normalizedQuantity,
     remaining: 0,
   };
@@ -744,7 +744,7 @@ function InvoiceLinesPanel({
   isReadOnly: boolean;
   onFieldChange?: (
     index: number,
-    field: "quantity.placed" | "price.unit",
+    field: "quantity.staged" | "price.unit",
     value: number
   ) => void;
 }) {
@@ -774,7 +774,7 @@ function InvoiceLinesPanel({
                 item.description
               </th>
               <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
-                quantity.placed
+                quantity.staged
               </th>
               <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
                 quantity.remaining
@@ -805,10 +805,10 @@ function InvoiceLinesPanel({
               const idaItem = extractValue(item ?? {}, "ida_item") ?? "";
               const itemDescription =
                 extractValue(item ?? {}, "description") ?? "";
-              const placedNumeric =
+              const stagedNumeric =
                 typeof quantity === "number"
                   ? toNumeric(quantity)
-                  : toNumeric(extractValue(quantity ?? {}, "placed"));
+                  : toNumeric(extractValue(quantity ?? {}, "staged"));
               const remaining =
                 typeof quantity === "number"
                   ? undefined
@@ -828,7 +828,7 @@ function InvoiceLinesPanel({
                 if (!onFieldChange) {
                   return;
                 }
-                onFieldChange(index, "quantity.placed", value);
+                onFieldChange(index, "quantity.staged", value);
               };
 
               const handleUnitPriceChange = (value: number) => {
@@ -853,14 +853,14 @@ function InvoiceLinesPanel({
                   </td>
                   <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
                     {isReadOnly ? (
-                      formatQuantityValue(placedNumeric)
+                      formatQuantityValue(stagedNumeric)
                     ) : (
                       <input
                         type="number"
                         className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         step={0.01}
                         value={
-                          Number.isFinite(placedNumeric) ? placedNumeric : 0
+                          Number.isFinite(stagedNumeric) ? stagedNumeric : 0
                         }
                         onChange={(event) =>
                           handleQuantityChange(Number(event.target.value) || 0)
@@ -1364,12 +1364,12 @@ export default function InvoiceDetailLegacy({
     let costTotal = 0;
 
     lineDrafts.forEach((line) => {
-      const quantityPlaced = toNumeric(
-        extractValue(line as Record<string, unknown>, "quantity.placed") ??
+      const quantityStaged = toNumeric(
+        extractValue(line as Record<string, unknown>, "quantity.staged") ??
           extractValue(line as Record<string, unknown>, "quantity.ordered") ??
           (line as Record<string, unknown>).quantity
       );
-      const quantity = quantityPlaced || 0;
+      const quantity = quantityStaged || 0;
 
       const unitSell = toNumeric(
         extractValue(line as Record<string, unknown>, "price.unit") ??
@@ -1482,7 +1482,7 @@ export default function InvoiceDetailLegacy({
             const resolvedQuantity = (() => {
               if (typeof container.quantity === "number") {
                 return {
-                  placed: toNumeric(container.quantity),
+                  staged: toNumeric(container.quantity),
                   ordered: toNumeric(container.quantity),
                   remaining: 0,
                 } as Record<string, unknown>;
@@ -1496,23 +1496,23 @@ export default function InvoiceDetailLegacy({
               return {} as Record<string, unknown>;
             })();
 
-            const previousPlaced = toNumeric(
-              extractValue(resolvedQuantity, "placed") ??
-                resolvedQuantity.placed
+            const previousStaged = toNumeric(
+              extractValue(resolvedQuantity, "staged") ??
+                resolvedQuantity.staged
             );
             const previousOrdered = Math.max(
-              previousPlaced,
+              previousStaged,
               toNumeric(
                 extractValue(resolvedQuantity, "ordered") ??
                   resolvedQuantity.ordered
               )
             );
-            const nextPlaced = previousPlaced + quantity;
+            const nextStaged = previousStaged + quantity;
             const nextOrdered = previousOrdered + quantity;
 
-            resolvedQuantity.placed = nextPlaced;
+            resolvedQuantity.staged = nextStaged;
             resolvedQuantity.ordered = nextOrdered;
-            resolvedQuantity.remaining = Math.max(nextOrdered - nextPlaced, 0);
+            resolvedQuantity.remaining = Math.max(nextOrdered - nextStaged, 0);
             container.quantity = resolvedQuantity;
 
             const priceRaw = container.price;
@@ -1586,7 +1586,7 @@ export default function InvoiceDetailLegacy({
   const handleLineFieldChange = useCallback(
     (
       index: number,
-      field: "quantity.placed" | "price.unit",
+      field: "quantity.staged" | "price.unit",
       rawValue: number
     ) => {
       const value = Number.isFinite(rawValue) ? rawValue : 0;
@@ -1598,7 +1598,7 @@ export default function InvoiceDetailLegacy({
           const nextLine = cloneLine(line);
           const container = nextLine as Record<string, unknown>;
 
-          if (field === "quantity.placed") {
+          if (field === "quantity.staged") {
             const quantityRaw = container.quantity;
             if (typeof quantityRaw === "number") {
               container.quantity = value;
@@ -1607,7 +1607,7 @@ export default function InvoiceDetailLegacy({
                 quantityRaw && typeof quantityRaw === "object"
                   ? { ...(quantityRaw as Record<string, unknown>) }
                   : {};
-              quantityObject.placed = value;
+              quantityObject.staged = value;
               if ("ordered" in quantityObject) {
                 const orderedValue = toNumeric(quantityObject.ordered);
                 quantityObject.remaining = Math.max(orderedValue - value, 0);
