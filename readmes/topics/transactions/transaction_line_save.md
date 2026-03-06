@@ -144,9 +144,9 @@ All line types share a common structure with type-specific variations:
     "unit_measure": "EA"
   },
   "quantity": {
-    "placed": 5,                 // Quantity placed/committed on this line
-    "actioned": 0,               // Quantity acted on (context-dependent: shipped, received, etc.)
-    "remaining": 5,              // placed - actioned
+    "staged": 5,                 // Quantity staged/committed on this line
+    "transferred": 0,               // Quantity acted on (context-dependent: shipped, received, etc.)
+    "remaining": 5,              // staged - transferred
     "is_fixed": false,           // Whether quantity is locked
     "precision": 2               // Decimal precision
   },
@@ -161,11 +161,11 @@ All line types share a common structure with type-specific variations:
 }
 ```
 
-> **Canonical quantity keys**: All transaction types use `placed` / `actioned` / `remaining`.
+> **Canonical quantity keys**: All transaction types use `staged` / `transferred` / `remaining`.
 > Legacy keys like `ordered`, `invoiced`, `received`, `shipped`, `packed` are **deprecated**.
-> `actioned` replaces the type-specific verb — its meaning is contextual:
+> `transferred` replaces the type-specific verb — its meaning is contextual:
 >
-> | Transaction Type | `actioned` means |
+> | Transaction Type | `transferred` means |
 > |------------------|------------------|
 > | Proposal         | converted to order |
 > | Order            | shipped / invoiced |
@@ -177,8 +177,8 @@ All line types share a common structure with type-specific variations:
 
 | Field | Order | Invoice | Proposal | Purchase | WorkOrder |
 |-------|-------|---------|----------|----------|-----------|
-| `quantity.placed` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `quantity.actioned` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `quantity.staged` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `quantity.transferred` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `quantity.remaining` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `price.unit` | ✓ | ✓ | ✓ | - | - |
 | `cost.unit` | - | - | - | ✓ | ✓ |
@@ -266,13 +266,13 @@ const payload = {
       {
         id: 64,
         item: { item_id: 231, ... },
-        quantity: { placed: 4 },
+        quantity: { staged: 4 },
       },
       // New line (no id or temp id)
       {
         item: { item_id: 236, ida_item: "BBD10", ... },
         line_number: 0,                  // 0 = backend auto-assigns
-        quantity: { placed: 5 },         // Use placed, NOT ordered
+        quantity: { staged: 5 },         // Use staged, NOT ordered
         cost: { unit: 150 },
       }
     ]
@@ -353,7 +353,7 @@ Content-Type: application/json
     "lines": [
       {
         "item": { "item_id": 236, "ida_item": "BBD10" },
-        "quantity": { "placed": 10 },
+        "quantity": { "staged": 10 },
         "cost": { "unit": 150.00 }
       }
     ]
@@ -391,8 +391,8 @@ POST /wcapi/save/
   "record": {
     "id": 61,
     "lines": [
-      { "id": 144, "quantity": { "placed": 9 } },  // Update existing
-      { "item": { "item_id": 259 }, "quantity": { "placed": 3 } }  // Add new
+      { "id": 144, "quantity": { "staged": 9 } },  // Update existing
+      { "item": { "item_id": 259 }, "quantity": { "staged": 3 } }  // Add new
     ]
   },
   "id": 61

@@ -82,7 +82,7 @@ class LineDisplayMixin:
     @admin.display(description="Qty")
     def qty_placed(self, obj):
         quantity = self._get_json_field(obj, 'quantity')
-        val = quantity.get('placed')
+        val = quantity.get('staged') or quantity.get('active')
         return val if val is not None else "-"
 
     @admin.display(description="Item IDA")

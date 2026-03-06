@@ -30,13 +30,13 @@ In a flow from proposal to proposal
 1. a null id proposal is created
 2. Customer information is not populated from the proposal, price_level is set to "retail"
 3. Lines are copied with 
-	proposal_line.quantity.placed = proposal_line.quantity.placed
-	proposal_line.quantity.actioned = 0
-	proposal_line.quantity.remaining = proposal_line.quantity.placed
+	proposal_line.quantity.staged = proposal_line.quantity.staged
+	proposal_line.quantity.transferred = 0
+	proposal_line.quantity.remaining = proposal_line.quantity.staged
 
 When the customer is selected, the appropriate price_level will be set and the lines recalculate.
 
-**Pending:** One pending per new proposal line (type_id=PP, on_p += placed). No parent-side pending since this is a copy, not a transfer.
+**Pending:** One pending per new proposal line (type_id=PP, on_p += staged). No parent-side pending since this is a copy, not a transfer.
 
 ---
 
@@ -50,22 +50,22 @@ From proposal to order or invoice.
 	Line data is transferred to such as .refs.links.document[], contact, action,....
 	Line data having to do with dates are reset
 	if quantity.increment = 0;
-		order_line.quantity.placed = proposal.quantity.remaining
-		proposal_line.quantity.actioned = proposal.quantity.remaining
+		order_line.quantity.staged = proposal.quantity.remaining
+		proposal_line.quantity.transferred = proposal.quantity.remaining
 		proposal_line.quantity.remaining = 0
 	else;
 	If (proposal.quantity.increment < proposal.quantity.remaining) 
-		order_line.quantity.placed = proposal.quantity.increment
-		proposal_line.quantity.actioned =+ proposal.quantity.remaining
+		order_line.quantity.staged = proposal.quantity.increment
+		proposal_line.quantity.transferred =+ proposal.quantity.remaining
 		proposal_line.quantity.remaining =- proposal.quantity.remaining
 	 else
-		order_line.quantity.placed = proposal.quantity.remaining
-		proposal_line.quantity.actioned =+ proposal.quantity.remaining
+		order_line.quantity.staged = proposal.quantity.remaining
+		proposal_line.quantity.transferred =+ proposal.quantity.remaining
 		proposal_line.quantity.remaining = 0
 
 **Pending (inside atomic block):**
-1. Child pending: type_id=SO (or IN), on_so += order_line.quantity.placed
-2. Parent pending: type_id=PP, on_p -= quantity transferred (proposal actioned)
+1. Child pending: type_id=SO (or IN), on_so += order_line.quantity.staged
+2. Parent pending: type_id=PP, on_p -= quantity transferred (proposal transferred)
 3. Both pending records saved in current worker; Celery applies after delay
 
 ---
@@ -76,9 +76,9 @@ In a flow from proposal to purchase, or order to purchase, or invoice to purchas
 1. a null id purchase is created
 2. Customer information is not populated from the proposal, Vendor information will be entered or the reverse from purchase
 3. Lines are copied with to (receiving_line is receiving information, original_line is providing information)
-	receiving_line.quantity.placed = original_line.quantity.placed
-	receiving_line.quantity.actioned = 0
-	receiving_line.quantity.remaining = original_line.quantity.placed
+	receiving_line.quantity.staged = original_line.quantity.staged
+	receiving_line.quantity.transferred = 0
+	receiving_line.quantity.remaining = original_line.quantity.staged
 
 **Pending (inside atomic block):**
 1. Child pending: type_id matching the new transaction (PO, SO, IN, PP, etc.)

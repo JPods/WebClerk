@@ -87,13 +87,13 @@ class PurchaseModelTest(TestCase):
         line1 = PurchaseLine.objects.create(
             purchase=po,
             description="Item 1",
-            quantity={'placed': 2},
+            quantity={'staged': 2},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         line2 = PurchaseLine.objects.create(
             purchase=po,
             description="Item 2",
-            quantity={'placed': 1},
+            quantity={'staged': 1},
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
@@ -128,7 +128,7 @@ class PurchaseModelTest(TestCase):
         PurchaseLine.objects.create(
             purchase=po,
             description="Test Item",
-            quantity={'placed': 1},
+            quantity={'staged': 1},
             cost={'unit': 80.00, 'extended': 80.00}
         )
 
@@ -165,13 +165,13 @@ class PurchaseLineModelTest(TestCase):
         line = PurchaseLine.objects.create(
             purchase=self.po,
             description="Test Item",
-            quantity={'placed': 5},
+            quantity={'staged': 5},
             cost={'unit': 15.00, 'extended': 75.00}
         )
 
         self.assertEqual(line.purchase, self.po)
         self.assertEqual(line.description, "Test Item")
-        self.assertEqual(line.quantity['placed'], 5)
+        self.assertEqual(line.quantity['staged'], 5)
         self.assertEqual(line.cost['unit'], 15.00)
 
     def test_purchase_line_parent_ref_property(self):
@@ -179,7 +179,7 @@ class PurchaseLineModelTest(TestCase):
         line = PurchaseLine.objects.create(
             purchase=self.po,
             description="Test Item",
-            quantity={'placed': 1}
+            quantity={'staged': 1}
         )
 
         # Test getter

@@ -65,21 +65,21 @@ Lines track their source line via `refs.source` and `refs.xfer` JSONB:
 }
 ```
 
-## Quantity Model — `placed` / `actioned` / `remaining`
+## Quantity Model — `staged` / `transferred` / `remaining`
 
 All line types use a unified `quantity` JSONB with **three canonical keys**:
 
 | Key | Meaning |
 |-----|---------|
-| `placed` | Quantity committed on this line |
-| `actioned` | Quantity acted upon (context-dependent — see below) |
-| `remaining` | `placed - actioned` |
+| `staged` | Quantity committed on this line |
+| `transferred` | Quantity acted upon (context-dependent — see below) |
+| `remaining` | `staged - transferred` |
 
 Additional keys: `is_fixed`, `precision`, `is_blanket`, `increment`.
 
-The `actioned` key **replaces** the legacy per-type verbs:
+The `transferred` key **replaces** the legacy per-type verbs:
 
-| Transaction Type | `actioned` means | Legacy key (deprecated) |
+| Transaction Type | `transferred` means | Legacy key (deprecated) |
 |------------------|-------------------|------------------------|
 | Proposal | converted to order | — |
 | Order | shipped / invoiced | `ordered`, `invoiced` |
@@ -87,7 +87,7 @@ The `actioned` key **replaces** the legacy per-type verbs:
 | Purchase | received from vendor | `received` |
 | WorkOrder | completed | — |
 
-> **Migration note**: Transfer services must be updated to read/write `placed`/`actioned`
+> **Migration note**: Transfer services must be updated to read/write `staged`/`transferred`
 > instead of legacy keys like `ordered`, `invoiced`, `packed`.
 
 ## Transaction Models

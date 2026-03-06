@@ -214,23 +214,23 @@ def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
 def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Convert order line quantity to invoice line quantity.
 
-    Uses canonical placed/actioned/remaining keys.
-    placed = source remaining (qty being transferred to this invoice)
-    actioned = 0 (nothing has acted on the new invoice line yet)
-    remaining = placed (full qty available)
+    Uses canonical staged/active/remaining keys.
+    staged = source remaining (qty being transferred to this invoice)
+    active = 0 (nothing has processed on the new invoice line yet)
+    remaining = staged (full qty available)
 
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = dict(order_quantity or {})
     remaining = q.get("remaining", 0)
     return {
-        "placed": remaining,
-        "actioned": 0,
+        "staged": remaining,
+        "active": 0,
         "remaining": remaining,
         "precision": q.get("precision", 2),
         "is_fixed": q.get("is_fixed", False),
         "converted_from_order": {
-            "actioned": q.get("actioned", q.get("invoiced", 0)),
+            "active": q.get("active", 0),
             "original_remaining": remaining,
             "converted_from_proposal": q.get("converted_from_proposal"),
         },
@@ -239,17 +239,17 @@ def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> D
 def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
     """Decrement source order line after transfer to invoice.
 
-    Updates: actioned += invoiced_qty, remaining = placed - actioned
+    Updates: active += invoiced_qty, remaining = staged - active
     Sets _pending_created to suppress the post_save signal —
     pending records are created later by _create_pending_records().
 
-    Uses canonical placed/actioned/remaining keys.
+    Uses canonical staged/active/remaining keys.
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = dict(ol.quantity or {})
-    q["actioned"] = q.get("actioned", 0) + invoiced_qty
-    placed = q.get("placed", 0)
-    q["remaining"] = max(0, placed - q["actioned"])
+    q["active"] = q.get("active", 0) + invoiced_qty
+    staged = q.get("staged", 0)
+    q["remaining"] = max(0, staged - q["active"])
     ol.quantity = cast(Any, q)
     ol._pending_created = True  # suppress signal — pending created later
     ol.save(update_fields=["quantity", "dt_modified", "version"])

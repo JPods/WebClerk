@@ -26,7 +26,7 @@ Transaction calculations are **structurally complete** but have **two critical b
 
 | Bug | Impact | Severity | Status |
 |-----|--------|----------|--------|
-| **Quantity key mismatch** | R25 sends `quantity.ordered`; backend reads `quantity.placed` → extended = 0 | Critical | **FIXED** — R25 now sends `placed` on all transaction detail pages |
+| **Quantity key mismatch** | R25 sends `quantity.ordered`; backend reads `quantity.staged` → extended = 0 | Critical | **FIXED** — R25 now sends `staged` on all transaction detail pages |
 | **Header totals signal gap** | Only `ProposalLine` auto-recalculates parent totals; Order/Invoice/Purchase/WorkOrder do not | Critical | Open |
 | **Line identity fragility** | `line.id ?? idx` broke editing for unsaved/transferred lines | High | **FIXED** — `line_number` scalar field + `lineKey()` helper |
 
@@ -55,7 +55,7 @@ Order 4:
   totals: {subtotal: 0, discount: 0, tax: 0, total: 0, cost: 0, margin: 0, ...}
 
 Line 3 (on Order 4):
-  quantity: {"ordered": 7}              ← KEY IS "ordered", NOT "placed"
+  quantity: {"ordered": 7}              ← KEY IS "ordered", NOT "staged"
   price:    {"unit": 721.0, "extended": 0.0, "discount_amount": 0.0, ...}
   cost:     {"unit": 345.6, "extended": 0.0, ...}
 ```
@@ -65,9 +65,9 @@ Line 3 (on Order 4):
 `_calculate_extended_price()` in `base_line_model.py` line 340:
 
 ```python
-quantity = self.quantity.get("placed", 0) if self.quantity else 0
+quantity = self.quantity.get("staged", 0) if self.quantity else 0
 #                            ^^^^^^^^
-# quantity dict is {"ordered": 7} — has no "placed" key
+# quantity dict is {"ordered": 7} — has no "staged" key
 # → quantity = 0
 # → extended = 0 × 721.0 = 0.0
 ```
@@ -95,18 +95,18 @@ WorkOrderLine (0 total):  n/a
 
 ## Root Causes
 
-### 1. Quantity Key Mismatch: `"ordered"` vs `"placed"`
+### 1. Quantity Key Mismatch: `"ordered"` vs `"staged"`
 
 **Frontend (React2025)** sends `"ordered"` everywhere:
 - `LinesCard.tsx` → `quantity: { ordered: quantity }`
 - `OrderDetail.tsx` → `quantity: { ...l.quantity, ordered: Number(value) }`
 - `InvoiceDetail.tsx`, `ProposalDetail.tsx`, `PurchaseDetail.tsx`, `WorkorderDetail.tsx` — all use `ordered`
 
-**Backend (webClerk3)** expects `"placed"`:
-- `default_quantity()` returns `{"placed": 0, "actioned": 0, "remaining": 0, ...}`
-- `_calculate_extended_price()` reads `self.quantity.get("placed", 0)` → gets 0
-- `LineItemService._recalculate_line()` reads `placed`
-- `LineItemService.update_quantity()` reads `placed`
+**Backend (webClerk3)** expects `"staged"`:
+- `default_quantity()` returns `{"staged": 0, "actioned": 0, "remaining": 0, ...}`
+- `_calculate_extended_price()` reads `self.quantity.get("staged", 0)` → gets 0
+- `LineItemService._recalculate_line()` reads `staged`
+- `LineItemService.update_quantity()` reads `staged`
 
 **No normalization layer exists.** `save_view.py` does `setattr(line_obj, 'quantity', payload_value)` — a blind passthrough. Then `ensure_json_defaults()` skips normalization because `{"ordered": 7}` is truthy:
 
@@ -117,7 +117,7 @@ if not self.quantity:          # {"ordered": 7} is truthy → skipped
 ```
 
 **Some services already handle both keys defensively:**
-- `transfer_utils.py` → checks `placed`, then `ordered`, then `remaining`
+- `transfer_utils.py` → checks `staged`, then `ordered`, then `remaining`
 - `validation.py` → `qty.get('remaining', qty.get('ordered', 0))`
 - But `_calculate_extended_price()` — the critical path — has no fallback
 
@@ -151,7 +151,7 @@ All three use the same formula:
 extended = (quantity × unit_price) - discount_amount
 ```
 
-All three read `quantity.placed` → all three get 0 for current data.
+All three read `quantity.staged` → all three get 0 for current data.
 
 ### Save Flow
 
@@ -167,7 +167,7 @@ R25 Frontend → POST /wcapi/save/
                     │             ├── normalize_cost_map()     ← same
                     │             ├── (quantity not normalized) ← BUG: no normalize_quantity_map()
                     │             └── _calculate_extended_price()
-                    │                   └── qty = self.quantity.get("placed", 0)  ← 0 (BUG)
+                    │                   └── qty = self.quantity.get("staged", 0)  ← 0 (BUG)
                     │                   └── extended = 0 × 721.0 = 0.0
                     │
                     └── Django post_save signals:
@@ -232,7 +232,7 @@ Even when called manually (`order.update_sell_cost_totals()`), it produces zeros
 proposal_line.quantity = {"ordered": 5, ...}
 
 # transfer_utils.convert_quantity_from_source() reads:
-base = q.get("placed")     # None
+base = q.get("staged")     # None
 base = q.get("ordered")    # 5  ← fallback
 base = q.get("remaining")  # not reached
 
@@ -245,7 +245,7 @@ order_line.quantity = {
         "is_blanket": False
     }
 }
-# NOTE: No "placed" key set → extended = 0 on target too
+# NOTE: No "staged" key set → extended = 0 on target too
 ```
 
 ### Inventory Impact (Pending Records)
@@ -269,7 +269,7 @@ When converting between transaction types, the **value** (price, cost, extended)
 ```python
 # build_line_payload() captures source data in refs['xfer']:
 {
-    "qty": {"base": 5, "placed": null, "ordered": 5},
+    "qty": {"base": 5, "staged": null, "ordered": 5},
     "price": {"unit": 721.0, "extended": 0.0},   # ← 0 because of bug
     "cost": {"unit": 345.6, "extended": 0.0}      # ← 0 because of bug
 }
@@ -303,11 +303,11 @@ When converting between transaction types, the **value** (price, cost, extended)
 
 **Where:** `base_line_model.py` → `BaseLineCore.ensure_json_defaults()`
 
-**What:** Add a `normalize_line_quantity()` function that maps `"ordered"` → `"placed"`, similar to the existing `normalize_price_map()` and `normalize_cost_map()`.
+**What:** Add a `normalize_line_quantity()` function that maps `"ordered"` → `"staged"`, similar to the existing `normalize_price_map()` and `normalize_cost_map()`.
 
 ```python
 def normalize_line_quantity(q: dict | None, transaction_type: str | None = None) -> dict:
-    """Normalize quantity JSON: ensure 'placed' key exists."""
+    """Normalize quantity JSON: ensure 'staged' key exists."""
     base = default_quantity(transaction_type=transaction_type)
     if not isinstance(q, dict):
         return base
@@ -315,9 +315,9 @@ def normalize_line_quantity(q: dict | None, transaction_type: str | None = None)
     out = dict(base)
     out.update(q)  # Overlay incoming keys onto defaults
 
-    # Map "ordered" → "placed" if "placed" is missing or zero
-    if not out.get("placed") and out.get("ordered"):
-        out["placed"] = out.pop("ordered")
+    # Map "ordered" → "staged" if "staged" is missing or zero
+    if not out.get("staged") and out.get("ordered"):
+        out["staged"] = out.pop("ordered")
     elif "ordered" in out:
         out.pop("ordered")  # Remove redundant key
 
@@ -366,11 +366,11 @@ for _model, _parent_attr in _TOTALS_CONFIG:
 
 **Where:** `transfer_utils.py` → `convert_quantity_from_source()` and `proposal_to_order.py` → `_convert_quantity_from_proposal()`
 
-**What:** Ensure the output dict includes `"placed"` as the base quantity key:
+**What:** Ensure the output dict includes `"staged"` as the base quantity key:
 
 ```python
 out = {
-    "placed": base or 0,       # ← ADD THIS
+    "staged": base or 0,       # ← ADD THIS
     "remaining": base or 0,
     "invoiced": 0,
     converted_key: converted,
@@ -379,7 +379,7 @@ out = {
 
 ### Fix 4: Frontend Key Alignment (Optional, Lower Priority)
 
-Optionally update React2025 to send `"placed"` instead of `"ordered"` in save payloads. This isn't strictly required because Fix 1 normalizes on the backend, but it eliminates the mismatch at the source. Affects ~8 files.
+Optionally update React2025 to send `"staged"` instead of `"ordered"` in save payloads. This isn't strictly required because Fix 1 normalizes on the backend, but it eliminates the mismatch at the source. Affects ~8 files.
 
 ---
 
@@ -396,8 +396,8 @@ from apps.transactions.models import OrderLine, InvoiceLine, ProposalLine, Purch
 for Model in [OrderLine, InvoiceLine, ProposalLine, PurchaseLine, WorkOrderLine]:
     for line in Model.objects.all():
         q = line.quantity or {}
-        if 'ordered' in q and not q.get('placed'):
-            q['placed'] = q.pop('ordered')
+        if 'ordered' in q and not q.get('staged'):
+            q['staged'] = q.pop('ordered')
             line.quantity = q
             line.save()  # triggers ensure_json_defaults → _calculate_extended_price
             # Also triggers header totals recalc (after Fix 2)

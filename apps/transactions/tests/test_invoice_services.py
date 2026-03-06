@@ -64,7 +64,7 @@ class InvoiceTotalsServiceTest(TestCase):
         InvoiceLine.objects.create(
             invoice=self.invoice,
             item={"description": "Test Item"},
-            quantity={"placed": 2, "remaining": 2},
+            quantity={"staged": 2, "remaining": 2},
             price={"extended": 20.00},
             cost={"extended": 16.00, "tax": 1.60}
         )
@@ -108,7 +108,7 @@ class OrderToInvoiceServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={"description": "Test Item"},
-            quantity={"placed": 2, "remaining": 2},
+            quantity={"staged": 2, "remaining": 2},
             price={"unit": 10.00, "extended": 20.00},
             cost={"extended": 16.00}
         )
@@ -135,14 +135,14 @@ class OrderToInvoiceServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={"description": "Item 1"},
-            quantity={"placed": 5, "remaining": 3},
+            quantity={"staged": 5, "remaining": 3},
             price={"unit": 10.00, "extended": 30.00},
             cost={"extended": 24.00}
         )
         OrderLine.objects.create(
             order=self.order,
             item={"description": "Item 2"},
-            quantity={"placed": 2, "remaining": 0},  # Already invoiced
+            quantity={"staged": 2, "remaining": 0},  # Already invoiced
             price={"unit": 5.00, "extended": 0.00},
             cost={"extended": 0.00}
         )

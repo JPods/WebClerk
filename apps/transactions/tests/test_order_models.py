@@ -88,14 +88,14 @@ class OrderModelTest(TestCase):
         line1 = OrderLine.objects.create(
             parent=order,
             description="Item 1",
-            quantity={'placed': 2, 'remaining': 2},
+            quantity={'staged': 2, 'remaining': 2},
             price={'unit': 10.00, 'extended': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         line2 = OrderLine.objects.create(
             parent=order,
             description="Item 2",
-            quantity={'placed': 1, 'remaining': 1},
+            quantity={'staged': 1, 'remaining': 1},
             price={'unit': 15.00, 'extended': 15.00},
             cost={'unit': 12.00, 'extended': 12.00}
         )
@@ -132,7 +132,7 @@ class OrderModelTest(TestCase):
         OrderLine.objects.create(
             parent=order,
             description="Test Item",
-            quantity={'placed': 1, 'remaining': 1},
+            quantity={'staged': 1, 'remaining': 1},
             price={'unit': 100.00, 'extended': 100.00},
             cost={'unit': 80.00, 'extended': 80.00}
         )
@@ -171,14 +171,14 @@ class OrderLineModelTest(TestCase):
         line = OrderLine.objects.create(
             parent=self.order,
             description="Test Item",
-            quantity={'placed': 5, 'remaining': 5},
+            quantity={'staged': 5, 'remaining': 5},
             price={'unit': 20.00},
             cost={'unit': 15.00}
         )
 
         self.assertEqual(line.parent, self.order)
         self.assertEqual(line.description, "Test Item")
-        self.assertEqual(line.quantity['placed'], 5)
+        self.assertEqual(line.quantity['staged'], 5)
         self.assertEqual(line.price['unit'], 20.00)
         self.assertEqual(line.cost['unit'], 15.00)
 
@@ -187,7 +187,7 @@ class OrderLineModelTest(TestCase):
         line = OrderLine.objects.create(
             parent=self.order,
             description="Test Item",
-            quantity={'placed': 1, 'remaining': 1}
+            quantity={'staged': 1, 'remaining': 1}
         )
 
         # Test getter

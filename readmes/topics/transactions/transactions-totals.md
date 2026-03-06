@@ -1,6 +1,41 @@
 # Transactions: Line Calculations, Quantity Flow & Totals Rollup
 
-> **Last updated**: 2026-02-17
+> **Last updated**: 2026-03-05
+
+---
+
+## Quick Reference: Quantity Semantics
+
+| Field | Description |
+|-------|-------------|
+| `active` | **User-entered quantity** — always the primary input for manual entry |
+| `staged` | The quantity committed on this line (= `active` for standalone, = `source.remaining` for transfers) |
+| `remaining` | **Uncommitted inventory** — what's available for downstream transfer |
+
+### Standalone vs Transferred Lines
+
+| Origin | How line is created | `staged` source | `active` source |
+|--------|---------------------|-----------------|---------------------|
+| **Standalone** | User creates new line | Mirrors `active` | User input |
+| **Transferred** | Transfer service creates | `source.remaining` | 0 initially (or `staged` for invoices) |
+
+### `remaining` By Transaction Type
+
+| Type | Standalone | After Transfer(s) | End of Chain? |
+|------|------------|-------------------|---------------|
+| Proposal | `= staged` | `staged - transferred_qty` | No |
+| Order | `= staged` | `staged - invoiced_qty` | No |
+| Purchase | `= staged` | `staged - received_qty` | No |
+| WorkOrder | `= staged` | `staged - completed_qty` | No |
+| **Invoice** | **Always 0** | N/A | **Yes** |
+| **Receipt** | **Always 0** | N/A | **Yes** |
+
+### Transfer Equation
+
+```
+target.staged = transfer_qty  (from source.remaining)
+source.remaining -= transfer_qty
+```
 
 ---
 
@@ -35,8 +70,8 @@ which seeds missing JSON fields and — for sell-side lines — computes extende
 `_calculate_extended_price()` at `base_line_model.py:388`:
 
 ```
-price.extended = (quantity.placed × price.unit) − discount_amount
-cost.extended  = (quantity.placed × cost.unit)  − discount_amount
+price.extended = (quantity.staged × price.unit) − discount_amount
+cost.extended  = (quantity.staged × cost.unit)  − discount_amount
 ```
 
 Where discount_amount is:
@@ -47,7 +82,7 @@ Where discount_amount is:
 In code (`_calculate_extended_price` at `base_line_model.py:388`):
 
 ```python
-quantity = self.quantity.get("placed", 0)
+quantity = self.quantity.get("staged", 0)
 gross    = quantity × unit_price                    # Decimal-precise
 discount = gross × (discount_percent / 100)         # if no explicit amount
 extended = gross − discount_amount
@@ -75,7 +110,7 @@ Line.save()
       │    cost      → default_cost()        # unit, extended, shipping, handling, freight…
       │    tax       → default_tax()         # sales_rate, cost_rate…
       │    physical  → default_physical()    # weight, dimensions, volume…
-      │    quantity  → default_quantity(kind) # placed, actioned, remaining  (base_line_model.py:60)
+      │    quantity  → default_quantity(kind) # staged, active, remaining  (base_line_model.py:60)
       │    price     → default_price()       # [sell-side only] unit, extended, discount…
       │
       ├─ normalize_cost_map()  — always (fixes nulls, ensures all keys exist)
@@ -88,24 +123,71 @@ Line.save()
 ## 2. Quantity Flow Between Transactions
 
 When a transfer service converts one transaction to another, quantity flows
-from the **source line's `remaining`** into the **target line**, and the source
-line's `actioned` is incremented.
+from the **source line's `remaining`** into the **target line's `staged`**.
+The source line's `remaining` is decremented by the transferred amount.
 
-### End-of-chain semantics (invoices)
+### End-of-chain semantics (invoices & receipts)
 
-Invoice lines sit at the end of the transfer chain — nothing downstream acts
-on them.  They use **actioned-first** quantity rules:
+Invoice and receipt lines sit at the end of the transfer chain — nothing downstream acts
+on them.  They use **active-first** quantity rules:
 
 | Rule | Detail |
 |------|--------|
-| User edits `actioned` | The qty the user types IS the invoiced amount |
-| Standalone (no parent) | `placed = actioned` |
-| Transferred | `placed = source.remaining`, `actioned = placed` |
-| `remaining` | Always **0** — nothing downstream from an invoice |
+| User edits `active` | The qty the user types IS the invoiced/received amount |
+| Standalone (no parent) | `staged = active`, `remaining = 0` |
+| Transferred | `staged = source.remaining`, `active = staged` |
+| `remaining` | Always **0** — nothing downstream from an invoice or receipt |
 
-All other transaction types (orders, proposals, purchases) use **placed-first**
-semantics: the user edits `placed`, `actioned` starts at 0, and
-`remaining = placed − actioned`.
+### Quantity Editing Rules (Updated 2026-03)
+
+The user always edits `active` as the primary quantity input.
+The `staged` and `remaining` fields are derived based on context.
+
+#### All Transaction Types — User Input
+
+| Field | Behavior |
+|-------|----------|
+| `active` | **User-editable** — the primary quantity input |
+| `staged` | Mirrors `active` for standalone; set from source for transfers |
+
+#### Orders, Proposals, Purchases (remaining = staged for standalone)
+
+For **non-invoice** transactions:
+
+| Context | `remaining` Formula |
+|---------|---------------------|
+| Standalone (user creates new line) | `remaining = staged` (full qty available downstream) |
+| Transferred (line from parent) | `remaining = staged - active` (what's left to transfer) |
+
+Example flow (standalone order → partial invoice → full):
+```
+Order created:         active=10, staged=10, remaining=10  (user entered 10)
+Invoice 6 created:     order.remaining: 10 → 4  (6 transferred to invoice.staged)
+Invoice 4 created:     order.remaining: 4 → 0   (fully fulfilled)
+```
+
+#### Invoices, Receipts (end-of-chain, remaining = 0)
+
+For **end-of-chain** lines:
+
+| Field | Behavior |
+|-------|----------|
+| `active` | User-editable — the quantity being invoiced/received |
+| `staged` | Mirrors `active` (standalone) or set from source (transfer) |
+| `remaining` | Always **0** — nothing downstream from invoices |
+
+### JSON Deep-Merge on PATCH Updates
+
+When a PATCH request sends only a subset of quantity keys (e.g., `{"quantity": {"active": 5}}`),
+the serializer and transaction save service **deep-merge** the new values with
+existing ones. This ensures that updating one field preserves other fields.
+
+The `normalize_quantity_map()` function then:
+1. Mirrors `staged = active` when only `active` is provided (standalone entry)
+2. For orders/proposals/purchases:
+   - Standalone (staged == active): `remaining = staged`
+   - Transferred (staged != active): `remaining = staged - active`
+3. For invoices/receipts: `remaining = 0` always
 
 Key code paths:
 - Generic converter: `transfer_utils.py:21` — `convert_quantity_from_source()`
@@ -115,45 +197,107 @@ Key code paths:
 
 ### The pattern
 
+**Partial Transfer: Order → Invoice (6 of 10 units)**
+
 ```
-Source Line (e.g. OrderLine)          Target Line (e.g. InvoiceLine)
-┌──────────────────────────┐          ┌──────────────────────────┐
-│ placed:    10             │ ──────▶ │ placed:    10             │
-│ actioned:   0 → 10       │          │ actioned:  10             │
-│ remaining: 10 →  0       │          │ remaining:  0             │
-└──────────────────────────┘          └──────────────────────────┘
+Source (OrderLine)                      Target (InvoiceLine)
+┌─────────────────────────┐             ┌─────────────────────────┐
+│ BEFORE TRANSFER:        │             │                         │
+│   active: 10 (user) │             │                         │
+│   staged:   10          │             │                         │
+│   remaining: 10         │             │                         │
+├─────────────────────────┤             │                         │
+│ AFTER TRANSFER:         │  ────6───▶  │ active: 6           │
+│   active: 10        │             │ staged:   6 (from src)  │
+│   staged:   10          │             │ remaining: 0 (end-chain)│
+│   remaining: 4 (10-6)   │             │                         │
+└─────────────────────────┘             └─────────────────────────┘
 ```
 
 **Rules:**
-1. Target `placed` = source `remaining` (the qty being transferred)
-2. Source `actioned` += transferred amount
-3. Source `remaining` = source `placed` − source `actioned`
-4. Target `actioned` = target `placed` for invoices (end-of-chain);
-   starts at 0 for orders/proposals
-5. Target `remaining` = 0 for invoices; = target `placed` for orders/proposals
+1. **Standalone entry**: User provides `active`, system mirrors `staged = active`
+2. **Transfer operation**: `target.staged = transfer_qty` (from `source.remaining`)
+3. **Source update**: `source.remaining -= transfer_qty` after transfer
+4. **End-of-chain**: Invoice/Receipt always have `remaining = 0`
+
+### Inventory Responsibility Transfer
+
+The `remaining` field represents **uncommitted inventory responsibility** — quantity
+that can still be transferred to downstream documents.
+
+When a transfer service creates a child line:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SOURCE LINE (e.g. Order)         TRANSFER             TARGET LINE (Invoice)│
+│  ─────────────────────────        ───────              ────────────────────  │
+│                                                                              │
+│  remaining: 10                                                               │
+│       │                                                                      │
+│       └──────── "Transfer 6 units" ───────────►  staged: 6                   │
+│                                                  transferred: 6                 │
+│  remaining: 10 - 6 = 4                           remaining: 0                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**The transfer equation:**
+```
+target.staged = transfer_qty  (taken from source.remaining)
+source.remaining -= transfer_qty
+```
+
+This allows:
+- **Partial transfers**: Invoice 6 of 10 units, leaving 4 remaining on the order
+- **Multiple children**: Order can spawn multiple invoices until `remaining = 0`
+- **Backorder tracking**: `remaining > 0` means unfulfilled quantity exists
 
 ### Full chain example: Proposal → Order → Invoice
 
 ```
-ProposalLine          OrderLine              InvoiceLine
-placed:    10         placed:    10          placed:    10
-actioned:   0→10      actioned:   0→10       actioned:  10
-remaining: 10→ 0      remaining: 10→ 0       remaining:  0
-status: transferred   status: transferred    status: planned
+                           TRANSFER              TRANSFER
+ProposalLine           ───────────▶  OrderLine   ───────────▶  InvoiceLine
+┌──────────────────┐               ┌──────────────────┐      ┌──────────────────┐
+│User creates:     │               │Transferred:      │      │Transferred:      │
+│ active: 10   │               │ staged: 10       │      │ staged: 10       │
+│ staged:   10     │               │ active: 10   │      │ active: 10   │
+│ remaining: 10    │               │ remaining: 10    │      │ remaining: 0     │
+├──────────────────┤               ├──────────────────┤      │                  │
+│After transfer:   │               │After transfer:   │      │ (end of chain)   │
+│ remaining: 0     │               │ remaining: 0     │      │                  │
+└──────────────────┘               └──────────────────┘      └──────────────────┘
 ```
 
-### Partial transfer example: Order (10) → Invoice (6), backlog (4)
+### Partial transfer example: Order → Invoice #1 (6 units) → Invoice #2 (4 units)
 
 ```
-OrderLine                InvoiceLine #1
-placed:    10            placed:     6
-actioned:   0→ 6         actioned:   6
-remaining: 10→ 4         remaining:  0
+STEP 1: User creates Order with 10 units
+┌───────────────────────┐
+│ OrderLine             │
+│   active: 10 (user)│
+│   staged:   10        │
+│   remaining: 10       │  ← Full qty available
+└───────────────────────┘
 
-                         (later) InvoiceLine #2
-OrderLine (updated)      placed:     4
-actioned:   6→10         actioned:   4
-remaining:  4→ 0         remaining:  0
+STEP 2: Create Invoice #1 for 6 units
+┌───────────────────────┐     ┌───────────────────────┐
+│ OrderLine (updated)   │     │ InvoiceLine #1      │
+│   active: 10      │     │   active: 6     │
+│   staged:   10        │ ─▶  │   staged:   6       │
+│   remaining: 4        │     │   remaining: 0      │
+└───────────────────────┘     └───────────────────────┘
+           ↑                              ↑
+     Still has 4 left              End of chain
+
+STEP 3: Create Invoice #2 for remaining 4 units
+┌───────────────────────┐     ┌───────────────────────┐
+│ OrderLine (final)     │     │ InvoiceLine #2      │
+│   active: 10      │     │   active: 4     │
+│   staged:   10        │ ─▶  │   staged:   4       │
+│   remaining: 0        │     │   remaining: 0      │
+└───────────────────────┘     └───────────────────────┘
+           ↑                              ↑
+     Fully fulfilled               End of chain
 ```
 
 ### Transfer service implementation
@@ -161,17 +305,18 @@ remaining:  4→ 0         remaining:  0
 Each transfer service follows this pattern:
 
 ```python
-# 1. Read source quantity
+# 1. Read source quantity — `remaining` is what's available to transfer
 src_qty = source_line.quantity
-transfer_amount = src_qty.get("remaining", 0)  # what's left to transfer
+available = src_qty.get("remaining", 0)
+transfer_amount = min(available, requested_qty)  # can't transfer more than remaining
 
 # 2. Build target quantity
-# For invoices (end-of-chain): actioned = placed, remaining = 0
-# For orders/proposals: actioned = 0, remaining = placed
-is_end_of_chain = target_type == "invoice"
+# For end-of-chain (invoice/receipt): active = staged, remaining = 0
+# For mid-chain (order from proposal): remaining = staged (full qty available)
+is_end_of_chain = target_type in ("invoice", "receipt")
 target_qty = {
-    "placed": transfer_amount,
-    "actioned": transfer_amount if is_end_of_chain else 0,
+    "staged": transfer_amount,
+    "active": transfer_amount if is_end_of_chain else transfer_amount,  # user input mirrors
     "remaining": 0 if is_end_of_chain else transfer_amount,
     "is_fixed": src_qty.get("is_fixed", False),
     "precision": src_qty.get("precision", 2),
@@ -181,17 +326,16 @@ target_qty = {
 target_line = TargetLineModel.objects.create(
     parent_fk=target_header,
     quantity=target_qty,
-    price=source_line.price,              # extended already computed
+    price=source_line.price,
     cost=source_line.cost,
     item=source_line.item,
     refs={"source": {"model": "order_line", "id": source_line.pk}},
 )
 
-# 4. Update source line
-src_qty["actioned"] = src_qty.get("actioned", 0) + base
-src_qty["remaining"] = max(0, src_qty["placed"] - src_qty["actioned"])
+# 4. Update source line — decrement remaining
+src_qty["remaining"] = max(0, src_qty["remaining"] - transfer_amount)
 source_line.quantity = src_qty
-source_line.status = "transferred"
+source_line.status = "partial" if src_qty["remaining"] > 0 else "transferred"
 source_line.save()
 ```
 
@@ -213,7 +357,7 @@ Target lines record their provenance:
 ```
 
 This enables rollup queries: *"how much of order line #144 has been invoiced?"*
-→ query `InvoiceLine` where `refs.source.id = 144`, sum `quantity.placed`.
+→ query `InvoiceLine` where `refs.source.id = 144`, sum `quantity.staged`.
 
 ---
 
@@ -359,7 +503,7 @@ graph TD
   PostSave --> InventorySignal[update_inventory_on_save]
   PostSave --> HeaderLinksSignal[maintain_header_links]
   PostSave --> TotalsSignal[update_totals_on_save]
-  InventorySignal --> PendingDispatch[dispatch_pending_processing]
+  InventorySignal --> PendingDispatch[dispatch_pending_active]
   PendingDispatch --> Celery[Celery/Redis async]
   PendingDispatch --> Inline[Inline fallback]
   Celery --> InventoryUpdate[process_line_item_pending]
@@ -371,8 +515,8 @@ graph TD
 
 ### Error Handling & Fallbacks
 
-- **Signal failures:** If a signal handler fails, Django logs the error and continues processing other signals. Critical inventory and totals signals should be monitored for exceptions.
-- **Celery worker offline:** If no Celery worker is alive, inventory processing falls back to synchronous inline execution. See [celery-redis-pending.md](../../celery-redis-pending.md) for details.
+- **Signal failures:** If a signal handler fails, Django logs the error and continues active other signals. Critical inventory and totals signals should be monitored for exceptions.
+- **Celery worker offline:** If no Celery worker is alive, inventory active falls back to synchronous inline execution. See [celery-redis-pending.md](../../celery-redis-pending.md) for details.
 - **Pending record issues:** If Pending records cannot be created or processed, inventory deltas may be lost. Safety net: Celery Beat retries every 30s.
 - **Database errors:** All saves are wrapped in atomic transactions; partial failures roll back changes.
 - **Validation:** Lines and headers are validated before save; invalid payloads return 400 errors.
@@ -382,7 +526,7 @@ graph TD
 ### Glossary
 
 - **Pending record:** Temporary record tracking inventory delta until processed.
-- **Celery:** Background task queue for async processing.
+- **Celery:** Background task queue for async active.
 - **Redis:** Broker/cache for Celery tasks and worker liveness.
 - **Signal:** Django mechanism for event-driven callbacks (pre_save, post_save, post_delete).
 - **Lineage:** Provenance tracking via `refs` field on lines.
@@ -393,14 +537,14 @@ graph TD
 
 ### Concrete Example: OrderLine Save & Inventory Posting
 
-Suppose an OrderLine is saved with `quantity.placed = 5` for item #42:
+Suppose an OrderLine is saved with `quantity.staged = 5` for item #42:
 
 1. API `/wcapi/save/` receives payload.
 2. Order header and OrderLine are saved.
 3. `track_quantity_change` pre_save signal snapshots original quantity.
 4. `ensure_json_defaults` seeds missing fields; `_calculate_extended_price` computes price.
 5. `update_inventory_on_save` post_save signal compares new vs original quantity, creates Pending record for item #42, delta = +5.
-6. `dispatch_pending_processing` checks Celery worker:
+6. `dispatch_pending_active` checks Celery worker:
    - If alive: Pending processed async.
    - If offline: Pending processed inline.
 7. `process_line_item_pending` updates Item #42's quantity buckets.
@@ -410,7 +554,7 @@ Suppose an OrderLine is saved with `quantity.placed = 5` for item #42:
 
 ### Cross-links & Related Documents
 
-- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task processing
+- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task active
 - [../infrastructure/celery.md](../infrastructure/celery.md) — Celery + Redis installation & Django configuration
 - [../inventory/inventory.md](../inventory/inventory.md) — Inventory layering, PendingInventoryAdjustment, Item bucket schema
 - [transaction_line_save.md](transaction_line_save.md) — Save endpoint architecture
@@ -436,7 +580,7 @@ Only ProposalLine registers the totals signal.  See `signals.py:218`
 For the full Celery + Redis architecture, broker configuration, Beat schedule,
 worker liveness detection, and inline fallback, see:
 
-- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task processing
+- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task active
 - [../infrastructure/celery.md](../infrastructure/celery.md) — Celery + Redis installation & Django configuration
 - [../inventory/inventory.md](../inventory/inventory.md) — Inventory layering, PendingInventoryAdjustment, Item bucket schema
 
@@ -449,7 +593,7 @@ worker liveness detection, and inline fallback, see:
 | Line extended calc | `InvoiceLinesCalc` / `calcInvoice(True)` | `_calculate_extended_price()` at `base_line_model.py:388` |
 | Header rollup | Manual loop: `For ($inc; 1; $cnt)` summing fields | `compute_*_sell_cost_totals()` at `*_totals.py:12` |
 | Parent order recalc | `Accept_CalcStat` + manual field-by-field sum | Transfer service + `update_sell_cost_totals()` |
-| Quantity tracking | `qtyShipped`, `qtyBackLogged` (per-type fields) | `quantity.placed/actioned/remaining` via `default_quantity()` at `base_line_model.py:60` |
+| Quantity tracking | `qtyShipped`, `qtyBackLogged` (per-type fields) | `quantity.staged/transferred/remaining` via `default_quantity()` at `base_line_model.py:60` |
 | Quantity transfer | Direct assignment | `convert_quantity_from_source()` at `transfer_utils.py:21` |
 | Inventory | `INVT_dInvtApply`, `TallyInventory` | `PendingInventory` via post_save signal at `signals.py:218` |
 | Ledger | `Ledger_InvSave` | `apps/accounts/models/ledger.py` — terms → ledger rows |

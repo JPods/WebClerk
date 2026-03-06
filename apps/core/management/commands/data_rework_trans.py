@@ -149,7 +149,8 @@ class Command(BaseCommand):
                     )
 
                     # Set line details
-                    line.quantity = {'placed': random.randint(1, 10), 'precision': 2}
+                    qty = random.randint(1, 10)
+                    line.quantity = {'staged': qty, 'active': qty, 'remaining': qty, 'precision': 2}
                     line.price = {'unit': random.uniform(10, 100), 'extended': 0.0, 'precision': 2}
                     line.cost = {'unit': random.uniform(5, 50), 'extended': 0.0, 'precision': 2}
                     line.item = {

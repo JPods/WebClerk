@@ -97,7 +97,7 @@ class ReceiptLine(BaseExecLineModel):
     def qty_received(self) -> float:
         """Get the received quantity from the quantity JSON."""
         if self.quantity and isinstance(self.quantity, dict):
-            return float(self.quantity.get('placed', 0) or self.quantity.get('received', 0) or 0)
+            return float(self.quantity.get('staged', 0) or self.quantity.get('active', 0) or self.quantity.get('received', 0) or 0)
         return 0.0
     
     @property

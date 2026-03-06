@@ -15,7 +15,7 @@ def test_add_item_creates_pending_for_order():
         ida="TEST-ITEM",
         price={"base": 10},
         cost={"standard": 5},
-        record={"quantity": {"placed": 3}},
+        record={"quantity": {"staged": 3}},
     )
 
     # Create an order

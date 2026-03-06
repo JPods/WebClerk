@@ -94,7 +94,7 @@ def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseLine,
                     qty_src = getattr(src, 'quantity', {}) or {}
                     if isinstance(qty_src, dict):
                         q_parent = {}
-                        for k in ('ordered', 'placed', 'shipped', 'packed', 'extended', 'unit', 'remaining'):
+                        for k in ('staged', 'active', 'remaining', 'shipped', 'packed', 'extended', 'unit'):
                             if k in qty_src:
                                 q_parent[k] = qty_src.get(k)
                         if q_parent:
@@ -296,7 +296,7 @@ def receive_purchase(po: Purchase,
             lot=rl.lot or '',
             serial_batch=rl.serial_batch or '',
             item=pol.item or {'item_id': item_id},  # Copy item JSON from PO line
-            quantity={'placed': float(rl.qty), 'received': float(rl.qty)},
+            quantity={'staged': float(rl.qty), 'active': float(rl.qty), 'remaining': 0, 'received': float(rl.qty)},
             cost={'unit': unit_cost, 'extended': float(rl.qty) * unit_cost},
         )
         created_receipt_line_ids.append(receipt_line.id)
@@ -440,7 +440,7 @@ def complete_workorder(wo: WorkOrder,
             lot=cl.lot or '',
             serial_batch=cl.serial_batch or '',
             item=wol.item or {'item_id': item_id},  # Copy item JSON from WO line
-            quantity={'placed': float(cl.qty_completed), 'received': float(cl.qty_completed)},
+            quantity={'staged': float(cl.qty_completed), 'active': float(cl.qty_completed), 'remaining': 0, 'received': float(cl.qty_completed)},
             cost={'unit': unit_cost, 'extended': float(cl.qty_completed) * unit_cost},
         )
         created_receipt_line_ids.append(receipt_line.id)

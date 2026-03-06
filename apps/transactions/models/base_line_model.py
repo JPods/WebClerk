@@ -50,57 +50,62 @@ def _normalize_line_kind(name: str | None) -> str:
     # collapse common variants
     aliases = {
         "proposal": "proposal", "proposal_line": "proposal", "proposalline": "proposal",
-        "order": "order", "order_line": "order",
+        "order": "order", "order_line": "order", "orderline": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
-        "workorder": "workorder", "workorderline": "workorder",
-        "purchase": "purchase", "purchaseline": "purchase",
+        "workorder": "workorder", "workorderline": "workorder", "work_order": "workorder",
+        "purchase": "purchase", "purchaseline": "purchase", "purchase_line": "purchase",
+        "receipt": "receipt", "receiptline": "receipt", "receipt_line": "receipt",
     }
     return aliases.get(n, n)
 
 def _is_end_of_chain(transaction_type: str | None) -> bool:
     """True for transaction types that sit at the end of the transfer chain.
 
-    End-of-chain lines use *actioned-first* semantics:
-      • The user's input IS the actioned quantity (what was invoiced / received).
-      • If the line has no parent, placed = actioned.
-      • remaining is always 0 — nothing downstream acts on these lines.
+    End-of-chain lines have:
+      • remaining = 0 always (nothing downstream)
+      • active = staged (the full qty is "consumed")
+
+    Transaction types:
+      • invoice — sales invoice (order → invoice)
+      • receipt — purchase receipt (purchase → receipt)
     """
     kind = _normalize_line_kind(transaction_type)
-    return kind in ("invoice",)
+    return kind in ("invoice", "receipt")
 
 
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     """Return the canonical quantity JSONB structure for a line.
 
     Canonical keys (all transaction types):
-      - placed:    quantity committed on this line
-      - actioned:  quantity acted upon (meaning is context-dependent):
-                     Proposal  → converted to order
-                     Order     → shipped / invoiced
-                     Invoice   → invoiced (= placed; remaining always 0)
-                     Purchase  → received from vendor
-                     WorkOrder → completed
-      - remaining: placed − actioned  (always 0 for invoices)
-      - is_fixed:  whether quantity is locked from editing
-      - precision: decimal places for quantity math
+      - staged:     quantity committed on this line (= active for standalone)
+      - active:     user-entered quantity (always the primary input)
+      - remaining:  uncommitted inventory available for downstream transfer
+      - is_fixed:   whether quantity is locked from editing
+      - precision:  decimal places for quantity math
       - is_blanket: blanket/open-ended quantity (optional)
       - increment:  minimum order increment (optional)
 
-    Invoice quantity rules (end-of-chain):
-      • The user edits *actioned* (the qty being invoiced).
-      • If the line has no parent, placed = actioned.
-      • remaining is always 0 — nothing downstream from an invoice.
+    Quantity flow for standalone lines (no parent):
+      Order/Proposal/Purchase: active=10 → staged=10, remaining=10
+      Invoice/Receipt:         active=10 → staged=10, remaining=0
 
-    Legacy keys (ordered, invoiced, received, shipped, packed) are DEPRECATED.
-    Transfer services should read/write placed/actioned/remaining only.
+    Transfer semantics (how inventory responsibility moves):
+      target.staged = transfer_qty  (taken from source.remaining)
+      source.remaining -= transfer_qty
+      
+      Example: Order(remaining=10) → Invoice(staged=6)
+               Order remaining becomes 10-6=4
+
+    Legacy keys (ordered, invoiced, received, placed, actioned, processing, etc.) are DEPRECATED.
+    Transfer services should read/write staged/active/remaining only.
 
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     kind = _normalize_line_kind(transaction_type)
     if kind == "proposal":
         return {
-            "placed": 0,
-            "actioned": 0,
+            "staged": 0,
+            "active": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -108,10 +113,10 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     elif kind == "order":
-        # Sales orders: actioned = qty shipped/invoiced downstream
+        # Sales order: user enters active, remaining = inventory available to invoice
         return {
-            "placed": 0,
-            "actioned": 0,
+            "staged": 0,
+            "active": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -119,11 +124,10 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     elif kind == "invoice":
-        # Invoices (end-of-chain): actioned = placed, remaining always 0.
-        # The user's qty input IS actioned.  If standalone, placed = actioned.
+        # Invoice (end-of-chain): remaining always 0, nothing downstream
         return {
-            "placed": 0,
-            "actioned": 0,
+            "staged": 0,
+            "active": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -131,12 +135,33 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     
-    elif kind == "purchase" or kind == "workorder":
-        # Purchase: actioned = qty received from vendor
-        # WorkOrder: actioned = qty completed
+    elif kind == "purchase":
+        # Purchase order: user enters active, remaining = inventory available to receive
         return {
-            "placed": 0,
-            "actioned": 0,
+            "staged": 0,
+            "active": 0,
+            "remaining": 0,
+            "is_fixed": False,
+            "precision": 2,
+            "is_blanket": False,
+            "increment": 0
+            }
+    elif kind == "workorder":
+        # Work order: user enters active, remaining = work left to complete
+        return {
+            "staged": 0,
+            "active": 0,
+            "remaining": 0,
+            "is_fixed": False,
+            "precision": 2,
+            "is_blanket": False,
+            "increment": 0
+            }
+    elif kind == "receipt":
+        # Receipt (end-of-chain): remaining always 0, nothing downstream
+        return {
+            "staged": 0,
+            "active": 0,
             "remaining": 0,
             "is_fixed": False,
             "precision": 2,
@@ -146,25 +171,12 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     else:
         # Default structure — used when transaction_type is unknown
         return {
-            "placed": None,
-            "actioned": None,
+            "staged": None,
+            "active": None,
             "remaining": None,
             "is_fixed": False,
             "precision": 2,
         }
-
-# Legacy quantity key → canonical key mapping.
-# Any of these arriving from old data or external systems are mapped to placed/actioned.
-_LEGACY_QTY_ALIASES: Dict[str, str] = {
-    "ordered":  "placed",
-    "quantity": "placed",
-    "qty":      "placed",
-    "shipped":  "actioned",
-    "invoiced": "actioned",
-    "received": "actioned",
-    "packed":   "actioned",
-    "completed": "actioned",
-}
 
 
 def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | None = None) -> Dict[str, Any]:
@@ -172,10 +184,21 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
 
     Handles:
       1. None / empty → full default from default_quantity()
-      2. Legacy keys (ordered, shipped, received, …) → placed / actioned
-      3. Null numeric values → 0
-      4. Missing canonical keys → backfilled from defaults
-      5. remaining recalculated as placed − actioned
+      2. Null numeric values → 0
+      3. Missing canonical keys → backfilled from defaults
+      4. Standalone mirroring: if active set but staged is 0, staged = active
+      5. Remaining calculation varies by context (see below)
+
+    Quantity Semantics:
+      The user always enters 'active' as the primary quantity input.
+      
+      Standalone (no parent, staged == active):
+        Order/Proposal/Purchase: remaining = staged (full qty available downstream)
+        Invoice/Receipt: remaining = 0 (end of chain)
+      
+      Transferred (has parent, staged != active):
+        Order/Proposal/Purchase: remaining = staged - active
+        Invoice/Receipt: remaining = 0 (end of chain)
     """
     base = default_quantity(transaction_type)
 
@@ -184,19 +207,8 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
 
     out = dict(base)  # start from full default
 
-    # Map legacy keys first (only when canonical key is still at default)
-    for legacy_key, canonical_key in _LEGACY_QTY_ALIASES.items():
-        if legacy_key in q and canonical_key in out:
-            val = q[legacy_key]
-            # Only adopt legacy value if canonical key hasn't been explicitly set
-            if q.get(canonical_key) in (None, 0, 0.0):
-                try:
-                    out[canonical_key] = float(val) if val is not None else 0
-                except (TypeError, ValueError):
-                    out[canonical_key] = 0
-
     # Overlay explicit canonical keys from input
-    for key in ("placed", "actioned", "remaining"):
+    for key in ("staged", "active", "remaining"):
         if key in q and q[key] is not None:
             try:
                 out[key] = float(q[key])
@@ -221,28 +233,42 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
         except (TypeError, ValueError):
             out["increment"] = 0
 
-    # ── Invoice (end-of-chain) rules ─────────────────────────────────
-    # Invoices: actioned = placed, remaining = 0.  If the caller only
-    # set actioned (user edit) and there is no explicit placed that
-    # differs, we sync placed = actioned.  remaining is always 0.
+    # ── Standalone detection: mirror staged = active ─────────────────
+    # When user enters active (standalone entry) and staged was not
+    # explicitly provided, mirror staged = active.
+    staged_val = out.get("staged", 0) or 0
+    active_val = out.get("active", 0) or 0
+    
+    if active_val and not staged_val:
+        # Standalone entry: user provided active, mirror to staged
+        out["staged"] = active_val
+        staged_val = active_val
+
+    # ── Invoice / Receipt (end-of-chain) rules ───────────────────────
+    # End-of-chain: active = staged, remaining = 0 always.
     if _is_end_of_chain(transaction_type):
-        placed_val = out.get("placed", 0) or 0
-        actioned_val = out.get("actioned", 0) or 0
-        # If placed wasn't explicitly set (still 0) but actioned was,
-        # treat the user's input as the authoritative quantity.
-        if actioned_val and not placed_val:
-            out["placed"] = actioned_val
-        # If placed was set (e.g. from transfer) and actioned wasn't,
-        # default actioned to placed — the whole qty is being invoiced.
-        elif placed_val and not actioned_val:
-            out["actioned"] = placed_val
+        # If staged was set (e.g. from transfer) and active wasn't,
+        # default active to staged — the whole qty is being invoiced.
+        if staged_val and not active_val:
+            out["active"] = staged_val
         out["remaining"] = 0
         return out
 
-    # ── Standard remaining calculation ────────────────────────────────
-    placed = out.get("placed", 0) or 0
-    actioned = out.get("actioned", 0) or 0
-    out["remaining"] = float(_to_decimal(placed - actioned, places=out.get("precision", 2)))
+    # ── Standard remaining calculation (Order, Proposal, Purchase) ────
+    # Standalone (staged == active): user entered qty, full amount
+    #   available for downstream transfer → remaining = staged
+    # Transferred (staged != active): staged from parent, active
+    #   represents downstream consumption → remaining = staged - active
+    staged = out.get("staged", 0) or 0
+    active = out.get("active", 0) or 0
+    precision = out.get("precision", 2)
+    
+    if staged == active:
+        # Standalone: full qty available for downstream
+        out["remaining"] = float(_to_decimal(staged, places=precision))
+    else:
+        # Transferred: remaining = unprocessed portion
+        out["remaining"] = float(_to_decimal(staged - active, places=precision))
 
     return out
 
@@ -451,7 +477,7 @@ class BaseLineCore(BaseModel):
         Flow:
           1. Seed missing envelopes from JSON_DEFAULT_FACTORIES
           2. Normalize quantity via normalize_quantity_map() — always runs
-             (maps legacy keys like 'ordered' → 'placed', fills missing keys,
+             (maps legacy keys like 'ordered' → 'staged', fills missing keys,
              fixes nulls, recalculates remaining)
           3. Normalize cost via normalize_cost_map() — always runs
 
@@ -505,8 +531,8 @@ class BaseSellLineModel(BaseLineCore):
     on every save via _calculate_extended_price().
 
     Extended calculation (runs in ensure_json_defaults → _calculate_extended_price):
-      price.extended = (quantity.placed × price.unit) − discount_amount
-      cost.extended  = (quantity.placed × cost.unit)  − discount_amount
+      price.extended = (quantity.staged × price.unit) − discount_amount
+      cost.extended  = (quantity.staged × cost.unit)  − discount_amount
 
     See: readmes/topics/transactions/transactions-totals.md §1
     """
@@ -524,10 +550,10 @@ class BaseSellLineModel(BaseLineCore):
         self._calculate_extended_price()         # compute extended from qty × unit
 
     def _calculate_extended_price(self) -> None:
-        """Compute price.extended and cost.extended from quantity.placed.
+        """Compute price.extended and cost.extended from quantity.staged (or active).
 
         Formula for both price and cost envelopes:
-          gross = quantity.placed × unit
+          gross = quantity.staged × unit
           discount_amount = explicit value if set, else gross × (discount_percent / 100)
           extended = gross − discount_amount
 
@@ -536,8 +562,8 @@ class BaseSellLineModel(BaseLineCore):
 
         See: readmes/topics/transactions/transactions-totals.md §1
         """
-        # quantity.placed drives both price and cost extended calculations
-        quantity = self.quantity.get("placed", 0) if self.quantity else 0
+        # quantity.staged (or active) drives both price and cost extended calculations
+        quantity = self.quantity.get("staged", 0) or self.quantity.get("active", 0) if self.quantity else 0
 
         # --- SELL EXTENDED: price.extended = qty × price.unit − discount ---
         if self.price:

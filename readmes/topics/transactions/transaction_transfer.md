@@ -11,8 +11,8 @@ Every transfer:
 - Creates a **new** target transaction (id = null → auto-assigned)
 - Links the target back to its source via `parent_model` / `parent_id`
 - Records an audit trail in `refs.source` and `refs.xfer`
-- Updates the source line's `quantity.actioned` and `quantity.remaining`
-- Uses **canonical** quantity keys: `placed` / `actioned` / `remaining`
+- Updates the source line's `quantity.transferred` and `quantity.remaining`
+- Uses **canonical** quantity keys: `staged` / `transferred` / `remaining`
 
 ---
 
@@ -35,9 +35,9 @@ Creates a copy of the proposal with quantities reset.
 **Line quantities:**
 
 ```
-target_line.quantity.placed    = source_line.quantity.placed
-target_line.quantity.actioned  = 0
-target_line.quantity.remaining = source_line.quantity.placed
+target_line.quantity.staged    = source_line.quantity.staged
+target_line.quantity.transferred  = 0
+target_line.quantity.remaining = source_line.quantity.staged
 ```
 
 The source proposal is **not modified** — no quantities change, no status
@@ -85,8 +85,8 @@ else:
 **Target line quantities:**
 
 ```
-target_line.quantity.placed    = transfer_qty
-target_line.quantity.actioned  = 0
+target_line.quantity.staged    = transfer_qty
+target_line.quantity.transferred  = 0
 target_line.quantity.remaining = transfer_qty
 target_line.quantity.increment = source_line.quantity.increment
 ```
@@ -94,7 +94,7 @@ target_line.quantity.increment = source_line.quantity.increment
 **Source line update (decrement):**
 
 ```
-source_line.quantity.actioned  += transfer_qty
+source_line.quantity.transferred  += transfer_qty
 source_line.quantity.remaining -= transfer_qty
 ```
 
@@ -127,9 +127,9 @@ because the counterparty context differs.
 **Line quantities (full reset):**
 
 ```
-target_line.quantity.placed    = source_line.quantity.placed
-target_line.quantity.actioned  = 0
-target_line.quantity.remaining = source_line.quantity.placed
+target_line.quantity.staged    = source_line.quantity.staged
+target_line.quantity.transferred  = 0
+target_line.quantity.remaining = source_line.quantity.staged
 ```
 
 Source lines are **not decremented** — cross-type transfers are independent copies
@@ -141,9 +141,9 @@ that track procurement separately from sales fulfillment.
 
 ```python
 {
-    "placed":     0,       # quantity committed on this line
-    "actioned":   0,       # qty converted / shipped / received (context-dependent)
-    "remaining":  0,       # placed - actioned
+    "staged":     0,       # quantity committed on this line
+    "transferred":   0,       # qty converted / shipped / received (context-dependent)
+    "remaining":  0,       # staged - transferred
     "increment":  0,       # minimum transfer batch size (0 = transfer all)
     "is_fixed":   False,   # lock from editing
     "is_blanket": False,   # open-ended qty
@@ -151,7 +151,7 @@ that track procurement separately from sales fulfillment.
 }
 ```
 
-| Transaction Type | `actioned` means |
+| Transaction Type | `transferred` means |
 |------------------|-------------------|
 | Proposal | converted to order/invoice |
 | Order | shipped / invoiced |
@@ -204,7 +204,7 @@ order_line.refs = {
             "version": 1,
             "source": {"kind": "proposal", "parent_id": 42, "line_id": 101},
             "item": {"id": 7, "sku": "WDG-100", "name": "Widget"},
-            "qty": {"placed": 10, "remaining": 10},
+            "qty": {"staged": 10, "remaining": 10},
             "price": {"unit": 25.00, "extended": 250.00},
             "cost": {"unit": 12.00, "extended": 120.00}
         }

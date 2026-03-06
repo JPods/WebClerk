@@ -32,26 +32,26 @@ print('Proposal lines:')
 for line in ProposalLine.objects.order_by('-id')[:10]:
     item_data = line.item or {}
     if item_data.get('item_id') == 259 or item_data.get('id') == 259:
-        qty = (line.quantity or {}).get('placed', 0)
+        qty = (line.quantity or {}).get('staged', 0) or (line.quantity or {}).get('active', 0)
         print(f'  #{line.pk}: proposal={line.proposal_id}, qty={qty}')
 
 print('Order lines:')
 for line in OrderLine.objects.order_by('-id')[:10]:
     item_data = line.item or {}
     if item_data.get('item_id') == 259 or item_data.get('id') == 259:
-        qty = (line.quantity or {}).get('placed', 0)
+        qty = (line.quantity or {}).get('staged', 0) or (line.quantity or {}).get('active', 0)
         print(f'  #{line.pk}: order={line.order_id}, qty={qty}')
 
 print('Invoice lines:')
 for line in InvoiceLine.objects.order_by('-id')[:10]:
     item_data = line.item or {}
     if item_data.get('item_id') == 259 or item_data.get('id') == 259:
-        qty = (line.quantity or {}).get('placed', 0)
+        qty = (line.quantity or {}).get('staged', 0) or (line.quantity or {}).get('active', 0)
         print(f'  #{line.pk}: invoice={line.invoice_id}, qty={qty}')
 
 print('Purchase lines:')
 for line in PurchaseLine.objects.order_by('-id')[:10]:
     item_data = line.item or {}
     if item_data.get('item_id') == 259 or item_data.get('id') == 259:
-        qty = (line.quantity or {}).get('placed', 0)
+        qty = (line.quantity or {}).get('staged', 0) or (line.quantity or {}).get('active', 0)
         print(f'  #{line.pk}: purchase={line.purchase_id}, qty={qty}')

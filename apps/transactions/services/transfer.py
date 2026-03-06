@@ -109,16 +109,16 @@ def _get_transfer_mode(source_type: str, target_type: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Quantity helpers — canonical placed/actioned/remaining
+# Quantity helpers — canonical staged/processing/remaining
 # ---------------------------------------------------------------------------
 
 def _clone_quantity(src_qty: Dict) -> Dict:
-    """Clone mode: reset actioned, remaining = placed."""
-    placed = src_qty.get("placed", 0)
+    """Clone mode: reset active, remaining = staged."""
+    staged = src_qty.get("staged", 0)
     return {
-        "placed":     placed,
-        "actioned":   0,
-        "remaining":  placed,
+        "staged":     staged,
+        "active":     0,
+        "remaining":  staged,
         "increment":  src_qty.get("increment", 0),
         "is_fixed":   src_qty.get("is_fixed", False),
         "is_blanket": src_qty.get("is_blanket", False),
@@ -130,7 +130,7 @@ def _convert_quantity(src_qty: Dict) -> Dict:
     """Convert mode: apply increment logic and return the transfer qty dict.
 
     Returns:
-        Target quantity dict with placed = transfer_qty.
+        Target quantity dict with staged = transfer_qty.
         Also returns the decrement amount to apply to the source.
     """
     increment = src_qty.get("increment", 0)
@@ -145,8 +145,8 @@ def _convert_quantity(src_qty: Dict) -> Dict:
         transfer_qty = increment
 
     return {
-        "placed":     transfer_qty,
-        "actioned":   0,
+        "staged":     transfer_qty,
+        "active":     0,
         "remaining":  transfer_qty,
         "increment":  increment,
         "is_fixed":   src_qty.get("is_fixed", False),
@@ -157,12 +157,12 @@ def _convert_quantity(src_qty: Dict) -> Dict:
 
 
 def _cross_quantity(src_qty: Dict) -> Dict:
-    """Cross-type mode: full copy, reset actioned."""
-    placed = src_qty.get("placed", 0)
+    """Cross-type mode: full copy, reset active."""
+    staged = src_qty.get("staged", 0)
     return {
-        "placed":     placed,
-        "actioned":   0,
-        "remaining":  placed,
+        "staged":     staged,
+        "active":     0,
+        "remaining":  staged,
         "increment":  src_qty.get("increment", 0),
         "is_fixed":   src_qty.get("is_fixed", False),
         "is_blanket": src_qty.get("is_blanket", False),
@@ -288,7 +288,7 @@ def _build_line_metadata(
         "parent_id": getattr(src_line, f"{source_type}_id", None),
         "parent_model": source_type,
         "quantity_at_parent": {
-            "placed":    src_qty.get("placed", 0),
+            "staged":    src_qty.get("staged", 0) or src_qty.get("active", 0),
             "remaining": src_qty.get("remaining", 0),
         },
     }
@@ -300,9 +300,9 @@ def _build_line_metadata(
 # ---------------------------------------------------------------------------
 
 def _decrement_source_line(src_line: Model, transfer_qty: float) -> None:
-    """Decrease source remaining and bump actioned after convert transfer."""
+    """Decrease source remaining and bump transferred after convert transfer."""
     q = dict(getattr(src_line, "quantity", None) or {})
-    q["actioned"] = q.get("actioned", 0) + transfer_qty
+    q["transferred"] = q.get("transferred", 0) + transfer_qty
     q["remaining"] = max(0, q.get("remaining", 0) - transfer_qty)
     src_line.quantity = q
     fields = ["quantity", "dt_modified", "version"]

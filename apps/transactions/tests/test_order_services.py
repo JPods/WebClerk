@@ -62,14 +62,14 @@ class OrderTotalsServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'placed': 2, 'remaining': 2},
+            quantity={'staged': 2, 'remaining': 2},
             price={'unit': 10.00, 'extended': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 2'},
-            quantity={'placed': 1, 'remaining': 1},
+            quantity={'staged': 1, 'remaining': 1},
             price={'unit': 15.00, 'extended': 15.00},
             cost={'unit': 12.00, 'extended': 12.00}
         )
@@ -95,7 +95,7 @@ class OrderTotalsServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'placed': 1, 'remaining': 1},
+            quantity={'staged': 1, 'remaining': 1},
             price={'unit': 100.00, 'discount_amount': 10.00, 'extended': 90.00},
             cost={'unit': 80.00, 'extended': 80.00}
         )
@@ -122,7 +122,7 @@ class OrderTotalsServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'placed': 1, 'remaining': 1},
+            quantity={'staged': 1, 'remaining': 1},
             price={'unit': 100.00, 'extended': 100.00},
             cost={
                 'unit': 80.00,

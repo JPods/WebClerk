@@ -15,6 +15,9 @@ from .cost_validators import CostJSONField  # added
 class BaseLineSerializer(serializers.ModelSerializer):
     cost = CostJSONField(required=False)
 
+    # JSON fields that should deep-merge on PATCH/PUT (not replace)
+    JSON_MERGE_FIELDS = {'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source'}
+
     class Meta:
         fields = [
             'id', 'parent_id', 'status', 'type_sale', 'probability',
@@ -22,6 +25,22 @@ class BaseLineSerializer(serializers.ModelSerializer):
             'dt_created', 'dt_modified'
         ]
     read_only_fields = ['id', 'parent_id', 'dt_created', 'dt_modified']
+
+    def update(self, instance, validated_data):
+        """Deep-merge JSON fields instead of replacing them entirely.
+        
+        When a PATCH request sends only a subset of keys for a JSON field
+        (e.g., {"quantity": {"transferred": 5}}), we merge it with the existing
+        value so other keys (like "staged") are preserved.
+        """
+        for field in self.JSON_MERGE_FIELDS:
+            if field in validated_data and isinstance(validated_data[field], dict):
+                existing = getattr(instance, field, None)
+                if existing and isinstance(existing, dict):
+                    # Deep merge: existing values as base, new values overlay
+                    merged = {**existing, **validated_data[field]}
+                    validated_data[field] = merged
+        return super().update(instance, validated_data)
 
     def _filter_representation(self, data: dict) -> dict:
         request = self.context.get('request')

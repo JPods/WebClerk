@@ -3,8 +3,8 @@ Fix legacy quantity keys and null values in transaction line JSONB fields.
 
 Walks every line record across all transaction types (Proposal, Order, Invoice,
 Purchase, WorkOrder, Requisition, Receipt) and:
-  1. Normalizes quantity: maps legacy keys (ordered → placed, shipped → actioned, etc.),
-     fills missing canonical keys, replaces null numerics with 0.
+  1. Normalizes quantity: maps legacy keys (ordered → staged, shipped → transferred, etc.),
+     fills missing canonical keys (staged/active/remaining), replaces null numerics with 0.
   2. Normalizes cost: ensures all keys exist, replaces nulls with 0.
   3. Normalizes price (sell-side only): ensures all keys, replaces nulls with 0.
   4. Recalculates extended values (price.extended, cost.extended) from normalized data.
@@ -38,8 +38,8 @@ LINE_MODELS = {
 # Sell-side models have a price field
 SELL_MODELS = {"ProposalLine", "OrderLine", "InvoiceLine"}
 
-# Legacy quantity keys that should have been 'placed' or 'actioned'
-LEGACY_QTY_KEYS = {"ordered", "quantity", "qty", "shipped", "invoiced", "received", "packed", "completed"}
+# Legacy quantity keys that should have been 'staged' or 'active'
+LEGACY_QTY_KEYS = {"ordered", "quantity", "qty", "shipped", "invoiced", "received", "packed", "completed", "placed", "actioned"}
 
 
 def _needs_quantity_fix(q: dict | None) -> bool:
@@ -52,7 +52,7 @@ def _needs_quantity_fix(q: dict | None) -> bool:
     if LEGACY_QTY_KEYS & set(q.keys()):
         return True
     # Missing canonical keys?
-    for k in ("placed", "actioned", "remaining"):
+    for k in ("staged", "active", "remaining"):
         if k not in q or q[k] is None:
             return True
     return False
