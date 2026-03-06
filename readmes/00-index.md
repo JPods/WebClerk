@@ -13,6 +13,10 @@
 | 02 | `02-env-setup.md` | Environment variables |
 | 03 | `03-api-integration.md` | Connecting to wc3 wcapi |
 
+## Security & Permissions
+
+- `rbac-frontend.md` - Role-based access control in React (context, hooks, guards)
+
 ## Transaction Topics (`topics/`)
 
 - `transaction-services.md` - **Single Point of Authority services** (lines, tax, shipping, commissions, etc.)

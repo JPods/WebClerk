@@ -1,12 +1,14 @@
 import ComponentCard from "@/components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
+  type AdvancedDataTableHandle,
 } from "@/components/common/AdvancedDataTable";
+import ButtonToolbar from "@/components/common/ButtonToolbar";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { deleteAction } from "@/api/userProfile";
 import { fetchOrders, fetchOrderDetail } from "../services/orderApi";
-import { FaEye, FaEdit, FaPlus, FaTrash, FaFilter } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import OrderDetail from "./OrderDetail";
@@ -50,13 +52,22 @@ type OrderRow = {
 export default function OrderList() {
   const [data, setData] = useState<OrderRow[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<OrderRow[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
+
+  const tableRef = useRef<AdvancedDataTableHandle<OrderRow>>(null);
+  const columnBtnRef = useRef<HTMLButtonElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const dispatch = useDispatch();
 
@@ -209,6 +220,32 @@ export default function OrderList() {
     setFormMode(null);
     setSelectedOrder(null);
   };
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedOrders.length === 0) return;
+    if (!window.confirm(`Delete ${selectedOrders.length} selected order(s)?`)) return;
+    
+    try {
+      for (const order of selectedOrders) {
+        await deleteAction(order.id);
+      }
+      dispatch(
+        showToast({
+          message: `${selectedOrders.length} order(s) deleted successfully`,
+          type: "success",
+        }),
+      );
+      setSelectedOrders([]);
+      getOrderData();
+    } catch (error) {
+      dispatch(
+        showToast({
+          message: "Failed to delete some orders",
+          type: "error",
+        }),
+      );
+    }
+  }, [dispatch, getOrderData, selectedOrders]);
 
   const handle_delete = useCallback(
     async (row: any) => {
@@ -464,67 +501,77 @@ export default function OrderList() {
 
   return (
     <>
-      <div className="mb-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-700">
-            Sales Order List
-          </div>
-          <div className="text-sm text-slate-500">
-            Total Orders: {totalOrders} • Total Value: ${totalValue.toFixed(2)}{" "}
-            • Avg Margin: {avgMargin.toFixed(1)}% • Delivered:{" "}
-            {statusCounts.delivered || 0}
-          </div>
-        </div>
-      </div>
+      <ButtonToolbar
+        pageTitle="Sales Order List"
+        title="Order"
+        modelKey="order"
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
+        tableRef={tableRef}
+        columnBtnRef={columnBtnRef}
+        importInputRef={importInputRef}
+        selectedRows={selectedOrders}
+        selectedCount={selectedOrders.length}
+        totalCount={data.length}
+        onRefresh={() => getOrderData()}
+        loading={loading}
+        enableDatabaseSearch
+        searchDatabase={searchDatabase}
+        onSearchModeChange={setSearchDatabase}
+        columns={userColumns}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        storageKey="order-list"
+        filters={filters}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+        customActions={
+          <select
+            value={quickFilter}
+            onChange={(e) => handleQuickFilter(e.target.value as QuickFilter)}
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+          >
+            {(Object.keys(QUICK_FILTER_LABELS) as QuickFilter[]).map((key) => (
+              <option key={key} value={key}>
+                {QUICK_FILTER_LABELS[key]}
+              </option>
+            ))}
+          </select>
+        }
+        summaryContent={
+          <span className="text-xs text-slate-500">
+            Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}% • Delivered: {statusCounts.delivered || 0}
+          </span>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
+              ref={tableRef}
               data={data}
               columns={userColumns}
               title="Orders"
               loading={loading}
               filters={filters}
+              storageKey="order-list"
               enableExport={true}
               enableSelection={true}
+              onSelectionChange={setSelectedOrders}
               exportFileName="orders"
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
               searchPlaceholder="Search orders, customers, vendors..."
               noDataMessage="No orders found"
               enableDatabaseSearch={true}
               searchDatabase={searchDatabase}
               onSearchModeChange={setSearchDatabase}
               onDatabaseSearch={handleDatabaseSearch}
-              customActions={
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Quick-filter buttons */}
-                  {(Object.keys(QUICK_FILTER_LABELS) as QuickFilter[]).map(
-                    (key) => (
-                      <button
-                        key={key}
-                        onClick={() => handleQuickFilter(key)}
-                        className={`flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                          quickFilter === key
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                        }`}
-                      >
-                        {key !== "all" && <FaFilter className="w-3 h-3" />}
-                        {QUICK_FILTER_LABELS[key]}
-                      </button>
-                    ),
-                  )}
-
-                  {/* Add Order button */}
-                  <button
-                    onClick={handleAdd}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <FaPlus className="w-4 h-4" />
-                    Add Order
-                  </button>
-                </div>
-              }
               onRowClicked={handleView}
             />
           </ComponentCard>

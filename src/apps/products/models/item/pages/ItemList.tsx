@@ -284,15 +284,15 @@ export default function ItemList() {
 
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
-    if (Object.keys(filterValues).length === 0) return data;
-    return data.filter((row: any) => {
+    if (Object.keys(filterValues).length === 0) return items;
+    return items.filter((row: any) => {
       return Object.entries(filterValues).every(([key, value]) => {
         if (!value) return true;
         const rowValue = String(row[key] || "").toLowerCase();
         return rowValue.includes(value.toLowerCase());
       });
     });
-  }, [data, filterValues]);
+  }, [items, filterValues]);
 
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
@@ -314,7 +314,7 @@ export default function ItemList() {
         importInputRef={importInputRef}
         selectedRows={selectedItems}
         selectedCount={selectedItems.length}
-        totalCount={data.length}
+        totalCount={items.length}
         filteredCount={filteredData.length}
         onRefresh={getItems}
         loading={loading}
