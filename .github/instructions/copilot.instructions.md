@@ -470,7 +470,216 @@ Django runs `copilot.W001` / `copilot.W002` on every `runserver` / `manage.py ch
 
 ---
 
-## 14. Session Context
+## 14. AI Inventory Observer & AGT Integration
+
+The wc3 backend includes an **LLM-powered inventory observational learning system** that captures user actions, generates natural language summaries, detects patterns, and answers questions about inventory history.
+
+### Core Components
+
+| File | Purpose |
+|------|---------|
+| `apps/ai_assistant/models.py` | `InventoryEvent` model — 30+ fields capturing events |
+| `apps/ai_assistant/services/event_emitter.py` | `InventoryEventEmitter` — emits events from signals |
+| `apps/ai_assistant/services/llm_observer.py` | `LLMInventoryObserver` — summarization, patterns, Q&A |
+| `apps/transactions/signals.py` | Signal hooks via `_emit_line_event()` |
+
+### Event Logging
+
+All 5 transaction line types automatically emit `InventoryEvent` records:
+
+```python
+# Event types per transaction type:
+# order_line_add, order_line_update, order_line_delete, order_line_item_change
+# invoice_line_add, invoice_line_update, invoice_line_delete, ...
+# proposal_line_add, purchase_line_add, workorder_line_add, ...
+```
+
+### Observer Capabilities (4 Phases)
+
+| Phase | Method | Purpose |
+|-------|--------|---------|
+| 1 | Silent logging | Events stored in `InventoryEvent` table |
+| 2 | `summarize_event()` | LLM generates human-readable summary |
+| 2 | `get_item_narrative()` | Multi-paragraph item history |
+| 3 | `detect_patterns()` | Trend analysis, anomaly detection |
+| 4 | `answer_question()` | Natural language Q&A about inventory |
+
+### AGT Patent Integration (Future)
+
+The system architecture aligns with **U.S. Patent Application 19/356,062** — *Automated Guideways Facilitating 3-Tiered Cargo Shipments*:
+
+| Patent Concept | Implementation |
+|----------------|----------------|
+| LLM-defined load/unload windows (Claim 4) | `detect_patterns()` learns optimal scheduling |
+| Sensor suite event logging (Claims 6-7) | `InventoryEvent.payload` captures sensor data |
+| Blockchain chain-of-custody (Claim 3) | Events form audit trail; hashable to blockchain |
+| Predictive shipment forecasts (Claim 9) | Pattern detection feeds LLM scheduling |
+| Routing-control modules (Claim 8) | Alerts (`below_reorder`) trigger AGT routing |
+
+Future AGT event types (not yet implemented):
+- `shipment_arrived`, `container_scanned`, `temp_excursion`, `tamper_detected`
+- `subcontainer_loaded`, `subcontainer_unloaded`, `tier_transfer`
+
+### Configuration
+
+```python
+# settings.py
+INVENTORY_EVENTS_ENABLED = True  # Set to False to disable event logging
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "deepseek-r1:8b"
+```
+
+### Documentation
+
+- Architecture & usage: `readmes/llm-inventory-observer.md`
+- Patent reference: `readmes/topics/ai/patent.md`
+
+---
+
+## 15. Coding Journal — Developer Learning
+
+The wc3 backend captures **coding sessions** for LLM learning from our development efforts. This builds institutional knowledge over time.
+
+### Core Components
+
+| File | Purpose |
+|------|---------|
+| `apps/ai_assistant/models.py` | `CodingSession`, `ErrorPattern` models |
+| `apps/ai_assistant/services/coding_journal.py` | `CodingJournal` service |
+| `apps/ai_assistant/management/commands/log_session.py` | `log_session` CLI |
+| `apps/ai_assistant/management/commands/journal.py` | `journal` CLI (Q&A, search, stats) |
+
+### Logging Sessions
+
+After completing work, log a session:
+
+```bash
+# Interactive mode
+python manage.py log_session
+
+# Quick log
+python manage.py log_session --type bugfix \
+  --problem "Order totals not updating" \
+  --solution "Added post_delete signal" \
+  --learnings "Always wire both post_save and post_delete" \
+  --apps transactions \
+  --tags "signals,totals"
+```
+
+### Querying the Journal
+
+```bash
+# Ask a question about coding history
+python manage.py journal ask "How did we fix the order totals issue?"
+
+# Find similar sessions
+python manage.py journal find "signal post_delete"
+
+# Show recent sessions
+python manage.py journal recent --days 7
+
+# Show session statistics
+python manage.py journal stats
+
+# Log an error pattern
+python manage.py journal error "TypeError: cannot unpack" \
+  --cause "Function returning None" \
+  --fix "Added default return value"
+```
+
+### Session Types
+
+| Type | Use For |
+|------|---------|
+| `feature` | New functionality |
+| `bugfix` | Bug fixes |
+| `refactor` | Code restructuring |
+| `test` | Test additions |
+| `docs` | Documentation |
+| `devops` | Infrastructure |
+| `debug` | Debugging sessions |
+| `exploration` | Code exploration |
+| `review` | Code reviews |
+
+### Best Practice
+
+**End each significant work session with a log entry** — this captures learnings while they're fresh and builds the knowledge base.
+
+---
+
+## 16. Git Observer — Schema Drift Detection
+
+The wc3 backend includes a **Git Observer** that watches commits for schema drift and outdated code patterns. This catches when team members push code using deprecated field names or banned patterns.
+
+### Core Components
+
+| File | Purpose |
+|------|---------|
+| `apps/ai_assistant/models.py` | `GitEvent`, `SchemaDrift` models |
+| `apps/ai_assistant/services/git_observer.py` | `GitObserver` service |
+| `apps/ai_assistant/management/commands/analyze_commits.py` | `analyze_commits` CLI |
+| `tools/git-hooks/post-commit` | Auto-analysis hook |
+
+### Analyzing Commits
+
+```bash
+# Scan recent commits (last 7 days)
+python manage.py analyze_commits
+
+# Analyze a specific commit
+python manage.py analyze_commits --commit abc123
+
+# Scan last 30 days
+python manage.py analyze_commits --days 30
+
+# Check staged files before commit
+python manage.py analyze_commits --check-staged
+
+# Show only commits with drift issues
+python manage.py analyze_commits --drift-only
+```
+
+### Detected Drift Types
+
+| Type | Severity | Example |
+|------|----------|---------|
+| `deprecated_field` | error | Using `quantity.placed` instead of `quantity.staged` |
+| `banned_pattern` | warning | Using `print()` instead of logging |
+| `old_api_shape` | error | Using outdated API response structure |
+| `stale_import` | warning | Importing from moved/deleted module |
+
+### Deprecated Field Mappings
+
+The observer automatically flags these patterns:
+
+| Old (Flagged) | Current (Expected) |
+|---------------|-------------------|
+| `quantity.placed` | `quantity.staged` |
+| `qty_placed` | `qty_staged` |
+| `placed_qty` | `staged_qty` |
+
+### Installing Post-Commit Hook
+
+```bash
+# Link the hook to your local .git/hooks
+ln -sf ../../tools/git-hooks/post-commit .git/hooks/post-commit
+```
+
+### Co-Change Patterns
+
+The observer tracks which files frequently change together:
+
+```python
+from apps.ai_assistant.services.git_observer import GitObserver
+
+observer = GitObserver()
+patterns = observer.get_cochange_patterns('apps/inventory/models.py')
+# Returns: [{'file': 'apps/inventory/serializers.py', 'count': 15, 'pct': 75.0}, ...]
+```
+
+---
+
+## 17. Session Context
 
 When starting a coding session, establish:
 
