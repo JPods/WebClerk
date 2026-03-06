@@ -633,6 +633,44 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   )}
                 </div>
 
+                {/* ── Item Inventory buckets (read-only reference) ── */}
+                {inventoryBuckets && (
+                  <table className="w-full text-xs border-collapse mt-0.5">
+                    <thead>
+                      <tr className="text-[10px] text-slate-400 dark:text-slate-500">
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">On Hand</th>
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">Available</th>
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">On Prop</th>
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">On SO</th>
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">On PO</th>
+                        <th className="text-right font-medium px-1.5 pb-0.5 w-1/6">On WO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t border-slate-100 dark:border-slate-700">
+                        <td className="text-right px-1.5 py-1 font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+                          {fmtNumber(inventoryBuckets.on_hand ?? 0)}
+                        </td>
+                        <td className="text-right px-1.5 py-1 font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+                          {fmtNumber(inventoryBuckets.available ?? 0)}
+                        </td>
+                        <td className="text-right px-1.5 py-1 text-slate-600 dark:text-slate-400 tabular-nums">
+                          {fmtNumber(inventoryBuckets.on_p ?? 0)}
+                        </td>
+                        <td className="text-right px-1.5 py-1 text-slate-600 dark:text-slate-400 tabular-nums">
+                          {fmtNumber(inventoryBuckets.on_so ?? 0)}
+                        </td>
+                        <td className="text-right px-1.5 py-1 text-slate-600 dark:text-slate-400 tabular-nums">
+                          {fmtNumber(inventoryBuckets.on_po ?? 0)}
+                        </td>
+                        <td className="text-right px-1.5 py-1 text-slate-600 dark:text-slate-400 tabular-nums">
+                          {fmtNumber(inventoryBuckets.on_wo ?? 0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+
                 {/* Weight · Warehouse · Location */}
                 <div className={`${cluster} line-row-item`}>
                   <span>

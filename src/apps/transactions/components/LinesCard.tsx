@@ -624,16 +624,23 @@ const LinesCard: React.FC<LinesCardProps> = ({
                               <FaBoxes size={13} />
                             </button>
                           )}
-                          {itemCode !== "--" && (
+                          {itemCode !== "--" && (() => {
+                            const openId = Number(
+                              (line as any).item_id ??
+                              line.item?.id ??
+                              line.item?.item_id,
+                            );
+                            return openId ? (
                             <button
                               type="button"
-                              onClick={() => handleOpenItem(itemCode)}
+                              onClick={() => handleOpenItem(openId)}
                               className="p-1 text-slate-400 hover:text-green-500 transition-colors"
                               title="Open item in new window"
                             >
                               <FaExternalLinkAlt size={12} />
                             </button>
-                          )}
+                            ) : null;
+                          })()}
                           {canEditLine && onDuplicateLine && line.id && (
                             <button
                               type="button"
