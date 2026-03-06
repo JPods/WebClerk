@@ -434,11 +434,12 @@ class CoreModel(models.Model):
 
 
 class LifecycleMixin(models.Model):
-    """Soft-delete / archive flags (reversible lifecycle state)."""
+    """Soft-delete / archive / lock flags (reversible lifecycle state)."""
 
     feature_flags = {"lifecycle"}
     is_deleted = models.BooleanField(default=False, db_index=True)
     is_archived = models.BooleanField(default=False, db_index=True)
+    is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is locked and cannot be edited (admin override required)")
 
     class Meta:
         abstract = True
@@ -457,6 +458,16 @@ class LifecycleMixin(models.Model):
 
     def unarchive(self):
         self.is_archived = False
+        self.save()
+
+    def lock(self):
+        """Lock the record to prevent edits (admin can unlock)."""
+        self.is_locked = True
+        self.save()
+
+    def unlock(self):
+        """Unlock the record to allow edits (admin action)."""
+        self.is_locked = False
         self.save()
 
 
