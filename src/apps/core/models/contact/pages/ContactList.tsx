@@ -1,22 +1,18 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
   AdvancedDataTableHandle,
 } from "../../../../../components/common/AdvancedDataTable";
 import { fetchContacts } from "../services/contactApi";
-import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import ContactDetail from "./ContactDetail";
 import ContactDetail2 from "./ContactDetail2";
 import ContactDetail3 from "./ContactDetail3";
-import ContactListMob from "./ContactListMob";
 import { deleteRecord, getRecord } from "../../../../../api/wcapi";
-import { useAppSelector } from "../../../../../store/hooks";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 interface ContactData {
   id: string | number;
@@ -31,7 +27,6 @@ interface ContactData {
 }
 
 const ContactList = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [data, setData] = useState<ContactData[]>([]);
@@ -46,7 +41,6 @@ const ContactList = () => {
   const [detailVariant, setDetailVariant] = useState<1 | 2 | 3>(1);
   const [searchDatabase, setSearchDatabase] = useState(false);
   const [detailKey, setDetailKey] = useState(0);
-  const { user } = useAppSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -54,57 +48,6 @@ const ContactList = () => {
   const tableRef = useRef<AdvancedDataTableHandle<ContactData>>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-
-  // Helper to extract translated text
-  const getTranslatedText = useCallback(
-    (
-      translations: Record<string, string> | undefined,
-      languages: string[] | undefined,
-    ): string => {
-      if (!translations || typeof translations !== "object") return "";
-
-      // Try to get text in order of preference
-      const preferredLangs = ["en", "ar", "bn", "es"];
-      const availableLangs = languages || Object.keys(translations);
-
-      for (const lang of preferredLangs) {
-        if (translations[lang]) return translations[lang];
-      }
-
-      // Return first available translation
-      for (const lang of availableLangs) {
-        if (translations[lang]) return translations[lang];
-      }
-
-      return Object.values(translations)[0] || "";
-    },
-    [],
-  );
-
-  // Format date
-  const formatDate = useCallback(
-    (timestamp: number | string | null | undefined): string => {
-      if (!timestamp) return "-";
-
-      try {
-        const date =
-          typeof timestamp === "number"
-            ? new Date(timestamp)
-            : new Date(timestamp);
-
-        if (isNaN(date.getTime())) return "-";
-
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-      } catch {
-        return "-";
-      }
-    },
-    [],
-  );
 
   // Fetch actions
   const fetchActions = useCallback(async () => {
@@ -430,19 +373,6 @@ const ContactList = () => {
     setFormMode(null);
     setSelectedContact(null);
   };
-  const roleLabel = useMemo(() => {
-    const roleValue = user?.role;
-    if (!roleValue) return "Not assigned";
-    if (Array.isArray(roleValue)) {
-      return roleValue.length ? roleValue.join(", ") : "Not assigned";
-    }
-    return roleValue;
-  }, [user?.role]);
-
-  const emptyStateMessage = useMemo(
-    () => `There are no records to display for Role: ${roleLabel}`,
-    [roleLabel],
-  );
 
   const customActions = (
     <div className="flex gap-2">
@@ -453,15 +383,6 @@ const ContactList = () => {
         <FaPlus className="w-3 h-3" />
       </button>
     </div>
-  );
-
-  const exportColumns = useMemo(
-    () =>
-      columns.map((col) => ({
-        name: typeof col.name === "string" ? col.name : undefined,
-        selector: typeof col.selector === "function" ? col.selector : undefined,
-      })),
-    [columns],
   );
 
   // Filter columns based on visibility from PageBreadcrumb
@@ -550,28 +471,6 @@ const ContactList = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            {/* {formMode ? (
-              <div className="flex flex-col">
-                <ContactListMob
-                  dataProp={data}
-                  selectedContact={selectedContact}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                  emptyMessage={emptyStateMessage}
-                  filters={filters}
-                  searchPlaceholder="Search contact, name_first, name_last..."
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  enableExport={true}
-                  exportFileName="contact_export"
-                  customActions={customActions}
-                  loading={loading}
-                  columnsForExport={exportColumns}
-                />
-              </div>
-            ) : ( */}
             <AdvancedDataTable
               ref={tableRef}
               data={filteredData}

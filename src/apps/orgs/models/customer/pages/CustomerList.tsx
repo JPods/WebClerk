@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo, useCallback, useRef} from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { fetchCustomers } from "../services/customerApi";
 
 import { useDispatch } from "react-redux";
@@ -123,6 +125,37 @@ export default function CustomerList() {
     setFormMode("add");
     setDetailKey((k) => k + 1);
   };
+
+  // Bulk delete handler
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedCustomers.length) return;
+    if (!window.confirm(`Delete ${selectedCustomers.length} customers?`))
+      return;
+
+    setLoading(true);
+    try {
+      await Promise.all(
+        selectedCustomers.map((row) => deleteRecord("customer", row.id)),
+      );
+      dispatch(
+        showToast({
+          message: "Customers deleted successfully",
+          type: "success",
+        }),
+      );
+      setSelectedCustomers([]);
+      fetchActions();
+    } catch (error) {
+      dispatch(
+        showToast({
+          message: "Failed to delete customers",
+          type: "error",
+        }),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCustomers, dispatch, fetchActions]);
 
   // Form saved handler
   const handleFormSaved = () => {
@@ -341,7 +374,9 @@ export default function CustomerList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -352,6 +387,7 @@ export default function CustomerList() {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
         tableRef={tableRef}
         columnBtnRef={columnBtnRef}
         importInputRef={importInputRef}
@@ -374,55 +410,35 @@ export default function CustomerList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className="cus-bg-purple-light rounded-md">
-            {formMode ? (
-              <div className="flex flex-col">
-                <CustomerListMob
-                  dataProp={data}
-                  selectedCustomer={selectedCustomer}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                  emptyMessage="No customer found."
-                  filters={filters}
-                  searchPlaceholder="Search customer, display_name, org_type..."
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  enableExport={true}
-                  exportFileName="customer_export"
-                  customActions={customActions}
-                  loading={loading}
-                  columnsForExport={columns}
-                />
-              </div>
-            ) : (
-              <AdvancedDataTable
+            <AdvancedDataTable
               ref={tableRef}
-                data={filteredData}
-                columns={visibleColumns}
-                title="Customer"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={true}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedCustomers}
-                exportFileName="customer_export"
-                searchPlaceholder="Search customer, display_name, org_type..."
-                noDataMessage="No customer found"
-                customActions={customActions}
-                onRowClicked={handleView}
-              
+              data={filteredData}
+              columns={visibleColumns}
+              title="Customer"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
+              onSelectionChange={setSelectedCustomers}
+              onDeleteSelected={handleBulkDelete}
+              exportFileName="customer_export"
+              searchPlaceholder="Search customer, display_name, org_type..."
+              noDataMessage="No customer found"
+              customActions={customActions}
+              onRowClicked={handleView}
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
-            )}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
+            />
           </ComponentCard>
         </div>
         {formMode && (

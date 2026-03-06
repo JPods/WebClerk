@@ -936,7 +936,8 @@ span.flatpickr-weekday,
   border-color: #1e3a8a !important;
 }
 
-.rdt_TableBody .rdt_TableRow:nth-child(even) {
+/* Removed striped row styling - use uniform background */
+/* .rdt_TableBody .rdt_TableRow:nth-child(even) {
   background-color: rgba(248, 250, 252, 0.5) !important;
 }
 .dark .rdt_TableBody .rdt_TableRow:nth-child(even) {
@@ -948,7 +949,7 @@ span.flatpickr-weekday,
 }
 .dark .rdt_TableBody .rdt_TableRow:nth-child(even):hover {
   background-color: rgba(30, 58, 138, 0.1) !important;
-}
+} */
 
 /* Table Cell Styles */
 .rdt_TableCell {

@@ -1,8 +1,10 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo, useRef} from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchInvoices } from "../services/invoiceApi";
@@ -32,7 +34,7 @@ interface InvoiceRow {
 
 export default function InvoiceList() {
   const [data, setData] = useState<InvoiceRow[]>([]);
-  const [_selectedInvoices, setSelectedInvoices] = useState<InvoiceRow[]>([]);
+  const [selectedInvoices, setSelectedInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,13 +56,13 @@ export default function InvoiceList() {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch invoices", type: "error" })
+          showToast({ message: "Failed to fetch invoices", type: "error" }),
         );
       }
     } catch (error) {
       console.error("Failed to fetch invoices", error);
       dispatch(
-        showToast({ message: "Failed to fetch invoices", type: "error" })
+        showToast({ message: "Failed to fetch invoices", type: "error" }),
       );
     } finally {
       setLoading(false);
@@ -93,13 +95,16 @@ export default function InvoiceList() {
       const detail = (e as CustomEvent)?.detail as any;
       const model = String(detail?.model || "");
       if (
-        ["order", "invoice", "proposal", "purchase", "workorder"].includes(model)
+        ["order", "invoice", "proposal", "purchase", "workorder"].includes(
+          model,
+        )
       ) {
         getInvoiceData();
       }
     };
     window.addEventListener("wcapi:modelChanged", handler as any);
-    return () => window.removeEventListener("wcapi:modelChanged", handler as any);
+    return () =>
+      window.removeEventListener("wcapi:modelChanged", handler as any);
   }, [getInvoiceData]);
 
   const handleView = useCallback(
@@ -111,10 +116,10 @@ export default function InvoiceList() {
       }
       navigate(
         PageRoutes.transactionsInvoiceDetail.replace(":id?", String(invoiceId)),
-        { state: { mode: "view" } }
+        { state: { mode: "view" } },
       );
     },
-    [dispatch, navigate]
+    [dispatch, navigate],
   );
 
   const handleEdit = useCallback(
@@ -126,17 +131,16 @@ export default function InvoiceList() {
       }
       navigate(
         PageRoutes.transactionsInvoiceDetail.replace(":id?", String(invoiceId)),
-        { state: { mode: "edit" } }
+        { state: { mode: "edit" } },
       );
     },
-    [dispatch, navigate]
+    [dispatch, navigate],
   );
 
   const handleAdd = () => {
-    navigate(
-      PageRoutes.transactionsInvoiceDetail.replace(":id?", ""),
-      { state: { mode: "add" } }
-    );
+    navigate(PageRoutes.transactionsInvoiceDetail.replace(":id?", ""), {
+      state: { mode: "add" },
+    });
   };
 
   const handleDelete = async (row: InvoiceRow) => {
@@ -147,16 +151,40 @@ export default function InvoiceList() {
           showToast({
             message: "Invoice deleted successfully",
             type: "success",
-          })
+          }),
         );
         getInvoiceData(); // Refresh data
       } catch (error) {
         dispatch(
-          showToast({ message: "Failed to delete invoice", type: "error" })
+          showToast({ message: "Failed to delete invoice", type: "error" }),
         );
       }
     }
   };
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedInvoices.length) return;
+    if (!window.confirm(`Delete ${selectedInvoices.length} invoices?`)) return;
+
+    try {
+      await Promise.all(selectedInvoices.map((row) => deleteAction(row.id)));
+      dispatch(
+        showToast({
+          message: "Invoices deleted successfully",
+          type: "success",
+        }),
+      );
+      setSelectedInvoices([]);
+      getInvoiceData();
+    } catch (error) {
+      dispatch(
+        showToast({
+          message: "Failed to delete invoices",
+          type: "error",
+        }),
+      );
+    }
+  }, [selectedInvoices, dispatch, getInvoiceData]);
 
   const userColumns: TableColumn<InvoiceRow>[] = useMemo(
     () => [
@@ -208,7 +236,8 @@ export default function InvoiceList() {
       },
       {
         name: "Customer",
-        selector: (row: InvoiceRow) => row.customer_name || row.customer_id || "--",
+        selector: (row: InvoiceRow) =>
+          row.customer_name || row.customer_id || "--",
         sortable: true,
         width: "12%",
       },
@@ -258,7 +287,8 @@ export default function InvoiceList() {
       },
       {
         name: "Lines",
-        selector: (row: InvoiceRow) => row.line_count || (row.lines ? row.lines.length : 0),
+        selector: (row: InvoiceRow) =>
+          row.line_count || (row.lines ? row.lines.length : 0),
         sortable: true,
         width: "6%",
         cell: (row: InvoiceRow) => (
@@ -317,7 +347,7 @@ export default function InvoiceList() {
         ),
       },
     ],
-    [handleView, handleEdit, handleDelete]
+    [handleView, handleEdit, handleDelete],
   );
 
   // Filters configuration
@@ -346,7 +376,7 @@ export default function InvoiceList() {
         type: "text",
       },
     ],
-    []
+    [],
   );
 
   // Calculate summary statistics (commented out - for future summary cards)
@@ -381,7 +411,9 @@ export default function InvoiceList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return userColumns;
-    return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return userColumns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [userColumns, columnVisibility]);
   return (
     <>
@@ -392,9 +424,12 @@ export default function InvoiceList() {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
         tableRef={tableRef}
         columnBtnRef={columnBtnRef}
         importInputRef={importInputRef}
+        selectedRows={selectedInvoices}
+        selectedCount={selectedInvoices.length}
         totalCount={data.length}
         filteredCount={filteredData.length}
         onRefresh={getInvoiceData}
@@ -412,7 +447,7 @@ export default function InvoiceList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-{/* Summary Cards */}
+      {/* Summary Cards */}
       {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <ComponentCard>
           <div className="text-center">
@@ -459,7 +494,7 @@ export default function InvoiceList() {
       <div>
         <ComponentCard>
           <AdvancedDataTable
-              ref={tableRef}
+            ref={tableRef}
             data={filteredData}
             columns={userColumns}
             title="Invoices"
@@ -468,6 +503,7 @@ export default function InvoiceList() {
             enableExport={true}
             enableSelection={true}
             onSelectionChange={setSelectedInvoices}
+            onDeleteSelected={handleBulkDelete}
             exportFileName="invoices"
             searchPlaceholder="Search invoices, customers, vendors..."
             noDataMessage="No invoices found"
@@ -475,15 +511,17 @@ export default function InvoiceList() {
             searchDatabase={searchDatabase}
             onSearchModeChange={setSearchDatabase}
             onDatabaseSearch={handleDatabaseSearch}
+            externalSearchTerm={searchTerm}
+            onExternalSearchTermChange={setSearchTerm}
+            filtersOpen={filtersOpen}
+            onFiltersOpenChange={setFiltersOpen}
+            hideHeader={true}
             customActions={
               <button
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <FaPlus className="w-4 h-4" 
-              externalSearchTerm={searchTerm}
-              onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
+                <FaPlus className="w-4 h-4" />
                 Add Invoice
               </button>
             }

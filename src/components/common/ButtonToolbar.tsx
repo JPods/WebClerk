@@ -142,8 +142,8 @@ interface BreadcrumbProps<T = any> {
   handleAddInline?: () => void;
   handleBulkDelete?: () => void;
   tableRef?: RefObject<any>;
-  columnBtnRef?: RefObject<HTMLButtonElement>;
-  importInputRef?: RefObject<HTMLInputElement>;
+  columnBtnRef?: RefObject<HTMLButtonElement | null>;
+  importInputRef?: RefObject<HTMLInputElement | null>;
   selectedRows?: any[];
   selectedCount?: number;
   totalCount?: number;
@@ -217,12 +217,14 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   // exportFileName available for future use if needed
   void _exportFileName;
   const count = selectedCount ?? selectedRows?.length ?? 0;
-  const canExport = Boolean(tableRef?.current?.exportToExcel);
+  // canExport is true when tableRef is provided - the ref methods handle gracefully if not ready
+  const canExport = Boolean(tableRef);
   const canSelect = Boolean(tableRef?.current?.selectAll);
 
   const columnManagerRef = useRef<HTMLDivElement>(null);
   const columnManagerDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const exportDropdownPanelRef = useRef<HTMLDivElement>(null);
   const localImportInputRef = useRef<HTMLInputElement>(null);
   const localColumnBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -308,18 +310,19 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        exportDropdownRef.current &&
-        !exportDropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      // Close export dropdown if click is outside both button and panel
+      const isInsideExportButton = exportDropdownRef.current?.contains(target);
+      const isInsideExportPanel =
+        exportDropdownPanelRef.current?.contains(target);
+      if (!isInsideExportButton && !isInsideExportPanel) {
         setShowExportDropdown(false);
       }
-      if (
-        columnManagerRef.current &&
-        !columnManagerRef.current.contains(event.target as Node) &&
-        columnManagerDropdownRef.current &&
-        !columnManagerDropdownRef.current.contains(event.target as Node)
-      ) {
+      // Close column manager if click is outside both button and panel
+      const isInsideColumnBtn = columnManagerRef.current?.contains(target);
+      const isInsideColumnPanel =
+        columnManagerDropdownRef.current?.contains(target);
+      if (!isInsideColumnBtn && !isInsideColumnPanel) {
         setShowColumnManager(false);
       }
     };
@@ -779,6 +782,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       {/* Export Dropdown - Fixed position to avoid overflow clipping */}
       {showExportDropdown && exportDropdownPosition && (
         <div
+          ref={exportDropdownPanelRef}
           className="fixed z-9999 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
           style={{
             top: exportDropdownPosition.top,
