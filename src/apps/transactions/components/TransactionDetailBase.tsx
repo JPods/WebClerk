@@ -7,6 +7,8 @@ import { normalizeRefsLinksContact } from "./ContactPanel";
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
+import useUnsavedChangesGuard from "@/hooks/useUnsavedChangesGuard";
+import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import { OrderPrintDocument, InvoicePrintDocument, ProposalPrintDocument, PurchasePrintDocument, WorkorderPrintDocument, ReceiptPrintDocument, AdjustmentPrintDocument } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import { useTransactionDefaults, computeDueDate } from "@/hooks/useTransactionDefaults";
@@ -661,19 +663,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     }
   }, [isEditing, data, editData]);
 
-  // Warn before leaving with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  // Unsaved changes guard - provides action guards and beforeunload protection
+  const {
+    guardAction,
+    isActionPending,
+    pendingAction,
+    confirmAction,
+    cancelAction,
+  } = useUnsavedChangesGuard(hasUnsavedChanges);
 
   // Fetch data - skip if dataProp is provided (inline mode with pre-loaded data)
   // Also skip if modeProp is 'add' (handled by separate effect above)
@@ -1106,13 +1103,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const handlePrint = useCallback(() => {
+  
+  // Internal print handler (called after unsaved changes guard)
+  const executePrint = useCallback(() => {
     if (onPrint && data) {
       onPrint(data);
     } else {
       setShowPrintPreview(true);
     }
   }, [onPrint, data]);
+
+  // Guarded print handler - warns if there are unsaved changes
+  const handlePrint = useMemo(
+    () => guardAction(executePrint, 'printing'),
+    [guardAction, executePrint]
+  );
   // ...existing code...
 
   // Print Preview Modal rendering
@@ -2515,6 +2520,19 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           </div>
         );
       })()}
+
+      {/* Unsaved Changes Dialog - Action blocking (print, etc.) */}
+      <UnsavedChangesDialog
+        isOpen={isActionPending}
+        type="action"
+        actionName={pendingAction?.name}
+        onConfirm={confirmAction}
+        onCancel={cancelAction}
+        onSaveFirst={async () => {
+          await handleSave();
+        }}
+        isSaving={saving}
+      />
     </div>
   );
 };

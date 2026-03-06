@@ -29,6 +29,7 @@
 - `admin-window.md` - Admin window component
 - `offline-optimistic-updates.md` - Offline-first patterns
 - `refs.md` - refs JSON field usage
+- `unsaved-changes-guard.md` - Prevent data loss with navigation/action guards
 - `whitelist.md` - Schema whitelist testing
 - `git.md` - Git workflow
 
