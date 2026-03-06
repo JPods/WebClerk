@@ -132,7 +132,8 @@ import type {
   OrgSearchResult,
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import DropDown from "@/components/form/input/DropDown";
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -1578,7 +1579,11 @@ function ContactDetail({
 
   const additionalTabs: TabConfig[] = useMemo(
     () => [
-      { id: "communications", label: "Comms", icon: <Phone size={14} /> },
+      {
+        id: "communications",
+        label: "Refs. Contact",
+        icon: <Phone size={14} />,
+      },
       { id: "history", label: "History", icon: <History size={14} /> },
       { id: "metadata", label: "Metadata", icon: <History size={14} /> },
       { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
@@ -2374,32 +2379,11 @@ function ContactDetail({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  const handleRoleChange = (value: string) => {
+    setValue("role", value as "user" | "admin" | "manager" | "staff" | "guest");
+  };
 
   if (isLoading) return <RippleLoader />;
-
-  // ── Email Gate: show before the full form in add mode ──
-  // if (effectiveMode === "add" && !emailGatePassed) {
-  //   return (
-  //     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
-  //       <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-  //         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-  //           <DevBadge label="Contact" className="mr-2" />
-  //           New Contact
-  //           <span className="ml-2 text-xs font-mono text-slate-400">
-  //             (no ID yet)
-  //           </span>
-  //         </h2>
-  //       </div>
-  //       <div className="flex-1 overflow-y-auto">
-  //         <EmailGatePanel
-  //           isStaff={isStaffUser}
-  //           onComplete={handleEmailGateComplete}
-  //           onCancel={onCancelInline}
-  //         />
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
@@ -2508,7 +2492,7 @@ function ContactDetail({
           {/* ── Name fields ── */}
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
             <FaUser size={16} />
-            Basic Information
+            Communications Information
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
             {shouldRenderField("name_first") && (
@@ -2636,6 +2620,59 @@ function ContactDetail({
               </HorizontalField>
             )}
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-0">
+            {shouldRenderField("company") && (
+              <HorizontalField label="company" htmlFor="company">
+                <Input
+                  type="text"
+                  id="company"
+                  placeholder="company"
+                  {...register("company")}
+                  disabled={isFieldDisabled("company")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("title") && (
+              <HorizontalField label="title" htmlFor="title">
+                <Input
+                  type="text"
+                  id="title"
+                  placeholder="title"
+                  {...register("title")}
+                  disabled={isFieldDisabled("title")}
+                />
+              </HorizontalField>
+            )}
+            {shouldRenderField("department") && (
+              <HorizontalField label="department" htmlFor="department">
+                <Input
+                  type="text"
+                  id="department"
+                  placeholder="department"
+                  {...register("department")}
+                  disabled={isFieldDisabled("department")}
+                />
+              </HorizontalField>
+            )}
+
+            {shouldRenderField("role") && (
+              <HorizontalField
+                label="role"
+                htmlFor="role"
+                error={errors.role?.message}
+              >
+                <DropDown
+                  id="role"
+                  options={ROLE_OPTIONS}
+                  placeholder="Select role"
+                  value={watch("role")}
+                  onChange={handleRoleChange}
+                  className="dark:bg-dark-900"
+                />
+              </HorizontalField>
+            )}
+          </div>
           {/* Checkboxes */}
           <div className="flex gap-6 py-2 col-span-full">
             {shouldRenderField("is_active") && (
@@ -2711,37 +2748,7 @@ function ContactDetail({
                 orgType: "organization",
               },
             ]}
-            scalarFields={[
-              {
-                fieldName: "company",
-                label: "Company",
-                value: watchedValues?.company ?? data?.company,
-                placeholder: "Company name",
-                disabled: isFieldDisabled("company"),
-              },
-              {
-                fieldName: "title",
-                label: "Title",
-                value: watchedValues?.title ?? data?.title,
-                placeholder: "Job title",
-                disabled: isFieldDisabled("title"),
-              },
-              {
-                fieldName: "department",
-                label: "Department",
-                value: watchedValues?.department ?? data?.department,
-                placeholder: "Department",
-                disabled: isFieldDisabled("department"),
-              },
-              {
-                fieldName: "role",
-                label: "Role",
-                value: watchedValues?.role ?? data?.role,
-                type: "select",
-                options: ROLE_OPTIONS,
-                disabled: isFieldDisabled("role"),
-              },
-            ]}
+            scalarFields={[]}
             isEditing={isEditing}
             contactId={activeContactId}
             onOrgChanged={(fieldName, orgId) => {
@@ -2777,7 +2784,7 @@ function ContactDetail({
               />
 
               {/* ─── TAB CONTENT (scrollable) ─── */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 cus-bg-purple-light rounded-md">
                 <div className="p-4">
                   {activeTab === "actions" && (
                     <ActionsPanel
@@ -3043,41 +3050,6 @@ function ContactDetail({
                   onItemsChanged={async () => {
                     await refreshCommType(cType);
                   }}
-                  // onRemoveItem={async (id) => {
-                  //   if (!activeContactId) return;
-                  //   // Remove from refs.links
-                  //   const linkFieldName = `${cType}s`;
-                  //   const updatedLinks = commItems.filter(
-                  //     (item: any) => item.id !== id,
-                  //   );
-
-                  //   const currentContactData = await getRecord(
-                  //     "contact",
-                  //     activeContactId,
-                  //   );
-                  //   const currentContact =
-                  //     (currentContactData as any)?.record ?? currentContactData;
-                  //   const existingRefs = currentContact?.refs || {};
-
-                  //   await saveRecord("contact", {
-                  //     id: activeContactId,
-                  //     refs: {
-                  //       ...existingRefs,
-                  //       links: {
-                  //         ...(existingRefs?.links || {}),
-                  //         [cType]: updatedLinks,
-                  //       },
-                  //     },
-                  //   });
-
-                  //   await refreshCommType(cType);
-                  //   dispatch(
-                  //     showToast({
-                  //       message: `${cType} removed`,
-                  //       type: "success",
-                  //     }),
-                  //   );
-                  // }}
                   defaultExpanded={isEditing}
                 />
               );
@@ -3187,4 +3159,4 @@ function ContactDetail({
   );
 }
 
-export default withDevIdentifier(ContactDetail, 'ContactDetail');
+export default withDevIdentifier(ContactDetail, "ContactDetail");
