@@ -70,7 +70,7 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
 import { CreateContactRequest } from "../../../../core/models/contact/types/contactType";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema> & {
@@ -1368,74 +1368,12 @@ function CustomerDetail({
           </div>
         )}
       </div>
-
-      {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
-      {mode === "view" && data && (
-        <div className="space-y-4 px-4 py-2">
-          <ScalarCard
-            title="Organization Details"
-            fields={[
-              { label: "display_name", value: data.display_name },
-              { label: "org_type", value: data.org_type },
-              { label: "email", value: data.email },
-              { label: "email_id", value: data.email_id },
-              { label: "attention", value: data.attention },
-              { label: "phone", value: data.phone },
-              { label: "phone_id", value: data.phone_id },
-              { label: "address_full", value: data.address_full },
-              { label: "address_id", value: data.address_id },
-              { label: "domain", value: data.domain },
-              { label: "domain_id", value: data.domain_id },
-              { label: "price_level", value: data.price_level },
-              { label: "terms", value: data.terms },
-              { label: "status", value: data.status },
-              { label: "contact_id", value: data.contact_id },
-            ]}
-            columns={3}
-          />
-          <JsonCard
-            title="Financial"
-            fieldName="financial"
-            data={data.financial as Record<string, unknown>}
-            columns={2}
-          />
-          <JsonCard
-            title="Connections"
-            fieldName="connections"
-            data={data.connections as Record<string, unknown>}
-            columns={2}
-          />
-          <JsonCard
-            title="Data"
-            fieldName="data"
-            data={data.data as Record<string, unknown>}
-            columns={2}
-          />
-          <JsonCard
-            title="Metrics"
-            fieldName="metrics"
-            data={data.metrics as Record<string, unknown>}
-            columns={2}
-          />
-          <JsonCard
-            title="GL Accounts"
-            fieldName="gl_accounts"
-            data={data.gl_accounts as Record<string, unknown>}
-            columns={2}
-          />
-          <JsonCard
-            title="Relations"
-            fieldName="relations"
-            data={data.relations as Record<string, unknown>}
-            columns={2}
-          />
-          <BaseModelCards data={data} />
-        </div>
-      )}
-
+      <div className="flex items-center justify-between py-2 gap-4">
+        <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+      </div>
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
-        <div className="flex-1 overflow-y-auto">
+        <div className="space-y-4 px-4 py-2">
           {/* ── DetailTabs ────────────────────────────────────────── */}
           <div>
             <DetailTabs
@@ -1445,11 +1383,11 @@ function CustomerDetail({
               standardTabs={CUSTOMER_STANDARD_TABS}
               additionalTabs={CUSTOMER_ADDITIONAL_TABS}
               badges={tabBadges}
-              showColumnSelector={true}
+              showColumnSelector={false}
               columnCount={columnCount}
               onColumnCountChange={handleColumnChange}
             />
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 cus-bg-black-light rounded-md">
               <div className="p-4">
                 {/* Standard Tabs - Comments */}
                 {activeTab === "comments" && (
@@ -1685,13 +1623,73 @@ function CustomerDetail({
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex items-center justify-between py-2 gap-4">
-          <ColumnSelector value={columnCount} onChange={handleColumnChange} />
+      ) : null}
+
+      {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
+      {mode === "view" && data && (
+        <div className="space-y-4 px-4 py-2">
+          <ScalarCard
+            title="Organization Details"
+            fields={[
+              { label: "display_name", value: data.display_name },
+              { label: "org_type", value: data.org_type },
+              { label: "email", value: data.email },
+              { label: "email_id", value: data.email_id },
+              { label: "attention", value: data.attention },
+              { label: "phone", value: data.phone },
+              { label: "phone_id", value: data.phone_id },
+              { label: "address_full", value: data.address_full },
+              { label: "address_id", value: data.address_id },
+              { label: "domain", value: data.domain },
+              { label: "domain_id", value: data.domain_id },
+              { label: "price_level", value: data.price_level },
+              { label: "terms", value: data.terms },
+              { label: "status", value: data.status },
+              { label: "contact_id", value: data.contact_id },
+            ]}
+            columns={3}
+          />
+          <JsonCard
+            title="Financial"
+            fieldName="financial"
+            data={data.financial as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Connections"
+            fieldName="connections"
+            data={data.connections as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Data"
+            fieldName="data"
+            data={data.data as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Metrics"
+            fieldName="metrics"
+            data={data.metrics as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="GL Accounts"
+            fieldName="gl_accounts"
+            data={data.gl_accounts as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Relations"
+            fieldName="relations"
+            data={data.relations as Record<string, unknown>}
+            columns={2}
+          />
+          <BaseModelCards data={data} />
         </div>
       )}
     </div>
   );
 }
 
-export default withDevIdentifier(CustomerDetail, 'CustomerDetail');
+export default withDevIdentifier(CustomerDetail, "CustomerDetail");
