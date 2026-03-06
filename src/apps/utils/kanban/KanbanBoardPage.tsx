@@ -508,7 +508,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => {
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDT = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  
+
   const now = new Date();
   const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -1027,7 +1027,7 @@ const updateTaskFormState = (
       if (options?.columns?.length && options.fallbackColumnId) {
         next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
       }
-      
+
       if (numericProgress >= 100 && !prev.dt_completed) {
         const now = formatDateTimeLocalString(new Date());
         next.dt_completed = ensureEndAfterStart(prev.dt_start, now);
@@ -1447,12 +1447,12 @@ const KanbanBoardPage: React.FC = () => {
         order: newSequence,
         position: newSequence,
       };
-      
+
       // Include action titles to ensure backend has them
       if (targetTask.title) {
         entry.action_en = targetTask.title;
       }
-      
+
       // Include translations if available
       if (targetTask.title_translations) {
         Object.entries(targetTask.title_translations).forEach(([lang, text]) => {
@@ -1461,11 +1461,11 @@ const KanbanBoardPage: React.FC = () => {
           }
         });
       }
-      
+
       if (selectedProjectName) {
         entry.project_name = selectedProjectName;
       }
-      
+
       if (selectedProjectId) {
         const numericId = Number(selectedProjectId);
         entry.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
@@ -2412,43 +2412,6 @@ const KanbanBoardPage: React.FC = () => {
     return { payload: cleanActionPayload(payloadItem) };
   };
 
-  const uploadPendingAttachments = useCallback(async (attachments?: TaskAttachment[]): Promise<TaskAttachment[]> => {
-    if (!attachments?.length) {
-      return [];
-    }
-
-    const finalized: TaskAttachment[] = [];
-    for (const attachment of attachments) {
-      if (attachment.documentId) {
-        finalized.push(attachment);
-        continue;
-      }
-
-      if (!attachment.file) {
-        finalized.push(attachment);
-        continue;
-      }
-
-      const uploadResponse = await uploadDocument(
-        attachment.file,
-        "action",
-        undefined,
-        "attachment"
-      );
-
-      finalized.push({
-        ...attachment,
-        documentId: uploadResponse.document_id,
-        previewUrl:
-          attachment.previewUrl ||
-          uploadResponse.url ||
-          `/wcapi/document/${uploadResponse.document_id}/`,
-      });
-    }
-
-    return finalized;
-  }, []);
-
   const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSavingCreate) {
@@ -2460,39 +2423,26 @@ const KanbanBoardPage: React.FC = () => {
 
     void (async () => {
       try {
-        let submitState = createTaskState;
-        if (createTaskState.attachments?.length) {
-          const uploadedAttachments = await uploadPendingAttachments(createTaskState.attachments);
-          submitState = { ...createTaskState, attachments: uploadedAttachments };
-          setCreateTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
-        }
-
-        const result = buildActionPayload("create", submitState);
-
+        const result = buildActionPayload("create", createTaskState);
         if ("error" in result) {
           setCreateModalError(result.error);
           return;
         }
 
-    setIsSavingCreate(true);
-
-    void patchAction(result.payload)
-      .then(async (response) => {
+        const response = await patchAction(result.payload);
         console.log("Create task response:", response);
         const body: any = (response as any)?.data ?? response;
-        
-        // Check for fail status in both single and bulk responses
+
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           setCreateModalError(details || "Backend rejected the save request.");
           return;
         }
-        
-        // For project bulk operations, check the bulk array response
+
         if (body?.bulk && Array.isArray(body.bulk)) {
           const failedItems = body.bulk.filter((item: any) => item?.status === "fail");
           if (failedItems.length > 0) {
-            const errors = failedItems.map((item: any) => 
+            const errors = failedItems.map((item: any) =>
               Array.isArray(item?.error?.details) ? item.error.details.join("; ") : item?.message || "Unknown error"
             );
             throw new Error(errors.join("; "));
@@ -2501,8 +2451,8 @@ const KanbanBoardPage: React.FC = () => {
 
         const bulkCreatedId = Array.isArray(body?.bulk)
           ? body.bulk
-              .map((entry: any) => entry?.data?.id ?? entry?.id ?? entry?.record?.id ?? entry?.data?.record?.id)
-              .find((value: unknown) => Number.isFinite(Number(value)))
+            .map((entry: any) => entry?.data?.id ?? entry?.id ?? entry?.record?.id ?? entry?.data?.record?.id)
+            .find((value: unknown) => Number.isFinite(Number(value)))
           : undefined;
 
         const createdIdCandidate =
@@ -2515,25 +2465,28 @@ const KanbanBoardPage: React.FC = () => {
 
         const pendingUploads = (createTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
         const uploadedAttachments: TaskAttachment[] = [];
+
         if (pendingUploads.length && Number.isFinite(createdTaskId) && createdTaskId > 0) {
           for (const attachment of pendingUploads) {
-            const uploaded = await uploadDocument({
-              file: attachment.file as File,
-              parent_model: "action",
-              parentId: createdTaskId,
-              purpose: "attachment",
-            });
+            const uploaded = await uploadDocument(
+              attachment.file as File,
+              "action",
+              createdTaskId,
+              "attachment"
+            );
+
+            const uploadedDoc = (uploaded.document || {}) as Record<string, any>;
 
             uploadedAttachments.push({
-              id: `doc-${uploaded.document.id}`,
-              documentId: uploaded.document.id,
-              name: uploaded.document.name || attachment.name,
-              type: uploaded.document.mime_type || attachment.type,
-              size: uploaded.document.size_bytes || attachment.size,
-              checksum: uploaded.document.checksum,
+              id: `doc-${uploaded.document_id}`,
+              documentId: uploaded.document_id,
+              name: (uploadedDoc.name as string) || uploaded.name || attachment.name,
+              type: (uploadedDoc.mime_type as string) || uploaded.mime_type || attachment.type,
+              size: (uploadedDoc.size_bytes as number) || uploaded.size_bytes || attachment.size,
+              checksum: (uploadedDoc.checksum as string) || uploaded.checksum,
               url: uploaded.url,
               previewUrl:
-                (uploaded.document.mime_type || attachment.type || "").startsWith("image/")
+                ((uploaded.mime_type || attachment.type || "") as string).startsWith("image/")
                   ? uploaded.url
                   : undefined,
             });
@@ -2549,10 +2502,8 @@ const KanbanBoardPage: React.FC = () => {
           );
           await persistActionAttachmentHashes(createdTaskId, hashes);
         }
-        
+
         handleCloseCreateModal();
-        
-        // Add a small delay to ensure backend has processed the action
         setTimeout(() => {
           void fetchActions({
             projectId: selectedProjectId || undefined,
@@ -2583,34 +2534,19 @@ const KanbanBoardPage: React.FC = () => {
 
     void (async () => {
       try {
-        let submitState = editTaskState;
-        if (editTaskState.attachments?.length) {
-          const uploadedAttachments = await uploadPendingAttachments(editTaskState.attachments);
-          submitState = { ...editTaskState, attachments: uploadedAttachments };
-          setEditTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
-        }
-
-        const result = buildActionPayload("edit", submitState, editingTask);
-
+        const result = buildActionPayload("edit", editTaskState, editingTask);
         if ("error" in result) {
           setEditModalError(result.error);
           return;
         }
 
-        // Debug: log the outgoing edit payload to help diagnose 400 responses
         try {
           console.debug("[Kanban] Edit payload:", result.payload);
-        } catch (e) {
+        } catch {
           // ignore
         }
 
-    void patchAction(result.payload)
-      .then(async (response) => {
-        const body: any = (response as any)?.data ?? response;
-        if (body?.status === "fail") {
-          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-          throw new Error(details || "Backend rejected the update request.");
-        }
+        await patchAction(result.payload);
 
         const pendingUploads = (editTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
         const uploadedAttachments: TaskAttachment[] = [];
@@ -2626,28 +2562,29 @@ const KanbanBoardPage: React.FC = () => {
 
         if (pendingUploads.length && Number.isFinite(editingTaskId) && editingTaskId > 0) {
           for (const attachment of pendingUploads) {
-            const uploaded = await uploadDocument({
-              file: attachment.file as File,
-              parent_model: "action",
-              parentId: editingTaskId,
-              purpose: "attachment",
-            });
+            const uploaded = await uploadDocument(
+              attachment.file as File,
+              "action",
+              editingTaskId,
+              "attachment"
+            );
+
+            const uploadedDoc = (uploaded.document || {}) as Record<string, any>;
 
             uploadedAttachments.push({
-              id: `doc-${uploaded.document.id}`,
-              documentId: uploaded.document.id,
-              name: uploaded.document.name || attachment.name,
-              type: uploaded.document.mime_type || attachment.type,
-              size: uploaded.document.size_bytes || attachment.size,
-              checksum: uploaded.document.checksum,
+              id: `doc-${uploaded.document_id}`,
+              documentId: uploaded.document_id,
+              name: (uploadedDoc.name as string) || uploaded.name || attachment.name,
+              type: (uploadedDoc.mime_type as string) || uploaded.mime_type || attachment.type,
+              size: (uploadedDoc.size_bytes as number) || uploaded.size_bytes || attachment.size,
+              checksum: (uploadedDoc.checksum as string) || uploaded.checksum,
               url: uploaded.url,
               previewUrl:
-                (uploaded.document.mime_type || attachment.type || "").startsWith("image/")
+                ((uploaded.mime_type || attachment.type || "") as string).startsWith("image/")
                   ? uploaded.url
                   : undefined,
             });
           }
-
         }
 
         if (Number.isFinite(editingTaskId) && editingTaskId > 0) {
@@ -2660,7 +2597,7 @@ const KanbanBoardPage: React.FC = () => {
           await persistActionAttachmentHashes(editingTaskId, finalHashes);
         }
 
-        void fetchActions({
+        await fetchActions({
           projectId: selectedProjectId || undefined,
           contactId: selectedContactId || undefined,
         });
@@ -2671,10 +2608,10 @@ const KanbanBoardPage: React.FC = () => {
           (error as any)?.message ||
           "Failed to update task. Please try again.";
         setEditModalError(message);
+
         try {
-          // If the backend returned a structured error response, log it for diagnostics
           console.error("Update error response body:", (error as any)?.response?.data ?? (error as any)?.response ?? null);
-        } catch (e) {
+        } catch {
           // ignore
         }
       } finally {
