@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment } from "./taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface LanguageOption {
@@ -32,7 +32,7 @@ interface KanbanTaskModalProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   modalError?: string | null;
   formState: TaskFormState;
-  onFieldChange: (field: TaskFormEditableField, value: string | TaskAttachment[]) => void;
+  onFieldChange: (field: TaskFormEditableField, value: TaskFormFieldValue) => void;
   columnOptions: Array<{ id: string; title: string }>;
   projectOptions?: Array<{ id: string; name?: string; intent?: string }>;
   priorityOptions: TaskPriority[];
@@ -87,22 +87,25 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   onRemoveFromKanban: _onRemoveFromKanban,
   isRemoving: _isRemoving = false,
 }) => {
-  if (!isOpen) return null;
-
   const [assigneeSelection, setAssigneeSelection] = useState<string>("");
   const [modalSide, setModalSide] = useState<"left" | "right">("right");
+  const [fullscreenPreviewUrl, setFullscreenPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setAssigneeSelection("");
     setModalSide("right");
+    setFullscreenPreviewUrl(null);
   }, [isOpen]);
 
-  // File selection handling (deferred upload: files are uploaded on form submit)
-  const stageFiles = useCallback((files: FileList | File[]): TaskAttachment[] => {
-    const fileArray = Array.from(files);
-    return fileArray.map((file) => {
+  const isBlobPreview = useCallback((url?: string) => typeof url === "string" && url.startsWith("blob:"), []);
+
+  const appendAttachments = useCallback((files: FileList | File[]) => {
+    const incoming = Array.from(files);
+    if (!incoming.length) return;
+
+    const nextAttachments: TaskAttachment[] = incoming.map((file) => {
       const attachment: TaskAttachment = {
-        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `attachment-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         file,
         type: file.type,
         name: file.name,
@@ -115,19 +118,17 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
       return attachment;
     });
-  }, []);
 
+    onFieldChange("attachments", [...(formState.attachments || []), ...nextAttachments]);
+  }, [formState.attachments, onFieldChange]);
+
+  // File upload handling
   const handleFileSelect = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    const stagedAttachments = stageFiles(files);
-
-    // Update form state with new attachments
-    const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...stagedAttachments];
-    onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange, stageFiles]);
+    appendAttachments(files);
+  }, [appendAttachments]);
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -141,24 +142,35 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     const files = event.dataTransfer.files;
     if (!files) return;
 
-    const stagedAttachments = stageFiles(files);
+    appendAttachments(files);
+  }, [appendAttachments]);
 
-    // Update form state with new attachments
-    const currentAttachments = formState.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...stagedAttachments];
-    onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange, stageFiles]);
+  const handlePaste = useCallback((event: React.ClipboardEvent<HTMLElement>) => {
+    const clipboardFiles = Array.from(event.clipboardData?.items || [])
+      .map((item) => (item.kind === "file" ? item.getAsFile() : null))
+      .filter((file): file is File => !!file && file.type.startsWith("image/"));
+
+    if (!clipboardFiles.length) {
+      return;
+    }
+
+    event.preventDefault();
+    appendAttachments(clipboardFiles);
+  }, [appendAttachments]);
 
   const removeAttachment = useCallback((attachmentId: string) => {
     const currentAttachments = formState.attachments || [];
     const updatedAttachments = currentAttachments.filter(att => {
-      if (att.id === attachmentId && att.previewUrl) {
-        URL.revokeObjectURL(att.previewUrl);
+      if (att.id === attachmentId && isBlobPreview(att.previewUrl)) {
+        const previewUrl = att.previewUrl;
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
       }
       return att.id !== attachmentId;
     });
     onFieldChange("attachments", updatedAttachments);
-  }, [formState.attachments, onFieldChange]);
+  }, [formState.attachments, isBlobPreview, onFieldChange]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('pdf')) return '📄';
@@ -168,6 +180,32 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     if (fileType.includes('zip') || fileType.includes('archive')) return '📦';
     return '📎';
   };
+
+  const closeFullscreenPreview = useCallback((event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    setFullscreenPreviewUrl(null);
+  }, []);
+
+  useEffect(() => {
+    if (!fullscreenPreviewUrl) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setFullscreenPreviewUrl(null);
+    };
+
+    window.addEventListener("keydown", handleEscape, true);
+    return () => {
+      window.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [fullscreenPreviewUrl]);
 
   const handleAssigneeSelect = (event: ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value;
@@ -446,6 +484,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           id={formId}
           className="flex-1 space-y-3 overflow-y-auto px-5 py-4 no-scrollbar"
           onSubmit={onSubmit}
+          onPaste={handlePaste}
         >
           {modalError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
@@ -485,8 +524,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 </label>
                 <textarea
                   className={textareaClass}
-                  rows={2}
+                  rows={3}
                   value={activeTranslation.description}
+                  onPaste={handlePaste}
                   onChange={(event) =>
                     onTranslationFieldChange(
                       activeTranslation.id,
@@ -497,6 +537,77 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   placeholder="Localized context, acceptance criteria, or notes"
                   disabled={isSaving}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                    Attachments ({formState.attachments?.length || 0})
+                  </label>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">drag / paste / upload</span>
+                </div>
+
+                <div
+                  className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 transition hover:border-indigo-400 hover:bg-indigo-50/50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-900/20"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onPaste={handlePaste}
+                >
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-semibold">Add files</span>
+                    <span>•</span>
+                    <span>images, docs, sheets</span>
+                  </div>
+                  <input
+                    id="dropzone-file"
+                    type="file"
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                    onChange={handleFileSelect}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                {formState.attachments && formState.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formState.attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="group relative flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-1.5 py-1 dark:border-gray-700 dark:bg-gray-800"
+                      >
+                        {attachment.previewUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => setFullscreenPreviewUrl(attachment.previewUrl || null)}
+                            className="rounded"
+                            title={attachment.name}
+                          >
+                            <img
+                              src={attachment.previewUrl}
+                              alt={attachment.name}
+                              className="h-8 w-8 rounded object-cover"
+                            />
+                          </button>
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-200 text-sm dark:bg-gray-700">
+                            {getFileIcon(attachment.type)}
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(attachment.id)}
+                          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          disabled={isSaving}
+                          aria-label={`Remove ${attachment.name}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -855,106 +966,6 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               )}
             </div>
 
-            {/* File Upload Section */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Attachments
-              </label>
-              <div
-                className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-center transition hover:border-indigo-400 hover:bg-indigo-50/50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-900/20"
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
-                <div className="flex flex-col items-center justify-center space-y-1">
-                  <svg
-                    className="mx-auto h-8 w-8 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex flex-col items-center justify-center text-xs text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold">Click to upload</span>
-                    <span>or drag and drop</span>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    PDF, DOC, XLS, Images (MAX. 10MB each)
-                  </p>
-                </div>
-                <input
-                  id="dropzone-file"
-                  type="file"
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
-                  onChange={handleFileSelect}
-                  disabled={isSaving}
-                />
-              </div>
-            </div>
-
-            {/* Attachment Previews */}
-            {formState.attachments && formState.attachments.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Attached Files: ({formState.attachments.length})
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {formState.attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="relative group flex w-full min-w-0 flex-col items-center rounded-lg bg-gray-50 p-2 dark:bg-gray-800"
-                    >
-                      <div className="mb-2 flex-shrink-0">
-                        {attachment.previewUrl ? (
-                          <img
-                            src={attachment.previewUrl}
-                            alt={attachment.name}
-                            className="h-12 w-12 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-200 text-xl dark:bg-gray-700">
-                            {getFileIcon(attachment.type)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex w-full min-w-0 flex-col items-center text-center">
-                        <p
-                          className="block w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-900 dark:text-white"
-                          title={attachment.name}
-                        >
-                          {attachment.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {(attachment.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-
-                      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white group-hover:block dark:bg-gray-700">
-                        {attachment.name}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => removeAttachment(attachment.id)}
-                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        disabled={isSaving}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </form>
 
@@ -1022,8 +1033,28 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </button>
         )}
       </div>
+
+      {fullscreenPreviewUrl && (
+        <div
+          className="pointer-events-auto fixed inset-0 z-200000 flex items-center justify-center bg-black/90 p-4"
+          onClick={closeFullscreenPreview}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <img
+            src={fullscreenPreviewUrl}
+            alt="Attachment preview"
+            className="max-h-full max-w-full rounded-lg object-contain"
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
+
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(modal, document.body);
 };
