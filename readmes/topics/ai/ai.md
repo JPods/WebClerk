@@ -140,11 +140,17 @@ True continuous learning from user behavior requires fine-tuning infrastructure.
 
 > **Setup guide for team members:** see [setup-guide.md](setup-guide.md)
 
-### Phase 5 — Autonomous Data Intelligence (planned)
+### Phase 5 — Autonomous Data Intelligence ✅ DONE
 
 Ollama + Celery tasks that continuously analyze, clean, and optimize live data without manual intervention.
 
-#### 5A. Database Sync Conflict Advisor
+**Implementation files:**
+- Services: `apps/ai_assistant/services/` — `health_scorer.py`, `schema_drift_detector.py`, `data_parser.py`, `json_optimizer.py`, `margin_tracker.py`, `sync_advisor.py`
+- Celery tasks: `apps/ai_assistant/tasks.py` — 7 task functions + `full_intelligence_run()`
+- Management command: `python manage.py ai_intelligence` — CLI entry point with `--task`, `--llm`, `--apply`, `--report`, `--limit`, `--model` flags
+- User guide: `readmes/topics/ai/improving-ai-tasks.md` — how to improve AI task results through data practices
+
+#### 5A. Database Sync Conflict Advisor ✅
 
 | Aspect | Detail |
 |---|---|
@@ -153,8 +159,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Celery periodic task compares `row_version` / checksums between databases. On conflict, serializes both versions and asks Ollama to score which is more complete/current. Human approval required initially. |
 | Risk | Low — AI is suggestion layer, never writes without approval |
 | Priority | Medium — needed while wc2 coexists |
+| Service | `apps/ai_assistant/services/sync_advisor.py` — `SyncConflictAdvisor` class with `detect_conflicts()`, `auto_resolve()`, `resolve_all()`, `format_report()` |
+| Task | `apps/ai_assistant/tasks.py` — not yet scheduled (requires 4D bridge) |
 
-#### 5B. JSON Envelope Optimization (.refs, .prefs, .metadata)
+#### 5B. JSON Envelope Optimization (.refs, .prefs, .metadata) ✅
 
 | Aspect | Detail |
 |---|---|
@@ -164,8 +172,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Nightly Celery task → generates optimization report → optional auto-compact with `AtomicJSONMixin.atomic_json_set()` for safe partial updates |
 | Risk | Low if advisory-first; medium if auto-pruning enabled without approval gate |
 | Priority | High — directly improves query performance and storage |
+| Service | `apps/ai_assistant/services/json_optimizer.py` — `JSONOptimizer` class with `analyze_refs()`, `analyze_prefs()`, `analyze_metadata()`, `compact_record()`, `compact_all()`, `format_report()` |
+| Task | `json_optimize_task(limit, dry_run)` — nightly, advisory by default, `--apply` to compact |
 
-#### 5C. Data Input Parsing (addresses, phones, vCards)
+#### 5C. Data Input Parsing (addresses, phones, vCards) ✅
 
 | Aspect | Detail |
 |---|---|
@@ -175,8 +185,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | On save signal or bulk import: run deterministic parser → if confidence < threshold, pass to Ollama for best-guess normalization → flag for human review if still uncertain |
 | Risk | Low — worst case falls back to original input |
 | Priority | High — data quality at the gate prevents downstream problems |
+| Service | `apps/ai_assistant/services/data_parser.py` — `DataParser` class with `parse_phone()`, `parse_address()`, `parse_vcard()`, `clean_address_record()`, `bulk_clean_addresses()`, `bulk_clean_phones()` |
+| Task | `data_cleanup_task(limit, use_llm)` — nightly, deterministic-first with LLM fallback |
 
-#### 5D. Schema ↔ TypeScript Drift Detection
+#### 5D. Schema ↔ TypeScript Drift Detection ✅
 
 | Aspect | Detail |
 |---|---|
@@ -186,8 +198,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Extend `generate_context` management command to emit field-type comparison; Ollama evaluates semantic equivalence (e.g., `BigIntegerField` → `number` vs `string`) |
 | Risk | Low — read-only analysis; generated stubs require developer approval |
 | Priority | Very High — prevents the #1 cause of runtime bugs (schema mismatch) |
+| Service | `apps/ai_assistant/services/schema_drift_detector.py` — `SchemaDriftDetector` class with `detect_model()`, `detect_all()`, `llm_analyze_drift()`, `format_report()` |
+| Task | `schema_drift_task(use_llm)` — weekly, read-only analysis |
 
-#### 5E. Record Data Health Scoring
+#### 5E. Record Data Health Scoring ✅
 
 | Aspect | Detail |
 |---|---|
@@ -197,8 +211,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Nightly Celery task iterates models with `HealthMixin`; applies model-specific rule config; writes `health_rating` via bulk update. AI evaluation sampled (not every record every night) to manage Ollama load. |
 | Risk | Low — `health_rating` is informational, doesn't gate business logic |
 | Priority | High — enables data quality dashboards and targeted cleanup campaigns |
+| Service | `apps/ai_assistant/services/health_scorer.py` — `HealthScorer` class with `score_record()`, `score_model()`, `score_all()`, `generate_report()` |
+| Task | `health_scoring_task(limit, use_llm)` — nightly, updates `health_rating` field on every BaseModel record |
 
-#### 5F. Margin & Profitability Tracking
+#### 5F. Margin & Profitability Tracking ✅
 
 | Aspect | Detail |
 |---|---|
@@ -208,8 +224,10 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Celery task aggregates margin data into `ItemUsage` monthly snapshots (already structured for this). Ollama generates plain-English margin reports per item/customer/period. Alert thresholds configurable in `Setting` model. |
 | Risk | Low — read-only analytics layer |
 | Priority | Medium-High — direct business value but requires clean cost data first |
+| Service | `apps/ai_assistant/services/margin_tracker.py` — `MarginTracker` class with `compute_item_margins()`, `compute_usage_margins()`, `llm_margin_analysis()`, `format_report()` |
+| Task | `margin_tracking_task(limit, use_llm)` — weekly, writes margin stats to `ItemUsage` |
 
-#### 5G. Inventory Velocity & Investment Efficiency
+#### 5G. Inventory Velocity & Investment Efficiency ✅
 
 | Aspect | Detail |
 |---|---|
@@ -220,18 +238,22 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Implementation | Weekly Celery task computes velocity metrics → stores in `ItemUsage.metrics` (new keys: `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`). Ollama generates investment-efficiency report with actionable recommendations. |
 | Risk | Medium — recommendations could influence purchasing decisions; require human review |
 | Priority | High — strongest differentiator; directly impacts capital efficiency |
+| Service | `apps/ai_assistant/services/margin_tracker.py` — `MarginTracker.compute_velocity()`, `update_usage_velocity()`, `llm_velocity_analysis()` |
+| Task | `velocity_task(limit, use_llm)` — weekly, stores `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`, `velocity.investment` in `ItemUsage.metrics` |
 
 #### Phase 5 Sequencing
 
-| Order | Task | Depends On | Estimated Effort |
+| Order | Task | Status | Service File |
 |---|---|---|---|
-| 1 | 5E Health Scoring | HealthMixin exists, rules only first | 1-2 days |
-| 2 | 5D Schema Drift Detection | generate_context cmd exists | 2-3 days |
-| 3 | 5C Data Input Parsing | Address stubs exist | 2-3 days |
-| 4 | 5B JSON Envelope Optimization | Access pattern logging first | 3-5 days |
-| 5 | 5F Margin Tracking | ItemUsage metrics ready | 2-3 days |
-| 6 | 5G Inventory Velocity | 5F margin data flowing | 3-5 days |
-| 7 | 5A Sync Conflict Advisor | Only while wc2 coexists | 3-5 days |
+| 1 | 5E Health Scoring | ✅ Done | `health_scorer.py` |
+| 2 | 5D Schema Drift Detection | ✅ Done | `schema_drift_detector.py` |
+| 3 | 5C Data Input Parsing | ✅ Done | `data_parser.py` |
+| 4 | 5B JSON Envelope Optimization | ✅ Done | `json_optimizer.py` |
+| 5 | 5F Margin Tracking | ✅ Done | `margin_tracker.py` |
+| 6 | 5G Inventory Velocity | ✅ Done | `margin_tracker.py` |
+| 7 | 5A Sync Conflict Advisor | ✅ Done | `sync_advisor.py` |
+
+> **User guide:** see [improving-ai-tasks.md](improving-ai-tasks.md) for how users can improve LLM task results through data practices.
 
 ---
 

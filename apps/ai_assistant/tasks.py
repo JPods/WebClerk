@@ -1,0 +1,267 @@
+"""
+Phase 5 Celery tasks — Autonomous Data Intelligence.
+
+Plain functions (project convention) wrapping service calls.
+Schedule via Celery Beat in settings or register with django-celery-beat.
+
+Beat schedule example (settings.py):
+    CELERY_BEAT_SCHEDULE = {
+        'ai-health-scoring-nightly': {
+            'task': 'ai_assistant.tasks.health_scoring_task',
+            'schedule': crontab(hour=2, minute=0),
+        },
+        'ai-json-optimize-nightly': {
+            'task': 'ai_assistant.tasks.json_optimize_task',
+            'schedule': crontab(hour=2, minute=30),
+        },
+        'ai-data-cleanup-nightly': {
+            'task': 'ai_assistant.tasks.data_cleanup_task',
+            'schedule': crontab(hour=3, minute=0),
+        },
+        'ai-schema-drift-weekly': {
+            'task': 'ai_assistant.tasks.schema_drift_task',
+            'schedule': crontab(hour=4, minute=0, day_of_week=1),
+        },
+        'ai-margin-tracking-weekly': {
+            'task': 'ai_assistant.tasks.margin_tracking_task',
+            'schedule': crontab(hour=4, minute=30, day_of_week=1),
+        },
+        'ai-velocity-weekly': {
+            'task': 'ai_assistant.tasks.velocity_task',
+            'schedule': crontab(hour=5, minute=0, day_of_week=1),
+        },
+    }
+"""
+from __future__ import annotations
+
+import logging
+
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+
+# ─── 5E: Health Scoring ───────────────────────────────────────────────
+
+def health_scoring_task(limit: int = 500, use_llm: bool = False) -> dict:
+    """Nightly task: score data health for all HealthMixin models.
+
+    Updates health_rating (0-100) on each record.
+    """
+    logger.info("Starting health scoring task (limit=%d, use_llm=%s)", limit, use_llm)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.health_scorer import HealthScorer
+
+    scorer = HealthScorer(use_llm=use_llm)
+    result = scorer.score_all(limit=limit)
+
+    duration = (timezone.now() - started).total_seconds()
+    result["duration_seconds"] = duration
+    logger.info(
+        "Health scoring complete: %d models, %d records, %d updated in %.1fs",
+        result.get("models_scored", 0),
+        result.get("total_processed", 0),
+        result.get("total_updated", 0),
+        duration,
+    )
+    return result
+
+
+# ─── 5D: Schema Drift Detection ───────────────────────────────────────
+
+def schema_drift_task(use_llm: bool = False) -> dict:
+    """Weekly task: detect Django ↔ TypeScript schema drift.
+
+    Compares model fields against TS interfaces and flags mismatches.
+    """
+    logger.info("Starting schema drift detection")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.schema_drift_detector import SchemaDriftDetector
+
+    detector = SchemaDriftDetector(use_llm=use_llm)
+    report = detector.detect_all()
+
+    duration = (timezone.now() - started).total_seconds()
+    report["duration_seconds"] = duration
+    logger.info(
+        "Schema drift complete: %d models checked, %d issues found in %.1fs",
+        report.get("models_checked", 0),
+        report.get("total_issues", 0),
+        duration,
+    )
+    return report
+
+
+# ─── 5C: Data Cleanup ─────────────────────────────────────────────────
+
+def data_cleanup_task(limit: int = 500, use_llm: bool = True) -> dict:
+    """Nightly task: clean and normalize addresses and phone numbers.
+
+    Uses deterministic parsers first, Ollama for fuzzy cases.
+    """
+    logger.info("Starting data cleanup task (limit=%d)", limit)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.data_parser import DataParser
+
+    parser = DataParser(use_llm=use_llm)
+    address_result = parser.bulk_clean_addresses(limit=limit)
+    phone_result = parser.bulk_clean_phones(limit=limit)
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        "addresses": address_result,
+        "phones": phone_result,
+        "duration_seconds": duration,
+    }
+    logger.info(
+        "Data cleanup complete: %d addresses (%d cleaned), %d phones (%d cleaned) in %.1fs",
+        address_result.get("processed", 0),
+        address_result.get("cleaned", 0),
+        phone_result.get("processed", 0),
+        phone_result.get("cleaned", 0),
+        duration,
+    )
+    return result
+
+
+# ─── 5B: JSON Envelope Optimization ───────────────────────────────────
+
+def json_optimize_task(limit: int = 500, dry_run: bool = True) -> dict:
+    """Nightly task: analyze and optionally compact JSON envelopes.
+
+    Set dry_run=False to actually apply auto-fixable optimizations.
+    """
+    logger.info("Starting JSON optimization task (limit=%d, dry_run=%s)", limit, dry_run)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.json_optimizer import JSONOptimizer
+
+    optimizer = JSONOptimizer()
+
+    # Analyze first
+    analysis = optimizer.analyze_all(limit=limit)
+
+    # Compact if not dry run
+    compact_result = None
+    if not dry_run:
+        compact_result = optimizer.compact_all(limit=limit, dry_run=False)
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        "analysis": analysis,
+        "compact": compact_result,
+        "dry_run": dry_run,
+        "duration_seconds": duration,
+    }
+    logger.info(
+        "JSON optimization complete: %d models, %d records with issues in %.1fs",
+        analysis.get("models_analyzed", 0),
+        analysis.get("total_records_with_issues", 0),
+        duration,
+    )
+    return result
+
+
+# ─── 5F: Margin Tracking ──────────────────────────────────────────────
+
+def margin_tracking_task(limit: int = 500, use_llm: bool = False) -> dict:
+    """Weekly task: compute and analyze product margins.
+
+    Runs deterministic margin math and optionally generates LLM narrative.
+    """
+    logger.info("Starting margin tracking task (limit=%d)", limit)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.margin_tracker import MarginTracker
+
+    tracker = MarginTracker(use_llm=use_llm)
+    margin_report = tracker.compute_item_margins(limit=limit)
+
+    llm_analysis = ""
+    if use_llm:
+        llm_analysis = tracker.llm_margin_analysis(margin_report)
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        "margins": margin_report,
+        "llm_analysis": llm_analysis,
+        "duration_seconds": duration,
+    }
+    logger.info(
+        "Margin tracking complete: %d items, avg margin %.1f%%, %d anomalies in %.1fs",
+        margin_report.get("items_analyzed", 0),
+        margin_report.get("avg_margin_pct", 0),
+        len(margin_report.get("anomalies", [])),
+        duration,
+    )
+    return result
+
+
+# ─── 5G: Inventory Velocity ───────────────────────────────────────────
+
+def velocity_task(limit: int = 500, use_llm: bool = False) -> dict:
+    """Weekly task: compute inventory velocity and investment efficiency.
+
+    Measures margin earned per unit of time capital is tied up.
+    """
+    logger.info("Starting velocity task (limit=%d)", limit)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.margin_tracker import MarginTracker
+
+    tracker = MarginTracker(use_llm=use_llm)
+    velocity_report = tracker.compute_velocity(limit=limit)
+
+    # Update ItemUsage records with velocity metrics
+    update_result = tracker.update_usage_velocity(limit=limit)
+
+    llm_analysis = ""
+    if use_llm:
+        llm_analysis = tracker.llm_velocity_analysis(velocity_report)
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        "velocity": velocity_report,
+        "usage_updated": update_result.get("updated", 0),
+        "llm_analysis": llm_analysis,
+        "duration_seconds": duration,
+    }
+    logger.info(
+        "Velocity task complete: %d items, $%.2f total investment, "
+        "%d dead stock, %d slow movers in %.1fs",
+        velocity_report.get("items_analyzed", 0),
+        velocity_report.get("total_inventory_investment", 0),
+        velocity_report.get("dead_stock_count", 0),
+        velocity_report.get("slow_mover_count", 0),
+        duration,
+    )
+    return result
+
+
+# ─── Combined: Full Intelligence Run ──────────────────────────────────
+
+def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool = True) -> dict:
+    """Run all Phase 5 tasks in sequence. Suitable for a nightly mega-task.
+
+    Returns combined results from all sub-tasks.
+    """
+    logger.info("Starting full intelligence run (limit=%d, use_llm=%s, dry_run=%s)", limit, use_llm, dry_run)
+    started = timezone.now()
+
+    results = {}
+
+    results["health"] = health_scoring_task(limit=limit, use_llm=use_llm)
+    results["schema_drift"] = schema_drift_task(use_llm=use_llm)
+    results["data_cleanup"] = data_cleanup_task(limit=limit, use_llm=use_llm)
+    results["json_optimization"] = json_optimize_task(limit=limit, dry_run=dry_run)
+    results["margins"] = margin_tracking_task(limit=limit, use_llm=use_llm)
+    results["velocity"] = velocity_task(limit=limit, use_llm=use_llm)
+
+    total_duration = (timezone.now() - started).total_seconds()
+    results["total_duration_seconds"] = total_duration
+    logger.info("Full intelligence run complete in %.1fs", total_duration)
+
+    return results
