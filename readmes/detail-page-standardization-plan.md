@@ -98,20 +98,33 @@ All related records are managed through `refs.links`:
 
 ```typescript
 interface EntityRefs {
+  keywords?: string[];        // Searchable terms (names, idas, codes)
+  tags?: string[];            // User-created tags
   links: {
     contact?: RefLink[];      // Linked contacts
-    customer?: RefLink[];     // Linked customers
+    customer?: RefLink[];     // Linked customers (FK + additional)
+    vendor?: RefLink[];       // Linked vendors (FK + additional)
+    manufacturer?: RefLink[]; // Linked manufacturers
+    employee?: RefLink[];     // Employees with role metadata
+    rep?: RefLink[];          // Reps with commission%
     document?: RefLink[];     // Attached documents
     email?: RefLink[];        // Email addresses
     phone?: RefLink[];        // Phone numbers
-    address?: RefLink[];       // Addresses
+    address?: RefLink[];      // Addresses
     domain?: RefLink[];       // Web domains
     linkage?: RefLink[];      // Flow/audit trail links
     question_answer?: RefLink[]; // Q&A items
   };
-  // ... other refs properties
 }
 ```
+
+**Key Pattern:**
+- **FK = Source of truth** for queries (`customer_id=123`)
+- **refs.links = Denormalized cache** for display (`refs.links.customer[0].company`)
+- **Multiple orgs per role** supported (`refs.links.customer[1+]` for ship-to, bill-to)
+- **refs.keywords** for full-text search without joins
+
+> **Backend reference:** See `webClerk3/readmes/topics/architecture/refs-pattern.md` for full documentation.
 
 ---
 

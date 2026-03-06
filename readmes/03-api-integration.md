@@ -174,6 +174,8 @@ const dataSource = createWcapiDataSource('customer', {
 ## Related Documentation
 
 - [api-migration-rest-to-wcapi.md](api-migration-rest-to-wcapi.md) — Migration tracker and patterns
+- [rbac-frontend.md](rbac-frontend.md) — Role-based access control in React
 - [webClerk3/readmes/03-wcapi-gateway.md](../../webClerk3/readmes/03-wcapi-gateway.md) — Backend gateway overview
 - [webClerk3/readmes/04-wcapi-usage.md](../../webClerk3/readmes/04-wcapi-usage.md) — Detailed usage examples
 - [webClerk3/readmes/08-transaction-save.md](../../webClerk3/readmes/08-transaction-save.md) — Transaction save patterns
+- [webClerk3/readmes/topics/architecture/role-based-access-plan.md](../../webClerk3/readmes/topics/architecture/role-based-access-plan.md) — Full RBAC implementation plan

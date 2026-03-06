@@ -53,7 +53,7 @@ import FinancialsCard from "./FinancialsCard";
 import { DocumentsPanel } from "@/apps/common/components/panels";
 
 import JsonFieldEditor from "./JsonFieldEditor";
-import TransactionTabs from "@/components/common/TransactionTabs";
+import RelatedTransactions from "@/components/common/RelatedTransactions";
 
 // Import types
 import type {
@@ -2482,45 +2482,38 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         {renderTabContent()}
       </div>
 
-      {/* TransactionTabs - show related transactions for the linked org.
-          Only render for saved records (not add-mode / unsaved transfers)
-          so we don't fire queries when id is null/0. */}
+      {/* RelatedTransactions - show only parent/child transactions linked to this record.
+          Only render for saved records with parent_id or flow.children defined. */}
       {(() => {
         // Skip for new / unsaved records — no related transactions to show
         const recordId = currentData?.id;
         if (effectiveMode === "add" || !recordId) return null;
 
-        const customerTypes = ["order", "invoice", "proposal"];
-        const vendorTypes = ["purchase", "receipt"];
-        let orgType: "customer" | "vendor" | null = null;
-        let orgId: number | null = null;
-        if (
-          customerTypes.includes(transactionType) &&
-          currentData?.customer_id
-        ) {
-          orgType = "customer";
-          orgId = currentData.customer_id;
-        } else if (
-          vendorTypes.includes(transactionType) &&
-          currentData?.vendor_id
-        ) {
-          orgType = "vendor";
-          orgId = currentData.vendor_id;
-        } else if (currentData?.customer_id) {
-          orgType = "customer";
-          orgId = currentData.customer_id;
-        } else if (currentData?.vendor_id) {
-          orgType = "vendor";
-          orgId = currentData.vendor_id;
-        }
-        if (orgType && orgId) {
-          return (
-            <div>
-              <TransactionTabs orgType={orgType} orgId={orgId} />
-            </div>
-          );
-        }
-        return null;
+        // Only render if transaction has parent or children
+        const hasParent = currentData?.parent_id && currentData?.parent_model;
+        const hasChildren = currentData?.flow?.children?.some(
+          (c: { type?: string; id?: number }) => c?.type && c?.id && c.id > 0
+        );
+        if (!hasParent && !hasChildren) return null;
+
+        return (
+          <div className="mt-4">
+            <RelatedTransactions
+              transaction={{
+                id: recordId,
+                ida: currentData?.ida,
+                name: currentData?.name,
+                status: currentData?.status,
+                total: currentData?.totals?.total,
+                currency: currentData?.currency,
+                dt_created: currentData?.dt_created,
+                parent_id: currentData?.parent_id,
+                parent_model: currentData?.parent_model,
+                flow: currentData?.flow,
+              }}
+            />
+          </div>
+        );
       })()}
     </div>
   );
