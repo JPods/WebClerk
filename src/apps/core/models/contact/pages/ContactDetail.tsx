@@ -2784,7 +2784,7 @@ function ContactDetail({
               />
 
               {/* ─── TAB CONTENT (scrollable) ─── */}
-              <div className="flex-1 cus-bg-purple-light rounded-md">
+              <div className="flex-1 cus-bg-black-light rounded-md">
                 <div className="p-4">
                   {activeTab === "actions" && (
                     <ActionsPanel

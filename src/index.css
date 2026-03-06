@@ -844,6 +844,9 @@ span.flatpickr-weekday,
 .cus-bg-purple-light {
   border: 1px dashed #ff72ffcc;
 }
+.cus-bg-black-light {
+  border: 1px solid #e4e7ec;
+}
 .cus-bg-theme-purple-medium {
   background: #ffffff;
   color: #a600c2 !important;
