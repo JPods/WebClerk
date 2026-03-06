@@ -38,7 +38,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   isEditing,
   isLocked = false,
   priceLevel,
-  transactionType,
+  transactionType: _transactionType,
   onDeleteLine,
   onUpdateLine,
   onUpdateFullLine,
@@ -70,7 +70,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   const lineCount = lines.length;
   const totalQty = lines.reduce((sum, l) => {
     const lRecord = l as unknown as Record<string, unknown>;
-    const qty = lRecord.qty ?? l.quantity?.placed ?? 0;
+    const qty = lRecord.qty ?? l.quantity?.active ?? 0;
     return sum + Number(qty);
   }, 0);
 
@@ -312,9 +312,9 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   description: description,
                   unit_measure: unitMeasure,
                 },
-                quantity: transactionType === 'invoice'
-                  ? { placed: quantity, actioned: quantity, remaining: 0 }
-                  : { placed: quantity },
+                // New lines: processing = user input, staged mirrors, remaining = staged (standalone)
+                // Backend normalize_quantity_map enforces the correct semantics
+                quantity: { active: quantity, staged: quantity, remaining: quantity },
                 price: {
                   unit: unitPrice,
                   extended: unitPrice * quantity,
@@ -366,7 +366,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   Description
                 </th>
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
-                  Placed
+                  Active
                 </th>
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
                   Remaining
@@ -400,7 +400,9 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 if (description.length > 15) {
                   description = description.substring(0, 15) + "...";
                 }
-                const qty = lineRecord.qty ?? line.quantity?.placed ?? 0;
+                // Display active as the user-editable quantity
+                // (staged mirrors active for standalone; backend enforces semantics)
+                const qty = lineRecord.qty ?? line.quantity?.active ?? 0;
                 const uom = String(
                   lineRecord.unit_measure ?? line.item?.unit_measure ?? "EA",
                 );

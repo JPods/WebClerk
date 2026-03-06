@@ -407,7 +407,7 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
                       const unitPrice = l.price?.unit ?? 0;
                       return {
                         ...baseUpdate,
-                        quantity: { ...l.quantity, placed: newQty },
+                        quantity: { ...l.quantity, staged: newQty, active: newQty },
                         price: {
                           ...l.price,
                           extended: newQty * unitPrice,
@@ -421,7 +421,7 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
                       };
                     case "unit_price":
                       const newPrice = Number(value);
-                      const qty = l.quantity?.placed ?? 0;
+                      const qty = l.quantity?.staged ?? 0;
                       return {
                         ...baseUpdate,
                         price: {

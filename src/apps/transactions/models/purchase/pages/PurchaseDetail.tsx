@@ -161,7 +161,7 @@ const PurchaseLinesContent: React.FC<{
                 <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item?.ida_item ?? line.item_no ?? line.sku ?? '--'}</td>
                   <td className="p-3 text-slate-700 dark:text-slate-300">{line.item?.description ?? line.description ?? line.item_description ?? '--'}</td>
-                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.placed ?? line.qty_ordered ?? line.quantity ?? '--'}</td>
+                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.staged ?? quantity?.placed ?? line.qty_ordered ?? line.quantity ?? '--'}</td>
                   <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.cost?.unit ?? line.unit_cost ?? line.price)}</td>
                   <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.cost?.extended ?? line.amount ?? line.line_total)}</td>
                   <td className="p-3 text-center">
@@ -313,7 +313,7 @@ const PurchaseDetail: React.FC<PurchaseDetailProps> = (props) => {
                       };
                     case "unit_price":
                       const newPrice = Number(value);
-                      const qty = l.quantity?.placed ?? 0;
+                      const qty = l.quantity?.staged ?? quantity?.placed ?? 0;
                       return {
                         ...baseUpdate,
                         price: {

@@ -56,7 +56,7 @@ export default function ProposalLineList({
     },
     {
       name: "Quantity",
-      selector: (row) => row.quantity?.placed || 0,
+      selector: (row) => row.quantity?.staged ?? quantity?.placed || 0,
       sortable: true,
       width: "15%"
     },

@@ -453,21 +453,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           }
           // Copy lines from source, resetting IDs so they create as new.
           // Stamp each line's refs.source with the source line ID so the
-          // backend can update the source line's quantity.actioned after save.
+          // backend can update the source line's quantity.active after save.
           const srcType = transferFromType as string;
           const srcId = Number(transferFromId);
           let nextLn = 10; // line_number counter for transferred lines
           const transferredLines = (source.lines || []).map(
             (line: Record<string, unknown>) => {
               // Remap quantity for the target transaction:
-              // placed = source remaining (qty being transferred)
-              // For invoices (end-of-chain): actioned = placed, remaining = 0
-              // For other types: actioned = 0, remaining = placed
+              // staged = source remaining (qty being transferred)
+              // For end-of-chain (invoice/receipt): active = staged, remaining = 0
+              // For other types: active = staged, remaining = staged
               const srcQty = (line.quantity as Record<string, unknown>) || {};
               const transferQty = Number(
-                srcQty.remaining ?? srcQty.placed ?? 0,
+                srcQty.remaining ?? srcQty.staged ?? 0,
               );
-              const isEndOfChain = transactionType === 'invoice';
+              const isEndOfChain = transactionType === 'invoice' || transactionType === 'receipt';
               const ln = nextLn;
               nextLn += 10;
               return {
@@ -476,8 +476,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 line_id: undefined,
                 line_number: ln,
                 quantity: {
-                  placed: transferQty,
-                  actioned: isEndOfChain ? transferQty : 0,
+                  staged: transferQty,
+                  active: isEndOfChain ? transferQty : transferQty,
                   remaining: isEndOfChain ? 0 : transferQty,
                   precision: srcQty.precision ?? 2,
                   is_fixed: srcQty.is_fixed ?? false,
@@ -889,11 +889,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           sourceLines.length > 0 &&
           sourceLines.every((line: any) => {
             const qty = line?.quantity || {};
-            const placed = Number(qty.placed ?? 0);
-            const actioned = Number(qty.actioned ?? 0);
+            const staged = Number(qty.staged ?? 0);
+            const active = Number(qty.active ?? 0);
             const rawRemaining = qty.remaining;
             const remaining = Number(
-              rawRemaining ?? (Number.isFinite(placed) ? placed - actioned : 0),
+              rawRemaining ?? (Number.isFinite(staged) ? staged - active : 0),
             );
             return Number.isFinite(remaining) ? remaining <= 0 : false;
           });
@@ -1192,8 +1192,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qty: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qty: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -1306,8 +1306,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description || '',
-              qtyOrdered: line.quantity?.placed || 0,
-              qtyShipped: line.quantity?.actioned || 0,
+              qtyOrdered: line.quantity?.staged || 0,
+              qtyShipped: line.quantity?.active || 0,
               unitPrice: line.price?.unit || 0,
               msrp: line.price?.unit || 0,
               discount: line.price?.discount_amount || 0,
@@ -1388,8 +1388,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qtyOrdered: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qtyOrdered: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -1470,8 +1470,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qtyOrdered: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qtyOrdered: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -1552,8 +1552,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qtyOrdered: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qtyOrdered: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -1634,8 +1634,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qtyOrdered: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qtyOrdered: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -1717,8 +1717,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
               description: line.item?.description,
-              qtyOrdered: line.quantity?.placed,
-              qtyShipped: line.quantity?.actioned,
+              qtyOrdered: line.quantity?.staged,
+              qtyShipped: line.quantity?.active ?? quantity?.active,
               unitPrice: line.price?.unit,
               msrp: line.price?.unit,
               discount: line.price?.discount_amount,
@@ -2326,41 +2326,25 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                     case "qty": {
                       const newQty = Number(value);
                       if (!lineIsActive) {
-                        // Inactive line: persist placed but don't recalculate
+                        // Inactive line: persist processing but don't recalculate
                         return {
                           ...baseUpdate,
-                          quantity: { ...l.quantity, placed: newQty },
+                          quantity: { ...l.quantity, processing: newQty, staged: newQty },
                         };
                       }
-                      const isInvoice = transactionType === 'invoice';
+                      const isEndOfChain = transactionType === 'invoice' || transactionType === 'receipt';
                       const unitPriceForCalc = l.price?.unit ?? 0;
 
-                      if (isInvoice) {
-                        // End-of-chain: user edits shipped qty; keep placed/actioned
-                        // aligned so transfer accounting uses the edited quantity.
-                        return {
-                          ...baseUpdate,
-                          quantity: {
-                            ...l.quantity,
-                            actioned: newQty,
-                            placed: newQty,
-                            remaining: 0,
-                          },
-                          price: {
-                            ...l.price,
-                            extended: unitPriceForCalc * newQty,
-                          },
-                        };
-                      }
-
-                      // Orders / proposals / purchases: user edits placed
-                      const actioned = l.quantity?.actioned ?? 0;
+                      // User always edits processing; staged mirrors for standalone
+                      // For end-of-chain (invoice/receipt): remaining = 0
+                      // For orders/proposals/purchases: remaining = staged (standalone)
                       return {
                         ...baseUpdate,
                         quantity: {
                           ...l.quantity,
-                          placed: newQty,
-                          remaining: newQty - actioned,
+                          processing: newQty,
+                          staged: newQty,
+                          remaining: isEndOfChain ? 0 : newQty,
                         },
                         price: {
                           ...l.price,
@@ -2375,7 +2359,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                       };
                     case "unit_price": {
                       const newPrice = Number(value);
-                      const qty = l.quantity?.placed ?? 0;
+                      const qty = l.quantity?.staged ?? 0;
                       return {
                         ...baseUpdate,
                         price: {
