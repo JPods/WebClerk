@@ -241,6 +241,20 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Service | `apps/ai_assistant/services/margin_tracker.py` — `MarginTracker.compute_velocity()`, `update_usage_velocity()`, `llm_velocity_analysis()` |
 | Task | `velocity_task(limit, use_llm)` — weekly, stores `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`, `velocity.investment` in `ItemUsage.metrics` |
 
+#### 5H. Layout ↔ Schema Drift Detection ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Detect mismatches between Django model fields and the field references actually used in React page components (Detail forms, List columns, Display views) |
+| AI Role | **Static analysis + optional LLM triage.** Scans R25 page files for `register()`, `Controller`, `ScalarCard`, `JsonCard`, `handleFieldChange`, `valueFrom`, and `selector` patterns. Compares extracted field names against Django model introspection. Ollama classifies issues as real problems vs. intentional omissions. |
+| Data Sources | Django `_meta.get_fields()`, R25 `src/apps/**/pages/*Detail.tsx`, `*List.tsx`, `*Display.tsx` |
+| Detection Types | **phantom_field** (layout references non-existent field, HIGH), **unrendered_field** (Django field absent from all layouts, MEDIUM/LOW), **unrendered_json** (JSONField with no sub-field inputs or JsonCard, LOW), **detail_only** (field in Detail but not List, INFO) |
+| Implementation | Regex-based extraction from page files, JSON sub-field prefix resolution (e.g., `price_base` → `price` JSONField), BaseModelCards fields auto-excluded. Weekly Celery task. |
+| Risk | Low — read-only static analysis, no data modification |
+| Priority | Medium — catches stale field references and missing form inputs before they hit production |
+| Service | `apps/ai_assistant/services/layout_drift_detector.py` — `LayoutDriftDetector` class with `detect_model()`, `detect_all()`, `llm_analyze_drift()`, `format_report()` |
+| Task | `layout_drift_task(use_llm)` — weekly, scans all models with R25 pages |
+
 #### Phase 5 Sequencing
 
 | Order | Task | Status | Service File |
@@ -252,6 +266,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | 5 | 5F Margin Tracking | ✅ Done | `margin_tracker.py` |
 | 6 | 5G Inventory Velocity | ✅ Done | `margin_tracker.py` |
 | 7 | 5A Sync Conflict Advisor | ✅ Done | `sync_advisor.py` |
+| 8 | 5H Layout Drift Detection | ✅ Done | `layout_drift_detector.py` |
 
 > **User guide:** see [improving-ai-tasks.md](improving-ai-tasks.md) for how users can improve LLM task results through data practices.
 

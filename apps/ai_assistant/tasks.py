@@ -240,6 +240,31 @@ def velocity_task(limit: int = 500, use_llm: bool = False) -> dict:
     )
     return result
 
+# ─── 5H: Layout Drift Detection ───────────────────────────────────
+
+def layout_drift_task(use_llm: bool = False) -> dict:
+    """Weekly task: detect Django ↔ React layout field drift.
+
+    Compares model fields against actual field references in page components
+    (Detail forms, List columns, Display views).
+    """
+    logger.info("Starting layout drift detection")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector
+
+    detector = LayoutDriftDetector(use_llm=use_llm)
+    report = detector.detect_all()
+
+    duration = (timezone.now() - started).total_seconds()
+    report["duration_seconds"] = duration
+    logger.info(
+        "Layout drift complete: %d models checked, %d issues found in %.1fs",
+        report.get("models_checked", 0),
+        report.get("total_issues", 0),
+        duration,
+    )
+    return report
 
 # ─── Combined: Full Intelligence Run ──────────────────────────────────
 
@@ -259,6 +284,7 @@ def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool
     results["json_optimization"] = json_optimize_task(limit=limit, dry_run=dry_run)
     results["margins"] = margin_tracking_task(limit=limit, use_llm=use_llm)
     results["velocity"] = velocity_task(limit=limit, use_llm=use_llm)
+    results["layout_drift"] = layout_drift_task(use_llm=use_llm)
 
     total_duration = (timezone.now() - started).total_seconds()
     results["total_duration_seconds"] = total_duration

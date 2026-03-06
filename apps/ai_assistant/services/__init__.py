@@ -8,3 +8,4 @@
 #   from apps.ai_assistant.services.json_optimizer import JSONOptimizer
 #   from apps.ai_assistant.services.margin_tracker import MarginTracker
 #   from apps.ai_assistant.services.sync_advisor import SyncConflictAdvisor
+#   from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector

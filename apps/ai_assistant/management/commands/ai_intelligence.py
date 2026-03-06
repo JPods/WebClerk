@@ -9,6 +9,7 @@ Usage:
     python manage.py ai_intelligence --task optimize     # Just JSON optimization
     python manage.py ai_intelligence --task margins      # Just margin tracking
     python manage.py ai_intelligence --task velocity     # Just inventory velocity
+    python manage.py ai_intelligence --task layout        # Just layout drift
     python manage.py ai_intelligence --llm               # Enable Ollama analysis
     python manage.py ai_intelligence --apply             # Apply changes (not dry run)
     python manage.py ai_intelligence --limit 1000        # Process more records
@@ -18,7 +19,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 
-TASK_CHOICES = ["all", "health", "drift", "cleanup", "optimize", "margins", "velocity"]
+TASK_CHOICES = ["all", "health", "drift", "cleanup", "optimize", "margins", "velocity", "layout"]
 
 
 class Command(BaseCommand):
@@ -95,6 +96,9 @@ class Command(BaseCommand):
 
         if task in ("all", "velocity"):
             results["velocity"] = self._run_velocity(limit, use_llm, report)
+
+        if task in ("all", "layout"):
+            results["layout"] = self._run_layout(use_llm, model, report)
 
         self.stdout.write(self.style.SUCCESS("\nAll tasks complete."))
 
@@ -234,3 +238,30 @@ class Command(BaseCommand):
             self.stdout.write(tracker.format_report(margin_report, velocity_report))
 
         return velocity_report
+
+    def _run_layout(self, use_llm, model, report):
+        self.stdout.write(self.style.HTTP_INFO("\n▶ 5H: Layout Drift Detection"))
+
+        from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector
+        detector = LayoutDriftDetector(use_llm=use_llm)
+
+        if model:
+            result = detector.detect_model(model)
+            result = {"models_checked": 1, "total_issues": len(
+                [i for i in result.get("issues", []) if i.get("severity") != "info"]
+            ), "severity_counts": {}, "per_model": {model: result}}
+        else:
+            result = detector.detect_all()
+
+        severity = result.get("severity_counts", {})
+        self.stdout.write(
+            f"  Models: {result.get('models_checked', 0)} | "
+            f"Issues: {result.get('total_issues', 0)} | "
+            f"High: {severity.get('high', 0)} | Medium: {severity.get('medium', 0)} | "
+            f"Low: {severity.get('low', 0)} | Info: {severity.get('info', 0)}"
+        )
+
+        if report:
+            self.stdout.write(detector.format_report(result))
+
+        return result
