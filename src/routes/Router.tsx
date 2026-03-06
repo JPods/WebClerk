@@ -1,6 +1,6 @@
 import WcapiRouteHandler from "./WcapiRouteHandler";
 // import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
-import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
+import ItemDetail from "../apps/products/models/item/pages/ItemDetail";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
@@ -275,8 +275,8 @@ const Router: React.FC = () => {
             element={<ItemList />}
           />
           <Route
-            path={PageRoutes.productsItemDashboard}
-            element={<ItemDashboard />}
+            path={PageRoutes.productsItemDetail}
+            element={<ItemDetail />}
           />
           <Route
             path={PageRoutes.productsItemXrefList}

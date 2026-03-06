@@ -1,5 +1,5 @@
   export class PageRoutes {
-    static readonly productsItemDashboard: string = "/products/item/dashboard/:id";
+    static readonly productsItemDetail: string = "/products/item/detail/:id";
   static readonly login: string = "/";
   static readonly register: string = "/register";
   static readonly dashboard: string = "/dashboard";

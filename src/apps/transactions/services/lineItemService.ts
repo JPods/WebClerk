@@ -81,7 +81,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   
   if (['proposal'].includes(kind)) {
     return {
-      placed: quantity,
+      staged: quantity,
       ordered: 0,
       remaining: quantity,
       is_fixed: false,
@@ -93,7 +93,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   
   if (['order'].includes(kind)) {
     return {
-      placed: quantity,
+      staged: quantity,
       invoiced: 0,
       remaining: quantity,
       is_fixed: false,
@@ -104,10 +104,10 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   }
   
   if (['invoice'].includes(kind)) {
-    // End-of-chain: the user's qty IS actioned; placed = actioned; remaining always 0.
+    // End-of-chain: the user's qty IS active; staged = active; remaining always 0.
     return {
-      placed: quantity,
-      actioned: quantity,
+      staged: quantity,
+      active: quantity,
       remaining: 0,
       is_fixed: false,
       precision: 2,
@@ -118,7 +118,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   
   if (['purchase', 'workorder'].includes(kind)) {
     return {
-      placed: quantity,
+      staged: quantity,
       received: 0,
       remaining: quantity,
       is_fixed: false,
@@ -130,7 +130,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
   
   // Default
   return {
-    placed: quantity,
+    staged: quantity,
     remaining: quantity,
     is_fixed: false,
     precision: 2,
@@ -269,10 +269,10 @@ export class LineItemService {
   /**
    * Update quantity on a line and recalculate extensions.
    *
-   * Invoice lines (end-of-chain) use actioned-first semantics:
-   *   actioned = new qty.  If there is no parent (standalone invoice),
-   *   placed = actioned.  remaining is always 0.
-   * All other types: placed = new qty, remaining recalculated.
+   * Invoice lines (end-of-chain) use active-first semantics:
+   *   active = new qty.  If there is no parent (standalone invoice),
+   *   staged = active.  remaining is always 0.
+   * All other types: staged = new qty, remaining recalculated.
    */
   updateQuantity(line: TransactionLine, quantity: number, hasParent = false): TransactionLine {
     const updatedLine = { ...line, _dirty: true };
@@ -280,16 +280,16 @@ export class LineItemService {
 
     if (typeof updatedLine.quantity === 'object' && updatedLine.quantity !== null) {
       if (kind === 'invoice') {
-        // End-of-chain: user edits actioned
+        // End-of-chain: user edits active
         updatedLine.quantity = {
           ...updatedLine.quantity,
-          actioned: quantity,
-          // If standalone (no parent), placed tracks actioned
-          placed: hasParent ? (updatedLine.quantity as Record<string, unknown>).placed as number : quantity,
+          active: quantity,
+          // If standalone (no parent), staged tracks active
+          staged: hasParent ? (updatedLine.quantity as Record<string, unknown>).staged as number : quantity,
           remaining: 0,
         };
       } else {
-        updatedLine.quantity = { ...updatedLine.quantity, placed: quantity };
+        updatedLine.quantity = { ...updatedLine.quantity, staged: quantity };
       }
     } else {
       updatedLine.quantity = getDefaultQuantity(this.config.transactionType, quantity);
@@ -468,7 +468,7 @@ export class LineItemService {
   private getQuantity(line: TransactionLine): number {
     if (typeof line.quantity === 'object' && line.quantity !== null) {
       const q = line.quantity as Record<string, unknown>;
-      return Number(q.placed ?? q.ordered ?? 0) || 0;
+      return Number(q.staged ?? q.ordered ?? 0) || 0;
     }
     return 0;
   }

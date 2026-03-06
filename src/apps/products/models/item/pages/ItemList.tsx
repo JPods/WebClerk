@@ -147,7 +147,7 @@ export default function ItemList() {
       const id = getItemId(row);
       console.log("Dashboard button clicked, id:", id);
       if (id) {
-        navigate(PageRoutes.productsItemDashboard.replace(":id", String(id)));
+        navigate(PageRoutes.productsItemDetail.replace(":id", String(id)));
       }
     },
     [navigate, getItemId],
