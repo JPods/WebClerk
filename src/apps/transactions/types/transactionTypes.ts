@@ -408,8 +408,8 @@ export interface LineItem {
 }
 
 export interface LineQuantity {
-  placed?: number;
-  actioned?: number;
+  staged?: number;
+  active?: number;
   remaining?: number;
   is_fixed?: boolean;
   precision?: number;

@@ -146,8 +146,8 @@ const LinesCard: React.FC<LinesCardProps> = ({
   const handleOpenItem = (itemIdOrCode: number | string) => {
     const path =
       typeof itemIdOrCode === "number"
-        ? `/products/items/${itemIdOrCode}`
-        : `/products/items/code/${itemIdOrCode}`;
+        ? `/products/item/detail/${itemIdOrCode}`
+        : `/products/item/detail/${itemIdOrCode}`;
     window.open(path, "_blank", "width=1000,height=800");
   };
 
@@ -208,7 +208,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
             }}
           />
           {/* Drawer */}
-          <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 shadow-2xl no-scrollbar sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
+          <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 shadow-2xl no-scrollbar sm:w-[640px] lg:w-[50vw] lg:min-w-[520px]">
             <LineDetailsModal
               line={selectedLine}
               isOpen={showLineModal}

@@ -85,7 +85,7 @@ describe('LineItemService.calculateLine()', () => {
 
   it('computes extended = qty × unit − discount (price & cost)', () => {
     const line: Partial<TransactionLine> = {
-      quantity: { placed: 10 },
+      quantity: { staged: 10 },
       price: { unit: 100, discount_percent: 10, precision: 2 },
       cost: { unit: 60, precision: 2 },
     };
@@ -107,7 +107,7 @@ describe('LineItemService.calculateLine()', () => {
 
   it('prefers explicit discount_amount over percent (WC3 rule)', () => {
     const line: Partial<TransactionLine> = {
-      quantity: { placed: 5 },
+      quantity: { staged: 5 },
       price: { unit: 200, discount_percent: 10, discount_amount: 50, precision: 2 },
       cost: { unit: 80, precision: 2 },
     };
@@ -120,7 +120,7 @@ describe('LineItemService.calculateLine()', () => {
 
   it('uses line precision from envelope', () => {
     const line: Partial<TransactionLine> = {
-      quantity: { placed: 3 },
+      quantity: { staged: 3 },
       price: { unit: 33.333, precision: 3 },
       cost: { unit: 10, precision: 0 },
     };
@@ -134,7 +134,7 @@ describe('LineItemService.calculateLine()', () => {
 
   it('handles zero quantity', () => {
     const line: Partial<TransactionLine> = {
-      quantity: { placed: 0 },
+      quantity: { staged: 0 },
       price: { unit: 100, precision: 2 },
       cost: { unit: 50, precision: 2 },
     };

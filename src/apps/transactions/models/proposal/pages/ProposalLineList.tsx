@@ -34,7 +34,7 @@ export default function ProposalLineList({
           parent_id: proposalId,
           parent_ref_id: proposalId,
           item: { description: "Sample Item 1" },
-          quantity: { placed: 10 },
+          quantity: { staged: 10 },
           price: { unit: 100 },
           cost: { unit: 80 },
           dt_created: new Date().toISOString(),
@@ -56,7 +56,7 @@ export default function ProposalLineList({
     },
     {
       name: "Quantity",
-      selector: (row) => row.quantity?.staged ?? quantity?.placed || 0,
+      selector: (row) => row.quantity?.staged || 0,
       sortable: true,
       width: "15%"
     },

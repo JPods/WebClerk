@@ -28,13 +28,13 @@ const quantitySchema = z.union([
   z.coerce.number().positive("Quantity must be greater than zero"),
   z
     .object({
-      placed: z.coerce
+      staged: z.coerce
         .number()
-        .min(0, "Quantity placed must be non-negative")
+        .min(0, "Quantity staged must be non-negative")
         .optional(),
-      actioned: z.coerce
+      active: z.coerce
         .number()
-        .min(0, "Quantity actioned must be non-negative")
+        .min(0, "Quantity active must be non-negative")
         .optional(),
       remaining: z.coerce
         .number()
@@ -44,9 +44,9 @@ const quantitySchema = z.union([
     .passthrough()
     .refine(
       (value) => {
-        const placed =
-          typeof value.placed === "number" ? value.placed : undefined;
-        return placed === undefined || placed > 0;
+        const staged =
+          typeof value.staged === "number" ? value.staged : undefined;
+        return staged === undefined || staged > 0;
       },
       { message: "Quantity must be greater than zero" }
     ),
