@@ -139,6 +139,100 @@ True continuous learning from user behavior requires fine-tuning infrastructure.
 21. **Scheduled reindex** — Celery periodic task for full reindex overnight
 
 > **Setup guide for team members:** see [setup-guide.md](setup-guide.md)
+
+### Phase 5 — Autonomous Data Intelligence (planned)
+
+Ollama + Celery tasks that continuously analyze, clean, and optimize live data without manual intervention.
+
+#### 5A. Database Sync Conflict Advisor
+
+| Aspect | Detail |
+|---|---|
+| Goal | Keep wc3 (PostgreSQL) and wc2 (4D) databases in sync during migration period |
+| AI Role | **Advisory only** — conflict resolution, not transport. Sync engine is deterministic (Celery + row versioning + change-data-capture). Ollama evaluates ambiguous merge conflicts (e.g., both sides edited `refs.links`) and proposes the smarter resolution. |
+| Implementation | Celery periodic task compares `row_version` / checksums between databases. On conflict, serializes both versions and asks Ollama to score which is more complete/current. Human approval required initially. |
+| Risk | Low — AI is suggestion layer, never writes without approval |
+| Priority | Medium — needed while wc2 coexists |
+
+#### 5B. JSON Envelope Optimization (.refs, .prefs, .metadata)
+
+| Aspect | Detail |
+|---|---|
+| Goal | Reduce bloat in denormalized JSON fields; promote high-value data, prune dead weight |
+| AI Role | **Analysis + recommendation.** Celery task scans access patterns (which `refs.keywords` get searched, which `prefs` keys the frontend reads, which `metadata.flags` are checked). Ollama scores each key's utility and suggests: prune, keep, or promote to indexed field. |
+| Targets | `refs.links` — orphaned foreign keys to deleted records; `refs.keywords` — duplicates, low-value terms; `prefs` — keys never read by r25; `metadata.history` — entries beyond retention window; `metadata.flags` — stale one-off flags |
+| Implementation | Nightly Celery task → generates optimization report → optional auto-compact with `AtomicJSONMixin.atomic_json_set()` for safe partial updates |
+| Risk | Low if advisory-first; medium if auto-pruning enabled without approval gate |
+| Priority | High — directly improves query performance and storage |
+
+#### 5C. Data Input Parsing (addresses, phones, vCards)
+
+| Aspect | Detail |
+|---|---|
+| Goal | Clean and normalize contact data on ingestion |
+| AI Role | **Fuzzy fallback.** Deterministic libraries handle structured parsing: `vobject` (vCards), `phonenumbers` (phones), `usaddress`/`libpostal` (addresses). Ollama handles the 20% that rules can't: OCR-mangled addresses, partial input inference, international format normalization. |
+| Integration Points | `Address.queue_verification()` stub (already exists), `Phone` model normalization, new `/wcapi/ai/parse/` endpoint for bulk import cleanup |
+| Implementation | On save signal or bulk import: run deterministic parser → if confidence < threshold, pass to Ollama for best-guess normalization → flag for human review if still uncertain |
+| Risk | Low — worst case falls back to original input |
+| Priority | High — data quality at the gate prevents downstream problems |
+
+#### 5D. Schema ↔ TypeScript Drift Detection
+
+| Aspect | Detail |
+|---|---|
+| Goal | Detect mismatches between Django model fields and r25 TypeScript interfaces / Zod schemas |
+| AI Role | **Structural comparison.** Celery task introspects Django model fields (type, required, default, choices) and compares against `.ts` interfaces in `src/apps/*/models/*/types/` and Zod schemas in `src/validations/`. Ollama reads both representations and flags: missing fields, wrong types (`number` vs `string`), required/optional mismatches, fields present in TS but removed from Django. |
+| Output | Drift report (markdown or JSON) surfaced in AI widget developer mode; optionally auto-generates corrected `.ts` interface stubs |
+| Implementation | Extend `generate_context` management command to emit field-type comparison; Ollama evaluates semantic equivalence (e.g., `BigIntegerField` → `number` vs `string`) |
+| Risk | Low — read-only analysis; generated stubs require developer approval |
+| Priority | Very High — prevents the #1 cause of runtime bugs (schema mismatch) |
+
+#### 5E. Record Data Health Scoring
+
+| Aspect | Detail |
+|---|---|
+| Goal | Populate `HealthMixin.health_rating` (0-100) with meaningful per-record quality scores |
+| AI Role | **Hybrid scoring.** Deterministic rules handle the 80% (field completeness, recency, link integrity). Ollama evaluates subjective quality: is the description meaningful, are keywords relevant, does the address look plausible? |
+| Scoring Example (Contact) | Has email +10, has phone +10, has valid address +15, has org link +10, keywords populated +5, recent activity +20, verified address +15, description quality (AI) +15 |
+| Implementation | Nightly Celery task iterates models with `HealthMixin`; applies model-specific rule config; writes `health_rating` via bulk update. AI evaluation sampled (not every record every night) to manage Ollama load. |
+| Risk | Low — `health_rating` is informational, doesn't gate business logic |
+| Priority | High — enables data quality dashboards and targeted cleanup campaigns |
+
+#### 5F. Margin & Profitability Tracking
+
+| Aspect | Detail |
+|---|---|
+| Goal | Continuous margin analysis across transactions, items, customers, and reps |
+| AI Role | **Anomaly detection + narrative.** The math is deterministic (margin = (price - cost) / price, using `Item.price`, `Item.cost`, and line-level data). Ollama adds: anomaly alerts (margin suddenly dropped — why?), trend forecasting (predict next quarter from `ItemUsage` history), and natural-language summaries for dashboards. |
+| Data Sources | `Item.cost` / `Item.price` JSON fields, `ItemUsage.metrics` (`margin.factor`, `sales.actual`, `cost.actual`), transaction line `unit_cost` / `unit_price` from Pending `data` |
+| Implementation | Celery task aggregates margin data into `ItemUsage` monthly snapshots (already structured for this). Ollama generates plain-English margin reports per item/customer/period. Alert thresholds configurable in `Setting` model. |
+| Risk | Low — read-only analytics layer |
+| Priority | Medium-High — direct business value but requires clean cost data first |
+
+#### 5G. Inventory Velocity & Investment Efficiency
+
+| Aspect | Detail |
+|---|---|
+| Goal | Measure margin earned per unit of time capital is tied up in inventory: `velocity = margin / carrying_time` |
+| AI Role | **Predictive analytics.** Calculates velocity from `ItemUsage.metrics` (`turns.actual`, `turns.target`) combined with `Item.cost` and transaction timing. Ollama ranks items by investment efficiency, identifies slow-movers burning carrying cost, recommends reorder adjustments, and flags items where velocity is declining. |
+| Data Sources | `ItemUsage` monthly snapshots (`turns.*`, `inventory.*`, `sales.*`), `Item.quantity` (on_hand, on_po, on_so), `Item.cost` (average, landed), transaction dates for carrying-time calculation |
+| Metrics | Inventory turns ratio, days-of-supply, carrying cost per item, margin velocity ($/day/item), dead stock identification |
+| Implementation | Weekly Celery task computes velocity metrics → stores in `ItemUsage.metrics` (new keys: `velocity.margin_per_day`, `velocity.carrying_days`, `velocity.rank`). Ollama generates investment-efficiency report with actionable recommendations. |
+| Risk | Medium — recommendations could influence purchasing decisions; require human review |
+| Priority | High — strongest differentiator; directly impacts capital efficiency |
+
+#### Phase 5 Sequencing
+
+| Order | Task | Depends On | Estimated Effort |
+|---|---|---|---|
+| 1 | 5E Health Scoring | HealthMixin exists, rules only first | 1-2 days |
+| 2 | 5D Schema Drift Detection | generate_context cmd exists | 2-3 days |
+| 3 | 5C Data Input Parsing | Address stubs exist | 2-3 days |
+| 4 | 5B JSON Envelope Optimization | Access pattern logging first | 3-5 days |
+| 5 | 5F Margin Tracking | ItemUsage metrics ready | 2-3 days |
+| 6 | 5G Inventory Velocity | 5F margin data flowing | 3-5 days |
+| 7 | 5A Sync Conflict Advisor | Only while wc2 coexists | 3-5 days |
+
 ---
 
 ## Key Design Decisions
