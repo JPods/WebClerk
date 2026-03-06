@@ -795,22 +795,25 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
   );
 
   const conditionalRowStyles = useMemo(() => {
-    if (!enableSelection || selectionMode !== "rowClick") return undefined;
+    if (!enableSelection) return undefined;
 
-    const selectedBg = theme === "dark" ? "#0b2a4a" : "#dbeafe";
-    const selectedHoverBg = theme === "dark" ? "#0a223b" : "#cfe3ff";
+    // Use more prominent colors for selected rows
+    const selectedBg = theme === "dark" ? "#1e3a5f" : "#bfdbfe";
+    const selectedHoverBg = theme === "dark" ? "#1e4976" : "#93c5fd";
     return [
       {
         when: (row: T) => selectedRowKeySet.has(getRowKey(row)),
         style: {
           backgroundColor: selectedBg,
+          borderLeft:
+            theme === "dark" ? "3px solid #3b82f6" : "3px solid #2563eb",
           "&:hover": {
             backgroundColor: selectedHoverBg,
           },
         },
       },
     ];
-  }, [enableSelection, selectionMode, selectedRowKeySet, getRowKey, theme]);
+  }, [enableSelection, selectedRowKeySet, getRowKey, theme]);
 
   // Export to Excel
   const exportToExcel = useCallback(
@@ -1020,9 +1023,13 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         minHeight: "48px",
         width: "100%",
         minWidth: "100%",
+        backgroundColor: theme === "dark" ? "#111827" : "#ffffff",
         "&:hover": {
           backgroundColor: theme === "dark" ? "#1f2937" : "#f3f4f6",
         },
+      },
+      stripedStyle: {
+        backgroundColor: theme === "dark" ? "#111827" : "#ffffff",
       },
     },
     headCells: {
@@ -1159,6 +1166,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
           }}
           responsive
           dense={false}
+          striped={false}
         />
       </div>
     </div>

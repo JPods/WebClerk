@@ -1,14 +1,15 @@
-import { useState, useEffect, useMemo, useCallback, useRef} from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { fetchVendors } from "../services/vendorApi";
 
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import VendorDetail from "./VendorDetail";
-import VendorListMob from "./VendorListMob";
 import { deleteRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 
@@ -123,6 +124,36 @@ export default function VendorList() {
     setFormMode("add");
     setDetailKey((k) => k + 1);
   };
+
+  // Bulk delete handler
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedVendors.length) return;
+    if (!window.confirm(`Delete ${selectedVendors.length} vendors?`)) return;
+
+    setLoading(true);
+    try {
+      await Promise.all(
+        selectedVendors.map((row) => deleteRecord("vendor", row.id)),
+      );
+      dispatch(
+        showToast({
+          message: "Vendors deleted successfully",
+          type: "success",
+        }),
+      );
+      setSelectedVendors([]);
+      fetchActions();
+    } catch (error) {
+      dispatch(
+        showToast({
+          message: "Failed to delete vendors",
+          type: "error",
+        }),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedVendors, dispatch, fetchActions]);
 
   // Form saved handler
   const handleFormSaved = () => {
@@ -340,7 +371,9 @@ export default function VendorList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -351,6 +384,7 @@ export default function VendorList() {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         handleAddInline={handleAdd}
+        handleBulkDelete={handleBulkDelete}
         tableRef={tableRef}
         columnBtnRef={columnBtnRef}
         importInputRef={importInputRef}
@@ -373,55 +407,35 @@ export default function VendorList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className="cus-bg-purple-light rounded-md">
-            {formMode ? (
-              <div className="flex flex-col">
-                <VendorListMob
-                  dataProp={data}
-                  selectedVendor={selectedVendor}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                  emptyMessage="No vendor found."
-                  filters={filters}
-                  searchPlaceholder="Search vendor, display_name, org_type..."
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  enableExport={true}
-                  exportFileName="vendor_export"
-                  customActions={customActions}
-                  loading={loading}
-                  columnsForExport={columns}
-                />
-              </div>
-            ) : (
-              <AdvancedDataTable
+            <AdvancedDataTable
               ref={tableRef}
-                data={filteredData}
-                columns={visibleColumns}
-                title="Vendor"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={true}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                onSelectionChange={setSelectedVendors}
-                exportFileName="vendor_export"
-                searchPlaceholder="Search vendor, display_name, org_type..."
-                noDataMessage="No vendor found"
-                customActions={customActions}
-                onRowClicked={handleView}
-              
+              data={filteredData}
+              columns={visibleColumns}
+              title="Vendor"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
+              onSelectionChange={setSelectedVendors}
+              onDeleteSelected={handleBulkDelete}
+              exportFileName="vendor_export"
+              searchPlaceholder="Search vendor, display_name, org_type..."
+              noDataMessage="No vendor found"
+              customActions={customActions}
+              onRowClicked={handleView}
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
-            )}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
+            />
           </ComponentCard>
         </div>
         {formMode && (

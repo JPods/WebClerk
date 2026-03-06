@@ -1,8 +1,17 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+import AdvancedDataTable, {
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useCallback, useEffect, useMemo, useState, useRef} from "react";
-import { FaEdit, FaEye, FaPlus, FaTrash, FaTachometerAlt } from "react-icons/fa";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import {
+  FaEdit,
+  FaEye,
+  FaPlus,
+  FaTrash,
+  FaTachometerAlt,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { useDispatch } from "react-redux";
@@ -73,11 +82,20 @@ export default function ItemList() {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const getItemId = useCallback((row: any) => {
-    return valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ?? null;
+    return (
+      valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ??
+      null
+    );
   }, []);
 
   const getItemLabel = useCallback((row: any) => {
-    return valueFrom(row, ["name", "item_name", "title", "sku", "item_number"], "Item") || "Item";
+    return (
+      valueFrom(
+        row,
+        ["name", "item_name", "title", "sku", "item_number"],
+        "Item",
+      ) || "Item"
+    );
   }, []);
 
   const getItems = useCallback(async () => {
@@ -89,10 +107,17 @@ export default function ItemList() {
         // Limit to first 10 records to reduce initial load time
         setItems(normalized.slice(0, 10));
         if (!normalized.length) {
-          dispatch(showToast({ message: "Item response contained no rows", type: "warning" }));
+          dispatch(
+            showToast({
+              message: "Item response contained no rows",
+              type: "warning",
+            }),
+          );
         }
       } else {
-        dispatch(showToast({ message: "Failed to fetch items", type: "error" }));
+        dispatch(
+          showToast({ message: "Failed to fetch items", type: "error" }),
+        );
       }
     } catch (error) {
       console.error("Failed to fetch items", error);
@@ -117,13 +142,16 @@ export default function ItemList() {
     setFormMode("view");
   }, []);
 
-  const handleDashboard = useCallback((row: any) => {
-    const id = getItemId(row);
-    console.log('Dashboard button clicked, id:', id);
-    if (id) {
-      navigate(PageRoutes.productsItemDashboard.replace(":id", String(id)));
-    }
-  }, [navigate, getItemId]);
+  const handleDashboard = useCallback(
+    (row: any) => {
+      const id = getItemId(row);
+      console.log("Dashboard button clicked, id:", id);
+      if (id) {
+        navigate(PageRoutes.productsItemDashboard.replace(":id", String(id)));
+      }
+    },
+    [navigate, getItemId],
+  );
 
   const handleEdit = useCallback((row: any) => {
     setSelectedItem(row);
@@ -159,14 +187,18 @@ export default function ItemList() {
 
       try {
         await deleteAction(id);
-        dispatch(showToast({ message: "Item deleted successfully", type: "success" }));
+        dispatch(
+          showToast({ message: "Item deleted successfully", type: "success" }),
+        );
         getItems();
       } catch (error) {
         console.error("Failed to delete item", error);
-        dispatch(showToast({ message: "Failed to delete item", type: "error" }));
+        dispatch(
+          showToast({ message: "Failed to delete item", type: "error" }),
+        );
       }
     },
-    [dispatch, getItemId, getItemLabel, getItems]
+    [dispatch, getItemId, getItemLabel, getItems],
   );
 
   const handleBulkDelete = useCallback(async () => {
@@ -174,12 +206,21 @@ export default function ItemList() {
     if (!window.confirm(`Delete ${selectedItems.length} item(s)?`)) return;
 
     try {
-      await Promise.all(selectedItems.map((item) => deleteAction(getItemId(item))));
-      dispatch(showToast({ message: `${selectedItems.length} item(s) deleted`, type: "success" }));
+      await Promise.all(
+        selectedItems.map((item) => deleteAction(getItemId(item))),
+      );
+      dispatch(
+        showToast({
+          message: `${selectedItems.length} item(s) deleted`,
+          type: "success",
+        }),
+      );
       getItems();
       setSelectedItems([]);
     } catch (error) {
-      dispatch(showToast({ message: "Failed to delete some items", type: "error" }));
+      dispatch(
+        showToast({ message: "Failed to delete some items", type: "error" }),
+      );
     }
   }, [selectedItems, dispatch, getItemId, getItems]);
 
@@ -200,20 +241,32 @@ export default function ItemList() {
     }
   }, []);
 
-  const filters: ColumnFilter[] = useMemo(() => [
-    { key: "category", label: "Category", type: "text" },
-    { key: "kind", label: "Kind", type: "select", options: [
-      { value: "physical", label: "Physical" },
-      { value: "service", label: "Service" },
-      { value: "bundle", label: "Bundle" },
-    ]},
-  ], []);
+  const filters: ColumnFilter[] = useMemo(
+    () => [
+      { key: "category", label: "Category", type: "text" },
+      {
+        key: "kind",
+        label: "Kind",
+        type: "select",
+        options: [
+          { value: "physical", label: "Physical" },
+          { value: "service", label: "Service" },
+          { value: "bundle", label: "Bundle" },
+        ],
+      },
+    ],
+    [],
+  );
 
   const columns: TableColumn<any>[] = useMemo(() => {
-    const idSelector = (row: any) => valueFrom(row, ["id", "item_id", "item_number", "sku", "uuid"], "--");
-    const nameSelector = (row: any) => valueFrom(row, ["name", "item_name", "title", "description"], "--");
-    const skuSelector = (row: any) => valueFrom(row, ["sku", "item_code", "item_number", "external_id"], "--");
-    const categorySelector = (row: any) => valueFrom(row, ["category", "category_name", "segment", "group"], "--");
+    const idSelector = (row: any) =>
+      valueFrom(row, ["id", "item_id", "item_number", "sku", "uuid"], "--");
+    const nameSelector = (row: any) =>
+      valueFrom(row, ["name", "item_name", "title", "description"], "--");
+    const skuSelector = (row: any) =>
+      valueFrom(row, ["sku", "item_code", "item_number", "external_id"], "--");
+    const categorySelector = (row: any) =>
+      valueFrom(row, ["category", "category_name", "segment", "group"], "--");
     const retailSelector = (row: any) => {
       const val = Number(row?.price?.retail);
       return Number.isFinite(val) ? val : 0;
@@ -223,13 +276,49 @@ export default function ItemList() {
       return Number.isFinite(val) ? val : 0;
     };
     const descriptionSelector = (row: any) =>
-      valueFrom(row, ["description", "long_description", "short_description", "change_reason"], "--");
+      valueFrom(
+        row,
+        [
+          "description",
+          "long_description",
+          "short_description",
+          "change_reason",
+        ],
+        "--",
+      );
 
     return [
-      { id: "id", name: "ID", selector: idSelector, sortable: true, width: "80px" },
-      { id: "name", name: "Name", selector: nameSelector, sortable: true, wrap: true, width: "20%" },
-      { id: "sku", name: "SKU", selector: skuSelector, sortable: true, wrap: true, width: "15%" },
-      { id: "category", name: "Category", selector: categorySelector, sortable: true, wrap: true, width: "15%" },
+      {
+        id: "id",
+        name: "ID",
+        selector: idSelector,
+        sortable: true,
+        width: "80px",
+      },
+      {
+        id: "name",
+        name: "Name",
+        selector: nameSelector,
+        sortable: true,
+        wrap: true,
+        width: "20%",
+      },
+      {
+        id: "sku",
+        name: "SKU",
+        selector: skuSelector,
+        sortable: true,
+        wrap: true,
+        width: "15%",
+      },
+      {
+        id: "category",
+        name: "Category",
+        selector: categorySelector,
+        sortable: true,
+        wrap: true,
+        width: "15%",
+      },
       {
         id: "retail",
         name: "Retail",
@@ -254,7 +343,14 @@ export default function ItemList() {
           </span>
         ),
       },
-      { id: "description", name: "Description", selector: descriptionSelector, sortable: false, wrap: true, width: "20%" },
+      {
+        id: "description",
+        name: "Description",
+        selector: descriptionSelector,
+        sortable: false,
+        wrap: true,
+        width: "20%",
+      },
       {
         id: "actions",
         name: "Actions",
@@ -297,7 +393,9 @@ export default function ItemList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -331,7 +429,7 @@ export default function ItemList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
@@ -345,6 +443,7 @@ export default function ItemList() {
               enableExport={true}
               enableSelection={true}
               onSelectionChange={setSelectedItems}
+              onDeleteSelected={handleBulkDelete}
               exportFileName="items_export"
               onRowDoubleClicked={handleDoubleClick}
               searchPlaceholder="Search items..."
@@ -353,6 +452,11 @@ export default function ItemList() {
               searchDatabase={searchDatabase}
               onSearchModeChange={setSearchDatabase}
               onDatabaseSearch={handleDatabaseSearch}
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
               customActions={
                 <div className="flex gap-2">
                   {selectedItems.length > 0 && (
@@ -360,10 +464,7 @@ export default function ItemList() {
                       onClick={handleBulkDelete}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                     >
-                      <FaTrash className="w-4 h-4" 
-              externalSearchTerm={searchTerm}
-              onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
+                      <FaTrash className="w-4 h-4" />
                       Delete ({selectedItems.length})
                     </button>
                   )}

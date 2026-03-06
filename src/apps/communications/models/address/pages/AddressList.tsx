@@ -1,16 +1,17 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo, useRef} from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchAddresses, deleteAddress } from "../services/addressApi";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import AddressDetail from "./AddressDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
-import AddressListMob from "./AddressListMob";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function AddressList() {
@@ -197,53 +198,8 @@ export default function AddressList() {
     }
   }, [selectedAddresses, dispatch, getAddressData]);
 
-  const toggleSelectAddress = useCallback((row: dynamicData) => {
-    setSelectedAddresses((prev) => {
-      const exists = prev.some((r) => r.id === row.id);
-      if (exists) {
-        return prev.filter((r) => r.id !== row.id);
-      }
-      return [...prev, row];
-    });
-  }, []);
-
-  const toggleSelectAll = useCallback(() => {
-    setSelectedAddresses((prev) => {
-      if (prev.length === data.length) {
-        return [];
-      }
-      return [...data];
-    });
-  }, [data]);
-
-  const userColumns: TableColumn<dynamicData>[] = useMemo(
+  const columns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      {
-        name: (
-          <input
-            type="checkbox"
-            checked={
-              selectedAddresses.length === data.length && data.length > 0
-            }
-            onChange={toggleSelectAll}
-            className="w-4 h-4 cursor-pointer"
-          />
-        ),
-        cell: (row: dynamicData) => (
-          <input
-            type="checkbox"
-            checked={selectedAddresses.some((r) => r.id === row.id)}
-            onChange={() => toggleSelectAddress(row)}
-            className="w-4 h-4 cursor-pointer text-xs"
-          />
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-        width: "100px",
-        sortable: false,
-        reorder: false,
-      },
       {
         name: "id",
         selector: (row: dynamicData) => row.id,
@@ -252,10 +208,9 @@ export default function AddressList() {
       },
       {
         name: "contact",
-        selector: (row) => {
-          row?.refs?.links?.contact?.[0]?.contact?.display_name;
-        },
-        cell: (row) =>
+        selector: (row: dynamicData) =>
+          row?.refs?.links?.contact?.[0]?.contact?.display_name || "--",
+        cell: (row: dynamicData) =>
           row?.refs?.links?.contact?.[0]?.contact?.display_name
             ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
             : "--",
@@ -309,15 +264,7 @@ export default function AddressList() {
         sortable: false,
       },
     ],
-    [
-      handleDelete,
-      handleEdit,
-      handleView,
-      selectedAddresses,
-      data.length,
-      toggleSelectAddress,
-      toggleSelectAll,
-    ],
+    [handleDelete, handleEdit, handleView],
   );
 
   const customActions = (
@@ -339,18 +286,6 @@ export default function AddressList() {
     </div>
   );
 
-  const exportColumns = useMemo(
-    () =>
-      userColumns
-        .filter((col) => typeof col.name === "string")
-        .map((col) => ({
-          name: typeof col.name === "string" ? col.name : undefined,
-          selector:
-            typeof col.selector === "function" ? col.selector : undefined,
-        })),
-    [userColumns],
-  );
-
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
     if (Object.keys(filterValues).length === 0) return data;
@@ -366,7 +301,9 @@ export default function AddressList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -400,58 +337,39 @@ export default function AddressList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            {formMode ? (
-              <div className="flex flex-col">
-                <AddressListMob
-                  dataProp={data}
-                  selectedAddress={selectedAddress}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                  emptyMessage="No addresses found"
-                  filters={filters}
-                  searchPlaceholder="Search addresses..."
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  enableExport={true}
-                  exportFileName="addresses_export"
-                  customActions={customActions}
-                  loading={loading}
-                  columnsForExport={exportColumns}
-                />
-              </div>
-            ) : (
-              <AdvancedDataTable
+            <AdvancedDataTable
               ref={tableRef}
-                data={filteredData}
-                columns={userColumns}
-                title="Addresses"
-                storageKey="communications.address.list"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={false}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                exportFileName="addresses_export"
-                searchPlaceholder="Search addresses..."
-                noDataMessage="No addresses found"
-                customActions={customActions}
-                onRowClicked={handleView}
-                rowClickMode="onlyIdAndActions"
-                rowClickAllowedColumnNames={["id", "action", "actions"]}
-                rowKeyField="id"
-              
+              data={filteredData}
+              columns={visibleColumns}
+              title="Addresses"
+              storageKey="communications.address.list"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedAddresses}
+              onDeleteSelected={handleBulkDelete}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
-            )}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              exportFileName="addresses_export"
+              searchPlaceholder="Search addresses..."
+              noDataMessage="No addresses found"
+              customActions={customActions}
+              onRowClicked={handleView}
+              rowClickMode="onlyIdAndActions"
+              rowClickAllowedColumnNames={["id", "action", "actions"]}
+              rowKeyField="id"
+              hideHeader={true}
+            />
           </ComponentCard>
         </div>
         {formMode && (

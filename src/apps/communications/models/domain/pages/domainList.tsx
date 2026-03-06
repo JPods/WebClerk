@@ -1,8 +1,10 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo, useRef} from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchDomains, deleteDomain } from "../services/domainApi";
 import { FaTrash, FaPlus } from "react-icons/fa";
@@ -10,7 +12,6 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
-import DomainListMob from "./DomainListMob";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function DomainList() {
@@ -199,32 +200,8 @@ export default function DomainList() {
   }, [data]);
 
   /* ---------------- Columns ---------------- */
-  const userColumns: TableColumn<dynamicData>[] = useMemo(
+  const columns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      {
-        name: (
-          <input
-            type="checkbox"
-            checked={selectedDomains.length === data.length && data.length > 0}
-            onChange={toggleSelectAll}
-            className="w-4 h-4 cursor-pointer"
-          />
-        ),
-        cell: (row: dynamicData) => (
-          <input
-            type="checkbox"
-            checked={selectedDomains.some((r) => r.id === row.id)}
-            onChange={() => toggleSelectDomain(row)}
-            className="w-4 h-4 cursor-pointer"
-          />
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-        width: "80px",
-        sortable: false,
-        reorder: false,
-      },
       {
         name: "id",
         selector: (row: dynamicData) =>
@@ -302,18 +279,6 @@ export default function DomainList() {
     </div>
   );
 
-  const exportColumns = useMemo(
-    () =>
-      userColumns
-        .filter((col) => typeof col.name === "string")
-        .map((col) => ({
-          name: typeof col.name === "string" ? col.name : undefined,
-          selector:
-            typeof col.selector === "function" ? col.selector : undefined,
-        })),
-    [userColumns],
-  );
-
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
     if (Object.keys(filterValues).length === 0) return data;
@@ -329,7 +294,9 @@ export default function DomainList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -363,56 +330,39 @@ export default function DomainList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            {formMode ? (
-              <DomainListMob
-                dataProp={data}
-                selectedDomain={selectedEmail}
-                handleView={handleView}
-                handleEdit={handleEdit}
-                emptyMessage="No domains found"
-                filters={filters}
-                searchPlaceholder="Search domains..."
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                enableExport={true}
-                exportFileName="domains_export"
-                customActions={customActions}
-                loading={loading}
-                columnsForExport={exportColumns}
-              />
-            ) : (
-              <AdvancedDataTable
+            <AdvancedDataTable
               ref={tableRef}
-                data={filteredData}
-                columns={userColumns}
-                title="Domains"
-                storageKey="communications.domain.list"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={false}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                exportFileName="domains_export"
-                searchPlaceholder="Search domains..."
-                noDataMessage="No domains found"
-                customActions={customActions}
-                onRowClicked={handleView}
-                rowClickMode="onlyIdAndActions"
-                rowClickAllowedColumnNames={["id", "action", "actions"]}
-                rowKeyField="id"
-              
+              data={filteredData}
+              columns={visibleColumns}
+              title="Domains"
+              storageKey="communications.domain.list"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedDomains}
+              onDeleteSelected={handleBulkDelete}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
+              exportFileName="domains_export"
+              searchPlaceholder="Search domains..."
+              noDataMessage="No domains found"
+              customActions={customActions}
+              onRowClicked={handleView}
+              rowClickMode="onlyIdAndActions"
+              rowClickAllowedColumnNames={["id", "action", "actions"]}
+              rowKeyField="id"
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
-            )}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
+            />
           </ComponentCard>
         </div>
         {formMode && (

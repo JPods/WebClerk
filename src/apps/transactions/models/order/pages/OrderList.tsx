@@ -71,37 +71,42 @@ export default function OrderList() {
 
   const dispatch = useDispatch();
 
-  const getOrderData = useCallback(async (filter?: QuickFilter) => {
-    const activeFilter = filter ?? quickFilter;
-    try {
-      setLoading(true);
+  const getOrderData = useCallback(
+    async (filter?: QuickFilter) => {
+      const activeFilter = filter ?? quickFilter;
+      try {
+        setLoading(true);
 
-      // Build params based on quick filter
-      const params: Record<string, any> = {};
-      if (activeFilter === "open") {
-        params.status = "draft,confirmed,shipped";
-      } else if (activeFilter === "last30" || activeFilter === "last60") {
-        const days = activeFilter === "last30" ? 30 : 60;
-        const since = new Date();
-        since.setDate(since.getDate() - days);
-        params.dt_created__gte = since.toISOString().split("T")[0];
-      }
+        // Build params based on quick filter
+        const params: Record<string, any> = {};
+        if (activeFilter === "open") {
+          params.status = "draft,confirmed,shipped";
+        } else if (activeFilter === "last30" || activeFilter === "last60") {
+          const days = activeFilter === "last30" ? 30 : 60;
+          const since = new Date();
+          since.setDate(since.getDate() - days);
+          params.dt_created__gte = since.toISOString().split("T")[0];
+        }
 
-      const res = await fetchOrders(params);
-      if (res.status === 200) {
-        setData(res.data.items);
-      } else {
+        const res = await fetchOrders(params);
+        if (res.status === 200) {
+          setData(res.data.items);
+        } else {
+          dispatch(
+            showToast({ message: "Failed to fetch orders", type: "error" }),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch orders", error);
         dispatch(
           showToast({ message: "Failed to fetch orders", type: "error" }),
         );
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch orders", error);
-      dispatch(showToast({ message: "Failed to fetch orders", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch, quickFilter]);
+    },
+    [dispatch, quickFilter],
+  );
 
   useEffect(() => {
     getOrderData();
@@ -121,13 +126,16 @@ export default function OrderList() {
       const detail = (e as CustomEvent)?.detail as any;
       const model = String(detail?.model || "");
       if (
-        ["order", "invoice", "proposal", "purchase", "workorder"].includes(model)
+        ["order", "invoice", "proposal", "purchase", "workorder"].includes(
+          model,
+        )
       ) {
         getOrderData();
       }
     };
     window.addEventListener("wcapi:modelChanged", handler as any);
-    return () => window.removeEventListener("wcapi:modelChanged", handler as any);
+    return () =>
+      window.removeEventListener("wcapi:modelChanged", handler as any);
   }, [getOrderData]);
 
   // Database search handler for comma-separated terms (AND logic)
@@ -223,8 +231,9 @@ export default function OrderList() {
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedOrders.length === 0) return;
-    if (!window.confirm(`Delete ${selectedOrders.length} selected order(s)?`)) return;
-    
+    if (!window.confirm(`Delete ${selectedOrders.length} selected order(s)?`))
+      return;
+
     try {
       for (const order of selectedOrders) {
         await deleteAction(order.id);
@@ -322,29 +331,33 @@ export default function OrderList() {
       },
       {
         name: "display_name",
-        selector: (row: OrderRow) => row.refs?.links?.customer?.display_name || "-fix-",
+        selector: (row: OrderRow) =>
+          row.refs?.links?.customer?.display_name || "-fix-",
         sortable: true,
         width: "20%",
       },
       {
         name: "attention",
-        selector: (row: OrderRow) => row.refs?.links?.customer?.attention || "-fix-",
+        selector: (row: OrderRow) =>
+          row.refs?.links?.customer?.attention || "-fix-",
         sortable: true,
         width: "20%",
       },
       {
         name: "email",
-        selector: (row: OrderRow) => row.refs?.links?.customer?.email || "-fix-",
+        selector: (row: OrderRow) =>
+          row.refs?.links?.customer?.email || "-fix-",
         sortable: true,
         width: "20%",
       },
       {
         name: "phone",
-        selector: (row: OrderRow) => row.refs?.links?.customer?.phone || "-fix-",
+        selector: (row: OrderRow) =>
+          row.refs?.links?.customer?.phone || "-fix-",
         sortable: true,
         width: "20%",
       },
-    
+
       {
         name: "Total Amount",
         selector: (row: OrderRow) => row.total || row.total_amount || 0,
@@ -515,6 +528,7 @@ export default function OrderList() {
         selectedRows={selectedOrders}
         selectedCount={selectedOrders.length}
         totalCount={data.length}
+        filteredCount={data.length}
         onRefresh={() => getOrderData()}
         loading={loading}
         enableDatabaseSearch
@@ -544,7 +558,8 @@ export default function OrderList() {
         }
         summaryContent={
           <span className="text-xs text-slate-500">
-            Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}% • Delivered: {statusCounts.delivered || 0}
+            Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}
+            % • Delivered: {statusCounts.delivered || 0}
           </span>
         }
       />
@@ -563,6 +578,7 @@ export default function OrderList() {
               enableExport={true}
               enableSelection={true}
               onSelectionChange={setSelectedOrders}
+              onDeleteSelected={handleBulkDelete}
               exportFileName="orders"
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
@@ -573,6 +589,9 @@ export default function OrderList() {
               onSearchModeChange={setSearchDatabase}
               onDatabaseSearch={handleDatabaseSearch}
               onRowClicked={handleView}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
             />
           </ComponentCard>
         </div>
@@ -589,33 +608,33 @@ export default function OrderList() {
                 key={`${selectedOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
-                      dataProp={
-                      formMode === "add"
-                        ? null
-                        : selectedOrder
-                        ? {
-                            ...selectedOrder,
-                            id:
-                              typeof selectedOrder.id === "string"
-                                ? Number(selectedOrder.id)
-                                : selectedOrder.id,
-                            customer_id:
-                              selectedOrder.customer_id ??
-                              selectedOrder.id_customer ??
-                              "",
-                            vendor_id:
-                              selectedOrder.vendor_id ??
-                              selectedOrder.id_vendor ??
-                              "",
-                            manufacturer_id: selectedOrder.manufacturer_id ?? "",
-                            status: (selectedOrder.status ?? "draft") as any,
-                            dt_created:
-                              typeof selectedOrder.dt_created === "number"
-                                ? String(selectedOrder.dt_created)
-                                : selectedOrder.dt_created,
-                          }
-                        : null
+                dataProp={
+                  formMode === "add"
+                    ? null
+                    : selectedOrder
+                    ? {
+                        ...selectedOrder,
+                        id:
+                          typeof selectedOrder.id === "string"
+                            ? Number(selectedOrder.id)
+                            : selectedOrder.id,
+                        customer_id:
+                          selectedOrder.customer_id ??
+                          selectedOrder.id_customer ??
+                          "",
+                        vendor_id:
+                          selectedOrder.vendor_id ??
+                          selectedOrder.id_vendor ??
+                          "",
+                        manufacturer_id: selectedOrder.manufacturer_id ?? "",
+                        status: (selectedOrder.status ?? "draft") as any,
+                        dt_created:
+                          typeof selectedOrder.dt_created === "number"
+                            ? String(selectedOrder.dt_created)
+                            : selectedOrder.dt_created,
                       }
+                    : null
+                }
                 onSaved={handleFormSaved}
                 onCancelInline={handleFormCancel}
               />

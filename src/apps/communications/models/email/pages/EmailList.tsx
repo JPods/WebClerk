@@ -1,17 +1,18 @@
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
-  ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
+  ColumnFilter,
+  type AdvancedDataTableHandle,
+} from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo, useRef} from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchEmails, deleteEmail } from "../services/emailApi";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import EmailDetail from "./EmailDetail";
 import Badge from "@/components/ui/badge/Badge";
 import { dynamicData } from "../../../../../model/dynamicData";
-import EmailListMob from "./EmailListMob";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function EmailList() {
@@ -208,32 +209,8 @@ export default function EmailList() {
     });
   }, [data]);
   /* ---------------- Columns ---------------- */
-  const userColumns: TableColumn<dynamicData>[] = useMemo(
+  const columns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      {
-        name: (
-          <input
-            type="checkbox"
-            checked={selectedEmails.length === data.length && data.length > 0}
-            onChange={toggleSelectAll}
-            className="w-4 h-4 cursor-pointer"
-          />
-        ),
-        cell: (row: dynamicData) => (
-          <input
-            type="checkbox"
-            checked={selectedEmails.some((r) => r.id === row.id)}
-            onChange={() => toggleSelectEmail(row)}
-            className="w-4 h-4 cursor-pointer"
-          />
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-        width: "50px",
-        sortable: false,
-        reorder: false,
-      },
       {
         name: "id",
         selector: (row: dynamicData) => row.id,
@@ -242,10 +219,10 @@ export default function EmailList() {
       },
       {
         name: "contact",
-        selector: (row) => {
+        selector: (row: dynamicData) => {
           row?.refs?.links?.contact?.[0]?.contact?.display_name;
         },
-        cell: (row) =>
+        cell: (row: dynamicData) =>
           row?.refs?.links?.contact?.[0]?.contact?.display_name
             ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
             : "--",
@@ -344,18 +321,6 @@ export default function EmailList() {
     </div>
   );
 
-  const exportColumns = useMemo(
-    () =>
-      userColumns
-        .filter((col) => typeof col.name === "string")
-        .map((col) => ({
-          name: typeof col.name === "string" ? col.name : undefined,
-          selector:
-            typeof col.selector === "function" ? col.selector : undefined,
-        })),
-    [userColumns],
-  );
-
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
     if (Object.keys(filterValues).length === 0) return data;
@@ -371,7 +336,9 @@ export default function EmailList() {
   // Filter columns based on visibility from ButtonToolbar
   const visibleColumns = useMemo(() => {
     if (columnVisibility.length === 0) return columns;
-    return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
+    return columns.filter(
+      (_: any, index: number) => columnVisibility[index] !== false,
+    );
   }, [columns, columnVisibility]);
   return (
     <>
@@ -405,58 +372,39 @@ export default function EmailList() {
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
       />
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            {formMode ? (
-              <div className="flex flex-col">
-                <EmailListMob
-                  dataProp={data}
-                  selectedEmail={selectedEmail}
-                  handleView={handleView}
-                  handleEdit={handleEdit}
-                  emptyMessage="No emails found"
-                  filters={filters}
-                  searchPlaceholder="Search emails, names, attention..."
-                  enableDatabaseSearch={true}
-                  searchDatabase={searchDatabase}
-                  onSearchModeChange={setSearchDatabase}
-                  onDatabaseSearch={handleDatabaseSearch}
-                  enableExport={true}
-                  exportFileName="emails_export"
-                  customActions={customActions}
-                  loading={loading}
-                  columnsForExport={exportColumns}
-                />
-              </div>
-            ) : (
-              <AdvancedDataTable
+            <AdvancedDataTable
               ref={tableRef}
-                data={filteredData}
-                columns={userColumns}
-                title="Emails"
-                storageKey="communications.email.list"
-                loading={loading}
-                filters={filters}
-                enableExport={true}
-                enableSelection={false}
-                enableDatabaseSearch={true}
-                searchDatabase={searchDatabase}
-                onSearchModeChange={setSearchDatabase}
-                onDatabaseSearch={handleDatabaseSearch}
-                exportFileName="emails_export"
-                searchPlaceholder="Search emails, names, attention..."
-                noDataMessage="No emails found"
-                customActions={customActions}
-                onRowClicked={handleView}
-                rowClickMode="onlyIdAndActions"
-                rowClickAllowedColumnNames={["id", "action", "actions"]}
-                rowKeyField="id"
-              
+              data={filteredData}
+              columns={visibleColumns}
+              title="Emails"
+              storageKey="communications.email.list"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedEmails}
+              onDeleteSelected={handleBulkDelete}
+              enableDatabaseSearch={true}
+              searchDatabase={searchDatabase}
+              onSearchModeChange={setSearchDatabase}
+              onDatabaseSearch={handleDatabaseSearch}
+              exportFileName="emails_export"
+              searchPlaceholder="Search emails, names, attention..."
+              noDataMessage="No emails found"
+              customActions={customActions}
+              onRowClicked={handleView}
+              rowClickMode="onlyIdAndActions"
+              rowClickAllowedColumnNames={["id", "action", "actions"]}
+              rowKeyField="id"
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
-            )}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              hideHeader={true}
+            />
           </ComponentCard>
         </div>
         {formMode && (
