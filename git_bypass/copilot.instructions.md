@@ -631,7 +631,85 @@ All dev-mode ID badges are marked with a `/* DEV: */` comment. When the project 
 
 ---
 
-## 17. Documentation Practice
+## 17. Display Related — Opening Related Records in Windows
+
+When a component needs to open a related model's detail page (e.g. opening an Item from a transaction line, or a Contact from an order), **always** use the WindowManager pattern — never `window.open()`.
+
+### The Three Pieces
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Route map | `src/apps/common/components/panels/getModelDetailPath.ts` | Maps `(model, id)` → detail route path |
+| Window title | `getModelWindowTitle(model, id, ida?, name?)` | Builds human-readable window title |
+| WindowManager | `src/context/WindowManagerContext.tsx` | `ensureWindow(path, title, opts)` opens inside the app shell |
+| Config | `src/routes/protectedRoutesConfig.tsx` | `resolveWindowElement(path)` resolves path → React element |
+
+### Canonical Pattern
+
+```tsx
+import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from '@/apps/common/components/panels/getModelDetailPath';
+import { useWindowManager } from '@/context/WindowManagerContext';
+
+const windowManager = useWindowManager();
+
+const handleOpenRelated = (model: string, id: number, ida?: string) => {
+  const path = getModelDetailPath(model, id);
+  const title = getModelWindowTitle(model, id, ida);
+  windowManager.ensureWindow(path, title, getModelWindowPreset(model));
+};
+```
+
+Or use the all-in-one helper:
+
+```tsx
+import { getModelWindowArgs } from '@/apps/common/components/panels/getModelDetailPath';
+
+const win = getModelWindowArgs("item", 42, "ABC-123");
+windowManager.ensureWindow(win.path, win.title, win.options);
+```
+
+### Window Size Presets
+
+`WINDOW_PRESETS` in `getModelDetailPath.ts` provides four named presets:
+
+| Preset | Size | Use |
+|--------|------|-----|
+| `DETAIL` | 980 × 640 | Single record (item, order, customer) |
+| `LIST` | 1200 × 720 | Table/collection views |
+| `COMPACT` | 720 × 500 | Quick lookups (serial, phone, email) |
+| `FULL` | maximized | Dashboard views |
+
+`getModelWindowPreset(model)` returns the correct preset for a model (falls back to `DETAIL`).
+Override at the callsite when needed: `{ ...WINDOW_PRESETS.DETAIL, width: 1100 }`.
+
+### Multi-Window / Multi-Monitor
+
+Multiple floating windows are central to the enterprise UX. Power users open several records side-by-side across monitors. Key rules:
+- **Open, don't navigate** — always open a new window; never replace the current view
+- **`ensureWindow` de-dupes** — same path twice activates the existing window
+- **Use presets** — consistent sizing via `WINDOW_PRESETS`; let users freely resize and arrange
+
+### Rules
+
+1. **Never use `window.open()`** for SPA routes — it spawns a new browser window with the full app shell (sidebar + chrome), wasting resources and breaking UX.
+2. **Always register detail routes in `protectedRoutesConfig.tsx`** — the WindowManager calls `resolveWindowElement(path)` to render content. If the route isn't registered there, it shows `<NotFoundPage />`.
+3. **Keep `getModelDetailPath.ts` in sync with `Routes.ts`** — when a route pattern changes (e.g. `/item/dashboard` → `/item/detail`), update both files.
+4. **Use numeric IDs in paths** — detail routes use `:id` (numeric), not item codes or slugs.
+5. **Pass `ida` for better window titles** — `getModelWindowTitle("item", 42, "ABC-123")` → `"Item ABC-123"` instead of `"Item #42"`.
+
+### Checklist for Adding a New "Open Related" Button
+
+- [ ] Route exists in `Routes.ts` (e.g. `productsItemDetail = "/products/item/detail/:id"`)
+- [ ] Route registered in `Router.tsx` with the correct element
+- [ ] Route registered in `protectedRoutesConfig.tsx` (for WindowManager resolution)
+- [ ] Path registered in `getModelDetailPath.ts` `MODEL_DETAIL_BASES`
+- [ ] Component uses `useWindowManager()` + `ensureWindow()` — not `window.open()`
+
+> **Deep dive:** `readmes/display-related.md`
+
+---
+
+## 18. Documentation Practice
 
 - **Readmes are essential** — update `readmes/` when architecture decisions change
 - Files `00-` through `03-` are the core onboarding sequence
@@ -641,7 +719,7 @@ All dev-mode ID badges are marked with a `/* DEV: */` comment. When the project 
 
 ---
 
-## 18. Instruction File Sync (MANDATORY)
+## 19. Instruction File Sync (MANDATORY)
 
 Copilot instructions exist in **two locations** in both repos:
 
@@ -668,7 +746,7 @@ In wc3, `.github/` is gitignored, so only `git_bypass/` is committed.
 
 ---
 
-## 19. AI Inventory Observer (Backend Integration)
+## 20. AI Inventory Observer (Backend Integration)
 
 The wc3 backend includes an **LLM-powered inventory observational learning system**. While the implementation lives in wc3, the frontend may eventually expose query interfaces.
 
@@ -709,7 +787,7 @@ When building inventory observer UI:
 
 ---
 
-## 20. Coding Journal (Backend)
+## 21. Coding Journal (Backend)
 
 The wc3 backend captures **coding sessions** for LLM learning from our development efforts.
 
@@ -745,7 +823,44 @@ This builds institutional knowledge that helps the LLM assist with similar probl
 
 ---
 
-## 21. Session Context
+## 22. Git Observer (Backend)
+
+The wc3 backend includes a **Git Observer** that watches commits for schema drift and outdated code. This catches when team members push code using deprecated field names or banned patterns.
+
+### CLI Commands (in wc3)
+
+```bash
+# Scan recent commits for drift issues
+python manage.py analyze_commits
+
+# Analyze a specific commit
+python manage.py analyze_commits --commit abc123
+
+# Check staged files before commit
+python manage.py analyze_commits --check-staged
+
+# Show only commits with drift issues
+python manage.py analyze_commits --drift-only
+```
+
+### What It Catches
+
+| Issue | Example |
+|-------|---------|
+| Deprecated fields | `quantity.placed` (should be `quantity.staged`) |
+| Banned patterns | `print()` instead of logging |
+| Stale imports | Importing from moved modules |
+
+### Frontend Impact
+
+When the backend detects drift, coordinate with the team to:
+1. Update TypeScript types if field names changed
+2. Update API calls if shapes changed
+3. Run `pnpm generate:types` to regenerate types
+
+---
+
+## 23. Session Context
 
 When starting a coding session, establish:
 

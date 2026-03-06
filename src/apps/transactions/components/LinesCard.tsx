@@ -16,6 +16,8 @@ import InventoryCheckDialog from "../components/InventoryCheckDialog";
 import OrderItemSearch from "../models/order/components/OrderItemSearch";
 import { lineKey } from "../utils/lineHelpers";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { getModelDetailPath, getModelWindowTitle } from '@/apps/common/components/panels/getModelDetailPath';
+import { useWindowManager } from '@/context/WindowManagerContext';
 
 // You may need to import types for TransactionLine, ItemSearchResult, etc.
 
@@ -46,6 +48,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   onAddItem,
   onLinesChange,
 }) => {
+  const windowManager = useWindowManager();
   const [pendingDeleteId, setPendingDeleteId] = React.useState<number | null>(
     null,
   );
@@ -143,12 +146,10 @@ const LinesCard: React.FC<LinesCardProps> = ({
     }
   };
 
-  const handleOpenItem = (itemIdOrCode: number | string) => {
-    const path =
-      typeof itemIdOrCode === "number"
-        ? `/products/item/detail/${itemIdOrCode}`
-        : `/products/item/detail/${itemIdOrCode}`;
-    window.open(path, "_blank", "width=1000,height=800");
+  const handleOpenItem = (itemId: number, ida?: string) => {
+    const path = getModelDetailPath("item", itemId);
+    const title = getModelWindowTitle("item", itemId, ida);
+    windowManager.ensureWindow(path, title, { maximized: false });
   };
 
   const toggleLineSelection = (lineId: number) => {
@@ -633,7 +634,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                             return openId ? (
                             <button
                               type="button"
-                              onClick={() => handleOpenItem(openId)}
+                              onClick={() => handleOpenItem(openId, itemCode !== "--" ? itemCode : undefined)}
                               className="p-1 text-slate-400 hover:text-green-500 transition-colors"
                               title="Open item in new window"
                             >
