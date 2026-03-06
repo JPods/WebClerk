@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import mimetypes
 import os
+import zlib
 import uuid
 from datetime import datetime
 from typing import Any, Dict
 
 from django.conf import settings
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -39,6 +41,33 @@ def _compute_checksum(file_obj) -> str:
     for chunk in file_obj.chunks():
         hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def _encode_inline_content(file_obj) -> Dict[str, Any]:
+    file_obj.seek(0)
+    raw_bytes = file_obj.read()
+    compressed = zlib.compress(raw_bytes, level=9)
+    encoded = base64.b64encode(compressed).decode("ascii")
+    return {
+        "inline_encoding": "zlib+base64",
+        "inline_content_b64": encoded,
+        "inline_size_bytes": len(raw_bytes),
+    }
+
+
+def _decode_inline_content(doc: Document) -> bytes | None:
+    data = doc.data if isinstance(doc.data, dict) else {}
+    encoded = data.get("inline_content_b64")
+    encoding = data.get("inline_encoding")
+    if not isinstance(encoded, str) or not encoded:
+        return None
+    try:
+        compressed = base64.b64decode(encoded.encode("ascii"))
+        if encoding == "zlib+base64":
+            return zlib.decompress(compressed)
+        return compressed
+    except Exception:
+        return None
 
 
 def _build_storage_path(filename: str) -> Dict[str, str]:
@@ -90,51 +119,16 @@ class DocumentUploadView(APIView):
         checksum = _compute_checksum(upload)
         existing = Document.objects.filter(checksum=checksum).first()
         if existing:
-            if purpose == "attachment":
-                metadata = default_document_metadata()
-                now_ms = int(timezone.now().timestamp() * 1000)
-                metadata.setdefault("history", {})
-                metadata["history"]["created"] = {"dt": now_ms, "contact_id": 0}
-                metadata["history"]["modified"] = {"dt": now_ms, "contact_id": 0}
-                metadata["original_name"] = filename
-                metadata["purpose"] = purpose
-
-                cloned_path = dict(existing.path) if isinstance(existing.path, dict) else existing.path
-                cloned = Document.objects.create(
-                    name=filename,
-                    description=description,
-                    mime_type=existing.mime_type or mime_type,
-                    size_bytes=existing.size_bytes or upload.size,
-                    path=cloned_path,
-                    checksum=checksum,
-                    model_name=model_name or None,
-                    data={"parent_id": parent_id, "purpose": purpose, "source_document_id": existing.id},
-                    metadata=metadata,
-                )
-
-                if isinstance(cloned.path, dict):
-                    cloned.path["url"] = cloned.path.get("url") or f"/wcapi/document/{cloned.id}/"
-                    cloned.save(update_fields=["path"])
-
-                payload = {
-                    "document_id": cloned.id,
-                    "path": (cloned.path or {}).get("key") if isinstance(cloned.path, dict) else None,
-                    "checksum": cloned.checksum,
-                    "is_duplicate": True,
-                    "url": (cloned.path or {}).get("url") if isinstance(cloned.path, dict) else f"/wcapi/document/{cloned.id}/",
-                    "name": cloned.name,
-                    "size_bytes": cloned.size_bytes,
-                    "mime_type": cloned.mime_type,
-                    "document": _serialize_document(cloned),
-                }
-                return Response(payload, status=status.HTTP_201_CREATED)
-
+            existing_path = existing.path if isinstance(existing.path, dict) else {}
+            existing_url = existing_path.get("url") if isinstance(existing_path, dict) else None
+            if not isinstance(existing_url, str) or not existing_url:
+                existing_url = f"/wcapi/document/{existing.id}/"
             payload = {
                 "document_id": existing.id,
-                "path": (existing.path or {}).get("key") if isinstance(existing.path, dict) else None,
+                "path": existing_path.get("key") if isinstance(existing_path, dict) else None,
                 "checksum": existing.checksum,
                 "is_duplicate": True,
-                "url": (existing.path or {}).get("url") if isinstance(existing.path, dict) else None,
+                "url": existing_url,
                 "name": existing.name,
                 "size_bytes": existing.size_bytes,
                 "mime_type": existing.mime_type,
@@ -142,18 +136,7 @@ class DocumentUploadView(APIView):
             }
             return Response(payload, status=status.HTTP_200_OK)
 
-        upload.seek(0)
-        storage = _build_storage_path(filename)
-        full_path = storage["full"]
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-
-        with open(full_path, "wb") as f:
-            for chunk in upload.chunks():
-                f.write(chunk)
-
-        rel_key = storage["key"]
-        # Don't set URL here - will set after document creation
-        url = None
+        inline_payload = _encode_inline_content(upload)
         metadata = default_document_metadata()
         now_ms = int(timezone.now().timestamp() * 1000)
         metadata.setdefault("history", {})
@@ -193,23 +176,23 @@ class DocumentUploadView(APIView):
             description=description,
             mime_type=mime_type,
             size_bytes=upload.size,
-            path={"storage": "local", "key": rel_key, "url": f"/wcapi/document/{0}/", "full": full_path},  # Placeholder URL
+            path={"storage": "inline", "key": f"inline:{checksum}", "url": "", "full": None},
             checksum=checksum,
             model_name=model_name or None,
-            data={"parent_id": parent_id, "purpose": purpose},
+            data={"parent_id": parent_id, "purpose": purpose, **inline_payload},
             metadata=metadata,
         )
 
-        # Update the path with the correct URL now that we have the document ID
-        doc.path["url"] = f"/wcapi/document/{doc.id}/"
-        doc.save(update_fields=['path'])
+        url = f"/wcapi/document/{doc.id}/"
+        doc.path = {"storage": "inline", "key": f"inline:{checksum}", "url": url, "full": None}
+        doc.save(update_fields=["path"])
 
         payload = {
             "document_id": doc.id,
-            "path": rel_key,
+            "path": f"inline:{checksum}",
             "checksum": checksum,
             "is_duplicate": False,
-            "url": doc.path.get("url") if isinstance(doc.path, dict) else f"/wcapi/document/{doc.id}/",
+            "url": url,
             "name": doc.name,
             "size_bytes": doc.size_bytes,
             "mime_type": doc.mime_type,
@@ -223,12 +206,21 @@ class DocumentDownloadView(APIView):
         doc = Document.objects.filter(pk=document_id).first()
         if not doc:
             raise Http404("document not found")
+
+        inline_bytes = _decode_inline_content(doc)
+        if inline_bytes is not None:
+            doc.increment_access()
+            response = HttpResponse(inline_bytes, content_type=doc.mime_type or "application/octet-stream")
+            if doc.name:
+                response["Content-Disposition"] = f'inline; filename="{doc.name}"'
+            return response
+
         path = (doc.path or {}) if isinstance(doc.path, dict) else {}
         full_path = path.get("full")
         if not full_path or not os.path.exists(full_path):
             raise Http404("file not found")
         doc.increment_access()
-        return FileResponse(open(full_path, "rb"), as_attachment=True, filename=doc.name or None)
+        return FileResponse(open(full_path, "rb"), as_attachment=False, filename=doc.name or None)
 
 
 class DocumentDeleteView(APIView):

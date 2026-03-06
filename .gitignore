@@ -34,3 +34,4 @@ db.sqlite3
 tools/dev-config.json
 tools/.sync_status.json
 share/man/man1/isympy.1
+uploads/
