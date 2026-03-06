@@ -40,8 +40,8 @@ Signal auto-recalc (post_save)         useRealTimeCalculations() hook
 ### 3.1 Line-level (per line item)
 
 ```
-price.extended = round(qty_placed × price.unit_price − discount_amount, precision)
-cost.extended  = round(qty_placed × cost.unit_cost   − cost_discount,   cost_precision)
+price.extended = round(qty_staged × price.unit_price − discount_amount, precision)
+cost.extended  = round(qty_staged × cost.unit_cost   − cost_discount,   cost_precision)
 ```
 
 **Discount logic** (must match on both sides):
