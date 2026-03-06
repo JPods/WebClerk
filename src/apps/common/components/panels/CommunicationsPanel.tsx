@@ -42,7 +42,7 @@ import type {
 
 // WCAPI for save/delete operations
 import { saveRecord, deleteRecord } from "../../../../api/wcapi";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1390,7 +1390,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-teal-200 dark:border-teal-800 ${className}`}
+      className={`bg-white overflow-y-auto max-h-[360px] dark:bg-slate-800 rounded-lg border border-teal-200 dark:border-teal-800 ${className}`}
     >
       {/* Header */}
       <div
@@ -1624,4 +1624,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(CommunicationsPanel, 'CommunicationsPanel', 'teal');
+export default withDevIdentifier(
+  CommunicationsPanel,
+  "CommunicationsPanel",
+  "teal",
+);

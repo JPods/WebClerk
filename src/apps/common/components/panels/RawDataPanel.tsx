@@ -1,10 +1,10 @@
 /**
  * RawDataPanel - Display raw JSON data for admin/developer debugging
- * 
+ *
  * Role-based access:
  * - View: Admin only (default)
  * - Edit: Admin only (default)
- * 
+ *
  * @example
  * <RawDataPanel
  *   entityType="contact"
@@ -12,11 +12,21 @@
  *   data={contact}
  * />
  */
-import React, { useState, useMemo } from 'react';
-import { FaCode, FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaDownload, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
-import { usePermissions } from './usePermissions';
-import type { BasePanelProps } from './types';
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import React, { useState, useMemo } from "react";
+import {
+  FaCode,
+  FaChevronDown,
+  FaChevronUp,
+  FaCopy,
+  FaCheck,
+  FaDownload,
+  FaEdit,
+  FaSave,
+  FaTimes,
+} from "react-icons/fa";
+import { usePermissions } from "./usePermissions";
+import type { BasePanelProps } from "./types";
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,20 +49,20 @@ const syntaxHighlight = (json: string): string => {
   return json.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (match) => {
-      let cls = 'text-purple-600 dark:text-purple-400'; // number
+      let cls = "text-purple-600 dark:text-purple-400"; // number
       if (/^"/.test(match)) {
         if (/:$/.test(match)) {
-          cls = 'text-blue-600 dark:text-blue-400'; // key
+          cls = "text-blue-600 dark:text-blue-400"; // key
         } else {
-          cls = 'text-green-600 dark:text-green-400'; // string
+          cls = "text-green-600 dark:text-green-400"; // string
         }
       } else if (/true|false/.test(match)) {
-        cls = 'text-amber-600 dark:text-amber-400'; // boolean
+        cls = "text-amber-600 dark:text-amber-400"; // boolean
       } else if (/null/.test(match)) {
-        cls = 'text-red-600 dark:text-red-400'; // null
+        cls = "text-red-600 dark:text-red-400"; // null
       }
       return `<span class="${cls}">${match}</span>`;
-    }
+    },
   );
 };
 
@@ -94,24 +104,24 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   readOnly: _readOnly = true, // Raw data is typically read-only
   viewRoles,
   editRoles,
-  className = '',
+  className = "",
   compact = false,
-  title = 'Raw Data',
+  title = "Raw Data",
   defaultCollapsed = true,
-  highlightSections = ['metadata', 'refs', 'prefs', 'comments', 'financials'],
-  maxHeight = '400px',
+  highlightSections = ["metadata", "refs", "prefs", "comments", "financials"],
+  maxHeight = "400px",
   onSave,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [copied, setCopied] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
   // Check permissions (admin only by default)
   const { canView, canEdit } = usePermissions({
-    panelType: 'rawData',
+    panelType: "rawData",
     viewRoles,
     editRoles,
     forceReadOnly: false,
@@ -125,36 +135,42 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
     try {
       return JSON.stringify(data, null, 2);
     } catch {
-      return 'Unable to serialize data';
+      return "Unable to serialize data";
     }
   }, [data]);
 
   // Find available sections
   const availableSections = useMemo(() => {
-    if (typeof data !== 'object' || data === null) return [];
-    return highlightSections.filter((section) => section in (data as Record<string, unknown>));
+    if (typeof data !== "object" || data === null) return [];
+    return highlightSections.filter(
+      (section) => section in (data as Record<string, unknown>),
+    );
   }, [data, highlightSections]);
 
   // Filter JSON if search term provided
   const displayJson = useMemo(() => {
     if (!searchTerm) return jsonString;
-    
-    const lines = jsonString.split('\n');
+
+    const lines = jsonString.split("\n");
     const matchingLines: number[] = [];
-    
+
     lines.forEach((line, idx) => {
       if (line.toLowerCase().includes(searchTerm.toLowerCase())) {
         // Include surrounding context
-        for (let i = Math.max(0, idx - 2); i <= Math.min(lines.length - 1, idx + 2); i++) {
+        for (
+          let i = Math.max(0, idx - 2);
+          i <= Math.min(lines.length - 1, idx + 2);
+          i++
+        ) {
           if (!matchingLines.includes(i)) matchingLines.push(i);
         }
       }
     });
-    
+
     if (matchingLines.length === 0) return jsonString;
-    
+
     matchingLines.sort((a, b) => a - b);
-    return matchingLines.map((i) => lines[i]).join('\n');
+    return matchingLines.map((i) => lines[i]).join("\n");
   }, [jsonString, searchTerm]);
 
   // Highlighted JSON HTML
@@ -168,14 +184,14 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
   const handleDownload = () => {
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${entityType}_${entityId}.json`;
     document.body.appendChild(a);
@@ -187,7 +203,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   const handleNavigateToSection = (section: string) => {
     const el = document.getElementById(`raw-section-${section}`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     setSearchTerm(`"${section}":`);
   };
@@ -200,7 +216,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditValue('');
+    setEditValue("");
     setEditError(null);
   };
 
@@ -216,19 +232,23 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   };
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600 ${className}`}>
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600 ${className}`}
+    >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800 cursor-pointer rounded-t-lg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaCode className="text-slate-500" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
-          <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded">
+          <FaCode className="text-teal-500" size={14} />
+          <h3 className="text-sm font-semibold text-teal-700 dark:text-teal-200">
+            {title}
+          </h3>
+          <span className="px-1.5 py-0.5 text-xs bg-teal-200 dark:bg-teal-600 text-teal-600 dark:text-teal-300 rounded">
             Admin/Dev
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-teal-500">
             {jsonString.length.toLocaleString()} chars
           </span>
         </div>
@@ -279,7 +299,11 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                 className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                 title="Copy to clipboard"
               >
-                {copied ? <FaCheck size={12} className="text-green-500" /> : <FaCopy size={12} />}
+                {copied ? (
+                  <FaCheck size={12} className="text-green-500" />
+                ) : (
+                  <FaCopy size={12} />
+                )}
               </button>
               <button
                 onClick={(e) => {
@@ -293,15 +317,22 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
               </button>
             </>
           )}
-          {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
+          {isCollapsed ? (
+            <FaChevronDown size={12} />
+          ) : (
+            <FaChevronUp size={12} />
+          )}
         </div>
       </div>
 
       {/* Content */}
       {!isCollapsed && (
-        <div className={`${compact ? 'p-2' : 'p-4'}`}>
+        <div className={`${compact ? "p-2" : "p-4"}`}>
           {/* Section Navigator */}
-          <SectionNav sections={availableSections} onNavigate={handleNavigateToSection} />
+          <SectionNav
+            sections={availableSections}
+            onNavigate={handleNavigateToSection}
+          />
 
           {/* Search */}
           <div className="mb-3">
@@ -324,7 +355,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                   setEditError(null);
                 }}
                 className="w-full p-3 text-xs font-mono leading-relaxed bg-white dark:bg-slate-900 rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
-                style={{ minHeight: '200px', maxHeight }}
+                style={{ minHeight: "200px", maxHeight }}
                 spellCheck={false}
               />
               {editError && (
@@ -357,4 +388,4 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(RawDataPanel, 'RawDataPanel', 'teal');
+export default withDevIdentifier(RawDataPanel, "RawDataPanel", "teal");

@@ -1,33 +1,43 @@
 /**
  * DocumentsPanel - Display and manage entity documents/attachments
- * 
+ *
  * Data source: refs.links.document
- * 
+ *
  * Upload flow:
  * 1. File selected → upload to storage
  * 2. Create Document record with metadata
  * 3. Add RefLink to parent's refs.links.document[]
- * 
+ *
  * Role-based access:
  * - View: All roles (default)
  * - Edit: User+ roles (default)
- * 
+ *
  * @see readmes/topics/document-uploads.md
  */
-import React, { useState, useRef } from 'react';
-import { 
-  FaFile, FaChevronDown, FaChevronUp, FaPlus, FaTrash, FaDownload,
-  FaFilePdf, FaFileImage, FaFileWord, FaFileExcel, FaFileAlt, FaSpinner
-} from 'react-icons/fa';
-import { usePermissions } from './usePermissions';
-import type { BasePanelProps, RefLink } from './types';
-import { 
-  uploadDocument, 
+import React, { useState, useRef } from "react";
+import {
+  FaFile,
+  FaChevronDown,
+  FaChevronUp,
+  FaPlus,
+  FaTrash,
+  FaDownload,
+  FaFilePdf,
+  FaFileImage,
+  FaFileWord,
+  FaFileExcel,
+  FaFileAlt,
+  FaSpinner,
+} from "react-icons/fa";
+import { usePermissions } from "./usePermissions";
+import type { BasePanelProps, RefLink } from "./types";
+import {
+  uploadDocument,
   deleteDocument as deleteDocRecord,
   getDocumentUrl,
   formatFileSize as formatSize,
-} from './documentUpload';
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+} from "./documentUpload";
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,7 +57,11 @@ interface DocumentRefLink extends RefLink {
   url?: string;
 }
 
-interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'data' | 'entityType' | 'entityId'> {
+interface DocumentsPanelProps
+  extends Omit<
+    BasePanelProps<DocumentRefLink[]>,
+    "data" | "entityType" | "entityId"
+  > {
   /** Parent entity type (e.g., 'order', 'contact') */
   parent_model?: string;
   /** Parent entity ID */
@@ -69,34 +83,42 @@ interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'd
 // ---------------------------------------------------------------------------
 
 const getFileIcon = (type?: string, name?: string): React.ReactNode => {
-  const ext = name?.split('.').pop()?.toLowerCase() || type?.split('/').pop() || '';
-  
-  if (['pdf'].includes(ext) || type?.includes('pdf')) {
+  const ext =
+    name?.split(".").pop()?.toLowerCase() || type?.split("/").pop() || "";
+
+  if (["pdf"].includes(ext) || type?.includes("pdf")) {
     return <FaFilePdf className="text-red-500" />;
   }
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext) || type?.startsWith('image/')) {
+  if (
+    ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext) ||
+    type?.startsWith("image/")
+  ) {
     return <FaFileImage className="text-blue-500" />;
   }
-  if (['doc', 'docx'].includes(ext) || type?.includes('word')) {
+  if (["doc", "docx"].includes(ext) || type?.includes("word")) {
     return <FaFileWord className="text-blue-600" />;
   }
-  if (['xls', 'xlsx', 'csv'].includes(ext) || type?.includes('sheet') || type?.includes('excel')) {
+  if (
+    ["xls", "xlsx", "csv"].includes(ext) ||
+    type?.includes("sheet") ||
+    type?.includes("excel")
+  ) {
     return <FaFileExcel className="text-green-600" />;
   }
   return <FaFileAlt className="text-slate-500" />;
 };
 
 const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return '--';
+  if (!bytes) return "--";
   return formatSize(bytes);
 };
 
 const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleDateString(undefined, { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+  if (!dateStr) return "--";
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 };
 
@@ -111,17 +133,20 @@ interface DocumentRowProps {
   onDownload?: () => void;
 }
 
-const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete, onDownload }) => (
+const DocumentRow: React.FC<DocumentRowProps> = ({
+  doc,
+  canEdit,
+  onDelete,
+  onDownload,
+}) => (
   <div className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded group">
     {/* Icon */}
-    <div className="text-xl">
-      {getFileIcon(doc.type, doc.name)}
-    </div>
+    <div className="text-xl">{getFileIcon(doc.type, doc.name)}</div>
 
     {/* Info */}
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-        {doc.name || doc.display || 'Untitled'}
+        {doc.name || doc.display || "Untitled"}
       </p>
       <div className="flex items-center gap-3 text-xs text-slate-500">
         <span>{formatFileSize(doc.size)}</span>
@@ -163,15 +188,15 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   parentId,
   data = [],
   onChange,
-  purpose = 'attachment',
+  purpose = "attachment",
   maxFileSize,
   allowedExtensions,
   readOnly = false,
   viewRoles,
   editRoles,
-  className = '',
+  className = "",
   compact = false,
-  title = 'Documents',
+  title = "Documents",
   defaultCollapsed = false,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -184,7 +209,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
   // Check permissions
   const { canView, canEdit: permCanEdit } = usePermissions({
-    panelType: 'documents',
+    panelType: "documents",
     viewRoles,
     editRoles,
     forceReadOnly: readOnly,
@@ -201,7 +226,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       return `File size exceeds maximum of ${formatSize(maxFileSize)}`;
     }
     if (allowedExtensions) {
-      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
       if (!allowedExtensions.includes(ext)) {
         return `File type .${ext} not allowed`;
       }
@@ -213,9 +238,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     if (!files.length) return;
     if (!onChange) return;
 
-    const firstError = files
-      .map((f) => validateFile(f))
-      .find((msg) => msg);
+    const firstError = files.map((f) => validateFile(f)).find((msg) => msg);
     if (firstError) {
       setError(firstError);
       return;
@@ -243,7 +266,9 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             },
             (p) => {
               const overall = ((i + p / 100) / files.length) * 100;
-              setUploadProgress(Math.max(0, Math.min(100, Math.round(overall))));
+              setUploadProgress(
+                Math.max(0, Math.min(100, Math.round(overall))),
+              );
             },
           );
 
@@ -269,21 +294,21 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             type: file.type,
             size: file.size,
             uploaded_at: new Date().toISOString(),
-            uploaded_by: 'current_user',
+            uploaded_by: "current_user",
           };
           nextDocs = [...nextDocs, localDoc];
           onChange(nextDocs);
         }
       }
     } catch (err) {
-      console.error('Upload failed:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      console.error("Upload failed:", err);
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
       setUploadStatus(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -296,7 +321,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   const handleDelete = async (index: number) => {
     if (!onChange) return;
 
-    const ok = window.confirm('Delete this document? This cannot be undone.');
+    const ok = window.confirm("Delete this document? This cannot be undone.");
     if (!ok) return;
 
     const doc = data[index];
@@ -306,7 +331,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       try {
         await deleteDocRecord(doc.document_id);
       } catch (err) {
-        console.error('Failed to delete document record:', err);
+        console.error("Failed to delete document record:", err);
       }
     }
 
@@ -315,7 +340,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
   const handleDownload = async (doc: DocumentRefLink) => {
     if (doc.url) {
-      window.open(doc.url, '_blank');
+      window.open(doc.url, "_blank");
       return;
     }
 
@@ -323,28 +348,32 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     if (doc.document_id) {
       const url = await getDocumentUrl(doc.document_id);
       if (url) {
-        window.open(url, '_blank');
+        window.open(url, "_blank");
       }
     }
   };
 
   // Build accept attribute for file input
-  const acceptAttr = allowedExtensions 
-    ? allowedExtensions.map(ext => `.${ext}`).join(',')
+  const acceptAttr = allowedExtensions
+    ? allowedExtensions.map((ext) => `.${ext}`).join(",")
     : undefined;
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}>
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+    >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+        className="flex items-center justify-between px-4 py-3 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800 cursor-pointer rounded-t-lg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaFile className="text-slate-400" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
+          <FaFile className="text-teal-400" size={14} />
+          <h3 className="text-sm font-semibold text-teal-700 dark:text-teal-200">
+            {title}
+          </h3>
           {data.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs bg-teal-100 dark:bg-teal-700 text-teal-600 dark:text-teal-300 rounded-full">
               {data.length}
             </span>
           )}
@@ -360,10 +389,18 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50"
               title="Upload document"
             >
-              {isUploading ? <FaSpinner className="animate-spin" size={12} /> : <FaPlus size={12} />}
+              {isUploading ? (
+                <FaSpinner className="animate-spin" size={12} />
+              ) : (
+                <FaPlus size={12} />
+              )}
             </button>
           )}
-          {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
+          {isCollapsed ? (
+            <FaChevronDown size={12} />
+          ) : (
+            <FaChevronUp size={12} />
+          )}
         </div>
       </div>
 
@@ -379,14 +416,14 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
       {/* Content */}
       {!isCollapsed && (
-        <div className={compact ? 'p-2' : 'p-4'}>
+        <div className={compact ? "p-2" : "p-4"}>
           {/* Dropzone */}
           {canEdit && (
             <div
               className={`mb-3 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors ${
                 isDragging
-                  ? 'border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20'
-                  : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30'
+                  ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
+                  : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30"
               }`}
               onDragEnter={(e) => {
                 e.preventDefault();
@@ -414,7 +451,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               tabIndex={0}
               onClick={() => fileInputRef.current?.click()}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   fileInputRef.current?.click();
                 }
@@ -439,7 +476,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                   disabled={isUploading}
                   className="px-3 py-2 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isUploading ? 'Uploading…' : 'Upload'}
+                  {isUploading ? "Uploading…" : "Upload"}
                 </button>
               </div>
             </div>
@@ -451,11 +488,11 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               <div className="flex items-center gap-2">
                 <FaSpinner className="animate-spin" size={10} />
                 <span>
-                  {uploadStatus || 'Uploading…'} {uploadProgress}%
+                  {uploadStatus || "Uploading…"} {uploadProgress}%
                 </span>
               </div>
               <div className="mt-1 h-1 bg-blue-100 rounded overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-blue-500 transition-all duration-200"
                   style={{ width: `${uploadProgress}%` }}
                 />
@@ -502,4 +539,4 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(DocumentsPanel, 'DocumentsPanel', 'teal');
+export default withDevIdentifier(DocumentsPanel, "DocumentsPanel", "teal");
