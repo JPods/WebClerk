@@ -194,7 +194,8 @@ class LayoutDriftDetector:
         json_fields: set[str] = set()
 
         for f in model_cls._meta.get_fields():
-            if not hasattr(f, "get_internal_type"):
+            # Skip reverse relations (ManyToOneRel, ManyToManyRel, etc.)
+            if not hasattr(f, "get_internal_type") or not hasattr(f, "has_default"):
                 continue
             internal_type = f.get_internal_type()
             is_fk = internal_type in ("ForeignKey", "OneToOneField")

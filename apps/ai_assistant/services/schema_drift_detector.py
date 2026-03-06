@@ -100,7 +100,8 @@ class SchemaDriftDetector:
 
         fields = {}
         for f in model_cls._meta.get_fields():
-            if not hasattr(f, "get_internal_type"):
+            # Skip reverse relations (ManyToOneRel, ManyToManyRel, etc.)
+            if not hasattr(f, "get_internal_type") or not hasattr(f, "has_default"):
                 continue
             internal_type = f.get_internal_type()
             ts_type = DJANGO_TO_TS.get(internal_type, "unknown")
