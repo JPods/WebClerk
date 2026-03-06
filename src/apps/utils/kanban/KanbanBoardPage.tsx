@@ -9,7 +9,7 @@ import KanbanTaskModal from "./KanbanTaskModal";
 import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment } from "./taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords, manageAction, uploadDocument } from "../../../api/wcapi";
@@ -17,6 +17,7 @@ import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from
 import { Link } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
 import RippleLoader from "@/components/common/RippleLoader";
+import { NetworkInfo } from "@/routes/network";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const priorityPalette: Record<TaskPriority, string> = {
@@ -115,6 +116,42 @@ const toBoolean = (value: unknown): boolean => {
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const parseMaybeObject = (value: unknown): Record<string, unknown> | null => {
+  if (isRecordObject(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return isRecordObject(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const toAbsoluteAssetUrl = (url?: string): string | undefined => {
+  if (!url || typeof url !== "string") {
+    return undefined;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+
+  const envBase = typeof import.meta.env.VITE_API_URL === "string" ? import.meta.env.VITE_API_URL : "";
+  const configuredBase = (envBase || NetworkInfo.API_URL || "http://localhost:8000").trim();
+  const base = configuredBase.replace(/\/$/, "");
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${base}${path}`;
+};
 
 const findFirstObjectArray = (root: unknown): Record<string, unknown>[] => {
   if (!root) {
@@ -385,6 +422,78 @@ const findDefaultProjectId = (projects: ProjectOption[]): string | undefined => 
   return chosen?.id;
 };
 
+const parseAttachmentDocumentId = (attachment: TaskAttachment): number | null => {
+  if (typeof attachment.documentId === "number" && Number.isFinite(attachment.documentId)) {
+    return attachment.documentId;
+  }
+  const fallback = Number(attachment.id);
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+};
+
+const extractAttachmentChecksums = (attachments: TaskAttachment[] | undefined): string[] => {
+  if (!Array.isArray(attachments)) return [];
+  const checksums = attachments
+    .map((attachment) => (typeof attachment.checksum === "string" ? attachment.checksum.trim() : ""))
+    .filter((checksum): checksum is string => Boolean(checksum));
+  return Array.from(new Set(checksums));
+};
+
+const extractTaskAttachmentHashes = (task: KanbanTask): string[] => {
+  const refs = parseMaybeObject(task.refs);
+  if (!refs) {
+    return [];
+  }
+  const raw = refs.attachments_sha256;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return Array.from(
+    new Set(
+      raw
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+};
+
+const mapDocumentRecordToAttachment = (doc: Record<string, unknown>, index: number): TaskAttachment | null => {
+  const idCandidate = Number(doc.id);
+  if (!Number.isFinite(idCandidate) || idCandidate <= 0) {
+    return null;
+  }
+
+  const name = typeof doc.name === "string" && doc.name ? doc.name : `Attachment ${index + 1}`;
+  const type = (typeof doc.mime_type === "string" && doc.mime_type) || "application/octet-stream";
+  const pathObj = parseMaybeObject(doc.path);
+  const url = toAbsoluteAssetUrl(typeof pathObj?.url === "string" ? pathObj.url : undefined);
+  const sizeRaw = Number(doc.size_bytes);
+  const size = Number.isFinite(sizeRaw) ? sizeRaw : 0;
+  const isImage = type.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
+
+  return {
+    id: `doc-${idCandidate}`,
+    documentId: idCandidate,
+    name,
+    type,
+    size,
+    checksum: typeof doc.checksum === "string" ? doc.checksum : undefined,
+    url,
+    previewUrl: isImage ? url : undefined,
+  };
+};
+
+const mergeAttachmentsByDocumentId = (primary: TaskAttachment[], secondary: TaskAttachment[]): TaskAttachment[] => {
+  const merged = new Map<string, TaskAttachment>();
+  [...primary, ...secondary].forEach((attachment, index) => {
+    const id = parseAttachmentDocumentId(attachment);
+    const key = id ? `doc-${id}` : `${attachment.id || "local"}-${index}`;
+    if (!merged.has(key)) {
+      merged.set(key, attachment);
+    }
+  });
+  return Array.from(merged.values());
+};
+
 const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
   language,
@@ -399,7 +508,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => {
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDT = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  
+
   const now = new Date();
   const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -818,7 +927,7 @@ const pickColumnForStatus = (
 const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
-  value: string | TaskAttachment[],
+  value: TaskFormFieldValue,
   options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
 ): TaskFormState => {
   if (field === "dt_start") {
@@ -918,7 +1027,7 @@ const updateTaskFormState = (
       if (options?.columns?.length && options.fallbackColumnId) {
         next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
       }
-      
+
       if (numericProgress >= 100 && !prev.dt_completed) {
         const now = formatDateTimeLocalString(new Date());
         next.dt_completed = ensureEndAfterStart(prev.dt_start, now);
@@ -1133,6 +1242,151 @@ const KanbanBoardPage: React.FC = () => {
   const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
 
+  const loadPersistedActionAttachments = useCallback(async (actionId: string | number, hashes: string[]): Promise<TaskAttachment[]> => {
+    if (!Array.isArray(hashes) || !hashes.length) {
+      return [];
+    }
+
+    try {
+      const hashSet = new Set(hashes);
+      const docsByChecksum = new Map<string, Record<string, unknown>>();
+      const targetActionId = String(actionId);
+
+      const scoreDocForAction = (doc: Record<string, unknown>): number => {
+        let score = 0;
+        const modelName = typeof doc.model_name === "string" ? doc.model_name.toLowerCase() : "";
+        if (modelName === "action") {
+          score += 3;
+        }
+        const dataObj = parseMaybeObject(doc.data);
+        const parentId = dataObj?.parent_id;
+        if (String(parentId ?? "") === targetActionId) {
+          score += 5;
+        }
+        const pathObj = parseMaybeObject(doc.path);
+        const storage = typeof pathObj?.storage === "string" ? pathObj.storage.toLowerCase() : "";
+        if (storage === "inline") {
+          score += 3;
+        }
+        const url = typeof pathObj?.url === "string" ? pathObj.url : "";
+        if (url.startsWith("/wcapi/document/")) {
+          score += 2;
+        } else if (url.startsWith("/static/")) {
+          score += 1;
+        }
+        if (doc.is_deleted === true) {
+          score -= 4;
+        }
+        if (doc.is_active === false) {
+          score -= 2;
+        }
+        return score;
+      };
+
+      const pageSize = 500;
+      let offset = 0;
+      let hasMore = true;
+      let guard = 0;
+
+      while (hasMore && docsByChecksum.size < hashSet.size && guard < 50) {
+        const pageResponse = await getRecords("document", { limit: pageSize, offset });
+        const pageRecords = extractRecordArray(pageResponse);
+        if (!pageRecords.length) {
+          break;
+        }
+
+        for (const doc of pageRecords) {
+          const checksum = typeof doc.checksum === "string" ? doc.checksum.trim() : "";
+          if (!checksum || !hashSet.has(checksum)) {
+            continue;
+          }
+
+          const current = docsByChecksum.get(checksum);
+          if (!current || scoreDocForAction(doc) > scoreDocForAction(current)) {
+            docsByChecksum.set(checksum, doc);
+          }
+        }
+
+        hasMore = pageRecords.length >= pageSize;
+        offset += pageRecords.length;
+        guard += 1;
+      }
+
+      return hashes
+        .map((hash, index) => {
+          const doc = docsByChecksum.get(hash);
+          if (!doc) {
+            return null;
+          }
+          return mapDocumentRecordToAttachment(doc, index);
+        })
+        .filter((entry): entry is TaskAttachment => !!entry);
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const persistActionAttachmentHashes = useCallback(async (actionId: number, hashes: string[]) => {
+    if (!Number.isFinite(actionId) || actionId <= 0) {
+      return;
+    }
+
+    await patchAction({
+      model_name: "action",
+      id: actionId,
+      "refs.attachments_sha256": {
+        mode: "update",
+        value: hashes,
+      },
+    });
+  }, []);
+
+  const collectActionDocumentChecksums = useCallback(async (actionId: number): Promise<string[]> => {
+    if (!Number.isFinite(actionId) || actionId <= 0) {
+      return [];
+    }
+
+    try {
+      const pageSize = 500;
+      let offset = 0;
+      let hasMore = true;
+      let guard = 0;
+      const checksums = new Set<string>();
+
+      while (hasMore && guard < 50) {
+        const pageResponse = await getRecords("document", { limit: pageSize, offset });
+        const pageRecords = extractRecordArray(pageResponse);
+        if (!pageRecords.length) {
+          break;
+        }
+
+        for (const doc of pageRecords) {
+          const modelName = typeof doc.model_name === "string" ? doc.model_name.toLowerCase() : "";
+          if (modelName && modelName !== "action") {
+            continue;
+          }
+          const dataObj = parseMaybeObject(doc.data);
+          const parentId = Number(dataObj?.parent_id);
+          if (!Number.isFinite(parentId) || parentId !== actionId) {
+            continue;
+          }
+          const checksum = typeof doc.checksum === "string" ? doc.checksum.trim() : "";
+          if (checksum) {
+            checksums.add(checksum);
+          }
+        }
+
+        hasMore = pageRecords.length >= pageSize;
+        offset += pageRecords.length;
+        guard += 1;
+      }
+
+      return Array.from(checksums);
+    } catch {
+      return [];
+    }
+  }, []);
+
   //const navigate = useNavigate();
 
   const resolveDefaultColumnId = useCallback(
@@ -1193,12 +1447,12 @@ const KanbanBoardPage: React.FC = () => {
         order: newSequence,
         position: newSequence,
       };
-      
+
       // Include action titles to ensure backend has them
       if (targetTask.title) {
         entry.action_en = targetTask.title;
       }
-      
+
       // Include translations if available
       if (targetTask.title_translations) {
         Object.entries(targetTask.title_translations).forEach(([lang, text]) => {
@@ -1207,11 +1461,11 @@ const KanbanBoardPage: React.FC = () => {
           }
         });
       }
-      
+
       if (selectedProjectName) {
         entry.project_name = selectedProjectName;
       }
-      
+
       if (selectedProjectId) {
         const numericId = Number(selectedProjectId);
         entry.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
@@ -1657,6 +1911,8 @@ const KanbanBoardPage: React.FC = () => {
     const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
     const normalizedIsActive = task.is_active;
 
+    const refsHashes = extractTaskAttachmentHashes(task);
+
     const taskAttachments: TaskAttachment[] = (task.attachments || []).map(att => ({
       id: `existing-${att.id}`,
       documentId: att.id,
@@ -1679,7 +1935,8 @@ const KanbanBoardPage: React.FC = () => {
       difficulty: normalizedDifficulty,
       percent_complete: String(normalizedProgress),
       is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
-      attachments: taskAttachments,
+      attachments: [],
+      //attachments: taskAttachments,
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -1688,6 +1945,16 @@ const KanbanBoardPage: React.FC = () => {
     setEditLanguagePickerError(null);
 
     setIsEditModalOpen(true);
+
+    void loadPersistedActionAttachments(task.id, refsHashes).then((persisted) => {
+      if (!persisted.length) {
+        return;
+      }
+      setEditTaskState((prev) => ({
+        ...prev,
+        attachments: mergeAttachmentsByDocumentId(prev.attachments || [], persisted),
+      }));
+    });
   };
 
   const handleCloseEditModal = () => {
@@ -1700,7 +1967,7 @@ const KanbanBoardPage: React.FC = () => {
     setEditLanguagePickerError(null);
   };
 
-  const handleCreateTaskChange = (field: TaskFormEditableField, value: string | TaskAttachment[]) => {
+  const handleCreateTaskChange = (field: TaskFormEditableField, value: TaskFormFieldValue) => {
     setCreateTaskState((prev) =>
       updateTaskFormState(prev, field, value, {
         columns: columnOptions,
@@ -1709,7 +1976,7 @@ const KanbanBoardPage: React.FC = () => {
     );
   };
 
-  const handleEditTaskChange = (field: TaskFormEditableField, value: string | TaskAttachment[]) => {
+  const handleEditTaskChange = (field: TaskFormEditableField, value: TaskFormFieldValue) => {
     setEditTaskState((prev) =>
       updateTaskFormState(prev, field, value, {
         columns: columnOptions,
@@ -2145,43 +2412,6 @@ const KanbanBoardPage: React.FC = () => {
     return { payload: cleanActionPayload(payloadItem) };
   };
 
-  const uploadPendingAttachments = useCallback(async (attachments?: TaskAttachment[]): Promise<TaskAttachment[]> => {
-    if (!attachments?.length) {
-      return [];
-    }
-
-    const finalized: TaskAttachment[] = [];
-    for (const attachment of attachments) {
-      if (attachment.documentId) {
-        finalized.push(attachment);
-        continue;
-      }
-
-      if (!attachment.file) {
-        finalized.push(attachment);
-        continue;
-      }
-
-      const uploadResponse = await uploadDocument(
-        attachment.file,
-        "action",
-        undefined,
-        "attachment"
-      );
-
-      finalized.push({
-        ...attachment,
-        documentId: uploadResponse.document_id,
-        previewUrl:
-          attachment.previewUrl ||
-          uploadResponse.url ||
-          `/wcapi/document/${uploadResponse.document_id}/`,
-      });
-    }
-
-    return finalized;
-  }, []);
-
   const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSavingCreate) {
@@ -2193,15 +2423,7 @@ const KanbanBoardPage: React.FC = () => {
 
     void (async () => {
       try {
-        let submitState = createTaskState;
-        if (createTaskState.attachments?.length) {
-          const uploadedAttachments = await uploadPendingAttachments(createTaskState.attachments);
-          submitState = { ...createTaskState, attachments: uploadedAttachments };
-          setCreateTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
-        }
-
-        const result = buildActionPayload("create", submitState);
-
+        const result = buildActionPayload("create", createTaskState);
         if ("error" in result) {
           setCreateModalError(result.error);
           return;
@@ -2210,28 +2432,78 @@ const KanbanBoardPage: React.FC = () => {
         const response = await patchAction(result.payload);
         console.log("Create task response:", response);
         const body: any = (response as any)?.data ?? response;
-        
-        // Check for fail status in both single and bulk responses
+
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           setCreateModalError(details || "Backend rejected the save request.");
           return;
         }
-        
-        // For project bulk operations, check the bulk array response
+
         if (body?.bulk && Array.isArray(body.bulk)) {
           const failedItems = body.bulk.filter((item: any) => item?.status === "fail");
           if (failedItems.length > 0) {
-            const errors = failedItems.map((item: any) => 
+            const errors = failedItems.map((item: any) =>
               Array.isArray(item?.error?.details) ? item.error.details.join("; ") : item?.message || "Unknown error"
             );
             throw new Error(errors.join("; "));
           }
         }
-        
+
+        const bulkCreatedId = Array.isArray(body?.bulk)
+          ? body.bulk
+            .map((entry: any) => entry?.data?.id ?? entry?.id ?? entry?.record?.id ?? entry?.data?.record?.id)
+            .find((value: unknown) => Number.isFinite(Number(value)))
+          : undefined;
+
+        const createdIdCandidate =
+          bulkCreatedId ??
+          body?.data?.id ??
+          body?.id ??
+          body?.data?.record?.id ??
+          body?.record?.id;
+        const createdTaskId = Number(createdIdCandidate);
+
+        const pendingUploads = (createTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
+        const uploadedAttachments: TaskAttachment[] = [];
+
+        if (pendingUploads.length && Number.isFinite(createdTaskId) && createdTaskId > 0) {
+          for (const attachment of pendingUploads) {
+            const uploaded = await uploadDocument(
+              attachment.file as File,
+              "action",
+              createdTaskId,
+              "attachment"
+            );
+
+            const uploadedDoc = (uploaded.document || {}) as Record<string, any>;
+
+            uploadedAttachments.push({
+              id: `doc-${uploaded.document_id}`,
+              documentId: uploaded.document_id,
+              name: (uploadedDoc.name as string) || uploaded.name || attachment.name,
+              type: (uploadedDoc.mime_type as string) || uploaded.mime_type || attachment.type,
+              size: (uploadedDoc.size_bytes as number) || uploaded.size_bytes || attachment.size,
+              checksum: (uploadedDoc.checksum as string) || uploaded.checksum,
+              url: uploaded.url,
+              previewUrl:
+                ((uploaded.mime_type || attachment.type || "") as string).startsWith("image/")
+                  ? uploaded.url
+                  : undefined,
+            });
+          }
+        }
+
+        if (Number.isFinite(createdTaskId) && createdTaskId > 0) {
+          const hashes = Array.from(
+            new Set([
+              ...extractAttachmentChecksums(uploadedAttachments),
+              ...(await collectActionDocumentChecksums(createdTaskId)),
+            ])
+          );
+          await persistActionAttachmentHashes(createdTaskId, hashes);
+        }
+
         handleCloseCreateModal();
-        
-        // Add a small delay to ensure backend has processed the action
         setTimeout(() => {
           void fetchActions({
             projectId: selectedProjectId || undefined,
@@ -2262,34 +2534,70 @@ const KanbanBoardPage: React.FC = () => {
 
     void (async () => {
       try {
-        let submitState = editTaskState;
-        if (editTaskState.attachments?.length) {
-          const uploadedAttachments = await uploadPendingAttachments(editTaskState.attachments);
-          submitState = { ...editTaskState, attachments: uploadedAttachments };
-          setEditTaskState((prev) => ({ ...prev, attachments: uploadedAttachments }));
-        }
-
-        const result = buildActionPayload("edit", submitState, editingTask);
-
+        const result = buildActionPayload("edit", editTaskState, editingTask);
         if ("error" in result) {
           setEditModalError(result.error);
           return;
         }
 
-        // Debug: log the outgoing edit payload to help diagnose 400 responses
         try {
           console.debug("[Kanban] Edit payload:", result.payload);
-        } catch (e) {
+        } catch {
           // ignore
         }
 
-        const response = await patchAction(result.payload);
-        const body: any = (response as any)?.data ?? response;
-        if (body?.status === "fail") {
-          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-          throw new Error(details || "Backend rejected the update request.");
+        await patchAction(result.payload);
+
+        const pendingUploads = (editTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
+        const uploadedAttachments: TaskAttachment[] = [];
+        const editingTaskId = Number(editingTask.id);
+
+        const previousHashes = extractTaskAttachmentHashes(editingTask);
+        const currentPersistedHashes = new Set(extractAttachmentChecksums(editTaskState.attachments));
+        const removedHashes = previousHashes.filter((hash) => !currentPersistedHashes.has(hash));
+
+        if (removedHashes.length) {
+          // Attachment removal is checksum-list based; avoid deleting shared document records.
         }
-        void fetchActions({
+
+        if (pendingUploads.length && Number.isFinite(editingTaskId) && editingTaskId > 0) {
+          for (const attachment of pendingUploads) {
+            const uploaded = await uploadDocument(
+              attachment.file as File,
+              "action",
+              editingTaskId,
+              "attachment"
+            );
+
+            const uploadedDoc = (uploaded.document || {}) as Record<string, any>;
+
+            uploadedAttachments.push({
+              id: `doc-${uploaded.document_id}`,
+              documentId: uploaded.document_id,
+              name: (uploadedDoc.name as string) || uploaded.name || attachment.name,
+              type: (uploadedDoc.mime_type as string) || uploaded.mime_type || attachment.type,
+              size: (uploadedDoc.size_bytes as number) || uploaded.size_bytes || attachment.size,
+              checksum: (uploadedDoc.checksum as string) || uploaded.checksum,
+              url: uploaded.url,
+              previewUrl:
+                ((uploaded.mime_type || attachment.type || "") as string).startsWith("image/")
+                  ? uploaded.url
+                  : undefined,
+            });
+          }
+        }
+
+        if (Number.isFinite(editingTaskId) && editingTaskId > 0) {
+          const finalHashes = Array.from(
+            new Set([
+              ...Array.from(currentPersistedHashes),
+              ...extractAttachmentChecksums(uploadedAttachments),
+            ])
+          );
+          await persistActionAttachmentHashes(editingTaskId, finalHashes);
+        }
+
+        await fetchActions({
           projectId: selectedProjectId || undefined,
           contactId: selectedContactId || undefined,
         });
@@ -2300,10 +2608,10 @@ const KanbanBoardPage: React.FC = () => {
           (error as any)?.message ||
           "Failed to update task. Please try again.";
         setEditModalError(message);
+
         try {
-          // If the backend returned a structured error response, log it for diagnostics
           console.error("Update error response body:", (error as any)?.response?.data ?? (error as any)?.response ?? null);
-        } catch (e) {
+        } catch {
           // ignore
         }
       } finally {

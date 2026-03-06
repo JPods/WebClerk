@@ -87,8 +87,8 @@ const startNext = () => {
 
   // Log payload for debugging save failures
   try {
-    // Avoid logging huge payloads fully
-    const preview = JSON.stringify(next.payload, Object.keys(next.payload || {}).slice(0, 20));
+    const rawPreview = JSON.stringify(next.payload);
+    const preview = rawPreview.length > 1500 ? `${rawPreview.slice(0, 1500)}…` : rawPreview;
     console.debug("[saveQueue] Posting payload", { id: next.id, label: next.label, preview });
   } catch (e) {
     console.debug("[saveQueue] Posting payload", { id: next.id, label: next.label });

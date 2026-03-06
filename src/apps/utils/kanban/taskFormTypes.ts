@@ -1,5 +1,4 @@
-// Removed TaskPriority import; WC3 uses numeric priority
-export type TaskPriority = number;
+export type TaskPriority = "low" | "medium" | "high" | "critical";
 
 export type TranslationFormEntry = {
   id: string;
@@ -40,22 +39,41 @@ export type ActionModelFields = {
   actions?: Record<string, any>;
 };
 
+export type TaskAttachment = {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  checksum?: string;
+  file?: File;
+  previewUrl?: string;
+  documentId?: number;
+  url?: string;
+};
+
+export type TaskAssignee = { id: string; name: string };
+
+export type TaskFormFieldValue = string | TaskAttachment[] | TaskAssignee[];
+
 export type TaskFormState = BaseModelFields &
   ActionModelFields & {
     translations: TranslationFormEntry[];
     columnId: string;
-    assigned_to?: Array<{ id: string; name: string }>;
+    assigned_to?: TaskAssignee[];
     projectId?: string;
-    priority_value: TaskPriority;
+    priority: TaskPriority;
     dt_start: string;
     dt_deadline: string;
     dt_completed: string;
     dt_expected: string;
-    actor_id: string;
-    difficulty_value: string;
-    progress_value: string;
-    status_code: string;
-    is_active?: boolean;
+    actor_id?: string;
+    difficulty: string;
+    percent_complete: string;
+    status_code?: string;
+    is_active?: string;
+    priority_value?: TaskPriority;
+    difficulty_value?: string;
+    progress_value?: string;
     attachments?: TaskAttachment[];
   };
 
