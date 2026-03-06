@@ -363,14 +363,14 @@ class LineItemService:
         
         Args:
             line: The line instance to update
-            updates: Dict of field updates. Supports nested paths like 'quantity.placed'
+            updates: Dict of field updates. Supports nested paths like 'quantity.staged'
             
         Returns:
             The updated line instance
         """
         for field, value in updates.items():
             if '.' in field:
-                # Handle nested updates like 'quantity.placed' or 'price.unit'
+                # Handle nested updates like 'quantity.staged' or 'price.unit'
                 parts = field.split('.')
                 obj = getattr(line, parts[0], {}) or {}
                 if isinstance(obj, dict):
@@ -393,11 +393,11 @@ class LineItemService:
         """
         Update the quantity on a line and recalculate extensions.
         
-        Invoice lines (end-of-chain) use actioned-first semantics:
-          actioned = new qty.  If there is no parent (standalone invoice),
-          placed = actioned.  remaining is always 0.
+        Invoice lines (end-of-chain) use processing-first semantics:
+          processing = new qty.  If there is no parent (standalone invoice),
+          staged = processing.  remaining is always 0.
         
-        All other types: placed = new qty, remaining recalculated.
+        All other types: staged = new qty, remaining recalculated.
         
         Creates a Pending record with the quantity delta for deferred
         inventory adjustment.
@@ -412,7 +412,7 @@ class LineItemService:
         # Get old quantity for delta calculation
         old_quantity = 0
         if isinstance(line.quantity, dict):
-            old_quantity = float(line.quantity.get('placed', 0) or 0)
+            old_quantity = float(line.quantity.get('staged') or line.quantity.get('active', 0) or 0)
         
         new_quantity = float(quantity)
         quantity_delta = new_quantity - old_quantity
@@ -426,15 +426,15 @@ class LineItemService:
         kind = _normalize_line_kind(transaction_type)
         
         if kind == "invoice":
-            # End-of-chain: user edits actioned.
-            line.quantity['actioned'] = new_quantity
-            # If no parent (standalone invoice), placed tracks actioned
+            # End-of-chain: user edits processing.
+            line.quantity['processing'] = new_quantity
+            # If no parent (standalone invoice), staged tracks processing
             parent_id = getattr(transaction, 'parent_id', None)
             if not parent_id:
-                line.quantity['placed'] = new_quantity
+                line.quantity['staged'] = new_quantity
             line.quantity['remaining'] = 0
         else:
-            line.quantity['placed'] = new_quantity
+            line.quantity['staged'] = new_quantity
 
         self._recalculate_line(line)
         line.save()
@@ -524,7 +524,7 @@ class LineItemService:
                 line.price['discount_percent'] = float(discount_percent)
                 # Calculate amount from percent
                 unit = line.price.get('unit', 0)
-                qty = line.quantity.get('placed', 0) if isinstance(line.quantity, dict) else 0
+                qty = (line.quantity.get('staged') or line.quantity.get('active', 0)) if isinstance(line.quantity, dict) else 0
                 line.price['discount_amount'] = float(unit * qty * discount_percent / 100)
             elif discount_amount is not None:
                 line.price['discount_amount'] = float(discount_amount)
@@ -550,7 +550,7 @@ class LineItemService:
         # Get current quantity to release
         current_quantity = 0
         if isinstance(line.quantity, dict):
-            current_quantity = float(line.quantity.get('placed', 0) or 0)
+            current_quantity = float(line.quantity.get('staged') or line.quantity.get('active', 0) or 0)
         
         # Create pending record to release inventory before modifying line
         if self.create_pending and current_quantity > 0:
@@ -609,7 +609,8 @@ class LineItemService:
         
         # Update quantity if provided
         if quantity is not None and isinstance(new_line.quantity, dict):
-            new_line.quantity['placed'] = float(quantity)
+            new_line.quantity['staged'] = float(quantity)
+            new_line.quantity['active'] = float(quantity)
             self._recalculate_line(new_line)
         
         new_line.pk = None
@@ -726,20 +727,20 @@ class LineItemService:
     ) -> Dict[str, Any]:
         """Build the quantity JSON envelope.
 
-        Invoice lines (end-of-chain) use actioned-first semantics:
-          actioned = quantity, placed = quantity, remaining = 0.
-        All other types: placed = quantity, actioned = 0, remaining = quantity.
+        Invoice lines (end-of-chain) use processing-first semantics:
+          processing = quantity, staged = quantity, remaining = 0.
+        All other types: staged = quantity, processing = 0, remaining = quantity.
         """
         envelope = default_quantity(transaction_type)
         qty = float(quantity)
         kind = _normalize_line_kind(transaction_type)
         if kind == "invoice":
-            # End-of-chain: the user's qty IS actioned; placed = actioned
-            envelope['placed'] = qty
-            envelope['actioned'] = qty
+            # End-of-chain: the user's qty IS processing; staged = processing
+            envelope['staged'] = qty
+            envelope['processing'] = qty
             envelope['remaining'] = 0
         else:
-            envelope['placed'] = qty
+            envelope['staged'] = qty
         return envelope
     
     def _build_price_envelope(
@@ -832,7 +833,7 @@ class LineItemService:
         """Recalculate extended values on a line."""
         quantity = 0
         if isinstance(line.quantity, dict):
-            quantity = line.quantity.get('placed', 0) or 0
+            quantity = line.quantity.get('staged') or line.quantity.get('active', 0) or 0
         
         # Calculate price extended (for sell-side)
         if hasattr(line, 'price') and isinstance(line.price, dict):
@@ -1158,11 +1159,11 @@ class LineItemService:
         quantity = 0
         qty_data = line_data.get('quantity', {}) or {}
         if isinstance(qty_data, dict):
-            quantity = float(qty_data.get('placed', 0) or qty_data.get('ordered', 0) or 0)
+            quantity = float(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
         elif isinstance(qty_data, (int, float)):
             quantity = float(qty_data)
         if not quantity and hasattr(line, 'quantity') and isinstance(line.quantity, dict):
-            quantity = float(line.quantity.get('placed', 0) or line.quantity.get('ordered', 0) or 0)
+            quantity = float(line.quantity.get('staged', 0) or line.quantity.get('active', 0) or 0)
         
         if not quantity:
             logger.debug(f"_create_pending_for_new_line: Zero quantity for line {line.pk}")

@@ -44,10 +44,10 @@ def _resolve_item_id(line) -> int | None:
 
 
 def _get_quantity(line) -> Decimal:
-    """Get the placed quantity from any line type."""
+    """Get the staged quantity from any line type."""
     qty = getattr(line, 'quantity', {}) or {}
-    placed = qty.get('placed', 0) or 0
-    return Decimal(str(placed))
+    staged = qty.get('staged', 0) or qty.get('active', 0) or 0
+    return Decimal(str(staged))
 
 
 # =============================================================================
@@ -109,7 +109,7 @@ def register_line_inventory_signals(
                     parent=parent,
                     parent_model_key=parent_model_key,
                     line=instance,
-                    line_data={'quantity': {'placed': float(new_qty)}, 'item': instance.item or {}},
+                    line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
                 )
         else:
             original_qty = getattr(instance, '_original_quantity', Decimal('0'))
@@ -129,7 +129,7 @@ def register_line_inventory_signals(
                         parent=parent,
                         parent_model_key=parent_model_key,
                         line=instance,
-                        line_data={'quantity': {'placed': float(new_qty)}, 'item': instance.item or {}},
+                        line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
                     )
             else:
                 delta = float(new_qty - original_qty)

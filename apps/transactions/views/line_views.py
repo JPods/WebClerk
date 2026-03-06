@@ -93,12 +93,12 @@ class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
         from apps.transactions.services.line_item_service import LineItemService
         
         old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('placed', 0) or 0)
+        old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
         old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
         
         instance = serializer.save()
         
-        new_qty = float((instance.quantity or {}).get('placed', 0) or 0)
+        new_qty = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
         
         service = LineItemService(create_pending=True)
@@ -133,7 +133,7 @@ class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
         """Delete line via LineItemService for inventory tracking."""
         from apps.transactions.services.line_item_service import LineItemService
         
-        qty_to_release = float((instance.quantity or {}).get('placed', 0) or 0)
+        qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
         if qty_to_release > 0:
             service = LineItemService(create_pending=True)
@@ -195,12 +195,12 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
         from apps.transactions.services.line_item_service import LineItemService
         
         old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('placed', 0) or 0)
+        old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
         old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
         
         instance = serializer.save()
         
-        new_qty = float((instance.quantity or {}).get('placed', 0) or 0)
+        new_qty = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
         
         service = LineItemService(create_pending=True)
@@ -235,7 +235,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
         """Delete line via LineItemService for inventory tracking."""
         from apps.transactions.services.line_item_service import LineItemService
         
-        qty_to_release = float((instance.quantity or {}).get('placed', 0) or 0)
+        qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
         if qty_to_release > 0:
             service = LineItemService(create_pending=True)
@@ -297,12 +297,12 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
         from apps.transactions.services.line_item_service import LineItemService
         
         old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('placed', 0) or 0)
+        old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
         old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
         
         instance = serializer.save()
         
-        new_qty = float((instance.quantity or {}).get('placed', 0) or 0)
+        new_qty = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
         
         service = LineItemService(create_pending=True)
@@ -337,7 +337,7 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
         """Delete line via LineItemService for inventory tracking."""
         from apps.transactions.services.line_item_service import LineItemService
         
-        qty_to_release = float((instance.quantity or {}).get('placed', 0) or 0)
+        qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
         if qty_to_release > 0:
             service = LineItemService(create_pending=True)
@@ -404,7 +404,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
         old_instance = self.get_object()
         old_qty = 0
         if isinstance(old_instance.quantity, dict):
-            old_qty = float(old_instance.quantity.get('placed', 0) or 0)
+            old_qty = float(old_instance.quantity.get('staged', 0) or old_instance.quantity.get('active', 0) or 0)
         old_item_id = None
         if isinstance(old_instance.item, dict):
             old_item_id = old_instance.item.get('item_id') or old_instance.item.get('id')
@@ -414,7 +414,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
         # Get new quantity after update
         new_qty = 0
         if isinstance(instance.quantity, dict):
-            new_qty = float(instance.quantity.get('placed', 0) or 0)
+            new_qty = float(instance.quantity.get('staged', 0) or instance.quantity.get('active', 0) or 0)
         new_item_id = None
         if isinstance(instance.item, dict):
             new_item_id = instance.item.get('item_id') or instance.item.get('id')
@@ -459,7 +459,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
         # Get quantity to release
         qty_to_release = 0
         if isinstance(instance.quantity, dict):
-            qty_to_release = float(instance.quantity.get('placed', 0) or 0)
+            qty_to_release = float(instance.quantity.get('staged', 0) or instance.quantity.get('active', 0) or 0)
         
         # Create pending for delete before destroying
         if qty_to_release > 0:
@@ -527,7 +527,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
         old_instance = self.get_object()
         old_qty = 0
         if isinstance(old_instance.quantity, dict):
-            old_qty = float(old_instance.quantity.get('placed', 0) or 0)
+            old_qty = float(old_instance.quantity.get('staged', 0) or old_instance.quantity.get('active', 0) or 0)
         old_item_id = None
         if isinstance(old_instance.item, dict):
             old_item_id = old_instance.item.get('item_id') or old_instance.item.get('id')
@@ -537,7 +537,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
         # Get new quantity after update
         new_qty = 0
         if isinstance(instance.quantity, dict):
-            new_qty = float(instance.quantity.get('placed', 0) or 0)
+            new_qty = float(instance.quantity.get('staged', 0) or instance.quantity.get('active', 0) or 0)
         new_item_id = None
         if isinstance(instance.item, dict):
             new_item_id = instance.item.get('item_id') or instance.item.get('id')
@@ -582,7 +582,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
         # Get quantity to release
         qty_to_release = 0
         if isinstance(instance.quantity, dict):
-            qty_to_release = float(instance.quantity.get('placed', 0) or 0)
+            qty_to_release = float(instance.quantity.get('staged', 0) or instance.quantity.get('active', 0) or 0)
         
         # Create pending for delete before destroying
         if qty_to_release > 0:

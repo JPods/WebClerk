@@ -95,41 +95,28 @@ def validate_proposal_for_transfer(
 def _convert_quantity_from_proposal(proposal_qty: Optional[Dict]) -> Dict:
     """Convert proposal line quantity to order line quantity.
 
-    Resolves base quantity through fallback chain:
-      placed → ordered (legacy) → remaining → 0
-
     Sets:
+      staged = base (qty being transferred)
+      active = 0 (nothing processed yet)
       remaining = base (full amount available for invoicing)
-      invoiced  = 0
       converted_from_proposal = audit trail with original keys
 
-    LEGACY NOTE: 'ordered' fallback supports pre-canonical proposal lines.
-    New proposal lines always use 'placed'.
-
-    TODO: Should also set placed = base and actioned = 0 to match the
-    canonical quantity model.  Currently missing.
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = proposal_qty or {}
-    has_placed = "placed" in q
-    base = q.get("placed")
-    if base is None:
-        base = q.get("ordered", q.get("remaining", 0))
+    base = q.get("staged", 0) or 0
 
     converted_from_proposal = {
         "is_blanket": q.get("is_blanket", False),
         "increment": q.get("increment", 0),
         "original_remaining": q.get("remaining", 0),
+        "original_staged": base,
     }
-    # Record original base key for compatibility with tests
-    if has_placed:
-        converted_from_proposal["original_placed"] = q.get("placed", 0)
-    else:
-        converted_from_proposal["original_ordered"] = q.get("ordered", 0)
 
     order_qty = {
-        "invoiced": 0,
-        "remaining": base or 0,
+        "staged": base,
+        "active": 0,
+        "remaining": base,
     }
     if "precision" in q:
         order_qty["precision"] = q["precision"]
@@ -308,12 +295,12 @@ def transfer_proposal_to_order(
         # Collect inventory delta for the new order line
         item_data = getattr(pl, 'item', None) or {}
         item_id = item_data.get('id') or item_data.get('item_id') if isinstance(item_data, dict) else None
-        placed = float(qty.get('remaining', 0) or qty.get('placed', 0) or 0)
-        if item_id and placed > 0:
+        staged_qty = float(qty.get('remaining', 0) or qty.get('staged', 0) or qty.get('active', 0) or 0)
+        if item_id and staged_qty > 0:
             pending_deltas.append({
                 'item_id': item_id,
                 'item_ida': item_data.get('ida', str(item_id)) if isinstance(item_data, dict) else str(item_id),
-                'quantity': placed,
+                'quantity': staged_qty,
                 'order_line_id': ol.id,
                 'proposal_line_id': pl.id,
                 'unit_cost': float((getattr(pl, 'cost', None) or {}).get('unit', 0) or 0),

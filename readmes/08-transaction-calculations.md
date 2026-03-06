@@ -43,10 +43,10 @@
 | Type | Direction | Has Price | Has Cost | Tracks Fulfillment |
 |------|-----------|-----------|----------|-------------------|
 | Proposal | Sell | ✅ | ✅ (hidden) | ordered → remaining |
-| Sales Order | Sell | ✅ | ✅ (hidden) | placed → invoiced → remaining |
-| Invoice | Sell | ✅ | ✅ (hidden) | placed → packed → remaining |
-| Purchase Order | Exec | ❌ | ✅ | placed → received → remaining |
-| Work Order | Exec | ❌ | ✅ | placed → received → remaining |
+| Sales Order | Sell | ✅ | ✅ (hidden) | staged → invoiced → remaining |
+| Invoice | Sell | ✅ | ✅ (hidden) | staged → packed → remaining |
+| Purchase Order | Exec | ❌ | ✅ | staged → received → remaining |
+| Work Order | Exec | ❌ | ✅ | staged → received → remaining |
 
 ---
 
@@ -57,11 +57,11 @@
 ```python
 # BaseSellLineModel (Proposal, Order, Invoice)
 line.quantity = {
-    "placed": 10,        # User-entered quantity
+    "staged": 10,        # User-entered quantity
     "ordered": 10,       # Original (proposals)
     "invoiced": 0,       # Qty invoiced (orders)
     "packed": 0,         # Qty packed (invoices)
-    "remaining": 10,     # placed - fulfilled
+    "remaining": 10,     # staged - fulfilled
     "is_fixed": False,
     "precision": 2,
     "is_blanket": False,
@@ -139,19 +139,19 @@ transaction.finance = {
 ### Extended Price Formula
 
 ```
-extended = (quantity.placed × price.unit) - price.discount_amount
+extended = (quantity.staged × price.unit) - price.discount_amount
 ```
 
 **Alternate when discount is percentage:**
 ```
-discount_amount = quantity.placed × price.unit × (price.discount_percent / 100)
-extended = (quantity.placed × price.unit) - discount_amount
+discount_amount = quantity.staged × price.unit × (price.discount_percent / 100)
+extended = (quantity.staged × price.unit) - discount_amount
 ```
 
 ### Extended Cost Formula
 
 ```
-cost.extended = quantity.placed × cost.unit
+cost.extended = quantity.staged × cost.unit
 ```
 
 ### Line Tax Formula
@@ -488,9 +488,9 @@ quoted     ordered      invoiced
 ```python
 # Proposal
 proposal_line.quantity = {
-    'placed': 100,
+    'staged': 100,
     'ordered': 0,      # How many converted to order
-    'remaining': 100   # placed - ordered
+    'remaining': 100   # staged - ordered
 }
 
 # After converting 60 to Sales Order
@@ -499,9 +499,9 @@ proposal_line.quantity.remaining = 40
 
 # Sales Order
 order_line.quantity = {
-    'placed': 60,
+    'staged': 60,
     'invoiced': 0,     # How many invoiced
-    'remaining': 60    # placed - invoiced
+    'remaining': 60    # staged - invoiced
 }
 
 # After invoicing 40
@@ -510,7 +510,7 @@ order_line.quantity.remaining = 20
 
 # Invoice
 invoice_line.quantity = {
-    'placed': 40,
+    'staged': 40,
     'packed': 0,       # How many packed/shipped
     'remaining': 40
 }
@@ -674,7 +674,7 @@ margin_pc = safe_divide(margin, total, default=0) * 100
 
 ```python
 VALIDATION_RULES = {
-    'quantity.placed': {'min': 0, 'required': True},
+    'quantity.staged': {'min': 0, 'required': True},
     'price.unit': {'min': 0},
     'price.discount_percent': {'min': 0, 'max': 100},
     'totals.total': {'min': 0},
@@ -682,7 +682,7 @@ VALIDATION_RULES = {
 
 def validate_line(line):
     errors = []
-    if line.quantity.placed < 0:
+    if line.quantity.staged < 0:
         errors.append('Quantity cannot be negative')
     if line.price.discount_percent > 100:
         errors.append('Discount cannot exceed 100%')
@@ -828,8 +828,8 @@ This handles rounding differences between JavaScript and Python decimal math.
         "finance": {"sales_tax_rate": 8.25}
     },
     "lines": [
-        {"id": 1, "quantity": {"placed": 10}, "price": {"unit": 25}},
-        {"id": 2, "quantity": {"placed": 5}, "price": {"unit": 50}}
+        {"id": 1, "quantity": {"staged": 10}, "price": {"unit": 25}},
+        {"id": 2, "quantity": {"staged": 5}, "price": {"unit": 50}}
     ]
 }
 
@@ -960,7 +960,7 @@ class TransactionCalculationService:
     
     def _calculate_line(self, line):
         """Calculate extended price and cost for a line."""
-        qty = Decimal(str(line.quantity.get('placed', 0) or 0))
+        qty = Decimal(str(line.quantity.get('staged', 0) or 0))
         
         # Price
         unit_price = Decimal(str(line.price.get('unit', 0) or 0))
@@ -1146,7 +1146,7 @@ def create_release(blanket_order, release_lines):
         ReleaseLine.objects.create(
             parent=release,
             blanket_line_id=blanket_line.id,
-            quantity={'placed': release_qty},
+            quantity={'staged': release_qty},
             price=blanket_line.price,  # Inherit blanket price
         )
         
@@ -1460,7 +1460,7 @@ def calculate_commission(transaction, sales_rep):
             commission = margin * (plan.rate / 100)
         
         elif plan.calculation_type == 'flat_per_unit':
-            commission = line.quantity['placed'] * plan.rate
+            commission = line.quantity['staged'] * plan.rate
         
         else:
             commission = 0
@@ -1619,26 +1619,26 @@ def allocate_landed_cost(transaction, lines, landed_costs):
             proportion = line.cost['extended'] / total_value if total_value else 0
             line.cost['landed'] = round(total_landed * proportion, 2)
             line.cost['unit_landed'] = round(
-                line.cost['landed'] / line.quantity['placed'], 4
-            ) if line.quantity['placed'] else 0
+                line.cost['landed'] / line.quantity['staged'], 4
+            ) if line.quantity['staged'] else 0
     
     elif method == 'weight':
         # Allocate by weight proportion
         total_weight = sum(
-            l.physical.get('weight', {}).get('value', 0) * l.quantity['placed']
+            l.physical.get('weight', {}).get('value', 0) * l.quantity['staged']
             for l in lines
         )
         for line in lines:
-            line_weight = line.physical.get('weight', {}).get('value', 0) * line.quantity['placed']
+            line_weight = line.physical.get('weight', {}).get('value', 0) * line.quantity['staged']
             proportion = line_weight / total_weight if total_weight else 0
             line.cost['landed'] = round(total_landed * proportion, 2)
     
     elif method == 'quantity':
         # Equal allocation per unit
-        total_qty = sum(l.quantity['placed'] for l in lines)
+        total_qty = sum(l.quantity['staged'] for l in lines)
         per_unit = total_landed / total_qty if total_qty else 0
         for line in lines:
-            line.cost['landed'] = round(per_unit * line.quantity['placed'], 2)
+            line.cost['landed'] = round(per_unit * line.quantity['staged'], 2)
     
     elif method == 'manual':
         # Use manually specified allocations
@@ -2077,7 +2077,7 @@ def process_return(invoice, return_lines):
         return_qty = return_spec['quantity']
         
         # Calculate credit
-        unit_price = line.price['extended'] / line.quantity['placed']
+        unit_price = line.price['extended'] / line.quantity['staged']
         line_credit = unit_price * return_qty
         credit_amount += line_credit
         
@@ -2110,12 +2110,12 @@ def process_return(invoice, return_lines):
 import { useDebouncedCallback } from 'use-debounce';
 
 const LineEditor: React.FC = () => {
-  const [localQty, setLocalQty] = useState(line.quantity?.placed ?? 0);
+  const [localQty, setLocalQty] = useState(line.quantity?.staged ?? 0);
   
   // Debounce the parent state update
   const debouncedUpdate = useDebouncedCallback(
     (value: number) => {
-      onLineChange(line.id, 'quantity.placed', value);
+      onLineChange(line.id, 'quantity.staged', value);
     },
     300 // 300ms debounce
   );
@@ -2234,7 +2234,7 @@ def validate_calculation(transaction, lines):
     # Verify line extended = qty × unit - discount
     for line in lines:
         expected = (
-            line.quantity['placed'] * line.price['unit'] 
+            line.quantity['staged'] * line.price['unit'] 
             - line.price.get('discount_amount', 0)
         )
         if abs(line.price['extended'] - expected) > 0.01:

@@ -217,7 +217,7 @@ creates a `Receipt` with `source_type = workorder_completion`.
 | JSON field | Purpose | Default factory |
 |------------|---------|----------------|
 | `item` | Denormalized item snapshot: item_id, ida_item, description, sequence, line_number (legacy, prefer scalar `line_number`) | `default_item()` |
-| `quantity` | placed, actioned, remaining, is_fixed, precision; keys vary by transaction kind | `default_quantity(kind)` |
+| `quantity` | staged, transferred, remaining, is_fixed, precision; keys vary by transaction kind | `default_quantity(kind)` |
 | `cost` | unit, unit_base, discount_percent/amount, extended, shipping, handling, freight, commissions, tax | `default_cost()` |
 | `price` | **(BaseSellLineModel only)** unit, unit_base, discount_percent/amount, extended | `default_price()` |
 | `tax` | sales_rate, sales, cost_rate, cost, shipping, tax_service_id | `default_tax()` |
@@ -274,9 +274,9 @@ Background dispatch via Celery — see `readmes/topics/infrastructure/celery-red
 
 Documented in `readmes/09-transaction-calc-status.md`:
 
-1. **Quantity key mismatch**: React2025 sends `ordered`, backend reads `placed` — extended = 0.
+1. **Quantity key mismatch**: React2025 sends `ordered`, backend reads `staged` — extended = 0.
    Transfer services also use legacy keys (`ordered`, `invoiced`, `packed`).
-   Canonical keys are `placed` / `actioned` / `remaining` per `default_quantity()`.
+   Canonical keys are `staged` / `transferred` / `remaining` per `default_quantity()`.
    See `transaction_flow_test_plan.md` §8 for the alignment action items.
 2. **Header totals signal gap**: Only `ProposalLine` has a post-save signal for totals recalculation; Order/Invoice/Purchase lines do not.
    See `transaction_flow_test_plan.md` §4b for status.

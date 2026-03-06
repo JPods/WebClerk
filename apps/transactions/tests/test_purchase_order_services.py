@@ -63,13 +63,13 @@ class PurchaseTotalsServiceTest(TestCase):
         PurchaseLine.objects.create(
             purchase=self.purchase,
             item={'description': 'Item 1'},
-            quantity={'placed': 2},
+            quantity={'staged': 2},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         PurchaseLine.objects.create(
             purchase=self.purchase,
             item={'description': 'Item 2'},
-            quantity={'placed': 1},
+            quantity={'staged': 1},
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
@@ -93,7 +93,7 @@ class PurchaseTotalsServiceTest(TestCase):
         PurchaseLine.objects.create(
             purchase=self.purchase,
             item={'description': 'Item 1'},
-            quantity={'placed': 1},
+            quantity={'staged': 1},
             cost={
                 'unit': 80.00,
                 'extended': 80.00,
@@ -152,7 +152,7 @@ class OrderToPurchaseServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'placed': 2},
+            quantity={'staged': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00}
         )
@@ -176,7 +176,7 @@ class OrderToPurchaseServiceTest(TestCase):
         po_lines = po.lines.all()
         self.assertEqual(len(po_lines), 1)
         line = po_lines[0]
-        self.assertEqual(line.quantity['placed'], 2)
+        self.assertEqual(line.quantity['staged'], 2)
         self.assertEqual(line.cost['unit'], 8.00)
 
     def test_transfer_order_to_purchase_with_vendor_grouping(self):
@@ -191,7 +191,7 @@ class OrderToPurchaseServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'placed': 2},
+            quantity={'staged': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00},
             vendor_id=self.vendor.id
@@ -199,7 +199,7 @@ class OrderToPurchaseServiceTest(TestCase):
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 2'},
-            quantity={'placed': 1},
+            quantity={'staged': 1},
             price={'unit': 15.00},
             cost={'unit': 12.00},
             vendor_id=vendor2.id

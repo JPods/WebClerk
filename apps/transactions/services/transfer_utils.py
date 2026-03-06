@@ -21,51 +21,29 @@ def sum_price_extended(lines: Iterable[Model]) -> float:
 def convert_quantity_from_source(src_qty: Optional[Dict], src_label: str) -> Dict:
     """Normalize a source line's quantity dict into a generic target-line quantity.
 
-    Resolves the base quantity through a fallback chain:
-      placed → ordered → remaining → 0
-
     The result dict always has canonical keys:
-      placed:     base value (qty being transferred)
-      actioned:   0 (nothing acted on new target yet)
+      staged:     base value (qty being transferred)
+      active:     0 (nothing processed on new target yet)
       remaining:  base value (full qty available)
       precision, is_fixed:  preserved from source when present
       converted_from_<src_label>: audit trail with original keys
 
-    LEGACY NOTE: The fallback to 'ordered' supports lines created before the
-    canonical placed/actioned/remaining keys were adopted.  New code should
-    always write 'placed' and never 'ordered'.
-
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = src_qty or {}
-    # Fallback chain: placed (canonical) → ordered (legacy) → remaining
-    base = q.get("placed")
-    used_key = "placed"
-    if base is None:
-        base = q.get("ordered")    # LEGACY: pre-canonical key
-        used_key = "ordered"
-    if base is None:
-        base = q.get("remaining", 0)
-        used_key = "remaining"
-
-    base = base or 0
+    base = q.get("staged", 0) or 0
 
     converted_key = f"converted_from_{src_label}"
     converted = {
         "is_blanket": q.get("is_blanket", False),
         "increment": q.get("increment", 0),
         "original_remaining": q.get("remaining", 0),
+        "original_staged": base,
     }
-    if used_key == "placed":
-        converted["original_placed"] = q.get("placed", 0)
-    elif used_key == "ordered":
-        converted["original_ordered"] = q.get("ordered", 0)
-    else:
-        converted["original_remaining"] = q.get("remaining", 0)
 
     out = {
-        "placed": base,
-        "actioned": 0,
+        "staged": base,
+        "active": 0,
         "remaining": base,
         converted_key: converted,
     }
@@ -131,9 +109,9 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
     qty = getattr(src_line, "quantity", None) or {}
     refs = getattr(src_line, "refs", None) or {}
 
-    base_qty = qty.get("placed")
+    base_qty = qty.get("staged")
     if base_qty is None:
-        base_qty = qty.get("ordered")
+        base_qty = qty.get("active")
     if base_qty is None:
         base_qty = qty.get("remaining", 0)
 
@@ -152,8 +130,8 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
         },
         "qty": {
             "base": _to_decimal_safe(base_qty),
-            "placed": qty.get("placed"),
-            "ordered": qty.get("ordered"),
+            "staged": qty.get("staged"),
+            "active": qty.get("active"),
             "remaining": qty.get("remaining"),
             "precision": qty.get("precision"),
         },

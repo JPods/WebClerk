@@ -78,7 +78,7 @@ POST /wcapi/transaction/save/  { model_name: "invoice", record: { lines: [...] }
 | 247 | Test Item 2 | Test item for line operations |
 | 248 | Test Item 3 | Test item for line operations |
 
-Quantity baseline: `placed = 3`
+Quantity baseline: `staged = 3`
 
 ## Test Scenarios
 
@@ -105,8 +105,8 @@ Quantity baseline: `placed = 3`
 
 **Test:** Create order line from a proposal line (parent_model/parent_id set)
 **Expected:** TWO pending records total:
-- One for the **order line** (on_so += placed)
-- One for the **proposal line** (actioned += placed, remaining -= placed)
+- One for the **order line** (on_so += staged)
+- One for the **proposal line** (transferred += staged, remaining -= staged)
 
 ```python
 # Order line pending

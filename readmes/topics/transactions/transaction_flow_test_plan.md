@@ -2,7 +2,7 @@
 
 > **Created**: 2026-02-17  
 > **Purpose**: Validate the full transaction lifecycle, parent-child lineage,
-> quantity flow (`placed`/`actioned`/`remaining`), and header totals rollup.
+> quantity flow (`staged`/`transferred`/`remaining`), and header totals rollup.
 
 ---
 
@@ -12,7 +12,7 @@ This test plan covers:
 
 1. **FK relationships** — transaction → org, line → parent transaction
 2. **Parent lineage** — `parent_model`/`parent_id` across transfer services
-3. **Quantity flow** — `placed`/`actioned`/`remaining` through the chain
+3. **Quantity flow** — `staged`/`transferred`/`remaining` through the chain
 4. **Header totals** — line-level changes rolling up via totals services
 5. **Inventory impact** — pending records created for each line type
 6. **Ledger & Payment** — invoice → ledger → payment settlement
@@ -46,7 +46,7 @@ class TestLineForeignKeys:
         line = OrderLine.objects.create(
             order=sample_order,
             item={"item_id": 1, "description": "Test"},
-            quantity={"placed": 5, "actioned": 0, "remaining": 5},
+            quantity={"staged": 5, "transferred": 0, "remaining": 5},
         )
         assert line.order_id == sample_order.pk
         assert line.parent == sample_order
@@ -124,7 +124,7 @@ def test_line_lineage_refs(self, proposal_with_lines):
 
 | Test | Assert |
 |------|--------|
-| `default_quantity("order")` | Keys: `placed`, `actioned`, `remaining`, `is_fixed`, `precision` |
+| `default_quantity("order")` | Keys: `staged`, `transferred`, `remaining`, `is_fixed`, `precision` |
 | `default_quantity("invoice")` | Same keys |
 | `default_quantity("purchase")` | Same keys |
 | No legacy keys present | `"ordered" not in result`, `"invoiced" not in result`, `"received" not in result` |
@@ -135,8 +135,8 @@ from apps.transactions.models.base_line_model import default_quantity
 @pytest.mark.parametrize("kind", ["proposal", "order", "invoice", "purchase", "workorder"])
 def test_default_quantity_canonical_keys(kind):
     q = default_quantity(kind)
-    assert "placed" in q
-    assert "actioned" in q
+    assert "staged" in q
+    assert "transferred" in q
     assert "remaining" in q
     assert "ordered" not in q
     assert "invoiced" not in q
@@ -146,9 +146,9 @@ def test_default_quantity_canonical_keys(kind):
 
 ### 3b. Quantity Through Transfer Chain
 
-**Scenario**: Proposal (placed=10) → Order → Invoice
+**Scenario**: Proposal (staged=10) → Order → Invoice
 
-| Step | `placed` | `actioned` | `remaining` |
+| Step | `staged` | `transferred` | `remaining` |
 |------|----------|------------|-------------|
 | ProposalLine created | 10 | 0 | 10 |
 | Transfer to Order — source proposal line | 10 | 10 | 0 |
@@ -161,55 +161,55 @@ def test_default_quantity_canonical_keys(kind):
 class TestQuantityFlow:
     def test_proposal_to_order_quantity(self, proposal_with_lines):
         source_line = proposal_with_lines.lines.first()
-        assert source_line.quantity["placed"] == 10
+        assert source_line.quantity["staged"] == 10
         assert source_line.quantity["remaining"] == 10
 
         order = transfer_proposal_to_order(proposal_with_lines)
 
-        # Source line should be actioned
+        # Source line should be transferred
         source_line.refresh_from_db()
-        assert source_line.quantity["actioned"] == 10
+        assert source_line.quantity["transferred"] == 10
         assert source_line.quantity["remaining"] == 0
 
-        # Target line should have placed = source placed
+        # Target line should have staged = source staged
         order_line = order.lines.first()
-        assert order_line.quantity["placed"] == 10
-        assert order_line.quantity["actioned"] == 0
+        assert order_line.quantity["staged"] == 10
+        assert order_line.quantity["transferred"] == 0
         assert order_line.quantity["remaining"] == 10
 
     def test_partial_transfer(self, order_with_lines):
-        """Transfer only 6 of 10 placed on order to invoice."""
+        """Transfer only 6 of 10 staged on order to invoice."""
         from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
         invoice = transfer_order_to_invoice(order_with_lines, quantity_override=6)
 
         source_line = order_with_lines.lines.first()
         source_line.refresh_from_db()
-        assert source_line.quantity["actioned"] == 6
+        assert source_line.quantity["transferred"] == 6
         assert source_line.quantity["remaining"] == 4
 
         invoice_line = invoice.lines.first()
-        assert invoice_line.quantity["placed"] == 6
+        assert invoice_line.quantity["staged"] == 6
 ```
 
-### 3c. Frontend Sends `placed` (Not `ordered`)
+### 3c. Frontend Sends `staged` (Not `ordered`)
 
 ```python
 @pytest.mark.django_db
-def test_save_view_uses_placed(api_client, sample_order):
-    """The /wcapi/save/ endpoint must accept quantity.placed."""
+def test_save_view_uses_staged(api_client, sample_order):
+    """The /wcapi/save/ endpoint must accept quantity.staged."""
     resp = api_client.post("/wcapi/save/", {
         "model_name": "order",
         "record": {
             "id": sample_order.pk,
             "lines": [{
                 "item": {"item_id": 1},
-                "quantity": {"placed": 7},
+                "quantity": {"staged": 7},
             }]
         }
     }, format="json")
     assert resp.status_code == 200
     line = sample_order.lines.first()
-    assert line.quantity["placed"] == 7
+    assert line.quantity["staged"] == 7
 ```
 
 ---
@@ -232,7 +232,7 @@ class TestHeaderTotals:
     def test_order_totals_after_line_save(self, sample_order):
         OrderLine.objects.create(
             order=sample_order,
-            quantity={"placed": 5, "actioned": 0, "remaining": 5},
+            quantity={"staged": 5, "transferred": 0, "remaining": 5},
             price={"unit": 100.00, "extended": 500.00},
             cost={"unit": 60.00, "extended": 300.00},
         )
@@ -265,11 +265,11 @@ Order, Invoice, and Purchase lines need the same signal.
 
 | Transaction | Pending type | Quantity bucket |
 |-------------|-------------|-----------------|
-| Order line created | `SO` | `on_so` = `quantity.placed` |
-| Invoice line created | `IN` | `on_in` = `quantity.placed` |
-| Proposal line created | `PP` | `on_p` = `quantity.placed` |
-| Purchase line created | `PO` | `on_po` = `quantity.placed` |
-| WorkOrder line created | `WO` | `on_wo` = `quantity.placed` |
+| Order line created | `SO` | `on_so` = `quantity.staged` |
+| Invoice line created | `IN` | `on_in` = `quantity.staged` |
+| Proposal line created | `PP` | `on_p` = `quantity.staged` |
+| Purchase line created | `PO` | `on_po` = `quantity.staged` |
+| WorkOrder line created | `WO` | `on_wo` = `quantity.staged` |
 
 ```python
 @pytest.mark.django_db
@@ -278,7 +278,7 @@ def test_order_line_creates_pending(sample_order):
     OrderLine.objects.create(
         order=sample_order,
         item={"item_id": 236},
-        quantity={"placed": 10, "actioned": 0, "remaining": 10},
+        quantity={"staged": 10, "transferred": 0, "remaining": 10},
     )
     pending = Pending.objects.filter(
         data__type_id="SO",
@@ -325,7 +325,7 @@ class TestSellSideE2E:
         ProposalLine.objects.create(
             proposal=proposal,
             item={"item_id": item.pk, "description": item.display_name},
-            quantity={"placed": 10, "actioned": 0, "remaining": 10},
+            quantity={"staged": 10, "transferred": 0, "remaining": 10},
             price={"unit": 100.00, "extended": 1000.00},
         )
 
@@ -335,20 +335,20 @@ class TestSellSideE2E:
         assert order.parent_id == proposal.pk
         assert order.lines.count() == 1
         order_line = order.lines.first()
-        assert order_line.quantity["placed"] == 10
+        assert order_line.quantity["staged"] == 10
 
         # 3. Transfer to Invoice
         invoice = transfer_order_to_invoice(order)
         assert invoice.parent_model == "order"
         assert invoice.parent_id == order.pk
         invoice_line = invoice.lines.first()
-        assert invoice_line.quantity["placed"] == 10
+        assert invoice_line.quantity["staged"] == 10
 
-        # 4. Verify source lines are actioned
+        # 4. Verify source lines are transferred
         proposal.lines.first().refresh_from_db()
-        assert proposal.lines.first().quantity["actioned"] == 10
+        assert proposal.lines.first().quantity["transferred"] == 10
         order.lines.first().refresh_from_db()
-        assert order.lines.first().quantity["actioned"] == 10
+        assert order.lines.first().quantity["transferred"] == 10
 
         # 5. Apply Payment (when ledger is implemented)
         # payment = Payment.objects.create(invoice=invoice, amount=1000.00)
@@ -390,10 +390,10 @@ The following transfer services still reference deprecated quantity keys and mus
 
 | File | Legacy key used | Should be |
 |------|----------------|-----------|
-| `services/transfer_utils.py` `convert_quantity_from_source()` | Falls back to `ordered` | Use `placed` only |
-| `services/proposal_to_order.py` `_convert_quantity_from_proposal()` | Checks `placed` then `ordered` | `placed` only |
-| `services/order_to_invoice.py` `_convert_quantity_for_invoice()` | Produces `packed`, reads `invoiced` | Use `placed`/`actioned` |
-| `services/order_to_invoice.py` `_update_order_line_quantity()` | Writes `invoiced`, decrements `remaining` | Write `actioned`, decrement `remaining` |
+| `services/transfer_utils.py` `convert_quantity_from_source()` | Falls back to `ordered` | Use `staged` only |
+| `services/proposal_to_order.py` `_convert_quantity_from_proposal()` | Checks `staged` then `ordered` | `staged` only |
+| `services/order_to_invoice.py` `_convert_quantity_for_invoice()` | Produces `packed`, reads `invoiced` | Use `staged`/`transferred` |
+| `services/order_to_invoice.py` `_update_order_line_quantity()` | Writes `invoiced`, decrements `remaining` | Write `transferred`, decrement `remaining` |
 
 ### Test for No Legacy Keys
 
@@ -415,8 +415,8 @@ def test_no_legacy_quantity_keys(transfer_fn, source_fixture, request):
         assert "received" not in q, f"Legacy key 'received' found in {line}"
         assert "shipped" not in q, f"Legacy key 'shipped' found in {line}"
         assert "packed" not in q, f"Legacy key 'packed' found in {line}"
-        assert "placed" in q
-        assert "actioned" in q
+        assert "staged" in q
+        assert "transferred" in q
         assert "remaining" in q
 ```
 
@@ -447,7 +447,7 @@ def proposal_with_lines(db, customer_org):
     ProposalLine.objects.create(
         proposal=p,
         item={"item_id": 1, "description": "Widget", "ida_item": "WDG-001"},
-        quantity={"placed": 10, "actioned": 0, "remaining": 10, "is_fixed": False, "precision": 2},
+        quantity={"staged": 10, "transferred": 0, "remaining": 10, "is_fixed": False, "precision": 2},
         price={"unit": 100.00, "extended": 1000.00},
         cost={"unit": 60.00, "extended": 600.00},
     )
@@ -459,7 +459,7 @@ def order_with_lines(db, customer_org):
     OrderLine.objects.create(
         order=o,
         item={"item_id": 1, "description": "Widget", "ida_item": "WDG-001"},
-        quantity={"placed": 10, "actioned": 0, "remaining": 10, "is_fixed": False, "precision": 2},
+        quantity={"staged": 10, "transferred": 0, "remaining": 10, "is_fixed": False, "precision": 2},
         price={"unit": 100.00, "extended": 1000.00},
         cost={"unit": 60.00, "extended": 600.00},
     )

@@ -103,6 +103,7 @@ def _create_pending_from_deltas(
         line_id = delta['line_id']           # the saved new-line PK
         source_line_id = delta.get('source_line_id')  # FK to source line (transfer)
         quantity = delta['quantity']
+        is_qty_change = delta.get('is_qty_change', False)  # True for qty change on existing line
 
         # ── Build the pair key ───────────────────────────────────────
         # For invoice-from-order: invoice_line_id = line_id, order_line_id = source_line_id
@@ -143,6 +144,13 @@ def _create_pending_from_deltas(
                 continue
 
         # ── Build quantity buckets ───────────────────────────────────
+        # Determine reason based on whether this is a qty change or new line
+        qty_direction = 'increase' if quantity > 0 else 'decrease'
+        default_reason = (
+            f'{pending_type.lower()} qty {qty_direction}'
+            if is_qty_change
+            else f'{pending_type.lower()} line add'
+        )
         pending_data: Dict[str, Any] = {
             'type_id': pending_type,
             'item_id': item_id,
@@ -158,9 +166,10 @@ def _create_pending_from_deltas(
             'unit_cost': delta.get('unit_cost', 0),
             'unit_price': delta.get('unit_price', 0),
             # Audit
-            'reason': f'{pending_type.lower()} line add',
+            'reason': default_reason,
             'take_action': 1,
             'changed_by': '',
+            'quantity_delta': quantity if is_qty_change else 0,  # For qty changes, store the delta
             'transaction_type': model_key.lower(),
             'transaction_model': header_obj._meta.model_name,
             # Line-pair IDs (one pending per pair; forbids duplicates)
@@ -198,11 +207,19 @@ def _create_pending_from_deltas(
         except Item.DoesNotExist:
             pass
 
+        # Use different purpose and name for qty changes vs line adds
+        if is_qty_change:
+            pending_purpose = 'inventory_qty_change'
+            pending_name = f'{pending_type} Qty Change: {item_ida}'
+        else:
+            pending_purpose = 'inventory_line_add'
+            pending_name = f'{pending_type} Line Add: {item_ida}'
+
         Pending.objects.create(
             model_name='item',
             record_id=str(item_id),
-            purpose='inventory_line_add',
-            name=f'{pending_type} Line Add: {item_ida}',
+            purpose=pending_purpose,
+            name=pending_name,
             data=pending_data,
         )
         created_count += 1
@@ -288,11 +305,15 @@ class InsufficientInventoryError(Exception):
         )
 
 
-def _line_placed_qty(line_data: Dict[str, Any]) -> float:
+def _line_staged_qty(line_data: Dict[str, Any]) -> float:
+    """Get the staged/committed quantity from line data.
+    
+    Uses canonical field names: staged (committed) or active (user input).
+    """
     qty_data = line_data.get('quantity') or {}
     if not isinstance(qty_data, dict):
         return 0.0
-    return float(qty_data.get('placed', 0) or qty_data.get('ordered', 0) or 0)
+    return float(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
 
 
 def _validate_transfer_quantities_and_inventory(
@@ -322,8 +343,8 @@ def _validate_transfer_quantities_and_inventory(
         if line_data.get('id') is not None:
             continue
 
-        qty_placed = _line_placed_qty(line_data)
-        if qty_placed <= 0:
+        qty_staged = _line_staged_qty(line_data)
+        if qty_staged <= 0:
             continue
 
         refs = line_data.get('refs') or {}
@@ -331,13 +352,13 @@ def _validate_transfer_quantities_and_inventory(
         src_line_id = source_info.get(f'{parent_model}_line_id')
         if src_line_id:
             src_line_id = int(src_line_id)
-            requested_by_source_line[src_line_id] = requested_by_source_line.get(src_line_id, 0.0) + qty_placed
+            requested_by_source_line[src_line_id] = requested_by_source_line.get(src_line_id, 0.0) + qty_staged
 
         item_data = line_data.get('item', {}) or {}
         item_id = item_data.get('id') or item_data.get('item_id')
         if item_id:
             item_id = int(item_id)
-            requested_by_item[item_id] = requested_by_item.get(item_id, 0.0) + qty_placed
+            requested_by_item[item_id] = requested_by_item.get(item_id, 0.0) + qty_staged
 
     if requested_by_source_line:
         source_lines = {
@@ -385,7 +406,7 @@ def _update_source_lines_after_transfer(
     lines_data: List[Dict[str, Any]],
 ) -> int:
     """After saving a *new* transferred transaction, bump actioned on each
-    source line and set remaining = placed − actioned.
+    source line and set remaining = staged − actioned.
 
     Returns number of source lines updated.
 
@@ -393,8 +414,8 @@ def _update_source_lines_after_transfer(
         { "<source_type>_line_id": <pk>, "<source_type>_id": <pk>,
           "converted_from": "<source_type>" }
 
-    We look up each source line, read quantity.placed / actioned,
-    add the transferred quantity (target line's quantity.placed),
+    We look up each source line, read quantity.staged / actioned,
+    add the transferred quantity (target line's quantity.staged),
     and save.
     """
     parent_model = getattr(header_obj, 'parent_model', None)
@@ -419,11 +440,11 @@ def _update_source_lines_after_transfer(
             if not src_line_id:
                 continue
 
-            qty_placed = 0.0
+            qty_staged = 0.0
             qty_data = ld.get('quantity') or {}
             if isinstance(qty_data, dict):
-                qty_placed = float(qty_data.get('placed', 0) or 0)
-            if qty_placed <= 0:
+                qty_staged = float(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
+            if qty_staged <= 0:
                 continue
 
             try:
@@ -433,8 +454,8 @@ def _update_source_lines_after_transfer(
                 continue
 
             q = dict(getattr(src_line, 'quantity', None) or {})
-            q['actioned'] = float(q.get('actioned', 0) or 0) + qty_placed
-            remaining = float(q.get('placed', 0) or 0) - float(q['actioned'])
+            q['transferred'] = float(q.get('transferred', 0) or 0) + qty_staged
+            remaining = float(q.get('staged', 0) or q.get('active', 0) or 0) - float(q['transferred'])
             q['remaining'] = max(0.0, remaining)
             src_line.quantity = q
 
@@ -449,8 +470,8 @@ def _update_source_lines_after_transfer(
             src_line.save(update_fields=save_fields)
             updated += 1
             logger.debug(
-                "Updated source %s #%s: actioned=%s remaining=%s",
-                source_line_key, src_line_id, q['actioned'], q['remaining'],
+                "Updated source %s #%s: transferred=%s remaining=%s",
+                source_line_key, src_line_id, q['transferred'], q['remaining'],
             )
 
     return updated
@@ -463,7 +484,9 @@ def calculate_line_extended(line_data: Dict[str, Any]) -> Dict[str, Decimal]:
         Dict with calculated values: gross, discount_amount, extended, 
         gross_cost, discount_cost, cost_extended
     """
-    qty = _d(line_data.get('quantity', {}).get('placed', 0))
+    qty_data = line_data.get('quantity', {}) or {}
+    # Use canonical field names: staged (committed) or active (user input)
+    qty = _d(qty_data.get('staged', 0) or qty_data.get('active', 0))
     
     # Price calculations
     price = line_data.get('price', {}) or {}
@@ -776,9 +799,42 @@ def save_transaction_with_lines(
                     current_item_id != new_item_id):
                     raise ItemIdChangeError(line_id, current_item_id, new_item_id)
 
+                # ── Capture old quantity before update for delta calculation ──
+                old_qty_data = getattr(existing_line, 'quantity', {}) or {}
+                old_qty_staged = float(old_qty_data.get('staged', 0) or old_qty_data.get('active', 0) or 0)
+
+                # JSON fields that should deep-merge (not replace) on update
+                json_merge_fields = {'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source'}
                 for k, v in line_clean.items():
+                    # Deep-merge JSON fields to preserve existing keys not in the update
+                    if k in json_merge_fields and isinstance(v, dict):
+                        existing_val = getattr(existing_line, k, None)
+                        if existing_val and isinstance(existing_val, dict):
+                            v = {**existing_val, **v}
                     setattr(existing_line, k, v)
+                existing_line._pending_created = True  # Suppress signal
                 existing_line.save()
+
+                # ── Check for quantity change and create pending delta ──
+                new_qty_data = getattr(existing_line, 'quantity', {}) or {}
+                new_qty_staged = float(new_qty_data.get('staged', 0) or new_qty_data.get('active', 0) or 0)
+                quantity_delta = new_qty_staged - old_qty_staged
+
+                if quantity_delta != 0 and current_item_id:
+                    # Collect pending delta for quantity change on existing line
+                    cost_data = line_data.get('cost', {}) or {}
+                    price_data = line_data.get('price', {}) or {}
+                    pending_deltas.append({
+                        'item_id': current_item_id,
+                        'item_ida': current_item.get('ida', str(current_item_id)),
+                        'quantity': quantity_delta,  # Delta, not absolute
+                        'line_id': existing_line.pk,
+                        'source_line_id': None,  # Not a transfer
+                        'unit_cost': float(cost_data.get('unit', 0) or (getattr(existing_line, 'cost', {}) or {}).get('unit', 0) or 0),
+                        'unit_price': float(price_data.get('unit', 0) or (getattr(existing_line, 'price', {}) or {}).get('unit', 0) or 0),
+                        'line_data': line_data,
+                        'is_qty_change': True,  # Flag to indicate this is a qty change, not new line
+                    })
 
                 result['lines_saved'] += 1
                 result['lines'].append({
@@ -815,13 +871,14 @@ def save_transaction_with_lines(
                     or (getattr(new_line, 'item', None) or {}).get('item_id')
                 )
                 qty_data = line_data.get('quantity', {}) or {}
-                qty_placed = float(
-                    qty_data.get('placed', 0)
-                    or qty_data.get('ordered', 0)
+                # Use canonical field names: staged (committed) or active (user input)
+                qty_staged = float(
+                    qty_data.get('staged', 0)
+                    or qty_data.get('active', 0)
                     or 0
                 )
-                if not qty_placed and hasattr(new_line, 'quantity') and isinstance(new_line.quantity, dict):
-                    qty_placed = float(new_line.quantity.get('placed', 0) or 0)
+                if not qty_staged and hasattr(new_line, 'quantity') and isinstance(new_line.quantity, dict):
+                    qty_staged = float(new_line.quantity.get('staged', 0) or new_line.quantity.get('active', 0) or 0)
 
                 cost_data = line_data.get('cost', {}) or {}
                 price_data = line_data.get('price', {}) or {}
@@ -840,11 +897,11 @@ def save_transaction_with_lines(
                     if not source_line_id and isinstance(getattr(new_line, 'refs', None), dict):
                         source_line_id = ((new_line.refs or {}).get('source') or {}).get(f'{parent_model}_line_id')
 
-                if item_id and qty_placed:
+                if item_id and qty_staged:
                     pending_deltas.append({
                         'item_id': item_id,
                         'item_ida': item_data.get('ida', str(item_id)),
-                        'quantity': qty_placed,
+                        'quantity': qty_staged,
                         'line_id': new_line.pk,
                         'source_line_id': source_line_id,
                         'unit_cost': float(cost_data.get('unit', 0) or 0),
