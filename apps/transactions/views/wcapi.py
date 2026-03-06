@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.core.utils import registry
+from apps.core.services.role_filter import inject_role_filters, can_create, can_delete
+from apps.core.services.field_projection import validate_user_edit
 
 def to_dict(obj: Model) -> Dict[str, Any]:
     try:
@@ -322,6 +324,12 @@ class WCAPIGetView(APIView):
         qs: QuerySet = ModelCls.objects.active()
         qs = inject_constraints(qs, request, str(model_key))
 
+        # Apply role-based access filters (RBAC)
+        if request.user and request.user.is_authenticated:
+            role_q = inject_role_filters(request.user, model_key)
+            if role_q:
+                qs = qs.filter(role_q)
+
         if record_id is not None:
             try:
                 obj = qs.get(pk=record_id)
@@ -406,6 +414,38 @@ class WCAPISaveView(APIView):
         if not ModelCls or not isinstance(data, dict):
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # RBAC: Check create/edit permissions
+        if request.user and request.user.is_authenticated and not request.user.is_superuser:
+            is_create = record_id is None
+            
+            if is_create:
+                # Check create permission
+                if not can_create(request.user, model_key):
+                    return Response(
+                        {"detail": "Permission denied: cannot create records"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            else:
+                # For updates, get original data and validate fields
+                try:
+                    existing = ModelCls.objects.get(pk=record_id)
+                    original_data = to_dict(existing)
+                    is_valid, disallowed = validate_user_edit(
+                        request.user, model_key, original_data, data
+                    )
+                    if not is_valid:
+                        return Response(
+                            {"detail": f"Permission denied: cannot edit fields: {', '.join(disallowed)}"},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                except ModelCls.DoesNotExist:
+                    # Creating with explicit ID
+                    if not can_create(request.user, model_key):
+                        return Response(
+                            {"detail": "Permission denied: cannot create records"},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
         # ── Write-through: forward to remote, store result locally ───
         if is_write_through():
             # Build a payload compatible with forward_and_store
@@ -440,6 +480,14 @@ class WCAPIDeleteView(APIView):
         ModelCls = registry.resolve(model_key or "")
         if not ModelCls or record_id is None:
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # RBAC: Check delete permission
+        if request.user and request.user.is_authenticated and not request.user.is_superuser:
+            if not can_delete(request.user, model_key):
+                return Response(
+                    {"detail": "Permission denied: cannot delete records"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         try:
             obj = ModelCls.objects.get(pk=record_id)

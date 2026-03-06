@@ -129,6 +129,8 @@ class TransactionBaseModel(BaseModel):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
+    # Commission orders routed by manufacturer (refs.links.manufacturer[].commission_based=True)
+    is_commission = models.BooleanField(default=False, db_index=True, help_text="Order placed by manufacturer for commission")
     # FK-first: proper ForeignKey references to OrgBase and Contact.
     # db_column keeps same column name so existing data is preserved.
     customer = models.ForeignKey(
@@ -136,6 +138,7 @@ class TransactionBaseModel(BaseModel):
         blank=True, null=True, db_index=True,
         db_column='customer_id', related_name='%(class)s_as_customer',
     )
+
     manufacturer = models.ForeignKey(
         'orgs.OrgBase', on_delete=models.SET_NULL,
         blank=True, null=True, db_index=True,
@@ -180,6 +183,7 @@ class TransactionBaseModel(BaseModel):
     finance = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
+    # pulled from .refs to track related entities without FK constraints; updated by Celery tasks on save
     actions = models.JSONField(default=dict, blank=True, null=True)
     
     

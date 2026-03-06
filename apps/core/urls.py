@@ -11,6 +11,7 @@ from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
 from apps.core.views.refs_mismatch_view import RefsMismatchView
+from apps.core.views.permissions import UserPermissionsView, ModelPermissionsView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -50,4 +51,7 @@ urlpatterns = [
     path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart"),
     # Refs mismatch audit
     path("wcapi/refs-mismatch/", RefsMismatchView.as_view(), name="refs-mismatch"),
+    # RBAC Permissions
+    path("wcapi/permissions/", UserPermissionsView.as_view(), name="wcapi-permissions"),
+    path("wcapi/permissions/<str:model_name>/", ModelPermissionsView.as_view(), name="wcapi-permissions-model"),
 ]

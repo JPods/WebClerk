@@ -1,6 +1,6 @@
 # React2025 Integration Guide for WebClerk3 Transaction Models
 
-> **Reading order**: [← 06-api-conventions](06-api-conventions.md) | **End of core sequence**
+> **Reading order**: [← 06-api-conventions](06-api-conventions.md) | [08-transaction-save →](08-transaction-save.md)
 
 ---
 
@@ -402,3 +402,11 @@ const useWCAPICache = (model: string, params: any) => {
 ## Conclusion
 
 This integration provides a modern, feature-rich transaction management system built on React2025, seamlessly integrated with WebClerk3's WCAPI. The components maintain data integrity while providing an excellent user experience with real-time features and comprehensive audit capabilities.
+
+---
+
+## Related Documentation
+
+- [08-transaction-save.md](08-transaction-save.md) — Backend transaction save patterns
+- [celery-redis-pending.md](celery-redis-pending.md) — Pending inventory processing
+- [03-wcapi-gateway.md](03-wcapi-gateway.md) — WCAPI gateway overview
