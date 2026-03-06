@@ -134,6 +134,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         transaction_models = {
             'proposal', 'order', 'invoice', 'purchase', 'workorder',
             'proposalline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
+            'document',
         }
         org_models = {
             'org',
