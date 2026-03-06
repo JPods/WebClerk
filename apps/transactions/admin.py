@@ -80,7 +80,7 @@ class LineDisplayMixin:
         return val if isinstance(val, dict) else {}
 
     @admin.display(description="Qty")
-    def qty_placed(self, obj):
+    def qty_staged(self, obj):
         quantity = self._get_json_field(obj, 'quantity')
         val = quantity.get('staged') or quantity.get('active')
         return val if val is not None else "-"
@@ -159,7 +159,7 @@ class InvoiceAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.Mode
 
 @admin.register(InvoiceLine)
 class InvoiceLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "invoice", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "invoice", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -174,7 +174,7 @@ class InvoiceLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFie
 
 @admin.register(WorkOrderLine)
 class WorkOrderLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "workorder", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "workorder", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -240,7 +240,7 @@ class OrderAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelA
 
 @admin.register(OrderLine)
 class OrderLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "order", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "order", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -261,7 +261,7 @@ class ProjectAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.Mode
 
 @admin.register(PurchaseLine)
 class PurchaseLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "purchase", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "purchase", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -275,7 +275,7 @@ class ProposalAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.Mod
 
 @admin.register(ProposalLine)
 class ProposalLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "proposal", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "proposal", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -289,7 +289,7 @@ class RequisitionAdmin(TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.
 
 @admin.register(RequisitionLine)
 class RequisitionLineAdmin(LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "requisition", "qty_placed", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    list_display = ("id", "ida", "requisition", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 

@@ -43,19 +43,19 @@ for proposal in active_proposals:
         if not item_id:
             continue
         
-        # Get placed quantity
-        qty_placed = 0
+        # Get staged quantity
+        qty_staged = 0
         if isinstance(line.quantity, dict):
-            qty_placed = float(line.quantity.get('placed', 0) or 0)
+            qty_staged = float(line.quantity.get('staged', 0) or 0)
         
         # Calculate on_p contribution (qty * probability)
-        on_p_contribution = qty_placed * probability
+        on_p_contribution = qty_staged * probability
         
         if item_id not in item_qty_map:
             item_qty_map[item_id] = Decimal('0')
         item_qty_map[item_id] += Decimal(str(on_p_contribution))
         
-        print(f"  Proposal #{proposal.pk}, Line {line.pk}: item_id={item_id}, qty={qty_placed}, prob={probability:.0%} -> on_p +{on_p_contribution}")
+        print(f"  Proposal #{proposal.pk}, Line {line.pk}: item_id={item_id}, qty={qty_staged}, prob={probability:.0%} -> on_p +{on_p_contribution}")
 
 print()
 print(f"Items to update: {len(item_qty_map)}")
