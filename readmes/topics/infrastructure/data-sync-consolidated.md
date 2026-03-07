@@ -1183,5 +1183,6 @@ psql -h 76.13.185.210 -U postgres -d commerce_expert -f tools/remote_audit.sql
 |------|--------|
 | 2026-03-03 | Consolidated 6 prior docs into this reference |
 | 2026-03-06 | Updated local-sync scope: now covers all saves (generic + transaction), not just transactions. Renamed `sync_transaction_to_remote` → `sync_record_to_remote` (universal). Added §25.1 Bundle Strategy section with FK collection, uuid_map resolution, Celery retry config, signal suppression, response enrichment. Updated Save View Wiring table with local-sync columns. Added Local-Sync file reference section. |
+| 2026-03-07 | r25 quantity fields unified across all transaction types to match wc3 canonical `{active, staged, remaining}`.  LinesCard made transaction-type-aware (sell-side vs exec-side column toggling).  Per-page `onUpdateLine` callbacks removed in favour of LinesCard internal handler.  wc3 `default_quantity()` collapsed from 6-branch if/elif to single set-membership check.  See `transactions-totals.md §6` for detailed mapping. |
 
 *This document consolidates the former: database-sync-strategy.md, sync-model.md, write-through.md, database-switching.md, data-set-identification.md, and docs-sync.md (all removed 2026-03-03).*

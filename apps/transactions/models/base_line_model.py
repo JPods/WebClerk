@@ -101,8 +101,14 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
 
     See: readmes/topics/transactions/transactions-totals.md §2
     """
+    # All known types share the same canonical structure.
+    # normalize_quantity_map() handles end-of-chain (remaining=0) and
+    # standalone mirroring (staged=active) at normalisation time.
+    _KNOWN_KINDS = {
+        "proposal", "order", "invoice", "purchase", "workorder", "receipt",
+    }
     kind = _normalize_line_kind(transaction_type)
-    if kind == "proposal":
+    if kind in _KNOWN_KINDS:
         return {
             "staged": 0,
             "active": 0,
@@ -110,73 +116,16 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "is_fixed": False,
             "precision": 2,
             "is_blanket": False,
-            "increment": 0
-            }
-    elif kind == "order":
-        # Sales order: user enters active, remaining = inventory available to invoice
-        return {
-            "staged": 0,
-            "active": 0,
-            "remaining": 0,
-            "is_fixed": False,
-            "precision": 2,
-            "is_blanket": False,
-            "increment": 0
-            }
-    elif kind == "invoice":
-        # Invoice (end-of-chain): remaining always 0, nothing downstream
-        return {
-            "staged": 0,
-            "active": 0,
-            "remaining": 0,
-            "is_fixed": False,
-            "precision": 2,
-            "is_blanket": False,
-            "increment": 0
-            }
-    
-    elif kind == "purchase":
-        # Purchase order: user enters active, remaining = inventory available to receive
-        return {
-            "staged": 0,
-            "active": 0,
-            "remaining": 0,
-            "is_fixed": False,
-            "precision": 2,
-            "is_blanket": False,
-            "increment": 0
-            }
-    elif kind == "workorder":
-        # Work order: user enters active, remaining = work left to complete
-        return {
-            "staged": 0,
-            "active": 0,
-            "remaining": 0,
-            "is_fixed": False,
-            "precision": 2,
-            "is_blanket": False,
-            "increment": 0
-            }
-    elif kind == "receipt":
-        # Receipt (end-of-chain): remaining always 0, nothing downstream
-        return {
-            "staged": 0,
-            "active": 0,
-            "remaining": 0,
-            "is_fixed": False,
-            "precision": 2,
-            "is_blanket": False,
-            "increment": 0
-            }
-    else:
-        # Default structure — used when transaction_type is unknown
-        return {
-            "staged": None,
-            "active": None,
-            "remaining": None,
-            "is_fixed": False,
-            "precision": 2,
+            "increment": 0,
         }
+    # Unknown type — use None sentinels so callers can detect missing data
+    return {
+        "staged": None,
+        "active": None,
+        "remaining": None,
+        "is_fixed": False,
+        "precision": 2,
+    }
 
 
 def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | None = None) -> Dict[str, Any]:
