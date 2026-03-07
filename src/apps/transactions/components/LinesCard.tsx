@@ -40,7 +40,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
   isEditing,
   isLocked = false,
   priceLevel,
-  transactionType: _transactionType,
+  transactionType,
   onDeleteLine,
   onUpdateLine,
   onUpdateFullLine,
@@ -49,6 +49,13 @@ const LinesCard: React.FC<LinesCardProps> = ({
   onLinesChange,
 }) => {
   const windowManager = useWindowManager();
+
+  // ── Transaction-type awareness ────────────────────────────────────
+  const transType = (transactionType ?? '').toLowerCase();
+  const isExecSide = ['purchase', 'workorder', 'receipt'].includes(transType);
+  const isSellSide = !isExecSide; // sell-side is default for unknown types
+  const isEndOfChain = ['invoice', 'receipt'].includes(transType);
+
   const [pendingDeleteId, setPendingDeleteId] = React.useState<number | null>(
     null,
   );
@@ -100,13 +107,71 @@ const LinesCard: React.FC<LinesCardProps> = ({
     setEditValue(String(currentValue));
   };
 
+  // ── Internal field-update handler (used when onUpdateLine not provided) ──
+  const applyFieldUpdate = (line: any, field: string, value: unknown): any => {
+    const updated = { ...line, _dirty: true };
+    switch (field) {
+      case "qty": {
+        const newQty = Number(value);
+        const result: any = {
+          ...updated,
+          quantity: {
+            ...updated.quantity,
+            active: newQty,
+            staged: newQty,
+            remaining: isEndOfChain ? 0 : newQty,
+          },
+        };
+        if (updated.price) {
+          result.price = { ...updated.price, extended: newQty * (updated.price?.unit ?? 0) };
+        }
+        if (isExecSide && updated.cost) {
+          result.cost = { ...updated.cost, extended: newQty * (updated.cost?.unit ?? 0) };
+        }
+        return result;
+      }
+      case "description":
+        return { ...updated, item: { ...updated.item, description: String(value) } };
+      case "unit_price": {
+        const newPrice = Number(value);
+        const qty = updated.quantity?.active ?? updated.quantity?.staged ?? 0;
+        return {
+          ...updated,
+          price: { ...updated.price, unit: newPrice, extended: qty * newPrice },
+        };
+      }
+      case "unit_cost": {
+        const newCost = Number(value);
+        const qty = updated.quantity?.active ?? updated.quantity?.staged ?? 0;
+        return {
+          ...updated,
+          cost: { ...updated.cost, unit: newCost, extended: qty * newCost },
+        };
+      }
+      default:
+        return updated;
+    }
+  };
+
   const handleEditSave = () => {
-    if (editingCell && onUpdateLine) {
-      const value =
-        editingCell.field === "qty" || editingCell.field === "unit_price"
-          ? Number(editValue)
-          : editValue;
+    if (!editingCell) {
+      setEditValue("");
+      return;
+    }
+    const value =
+      editingCell.field === "qty" || editingCell.field === "unit_price" || editingCell.field === "unit_cost"
+        ? Number(editValue)
+        : editValue;
+    if (onUpdateLine) {
+      // Delegate to parent (backward compat)
       onUpdateLine(editingCell.lineId, editingCell.field, value);
+    } else if (onLinesChange) {
+      // Handle internally — unified field-switch
+      const newLines = lines.map((l: any, i: number) => {
+        if (lineKey(l, i) !== editingCell.lineId) return l;
+        return applyFieldUpdate(l, editingCell.field, value);
+      });
+      onLinesChange(newLines);
     }
     setEditingCell(null);
     setEditValue("");
@@ -313,15 +378,22 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   description: description,
                   unit_measure: unitMeasure,
                 },
-                // New lines: processing = user input, staged mirrors, remaining = staged (standalone)
-                // Backend normalize_quantity_map enforces the correct semantics
-                quantity: { active: quantity, staged: quantity, remaining: quantity },
-                price: {
-                  unit: unitPrice,
-                  extended: unitPrice * quantity,
+                // Canonical quantity: active=user input, staged mirrors, remaining per chain position
+                quantity: {
+                  active: quantity,
+                  staged: quantity,
+                  remaining: isEndOfChain ? 0 : quantity,
                 },
+                // Sell-side: track price; exec-side: skip price envelope
+                ...(isSellSide ? {
+                  price: {
+                    unit: unitPrice,
+                    extended: unitPrice * quantity,
+                  },
+                } : {}),
                 cost: {
                   unit: unitCost,
+                  ...(isExecSide ? { extended: unitCost * quantity } : {}),
                 },
               };
               onLinesChange?.([...lines, newLine as any]);
@@ -375,9 +447,11 @@ const LinesCard: React.FC<LinesCardProps> = ({
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
                   UOM
                 </th>
-                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
-                  Unit Price
-                </th>
+                {isSellSide && (
+                  <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
+                    Unit Price
+                  </th>
+                )}
                 <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
                   Unit Cost
                 </th>
@@ -419,10 +493,9 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   | Record<string, unknown>
                   | undefined;
                 const unitCost = costRecord?.unit ?? line.cost?.unit ?? 0;
-                const extended =
-                  priceRecord?.extended ??
-                  line.price?.extended ??
-                  Number(qty) * Number(unitPrice);
+                const extended = isSellSide
+                  ? (priceRecord?.extended ?? line.price?.extended ?? Number(qty) * Number(unitPrice))
+                  : (costRecord?.extended ?? line.cost?.extended ?? Number(qty) * Number(unitCost));
                 const lineId = lineKey(line, idx);
                 const canEditLine = isEditing && !isLocked;
                 const notesObj = lineRecord.notes as
@@ -585,16 +658,26 @@ const LinesCard: React.FC<LinesCardProps> = ({
                       <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
                         {String(uom)}
                       </td>
-                      {renderEditableCell(
+                      {isSellSide && renderEditableCell(
                         "unit_price",
                         Number(unitPrice),
                         formatCurrency(Number(unitPrice)),
                         "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
                         true,
                       )}
-                      <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
-                        {formatCurrency(Number(unitCost))}
-                      </td>
+                      {isExecSide ? (
+                        renderEditableCell(
+                          "unit_cost",
+                          Number(unitCost),
+                          formatCurrency(Number(unitCost)),
+                          "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
+                          true,
+                        )
+                      ) : (
+                        <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
+                          {formatCurrency(Number(unitCost))}
+                        </td>
+                      )}
                       <td className="px-2 py-1 text-xs text-right font-medium text-slate-900 dark:text-white">
                         {formatCurrency(Number(extended))}
                       </td>
@@ -689,7 +772,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                     </tr>
                     {isExpanded && hasNotes && (
                       <tr className="bg-amber-50 dark:bg-amber-900/20">
-                        <td colSpan={canEdit ? 11 : 10} className="px-6 py-3">
+                        <td colSpan={(canEdit ? 1 : 0) + (isSellSide ? 10 : 9)} className="px-6 py-3">
                           <div className="flex flex-wrap gap-4 text-xs">
                             {notesObj?.public && (
                               <div className="flex-1 min-w-50">
@@ -741,7 +824,7 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   {formatNumber(totalQty)} items
                 </td>
                 <td></td>
-                <td colSpan={2}></td>
+                <td colSpan={isSellSide ? 2 : 1}></td>
                 <td className="px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 text-right">
                   Total:
                 </td>
@@ -749,11 +832,15 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   {formatCurrency(
                     lines.reduce((sum, l) => {
                       const lRecord = l as unknown as Record<string, unknown>;
-                      const lPrice = lRecord.price as
-                        | Record<string, unknown>
-                        | undefined;
-                      const ext = lPrice?.extended ?? l.price?.extended ?? 0;
-                      return sum + Number(ext);
+                      if (isSellSide) {
+                        const lPrice = lRecord.price as Record<string, unknown> | undefined;
+                        const ext = lPrice?.extended ?? l.price?.extended ?? 0;
+                        return sum + Number(ext);
+                      } else {
+                        const lCost = lRecord.cost as Record<string, unknown> | undefined;
+                        const ext = lCost?.extended ?? l.cost?.extended ?? 0;
+                        return sum + Number(ext);
+                      }
                     }, 0),
                   )}
                 </td>

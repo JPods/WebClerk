@@ -2326,23 +2326,23 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                     case "qty": {
                       const newQty = Number(value);
                       if (!lineIsActive) {
-                        // Inactive line: persist processing but don't recalculate
+                        // Inactive line: persist active but don't recalculate
                         return {
                           ...baseUpdate,
-                          quantity: { ...l.quantity, processing: newQty, staged: newQty },
+                          quantity: { ...l.quantity, active: newQty, staged: newQty },
                         };
                       }
                       const isEndOfChain = transactionType === 'invoice' || transactionType === 'receipt';
                       const unitPriceForCalc = l.price?.unit ?? 0;
 
-                      // User always edits processing; staged mirrors for standalone
+                      // User always edits active; staged mirrors for standalone
                       // For end-of-chain (invoice/receipt): remaining = 0
                       // For orders/proposals/purchases: remaining = staged (standalone)
                       return {
                         ...baseUpdate,
                         quantity: {
                           ...l.quantity,
-                          processing: newQty,
+                          active: newQty,
                           staged: newQty,
                           remaining: isEndOfChain ? 0 : newQty,
                         },

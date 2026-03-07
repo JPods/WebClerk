@@ -1066,59 +1066,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
 onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
   }
 }}
-onUpdateLine={(lineId, field, value) => {
-  // Update line field - handle nested structure
-  if (onLinesChange) {
-    onLinesChange(
-      lines.map((l, i) => {
-        if (lineKey(l, i) !== lineId) return l;
-
-                  // Mark line as dirty when modified
-                  const baseUpdate = { ...l, _dirty: true };
-
-                  // Map field names to nested structure
-                  switch (field) {
-                    case "qty":
-                      const newActive = Number(value);
-                      const unitPrice = l.price?.unit ?? 0;
-                      // For standalone order edit: staged=active=remaining (nothing transferred yet)
-                      return {
-                        ...baseUpdate,
-                        quantity: { 
-                          ...l.quantity, 
-                          active: newActive,
-                          staged: newActive,
-                          remaining: newActive,
-                        },
-                        price: {
-                          ...l.price,
-                          extended: unitPrice * newActive,
-                        },
-                      };
-                    case "description":
-                      return {
-                        ...baseUpdate,
-                        item: { ...l.item, description: String(value) },
-                      };
-                    case "unit_price":
-                      const newPrice = Number(value);
-                      const qty = l.quantity?.active ?? 0;
-                      return {
-                        ...baseUpdate,
-                        price: {
-                          ...l.price,
-                          unit: newPrice,
-                          extended: newPrice * qty,
-                        },
-                      };
-                    default:
-                      // For flat fields or unknown fields, try top-level
-                      return { ...baseUpdate, [field]: value };
-                  }
-                }),
-              );
-            }
-          }}
+transactionType="order"
           onDuplicateLine={(lineId) => {
             // Duplicate line - mark as dirty since it's new
             if (onLinesChange) {
