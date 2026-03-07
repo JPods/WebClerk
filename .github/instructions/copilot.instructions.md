@@ -869,3 +869,129 @@ When starting a coding session, establish:
 3. **Which layer?** (page component, service, type, schema, test)
 
 This helps scope changes correctly within the domain-driven folder structure.
+
+---
+
+## 24. Configuration System — r25 as Source of Truth
+
+### Architecture
+
+React2025 owns defaults, select lists, and field behavior rules. wc3 is
+persistence + backup — never the gatekeeper.
+
+```
+src/config/
+├── index.ts              # Barrel export
+├── fieldDefaults.ts      # Field-level behavior rules (dt null/0 → now, etc.)
+├── selectLists.ts        # Typed select/picklist definitions
+└── modelDefaults.ts      # Per-model create-time defaults (terms, priority, etc.)
+
+src/store/slices/
+└── configSlice.ts        # Runtime state: merged static + wc3 overrides
+
+src/hooks/
+└── useAppConfig.ts       # Hydrate on startup, push changes back to wc3
+
+src/utils/
+└── dateUtils.ts          # Single canonical datetime formatter
+```
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Static defaults (ship with build)                  │
+│  config/fieldDefaults.ts · selectLists.ts           │
+│  modelDefaults.ts                                   │
+└───────────────┬─────────────────────────────────────┘
+                │ merged via configSlice
+                ▼
+┌─────────────────────────────────────────────────────┐
+│  configSlice (Redux)                                │
+│  - modelDefaults: { order: { terms: "On Order" } }  │
+│  - selectListOverrides: { terms: [...] }            │
+└───────────────┬─────────────────────────────────────┘
+                │ useAppConfig()
+          ┌─────┴──────┐
+          ▼            ▼
+   on startup      syncToBackend()
+   fetch wc3  ←──→  push to wc3
+   Setting          Setting
+   (app_config)     (app_config)
+```
+
+### Key Rules
+
+1. **Static defaults always work offline** — forms render instantly, no API wait
+2. **wc3 overrides win** when present (fetched on startup via `useAppConfig`)
+3. **r25 pushes to wc3** — never the reverse. `syncToBackend()` writes the
+   merged state to a wc3 `Setting` record (`name="app_config"`,
+   `purpose="React_settings"`)
+4. **`ensureBackendMatch()`** detects drift between r25 and wc3 and auto-fixes
+
+### Datetime Null/0 → Now Rule
+
+Any `dt_*` field that is `null`, `undefined`, or `0` is substituted with
+`Date.now()` at display time. The raw value is preserved in the record.
+
+```typescript
+import { applyDtFallback } from '@/config/fieldDefaults';
+import { formatEpochMs } from '@/utils/dateUtils';
+
+// Display: shows "now" if dt_start is null/0
+<span>{formatEpochMs(applyDtFallback(record.dt_start))}</span>
+
+// Or use formatEpochMs directly (it applies the fallback internally)
+<span>{formatEpochMs(record.dt_start)}</span>
+```
+
+For new record creation, use `applyDtDefaults(record)` to stamp all empty
+`dt_*` fields with `Date.now()` before saving.
+
+### Using Select Lists
+
+```typescript
+import { useMergedSelectList } from '@/hooks/useAppConfig';
+
+function MyForm() {
+  const termsOptions = useMergedSelectList('terms');
+  return (
+    <select>
+      {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+```
+
+### Using Model Defaults
+
+```typescript
+import { useMergedModelDefaults } from '@/hooks/useAppConfig';
+
+function CreateOrderForm() {
+  const defaults = useMergedModelDefaults('order');
+  // defaults = { terms: "On Order", due_date_period: 1, price_level: "retail", ... }
+}
+```
+
+### Ensuring wc3 Matches r25
+
+```typescript
+import { useAppConfig } from '@/hooks/useAppConfig';
+
+function AdminSettingsPage() {
+  const { ensureBackendMatch, syncToBackend } = useAppConfig();
+
+  // Check + fix drift
+  const result = await ensureBackendMatch();
+  // result = { drifts: ["model_default:order.terms"], fixed: true }
+
+  // Or force push current state
+  await syncToBackend();
+}
+```
+
+### Legacy Compatibility
+
+`useTransactionDefaults()` still works but now delegates to the config system.
+New code should use `useMergedModelDefaults(modelKey)` directly.

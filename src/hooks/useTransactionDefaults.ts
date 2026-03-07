@@ -1,18 +1,21 @@
 /**
  * useTransactionDefaults
  *
- * Fetches the singleton Setting record (name="transaction_defaults",
- * purpose="React_settings") once on startup and caches it for the session.
+ * Thin wrapper around the unified config system (configSlice + useAppConfig).
+ * Returns the same { defaults, loading, refresh } shape for backward
+ * compatibility, but now delegates to the centralized config store.
  *
- * Returns a stable `defaults` object with fields used when creating new
- * transactions:
- *   - terms          (string)  e.g. "On Order"
- *   - due_date_period (number) days to add to dt for due_date
- *   - price_level    (string)  e.g. "retail"
- *   - priority       (string)  e.g. "standard"
+ * The source of truth for transaction defaults is:
+ *   src/config/modelDefaults.ts  (static, ships with build)
+ *   + configSlice overrides      (fetched from wc3 on startup, pushed back on save)
+ *
+ * Legacy consumers can continue using this hook unchanged.
+ * New code should prefer `useMergedModelDefaults(modelKey)` directly.
  */
-import { useState, useEffect, useCallback } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+import { getModelDefaults } from '@/config/modelDefaults';
 
 export interface TransactionDefaults {
   terms: string;
@@ -28,71 +31,40 @@ const FALLBACK: TransactionDefaults = {
   priority: 'standard',
 };
 
-// Module-level cache so every consumer shares the same data without re-fetching.
-let cached: TransactionDefaults | null = null;
-let cachePromise: Promise<TransactionDefaults> | null = null;
-
-async function loadDefaults(): Promise<TransactionDefaults> {
-  try {
-    const res = await getRecords('setting', {
-      name: 'transaction_defaults',
-      purpose: 'React_settings',
-      is_active: true,
-      limit: 1,
-    });
-
-    const record = res?.results?.[0];
-    if (record?.data) {
-      const d = record.data;
-      cached = {
-        terms: d.terms ?? FALLBACK.terms,
-        due_date_period: Number(d.due_date_period ?? FALLBACK.due_date_period),
-        price_level: d.price_level ?? FALLBACK.price_level,
-        priority: d.priority ?? FALLBACK.priority,
-      };
-    } else {
-      console.warn('[useTransactionDefaults] No transaction_defaults setting found, using fallback');
-      cached = { ...FALLBACK };
-    }
-  } catch (err) {
-    console.error('[useTransactionDefaults] Failed to fetch:', err);
-    cached = { ...FALLBACK };
-  }
-
-  cachePromise = null; // allow future retry if needed
-  return cached;
+/**
+ * Build TransactionDefaults from the merged config for a given model.
+ * Defaults to 'order' model when no model is specified.
+ */
+function buildDefaults(
+  storeOverrides: Record<string, unknown> | undefined,
+  modelKey = 'order',
+): TransactionDefaults {
+  const statics = getModelDefaults(modelKey);
+  const merged = { ...statics, ...(storeOverrides ?? {}) };
+  return {
+    terms: (merged.terms as string) ?? FALLBACK.terms,
+    due_date_period: Number(merged.due_date_period ?? FALLBACK.due_date_period),
+    price_level: (merged.price_level as string) ?? FALLBACK.price_level,
+    priority: (merged.priority as string) ?? FALLBACK.priority,
+  };
 }
 
-export function useTransactionDefaults() {
-  const [defaults, setDefaults] = useState<TransactionDefaults>(cached ?? FALLBACK);
-  const [loading, setLoading] = useState(!cached);
+export function useTransactionDefaults(modelKey = 'order') {
+  const loading = useSelector((s: RootState) => s.config.loading);
+  const overrides = useSelector(
+    (s: RootState) => s.config.modelDefaults?.[modelKey],
+  );
 
-  const refresh = useCallback(async () => {
-    cached = null;
-    cachePromise = null;
-    setLoading(true);
-    const result = await loadDefaults();
-    setDefaults(result);
-    setLoading(false);
-  }, []);
+  const defaults = useMemo(
+    () => buildDefaults(overrides, modelKey),
+    [overrides, modelKey],
+  );
 
-  useEffect(() => {
-    if (cached) {
-      setDefaults(cached);
-      setLoading(false);
-      return;
-    }
-
-    // Deduplicate concurrent calls
-    if (!cachePromise) {
-      cachePromise = loadDefaults();
-    }
-
-    cachePromise.then((result) => {
-      setDefaults(result);
-      setLoading(false);
-    });
-  }, []);
+  // refresh is now handled by useAppConfig().syncToBackend() at the app level.
+  // Kept here as a no-op for backward compatibility.
+  const refresh = async () => {
+    console.info('[useTransactionDefaults] refresh() is deprecated. Use useAppConfig().syncToBackend() instead.');
+  };
 
   return { defaults, loading, refresh };
 }
