@@ -25,6 +25,7 @@
 
 ## Additional Topics (`topics/`)
 
+- `config-defaults.md` - **Defaults by table** — modelDefaults, fieldDefaults, select lists
 - `admin-workbench.md` - Admin panel features
 - `admin-window.md` - Admin window component
 - `offline-optimistic-updates.md` - Offline-first patterns
