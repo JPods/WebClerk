@@ -402,8 +402,9 @@ class CoreModel(models.Model):
         # Ensure ida is populated once a primary key exists. Avoids an extra version bump.
         try:
             if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
-                # ida format: "ida-{pk}"  (project-wide convention)
-                ida_value = f"ida-{self.pk}"
+                # ida format: "{IDA_PREFIX}-{pk}"  — born-on identifier (see common/ida.py)
+                from common.ida import generate_ida
+                ida_value = generate_ida(self.pk)
                 type(self).objects.filter(pk=self.pk, ida="").update(ida=ida_value)
                 self.ida = ida_value  # reflect locally
         except Exception:  # pragma: no cover - never block save

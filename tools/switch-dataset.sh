@@ -400,13 +400,15 @@ print_header
 MODE=${1:-""}
 
 if [ -z "$MODE" ]; then
-    echo "Usage: ./switch-dataset.sh [remote|local|status]"
+    echo "Usage: ./switch-dataset.sh [remote|local|write-through|local-sync|status]"
     echo ""
     show_current_status
     echo "Options:"
-    echo -e "  ${GREEN}remote${NC}  - Use shared database (team collaboration)"
-    echo -e "  ${GREEN}local${NC}   - Use local database (debugging)"
-    echo -e "  ${GREEN}status${NC}  - Show current mode without changing"
+    echo -e "  ${GREEN}remote${NC}        - Use shared database (team collaboration)"
+    echo -e "  ${GREEN}local${NC}         - Use local database (debugging)"
+    echo -e "  ${GREEN}write-through${NC} - Fast reads from local, writes go to remote"
+    echo -e "  ${GREEN}local-sync${NC}    - Fast saves to local, Celery pushes to remote async"
+    echo -e "  ${GREEN}status${NC}        - Show current mode without changing"
     echo ""
     exit 0
 fi
@@ -416,9 +418,9 @@ if [ "$MODE" = "status" ]; then
     exit 0
 fi
 
-if [ "$MODE" != "remote" ] && [ "$MODE" != "local" ]; then
+if [ "$MODE" != "remote" ] && [ "$MODE" != "local" ] && [ "$MODE" != "write-through" ] && [ "$MODE" != "local-sync" ]; then
     print_error "Invalid mode: $MODE"
-    echo "Valid options: remote, local, status"
+    echo "Valid options: remote, local, write-through, local-sync, status"
     exit 1
 fi
 

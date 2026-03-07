@@ -44,6 +44,12 @@ from django.core import serializers
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connections, transaction, IntegrityError
 
+from common.migration_check import (
+    check_migration_parity,
+    check_migration_parity_for_model,
+    format_remediation,
+)
+
 try:
     from decouple import config as env
 except ImportError:
@@ -239,11 +245,33 @@ class Command(BaseCommand):
             default='record',
             help='Conflict resolution: "record" (default) updates existing, "new" creates new record at destination',
         )
+        parser.add_argument(
+            '--check-migrations',
+            action='store_true',
+            help='Run migration parity check only (no data sync)',
+        )
+        parser.add_argument(
+            '--skip-migration-check',
+            action='store_true',
+            help='Skip the pre-flight migration parity check before syncing',
+        )
+        parser.add_argument(
+            '--check-columns',
+            action='store_true',
+            help='Include column-level drift detection (slower, used with --check-migrations)',
+        )
 
     def handle(self, *args, **options):
         # ── list mode ───────────────────────────────────────────────
         if options['list_models']:
             return self._list_models()
+
+        # ── migration check only mode ───────────────────────────────
+        if options['check_migrations']:
+            return self._check_migrations_only(
+                model_name=options['model_name'],
+                include_columns=options['check_columns'],
+            )
 
         # ── validate args ───────────────────────────────────────────
         model_name = options['model_name']
@@ -275,6 +303,36 @@ class Command(BaseCommand):
         local_cfg, remote_cfg = _register_both_dbs()
 
         try:
+            # ── pre-flight migration check ──────────────────────────
+            if not options['skip_migration_check']:
+                mig_report = check_migration_parity_for_model(
+                    model, _LOCAL_ALIAS, _REMOTE_ALIAS,
+                )
+                if not mig_report.ok:
+                    self.stdout.write('')
+                    self.stdout.write(self.style.ERROR(
+                        '  ⚠ MIGRATION MISMATCH DETECTED'
+                    ))
+                    self.stdout.write(mig_report.format_report())
+                    self.stdout.write('')
+                    self.stdout.write(self.style.WARNING(
+                        '  Remediation steps:'
+                    ))
+                    self.stdout.write(format_remediation(mig_report))
+                    self.stdout.write('')
+                    if not options['no_confirm']:
+                        answer = input(
+                            '  Continue despite migration mismatch? '
+                            'Type "yes" to proceed, anything else to abort: '
+                        )
+                        if answer.strip().lower() != 'yes':
+                            self.stdout.write(self.style.ERROR('  Aborted.'))
+                            return
+                    else:
+                        self.stdout.write(self.style.WARNING(
+                            '  --no-confirm set: proceeding despite mismatch.'
+                        ))
+
             self._run_sync(
                 model, table,
                 src_alias, tgt_alias,
@@ -485,6 +543,10 @@ class Command(BaseCommand):
                                         changed = False
                                         for field in model._meta.fields:
                                             fname = field.name
+                                            # Skip id (PK) and uuid (immutable cross-DB key).
+                                            # ida flows from source like any other field —
+                                            # only uuid is truly immutable across databases
+                                            # (see §25 Sync Topologies in data-sync docs).
                                             if fname in ('id', uuid_field):
                                                 continue
                                             src_val = getattr(obj.object, fname, None)
@@ -645,6 +707,49 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f"  Bundle record skipped: {exc}"
             ))
+
+    # ────────────────────────────────────────────────────────────────
+    #  Migration check only mode
+    # ────────────────────────────────────────────────────────────────
+
+    def _check_migrations_only(self, model_name=None, include_columns=False):
+        """Run migration parity check without syncing any data."""
+        local_cfg, remote_cfg = _register_both_dbs()
+
+        try:
+            self.stdout.write('')
+            self.stdout.write(self.style.MIGRATE_HEADING(
+                '  Migration Parity Check: LOCAL ↔ REMOTE'
+            ))
+            self.stdout.write(f"  Local:   {local_cfg['HOST']}:{local_cfg['PORT']}/{local_cfg['NAME']}")
+            self.stdout.write(f"  Remote:  {remote_cfg['HOST']}:{remote_cfg['PORT']}/{remote_cfg['NAME']}")
+            self.stdout.write('')
+
+            if model_name and model_name.lower() != 'all':
+                model = _resolve_model(model_name)
+                self.stdout.write(f"  Scope: {model._meta.label} ({model._meta.db_table})")
+                self.stdout.write('')
+                report = check_migration_parity_for_model(
+                    model, _LOCAL_ALIAS, _REMOTE_ALIAS,
+                )
+            else:
+                report = check_migration_parity(
+                    _LOCAL_ALIAS, _REMOTE_ALIAS,
+                    include_tables=True,
+                    include_columns=include_columns,
+                )
+
+            self.stdout.write(report.format_report())
+
+            if not report.ok:
+                self.stdout.write('')
+                self.stdout.write(self.style.WARNING('  Remediation steps:'))
+                self.stdout.write(format_remediation(report))
+
+            self.stdout.write('')
+
+        finally:
+            _cleanup_dbs()
 
     # ────────────────────────────────────────────────────────────────
     #  List mode

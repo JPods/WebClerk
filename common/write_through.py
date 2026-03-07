@@ -240,10 +240,12 @@ def _store_bundle_locally(
         local_obj = model_cls.objects.using('default').filter(pk=remote_obj.pk).first()
 
     if local_obj is not None:
-        # Update existing local record with remote's authoritative values
+        # Update existing local record with remote's authoritative values.
+        # In write-through, remote is the primary — its ida is authoritative.
+        # Only uuid is truly immutable across databases (see §25 Sync Topologies).
         for field in model_cls._meta.concrete_fields:
             if field.name == 'uuid':
-                continue  # never overwrite uuid
+                continue  # never overwrite uuid (immutable cross-DB key)
             remote_val = getattr(remote_obj, field.name, None)
             setattr(local_obj, field.name, remote_val)
         # Bypass CoreModel.save() version/timestamp logic — store remote's exact values

@@ -1,6 +1,6 @@
 # Data Synchronization — Consolidated Reference
 
-Date: 2026-03-03
+Date: 2026-03-06
 Status: Authoritative (consolidates 6 prior docs)
 Owner: Bill
 
@@ -14,6 +14,7 @@ Owner: Bill
   - [Remote (default)](#remote-default)
   - [Local](#local)
   - [Write-Through (recommended for daily dev)](#write-through-recommended-for-daily-dev)
+  - [Local-Sync (async push to remote)](#local-sync-async-push-to-remote)
 - [Switching Modes](#switching-modes)
   - [CLI — switch-dataset.sh](#cli--switch-datasetsh)
   - [API Endpoints (DevTools)](#api-endpoints-devtools)
@@ -46,19 +47,35 @@ Owner: Bill
   - [data_load_json](#data_load_json)
 - [Readme / Documentation Sync](#readme--documentation-sync)
 - [Destructive Reset (reseed)](#destructive-reset-reseed)
-- [Identity Model — id + uuid](#identity-model--id--uuid)
+- [Identity Model — id + uuid + ida](#identity-model--id--uuid--ida)
+  - [IDA — Born-On Identity](#ida--born-on-identity)
   - [The Matching Rule](#the-matching-rule)
   - [Change Detection Fields](#change-detection-fields)
+- [§25 Sync Topologies](#25-sync-topologies)
+  - [Scenario 1 — Hub & Spoke (Outage / Merge)](#scenario-1--hub--spoke-outage--merge)
+  - [Scenario 2 — Peer Transfer (Catalog Exchange)](#scenario-2--peer-transfer-catalog-exchange)
+  - [Identity Rules by Scenario](#identity-rules-by-scenario)
+  - [Id Block-Allocation (Future)](#id-block-allocation-future)
+- [Pre-Flight Migration Check](#pre-flight-migration-check)
 - [FK Dependency Order](#fk-dependency-order)
 - [Incremental Sync Design (Future Phases)](#incremental-sync-design-future-phases)
   - [Phase 1 — Timestamp-Based Delta Pull](#phase-1--timestamp-based-delta-pull)
   - [Phase 2 — Bidirectional Merge](#phase-2--bidirectional-merge)
   - [Phase 3 — Event-Driven Notification](#phase-3--event-driven-notification)
+- [Local-Sync Bundle Strategy (§25.1)](#local-sync-bundle-strategy-251)
+  - [How Bundling Works](#how-bundling-works)
+  - [FK Dependency Collection](#fk-dependency-collection)
+  - [FK Resolution via uuid_map](#fk-resolution-via-uuid_map)
+  - [Celery Retry Configuration](#celery-retry-configuration)
+  - [Signal Suppression](#signal-suppression)
+  - [Worker Health Integration](#worker-health-integration)
+  - [Response Enrichment](#response-enrichment)
 - [Data Set Identification](#data-set-identification)
 - [Remote Database Audit & Cleanup Tools](#remote-database-audit--cleanup-tools)
 - [File Reference](#file-reference)
 - [Safety & Guardrails](#safety--guardrails)
 - [Quick Reference Cheatsheet](#quick-reference-cheatsheet)
+- [Changelog](#changelog)
 
 ---
 
@@ -80,7 +97,7 @@ It consolidates six prior documents:
 
 | Scenario | Tool | Command |
 |----------|------|---------|
-| **Daily development** | Write-through proxy | `DB_MODE=write-through` in `.env` |
+| **Daily development** | Write-through proxy | `DB_MODE=write-through` in `.env` |\n| **Daily dev (slow remote)** | Local-sync | `DB_MODE=local-sync` in `.env` (needs Celery worker) |
 | **Initial local DB setup** | pg_dump / pg_restore | See [Switching Modes](#switching-modes) |
 | **Pull one model from remote** | sync_model | `python manage.py sync_model contact --direction to-local` |
 | **Pull all models from remote** | sync_model all | `python manage.py sync_model all --direction to-local` |
@@ -107,6 +124,7 @@ Three modes control which PostgreSQL instance Django reads from and writes to:
 | **remote** | Remote server | Remote server | Team collaboration — shared data |
 | **local** | localhost | localhost | Isolated debugging — safe to break |
 | **write-through** | localhost | Remote → syncs back to local | Fast reads + authoritative remote writes |
+| **local-sync** | localhost | localhost + Celery → remote async | Fast saves, async merge to shared DB |
 
 **Remote is always the default.** `./runserver.sh` force-resets to remote on every boot as a safety measure.
 
@@ -129,6 +147,29 @@ The best of both worlds:
 
 If the remote is unreachable, the save returns HTTP 502 — nothing is written locally either, keeping both databases consistent.
 
+### Local-Sync (async push to remote)
+
+Saves go to local database immediately (fast), then a **Celery task** pushes the record + its entire FK dependency tree to remote in the background.
+
+**Advantages over write-through:**
+- Saves return instantly — no waiting for slow remote DB
+- If remote is temporarily down, saves still succeed locally; Celery retries automatically
+- Pending inventory processing happens immediately on local
+
+**Trade-offs:**
+- Other users on remote won't see changes until the Celery task completes (typically 2-5 seconds)
+- If Celery worker is down, syncs queue in Redis and process when worker restarts
+
+**Scope:** Applies to **all saves** — both `/wcapi/save/` (generic models) and `/wcapi/transaction/save/` (transaction headers + lines). Any model saved in local-sync mode is queued for async push to remote.
+
+**Sync tracking:** After Celery pushes to remote, it stamps `metadata.history.synced.dt` on the local record. The frontend can show a sync badge using this timestamp.
+
+```env
+DB_MODE=local-sync
+```
+
+**Implementation:** `common/sync_tasks.py` — `sync_record_to_remote()` (universal), `dispatch_sync_to_remote()`
+
 ---
 
 ## Switching Modes
@@ -140,6 +181,7 @@ cd tools/
 ./switch-dataset.sh remote        # switch to remote
 ./switch-dataset.sh local         # switch to local (triggers sync by default)
 ./switch-dataset.sh write-through # switch to write-through
+./switch-dataset.sh local-sync    # switch to local-sync (async push to remote)
 ./switch-dataset.sh status        # show current mode
 ```
 
@@ -256,15 +298,15 @@ When `write-through` is active, `settings.py` configures:
 
 ### Save View Wiring
 
-All save endpoints are gated by `is_write_through()`:
+All save endpoints are gated by `is_write_through()` (write-through mode) and `is_local_sync()` (local-sync mode):
 
-| View | File | Handles |
-|---|---|---|
-| `SaveWcapiView` | `apps/core/views/save_view.py` | Generic model saves |
-| `WCAPITransactionSaveView` | `apps/transactions/views/wcapi.py` | Transaction header + lines |
-| `WCAPISaveView` | `apps/transactions/views/wcapi.py` | Simple delegate saves |
+| View | File | Write-Through | Local-Sync | Handles |
+|---|---|---|---|---|
+| `SaveWcapiView` | `apps/core/views/save_view.py` | `forward_and_store()` | `dispatch_sync_to_remote()` | Generic model saves |
+| `WCAPITransactionSaveView` | `apps/transactions/views/wcapi.py` | `forward_transaction_and_store()` | `dispatch_sync_to_remote()` | Transaction header + lines |
+| `WCAPISaveView` | `apps/transactions/views/wcapi.py` | delegates to above | delegates to above | Simple delegate saves |
 
-When `DB_MODE` is not `write-through`, all views behave exactly as before.
+When `DB_MODE` is `remote` or `local`, views behave as default — direct save to the configured database with no secondary sync.
 
 ### Core Module — common/write_through.py
 
@@ -601,18 +643,48 @@ Creates patterned superusers: `1@1.com / 1111pass`, `2@2.com / 1111pass`, `3@3.c
 
 ---
 
-## Identity Model — id + uuid
+## Identity Model — id + uuid + ida
 
 Every record inherits from `CoreModel`:
 
 | Field | Type | Purpose |
 |---|---|---|
-| `id` | BigAutoField | PK, auto-increment, unique **per database** |
-| `uuid` | UUIDField | Unique **across all databases** |
-| `ida` | CharField(40) | Soft ID from external systems |
+| `id` | BigAutoField | PK, auto-increment. **Source of truth** from the primary (remote) database. Overwrites local id on sync. |
+| `uuid` | UUIDField | Unique **across all databases** — cross-database matching key |
+| `ida` | CharField(40) | Born-on identifier with environment prefix. Created once; **never overwritten** by sync. |
 | `dt_created` | BigInteger | Epoch ms, set once on insert |
 | `dt_modified` | BigInteger | Epoch ms, updated on every save |
 | `version` | PositiveInt | Bumped on every update |
+
+### IDA — Born-On Identity
+
+The `ida` field is a locally generated soft identifier that tells users *where* a record was created. It uses the format `{IDA_PREFIX}-{pk}` and is assigned once on first save via `CoreModel.save()`.
+
+| Database | DATA_SET_ID | IDA_PREFIX | Example ida |
+|---|---|---|---|
+| Production | PRODUCTION | `ida` | `ida-1087` |
+| Development | DEV | `DEV` | `DEV-42` |
+| Local | LOCAL | `LOC` | `LOC-42` |
+| Staging | STAGING | `STG` | `STG-99` |
+
+**Configuration** (`.env`):
+
+```env
+DATA_SET_ID=DEV                 # environment type
+IDA_PREFIX=DEV                  # explicit override (optional; auto-derived from DATA_SET_ID)
+```
+
+**Key rules:**
+- ida is generated **once** on first save via `CoreModel.save()` + `common/ida.py`
+- **uuid is the only truly immutable cross-database identity** — never overwritten
+- ida **can** be overwritten during hub-spoke merge (primary is authoritative)
+- ida is always **new** in the target during peer transfer (source ida ignored)
+- `write_through.py` allows remote ida to flow to local (remote is primary)
+- `sync_model.py` allows ida to flow from source like any other field
+- The `fix_ida_values.py` tool only repairs **empty or malformed** idas — valid prefixed idas from other environments are preserved
+- See **[§25 Sync Topologies](#25-sync-topologies)** for full rules per scenario
+
+**Implementation:** `common/ida.py` — `get_ida_prefix()`, `generate_ida(pk)`, `is_local_ida(ida)`, `parse_ida(ida)`
 
 ### The Matching Rule
 
@@ -632,6 +704,239 @@ The **uuid is the authoritative cross-database identity**. The id is a database-
 | `dt_modified` | Query `filter(dt_modified__gt=last_sync_ts)` for delta sync |
 | `version` | Compare to detect conflicts (higher = newer) |
 | `dt_created` | `dt_created > last_sync_ts` = new record since last sync |
+
+---
+
+## §25 Sync Topologies
+
+Two distinct synchronization scenarios govern how `id`, `ida`, and `uuid` behave during data movement. Understanding which scenario applies is critical — the identity rules differ.
+
+### Scenario 1 — Hub & Spoke (Outage / Merge)
+
+**Use case:** Cloud primary ↔ local backup, field laptops, outage-recovery merge.
+
+```
+         ┌────────────────────┐
+         │  Cloud Primary DB  │  ← authoritative for id + ida
+         │  (PRODUCTION)      │
+         └──────┬───────┬─────┘
+                │       │
+       sync     │       │   sync
+       to-local │       │   to-local
+                │       │
+         ┌──────▼──┐ ┌──▼──────┐
+         │ Local   │ │ Field   │  ← satellites
+         │ Backup  │ │ Laptop  │
+         └─────────┘ └─────────┘
+```
+
+**Identity behaviour:**
+
+| Field | During sync | Rationale |
+|-------|------------|-----------|
+| `id` | Primary's id overwrites satellite | PK alignment for uniform FK graphs |
+| `ida` | Primary's ida overwrites satellite | Primary generated the authoritative born-on identity |
+| `uuid` | **NEVER changes** | Cross-database matching key — immutable |
+
+**When satellites operate disconnected:**
+- Satellites generate records with their own ida prefix (e.g. `LOC-42`)
+- On reconnect, the primary's merge process matches by uuid
+- New satellite-born records (no uuid match on primary) are imported with their satellite ida preserved
+- Conflicting records resolve in favour of the primary
+
+**Write-through mode** is the online version of this scenario — remote is the primary, local mirrors it in real-time. Remote's ida flows to local.
+
+**Tooling:** `sync_model --direction to-local`, `write_through.py`
+
+### Scenario 2 — Peer Transfer (Catalog Exchange)
+
+**Use case:** Manufacturer → Company, Company A → Company B, vendor catalog import.
+
+```
+    ┌─────────────────┐         ┌─────────────────┐
+    │  Manufacturer   │  ────►  │  Your Company   │
+    │  DB (peer)      │ export  │  DB (target)    │
+    └─────────────────┘         └─────────────────┘
+```
+
+**Identity behaviour:**
+
+| Field | During transfer | Rationale |
+|-------|-----------------|-----------|
+| `id` | **Always new** in target | Target assigns its own PK |
+| `ida` | **Always new** in target | Target generates its own born-on identity |
+| `uuid` | Preserved as cross-dataset link | Permanent reference back to source record |
+
+**Key differences from hub & spoke:**
+- No merge — records are copied/imported as new entities
+- Source `id` and `ida` are **not** authoritative in the target
+- The uuid becomes a permanent cross-dataset reference (e.g. "item X in our DB was originally item Y from manufacturer Z")
+- No FK cascade issues because all FKs use target-local ids
+
+**Tooling:** Future `sync_model --mode peer-transfer` or dedicated import command
+
+### Identity Rules by Scenario
+
+| Field | Hub & Spoke (merge) | Peer Transfer (import) | Write-Through (online) |
+|-------|--------------------|-----------------------|----------------------|
+| `id` | Source overwrites target | New in target | Remote overwrites local |
+| `ida` | Source overwrites target | New in target | Remote overwrites local |
+| `uuid` | **Immutable** (matching key) | **Preserved** (cross-dataset link) | **Immutable** |
+| Matching by | uuid | uuid | uuid → PK fallback |
+
+**Summary:** uuid is the **only** field that is never overwritten in any scenario. Both `id` and `ida` are dataset-scoped values that can change during merge or be freshly generated during transfer.
+
+### Id Block-Allocation (Future)
+
+> **Status:** Design phase — not yet implemented.
+
+To minimize PK collisions during hub-and-spoke disconnected operation, each satellite can pre-allocate a block of ids from the primary:
+
+```
+Primary reserves ranges:
+  Satellite A: ids 10,000 – 19,999
+  Satellite B: ids 20,000 – 29,999
+  Primary:     ids 1 – 9,999 and 30,000+
+```
+
+This approach (used in WC2/4D) eliminates most merge conflicts:
+- Each satellite auto-increments within its allocated range
+- On merge, ids don't collide → no FK cascade problems
+- When a satellite exhausts its range, it requests a new block
+
+**Components needed:** allocation endpoint on primary, local sequence seed per satellite, range exhaustion + renewal handling.
+
+---
+
+## Pre-Flight Migration Check
+
+Before any sync, `sync_model` runs an automatic migration parity check to detect schema drift between databases. This prevents data corruption from mismatched schemas.
+
+### Usage
+
+```bash
+# Stand-alone migration check (no sync)
+python manage.py sync_model --check-migrations
+
+# Include column-level drift detection
+python manage.py sync_model --check-migrations --check-columns
+
+# Check for a specific model only
+python manage.py sync_model contact --check-migrations
+
+# Skip the pre-flight check (expert mode)
+python manage.py sync_model contact --direction to-local --skip-migration-check
+```
+
+### Check Levels
+
+| Level | What it checks | Default |
+|---|---|---|
+| **Migrations** | `django_migrations` table parity | Always |
+| **Tables** | Tables present in one DB but not the other | Always |
+| **Columns** | Column name/type differences per table | Opt-in (`--check-columns`) |
+
+### Report Output
+
+The checker produces a structured report with:
+- **Errors** — migration or table mismatches that will cause sync failures
+- **Warnings** — column-level differences (opt-in)
+- **Remediation steps** — numbered actionable fix instructions
+
+If mismatches are detected during a sync operation, the user is prompted to continue or abort (respects `--no-confirm`).
+
+**Implementation:** `common/migration_check.py` — `check_migration_parity()`, `check_migration_parity_for_model()`, `format_remediation()`
+
+---
+
+## Local-Sync Bundle Strategy (§25.1)
+
+When `DB_MODE=local-sync`, the `sync_record_to_remote` Celery task pushes records using a **bundle strategy** that preserves FK relationships in a single ordered batch — avoiding multiple slow remote round trips.
+
+### How Bundling Works
+
+```
+  Local DB (fast reads)                    Remote DB
+  ──────────────────────                   ─────────
+  1. COLLECT — walk FK tree   ────►  (no remote queries)
+     from saved record, build
+     ordered dependency graph
+
+  2. ORDER — topological sort
+     leaf deps first, main record
+     last, child lines after
+
+  3. PUSH — iterate sorted bundle,   ────►  INSERT or UPDATE
+     push each record to remote,             each record,
+     building uuid→remote_pk map             FK values resolved
+     as we go                                via uuid_map
+
+  4. MARK — stamp local record        (local DB write)
+     metadata.history.synced.dt
+```
+
+**Example bundle for an Order save:**
+```
+[OrgBase#87, OrgBase#69, Contact#40, Order#12, OrderLine#15, OrderLine#16]
+```
+
+> Leaf dependencies (orgs) appear before dependents (contacts) before the main record (order) before child lines — so FK targets exist on remote before records that reference them.
+
+### FK Dependency Collection
+
+`_collect_fk_deps()` walks the record's FK fields recursively:
+- Adds FK targets to the bundle **before** the record that references them
+- Depth-limited to `MAX_FK_DEPTH = 3` (prevents cycles)
+- Cycle-safe via `OrderedDict` key check (`ModelName:pk`)
+- All reads are against the local database (fast, no remote queries)
+
+For transaction headers, child lines are also collected with their own FK deps (e.g. `item_fk` on each line).
+
+### FK Resolution via `uuid_map`
+
+When pushing a record that has FK fields, the task must translate local FK values to remote PKs. Resolution order (fastest first):
+
+| Priority | Source | Cost | Description |
+|---|---|---|---|
+| 1 | `uuid_map` | Free | Populated by earlier records in the same bundle |
+| 2 | Remote uuid query | 1 query | Falls back when FK target was synced in a prior task |
+| 3 | Raw value | Free | When related record has no uuid — assumes same PK space |
+
+### Celery Retry Configuration
+
+| Setting | Value | Purpose |
+|---|---|---|
+| `autoretry_for` | `(Exception,)` | Retry on any failure |
+| `retry_backoff` | `True` | Exponential: 1s, 2s, 4s, 8s, … |
+| `retry_backoff_max` | `300` (5 min) | Cap backoff duration |
+| `max_retries` | `10` | Give up after 10 attempts |
+| `retry_jitter` | `True` | Randomize backoff to prevent thundering herd |
+| `acks_late` | `True` | Acknowledge only after success (crash-safe) |
+| `reject_on_worker_lost` | `True` | Re-queue if worker dies mid-task |
+| `countdown` | `3` (on dispatch) | 3-second delay to let DB transaction commit |
+
+### Signal Suppression
+
+During remote push, each record has `_sync_in_progress = True` set before save. This flag suppresses `post_save` signals on the remote database — preventing duplicate side-effects (pending records, event logging, etc.).
+
+### Worker Health Integration
+
+The sync task calls `mark_worker_alive()` from `apps.products.dispatch_pending` on entry. This lets the pending worker health monitor detect that Celery is operational, even if no pending-specific tasks are running.
+
+### Response Enrichment
+
+Both save views add sync metadata to successful responses when local-sync is active:
+
+```json
+{
+  "status": "success",
+  "data": { ... },
+  "sync_task_id": "abc-123-def",
+  "sync_status": "queued"
+}
+```
+
+The `sync_task_id` can be used by the frontend to poll task status if needed.
 
 ---
 
@@ -740,9 +1045,12 @@ DATA_SET_NAME=Development Server
 | File | Purpose |
 |------|---------|
 | `apps/core/management/commands/sync_model.py` | Django ORM sync command (primary sync tool) |
-| `common/write_through.py` | Write-through proxy module |
+| `common/write_through.py` | Write-through proxy module |\n| `common/sync_tasks.py` | Celery async sync for local-sync mode |
+| `common/ida.py` | IDA prefix utilities — born-on identity for cross-database sync |
+| `common/migration_check.py` | Pre-flight migration parity checker |
 | `tools/sync_remote_to_local.py` | Raw psycopg2: remote → local full copy |
 | `tools/sync_local_to_remote.py` | Raw psycopg2: local → remote full copy |
+| `tools/fix_ida_values.py` | Bulk-fix ida values to `{IDA_PREFIX}-{id}` format |
 | `tools/switch-dataset.sh` | DB mode switcher shell script |
 
 ### Export / Import / Restore
@@ -780,6 +1088,14 @@ DATA_SET_NAME=Development Server
 | `apps/core/views/dev_tools.py` | API endpoints for switching |
 | `runserver.sh` | Server loop with remote-default enforcement |
 
+### Local-Sync (Async Remote Push)
+
+| File | Purpose |
+|------|---------|
+| `common/sync_tasks.py` | Celery task: `sync_record_to_remote()` — universal bundle push |
+| `common/sync_tasks.py` | `dispatch_sync_to_remote()` — view dispatch helper |
+| `common/sync_tasks.py` | `_collect_fk_deps()`, `_push_one_to_remote()`, `_resolve_fk_via_map()` |
+
 ### Sync App (External Integrations)
 
 | File | Purpose |
@@ -816,7 +1132,7 @@ DATA_SET_NAME=Development Server
 # ── Switch modes ──
 ./tools/switch-dataset.sh remote         # shared server (default)
 ./tools/switch-dataset.sh local          # isolated debugging
-./tools/switch-dataset.sh write-through  # fast reads + authoritative writes
+./tools/switch-dataset.sh write-through  # fast reads + authoritative writes\n./tools/switch-dataset.sh local-sync     # fast saves + async push to remote
 
 # ── First-time local setup ──
 createdb -U williamjames commerce_expert
@@ -858,5 +1174,14 @@ psql -h 76.13.185.210 -U postgres -d commerce_expert -f tools/remote_audit.sql
 ```
 
 ---
+
+---
+
+## Changelog
+
+| Date | Change |
+|------|--------|
+| 2026-03-03 | Consolidated 6 prior docs into this reference |
+| 2026-03-06 | Updated local-sync scope: now covers all saves (generic + transaction), not just transactions. Renamed `sync_transaction_to_remote` → `sync_record_to_remote` (universal). Added §25.1 Bundle Strategy section with FK collection, uuid_map resolution, Celery retry config, signal suppression, response enrichment. Updated Save View Wiring table with local-sync columns. Added Local-Sync file reference section. |
 
 *This document consolidates the former: database-sync-strategy.md, sync-model.md, write-through.md, database-switching.md, data-set-identification.md, and docs-sync.md (all removed 2026-03-03).*
