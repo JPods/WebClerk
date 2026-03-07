@@ -151,7 +151,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   const buttonBase =
     "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
   const primaryButton = `${buttonBase} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed`;
-  const secondaryButton = `${buttonBase} bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700`;
+  const secondaryButton = `${buttonBase} bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800`;
   const dangerButton = `${buttonBase} bg-red-600 text-white hover:bg-red-700 focus:ring-red-500`;
 
   return (

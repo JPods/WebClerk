@@ -1,12 +1,12 @@
 /**
- * MetadataPanel - Display and edit entity .metadata object
+ * HistoryPanel - Display and edit entity .metadata object
  *
  * Role-based access:
  * - View: Admin only (default)
  * - Edit: Admin only (default)
  *
  * @example
- * <MetadataPanel
+ * <HistoryPanel
  *   entityType="contact"
  *   entityId={123}
  *   data={contact.metadata}
@@ -32,7 +32,7 @@ import { withDevIdentifier } from "@/components/common/DevIdentifier";
 // Types
 // ---------------------------------------------------------------------------
 
-interface MetadataPanelProps
+interface HistoryPanelProps
   extends Omit<BasePanelProps<EntityMetadata>, "data"> {
   /** Metadata object */
   data?: EntityMetadata;
@@ -350,10 +350,10 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// Main MetadataPanel Component
+// Main HistoryPanel Component
 // ---------------------------------------------------------------------------
 
-const MetadataPanel: React.FC<MetadataPanelProps> = ({
+const HistoryPanel: React.FC<HistoryPanelProps> = ({
   entityType: _entityType,
   entityId: _entityId,
   data = {},
@@ -363,7 +363,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
   editRoles,
   className = "",
   compact = false,
-  title = "Metadata",
+  title = "History",
   defaultCollapsed = false,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -371,7 +371,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
 
   // Check permissions (admin only by default)
   const { canView, canEdit: permCanEdit } = usePermissions({
-    panelType: "metadata",
+    panelType: "history",
     viewRoles,
     editRoles,
     forceReadOnly: readOnly,
@@ -402,7 +402,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
     }
   };
 
-  const entries = Object.entries(data || {});
+  const entries = Object.entries(data?.history || {});
 
   return (
     <div
@@ -480,4 +480,4 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(MetadataPanel, "MetadataPanel", "teal");
+export default withDevIdentifier(HistoryPanel, "HistoryPanel", "teal");

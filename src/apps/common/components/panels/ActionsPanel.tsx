@@ -68,7 +68,7 @@ import type {
   ActionStatus,
   ActionKind,
 } from "./types";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -457,6 +457,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
                 onClick={() => onStatusChange("completed")}
                 className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
                 title="Mark complete"
+                type="button"
               >
                 <FaCheck size={12} />
               </button>
@@ -466,6 +467,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
                 onClick={onEdit}
                 className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                 title="Edit"
+                type="button"
               >
                 <FaEdit size={12} />
               </button>
@@ -475,6 +477,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
                 onClick={onDelete}
                 className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                 title="Delete"
+                type="button"
               >
                 <FaTrash size={12} />
               </button>
@@ -638,6 +641,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                         onClick={() => onEdit(action)}
                         className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                         title="Edit"
+                        type="button"
                       >
                         <FaEdit size={10} />
                       </button>
@@ -647,6 +651,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                         onClick={() => onDelete(action)}
                         className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                         title="Delete"
+                        type="button"
                       >
                         <FaTrash size={10} />
                       </button>
@@ -788,11 +793,6 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
-      {/* Backdrop */}
-      <div
-        className="pointer-events-auto absolute inset-0 bg-black/30"
-        onClick={onClose}
-      />
       {/* Right Panel */}
       <div className="pointer-events-auto relative z-10 ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
         {/* Header */}
@@ -1629,6 +1629,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 <button
                   onClick={handleAdd}
                   className="mt-2 text-emerald-600 hover:underline text-xs"
+                  type="button"
                 >
                   + Add first action
                 </button>
@@ -1659,6 +1660,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                   <button
                     onClick={handleAdd}
                     className="mt-3 flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    type="button"
                   >
                     <FaPlus size={10} />
                     Add Action
@@ -1684,6 +1686,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                   <button
                     onClick={handleAdd}
                     className="mt-2 flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    type="button"
                   >
                     <FaPlus size={10} />
                     Add Action
@@ -1708,4 +1711,4 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ActionsPanel, 'ActionsPanel', 'teal');
+export default withDevIdentifier(ActionsPanel, "ActionsPanel", "teal");

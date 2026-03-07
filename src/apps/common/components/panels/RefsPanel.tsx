@@ -254,7 +254,7 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   className = "",
   compact = false,
   title = "References",
-  defaultCollapsed = true,
+  defaultCollapsed = false,
   navigable = true,
   onNavigate,
 }) => {

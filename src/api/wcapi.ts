@@ -153,6 +153,104 @@ export async function getRecords(model_name: string, params?: any) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Cached option getters for dropdowns (contact, project)
+// These are expensive to fetch and rarely change within a session
+// ---------------------------------------------------------------------------
+
+export interface OptionRecord {
+  id: string;
+  label?: string;
+  name?: string;
+  intent?: string;
+}
+
+type OptionCacheEntry = {
+  data: OptionRecord[];
+  timestamp: number;
+};
+
+const optionCache = new Map<string, OptionCacheEntry>();
+const optionInFlight = new Map<string, Promise<OptionRecord[]>>();
+const OPTION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedOptions(
+  modelName: string,
+  params: Record<string, any>,
+  mapFn: (record: any) => OptionRecord,
+): Promise<OptionRecord[]> {
+  const cacheKey = `${modelName}:${JSON.stringify(params)}`;
+
+  // Check cache validity
+  const cached = optionCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < OPTION_CACHE_TTL) {
+    return cached.data;
+  }
+
+  // Return in-flight promise if exists
+  if (optionInFlight.has(cacheKey)) {
+    return optionInFlight.get(cacheKey)!;
+  }
+
+  // Fetch fresh data
+  const fetchPromise = (async () => {
+    try {
+      const response: any = await getRecords(modelName, params);
+      const records: any[] =
+        response?.results || response?.data || response?.items || [];
+      const options = records
+        .filter((r: any) => r.id != null)
+        .map(mapFn)
+        .sort((a, b) =>
+          (a.label || a.name || "").localeCompare(b.label || b.name || ""),
+        );
+      optionCache.set(cacheKey, { data: options, timestamp: Date.now() });
+      return options;
+    } finally {
+      optionInFlight.delete(cacheKey);
+    }
+  })();
+
+  optionInFlight.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+export async function getContactOptions(): Promise<OptionRecord[]> {
+  return getCachedOptions(
+    "contact",
+    { is_active: true, limit: 500 },
+    (r: any) => ({
+      id: String(r.id),
+      label: r.attention || r.name || `Contact #${r.id}`,
+    }),
+  );
+}
+
+export async function getProjectOptions(): Promise<OptionRecord[]> {
+  return getCachedOptions(
+    "project",
+    { is_active: true, limit: 500 },
+    (r: any) => ({
+      id: String(r.id),
+      name: r.name || undefined,
+      intent: r.intent || undefined,
+    }),
+  );
+}
+
+/** Clear cache for specific model or all options */
+export function clearOptionCache(modelName?: string): void {
+  if (modelName) {
+    for (const key of optionCache.keys()) {
+      if (key.startsWith(`${modelName}:`)) {
+        optionCache.delete(key);
+      }
+    }
+  } else {
+    optionCache.clear();
+  }
+}
+
 export async function getRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   try {
@@ -413,26 +511,34 @@ export interface DetailFieldSettingRecord {
   };
 }
 
+// Module-level cache for detail field settings to prevent duplicate API calls
+const detailFieldSettingCache = new Map<
+  string,
+  DetailFieldSettingRecord | null
+>();
+const detailFieldSettingInFlight = new Map<
+  string,
+  Promise<DetailFieldSettingRecord | null>
+>();
+
 export async function getDetailFieldSetting(
   model_name: string,
 ): Promise<DetailFieldSettingRecord | null> {
-  try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      "/wcapi/get/",
-      {
-        params: {
-          model_name: "setting",
-          model_name_filter: model_name,
-          purpose: "detail_field_access",
-        },
-      },
-    );
-    const results = res.data.data.results || [];
-    return results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        "/api/wcapi/get/",
+  // Return cached result if available
+  if (detailFieldSettingCache.has(model_name)) {
+    return detailFieldSettingCache.get(model_name)!;
+  }
+
+  // Return existing in-flight promise if one exists
+  if (detailFieldSettingInFlight.has(model_name)) {
+    return detailFieldSettingInFlight.get(model_name)!;
+  }
+
+  // Create in-flight promise
+  const fetchPromise = (async () => {
+    try {
+      const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        "/wcapi/get/",
         {
           params: {
             model_name: "setting",
@@ -441,12 +547,45 @@ export async function getDetailFieldSetting(
           },
         },
       );
-      const results = res2.data.data.results || [];
-      return results.length > 0
-        ? (results[0] as DetailFieldSettingRecord)
-        : null;
+      const results = res.data.data.results || [];
+      const result =
+        results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
+      detailFieldSettingCache.set(model_name, result);
+      return result;
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+          "/api/wcapi/get/",
+          {
+            params: {
+              model_name: "setting",
+              model_name_filter: model_name,
+              purpose: "detail_field_access",
+            },
+          },
+        );
+        const results = res2.data.data.results || [];
+        const result =
+          results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
+        detailFieldSettingCache.set(model_name, result);
+        return result;
+      }
+      throw err;
+    } finally {
+      detailFieldSettingInFlight.delete(model_name);
     }
-    throw err;
+  })();
+
+  detailFieldSettingInFlight.set(model_name, fetchPromise);
+  return fetchPromise;
+}
+
+/** Clear the detail field setting cache (call after saving settings) */
+export function clearDetailFieldSettingCache(model_name?: string): void {
+  if (model_name) {
+    detailFieldSettingCache.delete(model_name);
+  } else {
+    detailFieldSettingCache.clear();
   }
 }
 
@@ -458,6 +597,8 @@ export async function saveDetailFieldSetting(
       ...setting,
       model_name: "setting",
     });
+    // Clear cache for this model so next fetch gets fresh data
+    clearDetailFieldSettingCache(setting.model_name);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
@@ -465,6 +606,7 @@ export async function saveDetailFieldSetting(
         ...setting,
         model_name: "setting",
       });
+      clearDetailFieldSettingCache(setting.model_name);
       return res2.data.data;
     }
     throw err;
@@ -521,13 +663,22 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
  * @param action  - The action name (e.g. "generate_kanban_projects")
  * @param params  - Action-specific parameters
  */
-export async function manageAction(action: string, params: Record<string, any> = {}) {
+export async function manageAction(
+  action: string,
+  params: Record<string, any> = {},
+) {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/manage/", { action, params });
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/manage/", {
+      action,
+      params,
+    });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/manage/", { action, params });
+      const res2 = await apiClient.post<ApiEnvelope<any>>(
+        "/api/wcapi/manage/",
+        { action, params },
+      );
       return res2.data.data;
     }
     throw err;
@@ -572,7 +723,7 @@ export async function uploadDocument(
   modelName?: string,
   parentId?: number,
   purpose: string = "attachment",
-  description?: string
+  description?: string,
 ): Promise<DocumentUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
