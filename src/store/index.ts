@@ -1,12 +1,14 @@
 // src/store/index.ts
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
+import configReducer from "./slices/configSlice";
 import loadingReducer from "./slices/loadingSlice";
 import toastReducer from "./slices/toastSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    config: configReducer,
     loading: loadingReducer,
     toast: toastReducer,
   },
