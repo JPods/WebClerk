@@ -242,7 +242,15 @@ class WCAPITransactionSaveView(APIView):
                         result['record'] = record_dict
                 except Exception as fetch_err:
                     logger.warning("Failed to re-fetch saved record %s: %s", saved_id, fetch_err)
-            
+
+            # ── Local-sync: queue async push to remote DB ────────────
+            if saved_id is not None:
+                from common.sync_tasks import dispatch_sync_to_remote
+                sync_task_id = dispatch_sync_to_remote(model_key.lower(), saved_id)  # record_id
+                if sync_task_id:
+                    result['sync_task_id'] = sync_task_id
+                    result['sync_status'] = 'queued'
+
             return Response(result, status=status.HTTP_200_OK)
             
         except CalculationMismatchError as e:

@@ -1145,6 +1145,17 @@ class SaveWcapiView(APIView):
             payload['messages'] = messages
             console_logger.debug(f"[SAVE_VIEW] Response will include {len(messages)} messages")
         
+        # ── Local-sync: queue async push to remote DB ────────────
+        if obj_id is not None:
+            try:
+                from common.sync_tasks import dispatch_sync_to_remote
+                sync_task_id = dispatch_sync_to_remote(model_key.lower(), obj_id)
+                if sync_task_id:
+                    payload['sync_task_id'] = sync_task_id
+                    payload['sync_status'] = 'queued'
+            except Exception:
+                pass  # never block the response
+
         console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
         return api_response(data=payload)
 

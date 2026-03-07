@@ -152,16 +152,30 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
             '_wt_remote': _remote_db_cfg,
         }
         WRITE_THROUGH_ENABLED = True
+        LOCAL_SYNC_ENABLED = False
         WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
         WRITE_THROUGH_TIMEOUT = int(config('WRITE_THROUGH_TIMEOUT', default='30'))
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n')
+    elif _db_mode == 'local-sync':
+        # Local-sync: saves to local (fast), Celery pushes to remote async.
+        # 'default' = local (all reads & writes), '_wt_remote' = remote (async target)
+        DATABASES = {
+            'default': _local_db_cfg,
+            '_wt_remote': _remote_db_cfg,
+        }
+        WRITE_THROUGH_ENABLED = False
+        LOCAL_SYNC_ENABLED = True
+        WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'[webClerk3] Database: LOCAL-SYNC  save=LOCAL@{_local_db_cfg["HOST"]}  async→REMOTE@{_remote_db_cfg["HOST"]}\n')
     elif _db_mode == 'local':
         # Local database for debugging
         DATABASES = {
             'default': _local_db_cfg,
         }
         WRITE_THROUGH_ENABLED = False
+        LOCAL_SYNC_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
     else:
@@ -170,6 +184,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
             'default': _remote_db_cfg,
         }
         WRITE_THROUGH_ENABLED = False
+        LOCAL_SYNC_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
 else:
@@ -185,6 +200,15 @@ else:
 # Warn if running development server with in-memory DB (data will vanish per process)
 if DATABASES['default']['ENGINE'].endswith('sqlite3') and DATABASES['default']['NAME'] == ':memory:' and 'runserver' in ' '.join(sys.argv):
     print('[WARNING] runserver using in-memory SQLite (:memory:). Data will not persist. Set USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 for Postgres.')
+
+
+# ── Identity: DATA_SET_ID & IDA_PREFIX ──────────────────────────────
+# DATA_SET_ID identifies this environment (LOCAL, DEV, STAGING, PRODUCTION).
+# IDA_PREFIX is the born-on prefix stamped into every record's ida field.
+# See common/ida.py for the full identity model (id / ida / uuid).
+DATA_SET_ID = config('DATA_SET_ID', default='UNKNOWN')
+IDA_PREFIX = config('IDA_PREFIX', default='')  # empty → auto-derived from DATA_SET_ID in common/ida.py
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
