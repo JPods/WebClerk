@@ -12,7 +12,13 @@ import {
   fetchVendors,
   deleteVendor,
 } from "../services/vendorApi";
-import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
+import {
+  getRecord,
+  getRecords,
+  logRefsMismatch,
+  getContactOptions,
+  getProjectOptions,
+} from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -64,7 +70,7 @@ import {
   ColumnSelector,
 } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
@@ -359,44 +365,15 @@ function VendorDetail({
 
   // Load assignee options (contacts)
   useEffect(() => {
-    getRecords("contact", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setContactOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              label: r.attention || r.name || `Contact #${r.id}`,
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label)),
-        );
-      })
+    getContactOptions()
+      .then((options) => setContactOptions(options as any))
       .catch(() => {});
   }, []);
 
   // Load project options
   useEffect(() => {
-    getRecords("project", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setProjectOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              name: r.name || undefined,
-              intent: r.intent || undefined,
-            }))
-            .sort((a, b) =>
-              (a.name || a.intent || "").localeCompare(
-                b.name || b.intent || "",
-              ),
-            ),
-        );
-      })
+    getProjectOptions()
+      .then((options) => setProjectOptions(options as any))
       .catch(() => {});
   }, []);
 
@@ -1675,4 +1652,4 @@ function VendorDetail({
   );
 }
 
-export default withDevIdentifier(VendorDetail, 'VendorDetail');
+export default withDevIdentifier(VendorDetail, "VendorDetail");

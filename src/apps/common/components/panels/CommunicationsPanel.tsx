@@ -131,6 +131,7 @@ const EmailItem: React.FC<EmailItemProps> = ({
               onClick={onSetPrimary}
               className="p-1 text-slate-400 hover:text-amber-500"
               title="Set primary"
+              type="button"
             >
               <FaRegStar size={10} />
             </button>
@@ -140,6 +141,7 @@ const EmailItem: React.FC<EmailItemProps> = ({
               onClick={onEdit}
               className="p-1 text-slate-400 hover:text-blue-500"
               title="Edit"
+              type="button"
             >
               <FaEdit size={10} />
             </button>
@@ -149,6 +151,7 @@ const EmailItem: React.FC<EmailItemProps> = ({
               onClick={onDelete}
               className="p-1 text-slate-400 hover:text-red-500"
               title="Delete"
+              type="button"
             >
               <FaTrash size={10} />
             </button>
@@ -205,6 +208,7 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
               onClick={onSetPrimary}
               className="p-1 text-slate-400 hover:text-amber-500"
               title="Set primary"
+              type="button"
             >
               <FaRegStar size={10} />
             </button>
@@ -214,6 +218,7 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
               onClick={onEdit}
               className="p-1 text-slate-400 hover:text-blue-500"
               title="Edit"
+              type="button"
             >
               <FaEdit size={10} />
             </button>
@@ -223,6 +228,7 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
               onClick={onDelete}
               className="p-1 text-slate-400 hover:text-red-500"
               title="Delete"
+              type="button"
             >
               <FaTrash size={10} />
             </button>
@@ -312,6 +318,7 @@ const AddressItem: React.FC<AddressItemProps> = ({
                 onClick={onSetPrimary}
                 className="p-1 text-slate-400 hover:text-amber-500"
                 title="Set primary"
+                type="button"
               >
                 <FaRegStar size={10} />
               </button>
@@ -321,6 +328,7 @@ const AddressItem: React.FC<AddressItemProps> = ({
                 onClick={onEdit}
                 className="p-1 text-slate-400 hover:text-blue-500"
                 title="Edit"
+                type="button"
               >
                 <FaEdit size={10} />
               </button>
@@ -330,6 +338,7 @@ const AddressItem: React.FC<AddressItemProps> = ({
                 onClick={onDelete}
                 className="p-1 text-slate-400 hover:text-red-500"
                 title="Delete"
+                type="button"
               >
                 <FaTrash size={10} />
               </button>
@@ -390,6 +399,7 @@ const DomainItem: React.FC<DomainItemProps> = ({
               onClick={onSetPrimary}
               className="p-1 text-slate-400 hover:text-amber-500"
               title="Set primary"
+              type="button"
             >
               <FaRegStar size={10} />
             </button>
@@ -399,6 +409,7 @@ const DomainItem: React.FC<DomainItemProps> = ({
               onClick={onEdit}
               className="p-1 text-slate-400 hover:text-blue-500"
               title="Edit"
+              type="button"
             >
               <FaEdit size={10} />
             </button>
@@ -408,6 +419,7 @@ const DomainItem: React.FC<DomainItemProps> = ({
               onClick={onDelete}
               className="p-1 text-slate-400 hover:text-red-500"
               title="Delete"
+              type="button"
             >
               <FaTrash size={10} />
             </button>
@@ -421,6 +433,17 @@ const DomainItem: React.FC<DomainItemProps> = ({
 // ---------------------------------------------------------------------------
 // Add/Edit Modals
 // ---------------------------------------------------------------------------
+
+/**
+ * Format phone number as 123-456-7890
+ * Strips non-digits, then inserts dashes at positions 3 and 6
+ */
+const formatPhoneNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
 
 interface AddEditModalProps {
   isOpen: boolean;
@@ -578,8 +601,12 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
                   type="tel"
                   value={(formData.number as string) || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, number: e.target.value })
+                    setFormData({
+                      ...formData,
+                      number: formatPhoneNumber(e.target.value),
+                    })
                   }
+                  placeholder="123-456-7890"
                   className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
                   required
                 />
@@ -1451,6 +1478,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
                       aria-label="Add email"
                       title="Add email"
+                      type="button"
                     >
                       <FaPlus size={10} />
                     </button>
@@ -1493,6 +1521,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
                       aria-label="Add phone"
                       title="Add phone"
+                      type="button"
                     >
                       <FaPlus size={10} />
                     </button>
@@ -1538,6 +1567,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
                       aria-label="Add address"
                       title="Add address"
+                      type="button"
                     >
                       <FaPlus size={10} />
                     </button>
@@ -1583,6 +1613,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                       className="p-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
                       aria-label="Add domain"
                       title="Add domain"
+                      type="button"
                     >
                       <FaPlus size={10} />
                     </button>

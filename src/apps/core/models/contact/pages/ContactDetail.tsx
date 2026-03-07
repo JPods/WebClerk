@@ -37,7 +37,14 @@ import { DetailFeatureBadge } from "@/components/common/DetailFeatureBadge";
 import RippleLoader from "@/components/common/RippleLoader";
 
 // API
-import { deleteRecord, getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import {
+  deleteRecord,
+  getRecord,
+  getRecords,
+  saveRecord,
+  getContactOptions,
+  getProjectOptions,
+} from "@/api/wcapi";
 import { createContact, updateContact } from "../services/contactApi";
 import {
   contactSchema,
@@ -112,14 +119,12 @@ import {
   CommLinkPanel,
   CommunicationsPanel,
   DocumentsPanel,
-  EmailGatePanel,
   MetadataPanel,
   OrgLinkPanel,
   PrefsPanel,
   RawDataPanel,
   RefsPanel,
 } from "@/apps/common/components/panels";
-import type { EmailGateResult } from "@/apps/common/components/panels";
 import {
   CommunicationAddEditModal,
   type CommunicationModalType,
@@ -135,6 +140,7 @@ import type {
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import DropDown from "@/components/form/input/DropDown";
 import { useColumnCount, ColumnSelector } from "@/components/common/DetailTabs";
+import HistoryPanel from "@/apps/common/components/panels/HistoryPanel";
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
 // ---------------------------------------------------------------------------
@@ -634,26 +640,6 @@ function ContactDetail({
   useEffect(() => {
     setEmailGatePassed(!needsGate);
   }, [needsGate]);
-
-  const handleEmailGateComplete = useCallback((result: EmailGateResult) => {
-    if (result.action === "open" && result.existingContact) {
-      // Switch to editing the existing contact
-      setFetchedData(normalizeContactFkFields(result.existingContact));
-      setEffectiveMode("edit");
-      setEmailGatePassed(true);
-      return;
-    }
-    // Proceed with new contact — pre-fill email if provided
-    if (result.email) {
-      // setValue may not be initialized yet; schedule via ref
-      setTimeout(() => {
-        formSetValueRef.current?.("email" as any, result.email, {
-          shouldDirty: true,
-        });
-      }, 0);
-    }
-    setEmailGatePassed(true);
-  }, []);
 
   // ---------------------------------------------------------------------------
   // Data Loading
@@ -1626,43 +1612,14 @@ function ContactDetail({
   >([]);
 
   useEffect(() => {
-    getRecords("contact", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setContactOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              label: r.attention || r.name || `Contact #${r.id}`,
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label)),
-        );
-      })
+    getContactOptions()
+      .then((options) => setContactOptions(options as any))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    getRecords("project", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setProjectOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              name: r.name || undefined,
-              intent: r.intent || undefined,
-            }))
-            .sort((a, b) =>
-              (a.name || a.intent || "").localeCompare(
-                b.name || b.intent || "",
-              ),
-            ),
-        );
-      })
+    getProjectOptions()
+      .then((options) => setProjectOptions(options as any))
       .catch(() => {});
   }, []);
 
@@ -2138,7 +2095,8 @@ function ContactDetail({
             }),
           );
 
-          if (onSaved) onSaved();
+          // NOTE: onSaved() is intentionally NOT called here.
+          // It should only be invoked by "Save & Close" flow, not regular "Save".
         }
       } catch (error: unknown) {
         // Extract the backend error message from Axios response if available
@@ -2386,6 +2344,22 @@ function ContactDetail({
     setValue("role", value as "user" | "admin" | "manager" | "staff" | "guest");
   };
 
+  /**
+   * Format phone number as 123-456-7890
+   * Strips non-digits, then inserts dashes at positions 3 and 6
+   */
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "");
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    // Format as 123-456-7890
+    if (limited.length <= 3) return limited;
+    if (limited.length <= 6)
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+  };
+
   if (isLoading) return <RippleLoader />;
 
   return (
@@ -2464,6 +2438,7 @@ function ContactDetail({
             onSave={handleSubmit(onSubmit, onValidationError)}
             onSaveAndClose={handleSubmit(async (fd) => {
               await onSubmit(fd);
+              if (onSaved) onSaved();
               handleCancel();
             }, onValidationError)}
             onCancel={handleCancel}
@@ -2596,12 +2571,22 @@ function ContactDetail({
               )}
               {shouldRenderField("phone") && (
                 <HorizontalField label="phone" htmlFor="phone">
-                  <Input
-                    type="text"
-                    id="phone"
-                    placeholder="phone"
-                    {...register("phone")}
-                    disabled={isFieldDisabled("phone")}
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="text"
+                        id="phone"
+                        placeholder="123-456-7890"
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          field.onChange(formatted);
+                        }}
+                        disabled={isFieldDisabled("phone")}
+                      />
+                    )}
                   />
                 </HorizontalField>
               )}
@@ -2936,7 +2921,7 @@ function ContactDetail({
                   )}
 
                   {activeTab === "history" && (
-                    <MetadataPanel
+                    <HistoryPanel
                       entityType="contact"
                       entityId={data.id}
                       data={data?.metadata}

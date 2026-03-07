@@ -12,7 +12,13 @@ import {
   fetchCustomers,
   deleteCustomer,
 } from "../services/customerApi";
-import { getRecord, getRecords, logRefsMismatch } from "@/api/wcapi";
+import {
+  getRecord,
+  getRecords,
+  logRefsMismatch,
+  getContactOptions,
+  getProjectOptions,
+} from "@/api/wcapi";
 import { createContact } from "@/apps/core/models/contact/services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -392,44 +398,15 @@ function CustomerDetail({
 
   // Load assignee options (contacts)
   useEffect(() => {
-    getRecords("contact", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setContactOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              label: r.attention || r.name || `Contact #${r.id}`,
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label)),
-        );
-      })
+    getContactOptions()
+      .then((options) => setContactOptions(options as any))
       .catch(() => {});
   }, []);
 
   // Load project options
   useEffect(() => {
-    getRecords("project", { is_active: true, limit: 500 })
-      .then((response: any) => {
-        const records: any[] =
-          response?.results || response?.data || response?.items || [];
-        setProjectOptions(
-          records
-            .filter((r: any) => r.id != null)
-            .map((r: any) => ({
-              id: String(r.id),
-              name: r.name || undefined,
-              intent: r.intent || undefined,
-            }))
-            .sort((a, b) =>
-              (a.name || a.intent || "").localeCompare(
-                b.name || b.intent || "",
-              ),
-            ),
-        );
-      })
+    getProjectOptions()
+      .then((options) => setProjectOptions(options as any))
       .catch(() => {});
   }, []);
 

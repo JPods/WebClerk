@@ -100,6 +100,17 @@ const ContactList = () => {
     fetchActions();
   }, [fetchActions]);
 
+  // Listen for contact-saved events to refresh list when detail saves
+  useEffect(() => {
+    const handleContactSaved = () => {
+      fetchActions();
+    };
+    window.addEventListener("contact-saved", handleContactSaved);
+    return () => {
+      window.removeEventListener("contact-saved", handleContactSaved);
+    };
+  }, [fetchActions]);
+
   // Handle database search
   const handleDatabaseSearch = useCallback(
     async (terms: string[]) => {
