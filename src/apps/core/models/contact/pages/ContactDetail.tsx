@@ -2436,11 +2436,7 @@ function ContactDetail({
             isSaving={isSubmitting}
             isEditing
             onSave={handleSubmit(onSubmit, onValidationError)}
-            onSaveAndClose={handleSubmit(async (fd) => {
-              await onSubmit(fd);
-              if (onSaved) onSaved();
-              handleCancel();
-            }, onValidationError)}
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
