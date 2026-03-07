@@ -6,7 +6,7 @@
  */
 import React from "react";
 import { FaBuilding } from "react-icons/fa";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,10 +49,11 @@ interface BasicInformationPanelProps {
 interface RowProps {
   label: string;
   value: React.ReactNode;
+  className?: string;
 }
 
-const Row: React.FC<RowProps> = ({ label, value }) => (
-  <div className="flex items-center gap-2">
+const Row: React.FC<RowProps> = ({ label, value, className = "" }) => (
+  <div className={`flex items-center gap-2 ${className}`}>
     <dt className="w-25 shrink text-left text-sm text-slate-500 dark:text-slate-400">
       {label} :
     </dt>
@@ -93,7 +94,7 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
 
   return (
     <div
-      className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-4 ${className}`}
+      className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-2 ${className}`}
     >
       {showHeader && (
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
@@ -111,12 +112,21 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
             ) : null
           }
         />
+        <Row label="terms" value={data.terms} />
         <Row label="attention" value={data.attention} />
         <Row label="phone" value={data.phone} />
         <Row label="email" value={data.email} />
-        <Row label="address_full" value={data.address_full} />
+      </dl>
+      <dl
+        className={`grid grid-cols-1 ${gridCols} gap-x-6 gap-y-2 text-sm py-2`}
+      >
+        <Row label="address_full" value={data.address_full} className="w-100" />
+      </dl>
+      <dl
+        className={`grid grid-cols-1 ${gridCols} gap-x-6 gap-y-2 text-sm pb-2`}
+      >
         <Row label="price_level" value={data.price_level} />
-        <Row label="terms" value={data.terms} />
+
         {/* <Row label="terms_id" value={data.terms_id?.toString()} /> */}
 
         {/* <Row label="contact_id" value={data.contact_id?.toString()} /> */}
@@ -139,4 +149,8 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(BasicInformationPanel, 'BasicInformationPanel', 'teal');
+export default withDevIdentifier(
+  BasicInformationPanel,
+  "BasicInformationPanel",
+  "teal",
+);

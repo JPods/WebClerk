@@ -243,10 +243,32 @@ export const CUSTOMER_STANDARD_TABS = [
 
 export const CUSTOMER_ADDITIONAL_TABS = [
   { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
-  { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-  { id: "items", label: "Items", icon: <FaTruckLoading size={14} /> },
   { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
 ];
+
+export const FINANCE_STANDARD_TABS: string[] = ["transactions"];
+
+export const FINANCE_ADDITIONAL_TABS = [
+  {
+    id: "transactions",
+    label: "Transactions",
+    icon: <FaDollarSign size={14} />,
+  },
+];
+
+const VALID_FINANCE_TABS = ["transactions"];
+
+export const ITEMS_STANDARD_TABS: string[] = [];
+
+export const ITEMS_ADDITIONAL_TABS = [
+  {
+    id: "products",
+    label: "Products",
+    icon: <FaTruckLoading size={14} />,
+  },
+];
+
+const VALID_ITEMS_TABS = ["products"];
 
 export const buildCustomerTabBadges = (
   data: any,
@@ -299,6 +321,10 @@ function CustomerDetail({
     "actions",
     VALID_TABS,
   );
+  const { activeTab: financeActiveTab, setActiveTab: handleFinanceTabChange } =
+    useDetailTabs("customer-finance", "transactions", VALID_FINANCE_TABS);
+  const { activeTab: itemsActiveTab, setActiveTab: handleItemsTabChange } =
+    useDetailTabs("customer-items", "products", VALID_ITEMS_TABS);
   const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
     "customer",
     3,
@@ -1220,137 +1246,141 @@ function CustomerDetail({
         {mode === "view" ? (
           <BasicInformationPanel data={customerData} columns={columnCount} />
         ) : (
-          /* Editable Basic Information - Horizontal Layout */
-          <div
-            className={`grid grid-cols-1 ${
-              columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
-            } gap-x-6 gap-y-1`}
-          >
-            <HorizontalField
-              label="display_name"
-              htmlFor="display_name"
-              required
-              error={errors.display_name?.message}
+          <>
+            <div
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-1`}
             >
-              <Input
-                type="text"
-                id="display_name"
-                placeholder="display_name"
-                {...register("display_name")}
-                error={
-                  errors.display_name && errors.display_name.message
-                    ? true
-                    : false
-                }
-              />
-            </HorizontalField>
+              <HorizontalField
+                label="display_name"
+                htmlFor="display_name"
+                required
+                error={errors.display_name?.message}
+              >
+                <Input
+                  type="text"
+                  id="display_name"
+                  placeholder="display_name"
+                  {...register("display_name")}
+                  error={
+                    errors.display_name && errors.display_name.message
+                      ? true
+                      : false
+                  }
+                />
+              </HorizontalField>
 
-            <HorizontalField label="org_type" htmlFor="org_type">
-              <Controller
-                name="org_type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={ORG_TYPE_OPTIONS}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    placeholder="org_type"
-                  />
-                )}
-              />
-            </HorizontalField>
+              <HorizontalField label="org_type" htmlFor="org_type">
+                <Controller
+                  name="org_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={ORG_TYPE_OPTIONS}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="org_type"
+                    />
+                  )}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="email" htmlFor="email">
-              <Input
-                type="email"
-                id="email"
-                placeholder="email"
-                {...register("email")}
-              />
-            </HorizontalField>
+              <HorizontalField label="email" htmlFor="email">
+                <Input
+                  type="email"
+                  id="email"
+                  placeholder="email"
+                  {...register("email")}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="attention" htmlFor="attention">
-              <Input
-                type="text"
-                id="attention"
-                placeholder="attention"
-                {...register("attention")}
-              />
-            </HorizontalField>
+              <HorizontalField label="attention" htmlFor="attention">
+                <Input
+                  type="text"
+                  id="attention"
+                  placeholder="attention"
+                  {...register("attention")}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="phone" htmlFor="phone">
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="phone"
-                {...register("phone")}
-              />
-            </HorizontalField>
+              <HorizontalField label="phone" htmlFor="phone">
+                <Input
+                  type="tel"
+                  id="phone"
+                  placeholder="phone"
+                  {...register("phone")}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="price_level" htmlFor="price_level">
-              <Controller
-                name="price_level"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={PRICE_LEVEL_OPTIONS}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    placeholder="price_level"
-                  />
-                )}
-              />
-            </HorizontalField>
+              <HorizontalField label="price_level" htmlFor="price_level">
+                <Controller
+                  name="price_level"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={PRICE_LEVEL_OPTIONS}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="price_level"
+                    />
+                  )}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="terms" htmlFor="terms">
-              <Controller
-                name="terms"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={TERMS_OPTIONS}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    placeholder="terms"
-                  />
-                )}
-              />
-            </HorizontalField>
+              <HorizontalField label="terms" htmlFor="terms">
+                <Controller
+                  name="terms"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={TERMS_OPTIONS}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="terms"
+                    />
+                  )}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="address_full" htmlFor="address_full">
-              <Input
-                type="text"
-                id="address_full"
-                placeholder="address_full"
-                {...register("address_full")}
-              />
-            </HorizontalField>
+              <HorizontalField label="status" htmlFor="status" required>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      options={STATUS_OPTIONS}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="status"
+                    />
+                  )}
+                />
+              </HorizontalField>
 
-            <HorizontalField label="status" htmlFor="status" required>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    options={STATUS_OPTIONS}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    placeholder="status"
-                  />
-                )}
-              />
-            </HorizontalField>
-
-            <HorizontalField label="version" htmlFor="version">
-              <Input
-                type="number"
-                id="version"
-                placeholder="1"
-                {...register("version", { valueAsNumber: true })}
-              />
-            </HorizontalField>
-
-            <div className="flex items-center gap-1.5 py-1">
+              <HorizontalField label="version" htmlFor="version">
+                <Input
+                  type="number"
+                  id="version"
+                  placeholder="1"
+                  {...register("version", { valueAsNumber: true })}
+                />
+              </HorizontalField>
+            </div>
+            <div
+              className={`grid grid-cols-1 ${
+                columnCount === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+              } gap-x-6 gap-y-1`}
+            >
+              <HorizontalField label="address_full" htmlFor="address_full">
+                <Input
+                  type="text"
+                  id="address_full"
+                  placeholder="address_full"
+                  {...register("address_full")}
+                  className="w-100"
+                />
+              </HorizontalField>
               <div className="w-18 shrink-0" />
               <Controller
                 name="is_active"
@@ -1365,7 +1395,7 @@ function CustomerDetail({
                 )}
               />
             </div>
-          </div>
+          </>
         )}
       </div>
       <div className="flex items-center justify-between py-2 gap-4">
@@ -1373,7 +1403,7 @@ function CustomerDetail({
       </div>
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
-        <div className="space-y-4 px-4 py-2">
+        <div className="space-y-2 px-4 py-2">
           {/* ── DetailTabs ────────────────────────────────────────── */}
           <div>
             <DetailTabs
@@ -1388,7 +1418,7 @@ function CustomerDetail({
               onColumnCountChange={handleColumnChange}
             />
             <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-4">
+              <div className="p-2">
                 {/* Standard Tabs - Comments */}
                 {activeTab === "comments" && (
                   <CommentsPanel
@@ -1605,18 +1635,52 @@ function CustomerDetail({
                     data={data}
                   />
                 )}
+              </div>
+            </div>
+          </div>
 
-                {/* ── TransactionTabs ────────────────────────────────────── */}
+          {/* ── Finance DetailTabs ────────────────────────────────────── */}
 
-                {activeTab === "financial" && (
+          <div>
+            <DetailTabs
+              entityType="customer-finance"
+              activeTab={financeActiveTab}
+              onTabChange={handleFinanceTabChange}
+              standardTabs={FINANCE_STANDARD_TABS}
+              additionalTabs={FINANCE_ADDITIONAL_TABS}
+              badges={{}}
+              showColumnSelector={false}
+              columnCount={columnCount}
+              onColumnCountChange={handleColumnChange}
+            />
+            <div className="flex-1 cus-bg-black-light rounded-md">
+              <div className="p-2">
+                {financeActiveTab === "transactions" && (
                   <TransactionTabs
                     orgType="customer"
                     orgId={customerData.id!}
                   />
                 )}
-                {/* ── ItemTabs ────────────────────────────────────── */}
+              </div>
+            </div>
+          </div>
 
-                {activeTab === "items" && (
+          {/* ── Items DetailTabs ────────────────────────────────────── */}
+          <div>
+            <DetailTabs
+              entityType="customer-items"
+              activeTab={itemsActiveTab}
+              onTabChange={handleItemsTabChange}
+              standardTabs={ITEMS_STANDARD_TABS}
+              additionalTabs={ITEMS_ADDITIONAL_TABS}
+              badges={{}}
+              showColumnSelector={false}
+              columnCount={columnCount}
+              onColumnCountChange={handleColumnChange}
+            />
+            <div className="flex-1 cus-bg-black-light rounded-md">
+              <div className="p-2">
+                {itemsActiveTab === "products" && (
                   <ItemTabs orgType="customer" orgId={customerData.id!} />
                 )}
               </div>
@@ -1627,7 +1691,7 @@ function CustomerDetail({
 
       {/* ── Scalar & JSONB cards (view mode) ───────────────────── */}
       {mode === "view" && data && (
-        <div className="space-y-4 px-4 py-2">
+        <div className="space-y-2 px-4 py-2">
           <ScalarCard
             title="Organization Details"
             fields={[

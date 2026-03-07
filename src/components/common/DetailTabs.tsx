@@ -168,7 +168,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   value,
   onChange,
 }) => (
-  <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
+  <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-0">
     <FaColumns className="text-slate-500 dark:text-slate-400" size={12} />
     <span className="text-xs text-slate-500 dark:text-slate-400">Cols:</span>
     <div className="flex rounded border border-slate-300 dark:border-slate-600 overflow-hidden">
