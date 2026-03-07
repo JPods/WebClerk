@@ -107,7 +107,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   className = "",
   compact = false,
   title = "Raw Data",
-  defaultCollapsed = true,
+  defaultCollapsed = false,
   highlightSections = ["metadata", "refs", "prefs", "comments", "financials"],
   maxHeight = "400px",
   onSave,

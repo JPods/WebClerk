@@ -209,41 +209,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
               onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
             }
           }}
-          onUpdateLine={(lineId, field, value) => {
-            if (onLinesChange) {
-              onLinesChange(
-                lines.map((l, i) => {
-                  if (lineKey(l, i) !== lineId) return l;
-                  const baseUpdate = { ...l, _dirty: true };
-                  switch (field) {
-                    case "qty":
-                      return {
-                        ...baseUpdate,
-                        quantity: { ...l.quantity, staged: Number(value) },
-                      };
-                    case "description":
-                      return {
-                        ...baseUpdate,
-                        item: { ...l.item, description: String(value) },
-                      };
-                    case "unit_price":
-                      const newPrice = Number(value);
-                      const qty = l.quantity?.staged ?? 0;
-                      return {
-                        ...baseUpdate,
-                        price: {
-                          ...l.price,
-                          unit: newPrice,
-                          extended: newPrice * qty,
-                        },
-                      };
-                    default:
-                      return { ...baseUpdate, [field]: value };
-                  }
-                }),
-              );
-            }
-          }}
+          transactionType="proposal"
           onDuplicateLine={(lineId) => {
             if (onLinesChange) {
               const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);

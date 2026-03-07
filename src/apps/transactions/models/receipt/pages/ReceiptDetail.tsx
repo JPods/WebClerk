@@ -224,8 +224,9 @@ const ReceiptLinesContent: React.FC<{
         unit_measure: unitMeasure,
       },
       quantity: {
+        active: quantity,
         staged: quantity,
-        received: quantity,
+        remaining: 0,
       },
       cost: {
         unit: unitCost,
