@@ -1,6 +1,6 @@
 # Transactions: Line Calculations, Quantity Flow & Totals Rollup
 
-> **Last updated**: 2026-03-05
+> **Last updated**: 2026-03-07
 
 ---
 
@@ -45,7 +45,7 @@ Quick reference to the source files discussed in this document:
 
 | Concern | File | Key symbols |
 |---------|------|-------------|
-| JSON defaults & extended calc | `apps/transactions/models/base_line_model.py` | `default_quantity()` :60, `BaseLineCore` :283, `ensure_json_defaults()` :327, `BaseSellLineModel` :363, `_calculate_extended_price()` :388, `BaseExecLineModel` :431 |
+| JSON defaults & extended calc | `apps/transactions/models/base_line_model.py` | `default_quantity()` :78, `normalize_quantity_map()` :130, `_is_end_of_chain()` :64, `BaseLineCore` :283, `ensure_json_defaults()` :327, `BaseSellLineModel` :363, `_calculate_extended_price()` :388, `BaseExecLineModel` :431 |
 | Totals rollup (sell-side) | `apps/transactions/services/proposal_totals.py` | `compute_proposal_sell_cost_totals()` :12 |
 | | `apps/transactions/services/order_totals.py` | `compute_order_sell_cost_totals()` :12 |
 | | `apps/transactions/services/invoice_totals.py` | `compute_invoice_sell_cost_totals()` :12 |
@@ -593,7 +593,7 @@ worker liveness detection, and inline fallback, see:
 | Line extended calc | `InvoiceLinesCalc` / `calcInvoice(True)` | `_calculate_extended_price()` at `base_line_model.py:388` |
 | Header rollup | Manual loop: `For ($inc; 1; $cnt)` summing fields | `compute_*_sell_cost_totals()` at `*_totals.py:12` |
 | Parent order recalc | `Accept_CalcStat` + manual field-by-field sum | Transfer service + `update_sell_cost_totals()` |
-| Quantity tracking | `qtyShipped`, `qtyBackLogged` (per-type fields) | `quantity.staged/transferred/remaining` via `default_quantity()` at `base_line_model.py:60` |
+| Quantity tracking | `qtyShipped`, `qtyBackLogged` (per-type fields) | `quantity.staged/active/remaining` via `default_quantity()` |
 | Quantity transfer | Direct assignment | `convert_quantity_from_source()` at `transfer_utils.py:21` |
 | Inventory | `INVT_dInvtApply`, `TallyInventory` | `PendingInventory` via post_save signal at `signals.py:218` |
 | Ledger | `Ledger_InvSave` | `apps/accounts/models/ledger.py` — terms → ledger rows |
@@ -607,3 +607,39 @@ worker liveness detection, and inline fallback, see:
 - [transaction_line_save.md](transaction_line_save.md) — Save endpoint architecture
 - [transaction_flows.md](transaction_flows.md) — Lineage, parent_model/parent_id
 - [transaction_flow_test_plan.md](transaction_flow_test_plan.md) — Test plan for all of the above
+
+---
+
+## 6. r25 Frontend — Unified Quantity & LinesCard
+
+As of 2026-03-07, the React 2025 frontend aligns with wc3's canonical
+quantity semantics across all transaction types.  Previously each detail
+page maintained its own `onUpdateLine` callback with divergent field names
+(`processing`, `ordered`, `received`, etc.).
+
+### Unified rules
+
+| r25 Component / Service | What changed |
+|-------------------------|--------------|
+| `lineItemService.ts` — `getDefaultQuantity()` | Returns `{active, staged, remaining, is_fixed, precision, is_blanket, increment}` for all types.  End-of-chain → `remaining: 0`. |
+| `lineItemService.ts` — `updateQuantity()` | Sets `active`, `staged`, `remaining` uniformly.  End-of-chain → `remaining: 0`.  Standalone → `staged = active`. |
+| `LinesCard.tsx` | Now **transaction-type-aware** via `transactionType` prop.  Sell-side (order, proposal, invoice): shows Unit Price column, extended = `price.extended`.  Exec-side (purchase, workorder, receipt): hides Unit Price, makes Unit Cost editable, extended = `cost.extended`.  Internal `applyFieldUpdate()` handles qty/description/price/cost edits — detail pages no longer pass `onUpdateLine`. |
+| `TransactionDetailBase.tsx` | `processing` key replaced with `active` in qty-change handler. |
+| Detail pages (Order, Proposal, Purchase, Workorder, Invoice) | Removed per-page `onUpdateLine` callback; replaced with `transactionType="..."` prop on `LinesCard`. |
+| `ReceiptDetail.tsx` | Removed legacy `received` key; uses `{active, staged, remaining: 0}`. Retains custom inline table (extra Warehouse/Lot columns). |
+
+### Deprecated keys (r25)
+
+These keys are no longer written anywhere in r25:
+
+`ordered`, `invoiced`, `received`, `placed`, `actioned`, `processing`
+
+wc3's `normalize_quantity_map()` will still accept them in existing data
+but they are never written back.
+
+### wc3 `default_quantity()` cleanup
+
+`default_quantity()` in `base_line_model.py` was collapsed from a per-kind
+`if/elif` chain (6 identical branches) to a single set-membership check.
+All known kinds return the same dict; `normalize_quantity_map()` handles
+end-of-chain semantics at normalisation time.
