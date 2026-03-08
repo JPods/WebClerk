@@ -430,6 +430,21 @@ Lines carry a `_dirty` flag:
 | Save transaction + lines | `POST /wcapi/transaction/save/` | `saveTransactionWithLines(modelName, payload)` | Creating/editing any transaction with lines |
 | Deactivate source doc | `POST /wcapi/save/` | `saveRecord(modelName, { id, is_active: false })` | After transfer (e.g. deactivate order after creating invoice) |
 
+### Receipt Is Different
+
+Receipt **uses `TransactionDetailBase` for UI** but has a completely separate backend save path:
+
+| Aspect | 5 Standard Types | Receipt |
+|--------|------------------|---------|
+| Header model | `TransactionBaseModel` | `BaseModel` (no `line_increment`, `totals`, or `finance`) |
+| Save endpoint | `POST /wcapi/transaction/save/` | Dedicated functions in `flow.py` |
+| Save service | `save_transaction_with_lines()` | `receive_purchase()` / `complete_workorder()` / `adjust_inventory()` |
+| Pending schema | `on_so`/`on_po`/`on_in`/`on_hand` buckets | `quantity_on_hand_delta` / `quantity_on_po_delta` |
+| Inventory layers | Not created | `InventoryLayer` created per receipt line |
+| Dirty tracking | `_dirty` flag per line | All lines always processed |
+
+**Do not call `saveTransactionWithLines("receipt", ...)`.** The backend rejects it with HTTP 400. Receipt saves are triggered through the receiving flow endpoints.
+
 ### Transfer Flow (Order → Invoice)
 
 1. R25 builds invoice header from order data, sets `parent_id` and `parent_model: "order"`

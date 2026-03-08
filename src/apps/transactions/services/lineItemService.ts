@@ -24,6 +24,13 @@ import { round, toNumber } from './calculationUtils';
 // Types
 // ============================================================================
 
+/**
+ * The 5 transaction types that go through `saveTransactionWithLines()`
+ * and `LineItemService`. Receipt is excluded because it uses a separate
+ * backend save path (flow.py: receive_purchase / complete_workorder /
+ * adjust_inventory) and doesn't participate in line-level pending or
+ * dirty-tracking via this service.
+ */
 export type TransactionType = 'order' | 'proposal' | 'invoice' | 'purchase' | 'workorder';
 
 export interface LineItemServiceConfig {

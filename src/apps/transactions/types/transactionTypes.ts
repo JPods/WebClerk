@@ -20,6 +20,8 @@ export type TransactionStatus =
   | string;
 
 // Matches TRANSACTION_PARENT_MODEL_CHOICES
+// Receipt is intentionally excluded: it extends BaseModel (not TransactionBaseModel)
+// and uses a separate save flow (flow.py), so it cannot be a parent_model source.
 export type TransactionParentType =
   | "proposal"
   | "order"

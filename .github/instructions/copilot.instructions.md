@@ -223,7 +223,13 @@ Legacy names are **banned** in all new code:
 - Components / types / interfaces: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`
 - Date/time fields from backend: `dt_` prefix (e.g. `dt_created`, `dt_modified`)
-- FK fields from backend: `{model_name}_id` format
+- FK fields from backend: `{model_name}_id` column format (e.g., `invoice_id`, `org_id`)
+
+> **Django FK naming (wc3 backend rule):** The Django Python field is named
+> **without** `_id` (e.g., `invoice = ForeignKey(...)`).
+> Django auto-appends `_id` for the DB column (`invoice_id`).
+> Naming a field `invoice_id = ForeignKey(...)` creates a `invoice_id_id` column — **this is banned**.
+> The frontend always sees `{model_name}_id` in API payloads (the column name).
 
 ---
 
@@ -429,6 +435,21 @@ Lines carry a `_dirty` flag:
 |--------|----------|-------------|------|
 | Save transaction + lines | `POST /wcapi/transaction/save/` | `saveTransactionWithLines(modelName, payload)` | Creating/editing any transaction with lines |
 | Deactivate source doc | `POST /wcapi/save/` | `saveRecord(modelName, { id, is_active: false })` | After transfer (e.g. deactivate order after creating invoice) |
+
+### Receipt Is Different
+
+Receipt **uses `TransactionDetailBase` for UI** but has a completely separate backend save path:
+
+| Aspect | 5 Standard Types | Receipt |
+|--------|------------------|---------|
+| Header model | `TransactionBaseModel` | `BaseModel` (no `line_increment`, `totals`, or `finance`) |
+| Save endpoint | `POST /wcapi/transaction/save/` | Dedicated functions in `flow.py` |
+| Save service | `save_transaction_with_lines()` | `receive_purchase()` / `complete_workorder()` / `adjust_inventory()` |
+| Pending schema | `on_so`/`on_po`/`on_in`/`on_hand` buckets | `quantity_on_hand_delta` / `quantity_on_po_delta` |
+| Inventory layers | Not created | `InventoryLayer` created per receipt line |
+| Dirty tracking | `_dirty` flag per line | All lines always processed |
+
+**Do not call `saveTransactionWithLines("receipt", ...)`.** The backend rejects it with HTTP 400. Receipt saves are triggered through the receiving flow endpoints.
 
 ### Transfer Flow (Order → Invoice)
 
@@ -869,6 +890,22 @@ When starting a coding session, establish:
 3. **Which layer?** (page component, service, type, schema, test)
 
 This helps scope changes correctly within the domain-driven folder structure.
+
+---
+
+## 23a. AI Agent Roles
+
+| Agent | Identity | Role |
+|-------|----------|------|
+| **Copilot** | GitHub Copilot (primary) | Inline code generation, edits, terminal commands, orchestration |
+| **Alice** | Subagent (research & multi-step) | Deep codebase search, complex analysis, autonomous multi-file research |
+
+Alice is invoked via the subagent tool for tasks requiring broad codebase exploration
+or multi-step research. She returns a single report. Use her when:
+- Searching for a pattern across many files
+- Auditing naming conventions, FK usage, or field consistency
+- Investigating bugs that span multiple services
+- Gathering context before a complex refactor
 
 ---
 
