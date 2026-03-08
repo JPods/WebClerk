@@ -54,7 +54,6 @@ const LinesCard: React.FC<LinesCardProps> = ({
   const transType = (transactionType ?? '').toLowerCase();
   const isExecSide = ['purchase', 'workorder', 'receipt'].includes(transType);
   const isSellSide = !isExecSide; // sell-side is default for unknown types
-  const isEndOfChain = ['invoice', 'receipt'].includes(transType);
 
   const [pendingDeleteId, setPendingDeleteId] = React.useState<number | null>(
     null,
@@ -113,13 +112,19 @@ const LinesCard: React.FC<LinesCardProps> = ({
     switch (field) {
       case "qty": {
         const newQty = Number(value);
+        // Remaining = active (universal formula; children_active tracked server-side)
+        // Standalone: staged mirrors active.  Transferred: staged unchanged.
+        const hasParent = !!(updated.refs?.source?.converted_from || updated.metadata?.parent_link);
+        const currentStaged = Number(updated.quantity?.staged ?? 0);
+        const staged = hasParent && currentStaged > 0 ? currentStaged : newQty;
+        const remaining = newQty;
         const result: any = {
           ...updated,
           quantity: {
             ...updated.quantity,
             active: newQty,
-            staged: newQty,
-            remaining: isEndOfChain ? 0 : newQty,
+            staged,
+            remaining,
           },
         };
         if (updated.price) {
@@ -378,11 +383,11 @@ const LinesCard: React.FC<LinesCardProps> = ({
                   description: description,
                   unit_measure: unitMeasure,
                 },
-                // Canonical quantity: active=user input, staged mirrors, remaining per chain position
+                // Canonical quantity: active is the user input, staged=active for standalone
                 quantity: {
                   active: quantity,
                   staged: quantity,
-                  remaining: isEndOfChain ? 0 : quantity,
+                  remaining: quantity,
                 },
                 // Sell-side: track price; exec-side: skip price envelope
                 ...(isSellSide ? {
