@@ -82,17 +82,13 @@ export function isExecTransaction(transactionType: string): boolean {
  *   remaining  — uncommitted qty available for downstream transfer
  *   is_fixed, precision, is_blanket, increment — control/metadata
  *
- * Standalone (no parent): staged = active = qty, remaining = qty (or 0 for end-of-chain)
- * End-of-chain (invoice, receipt): remaining always 0
+ * All types: remaining = active (or active − children_active.sum if has children)
  */
-function getDefaultQuantity(transactionType: string, quantity: number = 0): Record<string, unknown> {
-  const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  const isEndOfChain = ['invoice', 'receipt'].includes(kind);
-
+function getDefaultQuantity(_transactionType: string, quantity: number = 0): Record<string, unknown> {
   return {
     staged: quantity,
     active: quantity,
-    remaining: isEndOfChain ? 0 : quantity,
+    remaining: quantity,
     is_fixed: false,
     precision: 2,
     is_blanket: false,
@@ -233,25 +229,25 @@ export class LineItemService {
    * Update quantity on a line and recalculate extensions.
    *
    * User always edits 'active'. For standalone (no parent), staged mirrors active.
-   * End-of-chain (invoice, receipt): remaining = 0 always.
-   * Others (order, proposal, purchase, workorder): remaining = staged (standalone).
+   * All lines: remaining = active (or active − children_active.sum).
+   * Parent's children_active tracker is updated separately at save time.
    *
    * Matches wc3 normalize_quantity_map() semantics.
    */
   updateQuantity(line: TransactionLine, quantity: number, hasParent = false): TransactionLine {
     const updatedLine = { ...line, _dirty: true };
-    const kind = this.config.transactionType;
-    const isEndOfChain = ['invoice', 'receipt'].includes(kind);
 
     if (typeof updatedLine.quantity === 'object' && updatedLine.quantity !== null) {
       const staged = hasParent
         ? ((updatedLine.quantity as Record<string, unknown>).staged as number ?? quantity)
         : quantity;
+      // Remaining = active (universal formula; children_active tracked server-side)
+      const remaining = quantity;
       updatedLine.quantity = {
         ...updatedLine.quantity,
         active: quantity,
         staged,
-        remaining: isEndOfChain ? 0 : staged,
+        remaining,
       };
     } else {
       updatedLine.quantity = getDefaultQuantity(this.config.transactionType, quantity);
@@ -430,7 +426,7 @@ export class LineItemService {
   private getQuantity(line: TransactionLine): number {
     if (typeof line.quantity === 'object' && line.quantity !== null) {
       const q = line.quantity as Record<string, unknown>;
-      return Number(q.staged ?? q.ordered ?? 0) || 0;
+      return Number(q.staged ?? 0) || 0;
     }
     return 0;
   }

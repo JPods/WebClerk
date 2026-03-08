@@ -39,7 +39,7 @@ import type {
   OrgSearchResult,
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,9 +113,24 @@ interface OrgRecordFieldDef {
 
 /** All org types share the same OrgBase table — common editable fields */
 const ORG_RECORD_FIELDS: OrgRecordFieldDef[] = [
-  { key: "display_name", label: "Display Name", width: "full", placeholder: "Company or person name" },
-  { key: "company", label: "Company", width: "half", placeholder: "Company alias" },
-  { key: "attention", label: "Attention", width: "half", placeholder: "Attn line" },
+  {
+    key: "display_name",
+    label: "Display Name",
+    width: "full",
+    placeholder: "Company or person name",
+  },
+  {
+    key: "company",
+    label: "Company",
+    width: "half",
+    placeholder: "Company alias",
+  },
+  {
+    key: "attention",
+    label: "Attention",
+    width: "half",
+    placeholder: "Attn line",
+  },
   { key: "email", label: "Email", width: "half", placeholder: "Primary email" },
   { key: "phone", label: "Phone", width: "half", placeholder: "Primary phone" },
   {
@@ -132,7 +147,12 @@ const ORG_RECORD_FIELDS: OrgRecordFieldDef[] = [
       { value: "", label: "(none)" },
     ],
   },
-  { key: "price_level", label: "Price Level", width: "half", placeholder: "retail, wholesale…" },
+  {
+    key: "price_level",
+    label: "Price Level",
+    width: "half",
+    placeholder: "retail, wholesale…",
+  },
   { key: "notes", label: "Notes", width: "full", placeholder: "Notes" },
 ];
 
@@ -145,6 +165,70 @@ function orgTypeToModelName(orgType: SearchableOrgType): string {
   // All org types live on the orgbase model (or their subclass).
   // The WCAPI uses "customer", "vendor" etc. as model names.
   return orgType === "organization" ? "orgbase" : orgType;
+}
+
+// ---------------------------------------------------------------------------
+// Module-level cache for org record resolution (prevents duplicate API calls)
+// ---------------------------------------------------------------------------
+
+/** Cache key format: "model:id" → resolved display name */
+const orgDisplayNameCache = new Map<string, string>();
+
+/** In-flight promises to prevent duplicate simultaneous requests */
+const orgFetchInFlight = new Map<string, Promise<string>>();
+
+/**
+ * Fetch org display name with caching.
+ * Returns cached value if available, otherwise fetches and caches.
+ */
+async function fetchOrgDisplayName(model: string, id: number): Promise<string> {
+  const cacheKey = `${model}:${id}`;
+
+  // Return cached value if available
+  if (orgDisplayNameCache.has(cacheKey)) {
+    return orgDisplayNameCache.get(cacheKey)!;
+  }
+
+  // If already fetching, wait for that promise
+  if (orgFetchInFlight.has(cacheKey)) {
+    return orgFetchInFlight.get(cacheKey)!;
+  }
+
+  // Start new fetch
+  const fetchPromise = (async () => {
+    try {
+      const res: any = await getRecord(model, id);
+      const record = res?.record ?? res;
+      const name =
+        record?.display_name ||
+        record?.company ||
+        record?.attention ||
+        `#${id}`;
+      orgDisplayNameCache.set(cacheKey, name);
+      return name;
+    } catch {
+      const fallback = `#${id}`;
+      orgDisplayNameCache.set(cacheKey, fallback);
+      return fallback;
+    } finally {
+      orgFetchInFlight.delete(cacheKey);
+    }
+  })();
+
+  orgFetchInFlight.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+/**
+ * Update cache when an org is modified (so stale names don't persist)
+ */
+function updateOrgDisplayNameCache(
+  model: string,
+  id: number,
+  displayName: string,
+): void {
+  const cacheKey = `${model}:${id}`;
+  orgDisplayNameCache.set(cacheKey, displayName);
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +265,9 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   /** Which org FK field is currently being edited (e.g. "customer_id") */
   const [editingOrgField, setEditingOrgField] = useState<string | null>(null);
   /** Working copy of the org record fields for inline editing */
-  const [editingOrgValues, setEditingOrgValues] = useState<Record<string, any>>({});
+  const [editingOrgValues, setEditingOrgValues] = useState<Record<string, any>>(
+    {},
+  );
   /** Is the inline org record being saved? */
   const [orgRecordSaving, setOrgRecordSaving] = useState(false);
   /** Is the org record being fetched for editing? */
@@ -208,19 +294,9 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
 
     Promise.allSettled(
       toResolve.map(async (f) => {
-        try {
-          const model = orgTypeToModelName(f.orgType);
-          const res: any = await getRecord(model, Number(f.value));
-          const record = res?.record ?? res;
-          const name =
-            record?.display_name ||
-            record?.company ||
-            record?.attention ||
-            `#${f.value}`;
-          return { fieldName: f.fieldName, name };
-        } catch {
-          return { fieldName: f.fieldName, name: `#${f.value}` };
-        }
+        const model = orgTypeToModelName(f.orgType);
+        const name = await fetchOrgDisplayName(model, Number(f.value));
+        return { fieldName: f.fieldName, name };
       }),
     ).then((results) => {
       if (cancelled) return;
@@ -369,7 +445,9 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
         setEditingOrgValues(values);
       } catch (err: any) {
         console.error("[OrgLinkPanel] Failed to fetch org record:", err);
-        dispatch(showToast({ message: "Failed to load org record", type: "error" }));
+        dispatch(
+          showToast({ message: "Failed to load org record", type: "error" }),
+        );
         setEditingOrgField(null);
       } finally {
         setOrgRecordLoading(false);
@@ -379,20 +457,17 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   );
 
   /** Open inline editor for creating a new org record for a field */
-  const handleCreateNewOrg = useCallback(
-    (field: OrgField) => {
-      setEditingOrgField(field.fieldName);
-      setCreatingNewOrg(field.fieldName);
-      const values: Record<string, any> = {};
-      for (const fd of ORG_RECORD_FIELDS) {
-        values[fd.key] = "";
-      }
-      // Pre-set org_type based on the field
-      values._orgType = field.orgType;
-      setEditingOrgValues(values);
-    },
-    [],
-  );
+  const handleCreateNewOrg = useCallback((field: OrgField) => {
+    setEditingOrgField(field.fieldName);
+    setCreatingNewOrg(field.fieldName);
+    const values: Record<string, any> = {};
+    for (const fd of ORG_RECORD_FIELDS) {
+      values[fd.key] = "";
+    }
+    // Pre-set org_type based on the field
+    values._orgType = field.orgType;
+    setEditingOrgValues(values);
+  }, []);
 
   /** Cancel org record editing */
   const handleCancelOrgEdit = useCallback(() => {
@@ -415,7 +490,8 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
 
       if (creatingNewOrg) {
         // Creating a new org record
-        payload.org_type = field.orgType === "organization" ? "other" : field.orgType;
+        payload.org_type =
+          field.orgType === "organization" ? "other" : field.orgType;
         const res: any = await saveRecord(model, payload);
         const record = res?.record ?? res;
         const newId = Number(record?.id ?? res?.id);
@@ -484,7 +560,15 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
     } finally {
       setOrgRecordSaving(false);
     }
-  }, [editingOrgField, editingOrgValues, creatingNewOrg, fields, contactId, onOrgChanged, dispatch]);
+  }, [
+    editingOrgField,
+    editingOrgValues,
+    creatingNewOrg,
+    fields,
+    contactId,
+    onOrgChanged,
+    dispatch,
+  ]);
 
   const disabled = !contactId;
 
@@ -619,7 +703,9 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                 {/* ─── Summary row ─── */}
                 <div
                   className={`flex items-center gap-2 py-1.5 ${
-                    isEditingThisOrg ? "bg-blue-50/50 dark:bg-blue-900/10 px-2 rounded" : ""
+                    isEditingThisOrg
+                      ? "bg-blue-50/50 dark:bg-blue-900/10 px-2 rounded"
+                      : ""
                   }`}
                 >
                   {/* Label */}
@@ -674,7 +760,11 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                               ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
                               : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                           }`}
-                          title={isEditingThisOrg ? "Cancel edit" : `Edit ${field.label} record`}
+                          title={
+                            isEditingThisOrg
+                              ? "Cancel edit"
+                              : `Edit ${field.label} record`
+                          }
                         >
                           <FaEdit size={11} />
                         </button>
@@ -756,7 +846,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(OrgLinkPanel, 'OrgLinkPanel', 'teal');
+export default withDevIdentifier(OrgLinkPanel, "OrgLinkPanel", "teal");
 // ---------------------------------------------------------------------------
 // Inline org record editor
 // ---------------------------------------------------------------------------

@@ -1,10 +1,10 @@
 /**
  * PrefsPanel - Display and edit entity .prefs object (user/entity preferences)
- * 
+ *
  * Role-based access:
  * - View: User+ roles (default)
  * - Edit: Admin only (default), or own prefs for users
- * 
+ *
  * @example
  * <PrefsPanel
  *   entityType="contact"
@@ -13,17 +13,23 @@
  *   onChange={(prefs) => setContact({ ...contact, prefs })}
  * />
  */
-import React, { useState } from 'react';
-import { FaCog, FaChevronDown, FaChevronUp, FaToggleOn, FaToggleOff } from 'react-icons/fa';
-import { usePermissions } from './usePermissions';
-import type { BasePanelProps, EntityPrefs } from './types';
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import React, { useState } from "react";
+import {
+  FaCog,
+  FaChevronDown,
+  FaChevronUp,
+  FaToggleOn,
+  FaToggleOff,
+} from "react-icons/fa";
+import { usePermissions } from "./usePermissions";
+import type { BasePanelProps, EntityPrefs } from "./types";
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface PrefsPanelProps extends Omit<BasePanelProps<EntityPrefs>, 'data'> {
+interface PrefsPanelProps extends Omit<BasePanelProps<EntityPrefs>, "data"> {
   /** Prefs object */
   data?: EntityPrefs;
 }
@@ -39,11 +45,11 @@ interface PrefSectionProps {
   defaultExpanded?: boolean;
 }
 
-const PrefSection: React.FC<PrefSectionProps> = ({ 
-  title, 
-  icon, 
-  children, 
-  defaultExpanded = true 
+const PrefSection: React.FC<PrefSectionProps> = ({
+  title,
+  icon,
+  children,
+  defaultExpanded = true,
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -59,11 +65,7 @@ const PrefSection: React.FC<PrefSectionProps> = ({
         </span>
         {isExpanded ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
       </div>
-      {isExpanded && (
-        <div className="pb-3 pl-6 space-y-2">
-          {children}
-        </div>
-      )}
+      {isExpanded && <div className="pb-3 pl-6 space-y-2">{children}</div>}
     </div>
   );
 };
@@ -80,16 +82,18 @@ interface ToggleSwitchProps {
   description?: string;
 }
 
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ 
-  label, 
-  checked, 
-  onChange, 
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
+  label,
+  checked,
+  onChange,
   disabled = false,
-  description 
+  description,
 }) => (
   <div className="flex items-center justify-between">
     <div>
-      <span className="text-xs text-slate-700 dark:text-slate-300">{label}</span>
+      <span className="text-xs text-slate-700 dark:text-slate-300">
+        {label}
+      </span>
       {description && (
         <p className="text-xs text-slate-400 mt-0.5">{description}</p>
       )}
@@ -97,7 +101,9 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
     <button
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
-      className={`text-xl ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`text-xl ${
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      }`}
     >
       {checked ? (
         <FaToggleOn className="text-blue-500" />
@@ -120,7 +126,13 @@ interface SelectPrefProps {
   disabled?: boolean;
 }
 
-const SelectPref: React.FC<SelectPrefProps> = ({ label, value, options, onChange, disabled }) => (
+const SelectPref: React.FC<SelectPrefProps> = ({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}) => (
   <div className="flex items-center justify-between gap-4">
     <span className="text-xs text-slate-700 dark:text-slate-300">{label}</span>
     <select
@@ -150,16 +162,20 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
   readOnly = false,
   viewRoles,
   editRoles,
-  className = '',
+  className = "",
   compact = false,
-  title = 'Preferences',
-  defaultCollapsed = true,
+  title = "Preferences",
+  defaultCollapsed = false,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   // Check permissions
-  const { canView, canEdit: permCanEdit, isAdmin } = usePermissions({
-    panelType: 'prefs',
+  const {
+    canView,
+    canEdit: permCanEdit,
+    isAdmin,
+  } = usePermissions({
+    panelType: "prefs",
     viewRoles,
     editRoles,
     forceReadOnly: readOnly,
@@ -197,7 +213,9 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
   // };
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 ${className}`}>
+    <div
+      className={`bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 ${className}`}
+    >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-800 cursor-pointer rounded-t-lg"
@@ -205,7 +223,9 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
       >
         <div className="flex items-center gap-2">
           <FaCog className="text-purple-500" size={14} />
-          <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">{title}</h3>
+          <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+            {title}
+          </h3>
           {isAdmin && (
             <span className="px-1.5 py-0.5 text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 rounded">
               Admin
@@ -217,30 +237,30 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
 
       {/* Content */}
       {!isCollapsed && (
-        <div className={`${compact ? 'p-2' : 'p-4'}`}>
+        <div className={`${compact ? "p-2" : "p-4"}`}>
           {/* Display Preferences */}
           <PrefSection title="Display" defaultExpanded>
             <SelectPref
               label="Layout"
-              value={data.display?.layout || 'grid'}
+              value={data.display?.layout || "grid"}
               options={[
-                { value: 'grid', label: 'Grid' },
-                { value: 'list', label: 'List' },
-                { value: 'card', label: 'Card' },
-                { value: 'table', label: 'Table' },
+                { value: "grid", label: "Grid" },
+                { value: "list", label: "List" },
+                { value: "card", label: "Card" },
+                { value: "table", label: "Table" },
               ]}
-              onChange={(v) => updateDisplay('layout', v)}
+              onChange={(v) => updateDisplay("layout", v)}
               disabled={!canEdit}
             />
             <SelectPref
               label="Theme"
-              value={data.display?.theme || 'system'}
+              value={data.display?.theme || "system"}
               options={[
-                { value: 'light', label: 'Light' },
-                { value: 'dark', label: 'Dark' },
-                { value: 'system', label: 'System' },
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+                { value: "system", label: "System" },
               ]}
-              onChange={(v) => updateDisplay('theme', v)}
+              onChange={(v) => updateDisplay("theme", v)}
               disabled={!canEdit}
             />
           </PrefSection>
@@ -250,30 +270,30 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
             <ToggleSwitch
               label="Email notifications"
               checked={data.notifications?.email ?? true}
-              onChange={(v) => updateNotifications('email', v)}
+              onChange={(v) => updateNotifications("email", v)}
               disabled={!canEdit}
             />
             <ToggleSwitch
               label="SMS notifications"
               checked={data.notifications?.sms ?? false}
-              onChange={(v) => updateNotifications('sms', v)}
+              onChange={(v) => updateNotifications("sms", v)}
               disabled={!canEdit}
             />
             <ToggleSwitch
               label="Push notifications"
               checked={data.notifications?.push ?? false}
-              onChange={(v) => updateNotifications('push', v)}
+              onChange={(v) => updateNotifications("push", v)}
               disabled={!canEdit}
             />
             <SelectPref
               label="Frequency"
-              value={data.notifications?.frequency || 'immediate'}
+              value={data.notifications?.frequency || "immediate"}
               options={[
-                { value: 'immediate', label: 'Immediate' },
-                { value: 'daily', label: 'Daily Digest' },
-                { value: 'weekly', label: 'Weekly Digest' },
+                { value: "immediate", label: "Immediate" },
+                { value: "daily", label: "Daily Digest" },
+                { value: "weekly", label: "Weekly Digest" },
               ]}
-              onChange={(v) => updateNotifications('frequency', v)}
+              onChange={(v) => updateNotifications("frequency", v)}
               disabled={!canEdit}
             />
           </PrefSection>
@@ -295,4 +315,4 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(PrefsPanel, 'PrefsPanel', 'teal');
+export default withDevIdentifier(PrefsPanel, "PrefsPanel", "teal");
