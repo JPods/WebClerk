@@ -74,66 +74,25 @@ export function isExecTransaction(transactionType: string): boolean {
 // round() and toNumber() are imported from calculationUtils.ts
 
 /**
- * Get default quantity envelope based on transaction type
+ * Get default quantity envelope based on transaction type.
+ *
+ * Canonical keys (matches wc3 base_line_model.default_quantity):
+ *   staged     — quantity committed on this line (= active for standalone)
+ *   active     — user-entered quantity (always the primary input)
+ *   remaining  — uncommitted qty available for downstream transfer
+ *   is_fixed, precision, is_blanket, increment — control/metadata
+ *
+ * All types: remaining = active (or active − children_active.sum if has children)
  */
-function getDefaultQuantity(transactionType: string, quantity: number = 0): Record<string, unknown> {
-  const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  
-  if (['proposal'].includes(kind)) {
-    return {
-      staged: quantity,
-      ordered: 0,
-      remaining: quantity,
-      is_fixed: false,
-      precision: 2,
-      is_blanket: false,
-      increment: 0,
-    };
-  }
-  
-  if (['order'].includes(kind)) {
-    return {
-      staged: quantity,
-      invoiced: 0,
-      remaining: quantity,
-      is_fixed: false,
-      precision: 2,
-      is_blanket: false,
-      increment: 0,
-    };
-  }
-  
-  if (['invoice'].includes(kind)) {
-    // End-of-chain: the user's qty IS active; staged = active; remaining always 0.
-    return {
-      staged: quantity,
-      active: quantity,
-      remaining: 0,
-      is_fixed: false,
-      precision: 2,
-      is_blanket: false,
-      increment: 0,
-    };
-  }
-  
-  if (['purchase', 'workorder'].includes(kind)) {
-    return {
-      staged: quantity,
-      received: 0,
-      remaining: quantity,
-      is_fixed: false,
-      precision: 2,
-      is_blanket: false,
-      increment: 0,
-    };
-  }
-  
-  // Default
+function getDefaultQuantity(_transactionType: string, quantity: number = 0): Record<string, unknown> {
   return {
     staged: quantity,
+    active: quantity,
     remaining: quantity,
     is_fixed: false,
     precision: 2,
+    is_blanket: false,
+    increment: 0,
   };
 }
 
@@ -269,28 +228,27 @@ export class LineItemService {
   /**
    * Update quantity on a line and recalculate extensions.
    *
-   * Invoice lines (end-of-chain) use active-first semantics:
-   *   active = new qty.  If there is no parent (standalone invoice),
-   *   staged = active.  remaining is always 0.
-   * All other types: staged = new qty, remaining recalculated.
+   * User always edits 'active'. For standalone (no parent), staged mirrors active.
+   * All lines: remaining = active (or active − children_active.sum).
+   * Parent's children_active tracker is updated separately at save time.
+   *
+   * Matches wc3 normalize_quantity_map() semantics.
    */
   updateQuantity(line: TransactionLine, quantity: number, hasParent = false): TransactionLine {
     const updatedLine = { ...line, _dirty: true };
-    const kind = this.config.transactionType;
 
     if (typeof updatedLine.quantity === 'object' && updatedLine.quantity !== null) {
-      if (kind === 'invoice') {
-        // End-of-chain: user edits active
-        updatedLine.quantity = {
-          ...updatedLine.quantity,
-          active: quantity,
-          // If standalone (no parent), staged tracks active
-          staged: hasParent ? (updatedLine.quantity as Record<string, unknown>).staged as number : quantity,
-          remaining: 0,
-        };
-      } else {
-        updatedLine.quantity = { ...updatedLine.quantity, staged: quantity };
-      }
+      const staged = hasParent
+        ? ((updatedLine.quantity as Record<string, unknown>).staged as number ?? quantity)
+        : quantity;
+      // Remaining = active (universal formula; children_active tracked server-side)
+      const remaining = quantity;
+      updatedLine.quantity = {
+        ...updatedLine.quantity,
+        active: quantity,
+        staged,
+        remaining,
+      };
     } else {
       updatedLine.quantity = getDefaultQuantity(this.config.transactionType, quantity);
     }
@@ -468,7 +426,7 @@ export class LineItemService {
   private getQuantity(line: TransactionLine): number {
     if (typeof line.quantity === 'object' && line.quantity !== null) {
       const q = line.quantity as Record<string, unknown>;
-      return Number(q.staged ?? q.ordered ?? 0) || 0;
+      return Number(q.staged ?? 0) || 0;
     }
     return 0;
   }

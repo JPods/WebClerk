@@ -395,48 +395,7 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
               onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
             }
           }}
-          onUpdateLine={(lineId, field, value) => {
-            if (onLinesChange) {
-              onLinesChange(
-                lines.map((l, i) => {
-                  if (lineKey(l, i) !== lineId) return l;
-                  const baseUpdate = { ...l, _dirty: true };
-                  switch (field) {
-                    case "qty": {
-                      const newQty = Number(value);
-                      const unitPrice = l.price?.unit ?? 0;
-                      return {
-                        ...baseUpdate,
-                        quantity: { ...l.quantity, staged: newQty, active: newQty },
-                        price: {
-                          ...l.price,
-                          extended: newQty * unitPrice,
-                        },
-                      };
-                    }
-                    case "description":
-                      return {
-                        ...baseUpdate,
-                        item: { ...l.item, description: String(value) },
-                      };
-                    case "unit_price":
-                      const newPrice = Number(value);
-                      const qty = l.quantity?.staged ?? 0;
-                      return {
-                        ...baseUpdate,
-                        price: {
-                          ...l.price,
-                          unit: newPrice,
-                          extended: newPrice * qty,
-                        },
-                      };
-                    default:
-                      return { ...baseUpdate, [field]: value };
-                  }
-                }),
-              );
-            }
-          }}
+          transactionType="invoice"
           onDuplicateLine={(lineId) => {
             if (onLinesChange) {
               const lineToDup = lines.find((l, i) => lineKey(l, i) === lineId);

@@ -147,6 +147,7 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
       ['wholesale', 'Wholesale'],
       ['distributor', 'Distributor'],
       ['employee', 'Employee'],
+      ['sample', 'Sample'],
     ]),
   },
   {

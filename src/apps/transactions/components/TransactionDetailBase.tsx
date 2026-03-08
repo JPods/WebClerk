@@ -461,13 +461,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             (line: Record<string, unknown>) => {
               // Remap quantity for the target transaction:
               // staged = source remaining (qty being transferred)
-              // For end-of-chain (invoice/receipt): active = staged, remaining = 0
-              // For other types: active = staged, remaining = staged
+              // active = transfer_qty (the user input)
+              // remaining = staged (full qty available for further transfers)
+              // Matches wc3 transfer.py _convert_quantity / _clone_quantity
               const srcQty = (line.quantity as Record<string, unknown>) || {};
               const transferQty = Number(
                 srcQty.remaining ?? srcQty.staged ?? 0,
               );
-              const isEndOfChain = transactionType === 'invoice' || transactionType === 'receipt';
               const ln = nextLn;
               nextLn += 10;
               return {
@@ -477,10 +477,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 line_number: ln,
                 quantity: {
                   staged: transferQty,
-                  active: isEndOfChain ? transferQty : transferQty,
-                  remaining: isEndOfChain ? 0 : transferQty,
+                  active: transferQty,
+                  remaining: transferQty,
                   precision: srcQty.precision ?? 2,
                   is_fixed: srcQty.is_fixed ?? false,
+                  is_blanket: srcQty.is_blanket ?? false,
+                  increment: srcQty.increment ?? 0,
                 },
                 refs: {
                   ...((line.refs as Record<string, unknown>) || {}),
@@ -893,7 +895,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             const active = Number(qty.active ?? 0);
             const rawRemaining = qty.remaining;
             const remaining = Number(
-              rawRemaining ?? (Number.isFinite(staged) ? staged - active : 0),
+              rawRemaining ?? (Number.isFinite(active) ? active : 0),
             );
             return Number.isFinite(remaining) ? remaining <= 0 : false;
           });
@@ -2326,25 +2328,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                     case "qty": {
                       const newQty = Number(value);
                       if (!lineIsActive) {
-                        // Inactive line: persist processing but don't recalculate
+                        // Inactive line: persist active but don't recalculate
                         return {
                           ...baseUpdate,
-                          quantity: { ...l.quantity, processing: newQty, staged: newQty },
+                          quantity: { ...l.quantity, active: newQty, staged: newQty },
                         };
                       }
-                      const isEndOfChain = transactionType === 'invoice' || transactionType === 'receipt';
+                      // User always edits active; staged mirrors for standalone
+                      // All types: remaining = staged (standalone)
                       const unitPriceForCalc = l.price?.unit ?? 0;
-
-                      // User always edits processing; staged mirrors for standalone
-                      // For end-of-chain (invoice/receipt): remaining = 0
-                      // For orders/proposals/purchases: remaining = staged (standalone)
                       return {
                         ...baseUpdate,
                         quantity: {
                           ...l.quantity,
-                          processing: newQty,
+                          active: newQty,
                           staged: newQty,
-                          remaining: isEndOfChain ? 0 : newQty,
+                          remaining: newQty,
                         },
                         price: {
                           ...l.price,
