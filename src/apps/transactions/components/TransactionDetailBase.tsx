@@ -82,6 +82,20 @@ import LinesCard from "./LinesCard";
 import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
 import { DevBadge } from "@/components/common/DevBadge";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { useFormCoach } from "@/hooks/useFormCoach";
+import type { TransactionModelType } from "@/hooks/useFormCoach";
+import FormCoachAlert from "@/apps/common/components/FormCoachAlert";
+
+/** Map transactionType → print form source file (for FormCoach "Open in VS Code") */
+const FORM_SOURCE_PATHS: Record<string, string> = {
+  order:      'src/apps/transactions/components/print/OrderPrintDocument.tsx',
+  invoice:    'src/apps/transactions/components/print/InvoicePrintDocument.tsx',
+  proposal:   'src/apps/transactions/components/print/ProposalPrintDocument.tsx',
+  purchase:   'src/apps/transactions/components/print/PurchasePrintDocument.tsx',
+  workorder:  'src/apps/transactions/components/print/WorkorderPrintDocument.tsx',
+  receipt:    'src/apps/transactions/components/print/ReceiptPrintDocument.tsx',
+  adjustment: 'src/apps/transactions/components/print/AdjustmentPrintDocument.tsx',
+};
 
 // Extend Transaction type locally to ensure 'lines' exists
 type Transaction = TransactionBase & {
@@ -1125,14 +1139,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
+  // FormCoach — validates data completeness before print
+  const formCoach = useFormCoach(
+    data as Record<string, unknown> | null,
+    transactionType as TransactionModelType,
+  );
+
   // Internal print handler (called after unsaved changes guard)
   const executePrint = useCallback(() => {
     if (onPrint && data) {
       onPrint(data);
     } else {
+      // Run the form coach check before showing print preview
+      formCoach.runCheck();
       setShowPrintPreview(true);
     }
-  }, [onPrint, data]);
+  }, [onPrint, data, formCoach]);
 
   // Guarded print handler - warns if there are unsaved changes
   const handlePrint = useMemo(
@@ -2138,6 +2160,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         documentType={typeLabel}
         documentNumber={docNum}
       >
+        {/* FormCoach warnings inside the print preview */}
+        {formCoach.hasIssues && (
+          <FormCoachAlert
+            issues={formCoach.issues}
+            compact
+            className="mb-4 print:hidden"
+          />
+        )}
         {printContent}
       </PrintPreviewModal>
     );
@@ -2571,6 +2601,18 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   return (
     <div className="max-w-7xl mx-auto">
       {renderPrintPreview()}
+
+      {/* FormCoach — Data-completeness warnings (shown after print check) */}
+      {formCoach.hasChecked && formCoach.hasIssues && (
+        <div className="mb-4">
+          <FormCoachAlert
+            issues={formCoach.issues}
+            onDismiss={formCoach.clearIssues}
+            formSourcePath={FORM_SOURCE_PATHS[transactionType]}
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-0">
         {/* Edit Button (when not editing) */}
         {!isEditing && canEdit(data) && (
