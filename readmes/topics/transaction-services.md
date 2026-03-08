@@ -1,9 +1,14 @@
 # Transaction Services Architecture
 
-> **Version**: 1.0  
-> **Updated**: 2026-01-16  
+> **Version**: 1.1  
+> **Updated**: 2026-03  
 > **Scope**: Single Point of Authority services for transaction behaviors  
 > **Related**: [transaction-calculations.md](./transaction-calculations.md), [WC3 base_transaction_model.py](../../webClerk3/apps/transactions/models/base_transaction_model.py)
+>
+> **Note (2026-03)**: R25 transaction saves now go through `saveTransactionWithLines()`
+> → `POST /wcapi/transaction/save/` → `save_transaction_with_lines()` (collect-then-create
+> pattern). `LineItemService` is still used for the generic `/wcapi/save/` per-line path
+> and inline operations, but is no longer the primary save path for R25.
 
 ---
 
