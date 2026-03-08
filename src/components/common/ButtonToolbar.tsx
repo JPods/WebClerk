@@ -27,6 +27,8 @@ import {
   FaEye,
   FaEyeSlash,
 } from "react-icons/fa";
+import PrintReportDropdown, { type QuickFilterItem } from "./PrintReportDropdown";
+import { getReportsForModel, type ReportDef } from "@/config/reportLists";
 
 export interface ColumnFilter {
   key: string;
@@ -149,6 +151,12 @@ interface BreadcrumbProps<T = any> {
   totalCount?: number;
   filteredCount?: number;
   onPrint?: () => void;
+  /** Called when user picks a report from the print dropdown (requires modelKey to have reports in reportLists) */
+  onSelectReport?: (report: ReportDef) => void;
+  /** Quick-filter items shown in the print/report dropdown above reports */
+  quickFilters?: QuickFilterItem[];
+  /** Called when a quick-filter item is clicked */
+  onQuickFilter?: (key: string) => void;
   onRefresh?: () => void;
   loading?: boolean;
   enableDatabaseSearch?: boolean;
@@ -190,6 +198,9 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   totalCount,
   filteredCount,
   onPrint,
+  onSelectReport,
+  quickFilters,
+  onQuickFilter,
   onRefresh,
   loading,
   enableDatabaseSearch,
@@ -500,15 +511,25 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
             onChange={handleImportChange}
           />
 
-          {/* Print */}
-          <button
-            onClick={onPrint}
-            disabled={!onPrint}
-            title="Print"
-            className="w-9 h-9 flex items-center justify-center rounded-md bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
-          >
-            <FaPrint className="w-4 h-4" />
-          </button>
+          {/* Print / Report dropdown */}
+          {modelKey && (getReportsForModel(modelKey).length > 0 || (quickFilters && quickFilters.length > 0)) ? (
+            <PrintReportDropdown
+              modelKey={modelKey}
+              onSelect={onSelectReport}
+              quickFilters={quickFilters}
+              onQuickFilter={onQuickFilter}
+              compact
+            />
+          ) : (
+            <button
+              onClick={onPrint}
+              disabled={!onPrint}
+              title="Print"
+              className="w-9 h-9 flex items-center justify-center rounded-md bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
+            >
+              <FaPrint className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Export Dropdown */}
           {enableExport && (
@@ -658,9 +679,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           {customActions}
           {/* </div> */}
         </div>
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-          {pageTitle}
-        </h2>
         <nav>
           <ol className="flex items-center gap-1.5">
             <li>

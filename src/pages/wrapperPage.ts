@@ -18,6 +18,7 @@ import GLAccountDetail from "../apps/accounts/models/gl_account/pages/GLAccountD
 import GLJournalList from "../apps/accounts/models/gl_journal/pages/GLJournalList";
 import GLJournalDetail from "../apps/accounts/models/gl_journal/pages/GLJournalDetail";
 import LedgerList from "../apps/accounts/models/ledger/pages/LedgerList";
+import ReceivableList from "../apps/accounts/models/ledger/pages/ReceivableList";
 import TaxJurisdictionList from "../apps/accounts/models/tax_jurisdiction/pages/TaxJurisdictionList";
 import TermList from "../apps/accounts/models/term/pages/TermList";
 
@@ -99,6 +100,7 @@ export {
   GLJournalList,
   GLJournalDetail,
   LedgerList,
+  ReceivableList,
   TaxJurisdictionList,
   TermList,
   DomainList,

@@ -51,3 +51,17 @@ export {
   diffSelectList,
   type SyncResult,
 } from './syncSelectLists';
+
+// Report/print definitions per model
+export {
+  MODEL_REPORTS,
+  getReportsForModel,
+  getReportsByOutputType,
+  getReportsByCategory,
+  getReportsForRole,
+  modelKeysWithReports,
+  getReportByName,
+  type ReportDef,
+  type ReportOutputType,
+  type ReportCategory,
+} from './reportLists';

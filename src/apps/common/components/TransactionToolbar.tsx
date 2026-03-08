@@ -23,6 +23,8 @@ import {
   FaChevronDown,
   FaTasks,
 } from "react-icons/fa";
+import PrintReportDropdown from "@/components/common/PrintReportDropdown";
+import { getReportsForModel, type ReportDef } from "@/config/reportLists";
 
 // Transaction types for transfer dropdown
 const TRANSACTION_TYPES = [
@@ -58,6 +60,10 @@ interface TransactionToolbarProps {
   onTransfer?: (targetType: TransactionType) => Promise<void> | void;
   /** Callback for Print action */
   onPrint?: () => void;
+  /** Model key for the print/report dropdown (e.g. "customer", "invoice") */
+  modelKey?: string;
+  /** Called when user picks a report from the print dropdown */
+  onSelectReport?: (report: ReportDef) => void;
   /** Callback for Email action */
   onEmail?: () => void;
   /** Callback for Delete action */
@@ -92,6 +98,8 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   onClone,
   onTransfer,
   onPrint,
+  modelKey,
+  onSelectReport,
   onEmail,
   onDelete,
   onCancel,
@@ -327,8 +335,16 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
           </div>
         )}
 
-        {/* Print */}
-        {!isNewRecord && onPrint && (
+        {/* Print / Report dropdown */}
+        {!isNewRecord && modelKey && getReportsForModel(modelKey).length > 0 ? (
+          <PrintReportDropdown
+            modelKey={modelKey}
+            onSelect={onSelectReport}
+            compact={false}
+            disabled={actionInProgress !== null}
+            className={`${secondaryButton} text-xs`}
+          />
+        ) : !isNewRecord && onPrint ? (
           <button
             type="button"
             onClick={onPrint}
@@ -339,7 +355,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
             <FaPrint size={14} />
             <span className="hidden md:inline">Print</span>
           </button>
-        )}
+        ) : null}
 
         {/* Email */}
         {!isNewRecord && onEmail && (
