@@ -51,6 +51,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("qa_counters", "qa_counters"),
     ("qa_questions", "qa_questions"),
     ("admin", "admin"),
+    ("admin_selectlist", "admin_selectlist"),
     ("React_settings", "React_settings"),
 )
 
