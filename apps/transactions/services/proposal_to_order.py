@@ -96,27 +96,28 @@ def _convert_quantity_from_proposal(proposal_qty: Optional[Dict]) -> Dict:
     """Convert proposal line quantity to order line quantity.
 
     Sets:
-      staged = base (qty being transferred)
-      active = 0 (nothing processed yet)
-      remaining = base (full amount available for invoicing)
+      staged  = source remaining (qty being transferred)
+      active  = staged (user input — full transfer amount initially)
+      remaining = active (no children yet)
       converted_from_proposal = audit trail with original keys
 
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     q = proposal_qty or {}
-    base = q.get("staged", 0) or 0
+    # Use remaining from source (what's available for transfer)
+    transfer_qty = q.get("remaining", 0) or q.get("staged", 0) or 0
 
     converted_from_proposal = {
         "is_blanket": q.get("is_blanket", False),
         "increment": q.get("increment", 0),
         "original_remaining": q.get("remaining", 0),
-        "original_staged": base,
+        "original_staged": q.get("staged", 0),
     }
 
     order_qty = {
-        "staged": base,
-        "active": 0,
-        "remaining": base,
+        "staged": transfer_qty,
+        "active": transfer_qty,
+        "remaining": transfer_qty,
     }
     if "precision" in q:
         order_qty["precision"] = q["precision"]
@@ -307,14 +308,25 @@ def transfer_proposal_to_order(
                 'unit_price': float((pl.price or {}).get('unit', 0) or 0),
             })
 
-        # Mark proposal line as transferred — suppress signal
+        # Update proposal line: children_active tracker + status
         try:
-            pl.status = "transferred"
+            pq = dict(getattr(pl, 'quantity', None) or {})
+            children = pq.get('children_active', {'sum': 0, 'lines': []})
+            if not isinstance(children, dict):
+                children = {'sum': 0, 'lines': []}
+            if not isinstance(children.get('lines'), list):
+                children['lines'] = []
+            children['lines'].append({'id': ol.id, 'active': staged_qty})
+            children['sum'] = sum(c.get('active', 0) for c in children['lines'])
+            pq['children_active'] = children
+            p_active = float(pq.get('active', 0) or 0)
+            pq['remaining'] = max(0.0, p_active - children['sum'])
+            pl.quantity = pq
+            pl.status = 'transferred' if pq['remaining'] <= 0 else pl.status
             pl._pending_created = True  # suppress signal
-            pl.save(update_fields=["status"])
-        except Exception:
-            # If status field does not exist, ignore
-            pass
+            pl.save(update_fields=['quantity', 'status', 'dt_modified', 'version'])
+        except Exception as e:
+            logger.warning('Failed to update proposal line %s children_active: %s', pl.pk, e)
 
     # ── Phase 2: Create pending records from collected deltas ────────
     _create_transfer_pending_records(order, proposal, pending_deltas)
