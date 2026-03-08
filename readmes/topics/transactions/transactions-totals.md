@@ -6,36 +6,72 @@
 
 ## Quick Reference: Quantity Semantics
 
-| Field | Description |
-|-------|-------------|
-| `active` | **User-entered quantity** — always the primary input for manual entry |
-| `staged` | The quantity committed on this line (= `active` for standalone, = `source.remaining` for transfers) |
-| `remaining` | **Uncommitted inventory** — what's available for downstream transfer |
+Each line has three quantity fields with distinct roles:
+
+| Field | Role | Source |
+|-------|------|--------|
+| `staged` | What was allocated FROM the parent | Frozen at transfer time (= `parent.remaining`); mirrors `active` for standalone |
+| `active` | What the user decided to use on THIS line | **User input** — the primary quantity |
+| `remaining` | What's available FOR children | `active − sum(children.active)` |
 
 ### Standalone vs Transferred Lines
 
 | Origin | How line is created | `staged` source | `active` source |
 |--------|---------------------|-----------------|---------------------|
 | **Standalone** | User creates new line | Mirrors `active` | User input |
-| **Transferred** | Transfer service creates | `source.remaining` | 0 initially (or `staged` for invoices) |
+| **Transferred** | Transfer service creates | `parent.remaining` | Initially = `staged` (user may reduce) |
 
-### `remaining` By Transaction Type
+### The Universal Remaining Formula
 
-| Type | Standalone | After Transfer(s) | End of Chain? |
-|------|------------|-------------------|---------------|
-| Proposal | `= staged` | `staged - transferred_qty` | No |
-| Order | `= staged` | `staged - invoiced_qty` | No |
-| Purchase | `= staged` | `staged - received_qty` | No |
-| WorkOrder | `= staged` | `staged - completed_qty` | No |
-| **Invoice** | **Always 0** | N/A | **Yes** |
-| **Receipt** | **Always 0** | N/A | **Yes** |
+```
+remaining = active − sum(children.active)
+```
+
+This applies to **all** transaction types, all levels.
+A line with no children yet: `remaining = active` (sum is 0).
+
+| Type | Standalone (no children) | With children |
+|------|--------------------------|---------------|
+| Proposal | `remaining = active` | `active − sum(order.active)` |
+| Order | `remaining = active` | `active − sum(invoice.active)` |
+| Purchase | `remaining = active` | `active − sum(receipt.active)` |
+| WorkOrder | `remaining = active` | `active − sum(completion.active)` |
+| Invoice | `remaining = active` | `active − sum(children.active)` |
+| Receipt | `remaining = active` | `active − sum(children.active)` |
 
 ### Transfer Equation
 
+When a child is created from a parent:
+
 ```
-target.staged = transfer_qty  (from source.remaining)
-source.remaining -= transfer_qty
+child.staged  = parent.remaining             # frozen allocation
+child.active  = child.staged                  # initially full amount
+child.remaining = child.active                # no grandchildren yet
+
+parent.remaining = parent.active − sum(children.active)   # recalculated
 ```
+
+When the user reduces `child.active`, the difference flows back to
+the parent's `remaining` automatically (parent recalculates from sum).
+
+### `children_active` — Denormalized Tracker
+
+Each parent line stores a `children_active` object in its quantity map
+so remaining can be computed without querying child tables:
+
+```json
+{
+  "children_active": {
+    "sum": 4,
+    "lines": [
+      {"id": 23, "active": 3},
+      {"id": 24, "active": 1}
+    ]
+  }
+}
+```
+
+`remaining = active − children_active.sum`
 
 ---
 
@@ -45,7 +81,7 @@ Quick reference to the source files discussed in this document:
 
 | Concern | File | Key symbols |
 |---------|------|-------------|
-| JSON defaults & extended calc | `apps/transactions/models/base_line_model.py` | `default_quantity()` :78, `normalize_quantity_map()` :130, `_is_end_of_chain()` :64, `BaseLineCore` :283, `ensure_json_defaults()` :327, `BaseSellLineModel` :363, `_calculate_extended_price()` :388, `BaseExecLineModel` :431 |
+| JSON defaults & extended calc | `apps/transactions/models/base_line_model.py` | `default_quantity()` :78, `normalize_quantity_map()` :130, `BaseLineCore` :283, `ensure_json_defaults()` :327, `BaseSellLineModel` :363, `_calculate_extended_price()` :388, `BaseExecLineModel` :431 |
 | Totals rollup (sell-side) | `apps/transactions/services/proposal_totals.py` | `compute_proposal_sell_cost_totals()` :12 |
 | | `apps/transactions/services/order_totals.py` | `compute_order_sell_cost_totals()` :12 |
 | | `apps/transactions/services/invoice_totals.py` | `compute_invoice_sell_cost_totals()` :12 |
@@ -126,55 +162,152 @@ When a transfer service converts one transaction to another, quantity flows
 from the **source line's `remaining`** into the **target line's `staged`**.
 The source line's `remaining` is decremented by the transferred amount.
 
-### End-of-chain semantics (invoices & receipts)
+### Quantity rules (all transaction types)
 
-Invoice and receipt lines sit at the end of the transfer chain — nothing downstream acts
-on them.  They use **active-first** quantity rules:
+All transaction types use the same remaining logic.  An order can spawn
+multiple invoices (partial shipments), and a purchase can have multiple
+partial receipts.  Every line tracks its own `remaining` for downstream
+transfers.
 
 | Rule | Detail |
 |------|--------|
-| User edits `active` | The qty the user types IS the invoiced/received amount |
-| Standalone (no parent) | `staged = active`, `remaining = 0` |
-| Transferred | `staged = source.remaining`, `active = staged` |
-| `remaining` | Always **0** — nothing downstream from an invoice or receipt |
+| User edits `active` | The qty the user types IS the quantity |
+| Standalone (no parent) | `staged = active`, `remaining = active` |
+| Transferred (has parent) | `staged = parent.remaining`, `remaining = active` (no children yet) |
+| With children | `remaining = active − sum(children.active)` |
+| Parent update on child save | Parent recalculates `remaining` from `children_active.sum` |
 
 ### Quantity Editing Rules (Updated 2026-03)
 
 The user always edits `active` as the primary quantity input.
-The `staged` and `remaining` fields are derived based on context.
+`staged` is frozen at creation.  `remaining` is derived from children.
 
-#### All Transaction Types — User Input
+#### Field Roles
 
 | Field | Behavior |
 |-------|----------|
+| `staged` | Frozen at creation: standalone → mirrors `active`; transferred → `parent.remaining` |
 | `active` | **User-editable** — the primary quantity input |
-| `staged` | Mirrors `active` for standalone; set from source for transfers |
+| `remaining` | `active − sum(children.active)` — what's available for downstream |
 
-#### Orders, Proposals, Purchases (remaining = staged for standalone)
+#### What happens when the user reduces `active`?
 
-For **non-invoice** transactions:
+When a transferred line's `active` is reduced below `staged`, the
+difference (`staged − active`) is returned to the parent.
+The parent's `remaining` increases because `sum(children.active)` decreased.
 
-| Context | `remaining` Formula |
-|---------|---------------------|
-| Standalone (user creates new line) | `remaining = staged` (full qty available downstream) |
-| Transferred (line from parent) | `remaining = staged - active` (what's left to transfer) |
-
-Example flow (standalone order → partial invoice → full):
 ```
-Order created:         active=10, staged=10, remaining=10  (user entered 10)
-Invoice 6 created:     order.remaining: 10 → 4  (6 transferred to invoice.staged)
-Invoice 4 created:     order.remaining: 4 → 0   (fully fulfilled)
+child.staged  = 15  (frozen from parent.remaining)
+child.active  = 7   (user reduced)
+→ parent recalculates: remaining = parent.active − sum(children.active)
+→ staged − active = 8  is effectively returned to parent
 ```
 
-#### Invoices, Receipts (end-of-chain, remaining = 0)
+### Full chain example: Proposal → Order → Invoice (partial shipments)
 
-For **end-of-chain** lines:
+```
+STEP 1: User creates Proposal with 15 units (standalone)
+┌───────────────────────────────────────────────────────────────────┐
+│ ProposalLine                                                     │
+│   staged=15, active=15, remaining=15                             │
+│   children_active: {"sum": 0, "lines": []}                      │
+└───────────────────────────────────────────────────────────────────┘
 
-| Field | Behavior |
-|-------|----------|
-| `active` | User-editable — the quantity being invoiced/received |
-| `staged` | Mirrors `active` (standalone) or set from source (transfer) |
-| `remaining` | Always **0** — nothing downstream from invoices |
+STEP 2: Create child Order from proposal.remaining=15
+┌───────────────────────────────────────────────────────────────────┐
+│ ProposalLine (updated)                                           │
+│   staged=15, active=15, remaining=0                              │
+│   children_active: {"sum": 15, "lines": [{"id":343,"active":15}]}│
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    transfer 15
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (new child)                                            │
+│   staged=15, active=15, remaining=15                             │
+│   children_active: {"sum": 0, "lines": []}                      │
+└───────────────────────────────────────────────────────────────────┘
+
+STEP 3: User changes order active from 15 → 7, saves
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (user edit)                                            │
+│   staged=15, active=7, remaining=7                               │
+│   children_active: {"sum": 0, "lines": []}                      │
+│   (staged − active = 8 returned to parent)                       │
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    parent update
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ ProposalLine (recalculated)                                      │
+│   staged=15, active=15, remaining=8                              │
+│   children_active: {"sum": 7, "lines": [{"id":343,"active":7}]}  │
+│   remaining = 15 − 7 = 8                                        │
+└───────────────────────────────────────────────────────────────────┘
+
+STEP 4: Create Invoice #1 from order.remaining=7
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (updated)                                              │
+│   staged=15, active=7, remaining=0                               │
+│   children_active: {"sum": 7, "lines": [{"id":23,"active":7}]}   │
+│   remaining = 7 − 7 = 0                                         │
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    transfer 7
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ InvoiceLine #1 (new child)                                       │
+│   staged=7, active=7, remaining=7                                │
+└───────────────────────────────────────────────────────────────────┘
+
+STEP 5: User changes invoice #1 active from 7 → 3, saves
+┌───────────────────────────────────────────────────────────────────┐
+│ InvoiceLine #1 (user edit)                                       │
+│   staged=7, active=3, remaining=3                                │
+│   (staged − active = 4 returned to parent order)                 │
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    parent update
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (recalculated)                                         │
+│   staged=15, active=7, remaining=4                               │
+│   children_active: {"sum": 3, "lines": [{"id":23,"active":3}]}   │
+│   remaining = 7 − 3 = 4                                         │
+└───────────────────────────────────────────────────────────────────┘
+
+STEP 6: Create Invoice #2 from order.remaining=4
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (updated)                                              │
+│   staged=15, active=7, remaining=0                               │
+│   children_active: {"sum":7, "lines":[{"id":23,"active":3},      │
+│                                        {"id":24,"active":4}]}    │
+│   remaining = 7 − 7 = 0                                         │
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    transfer 4
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ InvoiceLine #2 (new child)                                       │
+│   staged=4, active=4, remaining=4                                │
+└───────────────────────────────────────────────────────────────────┘
+
+STEP 7: User changes invoice #2 active from 4 → 1, saves
+┌───────────────────────────────────────────────────────────────────┐
+│ InvoiceLine #2 (user edit)                                       │
+│   staged=4, active=1, remaining=1                                │
+└───────────────────────────────────────────────────────────────────┘
+                          │
+                    parent update
+                          ▼
+┌───────────────────────────────────────────────────────────────────┐
+│ OrderLine (recalculated)                                         │
+│   staged=15, active=7, remaining=3                               │
+│   children_active: {"sum":4, "lines":[{"id":23,"active":3},      │
+│                                        {"id":24,"active":1}]}    │
+│   remaining = 7 − 4 = 3                                         │
+└───────────────────────────────────────────────────────────────────┘
+```
 
 ### JSON Deep-Merge on PATCH Updates
 
@@ -184,10 +317,9 @@ existing ones. This ensures that updating one field preserves other fields.
 
 The `normalize_quantity_map()` function then:
 1. Mirrors `staged = active` when only `active` is provided (standalone entry)
-2. For orders/proposals/purchases:
-   - Standalone (staged == active): `remaining = staged`
-   - Transferred (staged != active): `remaining = staged - active`
-3. For invoices/receipts: `remaining = 0` always
+2. Sets `remaining = active` for lines without children
+3. For lines with children, `remaining` is computed from `children_active.sum`:
+   `remaining = active − children_active.sum`
 
 Key code paths:
 - Generic converter: `transfer_utils.py:21` — `convert_quantity_from_source()`
@@ -203,102 +335,38 @@ Key code paths:
 Source (OrderLine)                      Target (InvoiceLine)
 ┌─────────────────────────┐             ┌─────────────────────────┐
 │ BEFORE TRANSFER:        │             │                         │
-│   active: 10 (user) │             │                         │
+│   active: 10 (user)     │             │                         │
 │   staged:   10          │             │                         │
 │   remaining: 10         │             │                         │
 ├─────────────────────────┤             │                         │
-│ AFTER TRANSFER:         │  ────6───▶  │ active: 6           │
-│   active: 10        │             │ staged:   6 (from src)  │
-│   staged:   10          │             │ remaining: 0 (end-chain)│
-│   remaining: 4 (10-6)   │             │                         │
+│ AFTER TRANSFER:         │  ────6───▶  │ active: 6               │
+│   active: 10            │             │ staged:   6 (from src)  │
+│   staged:   10          │             │ remaining: 6            │
+│   remaining: 4          │             │                         │
+│   children_active:      │             │                         │
+│     sum=6, [{id:X,a:6}] │             │                         │
+│   10 − 6 = 4            │             │                         │
 └─────────────────────────┘             └─────────────────────────┘
 ```
 
 **Rules:**
 1. **Standalone entry**: User provides `active`, system mirrors `staged = active`
-2. **Transfer operation**: `target.staged = transfer_qty` (from `source.remaining`)
-3. **Source update**: `source.remaining -= transfer_qty` after transfer
-4. **End-of-chain**: Invoice/Receipt always have `remaining = 0`
+2. **Transfer operation**: `child.staged = parent.remaining` (frozen at creation)
+3. **Parent update**: Parent recalculates `remaining = active − sum(children.active)`
+4. **User reduces child.active**: Difference `staged − active` returns to parent's pool
 
 ### Inventory Responsibility Transfer
 
-The `remaining` field represents **uncommitted inventory responsibility** — quantity
-that can still be transferred to downstream documents.
+The `remaining` field represents **uncommitted inventory** — quantity
+that can still be transferred to downstream children.
 
-When a transfer service creates a child line:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  SOURCE LINE (e.g. Order)         TRANSFER             TARGET LINE (Invoice)│
-│  ─────────────────────────        ───────              ────────────────────  │
-│                                                                              │
-│  remaining: 10                                                               │
-│       │                                                                      │
-│       └──────── "Transfer 6 units" ───────────►  staged: 6                   │
-│                                                  transferred: 6                 │
-│  remaining: 10 - 6 = 4                           remaining: 0                │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**The transfer equation:**
-```
-target.staged = transfer_qty  (taken from source.remaining)
-source.remaining -= transfer_qty
-```
+`remaining = active − sum(children.active)`
 
 This allows:
 - **Partial transfers**: Invoice 6 of 10 units, leaving 4 remaining on the order
 - **Multiple children**: Order can spawn multiple invoices until `remaining = 0`
+- **User adjustment**: User reduces child active → parent remaining increases
 - **Backorder tracking**: `remaining > 0` means unfulfilled quantity exists
-
-### Full chain example: Proposal → Order → Invoice
-
-```
-                           TRANSFER              TRANSFER
-ProposalLine           ───────────▶  OrderLine   ───────────▶  InvoiceLine
-┌──────────────────┐               ┌──────────────────┐      ┌──────────────────┐
-│User creates:     │               │Transferred:      │      │Transferred:      │
-│ active: 10   │               │ staged: 10       │      │ staged: 10       │
-│ staged:   10     │               │ active: 10   │      │ active: 10   │
-│ remaining: 10    │               │ remaining: 10    │      │ remaining: 0     │
-├──────────────────┤               ├──────────────────┤      │                  │
-│After transfer:   │               │After transfer:   │      │ (end of chain)   │
-│ remaining: 0     │               │ remaining: 0     │      │                  │
-└──────────────────┘               └──────────────────┘      └──────────────────┘
-```
-
-### Partial transfer example: Order → Invoice #1 (6 units) → Invoice #2 (4 units)
-
-```
-STEP 1: User creates Order with 10 units
-┌───────────────────────┐
-│ OrderLine             │
-│   active: 10 (user)│
-│   staged:   10        │
-│   remaining: 10       │  ← Full qty available
-└───────────────────────┘
-
-STEP 2: Create Invoice #1 for 6 units
-┌───────────────────────┐     ┌───────────────────────┐
-│ OrderLine (updated)   │     │ InvoiceLine #1      │
-│   active: 10      │     │   active: 6     │
-│   staged:   10        │ ─▶  │   staged:   6       │
-│   remaining: 4        │     │   remaining: 0      │
-└───────────────────────┘     └───────────────────────┘
-           ↑                              ↑
-     Still has 4 left              End of chain
-
-STEP 3: Create Invoice #2 for remaining 4 units
-┌───────────────────────┐     ┌───────────────────────┐
-│ OrderLine (final)     │     │ InvoiceLine #2      │
-│   active: 10      │     │   active: 4     │
-│   staged:   10        │ ─▶  │   staged:   4       │
-│   remaining: 0        │     │   remaining: 0      │
-└───────────────────────┘     └───────────────────────┘
-           ↑                              ↑
-     Fully fulfilled               End of chain
-```
 
 ### Transfer service implementation
 
@@ -310,30 +378,31 @@ src_qty = source_line.quantity
 available = src_qty.get("remaining", 0)
 transfer_amount = min(available, requested_qty)  # can't transfer more than remaining
 
-# 2. Build target quantity
-# For end-of-chain (invoice/receipt): active = staged, remaining = 0
-# For mid-chain (order from proposal): remaining = staged (full qty available)
-is_end_of_chain = target_type in ("invoice", "receipt")
-target_qty = {
-    "staged": transfer_amount,
-    "active": transfer_amount if is_end_of_chain else transfer_amount,  # user input mirrors
-    "remaining": 0 if is_end_of_chain else transfer_amount,
+# 2. Build child quantity
+child_qty = {
+    "staged": transfer_amount,        # frozen: what parent allocated
+    "active": transfer_amount,         # user input (initially = staged)
+    "remaining": transfer_amount,      # no grandchildren yet
     "is_fixed": src_qty.get("is_fixed", False),
     "precision": src_qty.get("precision", 2),
 }
 
-# 3. Create target line (copies price/cost/item from source)
-target_line = TargetLineModel.objects.create(
+# 3. Create child line (copies price/cost/item from source)
+child_line = TargetLineModel.objects.create(
     parent_fk=target_header,
-    quantity=target_qty,
+    quantity=child_qty,
     price=source_line.price,
     cost=source_line.cost,
     item=source_line.item,
     refs={"source": {"model": "order_line", "id": source_line.pk}},
 )
 
-# 4. Update source line — decrement remaining
-src_qty["remaining"] = max(0, src_qty["remaining"] - transfer_amount)
+# 4. Update source line — add child to tracker, recalculate remaining
+children = src_qty.get("children_active", {"sum": 0, "lines": []})
+children["lines"].append({"id": child_line.pk, "active": transfer_amount})
+children["sum"] = sum(c["active"] for c in children["lines"])
+src_qty["children_active"] = children
+src_qty["remaining"] = max(0, src_qty["active"] - children["sum"])
 source_line.quantity = src_qty
 source_line.status = "partial" if src_qty["remaining"] > 0 else "transferred"
 source_line.save()
@@ -621,12 +690,12 @@ page maintained its own `onUpdateLine` callback with divergent field names
 
 | r25 Component / Service | What changed |
 |-------------------------|--------------|
-| `lineItemService.ts` — `getDefaultQuantity()` | Returns `{active, staged, remaining, is_fixed, precision, is_blanket, increment}` for all types.  End-of-chain → `remaining: 0`. |
-| `lineItemService.ts` — `updateQuantity()` | Sets `active`, `staged`, `remaining` uniformly.  End-of-chain → `remaining: 0`.  Standalone → `staged = active`. |
+| `lineItemService.ts` — `getDefaultQuantity()` | Returns `{active, staged, remaining, is_fixed, precision, is_blanket, increment}` for all types.  Standalone → `remaining = active`. |
+| `lineItemService.ts` — `updateQuantity()` | Sets `active`, `staged`, `remaining` uniformly.  Standalone → `staged = active`, `remaining = active`.  With children → `remaining = active − children_active.sum`. |
 | `LinesCard.tsx` | Now **transaction-type-aware** via `transactionType` prop.  Sell-side (order, proposal, invoice): shows Unit Price column, extended = `price.extended`.  Exec-side (purchase, workorder, receipt): hides Unit Price, makes Unit Cost editable, extended = `cost.extended`.  Internal `applyFieldUpdate()` handles qty/description/price/cost edits — detail pages no longer pass `onUpdateLine`. |
 | `TransactionDetailBase.tsx` | `processing` key replaced with `active` in qty-change handler. |
 | Detail pages (Order, Proposal, Purchase, Workorder, Invoice) | Removed per-page `onUpdateLine` callback; replaced with `transactionType="..."` prop on `LinesCard`. |
-| `ReceiptDetail.tsx` | Removed legacy `received` key; uses `{active, staged, remaining: 0}`. Retains custom inline table (extra Warehouse/Lot columns). |
+| `ReceiptDetail.tsx` | Removed legacy `received` key; uses `{active, staged, remaining}` with standard logic. Retains custom inline table (extra Warehouse/Lot columns). |
 
 ### Deprecated keys (r25)
 
@@ -642,4 +711,4 @@ but they are never written back.
 `default_quantity()` in `base_line_model.py` was collapsed from a per-kind
 `if/elif` chain (6 identical branches) to a single set-membership check.
 All known kinds return the same dict; `normalize_quantity_map()` handles
-end-of-chain semantics at normalisation time.
+remaining calculation at normalisation time.

@@ -393,11 +393,11 @@ class LineItemService:
         """
         Update the quantity on a line and recalculate extensions.
         
-        Invoice lines (end-of-chain) use processing-first semantics:
-          processing = new qty.  If there is no parent (standalone invoice),
-          staged = processing.  remaining is always 0.
-        
-        All other types: staged = new qty, remaining recalculated.
+        All types use the same logic:
+          active = new qty (the user input).
+          Standalone (no parent): staged = active.
+          Transferred (has parent): staged unchanged.
+          remaining = active − children_active.sum (or just active if no children).
         
         Creates a Pending record with the quantity delta for deferred
         inventory adjustment.
@@ -420,21 +420,28 @@ class LineItemService:
         if not isinstance(line.quantity, dict):
             line.quantity = {}
         
-        # Determine transaction type
+        # active IS the user input
+        line.quantity['active'] = new_quantity
+        
+        # Determine if standalone or transferred
         transaction = line.parent
         transaction_type = getattr(transaction, 'model_name', None) or transaction._meta.model_name
-        kind = _normalize_line_kind(transaction_type)
+        has_parent = bool(line.quantity.get('_has_parent') or getattr(line, 'refs', None) and isinstance(line.refs, dict) and line.refs.get('source', {}).get('converted_from'))
         
-        if kind == "invoice":
-            # End-of-chain: user edits processing.
-            line.quantity['processing'] = new_quantity
-            # If no parent (standalone invoice), staged tracks processing
-            parent_id = getattr(transaction, 'parent_id', None)
-            if not parent_id:
-                line.quantity['staged'] = new_quantity
-            line.quantity['remaining'] = 0
+        if has_parent:
+            # Transferred: staged stays, remaining = active (no children yet)
+            # Note: if this line has children, remaining = active - children_active.sum
+            # but children_active is managed by the transfer service, not here.
+            children_active = line.quantity.get('children_active')
+            if children_active and isinstance(children_active, dict):
+                children_sum = float(children_active.get('sum', 0) or 0)
+                line.quantity['remaining'] = max(0, new_quantity - children_sum)
+            else:
+                line.quantity['remaining'] = new_quantity
         else:
+            # Standalone: staged mirrors active, remaining = active
             line.quantity['staged'] = new_quantity
+            line.quantity['remaining'] = new_quantity
 
         self._recalculate_line(line)
         line.save()
@@ -727,20 +734,15 @@ class LineItemService:
     ) -> Dict[str, Any]:
         """Build the quantity JSON envelope.
 
-        Invoice lines (end-of-chain) use processing-first semantics:
-          processing = quantity, staged = quantity, remaining = 0.
-        All other types: staged = quantity, processing = 0, remaining = quantity.
+        All types use the same logic:
+          active = quantity (user input), staged = quantity, remaining = quantity.
+          normalize_quantity_map() handles transferred vs standalone on save.
         """
         envelope = default_quantity(transaction_type)
         qty = float(quantity)
-        kind = _normalize_line_kind(transaction_type)
-        if kind == "invoice":
-            # End-of-chain: the user's qty IS processing; staged = processing
-            envelope['staged'] = qty
-            envelope['processing'] = qty
-            envelope['remaining'] = 0
-        else:
-            envelope['staged'] = qty
+        envelope['active'] = qty
+        envelope['staged'] = qty
+        envelope['remaining'] = qty
         return envelope
     
     def _build_price_envelope(
