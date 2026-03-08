@@ -328,3 +328,25 @@ def send_payment_received_notification(sender, instance: Payment, created, **kwa
         return
     if getattr(instance, '_original_status', None) != 'completed':
         TransactionEmailService.send_payment_received_notification(instance)
+
+
+@receiver(post_save, sender=Payment)
+def create_payment_ledger(sender, instance: Payment, created, **kwargs):
+    """Create/replace negative ledger record and update org aging balances."""
+    try:
+        from apps.accounts.services.ledger_balance import on_payment_save
+        on_payment_save(instance)
+    except Exception:
+        import logging
+        logging.getLogger('transactions.signals').warning(
+            "Failed to create ledger for payment #%s", instance.pk, exc_info=True
+        )
+    # Detect late-payment erosion (carrying cost)
+    try:
+        from apps.accounts.services.erosion import detect_late_payment
+        detect_late_payment(instance)
+    except Exception:
+        import logging
+        logging.getLogger('transactions.signals').warning(
+            "Failed to detect late-payment erosion for payment #%s", instance.pk, exc_info=True
+        )

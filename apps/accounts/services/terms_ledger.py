@@ -239,7 +239,7 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
     if strategy == 'metadata':
         # AUDIT: Alternative strategy - store schedule in invoice metadata
         # This avoids creating ledger records but loses aging tracking
-        meta = getattr(invoice, 'metadata', {}) or {}
+        meta = getattr(invoice_id, 'metadata', {}) or {}
         terms_meta = meta.get('terms') or {}
         terms_meta['schedule'] = [
             {
@@ -266,9 +266,12 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
         value = (total * e.share)
         
         # AUDIT: refs JSON captures relationship metadata for queries
+        inv_id = getattr(invoice_id, 'id')
+        org_id = getattr(invoice_id, 'customer_id', None)
         refs = {
             'links': {
-                'parent': {'model': 'invoice', 'id': getattr(invoice_id, 'id')}
+                'parent': {'model': 'invoice', 'id': inv_id},
+                'org': {'id': org_id},
             }
         }
         
@@ -279,7 +282,8 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
             discount_potential=float(e.discount_rate) if e.discount_rate is not None else None,
             model_name='invoice',                  # Source document type
             source='AR',                           # Accounts Receivable
-            parent_id=getattr(invoice_id, 'id'),   # Source document ID
+            parent_id=inv_id,                      # Source document ID
+            org_id=org_id,                         # Org FK for indexed queries
             invoice=invoice_id,                    # FK for joins
             term=term_id,                          # FK for audit trail
             value_original=float(value),           # Initial amount (immutable)
@@ -341,13 +345,25 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
         return []
 
     # Resolve total
+    # TransactionBaseModel has two fields:
+    #   total  — DecimalField (denormalized scalar)
+    #   totals — JSONField   (dict with subtotal, total, cost, etc.)
     if total is None:
-        total_map = getattr(invoice, 'total', {}) or {}
-        total_val = total_map.get('total') or total_map.get('amount') or 0
-        try:
-            total = D(str(total_val))
-        except Exception:
-            total = D('0')
+        # Try scalar DecimalField first
+        scalar_total = getattr(invoice, 'total', None)
+        if scalar_total is not None and not isinstance(scalar_total, dict):
+            try:
+                total = D(str(scalar_total))
+            except Exception:
+                total = D('0')
+        else:
+            # Fallback: try JSON totals dict
+            totals_map = getattr(invoice, 'totals', {}) or {}
+            total_val = totals_map.get('total') or totals_map.get('amount') or 0
+            try:
+                total = D(str(total_val))
+            except Exception:
+                total = D('0')
         if total <= 0:
             from apps.transactions.aggregation import compute_line_aggregate
             agg = compute_line_aggregate(parent_id=getattr(invoice, 'id'), model_key='invoice-line')
@@ -407,9 +423,11 @@ def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_i
     pid = getattr(payment, 'id', None)
     
     # AUDIT: refs JSON provides alternative query path for payment lookups
+    org_id = getattr(invoice, 'customer_id', None) if invoice else None
     refs = {
         'links': {
-            'parent': {'model': 'payment', 'id': pid}
+            'parent': {'model': 'payment', 'id': pid},
+            'org': {'id': org_id},
         }
     }
     
@@ -425,6 +443,7 @@ def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_i
         model_name='payment',                      # Source document type
         source=source,                             # Usually 'AR'
         parent_id=pid,                             # Payment record ID
+        org_id=org_id,                             # Org FK for indexed queries
         invoice=invoice,                           # FK to Invoice for allocation
         term_id=None,                              # Payments don't have terms
         value_original=float(-abs(val)),           # Original amount (NEGATIVE, immutable)

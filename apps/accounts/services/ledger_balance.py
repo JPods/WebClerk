@@ -114,30 +114,25 @@ def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None) -> D
     # ==========================================================================
     # LEDGER QUERY STRATEGY
     # ==========================================================================
-    # Primary: Query via refs JSON path (refs.links.org.id)
-    # Fallback: Query via invoice_id FK -> invoice.org_id
-    # This dual approach handles both direct org linkage and invoice-based linkage
+    # Primary: Query via org FK (indexed, fast)
+    # Fallback: Query via refs JSON path for legacy records
     # ==========================================================================
     
-    # Query all non-zero ledger records for this org
-    # Using refs__links__org__id for the org reference
+    # Query all non-zero ledger records for this org using the org FK
     ledgers = Ledger.objects.filter(
         value_available__isnull=False,
+        org_id=org_id,
     ).exclude(
         value_available=0
-    ).filter(
-        refs__links__org__id=org_id
     ).values('dt_due', 'value_available')
     
-    # Also try parent org link pattern
+    # Fallback: try JSON path for legacy records without org FK
     if not ledgers.exists():
-        # Try alternative: look up via invoice -> org relationship
         ledgers = Ledger.objects.filter(
             value_available__isnull=False,
+            refs__links__org__id=org_id,
         ).exclude(
             value_available=0
-        ).select_related('invoice').filter(
-            invoice_id__org_id=org_id
         ).values('dt_due', 'value_available')
     
     for ledger in ledgers:
@@ -313,11 +308,10 @@ def on_invoice_save(invoice, replace_ledgers: bool = True) -> None:
     # This is the step that materializes receivables into trackable records
     apply_terms_for_invoice(invoice, replace=replace_ledgers)
     
-    # Update org balances
-    org = getattr(invoice, 'org', None)
+    # Update org balances — invoice FK is `customer` (db_column=customer_id)
+    org = getattr(invoice, 'customer', None)
     if org is None:
-        # Try to load org via org_id
-        org_id = getattr(invoice, 'org_id', None)
+        org_id = getattr(invoice, 'customer_id', None)
         if org_id:
             OrgBase = dj_apps.get_model('orgs', 'OrgBase')
             try:
@@ -372,26 +366,30 @@ def on_payment_save(payment) -> None:
     ).delete()
     
     # AUDIT: Create payment ledger with NEGATIVE value
-    # Only create if there's an available amount to record
-    if payment.amount_available and payment.amount_available != 0:
+    # Only create if there's an amount to record
+    pay_amount = getattr(payment, 'amount', None)
+    if pay_amount and pay_amount != 0:
         invoice = getattr(payment, 'invoice', None)
         record_payment(
             invoice=invoice,
-            amount=Decimal(str(payment.amount_available)),
+            amount=Decimal(str(pay_amount)),
             dt_paid=getattr(payment, 'dt_payment', None) or datetime.now(),
             payment=payment
         )
     
-    # Update org balances
-    org = getattr(payment, 'org', None)
-    if org is None:
-        org_id = getattr(payment, 'org_id', None) or getattr(payment, 'customer_id', None)
-        if org_id:
-            OrgBase = dj_apps.get_model('orgs', 'OrgBase')
-            try:
-                org = OrgBase.objects.get(id=org_id)
-            except OrgBase.DoesNotExist:
-                pass
+    # Update org balances — Payment links to org via invoice.customer
+    org = None
+    invoice = getattr(payment, 'invoice', None)
+    if invoice:
+        org = getattr(invoice, 'customer', None)
+        if org is None:
+            org_id = getattr(invoice, 'customer_id', None)
+            if org_id:
+                OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+                try:
+                    org = OrgBase.objects.get(id=org_id)
+                except OrgBase.DoesNotExist:
+                    pass
     
     if org:
         update_org_balances(org)
@@ -457,7 +455,7 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     # STEP 1: Sum all ledger values (the "actual" state)
     # ==========================================================================
     ledger_sum = Ledger.objects.filter(
-        refs__links__org__id=org_id
+        org_id=org_id
     ).aggregate(
         total=models.Sum('value_available')
     )['total'] or Decimal('0')
@@ -467,8 +465,9 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     # STEP 2: Sum invoice balances (what we EXPECT in ledgers, positive)
     # ==========================================================================
     invoice_sum = Invoice.objects.filter(
-        org_id=org_id,
-        total__total__isnull=False
+        customer_id=org_id,
+    ).exclude(
+        total={}
     ).aggregate(
         total=models.Sum('total__balance_due')
     )['total'] or Decimal('0')
@@ -478,9 +477,9 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     # STEP 3: Sum payment available (what we EXPECT in ledgers, negative)
     # ==========================================================================
     payment_sum = Payment.objects.filter(
-        org_id=org_id
+        invoice__customer_id=org_id
     ).aggregate(
-        total=models.Sum('amount_available')
+        total=models.Sum('amount')
     )['total'] or Decimal('0')
     results['payment_sum'] = payment_sum
     
@@ -564,7 +563,7 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
         # AUDIT: This is the destructive step - no going back after commit
         # =======================================================================
         deleted_count = Ledger.objects.filter(
-            refs__links__org__id=org_id
+            org_id=org_id
         ).delete()[0]
         
         counts = {
@@ -576,7 +575,7 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
         # =======================================================================
         # STEP 2: Recreate invoice ledgers from source documents
         # =======================================================================
-        invoices = Invoice.objects.filter(org_id=org_id)
+        invoices = Invoice.objects.filter(customer_id=org_id)
         for invoice in invoices:
             ledgers = apply_terms_for_invoice(invoice, replace=False)
             counts['invoice_ledgers'] += len(ledgers)
@@ -584,12 +583,13 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
         # =======================================================================
         # STEP 3: Recreate payment ledgers from source documents  
         # =======================================================================
-        payments = Payment.objects.filter(org_id=org_id)
+        payments = Payment.objects.filter(invoice__customer_id=org_id)
         for payment in payments:
-            if payment.amount_available and payment.amount_available != 0:
+            pay_amount = getattr(payment, 'amount', 0)
+            if pay_amount and pay_amount != 0:
                 record_payment(
                     invoice=getattr(payment, 'invoice', None),
-                    amount=Decimal(str(payment.amount_available)),
+                    amount=Decimal(str(pay_amount)),
                     dt_paid=getattr(payment, 'dt_payment', None) or datetime.now(),
                     payment=payment
                 )

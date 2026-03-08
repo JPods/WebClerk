@@ -239,6 +239,14 @@ def default_metadata() -> dict:
             "freshness": 0,
             "consistency": 0,
         },
+        # Erosion annotations — lightweight per-record value-loss tracking.
+        # small_stings: minor customer-base erosions (discounts, overrides, rounding)
+        # erosions: significant erosion events (margin loss, late payment, rework, bad debt)
+        # Each entry: {"category": str, "amount": float, "dt": ms_epoch, "note": str, "erosion_id": int|null}
+        # erosion_id is null until the record is saved; BaseModel.post_save_hook
+        # then creates the Erosion row and writes the id back.
+        "small_stings": [],
+        "erosions": [],
         "undefined": {},
     }
 
@@ -498,6 +506,9 @@ class MetadataMixin(models.Model):
         if isinstance(res, dict):
             res.setdefault("required", {})
             res.setdefault("allocated", {})
+        # Ensure erosion annotation arrays exist
+        self.metadata.setdefault("small_stings", [])
+        self.metadata.setdefault("erosions", [])
         self.metadata["flags"].setdefault("schema_rev", 1)
 
     def save(self, *args, **kwargs):  # inject history
@@ -1391,6 +1402,45 @@ class BaseModel(
         type(self).objects.filter(pk=self.pk).update(**update_map)
         self.dt_modified = now_ms  # type: ignore[attr-defined]
         self._capture_original_state()
+
+    # ── Post-save hook (universal) ────────────────────────────────────
+    def post_save_hook(self, data: Dict[str, Any], is_update: bool = False, context: dict | None = None):
+        """Standard post-save hook for all BaseModel descendants.
+
+        Responsibilities:
+        - Sync pending metadata erosion annotations → Erosion records.
+
+        Subclasses that override should call ``super().post_save_hook(data, is_update, context)``
+        to preserve universal behaviour.
+
+        Returns a message string or None.
+        """
+        messages: list[str] = []
+        # ── Erosion annotation sync ──────────────────────────────────
+        try:
+            meta = getattr(self, 'metadata', None)
+            if isinstance(meta, dict):
+                stings = meta.get('small_stings')
+                erosions = meta.get('erosions')
+                has_pending = False
+                for lst in (stings, erosions):
+                    if isinstance(lst, list):
+                        for entry in lst:
+                            if isinstance(entry, dict) and not entry.get('erosion_id'):
+                                has_pending = True
+                                break
+                    if has_pending:
+                        break
+                if has_pending:
+                    from apps.accounts.services.erosion import sync_metadata_erosions
+                    count = sync_metadata_erosions(self)
+                    if count:
+                        messages.append(f'{count} erosion record(s) created')
+        except Exception:
+            logger.exception('post_save_hook: erosion sync failed for %s #%s',
+                             self.__class__.__name__, self.pk)
+
+        return '; '.join(messages) if messages else None
 
 
 # Slim alias (for clarity when declaring lightweight models)

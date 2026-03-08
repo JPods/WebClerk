@@ -150,68 +150,80 @@ Customer balance fields updated:
 
 ## Implementation in webClerk3
 
-### Ledger Model (existing)
+### Status: WIRED & TESTED (March 2026)
+
+The ledger pipeline is fully wired into the save chain:
+
+| Trigger | Entry Point | File |
+|---------|-------------|------|
+| Invoice save | Phase 5 of `save_transaction_with_lines()` | `apps/transactions/services/transaction_save.py` |
+| Payment save | `post_save` signal `create_payment_ledger` | `apps/transactions/signals.py` |
+
+### Ledger Model (current)
 
 ```python
 # apps/accounts/models/ledger.py
 class Ledger(BaseModel):
-    discount_potential = models.FloatField(blank=True, null=True)
-    dt_discount_due = models.DateTimeField(blank=True, null=True)
-    dt_due = models.DateTimeField(blank=True, null=True)
-    dt_posted = models.DateTimeField(blank=True, null=True)
-    dt_recorded = models.DateTimeField(blank=True, null=True)
-    dt_settled = models.DateTimeField(blank=True, null=True)
+    discount_potential = models.DecimalField(max_digits=10, decimal_places=4)
+    dt_discount_due = models.DateTimeField()
+    dt_due = models.DateTimeField()
+    dt_posted = models.DateTimeField()
+    dt_recorded = models.DateTimeField()
+    dt_settled = models.DateTimeField()
     is_settled = models.BooleanField(default=False)
-    source = models.CharField(max_length=255, choices=LEDGER_SOURCE_CHOICES)
-    model_name = models.CharField(max_length=255, choices=LEDGER_MODEL_CHOICES)
-    parent_id = models.BigIntegerField(db_index=True)  # Source document ID
-    invoice_id = models.ForeignKey('transactions.Invoice', on_delete=models.SET_NULL)
-    term_id = models.ForeignKey('accounts.Term', on_delete=models.SET_NULL)
-    value_available = models.FloatField()  # Current unapplied balance
-    value_original = models.FloatField()   # Original amount
+    is_cleared = models.BooleanField(default=False)
+    is_void = models.BooleanField(default=False)
+    source = models.CharField(choices=LEDGER_SOURCE_CHOICES)
+    model_name = models.CharField(choices=LEDGER_MODEL_CHOICES)
+    parent_id = models.BigIntegerField(db_index=True)
+    org = models.ForeignKey('orgs.OrgBase', on_delete=SET_NULL)      # ← NEW: indexed FK
+    invoice = models.ForeignKey('transactions.Invoice', on_delete=SET_NULL)
+    term = models.ForeignKey('accounts.Term', on_delete=SET_NULL)
+    gl_account = models.ForeignKey('accounts.GlAccount', on_delete=SET_NULL)
+    value_available = models.DecimalField(max_digits=12, decimal_places=2)  # ← was FloatField
+    value_original = models.DecimalField(max_digits=12, decimal_places=2)   # ← was FloatField
 ```
 
-### Service Functions
+**Composite indexes** for fast aging:
+- `idx_ledger_org_model` → `(org, model_name)`
+- `idx_ledger_org_due` → `(org, dt_due)`
+
+**Migration**: `0004_add_org_fk_and_decimal_fields_to_ledger`
+
+### Pipeline Wiring
+
+#### Invoice → Ledger (Phase 5 in transaction_save.py)
 
 ```python
-# apps/accounts/services/ledger_balance.py
-
-# Real-time: Called after invoice/payment save
-def on_invoice_save(invoice, replace_ledgers=True):
-    """Create ledger records and update org balances."""
-    
-def on_payment_save(payment):
-    """Create payment ledger and update org balances."""
-
-def update_org_balances(org, save=True):
-    """Recalculate aging buckets and update org.financial."""
-
-# Batch: Called during nightly reconciliation
-def reconcile_org(org):
-    """Full validation and recalculation for an org."""
-    
-def rebuild_org_ledgers(org):
-    """Delete and recreate all ledgers from source documents."""
+# After Phase 4 (pending dispatch), guarded by model_key == 'invoice':
+from apps.accounts.services.ledger_balance import on_invoice_save
+on_invoice_save(header_obj, replace_ledgers=True)
 ```
 
-### Management Command
+`on_invoice_save()` resolves the term → calls `apply_terms_for_invoice()` → calls `create_ledger_records()` → calls `update_org_balances()`.
 
-```bash
-# Nightly reconciliation
-python manage.py reconcile_financials
+#### Payment → Ledger (post_save signal)
 
-# Single org
-python manage.py reconcile_financials --org-id=<id>
-
-# Rebuild all ledgers (destructive)
-python manage.py reconcile_financials --rebuild
-
-# Check without changes
-python manage.py reconcile_financials --dry-run
-
-# Include YTD recalculation
-python manage.py reconcile_financials --update-ytd
+```python
+# apps/transactions/signals.py
+@receiver(post_save, sender=Payment)
+def create_payment_ledger(sender, instance, **kwargs):
+    from apps.accounts.services.ledger_balance import on_payment_save
+    on_payment_save(instance)
 ```
+
+`on_payment_save()` calls `record_payment()` → creates negative ledger → calls `update_org_balances()`.
+
+### Total Resolution
+
+`TransactionBaseModel` has two total-related fields:
+- `total` — `DecimalField` (denormalized scalar for indexing)
+- `totals` — `JSONField` (dict with subtotal, discount, tax, shipping, total, cost, margin)
+
+`apply_terms_for_invoice()` resolves the total by:
+1. Trying `invoice.total` (DecimalField scalar) first
+2. Falling back to `invoice.totals['total']` (JSONField dict)
+3. Last resort: calling `compute_line_aggregate()` to sum lines
 
 ---
 
@@ -416,3 +428,54 @@ Understanding the sign convention is critical for auditing:
 | Aging calculation | `calculate_aging_buckets()` | `ledger_balance.py` |
 | Full reconciliation | `reconcile_org()` | `ledger_balance.py` |
 | Nightly batch | `reconcile_financials` | management command |
+
+---
+
+## Test Suite
+
+```bash
+cd webClerk3
+python -m pytest apps/accounts/tests/test_ledger.py -v --no-header -o "addopts="
+```
+
+15 tests across 5 classes:
+
+| Class | Tests | Coverage |
+|-------|-------|----------|
+| `TestComputeSchedule` | 4 | Single, multi-period, discount, epoch-ms dates |
+| `TestCreateLedgerRecords` | 5 | Create, multi-period split, replace, no-term, name-fallback |
+| `TestPaymentLedger` | 1 | Negative-value ledger creation |
+| `TestAgingBuckets` | 3 | Current bucket, past-due bucket, payment reduces balance |
+| `TestOnInvoiceSave` | 2 | Full pipeline + org balance update, idempotent re-save |
+
+---
+
+## Implementation Changelog
+
+### March 2026 — Wiring & Bug Fixes
+
+**Model changes** (`ledger.py`):
+- Added `org` FK to `OrgBase` for indexed aging queries (replaces JSON-path lookups)
+- Converted `discount_potential`, `value_available`, `value_original` from `FloatField` → `DecimalField`
+- Added `is_cleared`, `is_void` boolean fields
+- Added composite indexes `idx_ledger_org_model`, `idx_ledger_org_due`
+- Migration: `0004_add_org_fk_and_decimal_fields_to_ledger`
+- Registered `Ledger` in `apps/accounts/models/__init__.py`
+
+**Bug fixes** (`terms_ledger.py`):
+- Fixed metadata strategy referencing undefined `invoice` instead of `invoice_id` param
+- Added `org_id` population in both `create_ledger_records()` and `record_payment()`
+- Fixed total resolution to handle `total` (DecimalField scalar) vs `totals` (JSONField dict)
+
+**Bug fixes** (`ledger_balance.py`):
+- Fixed org lookup: `invoice.org` → `invoice.customer` (actual FK name)
+- Fixed payment field: `amount_available` → `amount` (actual field name)
+- Updated aging queries to use `org_id` FK instead of JSON-path `refs__links__org__id`
+- Fixed `reconcile_org` and `rebuild_org_ledgers` to use `customer_id` / `invoice__customer_id`
+
+**Pipeline wiring**:
+- Added Phase 5 to `transaction_save.py` — calls `on_invoice_save()` after invoice saves
+- Added `post_save` signal on `Payment` in `signals.py` — calls `on_payment_save()`
+
+**Tests** (`apps/accounts/tests/test_ledger.py`):
+- 15 tests covering schedule computation, ledger creation, payment ledgers, aging buckets, and full pipeline
