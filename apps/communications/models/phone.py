@@ -52,9 +52,11 @@ class Phone(BaseModel):
             errors.append('country_code: must start with +')
         return (not errors, errors)
 
-    def post_save_hook(self, data):  # type: ignore[override]
+    def post_save_hook(self, data, is_update=False, context=None):  # type: ignore[override]
+        # Run universal post-save (erosion sync, etc.)
+        base_msg = super().post_save_hook(data, is_update=is_update, context=context)
         # Return informational message (useful for tests / client log)
-        return 'phone saved'
+        return '; '.join(filter(None, [base_msg, 'phone saved']))
 
     # --- Verification queue (stub) ---------------------------------------
     def queue_verification(self, connection_name: str | None = None) -> None:

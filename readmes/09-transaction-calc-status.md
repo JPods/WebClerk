@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-Transaction calculations are **structurally complete** but have **two critical bugs** that cause all extended prices and header totals to be zero:
+Transaction calculations are **structurally complete**. Two of three known bugs are resolved; one critical issue remains:
 
 | Bug | Impact | Severity | Status |
 |-----|--------|----------|--------|
@@ -30,7 +30,7 @@ Transaction calculations are **structurally complete** but have **two critical b
 | **Header totals signal gap** | Only `ProposalLine` auto-recalculates parent totals; Order/Invoice/Purchase/WorkOrder do not | Critical | Open |
 | **Line identity fragility** | `line.id ?? idx` broke editing for unsaved/transferred lines | High | **FIXED** — `line_number` scalar field + `lineKey()` helper |
 
-Both quantity/extended bugs were **data-shape issues**, not logic errors — the calculation formulas are correct, they just received zero input.
+The quantity-key and line-identity bugs were **data-shape issues**, not logic errors — the calculation formulas are correct, they just received zero input. The remaining **header totals signal gap** is the sole open critical bug.
 
 ### Line Number System (2026-02)
 

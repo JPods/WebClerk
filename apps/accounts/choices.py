@@ -57,6 +57,30 @@ GL_JOURNAL_TYPE_CHOICES: Final[ChoiceList] = (
     ("other", "Other"),
 )
 
+EROSION_CATEGORY_CHOICES: Final[ChoiceList] = (
+    ("margin", "Margin Erosion"),
+    ("discount", "Discount Given"),
+    ("fx_loss", "Currency / FX Loss"),
+    ("late_payment", "Late Payment Carrying Cost"),
+    ("return_credit", "Return / Credit"),
+    ("rework", "Rework / Warranty"),
+    ("shipping", "Shipping / Freight"),
+    ("bad_debt", "Bad Debt Write-Off"),
+    ("price_override", "Price Override"),
+    ("other", "Other"),
+)
+
+EROSION_SOURCE_MODEL_CHOICES: Final[ChoiceList] = (
+    ("proposal", "Proposal"),
+    ("order", "Order"),
+    ("invoice", "Invoice"),
+    ("purchase", "Purchase"),
+    ("payment", "Payment"),
+    ("credit_memo", "Credit Memo"),
+    ("action", "Action"),
+    ("question_answer", "Question / Answer"),
+)
+
 LEDGER_SOURCE_CHOICES: Final[ChoiceList] = (
     ("invoice", "Invoice"),
     ("payment", "Payment"),
@@ -92,6 +116,11 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "GlJournal": {
         "source": GL_JOURNAL_SOURCE_CHOICES,
         "type": GL_JOURNAL_TYPE_CHOICES,
+    },
+    "Erosion": {
+        "category": EROSION_CATEGORY_CHOICES,
+        "source_model": EROSION_SOURCE_MODEL_CHOICES,
+        "parent_model": EROSION_SOURCE_MODEL_CHOICES,
     },
     "Ledger": {
         "source": LEDGER_SOURCE_CHOICES,

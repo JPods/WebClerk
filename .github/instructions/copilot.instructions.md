@@ -105,7 +105,25 @@ Legitimate uses of "location" (warehouse position, DRF param, display fields) ar
 - TypeScript / React: `camelCase` for variables / functions; `PascalCase` for components / types
 - File naming: `{Model}Detail.tsx`, `{Model}List.tsx`, `{model}Api.ts`
 - Date/time fields: prefix `dt_` (e.g., `dt_created`, `dt_modified`)
-- FK fields: `{model_name}_id` format for non-primary FKs
+- FK columns: `{model_name}_id` format in database/API (e.g., `invoice_id`, `org_id`)
+
+### ForeignKey Naming — `_id_id` Prevention (CRITICAL)
+
+Django auto-appends `_id` to the Python field name to create the DB column.
+If you name a field `invoice_id = models.ForeignKey(...)`, the DB column becomes `invoice_id_id`.
+
+| Python field name | DB column (auto) | Correct? |
+|-------------------|-------------------|----------|
+| `invoice` | `invoice_id` | **YES** |
+| `org` | `org_id` | **YES** |
+| `invoice_id` | `invoice_id_id` | **NO — BANNED** |
+
+**Rules:**
+- Name FK fields **without** the `_id` suffix: `invoice`, `term`, `org`, `gl_account`
+- Django auto-creates `invoice_id` as the raw-ID accessor and DB column
+- Use `db_column='invoice_id'` only when renaming an existing column (it's redundant but safe for documentation)
+- In queryset filters: `Ledger.objects.filter(invoice_id=val)` is correct — this references the DB column, not the field name
+- In constructors: `Ledger(invoice=obj)` (object) or `Ledger(invoice_id=pk)` (raw ID) — both correct
 
 ---
 
@@ -688,3 +706,19 @@ When starting a coding session, establish:
 3. **Which layer?** (model, service, view, serializer, test)
 
 This helps scope changes correctly and avoid unintended side-effects across the modular architecture.
+
+---
+
+## 18. AI Agent Roles
+
+| Agent | Identity | Role |
+|-------|----------|------|
+| **Copilot** | GitHub Copilot (primary) | Inline code generation, edits, terminal commands, orchestration |
+| **Alice** | Subagent (research & multi-step) | Deep codebase search, complex analysis, autonomous multi-file research |
+
+Alice is invoked via the subagent tool for tasks requiring broad codebase exploration
+or multi-step research. She returns a single report. Use her when:
+- Searching for a pattern across many files
+- Auditing naming conventions, FK usage, or field consistency
+- Investigating bugs that span multiple services
+- Gathering context before a complex refactor

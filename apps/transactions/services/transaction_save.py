@@ -1096,6 +1096,30 @@ def save_transaction_with_lines(
         from apps.products.dispatch_pending import dispatch_pending_processing
         dispatch_pending_processing(limit=200, caller='transaction_save')
 
+    # ── Phase 5: Ledger / AR hooks (invoice only) ────────────────────
+    # Creates ledger records based on payment terms, updates org aging.
+    # Mirrors legacy 4D Ledger_InvSave: delete-and-recreate pattern.
+    if model_key == 'invoice':
+        try:
+            from apps.accounts.services.ledger_balance import on_invoice_save
+            on_invoice_save(header_obj, replace_ledgers=True)
+            logger.info("Ledger records created/replaced for invoice #%s", header_id)
+        except Exception as ledger_err:
+            logger.warning("Failed to create ledger records for invoice #%s: %s", header_id, ledger_err)
+
+    # ── Phase 6: Erosion detection (invoice, order) ──────────────────
+    # Detects margin erosion vs ancestor proposals/orders and discount erosion.
+    if model_key in ('invoice', 'order'):
+        try:
+            from apps.accounts.services.erosion import detect_margin_erosion, detect_discount_erosion
+            erosion_events = detect_margin_erosion(header_obj)
+            discount_event = detect_discount_erosion(header_obj)
+            total_events = len(erosion_events) + (1 if discount_event else 0)
+            if total_events:
+                logger.info("Erosion: %s event(s) detected for %s #%s", total_events, model_key, header_id)
+        except Exception as erosion_err:
+            logger.warning("Erosion detection failed for %s #%s: %s", model_key, header_id, erosion_err)
+
     logger.info(
         "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s pending_created=%s",
         model_key, header_id, result['lines_saved'], result['lines_skipped'], len(pending_deltas),

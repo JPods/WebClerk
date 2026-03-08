@@ -177,11 +177,11 @@ class Action(BaseModel):
     def post_save_hook(self, data, is_update=False, context=None):
         """Handle attachments after save by creating LinkageEntry records."""
         if not isinstance(data, dict):
-            return None
+            return super().post_save_hook(data, is_update=is_update, context=context)
 
         pending_attachments = data.get('_pending_attachments')
         if not pending_attachments or not isinstance(pending_attachments, list):
-            return None
+            return super().post_save_hook(data, is_update=is_update, context=context)
 
         try:
             from apps.docs.models import LinkageEntry
@@ -232,7 +232,7 @@ class Action(BaseModel):
             console_logger.error(f"[Action.post_save_hook] Failed to create attachment linkages: {e}")
             return f"Failed to link attachments: {str(e)}"
 
-        return None
+        return super().post_save_hook(data, is_update=is_update, context=context)
 
     def update_keywords(self):
         """Update keywords for this action record."""   
