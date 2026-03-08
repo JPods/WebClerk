@@ -203,20 +203,21 @@ isExecTransaction("purchase"); // true
 
 ## 🔄 API Integration
 
-Uses `wcapi` for backend communication:
+Uses the **wcapi SDK** for all backend communication — never per-model REST routes:
 
 ```typescript
-import { getRecord, saveRecord, saveTransactionWithLines, deleteRecord } from '../../../api/wcapi';
+import { getRecord, saveRecord, saveTransactionWithLines, deleteRecord } from '@/api/wcapi';
 
-// Endpoints pattern
-GET    /api/v1/{transaction_type}/{id}/
-POST   /api/v1/{transaction_type}/
-PATCH  /api/v1/{transaction_type}/{id}/
-DELETE /api/v1/{transaction_type}/{id}/
-
-// With lines (atomic save)
-POST   /api/v1/{transaction_type}/{id}/save-with-lines/
+// Unified wcapi endpoints (all transactions route through these)
+GET    /wcapi/get/?model_name={type}&id={id}     // Fetch
+POST   /wcapi/save/                               // Create/update (no lines)
+POST   /wcapi/transaction/save/                   // Create/update with lines (atomic)
+POST   /wcapi/delete/                              // Soft-delete
 ```
+
+> **Receipt is different**: Receipt saves go through dedicated backend functions
+> in `flow.py` (`receive_purchase()`, `complete_workorder()`, `adjust_inventory()`),
+> not `saveTransactionWithLines()`. See copilot instructions §11.
 
 ---
 
@@ -260,16 +261,21 @@ See [README-TRANSACTION-DETAIL-PLAN.md](./README-TRANSACTION-DETAIL-PLAN.md) for
 ### Creating a New Transaction Detail Page
 
 ```tsx
-import { TransactionDetailBase } from "../components/TransactionDetailBase";
-import type { Transaction } from "../types/transactionTypes";
+import TransactionDetailBase from "../../../components/TransactionDetailBase";
+import type { Transaction } from "../../../types/transactionTypes";
 
 export default function InvoiceDetail() {
   return (
     <TransactionDetailBase
       transactionType="invoice"
-      apiEndpoint="invoices"
-      title="Invoice"
-      // ... additional props
+      typeLabel="Invoice"
+      modelName="invoice"
+      renderHeader={(data, isEditing, onChange) => (
+        <InvoiceHeader data={data} isEditing={isEditing} onChange={onChange} />
+      )}
+      renderLines={(lines, isEditing, data, onLinesChange) => (
+        <InvoiceLinesContent lines={lines} isEditing={isEditing} data={data} onLinesChange={onLinesChange} />
+      )}
     />
   );
 }
@@ -279,18 +285,20 @@ export default function InvoiceDetail() {
 
 ```tsx
 import {
-  calculateLineTotal,
+  LineItemService,
   isSalesTransaction,
 } from "../services/lineItemService";
 
+const service = new LineItemService({ transactionType: 'order' });
+
 const line = {
-  quantity: { ordered: 10 },
-  price: { unit: 25.0 },
-  discount: { pc: 10 },
+  quantity: { staged: 10, active: 10, remaining: 10 },
+  price: { unit: 25.0, discount_percent: 10 },
+  cost: { unit: 15.0 },
 };
 
-const totals = calculateLineTotal(line, "order");
-// { gross: 250, discountAmount: 25, extended: 225, ... }
+const calc = service.calculateLine(line);
+// { gross: 250, discountAmount: 25, extended: 225, margin: 75, marginPc: 33.33 }
 ```
 
 ---

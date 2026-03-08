@@ -183,19 +183,26 @@ summary = process_pending_for_item(item_id=123)
 **Pending Data Structure**:
 ```python
 {
-    'type_id': 'SO',                    # SO, PO, WO, IV
+    'type_id': 'SO',                    # SO, PO, WO, IN, PP
     'item_id': 123,
     'item_num': 'SKU-001',
     'doc_id': 'ORD-0001',
     'doc_pk': 456,
     'line_id': 789,
-    'line_num': 1,
+    'line_num': 10,                     # line_number (scalar, auto-assigned)
     
     # Quantity buckets (deltas, not absolutes)
-    'qty_on_so': 5,                     # Sales order reservation
-    'qty_on_po': 0,                     # Purchase order commitment
-    'qty_on_wo': 0,                     # Work order reservation
-    'qty_invoiced': 0,                  # Invoice reduces on-hand
+    'on_so': 5,                         # Sales order reservation
+    'on_po': 0,                         # Purchase order commitment
+    'on_wo': 0,                         # Work order reservation
+    'on_in': 0,                         # Invoice add
+    'on_p': 0,                          # Proposal forecast
+    'on_r': 0,                          # Receipt
+    'on_hand': 0,                       # Direct on-hand change (transfers)
+    
+    # Line-pair IDs (forbids duplicates)
+    'order_line_id': None,              # Source line if transfer
+    'invoice_line_id': None,            # Target line if transfer
     
     # Pricing snapshot
     'unit_cost': 10.00,
@@ -205,6 +212,8 @@ summary = process_pending_for_item(item_id=123)
     'reason': 'so line add',
     'take_action': 1,
     'transaction_type': 'order',
+    'transaction_model': 'order',
+    'links': {},                         # Parent chain references
 }
 
 ---
