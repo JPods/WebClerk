@@ -331,4 +331,4 @@ Use this checklist to audit your data practices. Each item directly impacts one 
 
 ---
 
-*Last updated: Phase 5 implementation. See [ai.md](ai.md) for the full integration plan.*
+*Last updated: Phase 5 implementation. See [plan-Alice.md](plan-Alice.md) for the full integration plan.*

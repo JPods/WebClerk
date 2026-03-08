@@ -138,7 +138,7 @@ True continuous learning from user behavior requires fine-tuning infrastructure.
 20. **SSE streaming in widget** — real-time token output (backend ready, frontend TODO)
 21. **Scheduled reindex** — Celery periodic task for full reindex overnight
 
-> **Setup guide for team members:** see [setup-guide.md](setup-guide.md)
+> **Setup guide for team members:** see [setup-guide-Alice.md](setup-guide-Alice.md)
 
 ### Phase 5 — Autonomous Data Intelligence ✅ DONE
 
@@ -148,7 +148,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 - Services: `apps/ai_assistant/services/` — `health_scorer.py`, `schema_drift_detector.py`, `data_parser.py`, `json_optimizer.py`, `margin_tracker.py`, `sync_advisor.py`
 - Celery tasks: `apps/ai_assistant/tasks.py` — 7 task functions + `full_intelligence_run()`
 - Management command: `python manage.py ai_intelligence` — CLI entry point with `--task`, `--llm`, `--apply`, `--report`, `--limit`, `--model` flags
-- User guide: `readmes/topics/ai/improving-ai-tasks.md` — how to improve AI task results through data practices
+- User guide: `readmes/topics/ai/improving-tasks-Alice.md` — how to improve AI task results through data practices
 
 #### 5A. Database Sync Conflict Advisor ✅
 
@@ -250,7 +250,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Data Sources | Django `_meta.get_fields()`, R25 `src/apps/**/pages/*Detail.tsx`, `*List.tsx`, `*Display.tsx` |
 | Detection Types | **phantom_field** (layout references non-existent field, HIGH), **unrendered_field** (Django field absent from all layouts, MEDIUM/LOW), **unrendered_json** (JSONField with no sub-field inputs or JsonCard, LOW), **detail_only** (field in Detail but not List, INFO) |
 | Implementation | Regex-based extraction from page files, JSON sub-field prefix resolution (e.g., `price_base` → `price` JSONField), BaseModelCards fields auto-excluded. Weekly Celery task. |
-| Features | **Dismissals** — mark intentional mismatches so they stop recurring. **Correction history** — diffs between runs track what was fixed and when. **LLM learning** — past corrections + dismissals fed into prompts for smarter analysis. **Persistent report** — saves full markdown report to `readmes/topics/ai/layout-drift-report.md`. |
+| Features | **Dismissals** — mark intentional mismatches so they stop recurring. **Correction history** — diffs between runs track what was fixed and when. **LLM learning** — past corrections + dismissals fed into prompts for smarter analysis. **Persistent report** — saves full markdown report to `readmes/topics/ai/layout-drift-Alice.md`. |
 | CLI | `--task layout` (scan), `--report-file` (save report), `--dismiss model:field:type --reason '...'` (dismiss), `--undismiss model:field:type` (undo), `--history` (view corrections) |
 | Risk | Low — read-only static analysis, no data modification |
 | Priority | Medium — catches stale field references and missing form inputs before they hit production |
@@ -271,7 +271,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Priority | High — prevents silent frontend calculation bugs from reaching production undetected |
 | Service | `apps/accounts/services/ai_audit.py` — `check_extended_prices()`, `check_quantity()`, `_log_and_persist()`, `_create_audit_record()` |
 | Task | Runs inline on every line save (no Celery task — latency-critical path) |
-| Documentation | [ai-calculation-audit.md](ai-calculation-audit.md) — full details, query examples, configuration |
+| Documentation | [calculation-audit-Alice.md](calculation-audit-Alice.md) — full details, query examples, configuration |
 
 #### Phase 5 Sequencing
 
@@ -287,7 +287,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | 8 | 5H Layout Drift Detection | ✅ Done | `layout_drift_detector.py` |
 | 9 | 5I Calculation Audit | ✅ Done | `ai_audit.py` (in `apps/accounts/services/`) |
 
-> **User guide:** see [improving-ai-tasks.md](improving-ai-tasks.md) for how users can improve LLM task results through data practices.
+> **User guide:** see [improving-tasks-Alice.md](improving-tasks-Alice.md) for how users can improve LLM task results through data practices.
 
 ---
 
