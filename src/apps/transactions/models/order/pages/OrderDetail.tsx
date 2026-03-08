@@ -3,7 +3,13 @@
  * Extends base with order-specific fields and functionality
  * Keeps item search and lines management capabilities
  */
-import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import { FaTruck, FaCheck } from "react-icons/fa";
 
 // Import base component and shared types
@@ -28,11 +34,14 @@ import type {
 } from "../../../types/transactionTypes";
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
-import { lineKey, getNextLineNumber } from "@/apps/transactions/utils/lineHelpers";
+import {
+  lineKey,
+  getNextLineNumber,
+} from "@/apps/transactions/utils/lineHelpers";
 import { saveRecord, getRecord } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 import { ShippingPanel } from "@/apps/common/components/panels";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -62,9 +71,7 @@ const ORDER_TABS_BEFORE: TransactionTab[] = [];
 
 // Dynamic tabs generator with badges based on data
 const getOrderTabsAfter = (_data: Transaction): TransactionTab[] => {
-  return [
-    { id: "shipping", label: "Shipping", icon: <FaTruck size={14} /> },
-  ];
+  return [{ id: "shipping", label: "Shipping", icon: <FaTruck size={14} /> }];
 };
 
 // Custom Order Header Component
@@ -88,9 +95,8 @@ const OrderHeader: React.FC<{
   );
 
   // Get contact ID for payment - prefer billing contact, fall back to any contact
-  const paymentContactId = billingContact?.id || 
-    data.refs?.links?.contact?.[0]?.id ||
-    null;
+  const paymentContactId =
+    billingContact?.id || data.refs?.links?.contact?.[0]?.id || null;
 
   const priceLable = [
     { value: "A", label: "A - Retail" },
@@ -723,8 +729,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     const refsActions = (dataProp as Order)?.refs?.links?.action;
     if (Array.isArray(refsActions) && refsActions.length > 0) {
       return refsActions
-        .map((a: any) => (typeof a === 'number' ? a : a?.id))
-        .filter((id: any): id is number => typeof id === 'number');
+        .map((a: any) => (typeof a === "number" ? a : a?.id))
+        .filter((id: any): id is number => typeof id === "number");
     }
     return [];
   });
@@ -736,9 +742,9 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     const orderData = dataProp as Order;
     const refsActions = orderData?.refs?.links?.action;
     const serverActionIds = Array.isArray(refsActions)
-      ? (refsActions
-          .map((a: any) => (typeof a === 'number' ? a : a?.id))
-          .filter((id: any): id is number => typeof id === 'number'))
+      ? refsActions
+          .map((a: any) => (typeof a === "number" ? a : a?.id))
+          .filter((id: any): id is number => typeof id === "number")
       : [];
     if (serverActionIds.length > 0) {
       setCurrentActionIds((prevIds) => {
@@ -966,7 +972,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
             const existingRefsActions = orderData.refs?.links?.action ?? [];
             const updatedRefsActions = ids.map((id) => {
               const existing = existingRefsActions.find(
-                (a: any) => (typeof a === 'number' ? a : a?.id) === id,
+                (a: any) => (typeof a === "number" ? a : a?.id) === id,
               );
               return existing ?? { id };
             });
@@ -1004,8 +1010,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         currentActionIds.length > 0
           ? currentActionIds
           : (orderData.refs?.links?.action ?? [])
-              .map((a: any) => (typeof a === 'number' ? a : a?.id))
-              .filter((id: any): id is number => typeof id === 'number');
+              .map((a: any) => (typeof a === "number" ? a : a?.id))
+              .filter((id: any): id is number => typeof id === "number");
 
       switch (tabId) {
         case "actions":
@@ -1032,12 +1038,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           return null;
       }
     },
-    [
-      renderHeaderFn,
-      createTask,
-      updateTask,
-      currentActionIds,
-    ],
+    [renderHeaderFn, createTask, updateTask, currentActionIds],
   );
 
   // Custom header renderer
@@ -1063,10 +1064,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           onDeleteLine={(lineId) => {
             // Delete line from array
             if (onLinesChange) {
-onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
-  }
-}}
-transactionType="order"
+              onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
+            }
+          }}
+          transactionType="order"
           onDuplicateLine={(lineId) => {
             // Duplicate line - mark as dirty since it's new
             if (onLinesChange) {
@@ -1106,7 +1107,9 @@ transactionType="order"
 
   // Count pending tasks for badge
   const pendingTaskCount = useMemo(
-    () => tasks.filter((t) => t.status !== "done" && t.status !== "canceled").length,
+    () =>
+      tasks.filter((t) => t.status !== "done" && t.status !== "canceled")
+        .length,
     [tasks],
   );
 
@@ -1160,4 +1163,4 @@ transactionType="order"
   );
 };
 
-export default withDevIdentifier(OrderDetail, 'OrderDetail');
+export default withDevIdentifier(OrderDetail, "OrderDetail");

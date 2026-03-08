@@ -798,9 +798,8 @@ function VendorDetail({
         if (isEditing) {
           setIsEditing(false);
         }
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
         return true;
       }
       return false;
@@ -1163,14 +1162,7 @@ function VendorDetail({
             onSave={handleSubmit(async (fd) => {
               await saveVendor(fd);
             })}
-            onSaveAndClose={
-              (inline ? !!onCancelInline : !!onCancel)
-                ? handleSubmit(async (fd) => {
-                    const ok = await saveVendor(fd);
-                    if (ok) handleCancel();
-                  })
-                : undefined
-            }
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}

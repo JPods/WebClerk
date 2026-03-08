@@ -44,7 +44,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -180,9 +180,8 @@ function EmailDetail({
             type: "success",
           }),
         );
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
@@ -387,12 +386,7 @@ function EmailDetail({
             isSaving={isSubmitting}
             isEditing
             onSave={() => handleSubmit(onSubmit)()}
-            onSaveAndClose={async () => {
-              await handleSubmit(async (fd) => {
-                await onSubmit(fd);
-                handleCancel();
-              })();
-            }}
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -522,4 +516,4 @@ function EmailDetail({
   );
 }
 
-export default withDevIdentifier(EmailDetail, 'EmailDetail');
+export default withDevIdentifier(EmailDetail, "EmailDetail");

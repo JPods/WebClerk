@@ -43,7 +43,19 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
+
+/**
+ * Format phone number as (123) 456-7890
+ * Strips non-digits, then formats with parentheses
+ */
+const formatPhoneNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -194,9 +206,8 @@ function PhoneDetail({
             type: "success",
           }),
         );
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
@@ -365,10 +376,7 @@ function PhoneDetail({
             isSaving={isSubmitting}
             isEditing
             onSave={handleSubmit(onSubmit)}
-            onSaveAndClose={handleSubmit(async (fd) => {
-              await onSubmit(fd);
-              handleCancel();
-            })}
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -412,12 +420,21 @@ function PhoneDetail({
                 required
                 error={errors.number?.message}
               >
-                <Input
-                  type="text"
-                  id="number"
-                  placeholder="Phone Number"
-                  {...register("number")}
-                  error={!!errors.number?.message}
+                <Controller
+                  name="number"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="tel"
+                      id="number"
+                      placeholder="(123) 456-7890"
+                      value={field.value ?? ""}
+                      onChange={(e) =>
+                        field.onChange(formatPhoneNumber(e.target.value))
+                      }
+                      error={!!errors.number?.message}
+                    />
+                  )}
                 />
               </HorizontalField>
 
@@ -444,6 +461,7 @@ function PhoneDetail({
                   type="text"
                   id="format"
                   placeholder="(###) ###-####"
+                  value={"(###) ###-####"}
                   {...register("format")}
                   error={!!errors.format?.message}
                 />
@@ -499,4 +517,4 @@ function PhoneDetail({
   );
 }
 
-export default withDevIdentifier(PhoneDetail, 'PhoneDetail');
+export default withDevIdentifier(PhoneDetail, "PhoneDetail");

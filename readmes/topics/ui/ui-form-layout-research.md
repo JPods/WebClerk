@@ -94,16 +94,16 @@ The standard layout for model Detail pages follows this vertical structure:
 
 ```
 ┌────────────────────────────────────────┐
-│  Header (Title, ID, Nav Arrows)        │
+│  Header (Title, ID, Nav Arrows)        │<- rename to DHeader
 ├────────────────────────────────────────┤
-│  Toolbar (Save, Cancel, Edit, Delete)  │
+│  Toolbar (Save, Cancel, Edit, Delete)  │ <- rename to DToolBar
 ├────────────────────────────────────────┤
 │  Basic Information Panel (PERSISTENT)  │  ← Always visible, read-only in view mode
 │  - Core scalar fields                  │     Editable form in edit/add mode
+├────────────────────────────────────────┤<- rename to DBasic
+│  Tab Navigation                        │<- rename to DComments or General Comment
 ├────────────────────────────────────────┤
-│  Tab Navigation                        │
-├────────────────────────────────────────┤
-│  Tab Content (scrollable)              │
+│  Tab Content (scrollable)              │ <- rename to DTransactionTab
 │  - Financial Summary (collapsed)       │  ← Collapsed by default, expand on demand
 │  - Tab-specific data panels            │
 └────────────────────────────────────────┘
@@ -231,39 +231,39 @@ import { DetailFeatureBadge } from "@/components/common/DetailFeatureBadge";
     clone: false,
     transactions: false,
   }}
-/>
+/>;
 ```
 
 ### Feature Flags
 
-| Key              | Label         | Description                                                      |
-| ---------------- | ------------- | ---------------------------------------------------------------- |
-| `autoSave`       | Auto-Save     | Parent record auto-saves when user creates the first child       |
-| `bgSaveChildren` | BG Children   | Child/related records save in background; close waits for them   |
-| `print`          | Print         | Print / PDF export wired                                         |
-| `clone`          | Clone         | Clone / duplicate record action available                        |
-| `transactions`   | Txn Flow      | Transaction flow support (proposal → order → invoice chain)      |
+| Key              | Label       | Description                                                    |
+| ---------------- | ----------- | -------------------------------------------------------------- |
+| `autoSave`       | Auto-Save   | Parent record auto-saves when user creates the first child     |
+| `bgSaveChildren` | BG Children | Child/related records save in background; close waits for them |
+| `print`          | Print       | Print / PDF export wired                                       |
+| `clone`          | Clone       | Clone / duplicate record action available                      |
+| `transactions`   | Txn Flow    | Transaction flow support (proposal → order → invoice chain)    |
 
 ### Integration Points
 
 The badge is rendered automatically by two shared wrapper components:
 
-| Component              | File                                                | How to enable                                      |
-| ---------------------- | --------------------------------------------------- | -------------------------------------------------- |
-| `SimpleDetailHeader`   | `src/components/common/SimpleDetailHeader.tsx`       | Pass `features={{}}` prop                          |
-| `DetailShell`          | `src/components/common/DetailShell.tsx`              | Pass `features={{}}` prop                          |
+| Component            | File                                           | How to enable             |
+| -------------------- | ---------------------------------------------- | ------------------------- |
+| `SimpleDetailHeader` | `src/components/common/SimpleDetailHeader.tsx` | Pass `features={{}}` prop |
+| `DetailShell`        | `src/components/common/DetailShell.tsx`        | Pass `features={{}}` prop |
 
 Pages that build their own header (e.g. the three `ContactDetail` variants)
 import and render `<DetailFeatureBadge>` directly next to `<DevBadge>`.
 
 ### Current Status
 
-| Page                  | autoSave | bgSaveChildren | print | clone | transactions |
-| --------------------- | :------: | :------------: | :---: | :---: | :----------: |
-| `ContactDetail.tsx`   |    ✅    |       ✅       |       |       |              |
-| `ContactDetail2.tsx`  |    ✅    |       ✅       |       |       |              |
-| `ContactDetail3.tsx`  |    ✅    |       ✅       |       |       |              |
-| All other Detail pages|          |                |       |       |              |
+| Page                   | autoSave | bgSaveChildren | print | clone | transactions |
+| ---------------------- | :------: | :------------: | :---: | :---: | :----------: |
+| `ContactDetail.tsx`    |    ✅    |       ✅       |       |       |              |
+| `ContactDetail2.tsx`   |    ✅    |       ✅       |       |       |              |
+| `ContactDetail3.tsx`   |    ✅    |       ✅       |       |       |              |
+| All other Detail pages |          |                |       |       |              |
 
 ---
 
@@ -280,10 +280,10 @@ children — a confusing chicken-and-egg UX.
 
 Two hooks work together:
 
-| Hook                 | File                                                    | Responsibility                              |
-| -------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| Hook                 | File                                                       | Responsibility                                                           |
+| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `useAutoSaveContact` | `src/apps/core/models/contact/hooks/useAutoSaveContact.ts` | `ensureContactId()` — returns existing ID or auto-saves the parent first |
-| `useInflightSaves`   | `src/hooks/useInflightSaves.ts`                         | Tracks background save promises; `waitForAll()` for close guard |
+| `useInflightSaves`   | `src/hooks/useInflightSaves.ts`                            | Tracks background save promises; `waitForAll()` for close guard          |
 
 ### Flow
 
@@ -311,12 +311,14 @@ When auto-save or background saves are in progress, a blue spinner badge
 appears in the header next to "Unsaved changes":
 
 ```tsx
-{(autoSaveInProgress || inflightCount > 0) && (
-  <span className="... text-blue-700 ...">
-    <FaSpinner className="animate-spin" size={10} />
-    {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
-  </span>
-)}
+{
+  (autoSaveInProgress || inflightCount > 0) && (
+    <span className="... text-blue-700 ...">
+      <FaSpinner className="animate-spin" size={10} />
+      {autoSaveInProgress ? "Auto-saving…" : `${inflightCount} saving…`}
+    </span>
+  );
+}
 ```
 
 ### Unsaved Placeholder
