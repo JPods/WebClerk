@@ -51,6 +51,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("qa_counters", "qa_counters"),
     ("qa_questions", "qa_questions"),
     ("admin", "admin"),
+    ("admin_selectlist", "admin_selectlist"),
     ("React_settings", "React_settings"),
 )
 
@@ -64,5 +65,26 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     },
     "Setting": {
         "purpose": SETTING_PURPOSE_CHOICES,
+    },
+    "Report": {
+        "output_type": (
+            ("print", "Print / PDF"),
+            ("email", "Email (SMTP)"),
+            ("api", "POST to external endpoint"),
+            ("json", "Return structured JSON"),
+            ("export", "CSV / Excel download"),
+            ("label", "Label / barcode print"),
+            ("merge", "Word / spreadsheet merge"),
+        ),
+        "category": (
+            ("report", "Report"),
+            ("statement", "Statement"),
+            ("list", "List"),
+            ("summary", "Summary"),
+            ("letter", "Letter / Email"),
+            ("label", "Label"),
+            ("export", "Export"),
+            ("utility", "Utility"),
+        ),
     },
 }
