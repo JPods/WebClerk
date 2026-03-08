@@ -113,11 +113,11 @@ def _get_transfer_mode(source_type: str, target_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _clone_quantity(src_qty: Dict) -> Dict:
-    """Clone mode: reset active, remaining = staged."""
+    """Clone mode: active = staged, remaining = staged (no children yet)."""
     staged = src_qty.get("staged", 0)
     return {
         "staged":     staged,
-        "active":     0,
+        "active":     staged,
         "remaining":  staged,
         "increment":  src_qty.get("increment", 0),
         "is_fixed":   src_qty.get("is_fixed", False),
@@ -146,7 +146,7 @@ def _convert_quantity(src_qty: Dict) -> Dict:
 
     return {
         "staged":     transfer_qty,
-        "active":     0,
+        "active":     transfer_qty,
         "remaining":  transfer_qty,
         "increment":  increment,
         "is_fixed":   src_qty.get("is_fixed", False),
@@ -157,11 +157,11 @@ def _convert_quantity(src_qty: Dict) -> Dict:
 
 
 def _cross_quantity(src_qty: Dict) -> Dict:
-    """Cross-type mode: full copy, reset active."""
+    """Cross-type mode: full copy, active = staged."""
     staged = src_qty.get("staged", 0)
     return {
         "staged":     staged,
-        "active":     0,
+        "active":     staged,
         "remaining":  staged,
         "increment":  src_qty.get("increment", 0),
         "is_fixed":   src_qty.get("is_fixed", False),
@@ -299,11 +299,34 @@ def _build_line_metadata(
 # Source line updater (convert mode only)
 # ---------------------------------------------------------------------------
 
-def _decrement_source_line(src_line: Model, transfer_qty: float) -> None:
-    """Decrease source remaining and bump transferred after convert transfer."""
+def _decrement_source_line(
+    src_line: Model, transfer_qty: float, child_line_id: int = 0
+) -> None:
+    """Update source line's children_active tracker after convert transfer.
+
+    Universal remaining formula:
+      remaining = active − children_active["sum"]
+    """
     q = dict(getattr(src_line, "quantity", None) or {})
-    q["transferred"] = q.get("transferred", 0) + transfer_qty
-    q["remaining"] = max(0, q.get("remaining", 0) - transfer_qty)
+    active = float(q.get("active", 0) or 0)
+
+    # Build / update children_active tracker
+    children = q.get("children_active", {"sum": 0, "lines": []})
+    if not isinstance(children, dict):
+        children = {"sum": 0, "lines": []}
+    lines_list = children.get("lines", [])
+    if not isinstance(lines_list, list):
+        lines_list = []
+
+    lines_list.append({"id": child_line_id, "active": transfer_qty})
+    children_sum = sum(float(c.get("active", 0) or 0) for c in lines_list)
+    children["sum"] = children_sum
+    children["lines"] = lines_list
+    q["children_active"] = children
+
+    # Recompute remaining
+    q["remaining"] = max(0.0, active - children_sum)
+
     src_line.quantity = q
     fields = ["quantity", "dt_modified", "version"]
     if q["remaining"] <= 0:
@@ -412,7 +435,7 @@ def execute_transfer(
                 xfer_qty = remaining
             else:
                 xfer_qty = increment
-            _decrement_source_line(src_line, xfer_qty)
+            _decrement_source_line(src_line, xfer_qty, target_line.pk)
 
     if transferred == 0:
         raise TransferError("No lines to transfer")

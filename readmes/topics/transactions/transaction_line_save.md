@@ -18,14 +18,12 @@ This document describes how transaction lines are created, updated, and deleted 
 
 ## Overview
 
-Transaction lines (order lines, invoice lines, etc.) are saved as part of the parent transaction save operation via the unified `/wcapi/save/` endpoint. The backend:
+Transaction lines (order lines, invoice lines, etc.) are saved through two endpoints:
 
-1. Saves the parent transaction (Order, Invoice, Proposal, Purchase, WorkOrder)
-2. Processes embedded `lines` array
-3. Creates/updates line records using the appropriate line model
-4. Generates Pending inventory records for new lines
+1. **`/wcapi/transaction/save/`** — Primary path for R25. Uses `save_transaction_with_lines()` with collect-then-create pending pattern.
+2. **`/wcapi/save/`** — Generic path for non-transaction saves and per-line operations via `LineItemService`.
 
-This ensures atomicity and consistency across the transaction and its lines.
+Both ensure atomicity and consistency across the transaction and its lines.
 
 ---
 
@@ -144,9 +142,9 @@ All line types share a common structure with type-specific variations:
     "unit_measure": "EA"
   },
   "quantity": {
-    "staged": 5,                 // Quantity staged/committed on this line
-    "transferred": 0,               // Quantity acted on (context-dependent: shipped, received, etc.)
-    "remaining": 5,              // staged - transferred
+    "staged": 5,                 // Qty from parent (frozen after creation)
+    "active": 5,                 // User's working qty (never system-modified)
+    "remaining": 5,              // active − children_active.sum
     "is_fixed": false,           // Whether quantity is locked
     "precision": 2               // Decimal precision
   },
@@ -161,24 +159,17 @@ All line types share a common structure with type-specific variations:
 }
 ```
 
-> **Canonical quantity keys**: All transaction types use `staged` / `transferred` / `remaining`.
-> Legacy keys like `ordered`, `invoiced`, `received`, `shipped`, `packed` are **deprecated**.
-> `transferred` replaces the type-specific verb — its meaning is contextual:
->
-> | Transaction Type | `transferred` means |
-> |------------------|------------------|
-> | Proposal         | converted to order |
-> | Order            | shipped / invoiced |
-> | Invoice          | delivered |
-> | Purchase         | received from vendor |
-> | WorkOrder        | completed |
+> **Canonical quantity keys**: All transaction types use `staged` / `active` / `remaining`.
+> `remaining` is computed as `active − children_active["sum"]` (or `active` when no children).
+> The `children_active` tracker on parent lines records each child line and its current active qty.
+> Legacy keys like `ordered`, `invoiced`, `received`, `shipped`, `packed`, `transferred` are **deprecated**.
 
 ### Type-Specific Fields
 
 | Field | Order | Invoice | Proposal | Purchase | WorkOrder |
 |-------|-------|---------|----------|----------|-----------|
 | `quantity.staged` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `quantity.transferred` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `quantity.active` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `quantity.remaining` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `price.unit` | ✓ | ✓ | ✓ | - | - |
 | `cost.unit` | - | - | - | ✓ | ✓ |

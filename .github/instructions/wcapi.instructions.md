@@ -1,7 +1,8 @@
 # WCAPI Instructions — Transaction Save & Pending System
 
 These instructions supplement `copilot.instructions.md` with details specific
-to the WCAPI save endpoints and the Pending inventory system.
+to the WCAPI save endpoints, the transfer pipeline, and the Pending inventory
+system.
 
 ---
 
@@ -9,44 +10,53 @@ to the WCAPI save endpoints and the Pending inventory system.
 
 | Endpoint | View | Service | Purpose |
 |----------|------|---------|---------|
-| `POST /wcapi/save/` | `SaveWcapiView.post()` in `apps/core/views/save_view.py` | `LineItemService._create_pending_for_new_line()` | Generic create/update for any model. Used for order deactivation after transfer, non-transaction saves. |
-| `POST /wcapi/transaction/save/` | `WCAPITransactionSaveView.post()` in `apps/transactions/views/wcapi.py` L124 | `save_transaction_with_lines()` in `apps/transactions/services/transaction_save.py` | Transaction saves with lines. R25 uses `saveTransactionWithLines()` for all transaction saves. |
+| `POST /wcapi/save/` | `SaveWcapiView.post()` in `apps/core/views/save_view.py` L282 | Per-line pending via `LineItemService` (L825) | Generic create/update for any model. Used for order deactivation after transfer, non-transaction saves. |
+| `POST /wcapi/transaction/save/` | `WCAPITransactionSaveView.post()` in `apps/transactions/views/wcapi.py` L126 | `save_transaction_with_lines()` in `apps/transactions/services/transaction_save.py` L780 | Transaction saves with lines. R25 uses `saveTransactionWithLines()` for all transaction saves. |
 
 ---
 
-## Transaction Save — Collect-then-Create Pattern (2026-02-21)
+## Universal Remaining Formula
 
-### Why Collect-then-Create
+All quantity updates across the codebase use the **same** formula:
 
-The previous per-line pattern created Pending records inside the save loop.
-Combined with Django's `post_save` signal safety net, this caused **duplicate
-pending records** (signal fired + explicit create = 2 per line).
+```
+remaining = active − children_active["sum"]
+```
 
-The new pattern:
-1. Saves all lines with `_pending_created = True` (suppresses signals)
-2. Collects pending delta dicts into an array during the loop
-3. After all lines are committed, creates Pending records from the array
-4. Fires one `dispatch_pending_processing()` at the end
+When a line has no children, `children_active` is absent and `remaining = active`.
 
-### Backend Authority
+**Field roles**:
 
-The backend is authoritative for all pending-related decisions:
+| Field | Meaning | Who sets it |
+|-------|---------|-------------|
+| `staged` | Quantity received from parent (frozen after creation) | Transfer code |
+| `active` | The user's working quantity — **never modified by the system** | User / R25 |
+| `remaining` | Quantity still available for child transfers | Computed: `active − children_active.sum` |
+| `children_active` | Denormalized tracker: `{"sum": N, "lines": [{"id": X, "active": Y}, ...]}` | Transfer code on parent line |
 
-| Decision | Source | NOT from |
-|----------|--------|----------|
-| Pending type code (SO/IN/PO/PP/WO) | `_PENDING_TYPE_MAP[model_key]` | Front-end refs |
-| Is this a transfer? | `header.parent_id` + `header.parent_model` | Front-end flags |
-| Quantity buckets | Derived from type + transfer status | Front-end data |
-| Duplicate detection | `(invoice_line_id, order_line_id)` pair guard | None |
+---
 
-### Key Functions in `transaction_save.py`
+## Transfer Code Paths
 
-| Function | Line | Purpose |
-|----------|------|---------|
-| `_PENDING_TYPE_MAP` | ~L52 | Maps model_key → type code |
-| `_create_pending_from_deltas()` | ~L62 | Creates Pending records from collected array |
-| `_update_source_lines_after_transfer()` | ~L250 | Bumps actioned/remaining on source lines |
-| `save_transaction_with_lines()` | ~L487 | Main entry point — 4-phase save |
+Four code paths create child transactions from a parent. All maintain
+the `children_active` tracker on the source (parent) line.
+
+| Path | File | Entry Point | Trigger |
+|------|------|-------------|---------|
+| Transfer dropdown | `transaction_save.py` L495 | `_update_source_lines_after_transfer()` | R25 `TransactionDetailBase` Transfer menu → `saveTransactionWithLines()` |
+| Convert to Order | `proposal_to_order.py` | `transfer_proposal_to_order()` | R25 `ProposalDetail` Convert button → `POST /tx/proposals/{id}/convert-to-order/` |
+| Order to Invoice | `order_to_invoice.py` | `transfer_order_to_invoice()` | R25 Order→Invoice flow → `POST /tx/orders/{id}/convert-to-invoice/` |
+| Unified engine | `transfer.py` | `execute_transfer()` | `POST /tx/transfers/execute/` (supports clone, convert, cross-type) |
+
+All four update the parent line's `children_active` and recompute
+`remaining = active − children_active.sum`.
+
+### Child active qty changes
+
+When a child line's `active` qty is edited (not a new transfer, but a qty
+update on an existing child), `_update_parent_children_active()` in
+`transaction_save.py` L403 finds the parent line and updates the matching
+entry in `children_active.lines`, then recomputes remaining.
 
 ### Line Number Assignment
 
@@ -120,7 +130,8 @@ When R25 creates an invoice from an order:
    - `on_so = -qty` (release SO commitment)
    - `on_hand = -qty` (deduct on-hand)
 5. R25 then calls `saveRecord(order, {id, is_active: false})` → `POST /wcapi/save/` to deactivate the order (no lines, no pending)
-6. Source order lines are updated in Phase 3: actioned bumped, remaining decremented, status set to "transferred"
+6. Source order lines are updated via `_update_source_lines_after_transfer()`:
+   children_active tracker built, remaining recomputed, status set to "transferred" when remaining ≤ 0
 
 ---
 

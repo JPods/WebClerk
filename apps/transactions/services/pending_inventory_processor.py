@@ -1,8 +1,10 @@
 """
 Pending Inventory Processor for Line Item Changes.
 
-Processes Pending records created by LineItemService to update Item
-inventory quantities (on_so, on_po, on_wo, on_in, on_r, etc.).
+Processes Pending records created by the transaction save pipeline
+(save_transaction_with_lines, proposal_to_order, order_to_invoice,
+execute_transfer) to update Item inventory quantities
+(on_so, on_po, on_wo, on_in, on_r, etc.).
 
 This decouples transaction line changes from Item record updates,
 reducing lock contention and improving throughput.
@@ -43,7 +45,7 @@ from apps.transactions.services.trace_debug import (
 logger = logging.getLogger(__name__)
 
 
-# Purposes handled by this processor (from LineItemService)
+# Purposes handled by this processor
 HANDLED_PURPOSES = (
     'inventory_line_add',
     'inventory_qty_change',

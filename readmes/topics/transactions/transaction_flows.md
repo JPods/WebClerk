@@ -65,30 +65,26 @@ Lines track their source line via `refs.source` and `refs.xfer` JSONB:
 }
 ```
 
-## Quantity Model — `staged` / `transferred` / `remaining`
+## Quantity Model — `staged` / `active` / `remaining` / `children_active`
 
-All line types use a unified `quantity` JSONB with **three canonical keys**:
+All line types use a unified `quantity` JSONB with these canonical keys:
 
 | Key | Meaning |
 |-----|---------|
-| `staged` | Quantity committed on this line |
-| `transferred` | Quantity acted upon (context-dependent — see below) |
-| `remaining` | `staged - transferred` |
+| `staged` | Quantity received from parent (frozen after creation) |
+| `active` | User's working quantity — **never modified by the system** |
+| `remaining` | `active − children_active["sum"]` (or `active` if no children) |
+| `children_active` | Denormalized tracker: `{"sum": N, "lines": [{"id": X, "active": Y}, ...]}` |
 
 Additional keys: `is_fixed`, `precision`, `is_blanket`, `increment`.
 
-The `transferred` key **replaces** the legacy per-type verbs:
+**Universal remaining formula:**
 
-| Transaction Type | `transferred` means | Legacy key (deprecated) |
-|------------------|-------------------|------------------------|
-| Proposal | converted to order | — |
-| Order | shipped / invoiced | `ordered`, `invoiced` |
-| Invoice | delivered | `shipped` |
-| Purchase | received from vendor | `received` |
-| WorkOrder | completed | — |
+```
+remaining = active − children_active["sum"]
+```
 
-> **Migration note**: Transfer services must be updated to read/write `staged`/`transferred`
-> instead of legacy keys like `ordered`, `invoiced`, `packed`.
+When a line has no children, `children_active` is absent and `remaining = active`.
 
 ## Transaction Models
 

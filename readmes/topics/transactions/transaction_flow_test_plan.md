@@ -1,8 +1,13 @@
 # Transaction Flow — Test Plan
 
 > **Created**: 2026-02-17  
+> **Updated**: 2026-03  
 > **Purpose**: Validate the full transaction lifecycle, parent-child lineage,
-> quantity flow (`staged`/`transferred`/`remaining`), and header totals rollup.
+> quantity flow (`staged`/`active`/`remaining`/`children_active`), and header totals rollup.
+>
+> **Note**: Some code samples below still reference `"transferred"` — the canonical
+> quantity keys are now `staged`, `active`, `remaining`. Parent lines track children
+> via `children_active`. See `transactions-totals.md` for the current model.
 
 ---
 
@@ -12,7 +17,7 @@ This test plan covers:
 
 1. **FK relationships** — transaction → org, line → parent transaction
 2. **Parent lineage** — `parent_model`/`parent_id` across transfer services
-3. **Quantity flow** — `staged`/`transferred`/`remaining` through the chain
+3. **Quantity flow** — `staged`/`active`/`remaining`/`children_active` through the chain
 4. **Header totals** — line-level changes rolling up via totals services
 5. **Inventory impact** — pending records created for each line type
 6. **Ledger & Payment** — invoice → ledger → payment settlement
