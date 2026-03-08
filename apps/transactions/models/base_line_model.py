@@ -170,6 +170,10 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
         except (TypeError, ValueError):
             out["increment"] = 0
 
+    # ── Preserve children_active tracker (set by transaction_save) ───
+    if "children_active" in q and isinstance(q["children_active"], dict):
+        out["children_active"] = q["children_active"]
+
     # ── Standalone detection: mirror staged = active ─────────────────
     # When user enters active (standalone entry) and staged was not
     # explicitly provided, mirror staged = active.

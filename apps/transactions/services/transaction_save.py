@@ -400,23 +400,119 @@ def _validate_transfer_quantities_and_inventory(
                 raise InsufficientInventoryError(item_id, sku, required_qty, available)
 
 
+def _update_parent_children_active(
+    header_obj: 'Model',
+    child_line_id: int,
+    new_active: float,
+) -> bool:
+    """Update the parent line's children_active entry when a child's active
+    qty changes.
+
+    Finds the parent via header_obj.parent_model / parent_id and the child
+    line's refs.source.<parent_model>_line_id.  Updates the children_active
+    tracker on the parent line with the new active value and recomputes
+    remaining = active − children_active.sum.
+
+    Returns True if a parent line was updated, False otherwise.
+    """
+    parent_model = getattr(header_obj, 'parent_model', None)
+    parent_id = getattr(header_obj, 'parent_id', None)
+    if not parent_model or not parent_id:
+        return False
+
+    from apps.core.utils import registry
+
+    source_line_key = f"{parent_model}line"
+    SourceLineModel = registry.resolve(source_line_key)
+    if SourceLineModel is None:
+        return False
+
+    # Find which source line this child references
+    # Read the child line's refs.source to get the parent line id
+    model_key = header_obj.__class__.__name__.lower()
+    child_line_key = f"{model_key}line"
+    ChildLineModel = registry.resolve(child_line_key)
+    if not ChildLineModel:
+        return False
+
+    try:
+        child_line = ChildLineModel.objects.get(pk=child_line_id)
+    except ChildLineModel.DoesNotExist:
+        return False
+
+    refs = getattr(child_line, 'refs', None) or {}
+    source_info = refs.get('source') or {}
+    src_line_id = source_info.get(f'{parent_model}_line_id')
+    if not src_line_id:
+        return False
+
+    try:
+        src_line = SourceLineModel.objects.select_for_update().get(pk=src_line_id)
+    except SourceLineModel.DoesNotExist:
+        logger.warning("Parent line %s #%s not found for children_active update", source_line_key, src_line_id)
+        return False
+
+    q = dict(getattr(src_line, 'quantity', None) or {})
+    active = float(q.get('active', 0) or 0)
+
+    # Update children_active tracker
+    children = q.get('children_active', {'sum': 0, 'lines': []})
+    if not isinstance(children, dict):
+        children = {'sum': 0, 'lines': []}
+    lines_list = children.get('lines', [])
+    if not isinstance(lines_list, list):
+        lines_list = []
+
+    # Find and update the existing child entry, or log warning
+    found = False
+    for entry in lines_list:
+        if entry.get('id') == child_line_id:
+            entry['active'] = new_active
+            found = True
+            break
+    if not found:
+        # Child not tracked yet — add it (shouldn't normally happen)
+        lines_list.append({'id': child_line_id, 'active': new_active})
+
+    children_sum = sum(float(c.get('active', 0) or 0) for c in lines_list)
+    children['sum'] = children_sum
+    children['lines'] = lines_list
+    q['children_active'] = children
+    q['remaining'] = max(0.0, active - children_sum)
+
+    src_line.quantity = q
+    src_line._pending_created = True
+    src_line.save(update_fields=['quantity', 'dt_modified', 'version'])
+
+    logger.debug(
+        "Updated parent %s #%s children_active: child=%s active=%s sum=%s remaining=%s",
+        source_line_key, src_line_id, child_line_id, new_active,
+        children_sum, q['remaining'],
+    )
+    return True
+
+
 def _update_source_lines_after_transfer(
     header_obj: 'Model',
     model_key: str,
     lines_data: List[Dict[str, Any]],
 ) -> int:
-    """After saving a *new* transferred transaction, bump actioned on each
-    source line and set remaining = staged − actioned.
+    """After saving a *new* transferred transaction, update *each* source
+    (parent) line's ``children_active`` tracker and recompute remaining.
+
+    Universal remaining formula:
+      remaining = active − children_active["sum"]
+
+    At creation time the child's active == child's staged == what was
+    transferred from the parent.  The ``children_active`` dict stored
+    on the parent line records every child and its current active qty
+    so that later edits can simply update the entry and recompute.
 
     Returns number of source lines updated.
 
     The frontend stamps every transferred line's refs.source with:
         { "<source_type>_line_id": <pk>, "<source_type>_id": <pk>,
           "converted_from": "<source_type>" }
-
-    We look up each source line, read quantity.staged / actioned,
-    add the transferred quantity (target line's quantity.staged),
-    and save.
     """
     parent_model = getattr(header_obj, 'parent_model', None)
     parent_id = getattr(header_obj, 'parent_id', None)
@@ -431,6 +527,14 @@ def _update_source_lines_after_transfer(
         logger.warning("_update_source_lines_after_transfer: cannot resolve %s", source_line_key)
         return 0
 
+    # We need the saved child line PKs — map source_line_id → child_line_id
+    # by reading the result lines that were just saved.
+    # The child line PKs were added to `result['lines']` during the save loop,
+    # but we don't have the result dict here.  Instead, look up by source ref.
+    from apps.core.utils import registry as reg
+    child_line_key = f"{model_key}line"
+    ChildLineModel = reg.resolve(child_line_key)
+
     updated = 0
     with db_transaction.atomic():
         for ld in lines_data:
@@ -440,12 +544,27 @@ def _update_source_lines_after_transfer(
             if not src_line_id:
                 continue
 
-            qty_staged = 0.0
             qty_data = ld.get('quantity') or {}
+            child_active = 0.0
             if isinstance(qty_data, dict):
-                qty_staged = float(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
-            if qty_staged <= 0:
+                child_active = float(qty_data.get('active', 0) or qty_data.get('staged', 0) or 0)
+            if child_active <= 0:
                 continue
+
+            # Find the child line PK from the saved line (look up by source ref)
+            child_line_id = ld.get('id') or 0
+            if not child_line_id and ChildLineModel:
+                # Fallback: query child lines that reference this source line
+                try:
+                    child_line = ChildLineModel.objects.filter(
+                        **{_resolve_parent_fk(ChildLineModel, type(header_obj), model_key): header_obj.pk}
+                    ).filter(
+                        refs__source__contains={f'{parent_model}_line_id': src_line_id}
+                    ).order_by('-pk').first()
+                    if child_line:
+                        child_line_id = child_line.pk
+                except Exception:
+                    pass
 
             try:
                 src_line = SourceLineModel.objects.select_for_update().get(pk=src_line_id)
@@ -454,9 +573,29 @@ def _update_source_lines_after_transfer(
                 continue
 
             q = dict(getattr(src_line, 'quantity', None) or {})
-            q['transferred'] = float(q.get('transferred', 0) or 0) + qty_staged
-            remaining = float(q.get('staged', 0) or q.get('active', 0) or 0) - float(q['transferred'])
-            q['remaining'] = max(0.0, remaining)
+            active = float(q.get('active', 0) or 0)
+
+            # Build/update children_active tracker
+            children = q.get('children_active', {'sum': 0, 'lines': []})
+            if not isinstance(children, dict):
+                children = {'sum': 0, 'lines': []}
+            lines_list = children.get('lines', [])
+            if not isinstance(lines_list, list):
+                lines_list = []
+
+            # Append this child
+            lines_list.append({'id': child_line_id, 'active': child_active})
+            children_sum = sum(float(c.get('active', 0) or 0) for c in lines_list)
+            children['sum'] = children_sum
+            children['lines'] = lines_list
+            q['children_active'] = children
+
+            # Recompute remaining = active − children_active.sum
+            q['remaining'] = max(0.0, active - children_sum)
+
+            # Also keep transferred for backward compat
+            q['transferred'] = float(q.get('transferred', 0) or 0) + child_active
+
             src_line.quantity = q
 
             save_fields = ['quantity', 'dt_modified', 'version']
@@ -464,14 +603,12 @@ def _update_source_lines_after_transfer(
                 src_line.status = 'transferred'
                 save_fields.append('status')
 
-            # Suppress signal — the transfer pending already captures
-            # the on_so release for this order_line↔invoice_line pair.
             src_line._pending_created = True
             src_line.save(update_fields=save_fields)
             updated += 1
             logger.debug(
-                "Updated source %s #%s: transferred=%s remaining=%s",
-                source_line_key, src_line_id, q['transferred'], q['remaining'],
+                "Updated source %s #%s: children_active=%s remaining=%s",
+                source_line_key, src_line_id, children, q['remaining'],
             )
 
     return updated
@@ -835,6 +972,16 @@ def save_transaction_with_lines(
                         'line_data': line_data,
                         'is_qty_change': True,  # Flag to indicate this is a qty change, not new line
                     })
+
+                # ── Update parent's children_active when child active changes ──
+                old_active = float(old_qty_data.get('active', 0) or 0)
+                new_active = float(new_qty_data.get('active', 0) or 0)
+                if old_active != new_active:
+                    _update_parent_children_active(
+                        header_obj=header_obj,
+                        child_line_id=line_id,
+                        new_active=new_active,
+                    )
 
                 result['lines_saved'] += 1
                 result['lines'].append({
