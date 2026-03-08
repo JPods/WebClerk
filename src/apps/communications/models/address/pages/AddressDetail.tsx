@@ -49,7 +49,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { addressSchema } from "../utils/addressSchema";
 import { AddressAddProps } from "../types/addressType";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 //import { ColumnSelector } from "@/components/common/DetailTabs";
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -174,9 +174,8 @@ function AddressDetail({
             type: "success",
           }),
         );
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
@@ -346,12 +345,7 @@ function AddressDetail({
             isSaving={isSubmitting}
             isEditing
             onSave={() => handleSubmit(onSubmit)()}
-            onSaveAndClose={async () => {
-              await handleSubmit(async (fd) => {
-                await onSubmit(fd);
-                handleCancel();
-              })();
-            }}
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -552,4 +546,4 @@ function AddressDetail({
   );
 }
 
-export default withDevIdentifier(AddressDetail, 'AddressDetail');
+export default withDevIdentifier(AddressDetail, "AddressDetail");

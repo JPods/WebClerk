@@ -167,6 +167,33 @@ const PRICE_LEVEL_OPTIONS = [
   { value: "E", label: "E - Special" },
 ];
 
+/**
+ * Format phone number as +CC (123) 456-7890 international style
+ * Preserves leading + and country code, formats the rest with parentheses
+ */
+const formatPhoneNumber = (value: string): string => {
+  // Check for country code prefix (e.g., +91, +1)
+  const match = value.match(/^(\+\d{1,4})\s*(.*)$/);
+  if (match) {
+    const countryCode = match[1];
+    const rest = match[2].replace(/\D/g, "").slice(0, 10);
+    if (rest.length === 0) return countryCode + " ";
+    if (rest.length <= 3) return `${countryCode} (${rest}`;
+    if (rest.length <= 6)
+      return `${countryCode} (${rest.slice(0, 3)}) ${rest.slice(3)}`;
+    return `${countryCode} (${rest.slice(0, 3)}) ${rest.slice(
+      3,
+      6,
+    )}-${rest.slice(6)}`;
+  }
+  // No country code - format as (123) 456-7890
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 /* ----------------------------------
    Horizontal Field Row Component
    Label on left, input on right (Enterprise standard)
@@ -833,9 +860,8 @@ function CustomerDetail({
         if (isEditing) {
           setIsEditing(false);
         }
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
         return true;
       }
       return false;
@@ -1200,14 +1226,7 @@ function CustomerDetail({
             onSave={handleSubmit(async (fd) => {
               await saveCustomer(fd);
             })}
-            onSaveAndClose={
-              (inline ? !!onCancelInline : !!onCancel)
-                ? handleSubmit(async (fd) => {
-                    const ok = await saveCustomer(fd);
-                    if (ok) handleCancel();
-                  })
-                : undefined
-            }
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -1282,11 +1301,20 @@ function CustomerDetail({
               </HorizontalField>
 
               <HorizontalField label="phone" htmlFor="phone">
-                <Input
-                  type="tel"
-                  id="phone"
-                  placeholder="phone"
-                  {...register("phone")}
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="tel"
+                      id="phone"
+                      placeholder="+91 (123) 456-7890"
+                      value={field.value ?? ""}
+                      onChange={(e) =>
+                        field.onChange(formatPhoneNumber(e.target.value))
+                      }
+                    />
+                  )}
                 />
               </HorizontalField>
 

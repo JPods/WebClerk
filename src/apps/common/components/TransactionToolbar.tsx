@@ -48,7 +48,9 @@ interface TransactionToolbarProps {
   isEditing?: boolean;
   /** Callback for Save action */
   onSave?: () => Promise<void> | void;
-  /** Callback for Save & Close action */
+  /** Callback after successful save (called before close) */
+  onSaved?: () => void;
+  /** Callback for Save & Close action (deprecated - use onSave + onSaved instead) */
   onSaveAndClose?: () => Promise<void> | void;
   /** Callback for Clone action */
   onClone?: () => Promise<void> | void;
@@ -85,6 +87,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   isSaving = false,
   isEditing = false,
   onSave,
+  onSaved,
   onSaveAndClose,
   onClone,
   onTransfer,
@@ -142,6 +145,27 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
     }
   };
 
+  // Handle Save & Close: save -> onSaved -> onCancel
+  const handleSaveAndClose = async () => {
+    if (actionInProgress) return;
+    setActionInProgress("saveAndClose");
+    try {
+      // If legacy onSaveAndClose is provided, use it
+      if (onSaveAndClose) {
+        await onSaveAndClose();
+      } else if (onSave) {
+        // Otherwise use the new pattern: save, then onSaved, then close
+        await onSave();
+        onSaved?.();
+        onCancel?.();
+      }
+    } catch (error) {
+      console.error("saveAndClose failed:", error);
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   // Filter transfer options (exclude current type)
   const transferOptions = TRANSACTION_TYPES.filter(
     (t) => t.value !== transactionType,
@@ -161,10 +185,10 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
       {/* Left side: Primary actions */}
       <div className="flex items-center gap-2">
         {/* Save & Close */}
-        {isEditing && onSaveAndClose && (
+        {isEditing && (onSaveAndClose || onSave) && (
           <button
             type="button"
-            onClick={() => handleAction("saveAndClose", onSaveAndClose)}
+            onClick={handleSaveAndClose}
             disabled={isSaving || actionInProgress !== null}
             className={`${primaryButton} text-xs`}
             title="Save and close"

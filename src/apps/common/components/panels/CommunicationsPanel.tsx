@@ -181,7 +181,12 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
 }) => {
   // Try multiple field names: number, value, format
   const phoneNumber = phone.number || (phone as any).value || "";
-  const phoneDisplay = phone.format || phoneNumber;
+  const countryCode = phone.country_code || "";
+  // Format: +CC (XXX) XXX-XXXX
+  const formattedNumber = formatPhoneNumber(phoneNumber);
+  const phoneDisplay = countryCode
+    ? `${countryCode} ${formattedNumber}`
+    : formattedNumber;
 
   return (
     <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
@@ -435,14 +440,15 @@ const DomainItem: React.FC<DomainItemProps> = ({
 // ---------------------------------------------------------------------------
 
 /**
- * Format phone number as 123-456-7890
- * Strips non-digits, then inserts dashes at positions 3 and 6
+ * Format phone number as (123) 456-7890 international style
+ * Strips non-digits, then formats with parentheses
  */
 const formatPhoneNumber = (value: string): string => {
   const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 };
 
 interface AddEditModalProps {
@@ -606,7 +612,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
                       number: formatPhoneNumber(e.target.value),
                     })
                   }
-                  placeholder="123-456-7890"
+                  placeholder="(123) 456-7890"
                   className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
                   required
                 />

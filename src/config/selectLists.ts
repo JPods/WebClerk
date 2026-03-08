@@ -53,6 +53,18 @@ function fromValues(values: string[]): SelectOption[] {
 
 export const STATIC_LISTS: SelectListDef[] = [
   {
+    key: 'type_contact',
+    label: 'type',
+    editable: false,
+    options: fromValues([
+      'retailer','wholesaler','distributor','contractor','end_customer','other','reseller','partner','vendor','prospect','lead','friend','internal','government','non_profit','press','analyst','investor','other',
+    ]),
+  },
+ // contact.prefs.profiles.type["friend","press"]
+ 
+ 
+ 
+  {
     key: 'states',
     label: 'US States',
     editable: false,
