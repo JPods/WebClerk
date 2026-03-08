@@ -118,12 +118,15 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
     label: 'Payment Terms',
     editable: true,
     options: toOptions([
-      ['On Order', 'On Order'],
-      ['Net 30', 'Net 30'],
-      ['Net 60', 'Net 60'],
-      ['Net 90', 'Net 90'],
-      ['COD', 'COD'],
-      ['Prepaid', 'Prepaid'],
+      ['N30', 'Net 30 days'],
+      ['N30_2%N10', 'Net 30, 2% discount Net 10'],
+      ['3Payments30Days', '3 Payments every 30 days'],
+      ['Dec1', 'Due Dec 1'],
+      ['On Order', 'Payment due on order'],
+      ['Net 60', 'Net 60 days'],
+      ['Net 90', 'Net 90 days'],
+      ['COD', 'Cash on Delivery'],
+      ['Prepaid', 'Payment in advance'],
       ['Due on Receipt', 'Due on Receipt'],
     ]),
   },
@@ -296,6 +299,48 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
 // ---------------------------------------------------------------------------
 
 const ALL_LISTS = [...STATIC_LISTS, ...DYNAMIC_LISTS];
+
+// ---------------------------------------------------------------------------
+// wc3 Term Records — maps term name/id to full metadata
+// Sync'd from wc3 accounts.Term table (10 records as of 2026-03-08)
+// Canonical source: wc3 sync_terms management command
+// ---------------------------------------------------------------------------
+
+export interface TermRecord {
+  id: number;
+  name: string;
+  description: string;
+  daysDue: number;
+  discountRate: number | null;
+  daysDiscount: number | null;
+  periodCount: number;
+  daysInPeriod: number | null;
+}
+
+export const TERM_RECORDS: TermRecord[] = [
+  { id: 1,  name: 'N30',              description: 'Net 30 days',                   daysDue: 30, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 2,  name: 'N30_2%N10',        description: 'Net 30, 2% discount Net 10',    daysDue: 30, discountRate: 2.0,  daysDiscount: 10,   periodCount: 1, daysInPeriod: null },
+  { id: 3,  name: '3Payments30Days',  description: '3 Payments every 30 days',      daysDue: 30, discountRate: null, daysDiscount: null, periodCount: 3, daysInPeriod: 30   },
+  { id: 4,  name: 'Dec1',             description: 'Due Dec 1',                     daysDue:  1, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 5,  name: 'On Order',         description: 'Payment due on order',          daysDue:  0, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 6,  name: 'Net 60',           description: 'Net 60 days',                   daysDue: 60, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 7,  name: 'Net 90',           description: 'Net 90 days',                   daysDue: 90, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 8,  name: 'COD',              description: 'Cash on Delivery',              daysDue:  0, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 9,  name: 'Prepaid',          description: 'Payment in advance',            daysDue:  0, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+  { id: 10, name: 'Due on Receipt',   description: 'Due on Receipt',                daysDue:  0, discountRate: null, daysDiscount: null, periodCount: 1, daysInPeriod: null },
+];
+
+/** Lookup term record by name (e.g. "N30") */
+export function getTermByName(name: string): TermRecord | undefined {
+  return TERM_RECORDS.find((t) => t.name === name);
+}
+
+/** Lookup term record by wc3 ID */
+export function getTermById(id: number): TermRecord | undefined {
+  return TERM_RECORDS.find((t) => t.id === id);
+}
+
+// ---------------------------------------------------------------------------
 
 /** Lookup table: key → SelectListDef */
 export const SELECT_LIST_MAP: Record<string, SelectListDef> = Object.fromEntries(

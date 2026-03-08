@@ -40,3 +40,14 @@ export {
   type SelectOption,
   type SelectListDef,
 } from './selectLists';
+
+// Select list sync (r25 ↔ wc3 Setting records)
+export {
+  fetchSelectListsFromWc3,
+  fetchSelectListFromWc3,
+  pushSelectListToWc3,
+  pushAllSelectListsToWc3,
+  mergeWc3SelectLists,
+  diffSelectList,
+  type SyncResult,
+} from './syncSelectLists';
