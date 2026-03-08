@@ -47,7 +47,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // HorizontalField — label-left for edit mode
@@ -191,9 +191,8 @@ function DomainDetail({
             type: "success",
           }),
         );
-        if (onSaved) {
-          onSaved();
-        }
+        // NOTE: onSaved() is intentionally NOT called here.
+        // It should only be invoked by "Save & Close" flow via TransactionToolbar.
       }
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
@@ -384,10 +383,7 @@ function DomainDetail({
             isSaving={isSubmitting}
             isEditing
             onSave={handleSubmit(onSubmit)}
-            onSaveAndClose={handleSubmit(async (fd) => {
-              await onSubmit(fd);
-              handleCancel();
-            })}
+            onSaved={onSaved}
             onCancel={handleCancel}
             canClone={false}
             canTransfer={false}
@@ -463,4 +459,4 @@ function DomainDetail({
   );
 }
 
-export default withDevIdentifier(DomainDetail, 'DomainDetail');
+export default withDevIdentifier(DomainDetail, "DomainDetail");

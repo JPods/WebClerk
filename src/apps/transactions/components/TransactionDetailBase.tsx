@@ -9,9 +9,20 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
 import useUnsavedChangesGuard from "@/hooks/useUnsavedChangesGuard";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
-import { OrderPrintDocument, InvoicePrintDocument, ProposalPrintDocument, PurchasePrintDocument, WorkorderPrintDocument, ReceiptPrintDocument, AdjustmentPrintDocument } from "./print";
+import {
+  OrderPrintDocument,
+  InvoicePrintDocument,
+  ProposalPrintDocument,
+  PurchasePrintDocument,
+  WorkorderPrintDocument,
+  ReceiptPrintDocument,
+  AdjustmentPrintDocument,
+} from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
-import { useTransactionDefaults, computeDueDate } from "@/hooks/useTransactionDefaults";
+import {
+  useTransactionDefaults,
+  computeDueDate,
+} from "@/hooks/useTransactionDefaults";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../store/hooks";
@@ -30,7 +41,11 @@ import {
   FaQuestionCircle,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
-import { ScalarCard, JsonCard, BaseModelCards } from "@/apps/common/components/detail";
+import {
+  ScalarCard,
+  JsonCard,
+  BaseModelCards,
+} from "@/apps/common/components/detail";
 
 // Import API functions
 import {
@@ -66,7 +81,7 @@ import SummaryCard from "./SummaryCard";
 import LinesCard from "./LinesCard";
 import { lineKey, getNextLineNumber } from "../utils/lineHelpers";
 import { DevBadge } from "@/components/common/DevBadge";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // Extend Transaction type locally to ensure 'lines' exists
 type Transaction = TransactionBase & {
@@ -305,12 +320,12 @@ interface TransactionDetailBaseProps {
  */
 const extractPublicComment = (publicField: unknown): string | undefined => {
   if (!publicField) return undefined;
-  if (typeof publicField === 'string') return publicField;
+  if (typeof publicField === "string") return publicField;
   if (Array.isArray(publicField)) {
     return publicField
-      .map((c: any) => (typeof c === 'string' ? c : c?.mgs))
+      .map((c: any) => (typeof c === "string" ? c : c?.mgs))
       .filter(Boolean)
-      .join('\n');
+      .join("\n");
   }
   return String(publicField);
 };
@@ -715,7 +730,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         }
 
         const normalized = normalizeTransactionFkFields(result as any);
-        console.log("Loaded invoice data:", { result, normalized, lines: normalized.lines });
+        console.log("Loaded invoice data:", {
+          result,
+          normalized,
+          lines: normalized.lines,
+        });
         setData(normalized);
         setEditData(normalized);
       } catch (e) {
@@ -1105,7 +1124,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-  
+
   // Internal print handler (called after unsaved changes guard)
   const executePrint = useCallback(() => {
     if (onPrint && data) {
@@ -1117,8 +1136,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Guarded print handler - warns if there are unsaved changes
   const handlePrint = useMemo(
-    () => guardAction(executePrint, 'printing'),
-    [guardAction, executePrint]
+    () => guardAction(executePrint, "printing"),
+    [guardAction, executePrint],
   );
   // ...existing code...
 
@@ -1126,41 +1145,68 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Uses appropriate print document based on transaction type
   const renderPrintPreview = () => {
     if (!showPrintPreview || !data) return null;
-    
+
     // Try to get document number based on type
-    const docNum = 
-      transactionType === 'invoice' ? (data as any).invoice_no || (data as any).ida || data.id :
-      transactionType === 'order' ? (data as any).order_no || (data as any).ida || data.id :
-      (data as any).ida || data.id;
-    
+    const docNum =
+      transactionType === "invoice"
+        ? (data as any).invoice_no || (data as any).ida || data.id
+        : transactionType === "order"
+        ? (data as any).order_no || (data as any).ida || data.id
+        : (data as any).ida || data.id;
+
     // Transform transaction data to print format based on type
     const printContent = (() => {
       switch (transactionType) {
-        case 'invoice':
+        case "invoice":
           // Transform Transaction to InvoicePrintData
           const invoiceData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            invoiceNum: (data as any).invoice_no || (data as any).ida || data.ida,
+            invoiceNum:
+              (data as any).invoice_no || (data as any).ida || data.ida,
             orderNum: (data as any).order_no,
             status: data.status,
-            
+
             // Customer info from refs
             customerID: data.customer_id,
-            firstName: data.refs?.links?.customer?.[0]?.name_first || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.customer?.[0]?.name_last || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName:
+              data.refs?.links?.customer?.[0]?.name_first ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.name_first,
+            lastName:
+              data.refs?.links?.customer?.[0]?.name_last ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateInvoiced: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateDue: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateInvoiced: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateDue: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1171,7 +1217,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             packedBy: (data as any).packed_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
@@ -1181,13 +1227,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             amountPaid: (data as any).amount_paid || data.totals?.received,
             balanceDue: data.totals?.balance,
             invoices_BalanceDue: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1203,77 +1250,137 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Invoice data for print:", { invoiceData, lines: invoiceData.lines });
-          return <InvoicePrintDocument data={invoiceData} lines={invoiceData.lines} />;
-          
-        case 'order':
+
+          console.log("Invoice data for print:", {
+            invoiceData,
+            lines: invoiceData.lines,
+          });
+          return (
+            <InvoicePrintDocument
+              data={invoiceData}
+              lines={invoiceData.lines}
+            />
+          );
+
+        case "order":
           // Transform Transaction to OrderPrintData with contact extraction
           const orderData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
             orderNum: (data as any).order_no || data.ida,
             status: data.status,
-            
+
             // Customer info from refs - handle both array and object formats
             customerID: data.customer_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: Array.isArray(data.refs?.links?.customer) 
-              ? data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name
-              : (data.refs?.links?.customer as any)?.company || (data.refs?.links?.customer as any)?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company: Array.isArray(data.refs?.links?.customer)
+              ? data.refs?.links?.customer?.[0]?.company ||
+                data.refs?.links?.customer?.[0]?.display_name
+              : (data.refs?.links?.customer as any)?.company ||
+                (data.refs?.links?.customer as any)?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: Array.isArray(data.refs?.links?.customer)
               ? data.refs?.links?.customer?.[0]?.address_full
               : (data.refs?.links?.customer as any)?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
-            phone: data.phone || (Array.isArray(data.refs?.links?.customer) 
-              ? data.refs?.links?.customer?.[0]?.phone
-              : (data.refs?.links?.customer as any)?.phone),
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
-            email: data.email || (Array.isArray(data.refs?.links?.customer)
-              ? data.refs?.links?.customer?.[0]?.email
-              : (data.refs?.links?.customer as any)?.email),
-            
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
+            phone:
+              data.phone ||
+              (Array.isArray(data.refs?.links?.customer)
+                ? data.refs?.links?.customer?.[0]?.phone
+                : (data.refs?.links?.customer as any)?.phone),
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
+            email:
+              data.email ||
+              (Array.isArray(data.refs?.links?.customer)
+                ? data.refs?.links?.customer?.[0]?.email
+                : (data.refs?.links?.customer as any)?.email),
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
             dateCreated: (() => {
               try {
-                return data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined;
+                return data.dt_created
+                  ? new Date(data.dt_created).toISOString().split("T")[0]
+                  : undefined;
               } catch {
                 return undefined;
               }
             })(),
             dateOrdered: (() => {
               try {
-                return (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined;
+                return (data as any).dt
+                  ? new Date((data as any).dt).toISOString().split("T")[0]
+                  : undefined;
               } catch {
                 return undefined;
               }
             })(),
             dateShipped: (() => {
               try {
-                return (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined;
+                return (data as any).ship_date
+                  ? new Date((data as any).ship_date)
+                      .toISOString()
+                      .split("T")[0]
+                  : undefined;
               } catch {
                 return undefined;
               }
             })(),
             dateNeeded: (() => {
               try {
-                return (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined;
+                return (data as any).due_date
+                  ? new Date((data as any).due_date).toISOString().split("T")[0]
+                  : undefined;
               } catch {
                 return undefined;
               }
@@ -1288,26 +1395,27 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
               lineNum: line.line_number || idx + 1,
               itemNum: line.item?.ida_item,
-              description: line.item?.description || '',
+              description: line.item?.description || "",
               qtyOrdered: line.quantity?.staged || 0,
               qtyShipped: line.quantity?.active || 0,
               unitPrice: line.price?.unit || 0,
@@ -1317,49 +1425,101 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended || 0,
             })),
           };
-          
-          console.log("Order data for print:", { orderData, lines: orderData.lines });
-          return <OrderPrintDocument data={orderData} lines={orderData.lines} />;
-          
-        case 'proposal':
+
+          console.log("Order data for print:", {
+            orderData,
+            lines: orderData.lines,
+          });
+          return (
+            <OrderPrintDocument data={orderData} lines={orderData.lines} />
+          );
+
+        case "proposal":
           // Transform Transaction to ProposalPrintData with contact extraction
           const proposalData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            proposalNum: (data as any).proposal_no || (data as any).ida || data.ida,
+            proposalNum:
+              (data as any).proposal_no || (data as any).ida || data.ida,
             status: data.status,
-            
+
             // Customer info from refs
             customerID: data.customer_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateOrdered: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateNeeded: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1370,20 +1530,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1399,49 +1560,104 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Proposal data for print:", { proposalData, lines: proposalData.lines });
-          return <ProposalPrintDocument data={proposalData} lines={proposalData.lines} />;
-          
-        case 'purchase':
+
+          console.log("Proposal data for print:", {
+            proposalData,
+            lines: proposalData.lines,
+          });
+          return (
+            <ProposalPrintDocument
+              data={proposalData}
+              lines={proposalData.lines}
+            />
+          );
+
+        case "purchase":
           // Transform Transaction to PurchasePrintData with contact extraction
           const purchaseData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            purchaseNum: (data as any).purchase_no || (data as any).ida || data.ida,
+            purchaseNum:
+              (data as any).purchase_no || (data as any).ida || data.ida,
             status: data.status,
-            
+
             // Vendor info from refs
             vendorID: data.vendor_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateOrdered: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateNeeded: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1452,20 +1668,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1481,49 +1698,104 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Purchase data for print:", { purchaseData, lines: purchaseData.lines });
-          return <PurchasePrintDocument data={purchaseData} lines={purchaseData.lines} />;
-          
-        case 'workorder':
+
+          console.log("Purchase data for print:", {
+            purchaseData,
+            lines: purchaseData.lines,
+          });
+          return (
+            <PurchasePrintDocument
+              data={purchaseData}
+              lines={purchaseData.lines}
+            />
+          );
+
+        case "workorder":
           // Transform Transaction to WorkorderPrintData with contact extraction
           const workorderData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            workorderNum: (data as any).workorder_no || (data as any).ida || data.ida,
+            workorderNum:
+              (data as any).workorder_no || (data as any).ida || data.ida,
             status: data.status,
-            
+
             // Customer info from refs
             customerID: data.customer_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateOrdered: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateNeeded: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1534,20 +1806,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1563,49 +1836,104 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Workorder data for print:", { workorderData, lines: workorderData.lines });
-          return <WorkorderPrintDocument data={workorderData} lines={workorderData.lines} />;
-          
-        case 'receipt':
+
+          console.log("Workorder data for print:", {
+            workorderData,
+            lines: workorderData.lines,
+          });
+          return (
+            <WorkorderPrintDocument
+              data={workorderData}
+              lines={workorderData.lines}
+            />
+          );
+
+        case "receipt":
           // Transform Transaction to ReceiptPrintData with contact extraction
           const receiptData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            receiptNum: (data as any).receipt_no || (data as any).ida || data.ida,
+            receiptNum:
+              (data as any).receipt_no || (data as any).ida || data.ida,
             status: data.status,
-            
+
             // Vendor info from refs
             vendorID: data.vendor_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateOrdered: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateNeeded: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1616,20 +1944,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1645,50 +1974,105 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Receipt data for print:", { receiptData, lines: receiptData.lines });
-          return <ReceiptPrintDocument data={receiptData} lines={receiptData.lines} />;
-          
-        case 'adjustment':
+
+          console.log("Receipt data for print:", {
+            receiptData,
+            lines: receiptData.lines,
+          });
+          return (
+            <ReceiptPrintDocument
+              data={receiptData}
+              lines={receiptData.lines}
+            />
+          );
+
+        case "adjustment":
           // Transform Transaction to AdjustmentPrintData with contact extraction
           const adjustmentData = {
             id: data.id,
             ida: (data as any).ida || data.ida,
-            adjustmentNum: (data as any).adjustment_no || (data as any).ida || data.ida,
+            adjustmentNum:
+              (data as any).adjustment_no || (data as any).ida || data.ida,
             status: data.status,
-            
+
             // Customer/Vendor info from refs
             customerID: data.customer_id,
             vendorID: data.vendor_id,
-            firstName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_first,
-            lastName: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.name_last,
-            company: data.refs?.links?.customer?.[0]?.company || data.refs?.links?.customer?.[0]?.display_name,
-            attention: data.attention || data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.display_name,
+            firstName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_first,
+            lastName: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.name_last,
+            company:
+              data.refs?.links?.customer?.[0]?.company ||
+              data.refs?.links?.customer?.[0]?.display_name,
+            attention:
+              data.attention ||
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.display_name,
             address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.address_full,
-            city: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.city,
-            state: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.state,
-            zip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.zip,
-            country: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.country,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find((c: any) => c.purpose === 'billto')?.phone,
+            phoneCell: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
-            
+
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.address_full,
-            shipCity: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.city,
-            shipState: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.state,
-            shipZip: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.zip,
-            shipCountry: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.country,
-            shipPhone: data.refs?.links?.contact?.find((c: any) => c.purpose === 'shipto')?.phone,
-            
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+
             // Document details
-            dateCreated: data.dt_created ? new Date(data.dt_created).toISOString().split('T')[0] : undefined,
-            dateOrdered: (data as any).dt ? new Date((data as any).dt).toISOString().split('T')[0] : undefined,
-            dateShipped: (data as any).ship_date ? new Date((data as any).ship_date).toISOString().split('T')[0] : undefined,
-            dateNeeded: (data as any).due_date ? new Date((data as any).due_date).toISOString().split('T')[0] : undefined,
+            dateCreated: data.dt_created
+              ? new Date(data.dt_created).toISOString().split("T")[0]
+              : undefined,
+            dateOrdered: (data as any).dt
+              ? new Date((data as any).dt).toISOString().split("T")[0]
+              : undefined,
+            dateShipped: (data as any).ship_date
+              ? new Date((data as any).ship_date).toISOString().split("T")[0]
+              : undefined,
+            dateNeeded: (data as any).due_date
+              ? new Date((data as any).due_date).toISOString().split("T")[0]
+              : undefined,
             custPONum: (data as any).po_number,
             salesNameId: (data as any).sales_name_id,
             terms: (data as any).terms || data.terms,
@@ -1699,20 +2083,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             orderedBy: (data as any).ordered_by,
             actionBy: (data as any).action_by,
             contractDetailTag: (data as any).contract_detail_tag,
-            
+
             // Financials
             amount: data.totals?.subtotal,
             salesTax: data.totals?.tax,
             shipTotal: data.totals?.shipping,
             total: data.totals?.total,
             balanceDueEstimated: data.totals?.balance,
-            
+
             // Comments
             comment: extractPublicComment(data.comments?.public),
-            contractDetail: (data as any).contract_detail || data.conditions_description,
+            contractDetail:
+              (data as any).contract_detail || data.conditions_description,
             pvTermState: (data as any).pv_term_state,
             shipInstruct: (data as any).ship_instruct,
-            
+
             // Lines
             lines: (data.lines || []).map((line: any, idx: number) => ({
               id: line.id,
@@ -1728,16 +2113,24 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               extendedPrice: line.price?.extended,
             })),
           };
-          
-          console.log("Adjustment data for print:", { adjustmentData, lines: adjustmentData.lines });
-          return <AdjustmentPrintDocument data={adjustmentData} lines={adjustmentData.lines} />;
-          
+
+          console.log("Adjustment data for print:", {
+            adjustmentData,
+            lines: adjustmentData.lines,
+          });
+          return (
+            <AdjustmentPrintDocument
+              data={adjustmentData}
+              lines={adjustmentData.lines}
+            />
+          );
+
         default:
           // Fallback to order print for other types
           return <OrderPrintDocument data={data as any} />;
       }
     })();
-    
+
     return (
       <PrintPreviewModal
         isOpen={showPrintPreview}
@@ -2331,7 +2724,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                         // Inactive line: persist active but don't recalculate
                         return {
                           ...baseUpdate,
-                          quantity: { ...l.quantity, active: newQty, staged: newQty },
+                          quantity: {
+                            ...l.quantity,
+                            active: newQty,
+                            staged: newQty,
+                          },
                         };
                       }
                       // User always edits active; staged mirrors for standalone
@@ -2408,7 +2805,11 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               { label: "price_level", value: currentData.price_level },
               { label: "terms", value: currentData.terms },
               { label: "total", value: currentData.total, format: "currency" },
-              { label: "balance", value: currentData.balance, format: "currency" },
+              {
+                label: "balance",
+                value: currentData.balance,
+                format: "currency",
+              },
               { label: "line_increment", value: currentData.line_increment },
               { label: "customer_id", value: currentData.customer_id },
               { label: "vendor_id", value: currentData.vendor_id },
@@ -2421,17 +2822,55 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               { label: "email", value: currentData.email },
               { label: "phone", value: currentData.phone },
               { label: "conditions_id", value: currentData.conditions_id },
-              { label: "conditions_description", value: currentData.conditions_description },
+              {
+                label: "conditions_description",
+                value: currentData.conditions_description,
+              },
             ]}
             columns={3}
           />
-          <JsonCard title="Totals" fieldName="totals" data={currentData.totals as Record<string, unknown>} columns={3} />
-          <JsonCard title="Cost" fieldName="cost" data={currentData.cost as Record<string, unknown>} columns={2} />
-          <JsonCard title="Sell" fieldName="sell" data={currentData.sell as Record<string, unknown>} columns={2} />
-          <JsonCard title="Finance" fieldName="finance" data={currentData.finance as Record<string, unknown>} columns={2} />
-          <JsonCard title="Flow" fieldName="flow" data={currentData.flow as Record<string, unknown>} columns={2} />
-          <JsonCard title="Source" fieldName="source" data={currentData.source as Record<string, unknown>} columns={2} />
-          <JsonCard title="Actions" fieldName="actions" data={currentData.actions as Record<string, unknown>} columns={2} />
+          <JsonCard
+            title="Totals"
+            fieldName="totals"
+            data={currentData.totals as Record<string, unknown>}
+            columns={3}
+          />
+          <JsonCard
+            title="Cost"
+            fieldName="cost"
+            data={currentData.cost as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Sell"
+            fieldName="sell"
+            data={currentData.sell as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Finance"
+            fieldName="finance"
+            data={currentData.finance as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Flow"
+            fieldName="flow"
+            data={currentData.flow as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Source"
+            fieldName="source"
+            data={currentData.source as Record<string, unknown>}
+            columns={2}
+          />
+          <JsonCard
+            title="Actions"
+            fieldName="actions"
+            data={currentData.actions as Record<string, unknown>}
+            columns={2}
+          />
           <BaseModelCards data={currentData} />
         </div>
       )}
@@ -2480,7 +2919,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Only render if transaction has parent or children
         const hasParent = currentData?.parent_id && currentData?.parent_model;
         const hasChildren = currentData?.flow?.children?.some(
-          (c: { type?: string; id?: number }) => c?.type && c?.id && c.id > 0
+          (c: { type?: string; id?: number }) => c?.type && c?.id && c.id > 0,
         );
         if (!hasParent && !hasChildren) return null;
 
@@ -2520,4 +2959,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 };
 
-export default withDevIdentifier(TransactionDetailBase, 'TransactionDetailBase');
+export default withDevIdentifier(
+  TransactionDetailBase,
+  "TransactionDetailBase",
+);

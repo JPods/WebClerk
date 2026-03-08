@@ -269,6 +269,15 @@ const VALID_TABS = [
   "refs",
 ];
 
+const VALID_ORG_TABS = [
+  "customer",
+  "vendor",
+  "rep",
+  "employee",
+  "manufacturer",
+  "other_org",
+];
+
 const CONTACT_DETAIL_FIELDS = [
   "attention",
   "email",
@@ -1566,6 +1575,8 @@ function ContactDetail({
     VALID_TABS,
   );
 
+  const [activeOrgTab, setActiveOrgTab] = useState<string>("customer");
+
   const additionalTabs: TabConfig[] = useMemo(
     () => [
       {
@@ -1577,6 +1588,22 @@ function ContactDetail({
       { id: "metadata", label: "Metadata", icon: <History size={14} /> },
       { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
       { id: "refs", label: "Refs", icon: <Link size={14} /> },
+    ],
+    [],
+  );
+
+  const orgTabs: TabConfig[] = useMemo(
+    () => [
+      { id: "customer", label: "Customer", icon: <FaBuilding size={14} /> },
+      { id: "vendor", label: "Vendor", icon: <FaBuilding size={14} /> },
+      { id: "rep", label: "Rep", icon: <FaBuilding size={14} /> },
+      { id: "employee", label: "Employee", icon: <FaBuilding size={14} /> },
+      {
+        id: "manufacturer",
+        label: "Manufacturer",
+        icon: <FaBuilding size={14} />,
+      },
+      { id: "other_org", label: "Other Org", icon: <FaBuilding size={14} /> },
     ],
     [],
   );
@@ -2345,19 +2372,45 @@ function ContactDetail({
   };
 
   /**
-   * Format phone number as 123-456-7890
-   * Strips non-digits, then inserts dashes at positions 3 and 6
+   * Format phone number as +91 (123) 456-7890 (International style)
+   * Supports country code (1-3 digits) + 10 digit number
    */
   const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
+    // Remove all non-digit characters except leading +
+    const hasPlus = value.startsWith("+");
     const digits = value.replace(/\D/g, "");
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    // Format as 123-456-7890
-    if (limited.length <= 3) return limited;
-    if (limited.length <= 6)
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+
+    // If no digits, return empty or just +
+    if (digits.length === 0) return hasPlus ? "+" : "";
+
+    // Assume max 13 digits (3 country code + 10 local)
+    const limited = digits.slice(0, 13);
+
+    // If 10 or fewer digits, treat as local number without country code
+    if (limited.length <= 10) {
+      const local = limited;
+      if (local.length <= 3) return hasPlus ? `+${local}` : local;
+      if (local.length <= 6) {
+        return hasPlus
+          ? `+${local.slice(0, 3)} (${local.slice(3)})`
+          : `(${local.slice(0, 3)}) ${local.slice(3)}`;
+      }
+      return hasPlus
+        ? `+${local.slice(0, 3)} (${local.slice(3, 6)}) ${local.slice(6)}`
+        : `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+    }
+
+    // More than 10 digits: extract country code (first 1-3 digits)
+    // Assume country code is everything before the last 10 digits
+    const countryCodeLen = limited.length - 10;
+    const countryCode = limited.slice(0, countryCodeLen);
+    const local = limited.slice(countryCodeLen);
+
+    // Format as +CC (XXX) XXX-XXXX
+    return `+${countryCode} (${local.slice(0, 3)}) ${local.slice(
+      3,
+      6,
+    )}-${local.slice(6)}`;
   };
 
   if (isLoading) return <RippleLoader />;
@@ -2574,7 +2627,7 @@ function ContactDetail({
                       <Input
                         type="text"
                         id="phone"
-                        placeholder="123-456-7890"
+                        placeholder="+91 (123) 456-7890"
                         value={field.value ?? ""}
                         onChange={(e) => {
                           const formatted = formatPhoneNumber(e.target.value);
@@ -2696,73 +2749,263 @@ function ContactDetail({
           <div className="flex items-center justify-between py-2 gap-4">
             <ColumnSelector value={columnCount} onChange={handleColumnChange} />
           </div>
-          {/* ── Company & Organizations ── */}
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
+          {/* ─── ORGANIZATIONS TAB NAVIGATION ─── */}
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-4 mb-2 flex items-center gap-2">
             <FaBuilding size={16} />
             Company & Organizations
           </h3>
-          <OrgLinkPanel
-            fields={[
-              {
-                fieldName: "customer_id",
-                label: "Customer",
-                value: watchedValues?.customer_id ?? data?.customer_id,
-                orgType: "customer",
-              },
-              {
-                fieldName: "vendor_id",
-                label: "Vendor",
-                value: watchedValues?.vendor_id ?? data?.vendor_id,
-                orgType: "vendor",
-              },
-              {
-                fieldName: "rep_id",
-                label: "Rep",
-                value: watchedValues?.rep_id ?? data?.rep_id,
-                orgType: "rep",
-              },
-              {
-                fieldName: "employee_id",
-                label: "Employee",
-                value: watchedValues?.employee_id ?? data?.employee_id,
-                orgType: "employee",
-              },
-              {
-                fieldName: "manufacturer_id",
-                label: "Manufacturer",
-                value: watchedValues?.manufacturer_id ?? data?.manufacturer_id,
-                orgType: "manufacturer",
-              },
-              {
-                fieldName: "other_id",
-                label: "Other Org",
-                value: watchedValues?.other_id ?? data?.other_id,
-                orgType: "organization",
-              },
-            ]}
-            scalarFields={[]}
-            isEditing={isEditing}
-            contactId={activeContactId}
-            onOrgChanged={(fieldName, orgId) => {
-              formSetValueRef.current?.(fieldName as any, orgId, {
-                shouldDirty: true,
-              });
-            }}
-            onScalarFieldChange={(fieldName, value) => {
-              formSetValueRef.current?.(fieldName as any, value, {
-                shouldDirty: true,
-              });
-            }}
-            onSaveScalars={async (values) => {
-              if (!activeContactId) return;
-              await updateContact({ id: activeContactId, ...values } as any);
-              dispatch(
-                showToast({ message: "Company info saved", type: "success" }),
-              );
-            }}
-            defaultExpanded={isEditing}
+          <DetailTabs
+            entityType="contact-org"
+            activeTab={activeOrgTab}
+            onTabChange={setActiveOrgTab}
+            standardTabs={[]}
+            additionalTabs={orgTabs}
+            badges={{}}
+            showColumnSelector={false}
           />
 
+          {/* ─── ORG TAB CONTENT ─── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-4">
+              {activeOrgTab === "customer" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "customer_id",
+                      label: "Customer",
+                      value: watchedValues?.customer_id ?? data?.customer_id,
+                      orgType: "customer",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({
+                        message: "Customer saved",
+                        type: "success",
+                      }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+
+              {activeOrgTab === "vendor" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "vendor_id",
+                      label: "Vendor",
+                      value: watchedValues?.vendor_id ?? data?.vendor_id,
+                      orgType: "vendor",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({
+                        message: "Vendor saved",
+                        type: "success",
+                      }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+
+              {activeOrgTab === "rep" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "rep_id",
+                      label: "Rep",
+                      value: watchedValues?.rep_id ?? data?.rep_id,
+                      orgType: "rep",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({ message: "Rep saved", type: "success" }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+
+              {activeOrgTab === "employee" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "employee_id",
+                      label: "Employee",
+                      value: watchedValues?.employee_id ?? data?.employee_id,
+                      orgType: "employee",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({
+                        message: "Employee saved",
+                        type: "success",
+                      }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+
+              {activeOrgTab === "manufacturer" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "manufacturer_id",
+                      label: "Manufacturer",
+                      value:
+                        watchedValues?.manufacturer_id ?? data?.manufacturer_id,
+                      orgType: "manufacturer",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({
+                        message: "Manufacturer saved",
+                        type: "success",
+                      }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+
+              {activeOrgTab === "other_org" && (
+                <OrgLinkPanel
+                  fields={[
+                    {
+                      fieldName: "other_id",
+                      label: "Other Org",
+                      value: watchedValues?.other_id ?? data?.other_id,
+                      orgType: "organization",
+                    },
+                  ]}
+                  scalarFields={[]}
+                  isEditing={isEditing}
+                  contactId={activeContactId}
+                  onOrgChanged={(fieldName, orgId) => {
+                    formSetValueRef.current?.(fieldName as any, orgId, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onScalarFieldChange={(fieldName, value) => {
+                    formSetValueRef.current?.(fieldName as any, value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                  onSaveScalars={async (values) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      ...values,
+                    } as any);
+                    dispatch(
+                      showToast({
+                        message: "Other Org saved",
+                        type: "success",
+                      }),
+                    );
+                  }}
+                  defaultExpanded
+                />
+              )}
+            </div>
+          </div>
           {/* ─── TAB NAVIGATION ─── */}
           {activeContactId && data?.id ? (
             <>

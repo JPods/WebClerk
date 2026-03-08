@@ -38,7 +38,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,7 +132,7 @@ const COMM_FIELD_CONFIGS: Record<CommType, CommFieldDef[]> = {
       key: "number",
       label: "Number",
       width: "full",
-      placeholder: "555-123-4567",
+      placeholder: "+91 (123) 456-7890",
     },
     {
       key: "name",
@@ -144,7 +144,7 @@ const COMM_FIELD_CONFIGS: Record<CommType, CommFieldDef[]> = {
       key: "country_code",
       label: "Country Code",
       width: "half",
-      placeholder: "+1",
+      placeholder: "+91",
     },
     {
       key: "attention",
@@ -230,10 +230,65 @@ const SCALAR_LABEL: Record<CommType, string> = {
   domain: "domain",
 };
 
+/**
+ * Format phone number as +CC (XXX) XXX-XXXX (International style)
+ * Supports country code (1-3 digits) + 10 digit number
+ */
+function formatPhoneNumber(value: string, countryCode?: string | null): string {
+  if (!value) return "";
+
+  // Remove all non-digit characters except leading +
+  const hasPlus = value.startsWith("+");
+  const digits = value.replace(/\D/g, "");
+
+  // If no digits, return empty or just +
+  if (digits.length === 0) return hasPlus ? "+" : "";
+
+  // If country code is provided separately, prepend it
+  let fullDigits = digits;
+  if (countryCode) {
+    const ccDigits = countryCode.replace(/\D/g, "");
+    // Only prepend if the number doesn't already start with the country code
+    if (ccDigits && !digits.startsWith(ccDigits)) {
+      fullDigits = ccDigits + digits;
+    }
+  }
+
+  // Assume max 13 digits (3 country code + 10 local)
+  const limited = fullDigits.slice(0, 13);
+
+  // If 10 or fewer digits, treat as local number without country code
+  if (limited.length <= 10) {
+    const local = limited;
+    if (local.length <= 3) return hasPlus || countryCode ? `+${local}` : local;
+    if (local.length <= 6) {
+      return hasPlus || countryCode
+        ? `+${local.slice(0, 3)} (${local.slice(3)})`
+        : `(${local.slice(0, 3)}) ${local.slice(3)}`;
+    }
+    return hasPlus || countryCode
+      ? `+${local.slice(0, 3)} (${local.slice(3, 6)}) ${local.slice(6)}`
+      : `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  }
+
+  // More than 10 digits: extract country code (first 1-3 digits)
+  // Assume country code is everything before the last 10 digits
+  const countryCodeLen = limited.length - 10;
+  const cc = limited.slice(0, countryCodeLen);
+  const local = limited.slice(countryCodeLen);
+
+  // Format as +CC (XXX) XXX-XXXX
+  return `+${cc} (${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+}
+
 function displayValue(type: CommType, item: any): string {
   if (!item) return "";
   if (type === "email") return item.email || item.address || item.value || "";
-  if (type === "phone") return item.number || item.value || item.format || "";
+  if (type === "phone") {
+    const rawNumber = item.number || item.value || item.format || "";
+    const countryCode = item.country_code || null;
+    return formatPhoneNumber(rawNumber, countryCode);
+  }
   if (type === "domain") return item.domain || item.value || item.path || "";
   // address
   return (
@@ -573,7 +628,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           {/* Primary scalar value as a subtle badge in the header */}
           {!expanded && scalarValue && (
             <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-              {scalarValue}
+              {type === "phone" ? formatPhoneNumber(scalarValue) : scalarValue}
             </span>
           )}
         </div>
@@ -591,9 +646,17 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
                 <input
                   type="text"
                   value={scalarValue || ""}
-                  onChange={(e) => onScalarChange?.(e.target.value)}
+                  onChange={(e) => {
+                    const val =
+                      type === "phone"
+                        ? formatPhoneNumber(e.target.value)
+                        : e.target.value;
+                    onScalarChange?.(val);
+                  }}
                   className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                  placeholder={`Primary ${type}`}
+                  placeholder={
+                    type === "phone" ? "+91 (123) 456-7890" : `Primary ${type}`
+                  }
                   disabled={disabled}
                 />
                 {onSaveScalar && (
@@ -619,7 +682,9 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
               </>
             ) : (
               <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                {scalarValue || "—"}
+                {type === "phone" && scalarValue
+                  ? formatPhoneNumber(scalarValue)
+                  : scalarValue || "—"}
               </span>
             )}
           </div>
@@ -870,7 +935,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(CommLinkPanel, 'CommLinkPanel', 'teal');
+export default withDevIdentifier(CommLinkPanel, "CommLinkPanel", "teal");
 // ---------------------------------------------------------------------------
 // Inline record editor — renders per-model fields for a single comm record
 // ---------------------------------------------------------------------------
