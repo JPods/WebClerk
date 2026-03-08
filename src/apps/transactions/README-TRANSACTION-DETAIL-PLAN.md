@@ -39,12 +39,13 @@
 
 | Model | File | Status |
 |-------|------|--------|
-| Invoice | `invoice/pages/InvoiceDetailNew.tsx` | ✅ Refactored (new pattern) |
-| Invoice (legacy) | `invoice/pages/InvoiceDetail.tsx` | ⚠️ Keep for reference |
-| Order | `order/pages/OrderDetail.tsx` | ❌ Needs refactor |
-| Purchase | `purchase/pages/PurchaseDetail.tsx` | ❌ Needs refactor |
-| Proposal | `proposal/pages/ProposalDetail.tsx` | ❌ Needs refactor |
-| WorkOrder | `work_order/pages/WorkOrderDetail.tsx` | ❌ Needs refactor |
+| Invoice | `invoice/pages/InvoiceDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| Invoice (legacy) | `invoice/pages/qqq_InvoiceDetailLegacy.tsx` | ⚠️ Keep for reference |
+| Order | `order/pages/OrderDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| Purchase | `purchase/pages/PurchaseDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| Proposal | `proposal/pages/ProposalDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| WorkOrder | `workorder/pages/WorkorderDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| Receipt | `receipt/pages/ReceiptDetail.tsx` | ✅ Refactored (uses TransactionDetailBase for UI; backend save via flow.py) |
 | Requisition | `requisition/pages/RequisitionDetail.tsx` | ❌ Needs refactor |
 | Project | `project/pages/ProjectDetail.tsx` | ❌ Needs refactor |
 
