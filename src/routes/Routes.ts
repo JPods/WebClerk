@@ -113,6 +113,7 @@
   static readonly glJournalList: string = "/accounts/gl-journal/list";
   static readonly glJournalDetail: string = "/accounts/gl-journal/detail/:id?";
   static readonly ledgerList: string = "/accounts/ledger/list";
+  static readonly receivableList: string = "/accounts/receivable/list";
   static readonly taxJurisdictionList: string =
     "/accounts/tax-jurisdiction/list";
   static readonly termList: string = "/accounts/term/list";

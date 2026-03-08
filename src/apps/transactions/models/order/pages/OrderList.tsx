@@ -12,6 +12,7 @@ import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import OrderDetail from "./OrderDetail";
+import type { QuickFilterItem } from "@/components/common/PrintReportDropdown";
 
 // Quick-filter presets
 type QuickFilter = "all" | "open" | "last30" | "last60";
@@ -496,6 +497,16 @@ export default function OrderList() {
     [],
   );
 
+  const quickFilters: QuickFilterItem[] = useMemo(
+    () =>
+      (Object.keys(QUICK_FILTER_LABELS) as QuickFilter[]).map((key) => ({
+        key,
+        label: QUICK_FILTER_LABELS[key],
+        active: quickFilter === key,
+      })),
+    [quickFilter],
+  );
+
   // Calculate summary statistics
   const totalOrders = data.length;
   const totalValue = data.reduce(
@@ -543,19 +554,8 @@ export default function OrderList() {
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
-        customActions={
-          <select
-            value={quickFilter}
-            onChange={(e) => handleQuickFilter(e.target.value as QuickFilter)}
-            className="px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-          >
-            {(Object.keys(QUICK_FILTER_LABELS) as QuickFilter[]).map((key) => (
-              <option key={key} value={key}>
-                {QUICK_FILTER_LABELS[key]}
-              </option>
-            ))}
-          </select>
-        }
+        quickFilters={quickFilters}
+        onQuickFilter={(key) => handleQuickFilter(key as QuickFilter)}
         summaryContent={
           <span className="text-xs text-slate-500">
             Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}
