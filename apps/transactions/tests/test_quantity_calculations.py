@@ -3,36 +3,39 @@
 These tests verify the quantity semantics described in:
   readmes/topics/transactions/transactions-totals.md
 
-=== QUANTITY RULES (Updated 2026-03-05) ===
+=== QUANTITY RULES (Updated 2026-03-07) ===
 
 1. USER INPUT
    - User always enters `active` as the primary quantity input
    - System mirrors: `staged = active` for standalone lines
 
-2. STANDALONE LINES (user creates new line, no parent)
+2. FIELD ROLES
+   staged    — allocated FROM parent (frozen at transfer); mirrors active for standalone
+   active    — user input (what this line is actually for)
+   remaining — available FOR children = active − sum(children.active)
+
+3. STANDALONE LINES (user creates new line, no parent)
    +-----------------+------------+---------+-----------+
    | Transaction     | active | staged  | remaining |
    +-----------------+------------+---------+-----------+
-   | Order/Proposal  | 10         | 10      | 10        |  ← full qty available
-   | Purchase        | 10         | 10      | 10        |  ← full qty available
-   | Invoice/Receipt | 10         | 10      | 0         |  ← end of chain
+   | All types       | 10         | 10      | 10        |  ← remaining = active
    +-----------------+------------+---------+-----------+
 
-3. TRANSFERRED LINES (created from parent via transfer service)
+4. TRANSFERRED LINES (created from parent via transfer service)
    +-----------------+------------+---------+-----------+
    | Transaction     | active | staged  | remaining |
    +-----------------+------------+---------+-----------+
-   | Order (from prop)| 10        | 10      | 10        |  ← from source.remaining
-   | Invoice (from ord)| 10       | 10      | 0         |  ← end of chain
+   | Order (from prop)| 10        | 10      | 10        |  ← remaining = active
+   | Invoice (from ord)| 10       | 10      | 10        |  ← remaining = active
    +-----------------+------------+---------+-----------+
 
-4. TRANSFER EQUATION
-   target.staged = transfer_qty  (from source.remaining)
-   source.remaining -= transfer_qty
+5. TRANSFER EQUATION
+   child.staged = parent.remaining  (frozen allocation)
+   parent.remaining = parent.active − sum(children.active)
 
-5. REMAINING CALCULATION (non-end-of-chain)
-   - Standalone (staged == active): remaining = staged
-   - After transfers consume qty: remaining = staged - consumed_by_transfers
+6. REMAINING CALCULATION (universal)
+   remaining = active − children_active.sum
+   No children yet: remaining = active
 """
 
 import pytest
@@ -40,7 +43,6 @@ from decimal import Decimal
 from apps.transactions.models.base_line_model import (
     normalize_quantity_map,
     default_quantity,
-    _is_end_of_chain,
 )
 
 
@@ -74,35 +76,12 @@ class TestDefaultQuantity:
         assert qty["remaining"] is None
 
     def test_receipt_defaults(self):
-        """Receipt (end-of-chain) should have standard defaults."""
+        """Receipt should have standard defaults (same as all types)."""
         qty = default_quantity("receipt")
         assert qty["staged"] == 0
         assert qty["active"] == 0
         assert qty["remaining"] == 0
         assert qty["precision"] == 2
-
-
-class TestIsEndOfChain:
-    """Test _is_end_of_chain() helper."""
-
-    def test_invoice_is_end_of_chain(self):
-        assert _is_end_of_chain("invoice") is True
-        assert _is_end_of_chain("Invoice") is True
-        assert _is_end_of_chain("invoice_line") is True
-
-    def test_receipt_is_end_of_chain(self):
-        """Receipt should be end-of-chain (nothing downstream from receipts)."""
-        assert _is_end_of_chain("receipt") is True
-
-    def test_order_not_end_of_chain(self):
-        assert _is_end_of_chain("order") is False
-        assert _is_end_of_chain("order_line") is False
-
-    def test_proposal_not_end_of_chain(self):
-        assert _is_end_of_chain("proposal") is False
-
-    def test_purchase_not_end_of_chain(self):
-        assert _is_end_of_chain("purchase") is False
 
 
 class TestNormalizeQuantityMap:
@@ -126,31 +105,30 @@ class TestNormalizeQuantityMap:
 
     # -- Standard remaining calculation (non-invoice) --
 
-    def test_remaining_calculated_from_staged_minus_active(self):
-        """For non-invoice: remaining = staged - active."""
+    def test_remaining_calculated_from_active(self):
+        """remaining = active (for line with no children)."""
         result = normalize_quantity_map(
             {"staged": 10, "active": 3},
             "order"
         )
-        assert result["remaining"] == 7.0
+        assert result["remaining"] == 3.0
 
-    def test_remaining_equals_staged_for_standalone(self):
-        """Standalone (staged == active): remaining = staged (full qty available)."""
+    def test_remaining_equals_active_for_standalone(self):
+        """Standalone (staged == active): remaining = active."""
         result = normalize_quantity_map(
             {"staged": 10, "active": 10},
             "order"
         )
-        # When staged == active, this is a standalone entry
-        # remaining = staged (full qty available for downstream)
+        # remaining = active (no children)
         assert result["remaining"] == 10.0
 
-    def test_remaining_negative_when_over_processed(self):
-        """remaining can be negative if active > staged."""
+    def test_remaining_equals_active_when_different_from_staged(self):
+        """When user reduces active below staged, remaining = active (not staged-active)."""
         result = normalize_quantity_map(
             {"staged": 10, "active": 15},
             "order"
         )
-        assert result["remaining"] == -5.0
+        assert result["remaining"] == 15.0
 
     # -- JSON deep-merge fix: partial updates should preserve existing values --
 
@@ -162,7 +140,7 @@ class TestNormalizeQuantityMap:
         )
         assert result["staged"] == 10
         assert result["active"] == 5
-        assert result["remaining"] == 5.0
+        assert result["remaining"] == 5.0  # remaining = active
 
     def test_partial_update_staged_preserves_active(self):
         """When only staged is updated, active should default to 0."""
@@ -172,57 +150,57 @@ class TestNormalizeQuantityMap:
         )
         assert result["staged"] == 10
         assert result["active"] == 0
-        assert result["remaining"] == 10.0
+        assert result["remaining"] == 0.0  # remaining = active = 0
 
-    # -- Invoice (end-of-chain) specific tests --
+    # -- Invoice uses same remaining logic as all types --
 
-    def test_invoice_remaining_always_zero(self):
-        """Invoice lines always have remaining = 0."""
+    def test_invoice_remaining_equals_active(self):
+        """Invoice lines: remaining = active (no children)."""
         result = normalize_quantity_map(
             {"staged": 10, "active": 5},
             "invoice"
         )
-        assert result["remaining"] == 0
+        assert result["remaining"] == 5.0  # remaining = active
 
-    def test_invoice_staged_syncs_from_active(self):
-        """If only active is set on invoice, staged should sync to match."""
+    def test_invoice_standalone_remaining_equals_active(self):
+        """Standalone invoice: remaining = active."""
         result = normalize_quantity_map(
             {"active": 5},
             "invoice"
         )
         assert result["staged"] == 5
         assert result["active"] == 5
-        assert result["remaining"] == 0
+        assert result["remaining"] == 5.0  # remaining = active
 
-    def test_invoice_active_syncs_from_staged(self):
-        """If only staged is set on invoice (transfer), active should sync."""
+    def test_invoice_staged_only(self):
+        """If only staged is set on invoice, active defaults to 0, remaining = 0 (= active)."""
         result = normalize_quantity_map(
             {"staged": 10},
             "invoice"
         )
         assert result["staged"] == 10
-        assert result["active"] == 10
-        assert result["remaining"] == 0
+        assert result["active"] == 0
+        assert result["remaining"] == 0.0  # remaining = active = 0
 
-    # -- Receipt (end-of-chain) specific tests --
+    # -- Receipt uses same remaining logic as all types --
 
-    def test_receipt_remaining_always_zero(self):
-        """Receipt lines always have remaining = 0 (end-of-chain like invoice)."""
+    def test_receipt_remaining_equals_active(self):
+        """Receipt lines: remaining = active (no children)."""
         result = normalize_quantity_map(
             {"staged": 10, "active": 5},
             "receipt"
         )
-        assert result["remaining"] == 0
+        assert result["remaining"] == 5.0  # remaining = active
 
-    def test_receipt_staged_syncs_from_active(self):
-        """If only active is set on receipt, staged should sync to match."""
+    def test_receipt_standalone_remaining_equals_active(self):
+        """Standalone receipt: remaining = active."""
         result = normalize_quantity_map(
             {"active": 8},
             "receipt"
         )
         assert result["staged"] == 8
         assert result["active"] == 8
-        assert result["remaining"] == 0
+        assert result["remaining"] == 8.0  # remaining = active
 
     # -- Control key tests --
 
@@ -268,7 +246,7 @@ class TestNormalizeQuantityMap:
         )
         # Standalone entry: active provided, staged mirrors
         assert result["staged"] == 5
-        # Since staged == active, remaining = staged
+        # remaining = active
         assert result["remaining"] == 5.0
 
     def test_null_active_defaults_to_zero(self):
@@ -278,7 +256,7 @@ class TestNormalizeQuantityMap:
             "order"
         )
         assert result["active"] == 0
-        assert result["remaining"] == 10.0
+        assert result["remaining"] == 0.0  # remaining = active = 0
 
 
 @pytest.mark.django_db
@@ -286,7 +264,7 @@ class TestLineSaveQuantityNormalization:
     """Test that line.save() properly normalizes quantity via normalize_quantity_map."""
 
     def test_order_line_save_calculates_remaining(self):
-        """OrderLine.save() should calculate remaining = staged - active."""
+        """OrderLine.save() should calculate remaining = active."""
         from apps.transactions.models import Order, OrderLine
         from apps.products.models import Item
 
@@ -302,12 +280,12 @@ class TestLineSaveQuantityNormalization:
         )
         line.save()
 
-        # Verify remaining was calculated
+        # Verify remaining = active (no children)
         line.refresh_from_db()
-        assert line.quantity["remaining"] == 7.0
+        assert line.quantity["remaining"] == 3.0
 
     def test_order_line_update_recalculates_remaining(self):
-        """Updating active should recalculate remaining on save."""
+        """Updating active should recalculate remaining = active on save."""
         from apps.transactions.models import Order, OrderLine
         from apps.products.models import Item
 
@@ -318,7 +296,7 @@ class TestLineSaveQuantityNormalization:
         line = OrderLine.objects.create(
             order=order,
             item_fk=item,
-            quantity={"staged": 10, "active": 0, "remaining": 10}
+            quantity={"staged": 10, "active": 0, "remaining": 0}
         )
 
         # Update active
@@ -326,10 +304,10 @@ class TestLineSaveQuantityNormalization:
         line.save()
 
         line.refresh_from_db()
-        assert line.quantity["remaining"] == 6.0
+        assert line.quantity["remaining"] == 4.0  # remaining = active
 
-    def test_invoice_line_remaining_always_zero(self):
-        """InvoiceLine remaining should always be 0."""
+    def test_invoice_line_remaining_equals_active(self):
+        """InvoiceLine remaining should equal active (no children)."""
         from apps.transactions.models import Invoice, InvoiceLine
         from apps.products.models import Item
 
@@ -339,9 +317,9 @@ class TestLineSaveQuantityNormalization:
         line = InvoiceLine(
             invoice=invoice,
             item_fk=item,
-            quantity={"staged": 10, "active": 5}  # remaining should be ignored
+            quantity={"staged": 10, "active": 5}
         )
         line.save()
 
         line.refresh_from_db()
-        assert line.quantity["remaining"] == 0
+        assert line.quantity["remaining"] == 5.0  # remaining = active

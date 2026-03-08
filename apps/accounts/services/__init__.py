@@ -20,6 +20,11 @@ from .ledger_balance import (
     rebuild_org_ledgers,
 )
 
+from .ai_audit import (
+    check_extended_prices,
+    check_quantity,
+)
+
 __all__ = [
     # Terms/Ledger creation
     'compute_schedule',
@@ -33,4 +38,7 @@ __all__ = [
     'on_payment_save',
     'reconcile_org',
     'rebuild_org_ledgers',
+    # AI Audit
+    'check_extended_prices',
+    'check_quantity',
 ]

@@ -58,19 +58,6 @@ def _normalize_line_kind(name: str | None) -> str:
     }
     return aliases.get(n, n)
 
-def _is_end_of_chain(transaction_type: str | None) -> bool:
-    """True for transaction types that sit at the end of the transfer chain.
-
-    End-of-chain lines have:
-      • remaining = 0 always (nothing downstream)
-      • active = staged (the full qty is "consumed")
-
-    Transaction types:
-      • invoice — sales invoice (order → invoice)
-      • receipt — purchase receipt (purchase → receipt)
-    """
-    kind = _normalize_line_kind(transaction_type)
-    return kind in ("invoice", "receipt")
 
 
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
@@ -86,8 +73,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
       - increment:  minimum order increment (optional)
 
     Quantity flow for standalone lines (no parent):
-      Order/Proposal/Purchase: active=10 → staged=10, remaining=10
-      Invoice/Receipt:         active=10 → staged=10, remaining=0
+      All types: active=10 → staged=10, remaining=10
 
     Transfer semantics (how inventory responsibility moves):
       target.staged = transfer_qty  (taken from source.remaining)
@@ -102,8 +88,8 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     See: readmes/topics/transactions/transactions-totals.md §2
     """
     # All known types share the same canonical structure.
-    # normalize_quantity_map() handles end-of-chain (remaining=0) and
-    # standalone mirroring (staged=active) at normalisation time.
+    # normalize_quantity_map() handles standalone mirroring (staged=active)
+    # and remaining calculation at normalisation time.
     _KNOWN_KINDS = {
         "proposal", "order", "invoice", "purchase", "workorder", "receipt",
     }
@@ -141,13 +127,15 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
     Quantity Semantics:
       The user always enters 'active' as the primary quantity input.
       
-      Standalone (no parent, staged == active):
-        Order/Proposal/Purchase: remaining = staged (full qty available downstream)
-        Invoice/Receipt: remaining = 0 (end of chain)
+      staged  — allocated FROM parent (frozen at transfer); mirrors active for standalone
+      active  — user input (what this line is actually for)
+      remaining — available FOR children = active − sum(children.active)
       
-      Transferred (has parent, staged != active):
-        Order/Proposal/Purchase: remaining = staged - active
-        Invoice/Receipt: remaining = 0 (end of chain)
+      Without children (the common case at normalize time):
+        remaining = active
+      
+      With children (children_active tracker present):
+        remaining = active − children_active["sum"]
     """
     base = default_quantity(transaction_type)
 
@@ -193,31 +181,20 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
         out["staged"] = active_val
         staged_val = active_val
 
-    # ── Invoice / Receipt (end-of-chain) rules ───────────────────────
-    # End-of-chain: active = staged, remaining = 0 always.
-    if _is_end_of_chain(transaction_type):
-        # If staged was set (e.g. from transfer) and active wasn't,
-        # default active to staged — the whole qty is being invoiced.
-        if staged_val and not active_val:
-            out["active"] = staged_val
-        out["remaining"] = 0
-        return out
-
-    # ── Standard remaining calculation (Order, Proposal, Purchase) ────
-    # Standalone (staged == active): user entered qty, full amount
-    #   available for downstream transfer → remaining = staged
-    # Transferred (staged != active): staged from parent, active
-    #   represents downstream consumption → remaining = staged - active
-    staged = out.get("staged", 0) or 0
+    # ── Remaining calculation (all transaction types) ────────────────
+    # remaining = active − sum(children.active)
+    # At normalize time, children_active may not be present, so
+    # remaining defaults to active (no children consumed yet).
     active = out.get("active", 0) or 0
     precision = out.get("precision", 2)
     
-    if staged == active:
-        # Standalone: full qty available for downstream
-        out["remaining"] = float(_to_decimal(staged, places=precision))
+    children_active = out.get("children_active")
+    if children_active and isinstance(children_active, dict):
+        children_sum = float(children_active.get("sum", 0) or 0)
+        out["remaining"] = float(_to_decimal(active - children_sum, places=precision))
     else:
-        # Transferred: remaining = unprocessed portion
-        out["remaining"] = float(_to_decimal(staged - active, places=precision))
+        # No children yet: full active qty available for downstream
+        out["remaining"] = float(_to_decimal(active, places=precision))
 
     return out
 
@@ -425,10 +402,12 @@ class BaseLineCore(BaseModel):
 
         Flow:
           1. Seed missing envelopes from JSON_DEFAULT_FACTORIES
-          2. Normalize quantity via normalize_quantity_map() — always runs
+          2. Snapshot submitted quantity for AI audit
+          3. Normalize quantity via normalize_quantity_map() — always runs
              (maps legacy keys like 'ordered' → 'staged', fills missing keys,
              fixes nulls, recalculates remaining)
-          3. Normalize cost via normalize_cost_map() — always runs
+          4. AI audit: compare submitted vs normalized quantity
+          5. Normalize cost via normalize_cost_map() — always runs
 
         BaseSellLineModel overrides this to also normalize price and
         compute extended values.
@@ -441,13 +420,27 @@ class BaseLineCore(BaseModel):
             if not val:
                 setattr(self, field_name, factory())
 
-        # Step 2: normalize quantity (maps legacy keys, fills missing, fixes nulls)
+        # Step 2: snapshot submitted quantity before normalization (AI audit)
+        submitted_qty = None
+        raw_qty = getattr(self, "quantity", None)
+        if isinstance(raw_qty, dict) and raw_qty:
+            submitted_qty = dict(raw_qty)  # shallow copy
+
+        # Step 3: normalize quantity (maps legacy keys, fills missing, fixes nulls)
         self.quantity = normalize_quantity_map(
             getattr(self, "quantity", None),
             transaction_type=self._meta.model_name,
         )
 
-        # Step 3: normalize cost strictly (fixes nulls, ensures all keys)
+        # Step 4: AI audit — compare submitted vs normalized quantity
+        if submitted_qty:
+            try:
+                from apps.accounts.services.ai_audit import check_quantity
+                check_quantity(self, submitted_qty)
+            except Exception:
+                pass  # never break save for audit
+
+        # Step 5: normalize cost strictly (fixes nulls, ensures all keys)
         self.cost = normalize_cost_map(getattr(self, "cost", None))
 
     def save(self, *args, **kwargs):
@@ -506,11 +499,23 @@ class BaseSellLineModel(BaseLineCore):
           discount_amount = explicit value if set, else gross × (discount_percent / 100)
           extended = gross − discount_amount
 
+        AI Audit: captures r25-submitted extended values before recalculating,
+        then compares.  Discrepancies are logged and persisted to the Audit
+        table via apps.accounts.services.ai_audit.
+
         This is the line-level calculation that feeds into header totals
         rollup via compute_*_sell_cost_totals() services.
 
         See: readmes/topics/transactions/transactions-totals.md §1
         """
+        # ── Snapshot r25-submitted values BEFORE recalculating ────────
+        submitted_price_ext = (
+            self.price.get("extended") if isinstance(self.price, dict) else None
+        )
+        submitted_cost_ext = (
+            self.cost.get("extended") if isinstance(self.cost, dict) else None
+        )
+
         # quantity.staged (or active) drives both price and cost extended calculations
         quantity = self.quantity.get("staged", 0) or self.quantity.get("active", 0) if self.quantity else 0
 
@@ -539,6 +544,13 @@ class BaseSellLineModel(BaseLineCore):
             self.cost["discount_amount"] = float(_to_decimal(discount_cost_amount, places=precision))
             extended_cost = float(_to_decimal(gross_cost - Decimal(str(self.cost["discount_amount"])), places=precision))
             self.cost["extended"] = extended_cost
+
+        # ── AI Audit: compare r25 submission vs wc3 recalculation ────
+        try:
+            from apps.accounts.services.ai_audit import check_extended_prices
+            check_extended_prices(self, submitted_price_ext, submitted_cost_ext)
+        except Exception:
+            pass  # never break save for audit
 
 
 class BaseExecLineModel(BaseLineCore):

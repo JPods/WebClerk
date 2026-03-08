@@ -258,6 +258,21 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Task | `layout_drift_task(use_llm)` — weekly, scans all models with R25 pages, saves report and records history |
 | Data Files | `apps/ai_assistant/data/layout_dismissals.json` (dismissed issues), `apps/ai_assistant/data/layout_history.json` (run snapshots + corrections) |
 
+#### 5I. Calculation Audit (r25 vs wc3 Discrepancy Detection) ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Detect when r25 frontend calculations diverge from wc3 backend authoritative recalculations |
+| AI Role | **Observational audit.** wc3 is always authoritative for dollar amounts. On every sell-side line save, the service snapshots r25-submitted `price.extended` and `cost.extended` before `_calculate_extended_price()` runs, then compares against wc3's recalculated values. Quantity envelope consistency is also validated after `normalize_quantity_map()`. |
+| Checks | **price.extended** (qty × unit − discount, tolerance $0.02), **cost.extended** (same formula, tolerance $0.02), **quantity.remaining** (standalone = staged, transferred = staged − active, tolerance 0.001), **quantity.staged mirroring** (standalone: staged = active) |
+| Data Sources | Line model JSON fields (`price`, `cost`, `quantity`) before and after wc3 normalization |
+| Implementation | `check_extended_prices()` called at end of `_calculate_extended_price()`. `check_quantity()` called at end of `ensure_json_defaults()`. Both wrapped in try/except — never blocks the save path. Discrepancies logged via Python `ai_audit` logger AND persisted to `accounts.Audit` model. |
+| Risk | Zero — purely observational, auto-resolved (wc3 applies its value regardless) |
+| Priority | High — prevents silent frontend calculation bugs from reaching production undetected |
+| Service | `apps/accounts/services/ai_audit.py` — `check_extended_prices()`, `check_quantity()`, `_log_and_persist()`, `_create_audit_record()` |
+| Task | Runs inline on every line save (no Celery task — latency-critical path) |
+| Documentation | [ai-calculation-audit.md](ai-calculation-audit.md) — full details, query examples, configuration |
+
 #### Phase 5 Sequencing
 
 | Order | Task | Status | Service File |
@@ -270,6 +285,7 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | 6 | 5G Inventory Velocity | ✅ Done | `margin_tracker.py` |
 | 7 | 5A Sync Conflict Advisor | ✅ Done | `sync_advisor.py` |
 | 8 | 5H Layout Drift Detection | ✅ Done | `layout_drift_detector.py` |
+| 9 | 5I Calculation Audit | ✅ Done | `ai_audit.py` (in `apps/accounts/services/`) |
 
 > **User guide:** see [improving-ai-tasks.md](improving-ai-tasks.md) for how users can improve LLM task results through data practices.
 
