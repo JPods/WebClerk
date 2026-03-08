@@ -31,7 +31,7 @@ In a flow from proposal to proposal
 2. Customer information is not populated from the proposal, price_level is set to "retail"
 3. Lines are copied with 
 	proposal_line.quantity.staged = proposal_line.quantity.staged
-	proposal_line.quantity.transferred = 0
+	proposal_line.quantity.active = proposal_line.quantity.staged
 	proposal_line.quantity.remaining = proposal_line.quantity.staged
 
 When the customer is selected, the appropriate price_level will be set and the lines recalculate.
@@ -51,17 +51,19 @@ From proposal to order or invoice.
 	Line data having to do with dates are reset
 	if quantity.increment = 0;
 		order_line.quantity.staged = proposal.quantity.remaining
-		proposal_line.quantity.transferred = proposal.quantity.remaining
-		proposal_line.quantity.remaining = 0
+		order_line.quantity.active = proposal.quantity.remaining
 	else;
 	If (proposal.quantity.increment < proposal.quantity.remaining) 
 		order_line.quantity.staged = proposal.quantity.increment
-		proposal_line.quantity.transferred =+ proposal.quantity.remaining
-		proposal_line.quantity.remaining =- proposal.quantity.remaining
+		order_line.quantity.active = proposal.quantity.increment
 	 else
 		order_line.quantity.staged = proposal.quantity.remaining
-		proposal_line.quantity.transferred =+ proposal.quantity.remaining
-		proposal_line.quantity.remaining = 0
+		order_line.quantity.active = proposal.quantity.remaining
+
+	Source proposal line update (children_active tracker):
+		children_active.lines.append({"id": order_line.pk, "active": transfer_qty})
+		children_active.sum = sum of all children active
+		proposal_line.quantity.remaining = proposal_line.quantity.active - children_active.sum
 
 **Pending (inside atomic block):**
 1. Child pending: type_id=SO (or IN), on_so += order_line.quantity.staged
@@ -77,7 +79,7 @@ In a flow from proposal to purchase, or order to purchase, or invoice to purchas
 2. Customer information is not populated from the proposal, Vendor information will be entered or the reverse from purchase
 3. Lines are copied with to (receiving_line is receiving information, original_line is providing information)
 	receiving_line.quantity.staged = original_line.quantity.staged
-	receiving_line.quantity.transferred = 0
+	receiving_line.quantity.active = original_line.quantity.staged
 	receiving_line.quantity.remaining = original_line.quantity.staged
 
 **Pending (inside atomic block):**

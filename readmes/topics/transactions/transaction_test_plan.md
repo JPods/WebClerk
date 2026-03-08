@@ -74,9 +74,11 @@ This document consolidates testing procedures for the transaction system across 
 
 ## Test Phases
 
-### Phase 1: LineItemService (Priority)
+### Phase 1: Line Save & Pending (Priority)
 
-The LineItemService is the Single Point of Authority for line management. Test comprehensively.
+The `save_transaction_with_lines()` pipeline is the primary save path for all
+R25 transaction saves. `LineItemService` handles per-line operations for the
+generic `/wcapi/save/` endpoint. Test both paths.
 
 #### WC3 Backend
 

@@ -36,7 +36,7 @@ The new pattern:
 |-------|--------|
 | **Phase 1** | Save/update header record (order, invoice, purchase, etc.) |
 | **Phase 2** | Save/update all line records, collecting pending deltas |
-| **Phase 3** | Update source lines (for transfers: bump actioned, decrement remaining) |
+| **Phase 3** | Update source lines (for transfers: build `children_active` tracker, recompute remaining) |
 | **Phase 4** | Create Pending records from collected deltas, dispatch processing |
 
 ---
@@ -58,10 +58,11 @@ The backend is authoritative for all pending-related decisions:
 
 | Function | Line | Purpose |
 |----------|------|---------|
-| `_PENDING_TYPE_MAP` | ~L52 | Maps model_key → type code |
+| `_PENDING_TYPE_MAP` | ~L53 | Maps model_key → type code |
 | `_create_pending_from_deltas()` | ~L62 | Creates Pending records from collected array |
-| `_update_source_lines_after_transfer()` | ~L250 | Bumps actioned/remaining on source lines |
-| `save_transaction_with_lines()` | ~L487 | Main entry point — 4-phase save |
+| `_update_parent_children_active()` | ~L403 | Updates parent children_active when child active changes |
+| `_update_source_lines_after_transfer()` | ~L495 | Builds children_active on parent lines after new transfer |
+| `save_transaction_with_lines()` | ~L780 | Main entry point — 4-phase save |
 
 ---
 
@@ -143,7 +144,7 @@ When R25 creates an invoice from an order:
    - `on_so = -qty` (release SO commitment)
    - `on_hand = -qty` (deduct on-hand)
 5. R25 then calls `saveRecord(order, {id, is_active: false})` → `POST /wcapi/save/` to deactivate the order (no lines, no pending)
-6. Source order lines are updated in Phase 3: actioned bumped, remaining decremented, status set to "transferred"
+6. Source order lines are updated in Phase 3: `children_active` tracker built, remaining recomputed, status set to "transferred" when remaining ≤ 0
 
 ---
 

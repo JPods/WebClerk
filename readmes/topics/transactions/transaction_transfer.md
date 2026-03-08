@@ -11,8 +11,8 @@ Every transfer:
 - Creates a **new** target transaction (id = null → auto-assigned)
 - Links the target back to its source via `parent_model` / `parent_id`
 - Records an audit trail in `refs.source` and `refs.xfer`
-- Updates the source line's `quantity.transferred` and `quantity.remaining`
-- Uses **canonical** quantity keys: `staged` / `transferred` / `remaining`
+- Updates the source line's `children_active` tracker and recomputes `remaining`
+- Uses **canonical** quantity keys: `staged` / `active` / `remaining` / `children_active`
 
 ---
 
@@ -36,7 +36,7 @@ Creates a copy of the proposal with quantities reset.
 
 ```
 target_line.quantity.staged    = source_line.quantity.staged
-target_line.quantity.transferred  = 0
+target_line.quantity.active    = source_line.quantity.staged
 target_line.quantity.remaining = source_line.quantity.staged
 ```
 
@@ -86,16 +86,20 @@ else:
 
 ```
 target_line.quantity.staged    = transfer_qty
-target_line.quantity.transferred  = 0
+target_line.quantity.active    = transfer_qty
 target_line.quantity.remaining = transfer_qty
 target_line.quantity.increment = source_line.quantity.increment
 ```
 
-**Source line update (decrement):**
+**Source line update (children_active tracker):**
 
-```
-source_line.quantity.transferred  += transfer_qty
-source_line.quantity.remaining -= transfer_qty
+```python
+# Build/update children_active on the source line
+children_active = source_line.quantity.get("children_active", {"sum": 0, "lines": []})
+children_active["lines"].append({"id": target_line.pk, "active": transfer_qty})
+children_active["sum"] = sum(c["active"] for c in children_active["lines"])
+source_line.quantity["children_active"] = children_active
+source_line.quantity["remaining"] = max(0, source_line.quantity["active"] - children_active["sum"])
 ```
 
 If `source_line.quantity.remaining` reaches 0, its `status` → `"transferred"`.
@@ -128,7 +132,7 @@ because the counterparty context differs.
 
 ```
 target_line.quantity.staged    = source_line.quantity.staged
-target_line.quantity.transferred  = 0
+target_line.quantity.active    = source_line.quantity.staged
 target_line.quantity.remaining = source_line.quantity.staged
 ```
 
@@ -141,22 +145,30 @@ that track procurement separately from sales fulfillment.
 
 ```python
 {
-    "staged":     0,       # quantity committed on this line
-    "transferred":   0,       # qty converted / shipped / received (context-dependent)
-    "remaining":  0,       # staged - transferred
+    "staged":     0,       # quantity received from parent (frozen after creation)
+    "active":     0,       # user's working quantity (never system-modified)
+    "remaining":  0,       # active - children_active["sum"] (or active if no children)
     "increment":  0,       # minimum transfer batch size (0 = transfer all)
     "is_fixed":   False,   # lock from editing
     "is_blanket": False,   # open-ended qty
     "precision":  2,       # decimal places
+    # Present only on parent lines that have been transferred:
+    "children_active": {   # denormalized tracker of child line quantities
+        "sum": 0,          # total active across all children
+        "lines": [         # per-child entries
+            {"id": 201, "active": 5},
+        ]
+    }
 }
 ```
 
-| Transaction Type | `transferred` means |
-|------------------|-------------------|
-| Proposal | converted to order/invoice |
-| Order | shipped / invoiced |
-| Invoice | delivered |
-| Purchase | received from vendor |
+**Universal remaining formula:**
+
+```
+remaining = active − children_active["sum"]
+```
+
+When a line has no children, `children_active` is absent and `remaining = active`.
 
 ---
 
@@ -283,10 +295,10 @@ result = execute_transfer(
 )
 ```
 
-The unified `execute_transfer()` function replaces the individual
-`transfer_proposal_to_order()`, `transfer_order_to_invoice()`, etc. services
-by routing through a common transfer engine that applies the correct rules
-for each scenario.
+The unified `execute_transfer()` function handles clone, convert, and
+cross-type transfers through a common engine. Dedicated services
+(`proposal_to_order.py`, `order_to_invoice.py`) provide specialized
+conversion logic for the R25 "Convert" button flows.
 
 ---
 
