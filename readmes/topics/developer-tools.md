@@ -52,7 +52,7 @@ A floating chat panel with 6 specialized AI modes, powered by local DeepSeek via
 | Code Review | Amber | Convention compliance checks |
 | Test Writer | Teal | Generate tests with project patterns |
 
-> Full setup: see `webClerk3/readmes/topics/ai/setup-guide.md`
+> Full setup: see `webClerk3/readmes/topics/ai/setup-guide-Alice.md`
 
 ---
 
