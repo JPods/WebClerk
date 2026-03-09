@@ -76,6 +76,7 @@ import { PageRoutes } from "../../../../../routes/Routes";
 import { dynamicData } from "../../../../../model/dynamicData";
 import RippleLoader from "@/components/common/RippleLoader";
 import { CreateContactRequest } from "../../../../core/models/contact/types/contactType";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 
 // Professional vendor display component for right-side column
 type VendorFormValues = z.infer<typeof vendorSchema> & {
@@ -1237,11 +1238,17 @@ function VendorDetail({
             </HorizontalField>
 
             <HorizontalField label="phone" htmlFor="phone">
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="phone"
-                {...register("phone")}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <InternationalPhoneInput
+                    id="phone"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                  />
+                )}
               />
             </HorizontalField>
 

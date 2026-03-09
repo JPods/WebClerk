@@ -8,7 +8,7 @@ import {
   type DragEvent as ReactDragEvent,
   type ReactNode,
 } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDispatch } from "react-redux";
@@ -18,6 +18,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import { Input, TextArea } from "../../../../../components/wrapper";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 import { showToast } from "../../../../../store/slices/toastSlice";
 
 import { invoiceSchema } from "../utils/invoiceSchema";
@@ -914,6 +915,7 @@ export default function InvoiceDetailLegacy({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setValue,
@@ -2272,22 +2274,36 @@ export default function InvoiceDetailLegacy({
             </div>
             <div>
               <Label htmlFor="phoneCell">phoneCell</Label>
-              <Input
-                type="text"
-                id="phoneCell"
-                placeholder="Cell Phone"
-                {...register("phoneCell")}
-                disabled={mode === "view"}
+              <Controller
+                name="phoneCell"
+                control={control}
+                render={({ field }) => (
+                  <InternationalPhoneInput
+                    id="phoneCell"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    disabled={mode === "view"}
+                    placeholder="Cell Phone"
+                  />
+                )}
               />
             </div>
             <div>
               <Label htmlFor="phone">phone</Label>
-              <Input
-                type="text"
-                id="phone"
-                placeholder="Phone"
-                {...register("phone")}
-                disabled={mode === "view"}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <InternationalPhoneInput
+                    id="phone"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    disabled={mode === "view"}
+                    placeholder="Phone"
+                  />
+                )}
               />
             </div>
           </div>

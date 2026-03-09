@@ -20,6 +20,7 @@ import { ScalarCard, JsonCard, BaseModelCards } from '@/apps/common/components/d
 import TransactionTabs from '@/components/common/TransactionTabs';
 import ItemTabs from '@/components/common/ItemTabs';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import InternationalPhoneInput from '@/components/form/input/InternationalPhoneInput';
 
 // --- Types ---
 type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'qa' | 'relations' | 'refs' | 'prefs' | 'metadata';
@@ -118,12 +119,11 @@ const BasicInformationPanel: React.FC<{
         <div className="flex items-center gap-2">
           <span className="w-24 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">Phone</span>
           {editing ? (
-            <input
-              type="text"
+            <InternationalPhoneInput
               value={org.phone || ''}
-              onChange={(e) => onChange({ phone: e.target.value || null })}
-              className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              onChange={(value) => onChange({ phone: value || null })}
               placeholder="Primary Phone"
+              className="flex-1"
             />
           ) : (
             <span className="text-sm text-slate-700 dark:text-slate-300">{org.phone || '—'}</span>
@@ -301,13 +301,12 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
         {/* phone (primary) */}
         <div>
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Phone</label>
-          <input
-            type="tel"
+          <InternationalPhoneInput
             value={org.phone || ''}
-            onChange={(e) => onChange({ phone: e.target.value || null })}
+            onChange={(value) => onChange({ phone: value || null })}
             disabled={!editing}
             placeholder="Primary phone"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
+            className="mt-1"
           />
         </div>
         {/* price_level */}

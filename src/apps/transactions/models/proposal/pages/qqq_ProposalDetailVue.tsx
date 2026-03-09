@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -52,6 +53,7 @@ export default function ProposalDetailVue() {
 
   const {
     register,
+    control,
     setValue,
     handleSubmit,
     formState: { errors },
@@ -228,22 +230,36 @@ export default function ProposalDetailVue() {
             </div>
             <div>
               <Label htmlFor="phoneCell">Cell Phone</Label>
-              <Input
-                type="text"
-                id="phoneCell"
-                placeholder="Cell Phone"
-                {...register("phoneCell")}
-                disabled={mode === "view"}
+              <Controller
+                name="phoneCell"
+                control={control}
+                render={({ field }) => (
+                  <InternationalPhoneInput
+                    id="phoneCell"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    disabled={mode === "view"}
+                    placeholder="Cell Phone"
+                  />
+                )}
               />
             </div>
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input
-                type="text"
-                id="phone"
-                placeholder="Phone"
-                {...register("phone")}
-                disabled={mode === "view"}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <InternationalPhoneInput
+                    id="phone"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    disabled={mode === "view"}
+                    placeholder="Phone"
+                  />
+                )}
               />
             </div>
           </div>

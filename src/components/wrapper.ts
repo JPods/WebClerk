@@ -8,6 +8,7 @@ import Select from "./form/Select";
 import DropDown from "./form/input/DropDown";
 import DatePicker from "./form/date-picker";
 import PhoneInput from "./form/group-input/PhoneInput";
+import InternationalPhoneInput from "./form/input/InternationalPhoneInput";
 
 export {
   Toster,
@@ -17,6 +18,7 @@ export {
   Select,
   DatePicker,
   PhoneInput,
+  InternationalPhoneInput,
   TextArea,
   CustTextArea,
   DropDown,
