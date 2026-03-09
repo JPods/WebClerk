@@ -53,6 +53,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("admin", "admin"),
     ("admin_selectlist", "admin_selectlist"),
     ("React_settings", "React_settings"),
+    ("list_column_config", "list_column_config"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
