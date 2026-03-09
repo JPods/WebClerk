@@ -2,6 +2,7 @@ import React from "react";
 import FieldLabel from "../components/FieldLabel";
 import { Input, DropDown } from "../../../components/wrapper";
 import CustomerSalesPanel, { type CustomerSelectionData, type OrgLinkSnapshot } from "./CustomerSalesPanel";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 
 // Inline StatusBadge (copied from OrderDetail)
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
@@ -313,11 +314,10 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                   className="text-slate-500 dark:text-slate-400"
                 />
                 {isEditing && onChange ? (
-                  <Input
-                    type="text"
+                  <InternationalPhoneInput
                     value={data.phone ?? ""}
-                    onChange={(e) => onChange("phone", e.target.value)}
-                    className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                    onChange={(value) => onChange("phone", value)}
+                    className="w-45"
                   />
                 ) : (
                   <dd className="text-slate-900 dark:text-white">
