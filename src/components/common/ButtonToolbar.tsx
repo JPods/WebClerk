@@ -1,5 +1,6 @@
 import React, {
   RefObject,
+  useMemo,
   useRef,
   useState,
   useEffect,
@@ -29,6 +30,8 @@ import {
 } from "react-icons/fa";
 import PrintReportDropdown, { type QuickFilterItem } from "./PrintReportDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
+import { useColumnSetups, type ColumnSetupEntry } from "@/hooks/useColumnSetups";
+import { ColumnSetupDialog } from "./ColumnSetupDialog";
 
 export interface ColumnFilter {
   key: string;
@@ -258,6 +261,12 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   const [internalColumns, setInternalColumns] =
     useState<TableColumn<T>[]>(columns);
 
+  // Column setups (named presets via hook)
+  const columnSetupsApi = useColumnSetups(storageKey, modelKey);
+  const [showSaveSetupInput, setShowSaveSetupInput] = useState(false);
+  const [setupNameInput, setSetupNameInput] = useState("");
+  const [editingSetupName, setEditingSetupName] = useState<string | null>(null);
+
   // Use external or internal visibility
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
 
@@ -279,7 +288,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
     }
   }, [columns, externalColumnVisibility]);
 
-  // Load persisted column layout
+  // Load persisted column layout + setups
   useEffect(() => {
     if (!storageKey || columns.length === 0) return;
 
@@ -300,6 +309,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
     } catch {
       // Ignore errors
     }
+
   }, [storageKey, columns.length, onColumnVisibilityChange]);
 
   // Save column layout
@@ -454,6 +464,91 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       }
     }
   }, [columns, onColumnsChange, onColumnVisibilityChange, storageKey]);
+
+  // ── Column persist-key helper (matches AdvancedDataTable logic) ──
+  const getColumnPersistKey = useCallback(
+    (col: TableColumn<T>, index: number): string => {
+      if (col.id != null) return `id:${String(col.id)}`;
+      if (typeof col.name === "string")
+        return `name:${col.name.trim().toLowerCase()}`;
+      if (typeof col.selector === "string")
+        return `selector:${(col.selector as string).trim().toLowerCase()}`;
+      if (typeof col.sortField === "string")
+        return `sortField:${col.sortField.trim().toLowerCase()}`;
+      return `index:${index}`;
+    },
+    [],
+  );
+
+  // Build current snapshot for saving as a setup
+  const buildCurrentConfig = useCallback((): ColumnSetupEntry => {
+    const order = currentColumns.map((c, i) => getColumnPersistKey(c, i));
+    const visibility: Record<string, boolean> = {};
+    const widths: Record<string, string> = {};
+    currentColumns.forEach((col, i) => {
+      const key = getColumnPersistKey(col, i);
+      visibility[key] = columnVisibility[i] ?? true;
+      if (col.width) widths[key] = col.width;
+    });
+    return { order, visibility, widths, sort: null };
+  }, [currentColumns, columnVisibility, getColumnPersistKey]);
+
+  // Apply a ColumnSetupEntry to current columns
+  const applyConfig = useCallback(
+    (config: ColumnSetupEntry) => {
+      const byKey = new Map<string, { col: TableColumn<T>; origIdx: number }>();
+      currentColumns.forEach((col, i) => {
+        byKey.set(getColumnPersistKey(col, i), { col, origIdx: i });
+      });
+
+      const reordered: TableColumn<T>[] = [];
+      const newVis: boolean[] = [];
+      const used = new Set<string>();
+
+      // Apply saved order first
+      for (const key of config.order) {
+        const entry = byKey.get(key);
+        if (entry) {
+          const c = { ...entry.col };
+          if (config.widths[key]) c.width = config.widths[key];
+          reordered.push(c);
+          newVis.push(config.visibility[key] !== false);
+          used.add(key);
+        }
+      }
+      // Append any columns not in the saved order
+      currentColumns.forEach((col, i) => {
+        const key = getColumnPersistKey(col, i);
+        if (!used.has(key)) {
+          reordered.push(col);
+          newVis.push(config.visibility[key] !== false);
+        }
+      });
+
+      if (onColumnsChange) {
+        onColumnsChange(reordered as TableColumn<T>[]);
+      } else {
+        setInternalColumns(reordered as TableColumn<T>[]);
+      }
+      if (onColumnVisibilityChange) {
+        onColumnVisibilityChange(newVis);
+      } else {
+        setInternalColumnVisibility(newVis);
+      }
+      saveColumnLayout(newVis);
+    },
+    [currentColumns, getColumnPersistKey, onColumnsChange, onColumnVisibilityChange, saveColumnLayout],
+  );
+
+  // Column meta for the dialog
+  const columnMetas = useMemo(
+    () =>
+      currentColumns.map((col, i) => ({
+        key: getColumnPersistKey(col, i),
+        label: String(col.name || col.id || `Column ${i + 1}`),
+      })),
+    [currentColumns, getColumnPersistKey],
+  );
 
   const visibleColumnCount = columnVisibility.filter(Boolean).length;
   const totalColumnCount = currentColumns.length;
@@ -910,6 +1005,131 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
                 </button>
               </div>
 
+              {/* Column Setups */}
+              {storageKey && (
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Column Setups
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={columnSetupsApi.activeSetupName ?? "__current__"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "__save__") {
+                          setShowSaveSetupInput(true);
+                          e.target.value = columnSetupsApi.activeSetupName ?? "__current__";
+                        } else if (val === "__current__") {
+                          columnSetupsApi.clearActive();
+                        } else {
+                          const config = columnSetupsApi.applySetup(val);
+                          if (config) applyConfig(config);
+                        }
+                      }}
+                      className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    >
+                      {columnSetupsApi.setups.map((s) => (
+                        <option key={s.name} value={s.name}>
+                          {s.name}
+                        </option>
+                      ))}
+                      <option value="__save__">Save Current As…</option>
+                      <option value="__current__">
+                        {columnSetupsApi.activeSetupName ? "Current (unsaved)" : "● Current"}
+                      </option>
+                    </select>
+                    {columnSetupsApi.activeSetupName && (
+                      <>
+                        <button
+                          onClick={() => setEditingSetupName(columnSetupsApi.activeSetupName)}
+                          className="px-1.5 py-1 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400"
+                          title="Edit setup"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => columnSetupsApi.deleteSetup(columnSetupsApi.activeSetupName!)}
+                          className="px-1.5 py-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400"
+                          title={`Delete "${columnSetupsApi.activeSetupName}"`}
+                        >
+                          ✕
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {showSaveSetupInput && (
+                    <div className="mt-2 flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={setupNameInput}
+                        onChange={(e) => setSetupNameInput(e.target.value)}
+                        placeholder="Setup name"
+                        className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && setupNameInput.trim()) {
+                            columnSetupsApi.saveSetup(setupNameInput.trim(), buildCurrentConfig());
+                            setSetupNameInput("");
+                            setShowSaveSetupInput(false);
+                          } else if (e.key === "Escape") {
+                            setShowSaveSetupInput(false);
+                            setSetupNameInput("");
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          if (setupNameInput.trim()) {
+                            columnSetupsApi.saveSetup(setupNameInput.trim(), buildCurrentConfig());
+                            setSetupNameInput("");
+                            setShowSaveSetupInput(false);
+                          }
+                        }}
+                        disabled={!setupNameInput.trim()}
+                        className="px-2 py-1.5 text-xs font-medium text-white bg-sky-600 rounded hover:bg-sky-700 disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSaveSetupInput(false);
+                          setSetupNameInput("");
+                        }}
+                        className="px-1.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  {/* Server sync buttons */}
+                  <div className="mt-2 flex items-center gap-1">
+                    <button
+                      onClick={() => columnSetupsApi.uploadToServer()}
+                      disabled={columnSetupsApi.syncing || columnSetupsApi.setups.length === 0}
+                      className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      title="Upload setups to server"
+                    >
+                      ↑ Upload
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await columnSetupsApi.downloadFromServer();
+                        // If there's an active setup after download, apply it
+                        if (columnSetupsApi.activeSetupName) {
+                          const config = columnSetupsApi.applySetup(columnSetupsApi.activeSetupName);
+                          if (config) applyConfig(config);
+                        }
+                      }}
+                      disabled={columnSetupsApi.syncing}
+                      className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      title="Download setups from server"
+                    >
+                      ↓ Download
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Actions */}
               <div className="flex items-center gap-2 mb-3">
                 <button
@@ -973,6 +1193,26 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
             </div>
           </div>
         )}
+
+      {/* Column Setup Edit Dialog */}
+      {editingSetupName && (() => {
+        const setup = columnSetupsApi.setups.find((s) => s.name === editingSetupName);
+        if (!setup) return null;
+        return (
+          <ColumnSetupDialog
+            open={true}
+            title={editingSetupName}
+            columnMetas={columnMetas}
+            config={setup.config}
+            onClose={() => setEditingSetupName(null)}
+            onSave={(config) => {
+              columnSetupsApi.updateSetup(editingSetupName, config);
+              applyConfig(config);
+              setEditingSetupName(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };
