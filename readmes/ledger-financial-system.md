@@ -200,7 +200,35 @@ from apps.accounts.services.ledger_balance import on_invoice_save
 on_invoice_save(header_obj, replace_ledgers=True)
 ```
 
-`on_invoice_save()` resolves the term → calls `apply_terms_for_invoice()` → calls `create_ledger_records()` → calls `update_org_balances()`.
+`on_invoice_save()` now follows a **5-step pipeline with Pending-based sync**:
+
+1. Resolve term → call `apply_terms_for_invoice()` → call `create_ledger_records()`
+2. Stamp `invoice.metadata.ledger` with entries + `dt_sync=0` (not yet confirmed)
+3. Create a Pending record with `purpose='ledger_sync'` (command object)
+4. Attempt `update_org_balances(org)`
+5. On success → stamp `dt_sync=now`, mark Pending processed
+   On failure → both remain unprocessed for Celery retry
+
+**Self-diagnosing metadata** (`invoice.metadata.ledger`):
+```json
+{
+    "entries": [
+        {"ledger_id": 42, "value_original": 500.0, "value_available": 500.0, "dt_due": 1741564800000}
+    ],
+    "total_original": 500.0,
+    "dt_sync": 1741478400000
+}
+```
+
+| `dt_sync` State | Meaning | Action |
+|-----------------|---------|--------|
+| `> 0` | Fully synced | None needed |
+| `= 0` | Ledger records exist but org balance unconfirmed | `ledger_sync_processor` retries |
+| Key absent | Ledger write itself may have failed | Full re-run via `on_invoice_save` |
+
+**Ledger sync processor**: `apps/accounts/services/ledger_sync_processor.py` handles Celery retries.
+
+See `readmes/topics/architecture/pending-compensating-transactions.md` for the full Pending pattern.
 
 #### Payment → Ledger (post_save signal)
 

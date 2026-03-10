@@ -1099,13 +1099,45 @@ def save_transaction_with_lines(
     # ── Phase 5: Ledger / AR hooks (invoice only) ────────────────────
     # Creates ledger records based on payment terms, updates org aging.
     # Mirrors legacy 4D Ledger_InvSave: delete-and-recreate pattern.
+    # Creates a Pending 'ledger_sync' command; marks it processed on success.
+    # On failure the Pending stays unprocessed for Celery retry.
     if model_key == 'invoice':
         try:
             from apps.accounts.services.ledger_balance import on_invoice_save
             on_invoice_save(header_obj, replace_ledgers=True)
-            logger.info("Ledger records created/replaced for invoice #%s", header_id)
+            logger.info("Ledger sync completed for invoice #%s", header_id)
         except Exception as ledger_err:
-            logger.warning("Failed to create ledger records for invoice #%s: %s", header_id, ledger_err)
+            # on_invoice_save already creates an unprocessed Pending internally
+            # when the org-balance step fails.  If the *entire* call fails
+            # (e.g. term lookup blew up before any ledger was written) we
+            # create a retry Pending here so Celery can pick it up.
+            logger.warning(
+                "Ledger sync failed for invoice #%s: %s — "
+                "creating retry Pending for Celery.",
+                header_id, ledger_err,
+            )
+            try:
+                from apps.core.models import Pending
+                from apps.accounts.services.ledger_balance import PURPOSE_LEDGER_SYNC
+                Pending.objects.create(
+                    model_name='invoice',
+                    record_id=str(header_id),
+                    purpose=PURPOSE_LEDGER_SYNC,
+                    name=f'Ledger Sync Retry: Invoice {getattr(header_obj, "ida", header_id)}',
+                    data={
+                        'invoice_id': header_id,
+                        'invoice_ida': getattr(header_obj, 'ida', '') or str(header_id),
+                        'org_id': getattr(header_obj, 'customer_id', None),
+                        'ledger_ids': [],
+                        'total_original': 0,
+                        'reason': f'phase5_exception: {str(ledger_err)[:200]}',
+                    },
+                )
+            except Exception as pend_err:
+                logger.error(
+                    "Could not create ledger-sync retry Pending for invoice #%s: %s",
+                    header_id, pend_err,
+                )
 
     # ── Phase 6: Erosion detection (invoice, order) ──────────────────
     # Detects margin erosion vs ancestor proposals/orders and discount erosion.

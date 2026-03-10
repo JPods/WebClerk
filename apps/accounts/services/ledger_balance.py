@@ -271,44 +271,150 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     return financial
 
 
+def _stamp_ledger_metadata(invoice, ledger_records, dt_sync: int) -> None:
+    """
+    Stamp invoice.metadata.ledger with the current ledger state.
+
+    AUDIT: This creates a self-diagnosing fingerprint on the invoice so any
+    reader can tell whether ledger records are in sync without querying the
+    Pending table.
+
+    DATA STRUCTURE (invoice.metadata["ledger"]):
+        {
+            "entries": [
+                {"ledger_id": 42, "value_original": 500.0,
+                 "value_available": 500.0, "dt_due": <epoch_ms>},
+                ...
+            ],
+            "total_original": 1000.0,
+            "dt_sync": <epoch_ms>   # >0  = fully synced
+                                     #  0  = ledger written but org balance
+                                     #       update failed / not yet confirmed
+        }
+    """
+    entries = []
+    total_original = 0.0
+    for lr in (ledger_records or []):
+        dt_due_ms = 0
+        dt_due = getattr(lr, 'dt_due', None)
+        if dt_due is not None:
+            try:
+                dt_due_ms = int(dt_due.timestamp() * 1000)
+            except Exception:
+                dt_due_ms = 0
+        vo = float(getattr(lr, 'value_original', 0) or 0)
+        va = float(getattr(lr, 'value_available', 0) or 0)
+        entries.append({
+            'ledger_id': lr.pk,
+            'value_original': vo,
+            'value_available': va,
+            'dt_due': dt_due_ms,
+        })
+        total_original += vo
+
+    meta = getattr(invoice, 'metadata', None) or {}
+    if not isinstance(meta, dict):
+        meta = {}
+    meta['ledger'] = {
+        'entries': entries,
+        'total_original': total_original,
+        'dt_sync': dt_sync,
+    }
+    invoice.metadata = meta
+    invoice.save(update_fields=['metadata', 'dt_modified', 'version'])
+
+
+# ── Pending purpose constants ─────────────────────────────────────────
+PURPOSE_LEDGER_SYNC = 'ledger_sync'
+
+
+def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'Pending':
+    """
+    Create a Pending record that commands a ledger ↔ invoice re-sync.
+
+    AUDIT: Every invoice save that touches ledgers creates one of these.
+    - Happy path: the Pending is marked processed immediately after the
+      org balance update succeeds.
+    - Failure path: the Pending stays unprocessed (dt_processed=0) and
+      Celery retries via ``process_ledger_sync_pending()``.
+    """
+    from apps.core.models import Pending
+
+    inv_id = getattr(invoice, 'id', None)
+    inv_ida = getattr(invoice, 'ida', '') or str(inv_id)
+    org_id = getattr(invoice, 'customer_id', None)
+
+    pending_data = {
+        'invoice_id': inv_id,
+        'invoice_ida': inv_ida,
+        'org_id': org_id,
+        'ledger_ids': [lr.pk for lr in (ledger_records or [])],
+        'total_original': sum(
+            float(getattr(lr, 'value_original', 0) or 0)
+            for lr in (ledger_records or [])
+        ),
+        'reason': reason or 'invoice_save',
+    }
+
+    pending = Pending.objects.create(
+        model_name='invoice',
+        record_id=str(inv_id),
+        purpose=PURPOSE_LEDGER_SYNC,
+        name=f'Ledger Sync: Invoice {inv_ida}',
+        data=pending_data,
+    )
+    return pending
+
+
 def on_invoice_save(invoice, replace_ledgers: bool = True) -> None:
     """
-    Handle invoice save: create ledger records and update org balances.
-    
+    Handle invoice save: create ledger records, update org balances, and
+    create a ledger-sync Pending command.
+
     AUDIT: This is the PRIMARY entry point for invoice-related ledger creation.
     Called via signal or directly after invoice.save().
-    
-    WHAT HAPPENS:
-    1. If replace_ledgers=True, DELETE all existing ledgers for this invoice
-    2. Look up payment terms from invoice.prefs.payment_terms
-    3. Create new ledger record(s) based on term schedule:
-       - Net 30: Creates 1 ledger due in 30 days
-       - 3-Pay: Creates 3 ledgers with staggered due dates
-    4. Update org balances to reflect new ledger state
-    
+
+    PIPELINE:
+    1. Create/replace Ledger records based on payment terms
+    2. Stamp ``invoice.metadata.ledger`` with entries + ``dt_sync=0``
+    3. Create a Pending record (``purpose='ledger_sync'``)
+    4. Attempt org balance update (``update_org_balances``)
+    5. On success → stamp ``dt_sync = now``, mark Pending processed
+       On failure → ``dt_sync`` stays 0, Pending stays unprocessed for Celery
+
     FINANCIAL IMPACT:
     - New invoice increases org balance_due
     - Credit available decreases (potentially triggering holds)
     - Aging buckets shift based on due dates
-    
+
     AUDIT TRAIL:
     - Each ledger has parent_id pointing to invoice.id
     - Each ledger has model_name='invoice' for type identification
     - value_original captures initial amount (immutable)
     - value_available tracks current unpaid balance (mutable via payments)
-    
+    - invoice.metadata.ledger records what the invoice thinks the ledger holds
+    - Pending record tracks sync lifecycle (created → processed)
+
     Args:
         invoice: The saved Invoice instance
         replace_ledgers: Whether to delete existing ledgers first (default True)
                         Set False only during batch rebuild operations
     """
     from .terms_ledger import apply_terms_for_invoice
-    
-    # AUDIT: Create/replace ledger records based on payment terms
-    # This is the step that materializes receivables into trackable records
-    apply_terms_for_invoice(invoice, replace=replace_ledgers)
-    
-    # Update org balances — invoice FK is `customer` (db_column=customer_id)
+    from django.utils import timezone as tz
+
+    # ── Step 1: Create/replace ledger records ────────────────────────
+    ledger_records = apply_terms_for_invoice(invoice, replace=replace_ledgers)
+
+    # ── Step 2: Stamp metadata.ledger with dt_sync=0 (not yet confirmed) ─
+    _stamp_ledger_metadata(invoice, ledger_records, dt_sync=0)
+
+    # ── Step 3: Create Pending command for this sync ─────────────────
+    pending = _create_ledger_sync_pending(
+        invoice, ledger_records, reason='invoice_save',
+    )
+
+    # ── Step 4: Attempt org balance update ────────────────────────────
     org = getattr(invoice, 'customer', None)
     if org is None:
         org_id = getattr(invoice, 'customer_id', None)
@@ -318,9 +424,27 @@ def on_invoice_save(invoice, replace_ledgers: bool = True) -> None:
                 org = OrgBase.objects.get(id=org_id)
             except OrgBase.DoesNotExist:
                 pass
-    
+
+    org_synced = False
     if org:
-        update_org_balances(org)
+        try:
+            update_org_balances(org)
+            org_synced = True
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Org balance update failed for invoice #%s; "
+                "Pending %s will retry via Celery.",
+                getattr(invoice, 'id', '?'), pending.pk,
+            )
+
+    # ── Step 5: Finalise sync state ──────────────────────────────────
+    if org_synced:
+        now_ms = int(tz.now().timestamp() * 1000)
+        # Mark metadata as fully synced
+        _stamp_ledger_metadata(invoice, ledger_records, dt_sync=now_ms)
+        # Mark Pending processed — no Celery retry needed
+        pending.mark_processed(save=True)
 
 
 def on_payment_save(payment) -> None:
