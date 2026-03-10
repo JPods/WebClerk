@@ -17,11 +17,21 @@ const DraggableHeader: React.FC<{
 
   const [, drop] = useDrop({
     accept: "rdt-column",
-    hover(item: { index: number }) {
+    hover(item: { index: number }, monitor) {
       if (!ref.current) return;
       const dragIndex = item.index;
       const hoverIndex = index;
       if (dragIndex === hoverIndex) return;
+
+      const hoverRect = ref.current.getBoundingClientRect();
+      const hoverMiddleX = (hoverRect.right - hoverRect.left) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientX = clientOffset.x - hoverRect.left;
+
+      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
+      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+
       move(dragIndex, hoverIndex);
       item.index = hoverIndex;
     },
