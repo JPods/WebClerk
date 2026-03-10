@@ -261,6 +261,32 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   const [internalColumns, setInternalColumns] =
     useState<TableColumn<T>[]>(columns);
 
+  const getColumnIdentity = useCallback((col: TableColumn<T>, index: number) => {
+    if (col.id != null) return `id:${String(col.id)}`;
+    if (typeof col.name === "string") return `name:${col.name.trim().toLowerCase()}`;
+    if (typeof col.selector === "string") return `selector:${(col.selector as string).trim().toLowerCase()}`;
+    if (typeof col.sortField === "string") return `sortField:${col.sortField.trim().toLowerCase()}`;
+    return `index:${index}`;
+  }, []);
+
+  const incomingSchemaSignature = useMemo(
+    () =>
+      columns
+        .map((col, index) => getColumnIdentity(col, index))
+        .sort()
+        .join("|"),
+    [columns, getColumnIdentity],
+  );
+
+  const internalSchemaSignature = useMemo(
+    () =>
+      internalColumns
+        .map((col, index) => getColumnIdentity(col, index))
+        .sort()
+        .join("|"),
+    [internalColumns, getColumnIdentity],
+  );
+
   // Column setups (named presets via hook)
   const columnSetupsApi = useColumnSetups(storageKey, modelKey);
   const [showSaveSetupInput, setShowSaveSetupInput] = useState(false);
@@ -280,13 +306,37 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
 
   // Sync internal state when columns prop changes
   useEffect(() => {
-    if (columns.length > 0) {
+    if (columns.length === 0) return;
+
+    // Controlled mode: mirror parent columns exactly.
+    if (onColumnsChange) {
+      setInternalColumns(columns);
+      return;
+    }
+
+    // Uncontrolled mode: initialize once, then preserve local drag order unless schema changes.
+    if (internalColumns.length === 0) {
+      setInternalColumns(columns);
+      if (!externalColumnVisibility) {
+        setInternalColumnVisibility(columns.map(() => true));
+      }
+      return;
+    }
+
+    if (incomingSchemaSignature !== internalSchemaSignature) {
       setInternalColumns(columns);
       if (!externalColumnVisibility) {
         setInternalColumnVisibility(columns.map(() => true));
       }
     }
-  }, [columns, externalColumnVisibility]);
+  }, [
+    columns,
+    externalColumnVisibility,
+    onColumnsChange,
+    internalColumns.length,
+    incomingSchemaSignature,
+    internalSchemaSignature,
+  ]);
 
   // Load persisted column layout + setups
   useEffect(() => {
@@ -313,6 +363,21 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   }, [storageKey, columns.length, onColumnVisibilityChange]);
 
   // Save column layout
+  // Column persist-key helper (matches AdvancedDataTable logic)
+  const getColumnPersistKey = useCallback(
+    (col: TableColumn<T>, index: number): string => {
+      if (col.id != null) return `id:${String(col.id)}`;
+      if (typeof col.name === "string")
+        return `name:${col.name.trim().toLowerCase()}`;
+      if (typeof col.selector === "string")
+        return `selector:${(col.selector as string).trim().toLowerCase()}`;
+      if (typeof col.sortField === "string")
+        return `sortField:${col.sortField.trim().toLowerCase()}`;
+      return `index:${index}`;
+    },
+    [],
+  );
+
   const saveColumnLayout = useCallback(
     (visibility: boolean[]) => {
       if (!storageKey) return;
@@ -326,6 +391,30 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       }
     },
     [storageKey],
+  );
+
+  const syncTableLayout = useCallback(
+    (nextColumns: TableColumn<T>[], nextVisibility: boolean[]) => {
+      const order = nextColumns.map((c, i) => getColumnPersistKey(c, i));
+      const visibility: Record<string, boolean> = {};
+      order.forEach((key, i) => {
+        visibility[key] = nextVisibility[i] ?? true;
+      });
+
+      tableRef?.current?.applyColumnLayout?.({ order, visibility });
+
+      if (storageKey) {
+        try {
+          localStorage.setItem(
+            `AdvancedDataTable:v1:${storageKey}:columns`,
+            JSON.stringify({ v: 1 as const, order, visibility }),
+          );
+        } catch {
+          // Ignore storage errors
+        }
+      }
+    },
+    [tableRef, storageKey, getColumnPersistKey],
   );
 
   // Close dropdowns on outside click
@@ -397,6 +486,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         setInternalColumnVisibility(newVisibility);
       }
       saveColumnLayout(newVisibility);
+      syncTableLayout(newColumns, newVisibility);
     },
     [
       currentColumns,
@@ -404,6 +494,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       onColumnsChange,
       onColumnVisibilityChange,
       saveColumnLayout,
+      syncTableLayout,
     ],
   );
 
@@ -418,8 +509,15 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         setInternalColumnVisibility(newVisibility);
       }
       saveColumnLayout(newVisibility);
+      syncTableLayout(currentColumns, newVisibility);
     },
-    [columnVisibility, onColumnVisibilityChange, saveColumnLayout],
+    [
+      columnVisibility,
+      onColumnVisibilityChange,
+      saveColumnLayout,
+      currentColumns,
+      syncTableLayout,
+    ],
   );
 
   const showAllColumns = useCallback(() => {
@@ -430,7 +528,13 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       setInternalColumnVisibility(newVisibility);
     }
     saveColumnLayout(newVisibility);
-  }, [currentColumns, onColumnVisibilityChange, saveColumnLayout]);
+    syncTableLayout(currentColumns, newVisibility);
+  }, [
+    currentColumns,
+    onColumnVisibilityChange,
+    saveColumnLayout,
+    syncTableLayout,
+  ]);
 
   const hideAllColumns = useCallback(() => {
     const newVisibility = currentColumns.map(() => false);
@@ -440,7 +544,13 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       setInternalColumnVisibility(newVisibility);
     }
     saveColumnLayout(newVisibility);
-  }, [currentColumns, onColumnVisibilityChange, saveColumnLayout]);
+    syncTableLayout(currentColumns, newVisibility);
+  }, [
+    currentColumns,
+    onColumnVisibilityChange,
+    saveColumnLayout,
+    syncTableLayout,
+  ]);
 
   const resetColumns = useCallback(() => {
     if (onColumnsChange) {
@@ -459,26 +569,19 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
     if (storageKey) {
       try {
         localStorage.removeItem(`PageBreadcrumb:${storageKey}:columns`);
+        localStorage.removeItem(`AdvancedDataTable:v1:${storageKey}:columns`);
       } catch {
         // Ignore
       }
     }
-  }, [columns, onColumnsChange, onColumnVisibilityChange, storageKey]);
-
-  // ── Column persist-key helper (matches AdvancedDataTable logic) ──
-  const getColumnPersistKey = useCallback(
-    (col: TableColumn<T>, index: number): string => {
-      if (col.id != null) return `id:${String(col.id)}`;
-      if (typeof col.name === "string")
-        return `name:${col.name.trim().toLowerCase()}`;
-      if (typeof col.selector === "string")
-        return `selector:${(col.selector as string).trim().toLowerCase()}`;
-      if (typeof col.sortField === "string")
-        return `sortField:${col.sortField.trim().toLowerCase()}`;
-      return `index:${index}`;
-    },
-    [],
-  );
+    syncTableLayout(columns, newVisibility);
+  }, [
+    columns,
+    onColumnsChange,
+    onColumnVisibilityChange,
+    storageKey,
+    syncTableLayout,
+  ]);
 
   // Build current snapshot for saving as a setup
   const buildCurrentConfig = useCallback((): ColumnSetupEntry => {
@@ -536,8 +639,16 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         setInternalColumnVisibility(newVis);
       }
       saveColumnLayout(newVis);
+      syncTableLayout(reordered as TableColumn<T>[], newVis);
     },
-    [currentColumns, getColumnPersistKey, onColumnsChange, onColumnVisibilityChange, saveColumnLayout],
+    [
+      currentColumns,
+      getColumnPersistKey,
+      onColumnsChange,
+      onColumnVisibilityChange,
+      saveColumnLayout,
+      syncTableLayout,
+    ],
   );
 
   // Column meta for the dialog
@@ -1159,9 +1270,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
                 <div className="space-y-1 max-h-64 overflow-y-auto">
                   {currentColumns.map((col, index) => (
                     <DraggableColumnItem
-                      key={`col-${index}-${String(
-                        col.name || col.id || index,
-                      )}`}
+                      key={`col-${getColumnPersistKey(col, index)}`}
                       column={String(
                         col.name || col.id || `Column ${index + 1}`,
                       )}

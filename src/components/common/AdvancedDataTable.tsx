@@ -109,11 +109,21 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
 
   const [, drop] = useDrop({
     accept: "column",
-    hover: (item: { index: number }) => {
+    hover: (item: { index: number }, monitor) => {
       if (!ref.current) return;
       const dragIndex = item.index;
       const hoverIndex = index;
       if (dragIndex === hoverIndex) return;
+
+      const hoverRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverRect.bottom - hoverRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientY = clientOffset.y - hoverRect.top;
+
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
       moveColumn(dragIndex, hoverIndex);
       item.index = hoverIndex;
     },
@@ -157,6 +167,10 @@ export type AdvancedDataTableHandle<T> = {
   clearSelection: () => void;
   selectAll: () => void;
   openColumnManager: (anchor?: HTMLElement | DOMRect | null) => void;
+  applyColumnLayout: (layout: {
+    order: string[];
+    visibility?: Record<string, boolean>;
+  }) => void;
 };
 
 const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
@@ -283,6 +297,21 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   // Update columns when initialColumns change (hydrate persisted order/visibility per storageKey)
   useEffect(() => {
+    // Preserve in-session column order on ordinary rerenders. Rehydrate only when the incoming schema changes.
+    const incomingSchema = initialColumns
+      .map((col, index) => getColumnPersistKey(col, index))
+      .sort()
+      .join("|");
+
+    const currentSchema = columns
+      .map((col, index) => getColumnPersistKey(col, index))
+      .sort()
+      .join("|");
+
+    if (didHydrateLayoutRef.current && incomingSchema === currentSchema) {
+      return;
+    }
+
     const persisted = readPersistedLayout();
     const base = initialColumns.map((col, index) => ({
       col,
@@ -320,7 +349,12 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     setColumns(ordered);
     setColumnVisibility(visibilityArr);
     didHydrateLayoutRef.current = true;
-  }, [initialColumns, readPersistedLayout, getColumnPersistKey]);
+  }, [
+    initialColumns,
+    columns,
+    readPersistedLayout,
+    getColumnPersistKey,
+  ]);
 
   // Persist layout whenever user changes it
   useEffect(() => {
@@ -979,6 +1013,38 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       },
       openColumnManager: (anchor?: HTMLElement | DOMRect | null) =>
         openColumnManagerImpl(anchor),
+      applyColumnLayout: ({ order, visibility }) => {
+        if (!Array.isArray(order) || order.length === 0) return;
+
+        const base = columns.map((col, index) => ({
+          col,
+          key: getColumnPersistKey(col, index),
+        }));
+        const byKey = new Map(base.map((x) => [x.key, x.col] as const));
+        const used = new Set<string>();
+        const ordered: TableColumn<T>[] = [];
+
+        for (const key of order) {
+          const col = byKey.get(key);
+          if (col) {
+            ordered.push(col);
+            used.add(key);
+          }
+        }
+
+        for (const item of base) {
+          if (!used.has(item.key)) ordered.push(item.col);
+        }
+
+        const visibilityArr = ordered.map((col, index) => {
+          const key = getColumnPersistKey(col, index);
+          return visibility?.[key] ?? true;
+        });
+
+        setColumns(ordered);
+        setColumnVisibility(visibilityArr);
+        didHydrateLayoutRef.current = true;
+      },
     }),
     [
       exportToExcel,
@@ -989,6 +1055,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       tableRows,
       setSelectionKeys,
       openColumnManagerImpl,
+      columns,
+      getColumnPersistKey,
     ],
   );
 
