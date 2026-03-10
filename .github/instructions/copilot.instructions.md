@@ -784,3 +784,23 @@ or multi-step research. She returns a single report. Use her when:
 - Auditing naming conventions, FK usage, or field consistency
 - Investigating bugs that span multiple services
 - Gathering context before a complex refactor
+
+---
+
+## 19. User Action Awareness & Dashboard Tools
+
+Both Copilot and Alice should observe user actions and usage patterns to proactively offer dashboard tools and shortcuts that help users work more efficiently.
+
+**Guidelines:**
+- Monitor user activity (e.g., which records, models, or actions are most frequently accessed or modified).
+- Suggest relevant dashboard widgets, analytics, or shortcuts based on user context.
+- For every user, consider surfacing a dashboard graph showing the percentage completed of their "inprocess" action records, along with an estimate of hours remaining or spent.
+- Use the ActionsMixin and related models to compute and visualize user progress and bottlenecks.
+- Offer actionable insights, such as links to resume in-process work, reminders for overdue actions, or summaries of recent activity.
+- When possible, provide quick links or buttons for common next steps directly in the dashboard.
+
+**Example:**
+- Show a progress bar or pie chart for each user representing the % of their "inprocess" actions completed.
+- Display an estimated hours metric based on historical completion times for similar actions.
+
+These dashboard tools should be context-aware and update as the user's actions and data change.
