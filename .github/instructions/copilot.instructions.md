@@ -348,7 +348,7 @@ POST /wcapi/save/  { model_name: "order", record: { lines: [...] } }
   └── save_post / save_async hooks
 ```
 
-### Pending Record Rules
+### Pending Record Rules (Inventory)
 
 - **One pending per line operation** — duplicate pairs are forbidden
 - **Backend is authoritative** — pending type, transfer detection, and quantity buckets are derived server-side, not from front-end data
@@ -359,6 +359,66 @@ POST /wcapi/save/  { model_name: "order", record: { lines: [...] } }
 - Pending type codes: SO, PO, PP, IN, WO — mapped via `_PENDING_TYPE_MAP` in `transaction_save.py`
 - For transfers (e.g. order→invoice), each Pending captures both the add and the release in one record (e.g. `on_in=+qty, on_so=-qty, on_hand=-qty`)
 - `(invoice_line_id, order_line_id)` pair stored in every Pending record; duplicates blocked in-memory and at DB level
+
+### Pending as Compensating Transactions (ARCHITECTURAL PATTERN)
+
+The `Pending` model is used as a **compensating transaction mechanism** across the system — not just for inventory. When immediate consistency is blocked by record contention, user locks, or transient failures, a Pending record captures the intended operation as a command object that Celery retries until convergence.
+
+**Core principle**: In the happy path the Pending is created AND marked processed in the same request cycle. It only becomes a retry command on failure. Either way it persists as an audit trail.
+
+**When to use Pending**:
+- Hot row contention (many writers to same record)
+- Record locked by a user in read-write mode
+- Cross-record consistency (two+ records must stay in sync)
+- Transient failures (network blips, database timeouts)
+
+**Design rules for new Pending domains**:
+1. Define a `PURPOSE_*` constant for the purpose string
+2. Create the Pending with full context in `data` JSON (command, not message)
+3. Attempt immediate execution; mark processed on success
+4. On failure, leave unprocessed for Celery to retry
+5. Write an idempotent processor (running twice = same result)
+6. When possible, stamp the source record with sync metadata so readers can detect drift without querying the Pending table
+7. Never delete processed Pendings — they're lightweight audit records
+8. One Pending per event, not per retry attempt
+
+**Active domains**:
+
+| Purpose | Domain | Processor |
+|---------|--------|-----------|
+| `inventory_line_add` | Item quantity | `pending_inventory_processor.py` |
+| `inventory_qty_change` | Item quantity | `pending_inventory_processor.py` |
+| `inventory_line_delete` | Item quantity | `pending_inventory_processor.py` |
+| `ledger_sync` | Invoice ↔ Ledger ↔ Org balance | `ledger_sync_processor.py` |
+
+**Long-tail risk detection**: Unprocessed Pendings older than a threshold are signals. Query `Pending.objects.filter(dt_processed=0, dt_created__lt=threshold)` to surface stuck operations, contention hotspots, and systemic issues.
+
+**Deep-dive**: `readmes/topics/architecture/pending-compensating-transactions.md`
+
+### Ledger Sync Pipeline (Phase 5)
+
+Every invoice save creates a `ledger_sync` Pending and stamps `invoice.metadata.ledger`:
+
+```
+Invoice Save (Phase 5)
+    │
+    ├── Create/replace Ledger records from payment terms
+    ├── Stamp invoice.metadata.ledger (entries + dt_sync=0)
+    ├── Create Pending (purpose='ledger_sync')
+    ├── Attempt update_org_balances(org)
+    │       │
+    │       ├── Success → stamp dt_sync=now, mark Pending processed
+    │       └── Failure → both stay unprocessed for Celery
+    │
+    └── On total Phase 5 exception → create retry Pending with reason
+```
+
+**Self-diagnosing metadata** (`invoice.metadata.ledger`):
+- `dt_sync > 0` → fully synced, no action needed
+- `dt_sync = 0` → ledger records written but org balance unconfirmed
+- Key absent → ledger write itself may have failed
+
+**Files**: `ledger_balance.py` (creation), `ledger_sync_processor.py` (retry), `transaction_save.py` (Phase 5 wiring)
 
 ---
 
@@ -377,6 +437,8 @@ POST /wcapi/save/  { model_name: "order", record: { lines: [...] } }
 | Transaction save view | `apps/transactions/views/wcapi.py` |
 | Line item service (generic pending) | `apps/transactions/services/line_item_service.py` |
 | Pending dispatch helper | `apps/products/dispatch_pending.py` |
+| Ledger sync processor | `apps/accounts/services/ledger_sync_processor.py` |
+| Ledger balance + on_invoice_save | `apps/accounts/services/ledger_balance.py` |
 | Signal safety net | `apps/transactions/signals.py` |
 | URL routing | `webclerk3_api/urls.py` |
 | Settings | `webclerk3_api/settings.py` |
