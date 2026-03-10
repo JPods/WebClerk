@@ -122,6 +122,7 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
 }) => {
   const dimensions = PAPER_DIMENSIONS[paperSize];
   const typeLabel = DOCUMENT_TYPE_LABELS[meta.documentType];
+  const resolvedLogoUrl = logoUrl || company?.logoUrl || '/images/logo/webclerk.png';
 
   return (
     <div 
@@ -135,8 +136,15 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-300">
-        {/* Company Info - Left */}
+        {/* Logo + Company Info - Left */}
         <div className="text-xs w-1/3">
+          <div className="mb-2">
+            <img
+              src={resolvedLogoUrl}
+              alt={company?.name || 'WebClerk Logo'}
+              className="max-h-16 max-w-full object-contain"
+            />
+          </div>
           {company?.website && (
             <p>
               <a href={company.website} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
@@ -151,18 +159,8 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
           <p>{company?.email}</p>
         </div>
         
-        {/* Logo - Center */}
-        <div className="w-1/3 flex justify-center">
-          {(logoUrl || company?.logoUrl) ? (
-            <img 
-              src={logoUrl || company?.logoUrl} 
-              alt={company?.name || 'Company Logo'} 
-              className="max-h-16 max-w-full object-contain"
-            />
-          ) : (
-            <div className="text-lg font-bold text-gray-700">{company?.name}</div>
-          )}
-        </div>
+        {/* Center Spacer */}
+        <div className="w-1/3" />
         
         {/* Document Info - Right */}
         <div className="text-right w-1/3">
