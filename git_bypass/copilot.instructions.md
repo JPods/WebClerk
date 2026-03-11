@@ -225,6 +225,13 @@ Legacy names are **banned** in all new code:
 - Date/time fields from backend: `dt_` prefix (e.g. `dt_created`, `dt_modified`)
 - FK fields from backend: `{model_name}_id` format
 
+### Label Rendering Policy (STRICT)
+
+- For admin, list, detail, and table labels: use the **exact schema field name and exact case**.
+- Never title-case, capitalize, prettify, humanize, or auto-transform schema labels.
+- Scalar fields must render as exact schema names (example: `dt_modified`, `invoice_id`).
+- Object/JSON-derived keys must render with a leading dot and exact key name (example: `.on_hand`, `.margin_pc`, `.exact_name`).
+
 ---
 
 ## 6. Authentication & HTTP Client

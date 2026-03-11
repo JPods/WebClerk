@@ -23,7 +23,7 @@ import {
   FaCheck,
   FaExternalLinkAlt,
 } from "react-icons/fa";
-import { customerApi } from "@/apps/orgs/services/orgApi";
+import orgApi from "@/apps/orgs/services/orgApi";
 import type { Organization } from "@/apps/orgs/types/orgTypes";
 import ComponentCard from "@/components/common/ComponentCard";
 import { useWindowManager } from "@/context/WindowManagerContext";
@@ -472,8 +472,8 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
         setSelectedCustomer(recentMatch);
       } else {
         // Fetch the customer details
-        customerApi
-          .get(value)
+        orgApi
+          .get(value, 'customer')
           .then((customer) => {
             if (customer && customer.id) {
               const selected: SelectedCustomer = {
@@ -517,7 +517,8 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
         .filter((k) => k.length > 0);
 
       // Use kw parameter for keyword search (AND semantics)
-      const response = await customerApi.list({
+      const response = await orgApi.list({
+        org_type: 'customer',
         search: keywords.length === 1 ? keywords[0] : undefined,
         // For multiple keywords, use comma-separated kw param
         // The API will do AND matching on refs.keywords

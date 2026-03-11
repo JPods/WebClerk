@@ -1,9 +1,8 @@
 /**
  * Unified Organization API Service
- * Handles all org CRUD operations via wcapi endpoints
+ * Handles all org CRUD operations via the wcapi SDK.
  */
-import apiClient from '../../../api/axios';
-import { PostLoginURL } from '../../../routes/network';
+import { getRecords, getRecord, saveRecord, deleteRecord } from '@/api/wcapi';
 import type {
   Organization,
   OrgType,
@@ -13,110 +12,66 @@ import type {
   OrgUpdateRequest,
 } from '../types/orgTypes';
 
-// --- Response unwrapper ---
-const unwrap = <T>(response: unknown): T => {
-  if (!response) return {} as T;
-  const res = response as { data?: { data?: T } };
-  if (res.data?.data) return res.data.data;
-  if (res.data) return res.data as T;
-  return response as T;
-};
-
 // --- Core API methods ---
 
 export const orgApi = {
   /**
-   * List organizations with optional filtering
-   * Uses the org_type as model_name (e.g., model_name=employee)
+   * List organizations with optional filtering.
+   * Uses org_type as model_name (e.g. "employee", "customer").
    */
   list: async (params: OrgListParams = {}): Promise<OrgListResponse> => {
-    const queryParams = new URLSearchParams();
-    // Use org_type as model_name (employee, customer, vendor, etc.)
     const modelName = params.org_type || 'organization';
-    queryParams.set('model_name', modelName);
-    
-    if (params.status) queryParams.set('status', params.status);
-    if (params.is_active !== undefined) queryParams.set('is_active', String(params.is_active));
-    if (params.search) queryParams.set('q', params.search);
-    if (params.limit) queryParams.set('limit', String(params.limit));
-    if (params.offset) queryParams.set('offset', String(params.offset));
-    if (params.ordering) queryParams.set('ordering', params.ordering);
-    
-    const res = await apiClient.get(`${PostLoginURL.allTypes}${queryParams.toString()}`);
-    return unwrap<OrgListResponse>(res);
+    const { org_type: _drop, search, ...rest } = params;
+    const queryParams: Record<string, any> = { ...rest };
+    if (search) queryParams.q = search;
+
+    const data = await getRecords(modelName, queryParams);
+    return {
+      results: (data.results ?? []) as Organization[],
+      count: data.total ?? 0,
+      total: data.total,
+      limit: data.limit ?? undefined,
+      offset: data.offset,
+    };
   },
 
   /**
-   * Get single organization by ID
+   * Get single organization by ID.
    */
   get: async (id: number, orgType?: OrgType): Promise<Organization> => {
     const modelName = orgType || 'organization';
-    const res = await apiClient.get(`${PostLoginURL.allTypes}model_name=${modelName}&id=${id}`);
-    const data = unwrap<{ record?: Organization; results?: Organization[] }>(res);
-    return data.record || (data.results?.[0] as Organization) || ({} as Organization);
+    const data = await getRecord(modelName, id);
+    return (data?.record ?? {}) as Organization;
   },
 
   /**
-   * Create new organization
-   * Uses org_type as model_name for the API call
+   * Create new organization.
    */
   create: async (data: OrgCreateRequest): Promise<Organization> => {
     const modelName = data.org_type || 'organization';
-    const res = await apiClient.post(PostLoginURL.allSave, {
-      ...data,
-      model_name: modelName,
-    });
-    return unwrap<Organization>(res);
+    const { org_type: _drop, ...payload } = data;
+    const result = await saveRecord(modelName, payload);
+    return result as Organization;
   },
 
   /**
-   * Update existing organization
-   * Uses org_type as model_name for the API call
+   * Update existing organization.
    */
   update: async (data: OrgUpdateRequest): Promise<Organization> => {
     const modelName = data.org_type || 'organization';
-    const res = await apiClient.post(PostLoginURL.allSave, {
-      ...data,
-      model_name: modelName,
-    });
-    return unwrap<Organization>(res);
+    const { org_type: _drop, ...payload } = data;
+    const result = await saveRecord(modelName, payload);
+    return result as Organization;
   },
 
   /**
-   * Delete organization (soft delete)
+   * Delete organization (soft delete).
    */
   delete: async (id: number, orgType?: OrgType): Promise<void> => {
     const modelName = orgType || 'organization';
-    await apiClient.post(PostLoginURL.allSave, {
-      model_name: modelName,
-      id,
-      is_deleted: true,
-      is_active: false,
-    });
+    await deleteRecord(modelName, id);
   },
 };
-
-// --- Type-specific convenience APIs ---
-
-const createTypedApi = (orgType: OrgType) => ({
-  list: (params: Omit<OrgListParams, 'org_type'> = {}) => 
-    orgApi.list({ ...params, org_type: orgType }),
-    
-  get: (id: number) => orgApi.get(id, orgType),
-  
-  create: (data: Omit<OrgCreateRequest, 'org_type'>) => 
-    orgApi.create({ ...data, org_type: orgType }),
-    
-  update: (data: OrgUpdateRequest) => orgApi.update({ ...data, org_type: orgType }),
-  
-  delete: (id: number) => orgApi.delete(id, orgType),
-});
-
-export const customerApi = createTypedApi('customer');
-export const vendorApi = createTypedApi('vendor');
-export const employeeApi = createTypedApi('employee');
-export const repApi = createTypedApi('rep');
-export const manufacturerApi = createTypedApi('manufacturer');
 
 // Default export for generic use
 export default orgApi;

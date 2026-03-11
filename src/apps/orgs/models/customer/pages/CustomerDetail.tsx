@@ -84,7 +84,8 @@ type CustomerFormValues = z.infer<typeof customerSchema> & {
   refs?: string;
 };
 
-interface Customer {
+/** View-layer shape assembled from props or form values for display */
+interface CustomerViewData {
   id?: number;
   display_name?: string;
   status?: string;
@@ -143,11 +144,13 @@ const STATUS_OPTIONS = [
   { value: "archived", label: "Archived" },
 ];
 
-const ORG_TYPE_OPTIONS = [
+const CUSTOMER_TYPE_OPTIONS = [
   { value: "customer", label: "Customer" },
   { value: "vendor", label: "Vendor" },
-  { value: "partner", label: "Partner" },
-  { value: "internal", label: "Internal" },
+  { value: "manufacturer", label: "Manufacturer" },
+  { value: "rep", label: "Rep" },
+  { value: "employee", label: "Employee" },
+  { value: "other", label: "Other" },
 ];
 
 const TERMS_OPTIONS = [
@@ -1097,7 +1100,7 @@ function CustomerDetail({
   const formData = watch();
 
   // In view mode, prefer direct data from props; in edit/add mode, use form values
-  const customerData: Customer =
+  const customerData: CustomerViewData =
     mode === "view" && data
       ? {
           ...data,
@@ -1247,7 +1250,7 @@ function CustomerDetail({
                   control={control}
                   render={({ field }) => (
                     <Select
-                      options={ORG_TYPE_OPTIONS}
+                      options={CUSTOMER_TYPE_OPTIONS}
                       value={field.value ?? ""}
                       onChange={field.onChange}
                       placeholder="org_type"

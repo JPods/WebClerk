@@ -41,6 +41,8 @@ export interface ColumnSetupEntry {
   widths: Record<string, string>;
   /** Active sort, or null */
   sort: ColumnSort | null;
+  /** Optional per-column JSONB metadata used by setup editor side panel */
+  jsonb?: Record<string, Record<string, unknown>>;
 }
 
 export interface ColumnSetup {
@@ -82,6 +84,10 @@ interface PersistedPayload {
 
 interface ServerCollectionPayload {
   v: 1;
+  storageKey?: string;
+  current?: ColumnSetupEntry | null;
+  setups?: ColumnSetup[];
+  active?: string | null;
   lists: Record<string, PersistedPayload>;
 }
 
@@ -173,6 +179,86 @@ export function useColumnSetups(
     [storageKey],
   );
 
+  const uploadSnapshotToServer = useCallback(
+    async (
+      nextSetups: ColumnSetup[],
+      nextActiveSetupName: string | null,
+      currentConfig?: ColumnSetupEntry,
+    ) => {
+      if (!storageKey || !modelKey) return;
+      setSyncing(true);
+      try {
+        // One settings row per parent_model + purpose; list variants go in data.lists
+        const existing = await getRecords("setting", {
+          name: `list_column_config:${modelKey}`,
+          purpose: "list_column_config",
+          parent_model: modelKey,
+          is_active: true,
+          limit: 50,
+        });
+        const records = pickRecords(existing);
+        const latestRecord =
+          Array.isArray(records) && records.length > 0
+            ? [...records].sort((a, b) => {
+                const aTs = Number(a?.dt_modified ?? a?.dt_created ?? 0);
+                const bTs = Number(b?.dt_modified ?? b?.dt_created ?? 0);
+                if (aTs !== bTs) return bTs - aTs;
+                return Number(b?.id ?? 0) - Number(a?.id ?? 0);
+              })[0]
+            : undefined;
+        const settingId = latestRecord?.id;
+        const existingData = latestRecord?.data;
+
+        const activeConfig =
+          nextActiveSetupName != null
+            ? nextSetups.find((s) => s.name === nextActiveSetupName)?.config ?? null
+            : null;
+
+        const existingLists =
+          existingData?.lists && typeof existingData.lists === "object"
+            ? ({ ...existingData.lists } as Record<string, PersistedPayload>)
+            : {};
+
+        // Migrate old single-list format into collection format when encountered.
+        if (Object.keys(existingLists).length === 0 && existingData?.setups) {
+          existingLists[storageKey] = normalizePersistedPayload(existingData);
+        }
+
+        existingLists[storageKey] = {
+          v: 1,
+          setups: nextSetups,
+          active: nextActiveSetupName,
+          current: currentConfig ?? activeConfig,
+        };
+
+        const collection: ServerCollectionPayload = {
+          v: 1,
+          storageKey,
+          current: currentConfig ?? activeConfig,
+          setups: nextSetups,
+          active: nextActiveSetupName,
+          lists: existingLists,
+        };
+
+        const payload: Record<string, unknown> = {
+          name: `list_column_config:${modelKey}`,
+          purpose: "list_column_config",
+          parent_model: modelKey,
+          data: collection,
+        };
+        if (settingId) {
+          payload.id = settingId;
+        }
+        await saveRecord("setting", payload);
+      } catch (err) {
+        console.error("[useColumnSetups] uploadSnapshotToServer failed:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [storageKey, modelKey],
+  );
+
   const applySetup = useCallback(
     (name: string): ColumnSetupEntry | null => {
       const found = setups.find((s) => s.name === name);
@@ -186,117 +272,61 @@ export function useColumnSetups(
 
   const saveSetup = useCallback(
     (name: string, config: ColumnSetupEntry) => {
-      setSetups((prev) => {
-        const filtered = prev.filter((s) => s.name !== name);
-        const next = [...filtered, { name, config }];
-        setActiveSetupName(name);
-        persist(next, name);
-        return next;
-      });
+      const filtered = setups.filter((s) => s.name !== name);
+      const next = [...filtered, { name, config }];
+      setSetups(next);
+      setActiveSetupName(name);
+      persist(next, name);
+      void uploadSnapshotToServer(next, name, config);
     },
-    [persist],
+    [persist, setups, uploadSnapshotToServer],
   );
 
   const updateSetup = useCallback(
     (name: string, config: ColumnSetupEntry) => {
-      setSetups((prev) => {
-        const next = prev.map((s) => (s.name === name ? { ...s, config } : s));
-        persist(next, activeSetupName);
-        return next;
-      });
+      const next = setups.map((s) => (s.name === name ? { ...s, config } : s));
+      setSetups(next);
+      persist(next, activeSetupName);
+      void uploadSnapshotToServer(next, activeSetupName, config);
     },
-    [persist, activeSetupName],
+    [persist, activeSetupName, setups, uploadSnapshotToServer],
   );
 
   const renameSetup = useCallback(
     (oldName: string, newName: string) => {
-      setSetups((prev) => {
-        const next = prev.map((s) => (s.name === oldName ? { ...s, name: newName } : s));
-        const newActive = activeSetupName === oldName ? newName : activeSetupName;
-        setActiveSetupName(newActive);
-        persist(next, newActive);
-        return next;
-      });
+      const next = setups.map((s) => (s.name === oldName ? { ...s, name: newName } : s));
+      const newActive = activeSetupName === oldName ? newName : activeSetupName;
+      setSetups(next);
+      setActiveSetupName(newActive);
+      persist(next, newActive);
+      void uploadSnapshotToServer(next, newActive);
     },
-    [persist, activeSetupName],
+    [persist, activeSetupName, setups, uploadSnapshotToServer],
   );
 
   const deleteSetup = useCallback(
     (name: string) => {
-      setSetups((prev) => {
-        const next = prev.filter((s) => s.name !== name);
-        const newActive = activeSetupName === name ? null : activeSetupName;
-        setActiveSetupName(newActive);
-        persist(next, newActive);
-        return next;
-      });
+      const next = setups.filter((s) => s.name !== name);
+      const newActive = activeSetupName === name ? null : activeSetupName;
+      setSetups(next);
+      setActiveSetupName(newActive);
+      persist(next, newActive);
+      void uploadSnapshotToServer(next, newActive);
     },
-    [persist, activeSetupName],
+    [persist, activeSetupName, setups, uploadSnapshotToServer],
   );
 
   const clearActive = useCallback(() => {
     setActiveSetupName(null);
     persist(setups, null);
-  }, [setups, persist]);
+    void uploadSnapshotToServer(setups, null);
+  }, [setups, persist, uploadSnapshotToServer]);
 
   // ── Server sync ─────────────────────────────────────────────────────────
 
   const uploadToServer = useCallback(async (currentConfig?: ColumnSetupEntry) => {
-    if (!storageKey || !modelKey) return;
-    setSyncing(true);
-    try {
-      // One settings row per parent_model + purpose; list variants go in data.lists
-      const existing = await getRecords("setting", {
-        purpose: "list_column_config",
-        parent_model: modelKey,
-      });
-      const records = pickRecords(existing);
-      const settingId = Array.isArray(records) && records.length > 0 ? records[0].id : undefined;
-      const existingData = Array.isArray(records) && records.length > 0 ? records[0].data : undefined;
-
-      const activeConfig =
-        activeSetupName != null
-          ? setups.find((s) => s.name === activeSetupName)?.config ?? null
-          : null;
-
-      const existingLists =
-        existingData?.lists && typeof existingData.lists === "object"
-          ? ({ ...existingData.lists } as Record<string, PersistedPayload>)
-          : {};
-
-      // Migrate old single-list format into collection format when encountered.
-      if (Object.keys(existingLists).length === 0 && existingData?.setups) {
-        existingLists[storageKey] = normalizePersistedPayload(existingData);
-      }
-
-      existingLists[storageKey] = {
-        v: 1,
-        setups,
-        active: activeSetupName,
-        current: currentConfig ?? activeConfig,
-      };
-
-      const collection: ServerCollectionPayload = {
-        v: 1,
-        lists: existingLists,
-      };
-
-      const payload: Record<string, unknown> = {
-        name: `list_column_config:${modelKey}`,
-        purpose: "list_column_config",
-        parent_model: modelKey,
-        data: collection,
-      };
-      if (settingId) {
-        payload.id = settingId;
-      }
-      await saveRecord("setting", payload);
-    } catch (err) {
-      console.error("[useColumnSetups] uploadToServer failed:", err);
-    } finally {
-      setSyncing(false);
-    }
-  }, [storageKey, modelKey, setups, activeSetupName]);
+    await uploadSnapshotToServer(setups, activeSetupName, currentConfig);
+  }, [setups, activeSetupName, uploadSnapshotToServer]);
 
   const downloadFromServer = useCallback(async () => {
     if (!storageKey || !modelKey) return;

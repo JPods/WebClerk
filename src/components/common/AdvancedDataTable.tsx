@@ -157,6 +157,11 @@ export type AdvancedDataTableHandle<T> = {
   clearSelection: () => void;
   selectAll: () => void;
   openColumnManager: (anchor?: HTMLElement | DOMRect | null) => void;
+  applyColumnLayout: (layout: {
+    order?: string[];
+    visibility?: Record<string, boolean>;
+    widths?: Record<string, string>;
+  }) => void;
 };
 
 const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
@@ -963,6 +968,46 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     [],
   );
 
+  const applyColumnLayoutImpl = useCallback(
+    (layout: {
+      order?: string[];
+      visibility?: Record<string, boolean>;
+      widths?: Record<string, string>;
+    }) => {
+      const byKey = new Map(
+        columns.map((col, index) => [getColumnPersistKey(col, index), col] as const),
+      );
+      const nextColumns: TableColumn<T>[] = [];
+      const used = new Set<string>();
+
+      for (const key of layout.order ?? []) {
+        const col = byKey.get(key);
+        if (col) {
+          const maybeWidth = layout.widths?.[key];
+          nextColumns.push(maybeWidth ? { ...col, width: maybeWidth } : col);
+          used.add(key);
+        }
+      }
+
+      columns.forEach((col, index) => {
+        const key = getColumnPersistKey(col, index);
+        if (!used.has(key)) {
+          const maybeWidth = layout.widths?.[key];
+          nextColumns.push(maybeWidth ? { ...col, width: maybeWidth } : col);
+        }
+      });
+
+      const nextVisibility = nextColumns.map((col, index) => {
+        const key = getColumnPersistKey(col, index);
+        return layout.visibility?.[key] ?? true;
+      });
+
+      setColumns(nextColumns);
+      setColumnVisibility(nextVisibility);
+    },
+    [columns, getColumnPersistKey],
+  );
+
   React.useImperativeHandle(
     ref,
     () => ({
@@ -979,6 +1024,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       },
       openColumnManager: (anchor?: HTMLElement | DOMRect | null) =>
         openColumnManagerImpl(anchor),
+      applyColumnLayout: (layout) => applyColumnLayoutImpl(layout),
     }),
     [
       exportToExcel,
@@ -989,6 +1035,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       tableRows,
       setSelectionKeys,
       openColumnManagerImpl,
+      applyColumnLayoutImpl,
     ],
   );
 

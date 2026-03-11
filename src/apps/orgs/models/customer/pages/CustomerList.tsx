@@ -207,6 +207,24 @@ export default function CustomerList() {
           ),
         },
         {
+          name: "Email",
+          selector: (row: any) => row.email || "--",
+          sortable: true,
+          width: "15%",
+        },
+        {
+          name: "Attention",
+          selector: (row: any) => row.attention || "--",
+          sortable: true,
+          width: "15%",
+        },
+        {
+          name: "Phone",
+          selector: (row: any) => row.phone || "--",
+          sortable: true,
+          width: "12%",
+        },
+        {
           name: "Org Type",
           selector: (row: any) => row.org_type || "--",
           sortable: true,

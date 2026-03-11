@@ -142,10 +142,13 @@ const STATUS_OPTIONS = [
   { value: "archived", label: "Archived" },
 ];
 
-const ORG_TYPE_OPTIONS = [
+const VENDOR_TYPE_OPTIONS = [
   { value: "vendor", label: "Vendor" },
-  { value: "partner", label: "Partner" },
-  { value: "internal", label: "Internal" },
+  { value: "manufacturer", label: "Manufacturer" },
+  { value: "customer", label: "Customer" },
+  { value: "rep", label: "Rep" },
+  { value: "employee", label: "Employee" },
+  { value: "other", label: "Other" },
 ];
 
 const TERMS_OPTIONS = [
@@ -1210,7 +1213,7 @@ function VendorDetail({
                 control={control}
                 render={({ field }) => (
                   <Select
-                    options={ORG_TYPE_OPTIONS}
+                    options={VENDOR_TYPE_OPTIONS}
                     value={field.value ?? ""}
                     onChange={field.onChange}
                     placeholder="org_type"

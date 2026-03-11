@@ -22,12 +22,8 @@ import {
   FaChevronDown,
   FaHistory,
 } from "react-icons/fa";
-import {
-  customerApi,
-  vendorApi,
-  manufacturerApi,
-} from "@/apps/orgs/services/orgApi";
-import type { Organization } from "@/apps/orgs/types/orgTypes";
+import orgApi from "@/apps/orgs/services/orgApi";
+import type { Organization, OrgType } from "@/apps/orgs/types/orgTypes";
 
 // Party type determines which entity we're selecting
 export type PartyType = "customer" | "vendor" | "manufacturer";
@@ -87,7 +83,7 @@ const partyConfig: Record<
     label: string;
     searchPlaceholder: string;
     emptyMessage: string;
-    api: typeof customerApi;
+    orgType: OrgType;
   }
 > = {
   customer: {
@@ -95,21 +91,21 @@ const partyConfig: Record<
     label: "Customer",
     searchPlaceholder: "Search customers by name or ID...",
     emptyMessage: "No customers found",
-    api: customerApi,
+    orgType: "customer",
   },
   vendor: {
     icon: FaTruck,
     label: "Vendor",
     searchPlaceholder: "Search vendors by name or ID...",
     emptyMessage: "No vendors found",
-    api: vendorApi,
+    orgType: "vendor",
   },
   manufacturer: {
     icon: FaIndustry,
     label: "Manufacturer",
     searchPlaceholder: "Search manufacturers by name or ID...",
     emptyMessage: "No manufacturers found",
-    api: manufacturerApi,
+    orgType: "manufacturer",
   },
 };
 
@@ -186,8 +182,8 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
           });
         } else {
           // Fetch the party details
-          config.api
-            .get(value)
+          orgApi
+            .get(value, config.orgType)
             .then((party) => {
               if (party && party.id) {
                 setSelectedParty({
@@ -207,7 +203,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
     } else {
       setSelectedParty(null);
     }
-  }, [value, partyType, config.api, recentParties, searchResults]);
+  }, [value, partyType, config.orgType, recentParties, searchResults]);
 
   // Search for parties
   const handleSearch = useCallback(
@@ -219,7 +215,8 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
 
       setIsLoading(true);
       try {
-        const response = await config.api.list({
+        const response = await orgApi.list({
+          org_type: config.orgType,
           search: query,
           is_active: true,
           limit: 20,
@@ -232,7 +229,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
         setIsLoading(false);
       }
     },
-    [config.api, partyType],
+    [config.orgType, partyType],
   );
 
   // Debounced search
