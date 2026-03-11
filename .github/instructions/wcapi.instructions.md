@@ -177,6 +177,17 @@ and marks records as processed (`dt_processed = now_ms`).
 
 ---
 
+## Label Policy (Copilot + Alice)
+
+For debugging consistency in all generated/admin UI outputs:
+
+- Use exact schema names and exact case for all scalar labels.
+- For object/JSON-derived labels, use `.exact_name` format with leading dot.
+- Do not capitalize, title-case, prettify, or humanize labels.
+- Apply this rule everywhere (list headers, detail labels, exports, and generated config).
+
+---
+
 ## Pending as Compensating Transactions (Cross-Domain)
 
 The inventory pending pattern above is one instance of a broader architectural
@@ -193,22 +204,3 @@ Key rules for all Pending domains:
 
 See `readmes/topics/architecture/pending-compensating-transactions.md` for the
 full pattern and instructions on adding new Pending domains.
-
----
-
-## User Action Awareness & Dashboard Tools
-
-AI agents (Copilot and Alice) should observe user actions and usage patterns to offer dashboard tools and shortcuts that help users work more efficiently.
-
-- Monitor which records, models, or actions are most frequently accessed or modified by the user.
-- Suggest relevant dashboard widgets, analytics, or shortcuts based on user context.
-- For every user, surface a dashboard graph showing the percentage completed of their "inprocess" action records, and estimate hours remaining or spent.
-- Use the ActionsMixin and related models to compute and visualize user progress and bottlenecks.
-- Offer actionable insights, such as links to resume in-process work, reminders for overdue actions, or summaries of recent activity.
-- Provide quick links or buttons for common next steps directly in the dashboard when possible.
-
-**Example:**
-- Show a progress bar or pie chart for each user representing the % of their "inprocess" actions completed.
-- Display an estimated hours metric based on historical completion times for similar actions.
-
-These dashboard tools should be context-aware and update as the user's actions and data change.

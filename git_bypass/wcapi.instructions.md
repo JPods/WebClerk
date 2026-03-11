@@ -177,6 +177,17 @@ and marks records as processed (`dt_processed = now_ms`).
 
 ---
 
+## Label Policy (Copilot + Alice)
+
+For debugging consistency in all generated/admin UI outputs:
+
+- Use exact schema names and exact case for all scalar labels.
+- For object/JSON-derived labels, use `.exact_name` format with leading dot.
+- Do not capitalize, title-case, prettify, or humanize labels.
+- Apply this rule everywhere (list headers, detail labels, exports, and generated config).
+
+---
+
 ## Pending as Compensating Transactions (Cross-Domain)
 
 The inventory pending pattern above is one instance of a broader architectural

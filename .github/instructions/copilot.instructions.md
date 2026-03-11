@@ -107,6 +107,13 @@ Legitimate uses of "location" (warehouse position, DRF param, display fields) ar
 - Date/time fields: prefix `dt_` (e.g., `dt_created`, `dt_modified`)
 - FK columns: `{model_name}_id` format in database/API (e.g., `invoice_id`, `org_id`)
 
+### Label Rendering Policy (STRICT)
+
+- For admin, list, detail, and table labels: use the **exact schema field name and exact case**.
+- Never title-case, capitalize, prettify, humanize, or auto-transform schema labels.
+- Scalar fields must render as exact schema names (example: `dt_modified`, `invoice_id`).
+- Object/JSON-derived keys must render with a leading dot and exact key name (example: `.on_hand`, `.margin_pc`, `.exact_name`).
+
 ### ForeignKey Naming — `_id_id` Prevention (CRITICAL)
 
 Django auto-appends `_id` to the Python field name to create the DB column.
@@ -784,23 +791,3 @@ or multi-step research. She returns a single report. Use her when:
 - Auditing naming conventions, FK usage, or field consistency
 - Investigating bugs that span multiple services
 - Gathering context before a complex refactor
-
----
-
-## 19. User Action Awareness & Dashboard Tools
-
-Both Copilot and Alice should observe user actions and usage patterns to proactively offer dashboard tools and shortcuts that help users work more efficiently.
-
-**Guidelines:**
-- Monitor user activity (e.g., which records, models, or actions are most frequently accessed or modified).
-- Suggest relevant dashboard widgets, analytics, or shortcuts based on user context.
-- For every user, consider surfacing a dashboard graph showing the percentage completed of their "inprocess" action records, along with an estimate of hours remaining or spent.
-- Use the ActionsMixin and related models to compute and visualize user progress and bottlenecks.
-- Offer actionable insights, such as links to resume in-process work, reminders for overdue actions, or summaries of recent activity.
-- When possible, provide quick links or buttons for common next steps directly in the dashboard.
-
-**Example:**
-- Show a progress bar or pie chart for each user representing the % of their "inprocess" actions completed.
-- Display an estimated hours metric based on historical completion times for similar actions.
-
-These dashboard tools should be context-aware and update as the user's actions and data change.
