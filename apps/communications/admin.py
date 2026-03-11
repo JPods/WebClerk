@@ -1,12 +1,13 @@
 # path: apps/communications/admin.py
 from django.contrib import admin
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import Address, Email, Phone, Domain
 from django.utils import timezone
 from common.models import default_metadata 
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Address model."""
     list_display = ('id', 'address1', 'city', 'country', 'address_type')
     list_filter = ('address_type', 'country', 'state')
@@ -27,7 +28,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 @admin.register(Email)
-class EmailAdmin(admin.ModelAdmin):
+class EmailAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Email model."""
     list_display = ('id', 'email', 'name', 'contact', 'is_primary', 'is_verified')
     list_filter = ('opt_out', 'is_primary', 'is_verified')
@@ -50,7 +51,7 @@ class EmailAdmin(admin.ModelAdmin):
 
    
 @admin.register(Phone)
-class PhoneAdmin(admin.ModelAdmin):
+class PhoneAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Phone model."""
     list_display = ('id', 'number', 'name', 'contact', 'country_code', 'opt_out')  # Changed dt_verified to get_dt_verified
     list_filter = ('country_code', 'opt_out')  # Remove dt_verified from list_filter since it's now a property
@@ -69,7 +70,7 @@ class PhoneAdmin(admin.ModelAdmin):
     
 
 @admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
+class DomainAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Domain model."""
     list_display = ('id', 'path', 'type', 'contact')  # Use get_dt_verified
     list_filter = ('type',)  # Remove dt_verified from list_filter

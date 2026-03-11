@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
 from apps.core.choices import SETTING_PURPOSE_CHOICES
@@ -22,6 +23,18 @@ class Setting(BaseModel):
 
     class Meta:
         db_table = 'settings'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['parent_model', 'purpose'],
+                condition=(
+                    Q(purpose='list_column_config')
+                    & Q(is_active=True)
+                    & Q(parent_model__isnull=False)
+                    & ~Q(parent_model='')
+                ),
+                name='uniq_active_list_column_config_parent_model',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name or 'Setting'} ({self.id})"

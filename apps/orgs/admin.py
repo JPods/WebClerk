@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 import logging
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import OrgBase, Customer, Vendor, Rep, Employee, Manufacturer
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ class OrgBaseAdminForm(forms.ModelForm):
 
 
 @admin.register(OrgBase)
-class OrgBaseAdmin(admin.ModelAdmin):
+class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
     list_display = ("id", "company", "org_type", "status", "is_active", "version")

@@ -13,6 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import (
     Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report,
     RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile,
@@ -20,7 +21,7 @@ from .models import (
 
 
 @admin.register(Contact)
-class ContactAdmin(BaseUserAdmin):
+class ContactAdmin(SchemaLabelsAdminMixin, BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
     scalar_fields = (
         'id',
@@ -132,7 +133,7 @@ class ContactAdmin(BaseUserAdmin):
 
 
 @admin.register(Action)
-class ActionAdmin(admin.ModelAdmin):
+class ActionAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Action model."""
     list_display = ('id', 'get_action_title', 'project_id', 'project_name', 'kanban_column', 'status', 'priority', 'dt_deadline')
     list_filter = ('kanban_column', 'status', 'priority')
@@ -197,7 +198,7 @@ class ActionAdmin(admin.ModelAdmin):
     def get_action_title(self, obj):
         action_dict = obj.action or {}
         return action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
-    get_action_title.short_description = 'Action'
+    get_action_title.short_description = '.en'
 
     @admin.action(description='Assign project ID to selected actions')
     def assign_project_id(self, request, queryset):
@@ -221,7 +222,7 @@ class ActionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Setting)
-class SettingAdmin(admin.ModelAdmin):
+class SettingAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Setting model."""
     list_display = ('id', 'name', 'purpose', 'parent_model', 'role')
     list_filter = ('purpose', 'role')
@@ -230,7 +231,7 @@ class SettingAdmin(admin.ModelAdmin):
 
 
 @admin.register(Template)
-class TemplateAdmin(admin.ModelAdmin):
+class TemplateAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Template model."""
     list_display = ('id', 'name', 'purpose', 'dt_processed')
     list_filter = ('purpose',)
@@ -239,7 +240,7 @@ class TemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(Pending)
-class PendingAdmin(admin.ModelAdmin):
+class PendingAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Pending model."""
     list_display = ('id', 'model_name', 'record_id', 'purpose', 'on_hand', 'on_p', 'on_so', 'on_in', 'on_po', 'dt_processed')
     list_filter = ('model_name', 'purpose')
@@ -250,29 +251,29 @@ class PendingAdmin(admin.ModelAdmin):
         val = (obj.data or {}).get(key)
         return val if val is not None else '-'
 
-    @admin.display(description='on_hand')
+    @admin.display(description='.on_hand')
     def on_hand(self, obj):
         return self._data_field(obj, 'on_hand')
 
-    @admin.display(description='on_p')
+    @admin.display(description='.on_p')
     def on_p(self, obj):
         return self._data_field(obj, 'on_p')
 
-    @admin.display(description='on_so')
+    @admin.display(description='.on_so')
     def on_so(self, obj):
         return self._data_field(obj, 'on_so')
 
-    @admin.display(description='on_in')
+    @admin.display(description='.on_in')
     def on_in(self, obj):
         return self._data_field(obj, 'on_in')
 
-    @admin.display(description='on_po')
+    @admin.display(description='.on_po')
     def on_po(self, obj):
         return self._data_field(obj, 'on_po')
 
 
 @admin.register(SoftDeleteLedger)
-class SoftDeleteLedgerAdmin(admin.ModelAdmin):
+class SoftDeleteLedgerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
     list_display = ('id', 'target', 'dt_purge', 'dt_created')
     list_filter = ('content_type', 'dt_purge')
@@ -281,7 +282,7 @@ class SoftDeleteLedgerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Notification model."""
     list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
     list_filter = ('purpose', 'model_name', 'is_active')
@@ -290,7 +291,7 @@ class NotificationAdmin(admin.ModelAdmin):
 
 
 @admin.register(Report)
-class ReportAdmin(admin.ModelAdmin):
+class ReportAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Report model."""
     list_display = ('id', 'name', 'purpose', 'model_name', 'record_id', 'is_active', 'dt_created')
     list_filter = ('purpose', 'model_name', 'is_active')
@@ -303,7 +304,7 @@ class ReportAdmin(admin.ModelAdmin):
 # =============================================================================
 
 @admin.register(RoleConfig)
-class RoleConfigAdmin(admin.ModelAdmin):
+class RoleConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Role configurations."""
     list_display = ('role', 'description', 'is_portal', 'is_active', 'parent_role')
     list_filter = ('is_portal', 'is_active')
@@ -317,7 +318,7 @@ class RoleConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(ModelRoleConfig)
-class ModelRoleConfigAdmin(admin.ModelAdmin):
+class ModelRoleConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for per-model role configurations."""
     list_display = ('model_name', 'role', 'allow_create', 'allow_delete')
     list_filter = ('model_name', 'role', 'allow_create', 'allow_delete')
@@ -333,7 +334,7 @@ class ModelRoleConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(ModelLinkConfig)
-class ModelLinkConfigAdmin(admin.ModelAdmin):
+class ModelLinkConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for model link/denormalization templates."""
     list_display = ('model_name', 'dt_modified')
     search_fields = ('model_name',)
@@ -347,7 +348,7 @@ class ModelLinkConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for User Profiles (user-contact-role linkage)."""
     list_display = ('id', 'user', 'contact', 'get_roles')
     search_fields = ('user__username', 'user__email', 'contact__email', 'contact__company')
@@ -359,7 +360,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
     )
     
-    @admin.display(description='Roles')
+    @admin.display(description='cached_roles')
     def get_roles(self, obj):
         roles = obj.get_roles()
         return ', '.join(roles) if roles else '-'
