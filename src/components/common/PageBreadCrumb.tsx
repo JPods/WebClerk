@@ -1,5 +1,6 @@
 import React, {
   RefObject,
+  useMemo,
   useRef,
   useState,
   useEffect,
@@ -40,18 +41,37 @@ interface DraggableColumnItemProps {
   column: string;
   index: number;
   visible: boolean;
+  isSelected: boolean;
   moveColumn: (dragIndex: number, hoverIndex: number) => void;
   toggleVisibility: (index: number) => void;
+  onSelect: (index: number) => void;
 }
 
 const COLUMN_DRAG_TYPE = "COLUMN_ITEM";
+
+function getSerializableColumnProps(col: TableColumn<any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(col as object)) {
+    if (typeof val !== "function") {
+      try {
+        JSON.stringify(val);
+        result[key] = val;
+      } catch {
+        // skip non-serializable values
+      }
+    }
+  }
+  return result;
+}
 
 const DraggableColumnItem: React.FC<DraggableColumnItemProps> = ({
   column,
   index,
   visible,
+  isSelected,
   moveColumn,
   toggleVisibility,
+  onSelect,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -91,12 +111,15 @@ const DraggableColumnItem: React.FC<DraggableColumnItemProps> = ({
   return (
     <div
       ref={ref}
+      onClick={() => onSelect(index)}
       className={`flex items-center justify-between p-2 rounded cursor-move ${
         isDragging ? "opacity-50" : ""
       } ${
-        visible
-          ? "bg-gray-50 dark:bg-gray-700"
-          : "bg-gray-100 dark:bg-gray-800 opacity-60"
+        isSelected
+          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30"
+          : visible
+          ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+          : "bg-gray-100 dark:bg-gray-800 opacity-60 hover:bg-gray-200 dark:hover:bg-gray-700"
       }`}
     >
       <div className="flex items-center gap-2">
@@ -230,12 +253,17 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
     left: number;
   } | null>(null);
 
+  const [selectedColIndex, setSelectedColIndex] = useState<number | null>(null);
+  const [editJson, setEditJson] = useState<string>("");
+  const [jsonError, setJsonError] = useState<string>("");
+
   // Internal column visibility state (used when not controlled externally)
   const [internalColumnVisibility, setInternalColumnVisibility] = useState<
     boolean[]
   >(() => columns.map(() => true));
   const [internalColumns, setInternalColumns] =
     useState<TableColumn<T>[]>(columns);
+  const initialColumnsRef = useRef<TableColumn<T>[]>(columns);
 
   // Use external or internal visibility
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
@@ -248,17 +276,106 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
   const effectiveImportInputRef = importInputRef ?? localImportInputRef;
   const effectiveColumnBtnRef = columnBtnRef ?? localColumnBtnRef;
 
-  // Sync internal state when columns prop changes
-  useEffect(() => {
-    if (columns.length > 0) {
-      setInternalColumns(columns);
-      if (!externalColumnVisibility) {
-        setInternalColumnVisibility(columns.map(() => true));
+  // Stable key for persisted layouts and column reconciliation.
+  const getColumnPersistKey = useCallback(
+    (col: TableColumn<T>, index: number): string => {
+      if (col.id != null) return `id:${String(col.id)}`;
+      if (typeof col.name === "string") {
+        return `name:${col.name.trim().toLowerCase()}`;
       }
-    }
-  }, [columns, externalColumnVisibility]);
+      if (typeof col.selector === "string") {
+        return `selector:${col.selector.trim().toLowerCase()}`;
+      }
+      if (typeof col.sortField === "string") {
+        return `sortField:${col.sortField.trim().toLowerCase()}`;
+      }
+      return `index:${index}`;
+    },
+    [],
+  );
 
-  // Load persisted column layout
+  const columnsSignature = useMemo(
+    () => columns.map((col, i) => getColumnPersistKey(col, i)).join("|"),
+    [columns, getColumnPersistKey],
+  );
+
+  const isColumnsControlled = Boolean(onColumnsChange);
+
+  // Keep an immutable reset baseline from the first non-empty columns set.
+  useEffect(() => {
+    if (initialColumnsRef.current.length === 0 && columns.length > 0) {
+      initialColumnsRef.current = columns;
+    }
+  }, [columns]);
+
+  // Sync internal state for uncontrolled mode without clobbering user reordering.
+  useEffect(() => {
+    if (isColumnsControlled || columns.length === 0) return;
+
+    setInternalColumns((prevColumns) => {
+      if (prevColumns.length === 0) {
+        if (!externalColumnVisibility) {
+          setInternalColumnVisibility(columns.map(() => true));
+        }
+        return columns;
+      }
+
+      const prevByKey = new Map<string, TableColumn<T>>();
+      prevColumns.forEach((col, index) => {
+        prevByKey.set(getColumnPersistKey(col, index), col);
+      });
+
+      const incomingKeys = columns.map((col, index) =>
+        getColumnPersistKey(col, index),
+      );
+      const incomingKeySet = new Set(incomingKeys);
+
+      const mergedColumns: TableColumn<T>[] = [];
+
+      // Preserve user order for columns that still exist.
+      prevColumns.forEach((col, index) => {
+        const key = getColumnPersistKey(col, index);
+        if (incomingKeySet.has(key)) {
+          mergedColumns.push(prevByKey.get(key) ?? col);
+        }
+      });
+
+      // Append new columns introduced from props.
+      columns.forEach((col, index) => {
+        const key = getColumnPersistKey(col, index);
+        if (!prevColumns.some((pCol, pIndex) => getColumnPersistKey(pCol, pIndex) === key)) {
+          mergedColumns.push(col);
+        }
+      });
+
+      if (!externalColumnVisibility) {
+        setInternalColumnVisibility((prevVisibility) => {
+          const prevVisibilityByKey = new Map<string, boolean>();
+          prevColumns.forEach((col, index) => {
+            prevVisibilityByKey.set(
+              getColumnPersistKey(col, index),
+              prevVisibility[index] ?? true,
+            );
+          });
+
+          return mergedColumns.map((col, index) => {
+            const key = getColumnPersistKey(col, index);
+            return prevVisibilityByKey.get(key) ?? true;
+          });
+        });
+      }
+
+      return mergedColumns;
+    });
+  }, [
+    columns,
+    columnsSignature,
+    externalColumnVisibility,
+    getColumnPersistKey,
+    isColumnsControlled,
+  ]);
+
+  // Load persisted column layout (supports legacy array and keyed layouts).
   useEffect(() => {
     if (!storageKey || columns.length === 0) return;
 
@@ -267,35 +384,151 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
         `PageBreadcrumb:${storageKey}:columns`,
       );
       if (saved) {
-        const { visibility } = JSON.parse(saved);
-        if (Array.isArray(visibility) && visibility.length === columns.length) {
-          if (onColumnVisibilityChange) {
-            onColumnVisibilityChange(visibility);
+        const parsed = JSON.parse(saved) as {
+          order?: string[];
+          visibility?: boolean[] | Record<string, boolean>;
+        };
+
+        let nextColumns = [...columns];
+        let nextVisibility: boolean[] | null = null;
+
+        const keyedVisibility =
+          parsed.visibility && !Array.isArray(parsed.visibility)
+            ? parsed.visibility
+            : null;
+        const hasKeyedOrder = Array.isArray(parsed.order) && parsed.order.length > 0;
+
+        if (hasKeyedOrder || keyedVisibility) {
+          const byKey = new Map<string, TableColumn<T>>();
+          columns.forEach((col, index) => {
+            byKey.set(getColumnPersistKey(col, index), col);
+          });
+
+          const reordered: TableColumn<T>[] = [];
+          const usedKeys = new Set<string>();
+
+          if (hasKeyedOrder) {
+            parsed.order?.forEach((key) => {
+              const col = byKey.get(key);
+              if (col) {
+                reordered.push(col);
+                usedKeys.add(key);
+              }
+            });
+          }
+
+          columns.forEach((col, index) => {
+            const key = getColumnPersistKey(col, index);
+            if (!usedKeys.has(key)) {
+              reordered.push(col);
+            }
+          });
+
+          nextColumns = reordered;
+          nextVisibility = nextColumns.map((col, index) => {
+            const key = getColumnPersistKey(col, index);
+            return keyedVisibility?.[key] !== false;
+          });
+        } else if (
+          Array.isArray(parsed.visibility) &&
+          parsed.visibility.length === columns.length
+        ) {
+          nextVisibility = parsed.visibility;
+        }
+
+        if (nextColumns.length > 0) {
+          if (onColumnsChange) {
+            onColumnsChange(nextColumns);
           } else {
-            setInternalColumnVisibility(visibility);
+            setInternalColumns(nextColumns);
+          }
+        }
+
+        if (nextVisibility) {
+          if (onColumnVisibilityChange) {
+            onColumnVisibilityChange(nextVisibility);
+          } else {
+            setInternalColumnVisibility(nextVisibility);
           }
         }
       }
     } catch {
       // Ignore errors
     }
-  }, [storageKey, columns.length, onColumnVisibilityChange]);
+  }, [
+    columns,
+    columnsSignature,
+    getColumnPersistKey,
+    onColumnsChange,
+    onColumnVisibilityChange,
+    storageKey,
+  ]);
 
   // Save column layout
   const saveColumnLayout = useCallback(
-    (visibility: boolean[]) => {
+    (layoutColumns: TableColumn<T>[], visibility: boolean[]) => {
       if (!storageKey) return;
+
+      const order = layoutColumns.map((col, index) =>
+        getColumnPersistKey(col, index),
+      );
+      const keyedVisibility = order.reduce<Record<string, boolean>>(
+        (acc, key, index) => {
+          acc[key] = visibility[index] ?? true;
+          return acc;
+        },
+        {},
+      );
+
       try {
         localStorage.setItem(
           `PageBreadcrumb:${storageKey}:columns`,
-          JSON.stringify({ visibility }),
+          JSON.stringify({ order, visibility: keyedVisibility }),
         );
       } catch {
         // Ignore errors
       }
     },
-    [storageKey],
+    [getColumnPersistKey, storageKey],
   );
+
+  // Sync JSON editor when selected column changes
+  useEffect(() => {
+    if (selectedColIndex !== null && currentColumns[selectedColIndex]) {
+      setEditJson(
+        JSON.stringify(
+          getSerializableColumnProps(currentColumns[selectedColIndex]),
+          null,
+          2,
+        ),
+      );
+      setJsonError("");
+    }
+  }, [selectedColIndex, currentColumns]);
+
+  const applyJsonEdit = useCallback(() => {
+    if (selectedColIndex === null) return;
+    try {
+      const parsed = JSON.parse(editJson) as Record<string, unknown>;
+      const original = currentColumns[selectedColIndex];
+      const updated = { ...original };
+      for (const [key, val] of Object.entries(parsed)) {
+        if (typeof (original as Record<string, unknown>)[key] !== "function") {
+          (updated as Record<string, unknown>)[key] = val;
+        }
+      }
+      const newColumns = [...currentColumns];
+      newColumns[selectedColIndex] = updated;
+      if (onColumnsChange) {
+        onColumnsChange(newColumns);
+      } else {
+        setInternalColumns(newColumns);
+      }
+      setJsonError("");
+    } catch (err) {
+      setJsonError((err as Error).message);
+    }
+  }, [selectedColIndex, editJson, currentColumns, onColumnsChange]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -364,7 +597,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
       } else {
         setInternalColumnVisibility(newVisibility);
       }
-      saveColumnLayout(newVisibility);
+      saveColumnLayout(newColumns, newVisibility);
     },
     [
       currentColumns,
@@ -385,9 +618,9 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
       } else {
         setInternalColumnVisibility(newVisibility);
       }
-      saveColumnLayout(newVisibility);
+      saveColumnLayout(currentColumns, newVisibility);
     },
-    [columnVisibility, onColumnVisibilityChange, saveColumnLayout],
+    [columnVisibility, currentColumns, onColumnVisibilityChange, saveColumnLayout],
   );
 
   const showAllColumns = useCallback(() => {
@@ -397,7 +630,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
     } else {
       setInternalColumnVisibility(newVisibility);
     }
-    saveColumnLayout(newVisibility);
+    saveColumnLayout(currentColumns, newVisibility);
   }, [currentColumns, onColumnVisibilityChange, saveColumnLayout]);
 
   const hideAllColumns = useCallback(() => {
@@ -407,17 +640,20 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
     } else {
       setInternalColumnVisibility(newVisibility);
     }
-    saveColumnLayout(newVisibility);
+    saveColumnLayout(currentColumns, newVisibility);
   }, [currentColumns, onColumnVisibilityChange, saveColumnLayout]);
 
   const resetColumns = useCallback(() => {
+    const baselineColumns =
+      initialColumnsRef.current.length > 0 ? initialColumnsRef.current : columns;
+
     if (onColumnsChange) {
-      onColumnsChange(columns);
+      onColumnsChange(baselineColumns);
     } else {
-      setInternalColumns(columns);
+      setInternalColumns(baselineColumns);
     }
 
-    const newVisibility = columns.map(() => true);
+    const newVisibility = baselineColumns.map(() => true);
     if (onColumnVisibilityChange) {
       onColumnVisibilityChange(newVisibility);
     } else {
@@ -530,7 +766,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 if (!showColumnManager && effectiveColumnBtnRef.current) {
                   const rect =
                     effectiveColumnBtnRef.current.getBoundingClientRect();
-                  const panelWidth = 320;
+                  const panelWidth = 680;
                   let left = rect.left;
                   // Keep panel within viewport
                   if (left + panelWidth > window.innerWidth - 16) {
@@ -851,7 +1087,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
         columnManagerPosition && (
           <div
             ref={columnManagerDropdownRef}
-            className="fixed z-[9999] w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
+            className="fixed z-[9999] w-[680px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
             style={{
               top: columnManagerPosition.top,
               left: columnManagerPosition.left,
@@ -863,12 +1099,20 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Manage Columns
                 </h3>
-                <button
-                  onClick={resetColumns}
-                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
-                >
-                  Reset
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={resetColumns}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setShowColumnManager(false)}
+                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -887,36 +1131,100 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 </button>
               </div>
 
-              {/* Instructions */}
-              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  <strong>👁</strong> Click eye to show/hide &nbsp;
-                  <strong>↕</strong> Drag to reorder
-                </p>
+              {/* Two-panel body */}
+              <div className="flex gap-3">
+                {/* Left: Column List */}
+                <div className="w-52 flex-shrink-0 flex flex-col">
+                  <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>👁</strong> eye show/hide &nbsp;
+                      <strong>↕</strong> drag reorder &nbsp;
+                      <strong>click</strong> to edit
+                    </p>
+                  </div>
+                  <DndProvider backend={HTML5Backend}>
+                    <div className="space-y-1 max-h-72 overflow-y-auto">
+                      {currentColumns.map((col, index) => (
+                        <DraggableColumnItem
+                          key={`col-${index}-${String(
+                            col.name || col.id || index,
+                          )}`}
+                          column={String(
+                            col.name || col.id || `Column ${index + 1}`,
+                          )}
+                          index={index}
+                          visible={columnVisibility[index] ?? true}
+                          isSelected={selectedColIndex === index}
+                          moveColumn={moveColumn}
+                          toggleVisibility={toggleColumnVisibility}
+                          onSelect={setSelectedColIndex}
+                        />
+                      ))}
+                    </div>
+                  </DndProvider>
+                </div>
+
+                {/* Right: JSON Editor */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                  {selectedColIndex !== null &&
+                  currentColumns[selectedColIndex] ? (
+                    <>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate mr-2">
+                          {String(
+                            currentColumns[selectedColIndex].name ||
+                              currentColumns[selectedColIndex].id ||
+                              `Column ${selectedColIndex + 1}`,
+                          )}
+                        </span>
+                        <button
+                          onClick={applyJsonEdit}
+                          disabled={!!jsonError}
+                          className="flex-shrink-0 px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      <textarea
+                        value={editJson}
+                        onChange={(e) => {
+                          setEditJson(e.target.value);
+                          try {
+                            JSON.parse(e.target.value);
+                            setJsonError("");
+                          } catch (err) {
+                            setJsonError((err as Error).message);
+                          }
+                        }}
+                        className="flex-1 w-full text-xs font-mono border border-gray-300 dark:border-gray-600 rounded p-2 focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 dark:text-green-400 resize-none"
+                        style={{ minHeight: "260px" }}
+                        spellCheck={false}
+                      />
+                      {jsonError && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 break-all">
+                          {jsonError}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-center p-4">
+                      <div>
+                        <FaFileCode className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          Click a column to edit its properties as JSON
+                        </p>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                          Supports non-scalar values like{" "}
+                          <code className="font-mono">options</code> arrays
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Column List */}
-              <DndProvider backend={HTML5Backend}>
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {currentColumns.map((col, index) => (
-                    <DraggableColumnItem
-                      key={`col-${index}-${String(
-                        col.name || col.id || index,
-                      )}`}
-                      column={String(
-                        col.name || col.id || `Column ${index + 1}`,
-                      )}
-                      index={index}
-                      visible={columnVisibility[index] ?? true}
-                      moveColumn={moveColumn}
-                      toggleVisibility={toggleColumnVisibility}
-                    />
-                  ))}
-                </div>
-              </DndProvider>
-
               {/* Footer */}
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Visible:{" "}
                   <span className="font-medium text-blue-600">
@@ -924,12 +1232,6 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                   </span>{" "}
                   / {totalColumnCount}
                 </p>
-                <button
-                  onClick={() => setShowColumnManager(false)}
-                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>

@@ -1104,8 +1104,8 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
                   {/* Server sync buttons */}
                   <div className="mt-2 flex items-center gap-1">
                     <button
-                      onClick={() => columnSetupsApi.uploadToServer()}
-                      disabled={columnSetupsApi.syncing || columnSetupsApi.setups.length === 0}
+                      onClick={() => columnSetupsApi.uploadToServer(buildCurrentConfig())}
+                      disabled={columnSetupsApi.syncing || !modelKey}
                       className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                       title="Upload setups to server"
                     >
@@ -1120,7 +1120,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
                           if (config) applyConfig(config);
                         }
                       }}
-                      disabled={columnSetupsApi.syncing}
+                      disabled={columnSetupsApi.syncing || !modelKey}
                       className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                       title="Download setups from server"
                     >

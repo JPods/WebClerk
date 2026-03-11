@@ -13,8 +13,13 @@
  * They can also be synced to wc3 via wcapi Setting records:
  *   purpose      = "list_column_config"
  *   parent_model = <modelKey>
- *   name         = <storageKey>
- *   data         = { setups, active }
+ *   name         = "list_column_config:<modelKey>"
+ *   data         = {
+ *     v: 1,
+ *     lists: {
+ *       [storageKey]: { setups, active, current }
+ *     }
+ *   }
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -59,7 +64,7 @@ export interface ColumnSetupsApi {
   /** Clear the "active" marker (revert to ad-hoc / current) */
   clearActive: () => void;
   /** Upload all setups to wc3 Setting record */
-  uploadToServer: () => Promise<void>;
+  uploadToServer: (currentConfig?: ColumnSetupEntry) => Promise<void>;
   /** Download setups from wc3 Setting record, merging / replacing local */
   downloadFromServer: () => Promise<void>;
   /** Whether a server sync is in progress */
@@ -72,9 +77,55 @@ interface PersistedPayload {
   v: 1;
   setups: ColumnSetup[];
   active: string | null;
+  current?: ColumnSetupEntry | null;
+}
+
+interface ServerCollectionPayload {
+  v: 1;
+  lists: Record<string, PersistedPayload>;
 }
 
 const STORAGE_PREFIX = "ColumnSetups:v1:";
+
+function pickRecords(result: any): any[] {
+  const records =
+    result?.results ??
+    result?.records ??
+    result?.data?.results ??
+    result?.data?.records ??
+    result;
+  return Array.isArray(records) ? records : [];
+}
+
+function normalizePersistedPayload(raw: any): PersistedPayload {
+  return {
+    v: 1,
+    setups: Array.isArray(raw?.setups) ? raw.setups : [],
+    active: typeof raw?.active === "string" ? raw.active : null,
+    current: raw?.current ?? null,
+  };
+}
+
+function readListFromServerData(
+  serverData: any,
+  storageKey: string,
+): PersistedPayload | null {
+  // New shape: data.lists[storageKey]
+  const maybeLists = serverData?.lists;
+  if (maybeLists && typeof maybeLists === "object") {
+    const scoped = maybeLists[storageKey];
+    if (scoped && typeof scoped === "object") {
+      return normalizePersistedPayload(scoped);
+    }
+  }
+
+  // Backward compatibility: single-list payload stored directly in data
+  if (serverData && typeof serverData === "object" && Array.isArray(serverData.setups)) {
+    return normalizePersistedPayload(serverData);
+  }
+
+  return null;
+}
 
 function readLocal(storageKey: string): PersistedPayload {
   try {
@@ -190,23 +241,51 @@ export function useColumnSetups(
 
   // ── Server sync ─────────────────────────────────────────────────────────
 
-  const uploadToServer = useCallback(async () => {
-    if (!storageKey) return;
+  const uploadToServer = useCallback(async (currentConfig?: ColumnSetupEntry) => {
+    if (!storageKey || !modelKey) return;
     setSyncing(true);
     try {
-      // Check if a setting already exists for this config
+      // One settings row per parent_model + purpose; list variants go in data.lists
       const existing = await getRecords("setting", {
         purpose: "list_column_config",
-        name: storageKey,
+        parent_model: modelKey,
       });
-      const records = existing?.records ?? existing ?? [];
+      const records = pickRecords(existing);
       const settingId = Array.isArray(records) && records.length > 0 ? records[0].id : undefined;
+      const existingData = Array.isArray(records) && records.length > 0 ? records[0].data : undefined;
+
+      const activeConfig =
+        activeSetupName != null
+          ? setups.find((s) => s.name === activeSetupName)?.config ?? null
+          : null;
+
+      const existingLists =
+        existingData?.lists && typeof existingData.lists === "object"
+          ? ({ ...existingData.lists } as Record<string, PersistedPayload>)
+          : {};
+
+      // Migrate old single-list format into collection format when encountered.
+      if (Object.keys(existingLists).length === 0 && existingData?.setups) {
+        existingLists[storageKey] = normalizePersistedPayload(existingData);
+      }
+
+      existingLists[storageKey] = {
+        v: 1,
+        setups,
+        active: activeSetupName,
+        current: currentConfig ?? activeConfig,
+      };
+
+      const collection: ServerCollectionPayload = {
+        v: 1,
+        lists: existingLists,
+      };
 
       const payload: Record<string, unknown> = {
-        name: storageKey,
+        name: `list_column_config:${modelKey}`,
         purpose: "list_column_config",
-        parent_model: modelKey ?? "",
-        data: { v: 1, setups, active: activeSetupName },
+        parent_model: modelKey,
+        data: collection,
       };
       if (settingId) {
         payload.id = settingId;
@@ -220,20 +299,21 @@ export function useColumnSetups(
   }, [storageKey, modelKey, setups, activeSetupName]);
 
   const downloadFromServer = useCallback(async () => {
-    if (!storageKey) return;
+    if (!storageKey || !modelKey) return;
     setSyncing(true);
     try {
       const result = await getRecords("setting", {
         purpose: "list_column_config",
-        name: storageKey,
+        parent_model: modelKey,
       });
-      const records = result?.records ?? result ?? [];
+      const records = pickRecords(result);
       if (Array.isArray(records) && records.length > 0) {
-        const data = records[0].data as PersistedPayload | undefined;
-        if (data?.setups) {
-          setSetups(data.setups);
-          setActiveSetupName(data.active ?? null);
-          persist(data.setups, data.active ?? null);
+        const serverData = records[0].data;
+        const listPayload = readListFromServerData(serverData, storageKey);
+        if (listPayload?.setups) {
+          setSetups(listPayload.setups);
+          setActiveSetupName(listPayload.active ?? null);
+          persist(listPayload.setups, listPayload.active ?? null);
         }
       }
     } catch (err) {
@@ -241,7 +321,7 @@ export function useColumnSetups(
     } finally {
       setSyncing(false);
     }
-  }, [storageKey, persist]);
+  }, [storageKey, modelKey, persist]);
 
   return {
     setups,
