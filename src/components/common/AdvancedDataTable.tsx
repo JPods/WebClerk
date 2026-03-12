@@ -984,7 +984,12 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         const col = byKey.get(key);
         if (col) {
           const maybeWidth = layout.widths?.[key];
-          nextColumns.push(maybeWidth ? { ...col, width: maybeWidth } : col);
+          const widthWithUnit = maybeWidth
+            ? maybeWidth.toString().includes("%") || maybeWidth.toString().includes("px")
+              ? maybeWidth
+              : `${maybeWidth}px`
+            : undefined;
+          nextColumns.push(widthWithUnit ? { ...col, width: widthWithUnit } : col);
           used.add(key);
         }
       }
@@ -993,7 +998,12 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         const key = getColumnPersistKey(col, index);
         if (!used.has(key)) {
           const maybeWidth = layout.widths?.[key];
-          nextColumns.push(maybeWidth ? { ...col, width: maybeWidth } : col);
+          const widthWithUnit = maybeWidth
+            ? maybeWidth.toString().includes("%") || maybeWidth.toString().includes("px")
+              ? maybeWidth
+              : `${maybeWidth}px`
+            : undefined;
+          nextColumns.push(widthWithUnit ? { ...col, width: widthWithUnit } : col);
         }
       });
 

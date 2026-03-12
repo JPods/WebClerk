@@ -88,6 +88,17 @@ export const ColumnSetupDialog = ({
   }, []);
 
   const MIN_WIDTH_PERCENT = 3;
+  const BASE_TABLE_WIDTH_PX = 1200; // Reference width for px ↔ % conversion
+
+  const pixelsToPercent = useCallback((pixels: number): number => {
+    if (pixels <= 0 || BASE_TABLE_WIDTH_PX <= 0) return 0;
+    return (pixels / BASE_TABLE_WIDTH_PX) * 100;
+  }, []);
+
+  const percentToPixels = useCallback((percent: number): number => {
+    if (percent <= 0 || BASE_TABLE_WIDTH_PX <= 0) return 0;
+    return Math.round((percent / 100) * BASE_TABLE_WIDTH_PX);
+  }, []);
 
   const distributeIntegers = useCallback((weights: number[]): number[] => {
     if (!weights.length) return [];
@@ -284,14 +295,31 @@ export const ColumnSetupDialog = ({
       ];
       setOrder(ordered);
       setVisibility({ ...nextConfig.visibility });
-      setWidths(normalizeWidthMap(ordered, nextConfig.widths));
+      
+      // Convert any % values to pixels when loading
+      const convertedWidths: Record<string, string> = {};
+      for (const [key, value] of Object.entries(nextConfig.widths || {})) {
+        const strValue = String(value ?? "");
+        if (strValue.includes("%")) {
+          // Extract percentage number and convert to pixels
+          const percentValue = parseWidthNumber(strValue);
+          const pixelValue = percentToPixels(percentValue);
+          convertedWidths[key] = String(Math.max(0, pixelValue));
+        } else {
+          // Already in pixels or numeric, just ensure no units
+          const pixelValue = parseWidthNumber(strValue);
+          convertedWidths[key] = String(Math.max(0, pixelValue));
+        }
+      }
+      setWidths(convertedWidths);
+      
       setSort(nextConfig.sort ?? null);
       setJsonb({ ...(nextConfig.jsonb ?? {}) });
       const firstKey = ordered[0] ?? null;
       setSelectedKey(firstKey);
 
     },
-    [columnMetas, normalizeWidthMap],
+    [columnMetas, parseWidthNumber, percentToPixels],
   );
 
   // Hydrate from config only when dialog first opens (avoid resetting while editing)
@@ -365,24 +393,20 @@ export const ColumnSetupDialog = ({
     [],
   );
 
-  const normalizedWidths = useMemo(
-    () => normalizeWidthMap(order, widths),
-    [order, widths, normalizeWidthMap],
-  );
-
   // Flat config for save / preview (matches ColumnSetupEntry)
   const buildConfig = useMemo<ColumnSetupEntry>(
-    () => ({ order, visibility, widths: normalizedWidths, sort, jsonb }),
-    [order, visibility, normalizedWidths, sort, jsonb],
+    () => ({ order, visibility, widths, sort, jsonb }),
+    [order, visibility, widths, sort, jsonb],
   );
 
   // Columnar display format for the JSON editor (plain array — no position keys)
   const configForDisplay = useMemo(() => {
     const columns = order.map((key) => {
+      const pixelValue = parseWidthNumber(widths[key]);
       const col: Record<string, unknown> = {
         name: toDisplayName(key),
         visibility: visibility[key] !== false,
-        width: String(parseWidthNumber(normalizedWidths[key])),
+        width: String(pixelValue),
         sort: sort?.field === key ? (sort.direction === "asc" ? "a" : "d") : null,
       };
       const jb = jsonb[key];
@@ -390,7 +414,7 @@ export const ColumnSetupDialog = ({
       return col;
     });
     return { columns };
-  }, [order, visibility, normalizedWidths, sort, jsonb, toDisplayName, parseWidthNumber]);
+  }, [order, visibility, widths, sort, jsonb, toDisplayName, parseWidthNumber]);
 
   // Keep the JSON draft in sync with left-panel edits
   useEffect(() => {
@@ -425,7 +449,10 @@ export const ColumnSetupDialog = ({
         if (!key) return;
         newOrder.push(key);
         newVis[key] = c.visibility !== false;
-        if (c.width != null) newWidths[key] = String(c.width);
+        if (c.width != null) {
+          const pixelValue = parseWidthNumber(c.width);
+          newWidths[key] = String(Math.max(0, pixelValue));
+        }
         if (c.sort === "a" || c.sort === "asc") newSort = { field: key, direction: "asc" };
         else if (c.sort === "d" || c.sort === "desc") newSort = { field: key, direction: "desc" };
         if (c.jsonb && typeof c.jsonb === "object" && !Array.isArray(c.jsonb))
@@ -434,14 +461,14 @@ export const ColumnSetupDialog = ({
 
       setOrder(newOrder);
       setVisibility(newVis);
-      setWidths(normalizeWidthMap(newOrder, newWidths));
+      setWidths(newWidths);
       setSort(newSort);
       setJsonb(newJsonb);
       setConfigJsonError("");
     } catch (err) {
       setConfigJsonError((err as Error).message);
     }
-  }, [configJsonDraft, normalizeWidthMap, order, toPersistKey]);
+  }, [configJsonDraft, order, toPersistKey, parseWidthNumber]);
 
   const moveKey = useCallback((dragKey: string, dropKey: string) => {
     if (dragKey === dropKey) return;
@@ -457,7 +484,7 @@ export const ColumnSetupDialog = ({
   }, []);
 
   const handleSave = () => {
-    const nextConfig = { order, visibility, widths: normalizedWidths, sort, jsonb };
+    const nextConfig = { order, visibility, widths, sort, jsonb };
     if (onSaveNamed && setupName.trim()) {
       onSaveNamed(setupName.trim(), nextConfig);
     }
@@ -480,7 +507,7 @@ export const ColumnSetupDialog = ({
     }
 
     setNameError("");
-    onSaveNamed?.(trimmed, { order, visibility, widths: normalizedWidths, sort, jsonb });
+    onSaveNamed?.(trimmed, { order, visibility, widths, sort, jsonb });
     setSelectedSetupName(trimmed);
     setSetupName(trimmed);
   }, [
@@ -490,7 +517,7 @@ export const ColumnSetupDialog = ({
     onSaveNamed,
     order,
     visibility,
-    normalizedWidths,
+    widths,
     sort,
     jsonb,
   ]);
@@ -750,19 +777,25 @@ export const ColumnSetupDialog = ({
                           {labelFor(key)}
                         </span>
 
-                        <input
-                          type="text"
-                          value={widths[key] ?? ""}
-                          onChange={(e) =>
-                            setWidths((prev) =>
-                              rebalanceWidthsForKey(order, prev, key, e.target.value),
-                            )
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="%"
-                          className="w-16 text-xs px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-right"
-                          title="Width in % (e.g. 15%)"
-                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={widths[key] ?? ""}
+                            onChange={(e) =>
+                              setWidths((prev) => ({
+                                ...prev,
+                                [key]: String(Math.max(0, parseWidthNumber(e.target.value))),
+                              }))
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="px"
+                            className="w-14 text-xs px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-right"
+                            title="Width in pixels"
+                          />
+                          <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            ({formatPercent(pixelsToPercent(parseWidthNumber(widths[key])))})
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -787,7 +820,7 @@ export const ColumnSetupDialog = ({
                       setConfigJsonError("");
                     } catch {
                       // append to raw text as a fallback
-                      const blank = `  {\n    "name": "",\n    "visibility": true,\n    "width": "2",\n    "sort": null\n  }`;
+                      const blank = `  {\n    "name": "",\n    "visibility": true,\n    "width": "100",\n    "sort": null\n  }`;
                       const trimmed = configJsonDraft.trimEnd();
                       // insert before closing ] of columns array if possible
                       const insertAt = trimmed.lastIndexOf("]");
