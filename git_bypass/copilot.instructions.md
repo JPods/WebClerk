@@ -107,6 +107,13 @@ Legitimate uses of "location" (warehouse position, DRF param, display fields) ar
 - Date/time fields: prefix `dt_` (e.g., `dt_created`, `dt_modified`)
 - FK columns: `{model_name}_id` format in database/API (e.g., `invoice_id`, `org_id`)
 
+### Label Rendering Policy (STRICT)
+
+- For admin, list, detail, and table labels: use the **exact schema field name and exact case**.
+- Never title-case, capitalize, prettify, humanize, or auto-transform schema labels.
+- Scalar fields must render as exact schema names (example: `dt_modified`, `invoice_id`).
+- Object/JSON-derived keys must render with a leading dot and exact key name (example: `.on_hand`, `.margin_pc`, `.exact_name`).
+
 ### ForeignKey Naming — `_id_id` Prevention (CRITICAL)
 
 Django auto-appends `_id` to the Python field name to create the DB column.

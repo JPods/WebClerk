@@ -1,4 +1,5 @@
 from django.contrib import admin
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import ScheduledTask, TaskRun, TaskConfig
@@ -26,7 +27,7 @@ class TaskConfigInline(admin.StackedInline):
 
 
 @admin.register(ScheduledTask)
-class ScheduledTaskAdmin(admin.ModelAdmin):
+class ScheduledTaskAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_display = [
         'name', 'status_badge', 'frequency', 'last_run_badge',
         'run_count', 'error_count', 'next_run_at'
@@ -73,7 +74,7 @@ class ScheduledTaskAdmin(admin.ModelAdmin):
             '<span style="color: {}; font-weight: bold;">{}</span>',
             color, obj.get_status_display()
         )
-    status_badge.short_description = 'Status'
+    status_badge.short_description = 'status'
     
     def last_run_badge(self, obj):
         if not obj.last_run_at:
@@ -88,11 +89,11 @@ class ScheduledTaskAdmin(admin.ModelAdmin):
             '<span style="color: {};">{}{}</span>',
             color, obj.last_run_at.strftime('%Y-%m-%d %H:%M'), duration
         )
-    last_run_badge.short_description = 'Last Run'
+    last_run_badge.short_description = 'last_run_at'
 
 
 @admin.register(TaskRun)
-class TaskRunAdmin(admin.ModelAdmin):
+class TaskRunAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_display = [
         'task', 'status_badge', 'started_at', 'duration_display',
         'records_processed', 'records_updated', 'attempt'
@@ -136,13 +137,13 @@ class TaskRunAdmin(admin.ModelAdmin):
             '<span style="color: {}; font-weight: bold;">{}</span>',
             color, obj.get_status_display()
         )
-    status_badge.short_description = 'Status'
+    status_badge.short_description = 'status'
     
     def duration_display(self, obj):
         if obj.duration:
             return f"{obj.duration:.2f}s"
         return '-'
-    duration_display.short_description = 'Duration'
+    duration_display.short_description = 'duration'
     
     def has_add_permission(self, request):
         return False  # Runs are created by tasks, not manually
@@ -152,7 +153,7 @@ class TaskRunAdmin(admin.ModelAdmin):
 
 
 @admin.register(TaskConfig)
-class TaskConfigAdmin(admin.ModelAdmin):
+class TaskConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_display = ['task', 'limit', 'batch_size', 'app_filter', 'model_filter', 'dry_run']
     list_filter = ['dry_run', 'verbose']
     search_fields = ['task__name', 'app_filter', 'model_filter']

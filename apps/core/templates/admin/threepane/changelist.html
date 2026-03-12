@@ -9,7 +9,7 @@
 >
   {% if media %}{{ media }}{% endif %}
   <div class="tp-list-header" style="display:flex; align-items:center; gap:8px; justify-content:space-between; margin-bottom:12px;">
-    <h2 style="margin:0; font-size:15px;">{{ cl.opts.verbose_name_plural|capfirst }}</h2>
+    <h2 style="margin:0; font-size:15px;">{{ cl.opts.verbose_name_plural }}</h2>
     <div style="display:flex; gap:6px; align-items:center;">
       {% if has_add_permission %}
         <a class="button" data-tp-static="1" href="{% url cl.opts|admin_urlname:'add' %}" target="_blank">{% trans "Add" %}</a>

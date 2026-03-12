@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db import models as dj_models
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import (
     Item, ItemXRef, BillOfMaterial, Warehouse, InventoryLayer, SiteInventory, 
     InventoryMovement, OrgItem, Serial, SerialLog, Catalog, CatalogLine,
@@ -59,7 +60,7 @@ class ScalarFirstFieldsetMixin:
 
 
 @admin.register(Item)
-class ItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "name", "sku", "description", "kind", "on_hand", "on_p", "on_so", "on_in", "on_po", "allocated", "available", "is_active", "dt_created")
     list_filter = ("kind", "is_active", "is_deleted")
     search_fields = ("ida", "name", "sku", "description")
@@ -67,154 +68,154 @@ class ItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
 
 
 @admin.register(ItemXRef)
-class ItemXRefAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class ItemXRefAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(BillOfMaterial)
-class BillOfMaterialAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class BillOfMaterialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Warehouse)
-class WarehouseAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class WarehouseAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryLayer)
-class InventoryLayerAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryLayerAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(SiteInventory)
-class SiteInventoryAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class SiteInventoryAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryMovement)
-class InventoryMovementAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryMovementAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(OrgItem)
-class OrgItemAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class OrgItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Serial)
-class SerialAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class SerialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(SerialLog)
-class SerialLogAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class SerialLogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Catalog)
-class CatalogAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class CatalogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(CatalogLine)
-class CatalogLineAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class CatalogLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryCheck)
-class InventoryCheckAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryCheckAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryCheckLine)
-class InventoryCheckLineAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryCheckLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(DeliveryVisit)
-class DeliveryVisitAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class DeliveryVisitAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(DeliveryLine)
-class DeliveryLineAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class DeliveryLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(ItemUsage)
-class ItemUsageAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class ItemUsageAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Service)
-class ServiceAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class ServiceAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "ida", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryMetricsSnapshot)
-class InventoryMetricsSnapshotAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryMetricsSnapshotAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ()
 
 
 @admin.register(InventoryAdjustmentProcessorRun)
-class InventoryAdjustmentProcessorRunAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class InventoryAdjustmentProcessorRunAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "run_type", "dry_run", "dt_started", "dt_finished", "applied", "attempted", "is_active", "dt_created")
     list_filter = ("run_type", "dry_run", "is_active")
     search_fields = ("run_type",)
 
 
 @admin.register(Variant)
-class VariantAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class VariantAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "item_ida", "canonical_key", "description", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("item_ida", "canonical_key", "description")
 
 
 @admin.register(InventoryReservation)
-class InventoryReservationAdmin(admin.ModelAdmin):
+class InventoryReservationAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_display = ("id", "item", "warehouse", "qty", "state", "dt_expires", "dt_committed", "reason")
     list_filter = ("state", "warehouse")
     search_fields = ("item_ida", "description", "reason")
 
 
 @admin.register(Specification)
-class SpecificationAdmin(ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class SpecificationAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "name", "item", "unit", "status", "is_active")
     list_filter = ("status", "is_active", "unit")
     search_fields = ("name", "description", "unit", "ida")

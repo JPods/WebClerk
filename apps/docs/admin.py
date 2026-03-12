@@ -1,9 +1,10 @@
 from django.contrib import admin
+from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import Document, QuestionAnswer, Tag, LinkageEntry
 
 
 @admin.register(Document)
-class DocumentAdmin(admin.ModelAdmin):
+class DocumentAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Document model."""
     # Scalar fields alphabetically for list display
     scalar_fields = (
@@ -62,7 +63,7 @@ class DocumentAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuestionAnswer)
-class QuestionAnswerAdmin(admin.ModelAdmin):
+class QuestionAnswerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for QuestionAnswer model."""
     # Scalar fields alphabetically for list display
     scalar_fields = (
@@ -117,7 +118,7 @@ class QuestionAnswerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class TagAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Tag model."""
     # Scalar fields alphabetically
     scalar_fields = (
@@ -167,7 +168,7 @@ class TagAdmin(admin.ModelAdmin):
 
 
 @admin.register(LinkageEntry)
-class LinkageEntryAdmin(admin.ModelAdmin):
+class LinkageEntryAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for LinkageEntry model - unified linkage table."""
     # Scalar fields
     scalar_fields = (
