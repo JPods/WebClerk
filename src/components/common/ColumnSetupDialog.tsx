@@ -86,174 +86,12 @@ export const ColumnSetupDialog = ({
     return Math.max(0, n);
   }, []);
 
-  const formatPercent = useCallback((value: number): string => {
-    const rounded = Math.round(value);
-    return `${rounded}%`;
-  }, []);
-
-  const MIN_WIDTH_PERCENT = 3;
   const BASE_TABLE_WIDTH_PX = 1200; // Reference width for px ↔ % conversion
-
-  const pixelsToPercent = useCallback((pixels: number): number => {
-    if (pixels <= 0 || BASE_TABLE_WIDTH_PX <= 0) return 0;
-    return (pixels / BASE_TABLE_WIDTH_PX) * 100;
-  }, []);
 
   const percentToPixels = useCallback((percent: number): number => {
     if (percent <= 0 || BASE_TABLE_WIDTH_PX <= 0) return 0;
     return Math.round((percent / 100) * BASE_TABLE_WIDTH_PX);
   }, []);
-
-  const distributeIntegers = useCallback((weights: number[]): number[] => {
-    if (!weights.length) return [];
-
-    const total = weights.reduce((sum, n) => sum + n, 0);
-    if (total <= 0) {
-      const base = Math.floor(100 / weights.length);
-      const out = Array.from({ length: weights.length }, () => base);
-      let rem = 100 - base * weights.length;
-      for (let i = 0; i < rem; i += 1) out[i] += 1;
-      return out;
-    }
-
-    const quotas = weights.map((w) => (w / total) * 100);
-    const floors = quotas.map((q) => Math.floor(q));
-    let remaining = 100 - floors.reduce((sum, n) => sum + n, 0);
-
-    const order = quotas
-      .map((q, idx) => ({ idx, frac: q - Math.floor(q), q }))
-      .sort((a, b) => b.frac - a.frac || b.q - a.q || a.idx - b.idx);
-
-    for (let i = 0; i < remaining; i += 1) {
-      floors[order[i % order.length].idx] += 1;
-    }
-
-    return floors;
-  }, []);
-
-  const effectiveMinWidth = useCallback((count: number): number => {
-    if (count <= 0) return 0;
-    // Keep a 3% floor when possible; otherwise degrade gracefully for very wide tables.
-    if (count * MIN_WIDTH_PERCENT <= 100) return MIN_WIDTH_PERCENT;
-    return Math.max(1, Math.floor(100 / count));
-  }, []);
-
-  const normalizeWidthMap = useCallback(
-    (keys: string[], source: Record<string, unknown> | undefined): Record<string, string> => {
-      const next: Record<string, string> = {};
-      if (!keys.length) return next;
-      if (keys.length === 1) {
-        next[keys[0]] = formatPercent(100);
-        return next;
-      }
-
-      const minWidth = effectiveMinWidth(keys.length);
-      const values = keys.map((k) => Math.max(minWidth, Math.round(parseWidthNumber(source?.[k]))));
-      const rightIdx = keys.length - 1;
-
-      let fixedLeftSum = 0;
-      for (let i = 0; i < rightIdx; i += 1) fixedLeftSum += values[i];
-
-      let rightValue = 100 - fixedLeftSum;
-      if (rightValue < minWidth) {
-        // Borrow from right-to-left so left-most values dominate.
-        let deficit = minWidth - rightValue;
-        for (let i = rightIdx - 1; i >= 0 && deficit > 0; i -= 1) {
-          const reducible = Math.max(0, values[i] - minWidth);
-          if (reducible <= 0) continue;
-          const delta = Math.min(reducible, deficit);
-          values[i] -= delta;
-          deficit -= delta;
-        }
-        fixedLeftSum = 0;
-        for (let i = 0; i < rightIdx; i += 1) fixedLeftSum += values[i];
-        rightValue = 100 - fixedLeftSum;
-      }
-
-      if (rightValue < minWidth) {
-        // Last-resort fallback for edge cases where min constraints cannot all fit.
-        const fallback = distributeIntegers(keys.map((k) => parseWidthNumber(source?.[k])));
-        keys.forEach((key, idx) => {
-          next[key] = formatPercent(Math.max(minWidth, fallback[idx]));
-        });
-        const sum = keys.reduce((acc, k) => acc + parseWidthNumber(next[k]), 0);
-        const lastKey = keys[keys.length - 1];
-        next[lastKey] = formatPercent(Math.max(minWidth, parseWidthNumber(next[lastKey]) + (100 - sum)));
-        return next;
-      }
-
-      for (let i = 0; i < rightIdx; i += 1) {
-        next[keys[i]] = formatPercent(values[i]);
-      }
-      next[keys[rightIdx]] = formatPercent(rightValue);
-
-      keys.forEach((key) => {
-        if (!(key in next)) next[key] = formatPercent(minWidth);
-      });
-
-      return next;
-    },
-    [parseWidthNumber, formatPercent, distributeIntegers, effectiveMinWidth],
-  );
-
-  const rebalanceWidthsForKey = useCallback(
-    (
-      keys: string[],
-      current: Record<string, unknown>,
-      targetKey: string,
-      targetValue: unknown,
-    ): Record<string, string> => {
-      if (!keys.length) return {};
-      if (!keys.includes(targetKey)) return normalizeWidthMap(keys, current);
-
-      if (keys.length === 1) return { [keys[0]]: formatPercent(100) };
-
-      const minWidth = effectiveMinWidth(keys.length);
-      const rightKey = keys[keys.length - 1];
-      const base = normalizeWidthMap(keys, current);
-
-      const nextValues: Record<string, number> = {};
-      keys.forEach((k) => {
-        nextValues[k] = Math.max(minWidth, Math.round(parseWidthNumber(base[k])));
-      });
-
-      if (targetKey === rightKey) {
-        const fixedSum = keys
-          .filter((k) => k !== rightKey)
-          .reduce((sum, k) => sum + nextValues[k], 0);
-        const derivedRight = 100 - fixedSum;
-        if (derivedRight >= minWidth) {
-          nextValues[rightKey] = derivedRight;
-          return keys.reduce<Record<string, string>>((acc, key) => {
-            acc[key] = formatPercent(nextValues[key]);
-            return acc;
-          }, {});
-        }
-        return normalizeWidthMap(keys, nextValues);
-      }
-
-      const fixedKeys = keys.filter((k) => k !== targetKey && k !== rightKey);
-      const fixedSum = fixedKeys.reduce((sum, k) => sum + nextValues[k], 0);
-
-      const minTarget = minWidth;
-      const maxTarget = 100 - fixedSum - minWidth;
-      if (maxTarget < minTarget) return normalizeWidthMap(keys, nextValues);
-
-      const requested = Math.round(parseWidthNumber(targetValue));
-      const clampedTarget = Math.max(minTarget, Math.min(maxTarget, requested));
-      const computedRight = 100 - fixedSum - clampedTarget;
-      if (computedRight < minWidth) return normalizeWidthMap(keys, nextValues);
-
-      nextValues[targetKey] = clampedTarget;
-      nextValues[rightKey] = computedRight;
-
-      return keys.reduce<Record<string, string>>((acc, key) => {
-        acc[key] = formatPercent(nextValues[key]);
-        return acc;
-      }, {});
-    },
-    [normalizeWidthMap, parseWidthNumber, effectiveMinWidth, formatPercent],
-  );
 
   const toDisplayName = useCallback((key: string): string => {
     const i = key.indexOf(":");
@@ -407,10 +245,12 @@ export const ColumnSetupDialog = ({
   const configForDisplay = useMemo(() => {
     const columns = order.map((key) => {
       const pixelValue = parseWidthNumber(widths[key]);
+      const percentValue = Math.round((pixelValue / BASE_TABLE_WIDTH_PX) * 100);
       const col: Record<string, unknown> = {
         name: toDisplayName(key),
         visibility: visibility[key] !== false,
-        width: String(pixelValue),
+        width: String(Math.max(0, pixelValue)),
+        "%": String(Math.max(0, percentValue)),
         sort: sort?.field === key ? (sort.direction === "asc" ? "a" : "d") : null,
       };
       const jb = jsonb[key];
@@ -844,9 +684,6 @@ export const ColumnSetupDialog = ({
                             className="w-14 text-xs px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-right"
                             title="Width in pixels"
                           />
-                          <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            ({formatPercent(pixelsToPercent(parseWidthNumber(widths[key])))})
-                          </span>
                         </div>
                       </div>
                     );
@@ -867,12 +704,12 @@ export const ColumnSetupDialog = ({
                     try {
                       const parsed = JSON.parse(configJsonDraft);
                       const cols = Array.isArray(parsed?.columns) ? parsed.columns : [];
-                      cols.push({ name: "", visibility: true, width: "2", sort: null });
+                      cols.push({ name: "", visibility: true, width: "120", "%": "10", sort: null });
                       setConfigJsonDraft(JSON.stringify({ ...parsed, columns: cols }, null, 2));
                       setConfigJsonError("");
                     } catch {
                       // append to raw text as a fallback
-                      const blank = `  {\n    "name": "",\n    "visibility": true,\n    "width": "100",\n    "sort": null\n  }`;
+                      const blank = `  {\n    "name": "",\n    "visibility": true,\n    "width": "120",\n    "%": "10",\n    "sort": null\n  }`;
                       const trimmed = configJsonDraft.trimEnd();
                       // insert before closing ] of columns array if possible
                       const insertAt = trimmed.lastIndexOf("]");
