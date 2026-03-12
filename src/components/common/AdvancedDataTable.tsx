@@ -109,11 +109,21 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
 
   const [, drop] = useDrop({
     accept: "column",
-    hover: (item: { index: number }) => {
+    hover: (item: { index: number }, monitor) => {
       if (!ref.current) return;
       const dragIndex = item.index;
       const hoverIndex = index;
       if (dragIndex === hoverIndex) return;
+
+      const hoverRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverRect.bottom - hoverRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientY = clientOffset.y - hoverRect.top;
+
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
       moveColumn(dragIndex, hoverIndex);
       item.index = hoverIndex;
     },
@@ -288,6 +298,21 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
   // Update columns when initialColumns change (hydrate persisted order/visibility per storageKey)
   useEffect(() => {
+    // Preserve in-session column order on ordinary rerenders. Rehydrate only when the incoming schema changes.
+    const incomingSchema = initialColumns
+      .map((col, index) => getColumnPersistKey(col, index))
+      .sort()
+      .join("|");
+
+    const currentSchema = columns
+      .map((col, index) => getColumnPersistKey(col, index))
+      .sort()
+      .join("|");
+
+    if (didHydrateLayoutRef.current && incomingSchema === currentSchema) {
+      return;
+    }
+
     const persisted = readPersistedLayout();
     const base = initialColumns.map((col, index) => ({
       col,
@@ -325,7 +350,12 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     setColumns(ordered);
     setColumnVisibility(visibilityArr);
     didHydrateLayoutRef.current = true;
-  }, [initialColumns, readPersistedLayout, getColumnPersistKey]);
+  }, [
+    initialColumns,
+    columns,
+    readPersistedLayout,
+    getColumnPersistKey,
+  ]);
 
   // Persist layout whenever user changes it
   useEffect(() => {

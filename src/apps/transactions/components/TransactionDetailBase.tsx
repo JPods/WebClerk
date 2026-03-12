@@ -1161,6 +1161,47 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     () => guardAction(executePrint, "printing"),
     [guardAction, executePrint],
   );
+
+  const toSafeNumber = (value: unknown, fallback = 0): number => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
+  };
+
+  const toSafeString = (value: unknown): string => {
+    if (typeof value === "string") return value;
+    if (value === null || value === undefined) return "";
+    return String(value);
+  };
+
+  const normalizePrintLine = (line: any, idx: number) => {
+    const qtyOrdered = toSafeNumber(line?.quantity?.staged, 0);
+    const qtyShipped = toSafeNumber(line?.quantity?.active, qtyOrdered);
+    const unitPrice = toSafeNumber(line?.price?.unit, 0);
+    const discount = toSafeNumber(line?.price?.discount_amount, 0);
+    const extendedPrice = toSafeNumber(
+      line?.price?.extended,
+      unitPrice * qtyShipped,
+    );
+
+    return {
+      id: line?.id,
+      lineNum: toSafeNumber(line?.line_number, idx + 1),
+      itemNum: toSafeString(line?.item?.ida_item),
+      description: toSafeString(line?.item?.description),
+      qty: qtyOrdered,
+      qtyOrdered,
+      qtyShipped,
+      unitPrice,
+      msrp: unitPrice,
+      discount,
+      discountedPrice: unitPrice,
+      extendedPrice,
+    };
+  };
   // ...existing code...
 
   // Print Preview Modal rendering
@@ -1258,19 +1299,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qty: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Invoice data for print:", {
@@ -1433,19 +1462,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description || "",
-              qtyOrdered: line.quantity?.staged || 0,
-              qtyShipped: line.quantity?.active || 0,
-              unitPrice: line.price?.unit || 0,
-              msrp: line.price?.unit || 0,
-              discount: line.price?.discount_amount || 0,
-              discountedPrice: line.price?.unit || 0,
-              extendedPrice: line.price?.extended || 0,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Order data for print:", {
@@ -1568,19 +1585,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qtyOrdered: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Proposal data for print:", {
@@ -1706,19 +1711,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qtyOrdered: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Purchase data for print:", {
@@ -1844,19 +1837,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qtyOrdered: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Workorder data for print:", {
@@ -1982,19 +1963,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qtyOrdered: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Receipt data for print:", {
@@ -2121,19 +2090,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipInstruct: (data as any).ship_instruct,
 
             // Lines
-            lines: (data.lines || []).map((line: any, idx: number) => ({
-              id: line.id,
-              lineNum: line.line_number || idx + 1,
-              itemNum: line.item?.ida_item,
-              description: line.item?.description,
-              qtyOrdered: line.quantity?.staged,
-              qtyShipped: line.quantity?.active ?? quantity?.active,
-              unitPrice: line.price?.unit,
-              msrp: line.price?.unit,
-              discount: line.price?.discount_amount,
-              discountedPrice: line.price?.unit,
-              extendedPrice: line.price?.extended,
-            })),
+            lines: (data.lines || []).map(normalizePrintLine),
           };
 
           console.log("Adjustment data for print:", {
