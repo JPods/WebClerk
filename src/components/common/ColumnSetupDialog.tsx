@@ -37,6 +37,8 @@ export interface ColumnSetupDialogProps {
   onPreview?: (config: ColumnSetupEntry) => void;
   onClose: () => void;
   onSave: (config: ColumnSetupEntry) => void;
+  /** Column setups API for upload/download functionality */
+  columnSetupsApi?: any;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -53,6 +55,7 @@ export const ColumnSetupDialog = ({
   onPreview,
   onClose,
   onSave,
+  columnSetupsApi,
 }: ColumnSetupDialogProps) => {
   // Local edit state
   const [order, setOrder] = useState<string[]>([]);
@@ -70,6 +73,7 @@ export const ColumnSetupDialog = ({
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [configJsonDraft, setConfigJsonDraft] = useState<string>("{}");
   const [configJsonError, setConfigJsonError] = useState<string>("");
+  const [isSyncing, setIsSyncing] = useState(false);
   const wasOpenRef = useRef(false);
 
   const parseWidthNumber = useCallback((value: unknown): number => {
@@ -522,6 +526,32 @@ export const ColumnSetupDialog = ({
     jsonb,
   ]);
 
+  const handleUploadToServer = useCallback(async () => {
+    if (!columnSetupsApi?.uploadToServer) return;
+    try {
+      setIsSyncing(true);
+      await columnSetupsApi.uploadToServer();
+      alert("Column setups uploaded to server successfully");
+    } catch (err) {
+      alert(`Upload failed: ${(err as Error).message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [columnSetupsApi]);
+
+  const handleDownloadFromServer = useCallback(async () => {
+    if (!columnSetupsApi?.downloadFromServer) return;
+    try {
+      setIsSyncing(true);
+      await columnSetupsApi.downloadFromServer();
+      alert("Column setups downloaded from server successfully");
+    } catch (err) {
+      alert(`Download failed: ${(err as Error).message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [columnSetupsApi]);
+
   if (!open) return null;
 
   const sortableKeys = order.filter((k) => visibility[k] !== false);
@@ -573,6 +603,28 @@ export const ColumnSetupDialog = ({
             </h2>
           </div>
           <div className="flex items-center gap-2">
+            {columnSetupsApi && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleUploadToServer}
+                  disabled={isSyncing}
+                  className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 transition hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+                  title="Upload column setups to server"
+                >
+                  {isSyncing ? "↑ Uploading..." : "↑ Upload"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadFromServer}
+                  disabled={isSyncing}
+                  className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 transition hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+                  title="Download column setups from server"
+                >
+                  {isSyncing ? "↓ Downloading..." : "↓ Download"}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={onClose}

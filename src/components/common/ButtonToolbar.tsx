@@ -8,8 +8,6 @@ import React, {
 } from "react";
 import { Link } from "react-router-dom";
 import { TableColumn } from "react-data-table-component";
-import { useDrag, useDrop, DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import {
   FaSearch,
   FaPlus,
@@ -25,110 +23,11 @@ import {
   FaFileExcel,
   FaFilePdf,
   FaFileCode,
-  FaEye,
-  FaEyeSlash,
 } from "react-icons/fa";
 import PrintReportDropdown, { type QuickFilterItem } from "./PrintReportDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
 import { useColumnSetups, type ColumnSetupEntry } from "@/hooks/useColumnSetups";
 import { ColumnSetupDialog } from "./ColumnSetupDialog";
-
-interface DraggableColumnItemProps {
-  column: string;
-  index: number;
-  visible: boolean;
-  moveColumn: (dragIndex: number, hoverIndex: number) => void;
-  toggleVisibility: (index: number) => void;
-}
-
-const COLUMN_DRAG_TYPE = "COLUMN_ITEM";
-
-const DraggableColumnItem: React.FC<DraggableColumnItemProps> = ({
-  column,
-  index,
-  visible,
-  moveColumn,
-  toggleVisibility,
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-
-  const [{ isDragging }, drag] = useDrag({
-    type: COLUMN_DRAG_TYPE,
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const [, drop] = useDrop({
-    accept: COLUMN_DRAG_TYPE,
-    hover: (item: { index: number }, monitor) => {
-      if (!ref.current) return;
-      const dragIndex = item.index;
-      const hoverIndex = index;
-      if (dragIndex === hoverIndex) return;
-
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      const clientOffset = monitor.getClientOffset();
-      if (!clientOffset) return;
-      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
-
-      moveColumn(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-  });
-
-  drag(drop(ref));
-
-  return (
-    <div
-      ref={ref}
-      className={`flex items-center justify-between p-2 rounded cursor-move ${
-        isDragging ? "opacity-50" : ""
-      } ${
-        visible
-          ? "bg-gray-50 dark:bg-gray-700"
-          : "bg-gray-100 dark:bg-gray-800 opacity-60"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <FaGripVertical className="w-3 h-3 text-gray-400" />
-        <span
-          className={`text-xs ${
-            visible
-              ? "text-gray-900 dark:text-gray-100"
-              : "text-gray-500 dark:text-gray-400 line-through"
-          }`}
-        >
-          {column}
-        </span>
-      </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleVisibility(index);
-        }}
-        className={`p-1 rounded ${
-          visible
-            ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-            : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-        }`}
-        title={visible ? "Hide column" : "Show column"}
-      >
-        {visible ? (
-          <FaEye className="w-3 h-3" />
-        ) : (
-          <FaEyeSlash className="w-3 h-3" />
-        )}
-      </button>
-    </div>
-  );
-};
 
 export interface ColumnFilter {
   key: string;
@@ -235,7 +134,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   const canSelect = Boolean(tableRef?.current?.selectAll);
 
   const columnManagerRef = useRef<HTMLDivElement>(null);
-  const columnManagerDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownPanelRef = useRef<HTMLDivElement>(null);
   const localImportInputRef = useRef<HTMLInputElement>(null);
@@ -243,11 +141,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
 
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showColumnManager, setShowColumnManager] = useState(false);
-  const [columnManagerPosition, setColumnManagerPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
   const [exportDropdownPosition, setExportDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -288,8 +181,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
 
   // Column setups (named presets via hook)
   const columnSetupsApi = useColumnSetups(storageKey, modelKey);
-  const [showSaveSetupInput, setShowSaveSetupInput] = useState(false);
-  const [setupNameInput, setSetupNameInput] = useState("");
   const [editingSetupName, setEditingSetupName] = useState<string | null>(null);
 
   // Use external or internal visibility
@@ -427,23 +318,16 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
       if (!isInsideExportButton && !isInsideExportPanel) {
         setShowExportDropdown(false);
       }
-      // Close column manager if click is outside both button and panel
-      const isInsideColumnBtn = columnManagerRef.current?.contains(target);
-      const isInsideColumnPanel =
-        columnManagerDropdownRef.current?.contains(target);
-      if (!isInsideColumnBtn && !isInsideColumnPanel) {
-        setShowColumnManager(false);
-      }
     };
 
-    if (showExportDropdown || showColumnManager) {
+    if (showExportDropdown) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showExportDropdown, showColumnManager]);
+  }, [showExportDropdown]);
 
   const handleImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -459,128 +343,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   };
 
   const activeFilterCount = Object.values(filterValues).filter(Boolean).length;
-
-  // Column management functions
-  const moveColumn = useCallback(
-    (dragIndex: number, hoverIndex: number) => {
-      // Update columns
-      const newColumns = [...currentColumns];
-      const [draggedColumn] = newColumns.splice(dragIndex, 1);
-      newColumns.splice(hoverIndex, 0, draggedColumn);
-
-      if (onColumnsChange) {
-        onColumnsChange(newColumns);
-      } else {
-        setInternalColumns(newColumns);
-      }
-
-      // Update visibility
-      const newVisibility = [...columnVisibility];
-      const [draggedVisibility] = newVisibility.splice(dragIndex, 1);
-      newVisibility.splice(hoverIndex, 0, draggedVisibility);
-
-      if (onColumnVisibilityChange) {
-        onColumnVisibilityChange(newVisibility);
-      } else {
-        setInternalColumnVisibility(newVisibility);
-      }
-      saveColumnLayout(newVisibility);
-      syncTableLayout(newColumns, newVisibility);
-    },
-    [
-      currentColumns,
-      columnVisibility,
-      onColumnsChange,
-      onColumnVisibilityChange,
-      saveColumnLayout,
-      syncTableLayout,
-    ],
-  );
-
-  const toggleColumnVisibility = useCallback(
-    (index: number) => {
-      const newVisibility = [...columnVisibility];
-      newVisibility[index] = !newVisibility[index];
-
-      if (onColumnVisibilityChange) {
-        onColumnVisibilityChange(newVisibility);
-      } else {
-        setInternalColumnVisibility(newVisibility);
-      }
-      saveColumnLayout(newVisibility);
-      syncTableLayout(currentColumns, newVisibility);
-    },
-    [
-      columnVisibility,
-      onColumnVisibilityChange,
-      saveColumnLayout,
-      currentColumns,
-      syncTableLayout,
-    ],
-  );
-
-  const showAllColumns = useCallback(() => {
-    const newVisibility = currentColumns.map(() => true);
-    if (onColumnVisibilityChange) {
-      onColumnVisibilityChange(newVisibility);
-    } else {
-      setInternalColumnVisibility(newVisibility);
-    }
-    saveColumnLayout(newVisibility);
-    syncTableLayout(currentColumns, newVisibility);
-  }, [
-    currentColumns,
-    onColumnVisibilityChange,
-    saveColumnLayout,
-    syncTableLayout,
-  ]);
-
-  const hideAllColumns = useCallback(() => {
-    const newVisibility = currentColumns.map(() => false);
-    if (onColumnVisibilityChange) {
-      onColumnVisibilityChange(newVisibility);
-    } else {
-      setInternalColumnVisibility(newVisibility);
-    }
-    saveColumnLayout(newVisibility);
-    syncTableLayout(currentColumns, newVisibility);
-  }, [
-    currentColumns,
-    onColumnVisibilityChange,
-    saveColumnLayout,
-    syncTableLayout,
-  ]);
-
-  const resetColumns = useCallback(() => {
-    if (onColumnsChange) {
-      onColumnsChange(columns);
-    } else {
-      setInternalColumns(columns);
-    }
-
-    const newVisibility = columns.map(() => true);
-    if (onColumnVisibilityChange) {
-      onColumnVisibilityChange(newVisibility);
-    } else {
-      setInternalColumnVisibility(newVisibility);
-    }
-
-    if (storageKey) {
-      try {
-        localStorage.removeItem(`PageBreadcrumb:${storageKey}:columns`);
-        localStorage.removeItem(`AdvancedDataTable:v1:${storageKey}:columns`);
-      } catch {
-        // Ignore
-      }
-    }
-    syncTableLayout(columns, newVisibility);
-  }, [
-    columns,
-    onColumnsChange,
-    onColumnVisibilityChange,
-    storageKey,
-    syncTableLayout,
-  ]);
 
   // Build current snapshot for saving as a setup
   const buildCurrentConfig = useCallback((): ColumnSetupEntry => {
@@ -765,23 +527,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           <div className="relative" ref={columnManagerRef}>
             <button
               ref={effectiveColumnBtnRef}
-              onClick={() => {
-                if (!showColumnManager && effectiveColumnBtnRef.current) {
-                  const rect =
-                    effectiveColumnBtnRef.current.getBoundingClientRect();
-                  const panelWidth = 320;
-                  let left = rect.left;
-                  // Keep panel within viewport
-                  if (left + panelWidth > window.innerWidth - 16) {
-                    left = window.innerWidth - panelWidth - 16;
-                  }
-                  setColumnManagerPosition({
-                    top: rect.bottom + 8,
-                    left: Math.max(16, left),
-                  });
-                }
-                setShowColumnManager(!showColumnManager);
-              }}
+              onClick={() => setEditingSetupName("__current__")}
               title="Manage Columns"
               className="flex items-center gap-1 px-3 py-4 h-9 rounded-md bg-success-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
               disabled={currentColumns.length === 0}
@@ -1091,218 +837,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         </div>
       )}
 
-      {/* Column Manager Dropdown - Fixed position to avoid overflow clipping */}
-      {showColumnManager &&
-        currentColumns.length > 0 &&
-        columnManagerPosition && (
-          <div
-            ref={columnManagerDropdownRef}
-            className="fixed z-[9999] w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
-            style={{
-              top: columnManagerPosition.top,
-              left: columnManagerPosition.left,
-            }}
-          >
-            <div className="p-4">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Manage Columns
-                </h3>
-                <button
-                  onClick={resetColumns}
-                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
-                >
-                  Reset
-                </button>
-              </div>
-
-              {/* Column Setups */}
-              {storageKey && (
-                <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Column Setups
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <select
-                      value={columnSetupsApi.activeSetupName ?? "__current__"}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "__save__") {
-                          setShowSaveSetupInput(true);
-                          e.target.value = columnSetupsApi.activeSetupName ?? "__current__";
-                        } else if (val === "__current__") {
-                          columnSetupsApi.clearActive();
-                        } else {
-                          const config = columnSetupsApi.applySetup(val);
-                          if (config) applyConfig(config);
-                        }
-                      }}
-                      className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                    >
-                      {columnSetupsApi.setups.map((s) => (
-                        <option key={s.name} value={s.name}>
-                          {s.name}
-                        </option>
-                      ))}
-                      <option value="__save__">Save Current As…</option>
-                      <option value="__current__">
-                        {columnSetupsApi.activeSetupName ? "Current (unsaved)" : "● Current"}
-                      </option>
-                    </select>
-                    {columnSetupsApi.activeSetupName && (
-                      <>
-                        <button
-                          onClick={() => setEditingSetupName(columnSetupsApi.activeSetupName)}
-                          className="px-1.5 py-1 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400"
-                          title="Edit setup"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          onClick={() => columnSetupsApi.deleteSetup(columnSetupsApi.activeSetupName!)}
-                          className="px-1.5 py-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400"
-                          title={`Delete "${columnSetupsApi.activeSetupName}"`}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {showSaveSetupInput && (
-                    <div className="mt-2 flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={setupNameInput}
-                        onChange={(e) => setSetupNameInput(e.target.value)}
-                        placeholder="Setup name"
-                        className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && setupNameInput.trim()) {
-                            columnSetupsApi.saveSetup(setupNameInput.trim(), buildCurrentConfig());
-                            setSetupNameInput("");
-                            setShowSaveSetupInput(false);
-                          } else if (e.key === "Escape") {
-                            setShowSaveSetupInput(false);
-                            setSetupNameInput("");
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => {
-                          if (setupNameInput.trim()) {
-                            columnSetupsApi.saveSetup(setupNameInput.trim(), buildCurrentConfig());
-                            setSetupNameInput("");
-                            setShowSaveSetupInput(false);
-                          }
-                        }}
-                        disabled={!setupNameInput.trim()}
-                        className="px-2 py-1.5 text-xs font-medium text-white bg-sky-600 rounded hover:bg-sky-700 disabled:opacity-50"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSaveSetupInput(false);
-                          setSetupNameInput("");
-                        }}
-                        className="px-1.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                  {/* Server sync buttons */}
-                  <div className="mt-2 flex items-center gap-1">
-                    <button
-                      onClick={() => columnSetupsApi.uploadToServer()}
-                      disabled={columnSetupsApi.syncing || columnSetupsApi.setups.length === 0}
-                      className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                      title="Upload setups to server"
-                    >
-                      ↑ Upload
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await columnSetupsApi.downloadFromServer();
-                        // If there's an active setup after download, apply it
-                        if (columnSetupsApi.activeSetupName) {
-                          const config = columnSetupsApi.applySetup(columnSetupsApi.activeSetupName);
-                          if (config) applyConfig(config);
-                        }
-                      }}
-                      disabled={columnSetupsApi.syncing}
-                      className="flex-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                      title="Download setups from server"
-                    >
-                      ↓ Download
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={showAllColumns}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
-                >
-                  Show All
-                </button>
-                <button
-                  onClick={hideAllColumns}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400"
-                >
-                  Hide All
-                </button>
-              </div>
-
-              {/* Instructions */}
-              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  <strong>👁</strong> Click eye to show/hide &nbsp;
-                  <strong>↕</strong> Drag to reorder
-                </p>
-              </div>
-
-              {/* Column List */}
-              <DndProvider backend={HTML5Backend}>
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {currentColumns.map((col, index) => (
-                    <DraggableColumnItem
-                      key={`col-${getColumnPersistKey(col, index)}`}
-                      column={String(
-                        col.name || col.id || `Column ${index + 1}`,
-                      )}
-                      index={index}
-                      visible={columnVisibility[index] ?? true}
-                      moveColumn={moveColumn}
-                      toggleVisibility={toggleColumnVisibility}
-                    />
-                  ))}
-                </div>
-              </DndProvider>
-
-              {/* Footer */}
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Visible:{" "}
-                  <span className="font-medium text-blue-600">
-                    {visibleColumnCount}
-                  </span>{" "}
-                  / {totalColumnCount}
-                </p>
-                <button
-                  onClick={() => setShowColumnManager(false)}
-                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
       {/* Column Setup Edit Dialog */}
       {editingSetupName && (() => {
@@ -1347,6 +881,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               });
               setEditingSetupName(null);
             }}
+            columnSetupsApi={columnSetupsApi}
           />
         );
       })()}
