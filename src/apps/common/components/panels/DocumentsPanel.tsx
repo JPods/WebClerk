@@ -14,7 +14,7 @@
  *
  * @see readmes/topics/document-uploads.md
  */
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   FaFile,
   FaChevronDown,
@@ -27,6 +27,7 @@ import {
   FaFileWord,
   FaFileExcel,
   FaFileAlt,
+  FaSlidersH,
   FaSpinner,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
@@ -37,6 +38,8 @@ import {
   getDocumentUrl,
   formatFileSize as formatSize,
 } from "./documentUpload";
+import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
+import { useColumnSetups } from "@/hooks/useColumnSetups";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
@@ -122,6 +125,15 @@ const formatDate = (dateStr?: string): string => {
   });
 };
 
+/** Column metadata for ColumnSetupDialog */
+const DOC_COLUMN_METAS = [
+  { key: "icon", label: "icon" },
+  { key: "name", label: "name" },
+  { key: "size", label: "size" },
+  { key: "date", label: "date" },
+  { key: "uploader", label: "uploader" },
+];
+
 // ---------------------------------------------------------------------------
 // Document Row Component
 // ---------------------------------------------------------------------------
@@ -129,6 +141,7 @@ const formatDate = (dateStr?: string): string => {
 interface DocumentRowProps {
   doc: DocumentRefLink;
   canEdit: boolean;
+  visibleColumns?: Set<string>;
   onDelete?: () => void;
   onDownload?: () => void;
 }
@@ -136,31 +149,50 @@ interface DocumentRowProps {
 const DocumentRow: React.FC<DocumentRowProps> = ({
   doc,
   canEdit,
+  visibleColumns,
   onDelete,
   onDownload,
 }) => (
-  <div className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded group">
+  <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
     {/* Icon */}
-    <div className="text-xl">{getFileIcon(doc.type, doc.name)}</div>
+    {(!visibleColumns || visibleColumns.has("icon")) && (
+      <div className="text-base shrink-0 w-5 text-center">{getFileIcon(doc.type, doc.name)}</div>
+    )}
 
-    {/* Info */}
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+    {/* Name */}
+    {(!visibleColumns || visibleColumns.has("name")) && (
+      <span className="text-slate-700 dark:text-slate-300 font-medium truncate min-w-[100px] flex-1">
         {doc.name || doc.display || "Untitled"}
-      </p>
-      <div className="flex items-center gap-3 text-xs text-slate-500">
-        <span>{formatFileSize(doc.size)}</span>
-        {doc.uploaded_at && <span>{formatDate(doc.uploaded_at)}</span>}
-        {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
-      </div>
-    </div>
+      </span>
+    )}
+
+    {/* Size */}
+    {(!visibleColumns || visibleColumns.has("size")) && (
+      <span className="text-slate-500 dark:text-slate-400 shrink-0 w-[70px] text-right">
+        {formatFileSize(doc.size)}
+      </span>
+    )}
+
+    {/* Date */}
+    {(!visibleColumns || visibleColumns.has("date")) && (
+      <span className="text-slate-500 dark:text-slate-400 shrink-0 w-[90px]">
+        {doc.uploaded_at ? formatDate(doc.uploaded_at) : "--"}
+      </span>
+    )}
+
+    {/* Uploader */}
+    {(!visibleColumns || visibleColumns.has("uploader")) && (
+      <span className="text-slate-500 dark:text-slate-400 truncate w-[80px] shrink-0">
+        {doc.uploaded_by || "--"}
+      </span>
+    )}
 
     {/* Actions */}
-    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
       {(doc.url || doc.document_id) && (
         <button
           onClick={onDownload}
-          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+          className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
           title="Download"
         >
           <FaDownload size={12} />
@@ -169,7 +201,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
       {canEdit && onDelete && (
         <button
           onClick={onDelete}
-          className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
           title="Delete"
         >
           <FaTrash size={12} />
@@ -206,6 +238,32 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showColumnDialog, setShowColumnDialog] = useState(false);
+  const columnSetups = useColumnSetups("panel:documents");
+
+  // Build default config from column metas
+  const defaultConfig = useMemo<import("@/hooks/useColumnSetups").ColumnSetupEntry>(() => {
+    const order = DOC_COLUMN_METAS.map((m) => m.key);
+    const visibility: Record<string, boolean> = {};
+    DOC_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
+    return { order, visibility, widths: {}, sort: null };
+  }, []);
+
+  // Apply active setup (if any) over default
+  const activeConfig = useMemo(() => {
+    if (!columnSetups.activeSetupName) return defaultConfig;
+    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
+    return applied ?? defaultConfig;
+  }, [columnSetups, defaultConfig]);
+
+  const visibleCols = useMemo(() => {
+    const vis = activeConfig.visibility;
+    const result = new Set<string>();
+    for (const m of DOC_COLUMN_METAS) {
+      if (vis[m.key] !== false) result.add(m.key);
+    }
+    return result;
+  }, [activeConfig]);
 
   // Check permissions
   const { canView, canEdit: permCanEdit } = usePermissions({
@@ -396,6 +454,20 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               )}
             </button>
           )}
+          {/* Column setup badge */}
+          {!isCollapsed && (
+            <button
+              type="button"
+              title="Configure columns"
+              className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowColumnDialog(true);
+              }}
+            >
+              <FaSlidersH size={10} />
+            </button>
+          )}
           {isCollapsed ? (
             <FaChevronDown size={12} />
           ) : (
@@ -522,11 +594,21 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
+              {/* Column headers */}
+              <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {visibleCols.has("icon") && <span className="w-5 shrink-0" />}
+                {visibleCols.has("name") && <span className="min-w-[100px] flex-1">name</span>}
+                {visibleCols.has("size") && <span className="w-[70px] shrink-0 text-right">size</span>}
+                {visibleCols.has("date") && <span className="w-[90px] shrink-0">date</span>}
+                {visibleCols.has("uploader") && <span className="w-[80px] shrink-0">uploader</span>}
+                <span className="shrink-0 w-[52px]" />
+              </div>
               {data.map((doc, index) => (
                 <DocumentRow
                   key={doc.id || index}
                   doc={doc}
                   canEdit={canEdit}
+                  visibleColumns={visibleCols}
                   onDelete={() => handleDelete(index)}
                   onDownload={() => handleDownload(doc)}
                 />
@@ -535,6 +617,20 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           )}
         </div>
       )}
+      {/* Column setup dialog */}
+      <ColumnSetupDialog
+        open={showColumnDialog}
+        title="Document Columns"
+        columnMetas={DOC_COLUMN_METAS}
+        config={activeConfig}
+        onSave={(entry) => {
+          columnSetups.saveSetup("current", entry);
+          setShowColumnDialog(false);
+        }}
+        onClose={() => setShowColumnDialog(false)}
+        namedSetups={columnSetups.setups}
+        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
+      />
     </div>
   );
 };

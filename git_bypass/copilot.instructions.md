@@ -223,7 +223,13 @@ Legacy names are **banned** in all new code:
 - Components / types / interfaces: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`
 - Date/time fields from backend: `dt_` prefix (e.g. `dt_created`, `dt_modified`)
-- FK fields from backend: `{model_name}_id` format
+- FK fields from backend: `{model_name}_id` column format (e.g., `invoice_id`, `org_id`)
+
+> **Django FK naming (wc3 backend rule):** The Django Python field is named
+> **without** `_id` (e.g., `invoice = ForeignKey(...)`).
+> Django auto-appends `_id` for the DB column (`invoice_id`).
+> Naming a field `invoice_id = ForeignKey(...)` creates a `invoice_id_id` column — **this is banned**.
+> The frontend always sees `{model_name}_id` in API payloads (the column name).
 
 ### Label Rendering Policy (STRICT)
 
@@ -738,6 +744,32 @@ Multiple floating windows are central to the enterprise UX. Power users open sev
 - Topic deep-dives go in `readmes/topics/{category}/`
 - Migration tracking in `readmes/api-migration-rest-to-wcapi.md`
 - Legacy reference: `vue2020/src/components/` for feature parity checks
+- Legacy knowledge extraction: `readmes/legacy/` — see below
+
+---
+
+## 18a. Legacy Reference Strategy
+
+The workspace includes two legacy codebases used as **reference only** during conversion:
+
+| Alias | Path | Use For |
+|-------|------|---------|
+| **wc2** | `00WebClerk19/Project/Sources/` | Business rules, 4D triggers, calculations, table structures |
+| **vue2020** | `vue2020/` | UI patterns, component behaviors, API call shapes |
+
+**Rules of engagement:**
+
+1. Consult legacy code **on-demand** when building a feature that needs parity or domain clarification
+2. **Ask the user** before investing time in ambiguous or complex legacy areas — there is signal and noise
+3. Extract the *business intent*, not the implementation — don't port 4D patterns into Python/React
+4. **Record valuable findings** in `readmes/legacy/` so they survive after wc2/vue2020 are removed
+5. Mark uncertain items with `⚠️ UNVERIFIED` so the user can confirm
+
+The `readmes/legacy/` directory in both R25 and wc3 captures extracted knowledge:
+- UI patterns and component behaviors (R25)
+- Business rules, field mappings, and calculation logic (wc3)
+
+> **Post-development:** Once conversion is complete, wc2 and vue2020 will be removed from the workspace. The `readmes/legacy/` files become the permanent record.
 
 ---
 
@@ -891,6 +923,22 @@ When starting a coding session, establish:
 3. **Which layer?** (page component, service, type, schema, test)
 
 This helps scope changes correctly within the domain-driven folder structure.
+
+---
+
+## 23a. AI Agent Roles
+
+| Agent | Identity | Role |
+|-------|----------|------|
+| **Copilot** | GitHub Copilot (primary) | Inline code generation, edits, terminal commands, orchestration |
+| **Alice** | Subagent (research & multi-step) | Deep codebase search, complex analysis, autonomous multi-file research |
+
+Alice is invoked via the subagent tool for tasks requiring broad codebase exploration
+or multi-step research. She returns a single report. Use her when:
+- Searching for a pattern across many files
+- Auditing naming conventions, FK usage, or field consistency
+- Investigating bugs that span multiple services
+- Gathering context before a complex refactor
 
 ---
 
