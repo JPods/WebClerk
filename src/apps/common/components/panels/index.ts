@@ -95,8 +95,8 @@ export type { CommType, CommLinkPanelProps } from "./CommLinkPanel";
 export { default as OrgLinkPanel } from "./OrgLinkPanel";
 export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";
-export { default as RelatedTabPanel } from "./RelatedTabPanel";
-export type { RelatedTabPanelProps } from "./RelatedTabPanel";
+export { default as CoreTabPanel } from "./CoreTabPanel";
+export type { CoreTabPanelProps } from "./CoreTabPanel";
 
 // Shared panel table component
 export { PanelTable } from "./PanelTable";

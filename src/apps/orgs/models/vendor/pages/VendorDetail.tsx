@@ -50,10 +50,10 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import {
   BasicInformationPanel,
-  RelatedTabPanel,
+  CoreTabPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
-import TransactionTabs from "@/components/common/TransactionTabs";
+import TransactionTabPanel from "@/components/common/TransactionTabPanel";
 import ItemTabs from "@/components/common/ItemTabs";
 import {
   useDetailTabs,
@@ -1330,7 +1330,7 @@ function VendorDetail({
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
         <div className="flex-1 overflow-y-auto">
-          <RelatedTabPanel
+          <CoreTabPanel
             entityType="vendor"
             activeTab={activeTab}
             onTabChange={handleTabChange}
@@ -1423,7 +1423,7 @@ function VendorDetail({
             extraTabContent={
               <>
                 {activeTab === "financial" && (
-                  <TransactionTabs orgType="vendor" orgId={vendorData.id!} />
+                  <TransactionTabPanel orgType="vendor" orgId={vendorData.id!} />
                 )}
                 {activeTab === "items" && (
                   <ItemTabs orgType="vendor" orgId={vendorData.id!} />

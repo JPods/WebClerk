@@ -46,9 +46,9 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
   BasicInformationPanel,
   normalizeRefsLinksContact,
-  RelatedTabPanel,
+  CoreTabPanel,
 } from "@/apps/common/components/panels";
-import TransactionTabs from "@/components/common/TransactionTabs";
+import TransactionTabPanel from "@/components/common/TransactionTabPanel";
 import ItemTabs from "@/components/common/ItemTabs";
 import {
   useDetailTabs,
@@ -1321,7 +1321,7 @@ function CustomerDetail({
       {mode !== "add" ? (
         <div className="space-y-2 px-4 py-2">
           {/* ── Org detail tabs (actions · comments · contacts · docs · qa · raw) ── */}
-          <RelatedTabPanel
+          <CoreTabPanel
             entityType="customer"
             activeTab={activeTab}
             onTabChange={handleTabChange}
@@ -1414,7 +1414,7 @@ function CustomerDetail({
           {/* ── Transactions ────────────────────────────────────── */}
           <div className="flex-1 cus-bg-black-light rounded-md">
             <div className="p-2">
-              <TransactionTabs
+                <TransactionTabPanel
                 orgType="customer"
                 orgId={customerData.id!}
               />

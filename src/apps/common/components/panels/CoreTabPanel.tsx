@@ -1,5 +1,5 @@
 /**
- * RelatedTabPanel
+ * CoreTabPanel
  *
  * Reusable tabbed detail panel for all org model pages
  * (CustomerDetail, VendorDetail, ManufacturerDetail, RepDetail, etc.).
@@ -35,7 +35,7 @@ type StandardTabKey =
   | "overview"
   | "raw";
 
-export interface RelatedTabPanelProps {
+export interface CoreTabPanelProps {
   // ── Tab bar ──────────────────────────────────────────────
   entityType: string;
   activeTab: string;
@@ -87,12 +87,12 @@ export interface RelatedTabPanelProps {
   /**
    * Additional tab content beyond the standard set.
    * Render conditionally based on activeTab in the caller:
-   *   extraTabContent={<>{activeTab === "financial" && <TransactionTabs ... />}</>}
+  *   extraTabContent={<>{activeTab === "financial" && <TransactionTabPanel ... />}</>}
    */
   extraTabContent?: React.ReactNode;
 }
 
-export default function RelatedTabPanel({
+export default function CoreTabPanel({
   entityType,
   activeTab,
   onTabChange,
@@ -123,7 +123,7 @@ export default function RelatedTabPanel({
   projectOptions = [],
   currentUser,
   extraTabContent,
-}: RelatedTabPanelProps) {
+}: CoreTabPanelProps) {
   const dispatch = useDispatch();
 
   return (

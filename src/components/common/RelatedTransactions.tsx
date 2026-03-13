@@ -7,7 +7,7 @@
  *
  * Does NOT show all transactions for the linked org — only direct relationships.
  *
- * @see TransactionTabs for org pages that show all org transactions
+ * @see TransactionTabPanel for org pages that show org transactions by selected type
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
