@@ -223,7 +223,13 @@ Legacy names are **banned** in all new code:
 - Components / types / interfaces: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`
 - Date/time fields from backend: `dt_` prefix (e.g. `dt_created`, `dt_modified`)
-- FK fields from backend: `{model_name}_id` format
+- FK fields from backend: `{model_name}_id` column format (e.g., `invoice_id`, `org_id`)
+
+> **Django FK naming (wc3 backend rule):** The Django Python field is named
+> **without** `_id` (e.g., `invoice = ForeignKey(...)`).
+> Django auto-appends `_id` for the DB column (`invoice_id`).
+> Naming a field `invoice_id = ForeignKey(...)` creates a `invoice_id_id` column — **this is banned**.
+> The frontend always sees `{model_name}_id` in API payloads (the column name).
 
 ### Label Rendering Policy (STRICT)
 
@@ -891,6 +897,22 @@ When starting a coding session, establish:
 3. **Which layer?** (page component, service, type, schema, test)
 
 This helps scope changes correctly within the domain-driven folder structure.
+
+---
+
+## 23a. AI Agent Roles
+
+| Agent | Identity | Role |
+|-------|----------|------|
+| **Copilot** | GitHub Copilot (primary) | Inline code generation, edits, terminal commands, orchestration |
+| **Alice** | Subagent (research & multi-step) | Deep codebase search, complex analysis, autonomous multi-file research |
+
+Alice is invoked via the subagent tool for tasks requiring broad codebase exploration
+or multi-step research. She returns a single report. Use her when:
+- Searching for a pattern across many files
+- Auditing naming conventions, FK usage, or field consistency
+- Investigating bugs that span multiple services
+- Gathering context before a complex refactor
 
 ---
 
