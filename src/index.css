@@ -1278,3 +1278,12 @@ span.flatpickr-weekday,
 /* ============================================
    End SVAR Gantt Styles
    ============================================ */
+.react-international-phone-country-selector-button__flag-emoji {
+  margin: 0px 0px 0 8px !important;
+}
+.react-international-phone-input-container .react-international-phone-input {
+  height: var(--react-international-phone-height, 32px);
+  padding: 0 7px;
+  border-radius: var(--react-international-phone-border-radius, 7px);
+  font-size: var(--react-international-phone-font-size, 13px);
+}

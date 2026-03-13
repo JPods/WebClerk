@@ -24,7 +24,7 @@ import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,16 +77,16 @@ export interface TransactionsPanelProps {
 // ---------------------------------------------------------------------------
 
 const CUSTOMER_TABLES: SubTable[] = [
-  { model: "proposal", label: "Proposals", filterField: "customer_id" },
-  { model: "order", label: "Orders", filterField: "customer_id" },
-  { model: "invoice", label: "Invoices", filterField: "customer_id" },
-  { model: "ledger", label: "Ledgers", filterField: "customer_id" },
-  { model: "payment", label: "Payments", filterField: "customer_id" },
+  { model: "proposal", label: "Proposals", filterField: "customer" },
+  { model: "order", label: "Orders", filterField: "customer" },
+  { model: "invoice", label: "Invoices", filterField: "customer" },
+  { model: "ledger", label: "Ledgers", filterField: "customer" },
+  { model: "payment", label: "Payments", filterField: "customer" },
 ];
 
 const VENDOR_TABLES: SubTable[] = [
-  { model: "purchase", label: "Purchases", filterField: "vendor_id" },
-  { model: "receipt", label: "Receipts", filterField: "vendor_id" },
+  { model: "purchase", label: "Purchases", filterField: "vendor" },
+  { model: "receipt", label: "Receipts", filterField: "vendor" },
 ];
 
 const SUB_TABLES: Record<OrgType, SubTable[]> = {
@@ -163,7 +163,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
         } catch {
           return { model: t.model, records: [] };
         }
-      })
+      }),
     ).then((results) => {
       if (cancelled) return;
       const map: Record<string, TransactionRecord[]> = {};
@@ -187,7 +187,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
 
   const totalCount = tables.reduce(
     (sum, t) => sum + (data[t.model]?.length ?? 0),
-    0
+    0,
   );
 
   const handleRowClick = (model: string, rec: TransactionRecord) => {
@@ -325,4 +325,8 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(TransactionsPanel, 'TransactionsPanel', 'teal');
+export default withDevIdentifier(
+  TransactionsPanel,
+  "TransactionsPanel",
+  "teal",
+);

@@ -43,13 +43,11 @@ export default function InternationalPhoneInput({
         onBlur={onBlur}
         onChange={(phone) => onChange?.(phone)}
         className="w-full"
-        inputClassName={
-          `h-8 w-full rounded-lg border px-4 py-2.5 text-xs shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${
-            error
-              ? "border-error-500 focus:border-error-300 focus:ring-error-500/20 dark:border-error-500 dark:focus:border-error-800"
-              : "bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-blue-500/20 dark:border-gray-700 dark:focus:border-brand-800"
-          }`
-        }
+        inputClassName={`h-8 w-full rounded-lg border px-4 py-2.5 text-xs shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${
+          error
+            ? "border-error-500 focus:border-error-300 focus:ring-error-500/20 dark:border-error-500 dark:focus:border-error-800"
+            : "bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-blue-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+        }`}
         countrySelectorStyleProps={{
           buttonClassName:
             "h-8 rounded-l-lg border border-r-0 border-gray-300 bg-transparent px-2 text-xs dark:border-gray-700",

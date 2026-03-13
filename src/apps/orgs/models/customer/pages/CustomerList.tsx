@@ -10,9 +10,9 @@ import { fetchCustomers } from "../services/customerApi";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import CustomerDetail from "./CustomerDetail";
-import CustomerListMob from "./CustomerListMob";
 import { deleteRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { defaultCountries, usePhoneInput } from "react-international-phone";
 
 export default function CustomerList() {
   const dispatch = useDispatch();
@@ -170,6 +170,21 @@ export default function CustomerList() {
     setSelectedCustomer(null);
   };
 
+  /**
+   * PhoneDisplay - Format and display phone numbers using react-international-phone
+   * Uses the library's formatting logic for consistent display with the input component
+   */
+  const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+    const { inputValue } = usePhoneInput({
+      value: value || "",
+      countries: defaultCountries,
+      defaultCountry: "us",
+      forceDialCode: true,
+    });
+
+    if (!value) return null;
+    return <>{inputValue}</>;
+  };
   // Columns
   const useCustomerColumns = (
     handleEdit: any,
@@ -221,6 +236,7 @@ export default function CustomerList() {
         {
           name: "Phone",
           selector: (row: any) => row.phone || "--",
+          cell: (row: any) => <PhoneDisplay value={row.phone} />,
           sortable: true,
           width: "12%",
         },

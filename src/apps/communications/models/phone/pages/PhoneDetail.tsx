@@ -29,6 +29,13 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
+import {
+  PhoneInput,
+  defaultCountries,
+  getActiveFormattingMask,
+  usePhoneInput,
+} from "react-international-phone";
+import "react-international-phone/style.css";
 
 // Column count
 import { useColumnCount } from "@/components/common/DetailTabs";
@@ -46,15 +53,19 @@ import { PhoneAddProps } from "../types/phoneType";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 /**
- * Format phone number as (123) 456-7890
- * Strips non-digits, then formats with parentheses
+ * PhoneDisplay - Format and display phone numbers using react-international-phone
+ * Uses the library's formatting logic for consistent display
  */
-const formatPhoneNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length === 0) return "";
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+  const { inputValue } = usePhoneInput({
+    value: value || "",
+    countries: defaultCountries,
+    defaultCountry: "us",
+    forceDialCode: true,
+  });
+
+  if (!value) return <>—</>;
+  return <>{inputValue}</>;
 };
 
 // ---------------------------------------------------------------------------
@@ -328,6 +339,7 @@ function PhoneDetail({
     : "New Phone";
 
   const optOut = watch("opt_out") ?? data?.opt_out;
+  const formatMask = watch("format");
 
   // ---------------------------------------------------------------------------
   // Render
@@ -395,12 +407,16 @@ function PhoneDetail({
               title="Phone Info"
               icon={<FaPhone size={14} />}
               fields={[
-                { label: "number", value: data.number, highlight: true },
+                {
+                  label: "number",
+                  value: <PhoneDisplay value={data.number} />,
+                  highlight: true,
+                },
                 { label: "country_code", value: data.country_code },
                 { label: "format", value: data.format },
                 { label: "name", value: data.name },
                 { label: "attention", value: data.attention },
-                { label: "opt_out", value: data.opt_out },
+                { label: "opt_out", value: data.opt_out ? "Yes" : "No" },
               ]}
               columns={columnCount as 1 | 2 | 3}
             />
@@ -424,15 +440,37 @@ function PhoneDetail({
                   name="number"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      type="tel"
-                      id="number"
-                      placeholder="(123) 456-7890"
+                    <PhoneInput
                       value={field.value ?? ""}
-                      onChange={(e) =>
-                        field.onChange(formatPhoneNumber(e.target.value))
-                      }
-                      error={!!errors.number?.message}
+                      defaultCountry="us"
+                      preferredCountries={["us", "in", "gb"]}
+                      forceDialCode
+                      placeholder="+1 (555) 000-0000"
+                      inputProps={{ id: "number" }}
+                      onChange={(phone, meta) => {
+                        field.onChange(phone);
+                        // Auto-fill country_code based on selected country
+                        if (meta.country) {
+                          setValue("country_code", `+${meta.country.dialCode}`);
+                          const mask = getActiveFormattingMask({
+                            phone,
+                            country: meta.country,
+                            defaultMask: "............",
+                          });
+                          setValue("format", mask);
+                        }
+                      }}
+                      className="w-full"
+                      inputClassName={`h-8 w-full rounded-lg border px-4 py-2.5 text-xs shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${
+                        errors.number?.message
+                          ? "border-error-500 focus:border-error-300 focus:ring-error-500/20 dark:border-error-500 dark:focus:border-error-800"
+                          : "bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-blue-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                      }`}
+                      countrySelectorStyleProps={{
+                        buttonClassName:
+                          "h-8 rounded-l-lg border border-r-0 border-gray-300 bg-transparent px-2 text-xs dark:border-gray-700",
+                        dropdownArrowClassName: "text-gray-500",
+                      }}
                     />
                   )}
                 />
@@ -449,6 +487,8 @@ function PhoneDetail({
                   placeholder="+1"
                   {...register("country_code")}
                   error={!!errors.country_code?.message}
+                  disabled
+                  className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                 />
               </HorizontalField>
 
@@ -460,8 +500,7 @@ function PhoneDetail({
                 <Input
                   type="text"
                   id="format"
-                  placeholder="(###) ###-####"
-                  value={"(###) ###-####"}
+                  placeholder={formatMask || "+## ####-####"}
                   {...register("format")}
                   error={!!errors.format?.message}
                 />

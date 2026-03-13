@@ -7,6 +7,7 @@
 import React from "react";
 import { FaBuilding } from "react-icons/fa";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { defaultCountries, usePhoneInput } from "react-international-phone";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -78,6 +79,21 @@ const ActiveBadge: React.FC<{ isActive: boolean }> = ({ isActive }) => (
     {isActive ? "Yes" : "No"}
   </span>
 );
+/**
+ * PhoneDisplay - Format and display phone numbers using react-international-phone
+ * Uses the library's formatting logic for consistent display with the input component
+ */
+const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+  const { inputValue } = usePhoneInput({
+    value: value || "",
+    countries: defaultCountries,
+    defaultCountry: "us",
+    forceDialCode: true,
+  });
+
+  if (!value) return null;
+  return <>{inputValue}</>;
+};
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -114,7 +130,7 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
         />
         <Row label="terms" value={data.terms} />
         <Row label="attention" value={data.attention} />
-        <Row label="phone" value={data.phone} />
+        <Row label="phone" value={<PhoneDisplay value={data.phone} />} />
         <Row label="email" value={data.email} />
       </dl>
       <dl

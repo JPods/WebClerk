@@ -13,6 +13,7 @@ import { useDispatch } from "react-redux";
 import PhoneDetail from "./PhoneDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { defaultCountries, usePhoneInput } from "react-international-phone";
 
 export default function PhoneList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -212,80 +213,96 @@ export default function PhoneList() {
     });
   }, [data]);
 
-  const columns: TableColumn<dynamicData>[] = useMemo(
-    () => [
-      {
-        name: "id",
-        selector: (row: dynamicData) => row.id,
-        sortable: true,
-        width: "5%",
-      },
-      {
-        name: "contact",
-        selector: (row: dynamicData) => {
-          row?.refs?.links?.contact?.[0]?.contact?.display_name;
+  /**
+   * PhoneDisplay - Format and display phone numbers using react-international-phone
+   * Uses the library's formatting logic for consistent display with the input component
+   */
+  const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+    const { inputValue } = usePhoneInput({
+      value: value || "",
+      countries: defaultCountries,
+      defaultCountry: "us",
+      forceDialCode: true,
+    });
+
+    if (!value) return <>--</>;
+    return <>{inputValue}</>;
+  };
+
+  // Columns hook - similar pattern to useCustomerColumns
+  const usePhoneColumns = (
+    handleDelete: (row: dynamicData) => void,
+  ): TableColumn<dynamicData>[] =>
+    useMemo(
+      () => [
+        {
+          name: "id",
+          selector: (row: dynamicData) => row.id,
+          sortable: true,
+          width: "5%",
         },
-        cell: (row: dynamicData) =>
-          row?.refs?.links?.contact?.[0]?.contact?.display_name
-            ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
-            : "--",
-        sortable: true,
-        width: "15%",
-      },
-      {
-        name: "number",
-        selector: (row: dynamicData) => row.number || "--",
-        cell: (row: dynamicData) => (row.number ? row.number.toString() : "--"),
-        sortable: true,
-        width: "20%",
-      },
-      {
-        name: "name",
-        selector: (row: dynamicData) => row.name || "--",
-        cell: (row: dynamicData) => (row.name ? row.name.toString() : "--"),
-        sortable: true,
-        width: "25%",
-      },
+        {
+          name: "contact",
+          selector: (row: dynamicData) => {
+            row?.refs?.links?.contact?.[0]?.contact?.display_name;
+          },
+          cell: (row: dynamicData) =>
+            row?.refs?.links?.contact?.[0]?.contact?.display_name
+              ? `[id: ${row?.refs?.links?.contact?.[0]?.contact?.id}] ${row?.refs?.links?.contact?.[0]?.contact?.display_name}`
+              : "--",
+          sortable: true,
+          width: "15%",
+        },
+        {
+          name: "number",
+          selector: (row: dynamicData) => row.number || "--",
+          cell: (row: dynamicData) => <PhoneDisplay value={row.number} />,
+          sortable: true,
+          width: "20%",
+        },
+        {
+          name: "name",
+          selector: (row: dynamicData) => row.name || "--",
+          cell: (row: dynamicData) => (row.name ? row.name.toString() : "--"),
+          sortable: true,
+          width: "25%",
+        },
 
-      {
-        name: "country_code",
-        selector: (row: dynamicData) => row.country_code || "--",
-        cell: (row: dynamicData) =>
-          row.country_code ? row.country_code.toString() : "--",
-        sortable: true,
-        width: "15%",
-      },
+        {
+          name: "country_code",
+          selector: (row: dynamicData) => row.country_code || "--",
+          cell: (row: dynamicData) =>
+            row.country_code ? row.country_code.toString() : "--",
+          sortable: true,
+          width: "15%",
+        },
 
-      {
-        name: "opt_out",
-        selector: (row: dynamicData) => (row.opt_out ? "Yes" : "No"), // Plain string for filtering
-        cell: (row: dynamicData) => (row.opt_out ? "Yes" : "No"),
-        sortable: true,
-        width: "15%",
-      },
+        {
+          name: "opt_out",
+          selector: (row: dynamicData) => (row.opt_out ? "Yes" : "No"), // Plain string for filtering
+          cell: (row: dynamicData) => (row.opt_out ? "Yes" : "No"),
+          sortable: true,
+          width: "15%",
+        },
 
-      {
-        name: "action",
-        cell: (row: dynamicData) => (
-          <div className="flex gap-3">
-            <button onClick={() => handleDelete(row)} title="Delete">
-              <FaTrash className="text-red-600 hover:scale-110 transition" />
-            </button>
-          </div>
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-      },
-    ],
-    [
-      handleDelete,
-      selectedPhones,
-      data.length,
-      toggleSelectPhone,
-      toggleSelectAll,
-    ],
-  );
+        {
+          name: "action",
+          cell: (row: dynamicData) => (
+            <div className="flex gap-3">
+              <button onClick={() => handleDelete(row)} title="Delete">
+                <FaTrash className="text-red-600 hover:scale-110 transition" />
+              </button>
+            </div>
+          ),
+          ignoreRowClick: true,
+          allowOverflow: true,
+          button: true,
+        },
+      ],
+      [handleDelete],
+    );
+
+  const columns = usePhoneColumns(handleDelete);
 
   const customActions = (
     <div className="flex gap-2">
