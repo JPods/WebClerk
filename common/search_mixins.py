@@ -138,25 +138,22 @@ class PrefixAndSearchView(APIView):
             return []
 
     def build_query(self, qs, terms):
-        # Combine base fields, settings-provided fields, and include refs.keywords
+        """Apply multi-term fragment search using shared search_utils.
+
+        Delegates to ``build_fragment_query`` for consistent fragment
+        parsing (including ``@`` contains modifier) across all search
+        entry points.
+        """
+        from common.search_utils import build_fragment_query
+
         extra_fields = self._settings_keyword_fields()
-        fields = list(dict.fromkeys([*self.search_fields, *extra_fields]))  # preserve order, de-dup
-        # Determine if model has 'refs' JSON field (present on BaseModel descendants)
-        try:
-            model_field_names = {f.name for f in self.model._meta.fields}  # type: ignore[attr-defined]
-        except Exception:
-            model_field_names = set()
-        has_refs = 'refs' in model_field_names
-        for term in terms:
-            or_q = models.Q()
-            # Prefix matches on configured fields
-            for f in fields:
-                or_q |= models.Q(**{f"{f}__istartswith": term})
-            # Keyword match (substring) from refs.keywords array/text
-            if has_refs:
-                or_q |= models.Q(**{"refs__keywords__icontains": term})
-            qs = qs.filter(or_q)
-        return qs
+        fields = list(dict.fromkeys([*self.search_fields, *extra_fields]))
+        # Rejoin terms into comma-separated string for fragment parser
+        raw_search = ", ".join(terms)
+        return build_fragment_query(
+            qs, raw_search, fields, self.model,
+            include_refs_keywords=True,
+        )
 
     def get(self, request):
         if not self._role_allowed(request.user):

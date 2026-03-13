@@ -431,44 +431,46 @@ class WCAPIGetView(APIView):
 
     def _apply_search(self, qs, search_query: str, model_key: str, ModelCls) -> Any:
         """
-        Apply full-text search across configured search fields.
-        
+        Apply fragment-based search across configured search fields.
+
+        Supports comma-separated fragments with AND logic:
+        - Default: ``istartswith`` (prefix match, indexable)
+        - ``@`` prefix: ``icontains`` (substring match)
+        - ``refs.keywords`` always searched with ``icontains``
+
         Uses registry config to determine which fields are searchable.
         Falls back to common fields if not configured.
         """
         if not search_query:
             return qs
-        
+
+        from common.search_utils import build_fragment_query
+
         # Get search fields from registry config
         config = get_registry_config(model_key)
         search_fields = list(config.search_fields) if config and config.search_fields else []
-        
+
         # Fallback to common searchable fields
         if not search_fields:
             fallback_fields = []
             for f in ModelCls._meta.get_fields():
                 if hasattr(f, 'get_internal_type'):
                     ftype = f.get_internal_type()
-                    # Include text-based and common fields
                     if ftype in {'CharField', 'TextField', 'EmailField', 'URLField', 'SlugField'}:
                         fallback_fields.append(f.name)
-                    # Include common identifier fields
                     elif f.name in {'name', 'title', 'email', 'code', 'reference', 'description'}:
                         fallback_fields.append(f.name)
-            search_fields = fallback_fields[:10]  # Limit to 10 fields
-        
+            search_fields = fallback_fields[:10]
+
         if not search_fields:
             return qs
-        
-        # Build search condition with OR
-        search_condition = Q()
-        for field in search_fields:
-            search_condition |= Q(**{f"{field}__icontains": search_query})
-        
+
         try:
-            return qs.filter(search_condition)
+            return build_fragment_query(
+                qs, search_query, search_fields, ModelCls,
+                include_refs_keywords=True,
+            )
         except Exception:
-            # If search fails, return unfiltered queryset
             return qs
 
     def _apply_filters(self, qs, filters: Dict[str, Any]) -> Any:
