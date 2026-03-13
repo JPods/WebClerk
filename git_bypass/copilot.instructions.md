@@ -791,3 +791,32 @@ or multi-step research. She returns a single report. Use her when:
 - Auditing naming conventions, FK usage, or field consistency
 - Investigating bugs that span multiple services
 - Gathering context before a complex refactor
+
+---
+
+## 19. Legacy Reference Strategy
+
+The workspace includes two legacy codebases used as **reference only** during conversion:
+
+| Alias | Path | Use For |
+|-------|------|---------|
+| **wc2** | `00WebClerk19/Project/Sources/` | Business rules, 4D triggers, calculations, table structures |
+| **vue2020** | `vue2020/` | UI patterns, API call shapes, data expectations |
+
+**Rules of engagement:**
+
+1. Consult legacy code **on-demand** when building a feature that needs parity or domain clarification
+2. **Ask the user** before investing time in ambiguous or complex legacy areas — there is signal and noise
+3. Extract the *business intent*, not the implementation — don't port 4D patterns into Python/Django
+4. **Record valuable findings** in `readmes/legacy/` so they survive after wc2/vue2020 are removed
+5. Mark uncertain items with `⚠️ UNVERIFIED` so the user can confirm
+
+Existing wc2 reference: `readmes/topics/wc2/wc2_schema.json` (157 tables — full 4D field catalog).
+
+The `readmes/legacy/` directory captures extracted knowledge:
+- Business rules from 4D triggers and methods
+- Field mappings (wc2 → wc3)
+- Calculation formulas (pricing, tax, inventory)
+- Workflow logic that isn't obvious from the wc3 schema
+
+> **Post-development:** Once conversion is complete, wc2 and vue2020 will be removed from the workspace. The `readmes/legacy/` files become the permanent record.
