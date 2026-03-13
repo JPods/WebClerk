@@ -12,19 +12,16 @@ import { FaGripVertical } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {
+  parseFragments,
+  matchesFragments,
+} from "@/utils/searchFragments";
 
 /**
- * Parse comma-separated search terms into an array of trimmed lowercase terms.
- * Supports both "," and ", " as separators.
- * Exported for use in List components that need to perform database searches.
+ * @deprecated Import from '@/utils/searchFragments' instead.
+ * Re-exported here for backward compatibility.
  */
-export const parseSearchTerms = (input: string): string[] => {
-  if (!input || !input.trim()) return [];
-  return input
-    .split(/,\s*/)
-    .map((t) => t.trim().toLowerCase())
-    .filter((t) => t.length > 0);
-};
+export { parseSearchTerms } from "@/utils/searchFragments";
 
 export type ColumnFilter = {
   key: string; // unique key for the filter (used as object key)
@@ -596,62 +593,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     rowKeyField,
   ]);
 
-  /**
-   * Parse comma-separated search terms into an array of trimmed lowercase terms.
-   * Supports both "," and ", " as separators.
-   */
-  const parseSearchTerms = useCallback((input: string): string[] => {
-    if (!input || !input.trim()) return [];
-    return input
-      .split(/,\s*/)
-      .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
-  }, []);
-
-  /**
-   * Check if a row matches ALL search terms (AND logic).
-   * Searches all scalar fields and refs.keywords.
-   */
-  const rowMatchesAllTerms = useCallback(
-    (row: Record<string, any>, terms: string[]): boolean => {
-      if (!terms.length) return true;
-
-      // Collect all searchable text from the row
-      const searchableValues: string[] = [];
-
-      // Add all scalar field values
-      Object.entries(row).forEach(([key, value]) => {
-        if (value === null || value === undefined) return;
-        if (
-          typeof value === "string" ||
-          typeof value === "number" ||
-          typeof value === "boolean"
-        ) {
-          searchableValues.push(String(value).toLowerCase());
-        }
-      });
-
-      // Add refs.keywords if present
-      const refs = row.refs;
-      if (refs && typeof refs === "object") {
-        const keywords = refs.keywords;
-        if (typeof keywords === "string") {
-          searchableValues.push(keywords.toLowerCase());
-        } else if (Array.isArray(keywords)) {
-          keywords.forEach((kw) => {
-            if (typeof kw === "string") {
-              searchableValues.push(kw.toLowerCase());
-            }
-          });
-        }
-      }
-
-      // Check that ALL terms match somewhere in the searchable values
-      const searchableText = searchableValues.join(" ");
-      return terms.every((term) => searchableText.includes(term));
-    },
-    [],
-  );
+  // Fragment-based search uses imported parseFragments + matchesFragments
+  // from @/utils/searchFragments (startsWith default, @ for contains)
 
   // Filter and search logic
   const filteredData = useMemo(() => {
@@ -664,11 +607,11 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
     let result = [...(Array.isArray(data) ? data : [])];
 
-    // Apply search with AND logic for comma-separated terms
+    // Apply fragment-based search (startsWith default, @ for contains)
     if (effectiveSearchTerm) {
-      const terms = parseSearchTerms(effectiveSearchTerm);
-      if (terms.length > 0) {
-        result = result.filter((row) => rowMatchesAllTerms(row, terms));
+      const frags = parseFragments(effectiveSearchTerm);
+      if (frags.length > 0) {
+        result = result.filter((row) => matchesFragments(row, frags));
       }
     }
 
@@ -689,19 +632,18 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     filterValues,
     searchDatabase,
     onDatabaseSearch,
-    parseSearchTerms,
-    rowMatchesAllTerms,
   ]);
 
   // Trigger database search callback when in database mode
   useEffect(() => {
     if (searchDatabase && onDatabaseSearch && effectiveSearchTerm) {
-      const terms = parseSearchTerms(effectiveSearchTerm);
-      if (terms.length > 0) {
-        onDatabaseSearch(terms);
+      const frags = parseFragments(effectiveSearchTerm);
+      if (frags.length > 0) {
+        // Send raw terms to backend (backend parses fragments server-side)
+        onDatabaseSearch(frags.map((f) => (f.mode === "contains" ? `@${f.value}` : f.value)));
       }
     }
-  }, [searchDatabase, onDatabaseSearch, effectiveSearchTerm, parseSearchTerms]);
+  }, [searchDatabase, onDatabaseSearch, effectiveSearchTerm]);
 
   useEffect(() => {
     if (onVisibleRowsChange) {

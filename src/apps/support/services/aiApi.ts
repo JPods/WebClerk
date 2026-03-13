@@ -184,3 +184,127 @@ export async function triggerReindex(
   const res = await apiClient.post("/wcapi/ai/reindex/", { source });
   return res.data.data;
 }
+
+// ── Alice Notes & Reporting ─────────────────────────────────────
+
+export type AliceNoteCategory = "pending" | "log";
+
+export type AlicePendingRole =
+  | "keyword_gap"
+  | "zero_result"
+  | "data_quality"
+  | "config_suggestion"
+  | "action_required";
+
+export type AliceLogRole =
+  | "search"
+  | "search_feedback"
+  | "config_change"
+  | "health_check"
+  | "user_interaction"
+  | "system";
+
+export interface AliceNoteRequest {
+  category: AliceNoteCategory;
+  role: AlicePendingRole | AliceLogRole;
+  name: string;
+  parent_model?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface AliceNoteResponse {
+  id: number;
+  name: string;
+  purpose: string;
+  role: string;
+  parent_model: string;
+}
+
+export interface AliceReportItem {
+  id: number;
+  name: string;
+  purpose: string;
+  role: string;
+  parent_model: string;
+  data: Record<string, unknown> | null;
+  is_active: boolean;
+  dt_created: string;
+}
+
+export interface AliceReportSummary {
+  purpose: string;
+  role: string;
+  count: number;
+}
+
+export interface AliceReportResponse {
+  summary: AliceReportSummary[];
+  items: AliceReportItem[];
+  total: number;
+  days: number;
+  filters: {
+    category: AliceNoteCategory | null;
+    parent_model: string | null;
+    role: string | null;
+    include_resolved: boolean;
+  };
+}
+
+export interface AliceReportParams {
+  category?: AliceNoteCategory;
+  days?: number;
+  parent_model?: string;
+  role?: string;
+  resolved?: boolean;
+}
+
+export async function createAliceNote(
+  request: AliceNoteRequest
+): Promise<AliceNoteResponse> {
+  const res = await apiClient.post("/wcapi/ai/note/", request);
+  return res.data.data;
+}
+
+export async function resolveAliceNote(
+  id: number
+): Promise<{ id: number; is_active: boolean; resolved_at: string }> {
+  const res = await apiClient.patch("/wcapi/ai/note/", { id });
+  return res.data.data;
+}
+
+export async function getAliceReport(
+  params: AliceReportParams = {}
+): Promise<AliceReportResponse> {
+  const query = new URLSearchParams();
+  if (params.category) query.set("category", params.category);
+  if (params.days) query.set("days", String(params.days));
+  if (params.parent_model) query.set("parent_model", params.parent_model);
+  if (params.role) query.set("role", params.role);
+  if (params.resolved) query.set("resolved", "true");
+
+  const qs = query.toString();
+  const res = await apiClient.get(`/wcapi/ai/report/${qs ? `?${qs}` : ""}`);
+  return res.data.data;
+}
+
+// ── Search Feedback ─────────────────────────────────────────────
+
+export interface SearchFeedbackRequest {
+  rating: 1 | -1;
+  query: string;
+  parent_model: string;
+  result_count?: number;
+  coaching?: string;
+}
+
+export interface SearchFeedbackResponse {
+  log_id: number;
+  pending_id?: number;
+}
+
+export async function submitSearchFeedback(
+  request: SearchFeedbackRequest
+): Promise<SearchFeedbackResponse> {
+  const res = await apiClient.post("/wcapi/ai/search-feedback/", request);
+  return res.data.data;
+}

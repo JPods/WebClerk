@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useAdminWorkspace } from "../AdminWorkspaceProvider";
 import type { AdminFieldDescriptor, AdminRecord } from "../types";
+import { submitSearchFeedback } from "../../../support/services/aiApi";
 import { FieldCustomizerModal } from "./FieldCustomizerModal";
 import { FilterDrawer } from "./FilterDrawer";
 
@@ -162,6 +163,58 @@ export const RecordListColumn = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
+  // ── Search feedback state ──────────────────────────────────────
+  const [feedbackSent, setFeedbackSent] = useState<1 | -1 | null>(null);
+  const [showCoaching, setShowCoaching] = useState(false);
+  const [coachingText, setCoachingText] = useState("");
+  const lastFeedbackQuery = useRef("");
+
+  // Reset feedback state when search changes
+  useEffect(() => {
+    if (list.search !== lastFeedbackQuery.current) {
+      setFeedbackSent(null);
+      setShowCoaching(false);
+      setCoachingText("");
+    }
+  }, [list.search]);
+
+  const handleSearchFeedback = useCallback(
+    async (rating: 1 | -1, coaching = "") => {
+      const query = list.search?.trim();
+      const modelKey = selectedTable?.key;
+      if (!query || !modelKey) return;
+
+      lastFeedbackQuery.current = query;
+      setFeedbackSent(rating);
+
+      if (rating < 0) {
+        setShowCoaching(true);
+      } else {
+        setShowCoaching(false);
+      }
+
+      try {
+        await submitSearchFeedback({
+          rating,
+          query,
+          parent_model: modelKey,
+          result_count: list.total,
+          coaching,
+        });
+      } catch {
+        // Feedback is best-effort — don't disrupt the user
+      }
+    },
+    [list.search, list.total, selectedTable?.key],
+  );
+
+  const handleCoachingSubmit = useCallback(() => {
+    if (coachingText.trim()) {
+      handleSearchFeedback(-1, coachingText.trim());
+    }
+    setShowCoaching(false);
+  }, [coachingText, handleSearchFeedback]);
+
   useEffect(() => {
     setSearchDraft(list.search ?? "");
   }, [list.search]);
@@ -273,7 +326,7 @@ export const RecordListColumn = () => {
           <div className="relative w-full max-w-md">
             <input
               type="search"
-              placeholder="Search records"
+              placeholder="Fragments: acm, 102 · @west = contains"
               value={searchDraft}
               onChange={(event) => setSearchDraft(event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 pr-8 py-2 text-sm text-slate-900 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
@@ -294,6 +347,63 @@ export const RecordListColumn = () => {
             <Badge intent="info">{list.total.toLocaleString()}</Badge>
           </div>
         </div>
+        {/* Search feedback — appears when search is active and not loading */}
+        {list.search && !list.loading && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            {feedbackSent === null ? (
+              <>
+                <span>Did you find what you needed?</span>
+                <button
+                  type="button"
+                  onClick={() => handleSearchFeedback(1)}
+                  className="rounded px-1.5 py-0.5 text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+                  title="Yes, found it"
+                >
+                  &#x1F44D;
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSearchFeedback(-1)}
+                  className="rounded px-1.5 py-0.5 text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/30"
+                  title="No, couldn't find it"
+                >
+                  &#x1F44E;
+                </button>
+              </>
+            ) : feedbackSent > 0 ? (
+              <span className="text-emerald-600 dark:text-emerald-400">Thanks!</span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400">Noted — Alice will look into this.</span>
+            )}
+          </div>
+        )}
+        {/* Coaching input — appears on negative feedback */}
+        {showCoaching && feedbackSent === -1 && (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="What were you looking for?"
+              value={coachingText}
+              onChange={(e) => setCoachingText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCoachingSubmit()}
+              className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+            <button
+              type="button"
+              onClick={handleCoachingSubmit}
+              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition hover:bg-sky-700"
+            >
+              Send
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCoaching(false)}
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              Skip
+            </button>
+          </div>
+        )}
         {hasActiveFilters && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {Object.entries(activeFilters).map(([filterKey, value]) => (

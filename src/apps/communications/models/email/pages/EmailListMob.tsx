@@ -7,10 +7,11 @@ import {
 } from "react";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
+import { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
 import {
-  ColumnFilter,
-  parseSearchTerms,
-} from "../../../../../components/common/AdvancedDataTable";
+  parseFragments,
+  matchesFragments,
+} from "@/utils/searchFragments";
 import {
   FaSearch,
   FaTimes,
@@ -77,43 +78,6 @@ export default function EmailListMob({
   const setEffectiveSearchDatabase =
     onSearchModeChange ?? setSearchDatabaseInternal;
 
-  const rowMatchesAllTerms = useCallback(
-    (row: Record<string, any>, terms: string[]) => {
-      if (!terms.length) return true;
-
-      const searchableValues: string[] = [];
-
-      Object.entries(row).forEach(([_, value]) => {
-        if (value === null || value === undefined) return;
-        if (
-          typeof value === "string" ||
-          typeof value === "number" ||
-          typeof value === "boolean"
-        ) {
-          searchableValues.push(String(value).toLowerCase());
-        }
-      });
-
-      const refs = row.refs;
-      if (refs && typeof refs === "object") {
-        const keywords = (refs as any).keywords;
-        if (typeof keywords === "string") {
-          searchableValues.push(keywords.toLowerCase());
-        } else if (Array.isArray(keywords)) {
-          keywords.forEach((kw) => {
-            if (typeof kw === "string") {
-              searchableValues.push(kw.toLowerCase());
-            }
-          });
-        }
-      }
-
-      const searchableText = searchableValues.join(" ");
-      return terms.every((term) => searchableText.includes(term));
-    },
-    [],
-  );
-
   const filteredData = useMemo(() => {
     const base = Array.isArray(dataProp) ? dataProp : [];
 
@@ -124,9 +88,9 @@ export default function EmailListMob({
     let next = [...base];
 
     if (searchTerm) {
-      const terms = parseSearchTerms(searchTerm);
-      if (terms.length > 0) {
-        next = next.filter((row) => rowMatchesAllTerms(row, terms));
+      const frags = parseFragments(searchTerm);
+      if (frags.length > 0) {
+        next = next.filter((row) => matchesFragments(row, frags));
       }
     }
 
@@ -146,7 +110,6 @@ export default function EmailListMob({
     searchTerm,
     onDatabaseSearch,
     filterValues,
-    rowMatchesAllTerms,
   ]);
 
   useEffect(() => {
@@ -156,9 +119,9 @@ export default function EmailListMob({
       searchTerm &&
       searchTerm.trim()
     ) {
-      const terms = parseSearchTerms(searchTerm);
-      if (terms.length > 0) {
-        onDatabaseSearch(terms);
+      const frags = parseFragments(searchTerm);
+      if (frags.length > 0) {
+        onDatabaseSearch(frags.map((f) => (f.mode === "contains" ? `@${f.value}` : f.value)));
       }
     }
   }, [effectiveSearchDatabase, onDatabaseSearch, searchTerm]);
