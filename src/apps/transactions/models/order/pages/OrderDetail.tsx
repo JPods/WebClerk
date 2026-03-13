@@ -126,6 +126,7 @@ const OrderHeader: React.FC<{
         isOpen={showAddPaymentModal}
         onClose={() => setShowAddPaymentModal(false)}
         order_id={data.id || 0}
+        customer_id={data.customer_id ?? customerInfo?.id ?? null}
         contact_id={paymentContactId ? Number(paymentContactId) : null}
         customer_name={customerInfo?.company || customerInfo?.display_name}
         orderTotal={data.totals?.total ?? data.total}

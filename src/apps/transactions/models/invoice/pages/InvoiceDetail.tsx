@@ -13,6 +13,7 @@ import {
 
 // Import Apply Payment Modal
 import ApplyPaymentModal from "../../../components/ApplyPaymentModal";
+import AddPaymentModal from "../../../components/AddPaymentModal";
 import type { InvoiceRecord } from "../../../hooks/usePaymentApplication";
 
 // Import base component and shared types
@@ -74,8 +75,9 @@ const InvoiceHeader: React.FC<{
   onChange?: (field: keyof Invoice, value: unknown) => void;
   onPaymentApplied?: () => void;
 }> = ({ data, isEditing, onChange, onPaymentApplied }) => {
-  // State for Apply Payment modal
+  // State for payment modals
   const [showApplyPaymentModal, setShowApplyPaymentModal] = useState(false);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
@@ -85,6 +87,10 @@ const InvoiceHeader: React.FC<{
   const shippingContact = data.refs?.links?.contact?.find(
     (c) => c.purpose === "shipto",
   );
+
+  // Get contact ID for payment - prefer billing contact, fall back to any contact
+  const paymentContactId =
+    billingContact?.id || data.refs?.links?.contact?.[0]?.id || null;
 
   return (
     <>
@@ -100,15 +106,17 @@ const InvoiceHeader: React.FC<{
         dueDateLabel="Due Date"
         showShipping={true}
         showCostMargin={true}
+        showPayments={true}
+        onAddPayment={() => setShowAddPaymentModal(true)}
       />
-      {/* Apply Payment button and modal */}
+      {/* Apply existing payment button and modal */}
       <div className="mt-4">
         <button
           onClick={() => setShowApplyPaymentModal(true)}
           className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
           <FaMoneyBillWave size={14} />
-          Apply Payment
+          Apply Existing Payment
         </button>
         <ApplyPaymentModal
           isOpen={showApplyPaymentModal}
@@ -120,6 +128,21 @@ const InvoiceHeader: React.FC<{
           }}
         />
       </div>
+
+      {/* Add new payment modal */}
+      <AddPaymentModal
+        isOpen={showAddPaymentModal}
+        onClose={() => setShowAddPaymentModal(false)}
+        invoice_id={data.id || 0}
+        customer_id={data.customer_id ?? customerInfo?.id ?? null}
+        contact_id={paymentContactId ? Number(paymentContactId) : null}
+        customer_name={customerInfo?.company || customerInfo?.display_name}
+        orderTotal={data.totals?.total ?? data.total}
+        onPaymentAdded={() => {
+          setShowAddPaymentModal(false);
+          onPaymentApplied?.();
+        }}
+      />
     </>
   );
 };

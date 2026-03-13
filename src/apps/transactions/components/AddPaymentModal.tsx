@@ -21,7 +21,9 @@ interface PaymentMethod {
 interface AddPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  order_id: number;
+  order_id?: number;
+  invoice_id?: number;
+  customer_id?: number | null;
   contact_id?: number | null;
   customer_name?: string;
   orderTotal?: number;
@@ -32,6 +34,8 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
   onClose,
   order_id,
+  invoice_id,
+  customer_id,
   contact_id,
   customer_name,
   orderTotal,
@@ -92,13 +96,13 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     }
 
     if (!contact_id) {
-      dispatch(showToast({ message: 'Order must have a customer to record payment', type: 'error' }));
+      dispatch(showToast({ message: 'Transaction must have a customer to record payment', type: 'error' }));
       return;
     }
 
     setSaving(true);
     try {
-      const paymentData = {
+      const paymentData: Record<string, unknown> = {
         amount: parseFloat(amount),
         contact_id: contact_id,
         dt_payment: new Date(paymentDate).toISOString(),
@@ -108,11 +112,20 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
         status: 'completed',
         gateway: 'manual',
         refs: {
-          order_ids: [order_id],
-          invoice_ids: [],
-          source: { type: 'order', id: order_id }
-        }
+          order_ids: order_id ? [order_id] : [],
+          invoice_ids: invoice_id ? [invoice_id] : [],
+          customer_id: customer_id || null,
+          contact_id: contact_id || null,
+          source: order_id
+            ? { type: 'order', id: order_id }
+            : invoice_id
+              ? { type: 'invoice', id: invoice_id }
+              : undefined,
+        },
       };
+      if (invoice_id) {
+        paymentData.invoice_id = invoice_id;
+      }
 
       const response = await apiClient.post('/api/transactions/payments/', paymentData);
       
@@ -133,7 +146,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [amount, contact_id, paymentDate, paymentMethodId, referenceNumber, notes, order_id, dispatch, onPaymentAdded, onClose]);
+  }, [amount, contact_id, customer_id, paymentDate, paymentMethodId, referenceNumber, notes, order_id, invoice_id, dispatch, onPaymentAdded, onClose]);
 
   if (!isOpen) return null;
 
@@ -171,14 +184,14 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
 
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
-          {/* Order/Customer Info */}
+          {/* Transaction/Customer Info */}
           <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">Customer:</span>
               <span className="font-medium text-slate-900 dark:text-white">{customer_name || '--'}</span>
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-slate-500 dark:text-slate-400">Order Total:</span>
+              <span className="text-slate-500 dark:text-slate-400">{invoice_id ? 'Invoice Total:' : 'Order Total:'}</span>
               <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(orderTotal)}</span>
             </div>
           </div>
