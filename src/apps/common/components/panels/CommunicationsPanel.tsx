@@ -43,7 +43,13 @@ import type {
 // WCAPI for save/delete operations
 import { saveRecord, deleteRecord } from "../../../../api/wcapi";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
-
+import {
+  PhoneInput,
+  defaultCountries,
+  getActiveFormattingMask,
+  usePhoneInput,
+} from "react-international-phone";
+import "react-international-phone/style.css";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -181,12 +187,22 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
 }) => {
   // Try multiple field names: number, value, format
   const phoneNumber = phone.number || (phone as any).value || "";
-  const countryCode = phone.country_code || "";
-  // Format: +CC (XXX) XXX-XXXX
-  const formattedNumber = formatPhoneNumber(phoneNumber);
-  const phoneDisplay = countryCode
-    ? `${countryCode} ${formattedNumber}`
-    : formattedNumber;
+
+  /**
+   * PhoneDisplay - Format and display phone numbers using react-international-phone
+   * Uses the library's formatting logic for consistent display with the input component
+   */
+  const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+    const { inputValue } = usePhoneInput({
+      value: value || "",
+      countries: defaultCountries,
+      defaultCountry: "us",
+      forceDialCode: true,
+    });
+
+    if (!value) return null;
+    return <>{inputValue}</>;
+  };
 
   return (
     <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
@@ -195,10 +211,10 @@ const PhoneItem: React.FC<PhoneItemProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-muted text-xs">{`(#${phone.id})`}</span>
           <a
-            href={`tel:${phoneNumber}`}
+            href={phoneNumber ? `tel:${phoneNumber}` : undefined}
             className="text-sm text-blue-600 hover:underline"
           >
-            {phoneDisplay}
+            <PhoneDisplay value={phoneNumber} />
           </a>
           {isPrimary && (
             <FaStar size={10} className="text-amber-400" title="Primary" />
@@ -439,18 +455,6 @@ const DomainItem: React.FC<DomainItemProps> = ({
 // Add/Edit Modals
 // ---------------------------------------------------------------------------
 
-/**
- * Format phone number as (123) 456-7890 international style
- * Strips non-digits, then formats with parentheses
- */
-const formatPhoneNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length === 0) return "";
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-};
-
 interface AddEditModalProps {
   isOpen: boolean;
   type: "email" | "phone" | "address" | "domain";
@@ -587,34 +591,65 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
             <>
               <div>
                 <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  Number
+                </label>
+                <PhoneInput
+                  value={(formData.number as string) || ""}
+                  defaultCountry="us"
+                  preferredCountries={["us", "in", "gb"]}
+                  forceDialCode
+                  placeholder="+1 (555) 000-0000"
+                  onChange={(phone, meta) => {
+                    setFormData((prev) => {
+                      if (!meta.country) {
+                        return { ...prev, number: phone };
+                      }
+
+                      const mask = getActiveFormattingMask({
+                        phone,
+                        country: meta.country,
+                        defaultMask: "............",
+                      });
+
+                      return {
+                        ...prev,
+                        number: phone,
+                        country_code: `+${meta.country.dialCode}`,
+                        format: mask,
+                      };
+                    });
+                  }}
+                  className="w-full"
+                  inputClassName="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  countrySelectorStyleProps={{
+                    buttonClassName:
+                      "h-9 rounded-l border border-r-0 border-gray-300 bg-transparent px-2 text-xs dark:border-gray-700",
+                    dropdownArrowClassName: "text-gray-500",
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
                   Country Code
                 </label>
                 <input
                   type="text"
                   value={(formData.country_code as string) || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, country_code: e.target.value })
-                  }
+                  readOnly
                   placeholder="+1"
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm border rounded bg-slate-100 dark:bg-slate-700 dark:border-slate-600 cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
-                  Number
+                  Format
                 </label>
                 <input
-                  type="tel"
-                  value={(formData.number as string) || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      number: formatPhoneNumber(e.target.value),
-                    })
-                  }
-                  placeholder="(123) 456-7890"
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
-                  required
+                  type="text"
+                  value={(formData.format as string) || ""}
+                  readOnly
+                  placeholder="+## ####-####"
+                  className="w-full px-2 py-1.5 text-sm border rounded bg-slate-100 dark:bg-slate-700 dark:border-slate-600 cursor-not-allowed"
                 />
               </div>
               <div>

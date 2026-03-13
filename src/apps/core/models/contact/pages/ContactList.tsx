@@ -14,6 +14,7 @@ import ContactDetail2 from "./ContactDetail2";
 import ContactDetail3 from "./ContactDetail3";
 import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { defaultCountries, usePhoneInput } from "react-international-phone";
 interface ContactData {
   id: string | number;
   email?: string;
@@ -21,6 +22,7 @@ interface ContactData {
   name_last?: string;
   company?: string;
   role?: string;
+  phone?: string;
   is_active?: boolean;
   is_staff?: boolean;
   [key: string]: any;
@@ -135,135 +137,165 @@ const ContactList = () => {
     [dispatch],
   );
 
-  // Define table columns
-  const columns: TableColumn<ContactData>[] = useMemo(
-    () => [
-      {
-        name: "id",
-        selector: (row: ContactData) => row.id || "-",
-        sortable: true,
-        width: "5%",
-        cell: (row: ContactData) => (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(row);
-            }}
-            className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
-          >
-            {row.id || "-"}
-          </div>
-        ),
-      },
-      {
-        name: "email",
-        selector: (row: ContactData) => row.email || "-",
-        sortable: true,
-        wrap: true,
-        width: "15%",
-        cell: (row: ContactData) => row.email || "-",
-      },
-      {
-        name: "name_first",
-        selector: (row: ContactData) => row.name_first || "-",
-        sortable: true,
-        width: "13%",
-        cell: (row: ContactData) => row.name_first || "-",
-      },
-      {
-        name: "name_last",
-        selector: (row: ContactData) => row.name_last || "-",
-        sortable: true,
-        width: "13%",
-        cell: (row: ContactData) => row.name_last || "-",
-      },
-      {
-        name: "company",
-        selector: (row: ContactData) => row.company || "-",
-        sortable: true,
-        width: "15%",
-        cell: (row: ContactData) => row.company || "-",
-      },
-      {
-        name: "role",
-        selector: (row: ContactData) => row.role || "-",
-        sortable: true,
-        width: "10%",
-        cell: (row: ContactData) => row.role || "-",
-      },
-      {
-        name: "is_active",
-        selector: (row: ContactData) => (row.is_active ? "Yes" : "No"),
-        sortable: true,
-        width: "8%",
-        cell: (row: ContactData) =>
-          row.is_active ? (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {"Yes"}
-            </span>
-          ) : (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
-              {"No"}
-            </span>
-          ),
-      },
-      {
-        name: "is_staff",
-        selector: (row: ContactData) => (row.is_staff ? "Yes" : "No"),
-        sortable: true,
-        width: "8%",
-        cell: (row: ContactData) =>
-          row.is_staff ? (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {"Yes"}
-            </span>
-          ) : (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
-              {"No"}
-            </span>
-          ),
-      },
-      {
-        name: "Actions",
-        width: "140px",
-        cell: (row: ContactData) => (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleView(row);
-              }}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
-              title="View"
-            >
-              <FaEye className="w-4 h-4" />
-            </button>
-            <button
+  /**
+   * PhoneDisplay - Format and display phone numbers using react-international-phone
+   * Uses the library's formatting logic for consistent display with the input component
+   */
+  const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
+    const { inputValue } = usePhoneInput({
+      value: value || "",
+      countries: defaultCountries,
+      defaultCountry: "us",
+      forceDialCode: true,
+    });
+
+    if (!value) return null;
+    return <>{inputValue}</>;
+  };
+
+  // Columns hook - similar pattern to useCustomerColumns
+  const useContactColumns = (
+    handleEdit: (row: ContactData) => void,
+    handleView: (row: ContactData) => void,
+    handleDeleteRow: (row: ContactData) => void,
+  ): TableColumn<ContactData>[] =>
+    useMemo(
+      () => [
+        {
+          name: "id",
+          selector: (row: ContactData) => row.id || "-",
+          sortable: true,
+          width: "5%",
+          cell: (row: ContactData) => (
+            <div
               onClick={(e) => {
                 e.stopPropagation();
                 handleEdit(row);
               }}
-              className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
-              title="Edit"
+              className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
             >
-              <FaEdit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteRow(row);
-              }}
-              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
-              title="Delete"
-            >
-              <FaTrash className="w-4 h-4" />
-            </button>
-          </div>
-        ),
-      },
-    ],
-    [handleEdit, handleView, handleDeleteRow],
-  );
+              {row.id || "-"}
+            </div>
+          ),
+        },
+        {
+          name: "email",
+          selector: (row: ContactData) => row.email || "-",
+          sortable: true,
+          wrap: true,
+          width: "15%",
+          cell: (row: ContactData) => row.email || "-",
+        },
+        {
+          name: "name_first",
+          selector: (row: ContactData) => row.name_first || "-",
+          sortable: true,
+          width: "13%",
+          cell: (row: ContactData) => row.name_first || "-",
+        },
+        {
+          name: "name_last",
+          selector: (row: ContactData) => row.name_last || "-",
+          sortable: true,
+          width: "13%",
+          cell: (row: ContactData) => row.name_last || "-",
+        },
+        {
+          name: "company",
+          selector: (row: ContactData) => row.company || "-",
+          sortable: true,
+          width: "15%",
+          cell: (row: ContactData) => row.company || "-",
+        },
+        {
+          name: "role",
+          selector: (row: ContactData) => row.role || "-",
+          sortable: true,
+          width: "10%",
+          cell: (row: ContactData) => row.role || "-",
+        },
+        {
+          name: "Phone",
+          selector: (row: ContactData) => row.phone || "-",
+          cell: (row: ContactData) => <PhoneDisplay value={row.phone} />,
+          sortable: true,
+          width: "12%",
+        },
+        {
+          name: "is_active",
+          selector: (row: ContactData) => (row.is_active ? "Yes" : "No"),
+          sortable: true,
+          width: "8%",
+          cell: (row: ContactData) =>
+            row.is_active ? (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {"Yes"}
+              </span>
+            ) : (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
+                {"No"}
+              </span>
+            ),
+        },
+        {
+          name: "is_staff",
+          selector: (row: ContactData) => (row.is_staff ? "Yes" : "No"),
+          sortable: true,
+          width: "8%",
+          cell: (row: ContactData) =>
+            row.is_staff ? (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {"Yes"}
+              </span>
+            ) : (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
+                {"No"}
+              </span>
+            ),
+        },
+        {
+          name: "Actions",
+          width: "140px",
+          cell: (row: ContactData) => (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleView(row);
+                }}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+                title="View"
+              >
+                <FaEye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(row);
+                }}
+                className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+                title="Edit"
+              >
+                <FaEdit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteRow(row);
+                }}
+                className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+                title="Delete"
+              >
+                <FaTrash className="w-4 h-4" />
+              </button>
+            </div>
+          ),
+        },
+      ],
+      [handleEdit, handleView, handleDeleteRow],
+    );
+
+  const columns = useContactColumns(handleEdit, handleView, handleDeleteRow);
 
   // Define filters
   const filters: ColumnFilter[] = useMemo(
@@ -296,6 +328,11 @@ const ContactList = () => {
       {
         key: "role",
         label: "role",
+        type: "text",
+      },
+      {
+        key: "phone",
+        label: "phone",
         type: "text",
       },
       // {

@@ -32,8 +32,6 @@ import {
   FaAddressCard,
   FaQuestionCircle,
   FaTimes,
-  FaProductHunt,
-  FaComment,
   FaTruckLoading,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
@@ -47,23 +45,18 @@ import Checkbox from "@/components/form/input/Checkbox";
 import { DevBadge } from "@/components/common/DevBadge";
 
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import {
   BasicInformationPanel,
   CommentsPanel,
   ActionsPanel,
   DocumentsPanel,
-  MetadataPanel,
   RawDataPanel,
   ContactPanel,
   normalizeRefsLinksContact,
   QAPanel,
-  RefsPanel,
-  PrefsPanel,
 } from "@/apps/common/components/panels";
 import TransactionTabs from "@/components/common/TransactionTabs";
 import ItemTabs from "@/components/common/ItemTabs";
-import OrgFinancialsPanel from "@/apps/orgs/components/OrgFinancialsPanel";
 import {
   DetailTabs,
   useDetailTabs,
@@ -204,29 +197,6 @@ function HorizontalField({
         {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
       </div>
     </div>
-  );
-}
-
-interface SingleWindowSectionProps {
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-function SingleWindowSection({
-  title,
-  children,
-  className = "",
-}: SingleWindowSectionProps) {
-  return (
-    <section
-      className={`rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 ${className}`}
-    >
-      <div className="px-2 py-1 text-[10px] font-semibold tracking-wide uppercase text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700">
-        {title}
-      </div>
-      <div className="p-2">{children}</div>
-    </section>
   );
 }
 
@@ -940,9 +910,9 @@ function CustomerDetail({
     [dispatch, ensureWindow, activateWindow],
   );
 
-  const onSubmit = async (formData: CustomerFormValues) => {
-    await saveCustomer(formData);
-  };
+  // const onSubmit = async (formData: CustomerFormValues) => {
+  //   await saveCustomer(formData);
+  // };
 
   // ---------------------------------------------------------------------------
   // Set Primary Contact – saves contact_id + denormalized fields on the org

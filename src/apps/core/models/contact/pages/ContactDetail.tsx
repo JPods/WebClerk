@@ -141,6 +141,8 @@ import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import DropDown from "@/components/form/input/DropDown";
 import { useColumnCount, ColumnSelector } from "@/components/common/DetailTabs";
 import HistoryPanel from "@/apps/common/components/panels/HistoryPanel";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
+
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
 // ---------------------------------------------------------------------------
@@ -2620,7 +2622,7 @@ function ContactDetail({
               )}
               {shouldRenderField("phone") && (
                 <HorizontalField label="phone" htmlFor="phone">
-                  <Controller
+                  {/* <Controller
                     name="phone"
                     control={control}
                     render={({ field }) => (
@@ -2633,6 +2635,19 @@ function ContactDetail({
                           const formatted = formatPhoneNumber(e.target.value);
                           field.onChange(formatted);
                         }}
+                        disabled={isFieldDisabled("phone")}
+                      />
+                    )}
+                  /> */}
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <InternationalPhoneInput
+                        id="phone"
+                        value={field.value ?? ""}
+                        onBlur={field.onBlur}
+                        onChange={field.onChange}
                         disabled={isFieldDisabled("phone")}
                       />
                     )}
