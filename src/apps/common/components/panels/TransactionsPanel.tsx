@@ -14,7 +14,6 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExchangeAlt,
-  FaExternalLinkAlt,
   FaFilter,
   FaSpinner,
 } from "react-icons/fa";
@@ -24,7 +23,9 @@ import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
-import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { PanelTable } from "./PanelTable";
+import type { PanelColumnDef } from "./PanelTable";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -145,6 +146,22 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   });
 
   const tables = useMemo(() => SUB_TABLES[orgType] ?? [], [orgType]);
+
+  // Column definitions for transaction rows
+  const txnColumns = useMemo<PanelColumnDef<TransactionRecord>[]>(() => [
+    { key: "ida", label: "ida", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
+      render: (r) => r.ida ?? `#${r.id}` },
+    { key: "name", label: "name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+      render: (r) => r.name ?? "\u2014" },
+    { key: "status", label: "status", cellClassName: "w-[80px]",
+      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{r.status}</span> : "\u2014" },
+    { key: "total", label: "total", cellClassName: "text-slate-600 dark:text-slate-300 w-[90px] text-right",
+      render: (r) => formatCurrency(r.total, r.currency) },
+    { key: "dt_created", label: "dt_created", cellClassName: "text-slate-400 w-[80px]",
+      render: (r) => formatDate(r.dt_created) },
+    { key: "dt_modified", label: "dt_modified", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
+      render: (r) => formatDate(r.dt_modified) },
+  ], []);
 
   // Fetch all sub-tables in parallel
   useEffect(() => {
@@ -273,46 +290,15 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                     <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                       {t.label}
                     </h4>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
-                      {records.map((rec) => (
-                        <div
-                          key={rec.id}
-                          className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0">
-                              {rec.ida ?? `#${rec.id}`}
-                            </span>
-                            <span className="text-slate-800 dark:text-slate-200 truncate">
-                              {rec.name ?? "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 shrink-0">
-                            {rec.status && (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
-                                {rec.status}
-                              </span>
-                            )}
-                            <span className="text-slate-600 dark:text-slate-300">
-                              {formatCurrency(rec.total, rec.currency)}
-                            </span>
-                            <span className="text-slate-400">
-                              {formatDate(rec.dt_created)}
-                            </span>
-                            <button
-                              type="button"
-                              title="Open in floating window"
-                              className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRowClick(t.model, rec);
-                              }}
-                            >
-                              <FaExternalLinkAlt size={10} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+                      <PanelTable<TransactionRecord>
+                        storageKey={`panel:transactions:${t.model}`}
+                        columns={txnColumns}
+                        data={records}
+                        rowKey={(r) => r.id}
+                        onRowAction={(r) => handleRowClick(t.model, r)}
+                        compact={compact}
+                      />
                     </div>
                   </div>
                 );

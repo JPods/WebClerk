@@ -6,12 +6,11 @@
  *
  * @see readmes/tab-navigation.md — Tier 2 Org Tabs
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaBarcode,
   FaChevronDown,
   FaChevronUp,
-  FaExternalLinkAlt,
   FaSpinner,
 } from "react-icons/fa";
 import { useWindowManager } from "@/context/WindowManagerContext";
@@ -21,6 +20,8 @@ import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { EntityType, UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { PanelTable } from "./PanelTable";
+import type { PanelColumnDef } from "./PanelTable";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -171,6 +172,29 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
     windowManager.ensureWindow(path, title, { maximized: false });
   };
 
+  // Column definitions for serial rows
+  const serialColumns = useMemo<PanelColumnDef<SerialRecord>[]>(() => [
+    { key: "serial_number", label: "serial_number", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[120px]",
+      render: (r) => r.serial_number ?? r.ida ?? `#${r.id}` },
+    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+      render: (r) => r.item_name ?? "\u2014" },
+    { key: "status", label: "status", cellClassName: "w-[80px]",
+      render: (r) => r.status ? (
+        <span className={`px-1.5 py-0.5 rounded text-xs ${
+          STATUS_COLORS[r.status.toLowerCase()] ??
+          "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+        }`}>{r.status}</span>
+      ) : "\u2014" },
+    { key: "location", label: "location", cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
+      render: (r) => r.location ?? "\u2014" },
+    { key: "condition", label: "condition", defaultVisible: false, cellClassName: "text-slate-500 dark:text-slate-400 w-[80px]",
+      render: (r) => r.condition ?? "\u2014" },
+    { key: "dt_created", label: "dt_created", cellClassName: "text-slate-400 w-[80px]",
+      render: (r) => formatDate(r.dt_created) },
+    { key: "dt_modified", label: "dt_modified", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
+      render: (r) => formatDate(r.dt_modified) },
+  ], []);
+
   return (
     <div
       className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
@@ -205,53 +229,15 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
               No serials found.
             </p>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
-              {serials.map((serial) => (
-                <div
-                  key={serial.id}
-                  className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0">
-                      {serial.serial_number ?? serial.ida ?? `#${serial.id}`}
-                    </span>
-                    <span className="text-slate-800 dark:text-slate-200 truncate">
-                      {serial.item_name ?? "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    {serial.status && (
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-xs ${
-                          STATUS_COLORS[serial.status.toLowerCase()] ??
-                          "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        {serial.status}
-                      </span>
-                    )}
-                    {serial.location && (
-                      <span className="text-slate-500 dark:text-slate-400">
-                        {serial.location}
-                      </span>
-                    )}
-                    <span className="text-slate-400">
-                      {formatDate(serial.dt_created)}
-                    </span>
-                    <button
-                      type="button"
-                      title="Open in floating window"
-                      className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClick(serial);
-                      }}
-                    >
-                      <FaExternalLinkAlt size={10} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+              <PanelTable<SerialRecord>
+                storageKey="panel:serials"
+                columns={serialColumns}
+                data={serials}
+                rowKey={(r) => r.id}
+                onRowAction={handleClick}
+                compact={compact}
+              />
             </div>
           )}
         </div>

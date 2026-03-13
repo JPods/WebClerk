@@ -6,12 +6,11 @@
  *
  * @see readmes/tab-navigation.md — Tier 2 Org Tabs
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaBoxes,
   FaChevronDown,
   FaChevronUp,
-  FaExternalLinkAlt,
   FaFilter,
   FaSpinner,
 } from "react-icons/fa";
@@ -22,6 +21,8 @@ import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { PanelTable } from "./PanelTable";
+import type { PanelColumnDef } from "./PanelTable";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,6 +101,12 @@ const formatCurrency = (value?: number, currency?: string) => {
 const formatQty = (value?: number) =>
   value != null ? value.toLocaleString() : "—";
 
+const formatDate = (ts?: number) => {
+  if (!ts) return "—";
+  const d = new Date(ts * 1000);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -131,6 +138,40 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
 
   const filterField =
     orgType === "customer" ? "customer_id" : "vendor_id";
+
+  // Column definitions for line items
+  const lineColumns = useMemo<PanelColumnDef<LineItemRecord>[]>(() => [
+    { key: "ida", label: "ida", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
+      render: (r) => r.item_ida ?? r.ida ?? `#${r.id}` },
+    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+      render: (r) => r.item_name ?? r.description ?? "—" },
+    { key: "description", label: "description", defaultVisible: false, cellClassName: "text-slate-500 dark:text-slate-400 min-w-[100px] flex-1",
+      render: (r) => (r.description && r.description !== r.item_name ? r.description : "—") },
+    { key: "quantity", label: "qty", cellClassName: "text-slate-600 dark:text-slate-300 w-[60px] text-right",
+      render: (r) => formatQty(r.quantity) },
+    { key: "unit_price", label: "unit_price", cellClassName: "text-slate-600 dark:text-slate-300 w-[80px] text-right",
+      render: (r) => formatCurrency(r.unit_price, r.currency) },
+    { key: "total", label: "total", cellClassName: "font-medium text-slate-700 dark:text-slate-200 w-[80px] text-right",
+      render: (r) => formatCurrency(r.total, r.currency) },
+    { key: "status", label: "status", defaultVisible: false, cellClassName: "w-[70px]",
+      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{String(r.status)}</span> : "—" },
+    { key: "source_ida", label: "source", cellClassName: "text-slate-400 font-mono w-[70px]",
+      render: (r) => r.source_ida ?? "—" },
+  ], []);
+
+  // Column definitions for serials
+  const serialColumns = useMemo<PanelColumnDef<SerialRecord>[]>(() => [
+    { key: "serial_number", label: "serial", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[100px]",
+      render: (r) => r.serial_number ?? r.ida ?? `#${r.id}` },
+    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+      render: (r) => r.item_name ?? "—" },
+    { key: "status", label: "status", cellClassName: "w-[80px]",
+      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{r.status}</span> : "—" },
+    { key: "location", label: "location", cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
+      render: (r) => r.location ?? "—" },
+    { key: "dt_created", label: "dt_created", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
+      render: (r) => formatDate(r.dt_created) },
+  ], []);
 
   // Fetch lines and serials in parallel
   useEffect(() => {
@@ -233,104 +274,37 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
               <FaSpinner className="animate-spin mr-2" /> Loading…
             </div>
           ) : viewMode === "lines" ? (
-            /* ---- Line Items ---- */
             totalLines === 0 ? (
               <p className="text-sm text-slate-400 text-center py-6">
                 No line items found.
               </p>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
-                {lines.map((line) => (
-                  <div
-                    key={line.id}
-                    className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0">
-                        {line.item_ida ?? line.ida ?? `#${line.id}`}
-                      </span>
-                      <span className="text-slate-800 dark:text-slate-200 truncate">
-                        {line.item_name ?? line.description ?? "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <span className="text-slate-600 dark:text-slate-300">
-                        {formatQty(line.quantity)}
-                      </span>
-                      <span className="text-slate-600 dark:text-slate-300">
-                        {formatCurrency(line.unit_price, line.currency)}
-                      </span>
-                      <span className="font-medium text-slate-700 dark:text-slate-200">
-                        {formatCurrency(line.total, line.currency)}
-                      </span>
-                      {line.source_ida && (
-                        <span className="text-slate-400 font-mono">
-                          {line.source_ida}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        title="Open in floating window"
-                        className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        disabled={!line.item_id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleItemClick(line);
-                        }}
-                      >
-                        <FaExternalLinkAlt size={10} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+                <PanelTable<LineItemRecord>
+                  storageKey="panel:items:lines"
+                  columns={lineColumns}
+                  data={lines}
+                  rowKey={(r) => r.id}
+                  onRowAction={(r) => r.item_id && handleItemClick(r)}
+                  compact={compact}
+                />
               </div>
             )
           ) : (
-            /* ---- Serials ---- */
             totalSerials === 0 ? (
               <p className="text-sm text-slate-400 text-center py-6">
                 No serials found.
               </p>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
-                {serials.map((serial) => (
-                  <div
-                    key={serial.id}
-                    className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0">
-                        {serial.serial_number ?? serial.ida ?? `#${serial.id}`}
-                      </span>
-                      <span className="text-slate-800 dark:text-slate-200 truncate">
-                        {serial.item_name ?? "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      {serial.status && (
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
-                          {serial.status}
-                        </span>
-                      )}
-                      {serial.location && (
-                        <span className="text-slate-500 dark:text-slate-400">
-                          {serial.location}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        title="Open in floating window"
-                        className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSerialClick(serial);
-                        }}
-                      >
-                        <FaExternalLinkAlt size={10} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+                <PanelTable<SerialRecord>
+                  storageKey="panel:items:serials"
+                  columns={serialColumns}
+                  data={serials}
+                  rowKey={(r) => r.id}
+                  onRowAction={(r) => handleSerialClick(r)}
+                  compact={compact}
+                />
               </div>
             )
           )}

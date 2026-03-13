@@ -8,7 +8,7 @@
  *
  * @see ContactPanelx2 for the legacy grouped layout
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaChevronDown,
@@ -18,6 +18,7 @@ import {
   FaExternalLinkAlt,
   FaPhone,
   FaPlus,
+  FaSlidersH,
   FaSpinner,
   FaStar,
   FaSyncAlt,
@@ -26,6 +27,8 @@ import {
 } from "react-icons/fa";
 import { getRecord } from "@/api/wcapi";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
+import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
+import { useColumnSetups } from "@/hooks/useColumnSetups";
 
 // Re-export RefContact and normalizeRefsLinksContact from the original file
 // so existing imports keep working.
@@ -104,6 +107,15 @@ const purposeBadge = (purpose: string) =>
   PURPOSE_COLORS[purpose] ??
   "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
 
+/** Column metadata for ColumnSetupDialog */
+const CONTACT_COLUMN_METAS = [
+  { key: "purpose", label: "purpose" },
+  { key: "contact_id", label: "#" },
+  { key: "name", label: "name" },
+  { key: "email", label: "email" },
+  { key: "phone", label: "phone" },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -148,6 +160,7 @@ const ContactRow: React.FC<{
   contact: RefContact;
   isEditing?: boolean;
   isPrimary?: boolean;
+  visibleColumns?: Set<string>;
   onRemove?: () => void;
   onEdit?: () => void;
   onOpen?: () => void;
@@ -156,6 +169,7 @@ const ContactRow: React.FC<{
   contact,
   isEditing,
   isPrimary,
+  visibleColumns,
   onRemove,
   onEdit,
   onOpen,
@@ -214,47 +228,57 @@ const ContactRow: React.FC<{
   return (
     <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
       {/* Purpose badge */}
-      <span
-        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center ${purposeBadge(
-          contact.purpose,
-        )}`}
-      >
-        {contact.purpose || "—"}
-      </span>
+      {(!visibleColumns || visibleColumns.has("purpose")) && (
+        <span
+          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center ${purposeBadge(
+            contact.purpose,
+          )}`}
+        >
+          {contact.purpose || "—"}
+        </span>
+      )}
 
       {/* Contact ID */}
-      <span className="font-mono text-slate-400 shrink-0 w-10 text-right">
-        #{contact.contact_id}
-      </span>
+      {(!visibleColumns || visibleColumns.has("contact_id")) && (
+        <span className="font-mono text-slate-400 shrink-0 w-10 text-right">
+          #{contact.contact_id}
+        </span>
+      )}
 
       {/* Name */}
-      <span className="text-slate-800 dark:text-slate-200 truncate min-w-[100px] max-w-[180px]">
-        {loading ? (
-          <FaSpinner className="inline animate-spin text-slate-300" size={10} />
-        ) : (
-          name
-        )}
-      </span>
+      {(!visibleColumns || visibleColumns.has("name")) && (
+        <span className="text-slate-800 dark:text-slate-200 truncate min-w-[100px] max-w-[180px]">
+          {loading ? (
+            <FaSpinner className="inline animate-spin text-slate-300" size={10} />
+          ) : (
+            name
+          )}
+        </span>
+      )}
 
       {/* Email */}
-      <span className="text-slate-500 dark:text-slate-400 truncate min-w-0 flex-1 flex items-center gap-1">
-        {email && (
-          <>
-            <FaEnvelope size={9} className="shrink-0 text-slate-300" />
-            <span className="truncate">{email}</span>
-          </>
-        )}
-      </span>
+      {(!visibleColumns || visibleColumns.has("email")) && (
+        <span className="text-slate-500 dark:text-slate-400 truncate min-w-0 flex-1 flex items-center gap-1">
+          {email && (
+            <>
+              <FaEnvelope size={9} className="shrink-0 text-slate-300" />
+              <span className="truncate">{email}</span>
+            </>
+          )}
+        </span>
+      )}
 
       {/* Phone */}
-      <span className="text-slate-500 dark:text-slate-400 truncate w-[120px] shrink-0 flex items-center gap-1">
-        {phone && (
-          <>
-            <FaPhone size={9} className="shrink-0 text-slate-300" />
-            <span className="truncate">{phone}</span>
-          </>
-        )}
-      </span>
+      {(!visibleColumns || visibleColumns.has("phone")) && (
+        <span className="text-slate-500 dark:text-slate-400 truncate w-[120px] shrink-0 flex items-center gap-1">
+          {phone && (
+            <>
+              <FaPhone size={9} className="shrink-0 text-slate-300" />
+              <span className="truncate">{phone}</span>
+            </>
+          )}
+        </span>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
@@ -348,6 +372,32 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   // const effectiveParentId = parentId ?? order_id;
   const windowManager = useWindowManager();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [showColumnDialog, setShowColumnDialog] = useState(false);
+  const columnSetups = useColumnSetups("panel:contacts");
+
+  // Build default config from column metas
+  const defaultConfig = useMemo<import("@/hooks/useColumnSetups").ColumnSetupEntry>(() => {
+    const order = CONTACT_COLUMN_METAS.map((m) => m.key);
+    const visibility: Record<string, boolean> = {};
+    CONTACT_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
+    return { order, visibility, widths: {}, sort: null };
+  }, []);
+
+  // Apply active setup (if any) over default
+  const activeConfig = useMemo(() => {
+    if (!columnSetups.activeSetupName) return defaultConfig;
+    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
+    return applied ?? defaultConfig;
+  }, [columnSetups, defaultConfig]);
+
+  const visibleCols = useMemo(() => {
+    const vis = activeConfig.visibility;
+    const result = new Set<string>();
+    for (const m of CONTACT_COLUMN_METAS) {
+      if (vis[m.key] !== false) result.add(m.key);
+    }
+    return result;
+  }, [activeConfig]);
 
   // ---------------------------------------------------------------------------
   // Auto-refresh when ContactDetail dispatches a "contact-saved" event
@@ -474,6 +524,20 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
               />
             </button>
           )}
+          {/* Column setup badge */}
+          {!isCollapsed && (
+            <button
+              type="button"
+              title="Configure columns"
+              className="px-2 py-1 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowColumnDialog(true);
+              }}
+            >
+              <FaSlidersH size={10} />
+            </button>
+          )}
           {isCollapsed ? (
             <FaChevronDown size={12} className="text-slate-400" />
           ) : (
@@ -498,6 +562,15 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
             </p>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
+              {/* Column headers */}
+              <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {visibleCols.has("purpose") && <span className="min-w-[56px] shrink-0 text-center">purpose</span>}
+                {visibleCols.has("contact_id") && <span className="w-10 text-right shrink-0">#</span>}
+                {visibleCols.has("name") && <span className="min-w-[100px] max-w-[180px]">name</span>}
+                {visibleCols.has("email") && <span className="flex-1 min-w-0">email</span>}
+                {visibleCols.has("phone") && <span className="w-[120px] shrink-0">phone</span>}
+                <span className="shrink-0 w-[72px]" />
+              </div>
               {sorted.map((contact, idx) => (
                 <ContactRow
                   key={`${contact.contact_id}-${contact.purpose}-${idx}`}
@@ -507,6 +580,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
                     !!primaryContactId &&
                     contact.contact_id === primaryContactId
                   }
+                  visibleColumns={visibleCols}
                   onRemove={() => handleRemoveContact(contact.contact_id)}
                   onEdit={() => handleEditContact(contact)}
                   onOpen={() => handleOpen(contact)}
@@ -519,6 +593,20 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           )}
         </div>
       )}
+      {/* Column setup dialog */}
+      <ColumnSetupDialog
+        open={showColumnDialog}
+        title="Contact Columns"
+        columnMetas={CONTACT_COLUMN_METAS}
+        config={activeConfig}
+        onSave={(entry) => {
+          columnSetups.saveSetup("current", entry);
+          setShowColumnDialog(false);
+        }}
+        onClose={() => setShowColumnDialog(false)}
+        namedSetups={columnSetups.setups}
+        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
+      />
     </div>
   );
 };

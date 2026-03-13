@@ -93,6 +93,10 @@ export { default as OrgLinkPanel } from "./OrgLinkPanel";
 export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";
 
+// Shared panel table component
+export { PanelTable } from "./PanelTable";
+export type { PanelColumnDef, PanelTableProps } from "./PanelTable";
+
 // Q&A utilities and types
 export {
   getQAQuestions,
