@@ -55,8 +55,9 @@ import {
   deleteRecord,
 } from "../../../api/wcapi";
 
-// Import toolbar
-import TransactionToolbar, { type TransactionType } from "@/apps/common/components/TransactionToolbar";
+// Import toolbar + panel
+import { type TransactionType } from "@/apps/common/components/TransactionToolbar";
+import TransactionPanel from "@/apps/common/components/panels/TransactionPanel";
 import OrgSearchDialog, {
   type SearchableOrgType,
   type OrgSearchResult,
@@ -2609,10 +2610,20 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           </span>
         )}
       </div>
-      {/* Transaction Toolbar (when editing) - Sticky */}
+      {/* Transaction Panel + Toolbar (when editing) - Sticky */}
       {isEditing && (
         <div className="sticky top-0 z-20 -mx-4 px-4 py-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6 flex items-center gap-2">
-          <TransactionToolbar
+          <TransactionPanel
+            record={{
+              ida: currentData?.ida,
+              status: currentData?.status,
+              attention: currentData?.attention as string | undefined,
+              email: currentData?.email as string | undefined,
+              phone: currentData?.phone as string | undefined,
+              total: currentData?.totals?.total ?? currentData?.total,
+              balance: currentData?.totals?.balance ?? currentData?.balance,
+              priority: currentData?.priority,
+            }}
             transactionType={transactionType as TransactionType}
             transactionId={data?.id}
             isDirty={isDirty}

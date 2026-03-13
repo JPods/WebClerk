@@ -28,11 +28,9 @@ import {
   FaChevronRight,
   FaEdit,
   FaTrash,
-  FaDollarSign,
   FaAddressCard,
   FaQuestionCircle,
   FaTimes,
-  FaTruckLoading,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import {
@@ -226,29 +224,7 @@ export const CUSTOMER_ADDITIONAL_TABS = [
   { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
 ];
 
-export const FINANCE_STANDARD_TABS: string[] = ["transactions"];
 
-export const FINANCE_ADDITIONAL_TABS = [
-  {
-    id: "transactions",
-    label: "Transactions",
-    icon: <FaDollarSign size={14} />,
-  },
-];
-
-const VALID_FINANCE_TABS = ["transactions"];
-
-export const ITEMS_STANDARD_TABS: string[] = [];
-
-export const ITEMS_ADDITIONAL_TABS = [
-  {
-    id: "products",
-    label: "Products",
-    icon: <FaTruckLoading size={14} />,
-  },
-];
-
-const VALID_ITEMS_TABS = ["products"];
 
 export const buildCustomerTabBadges = (
   data: any,
@@ -301,10 +277,7 @@ function CustomerDetail({
     "actions",
     VALID_TABS,
   );
-  const { activeTab: financeActiveTab, setActiveTab: handleFinanceTabChange } =
-    useDetailTabs("customer-finance", "transactions", VALID_FINANCE_TABS);
-  const { activeTab: itemsActiveTab, setActiveTab: handleItemsTabChange } =
-    useDetailTabs("customer-items", "products", VALID_ITEMS_TABS);
+
   const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
     "customer",
     3,
@@ -1588,51 +1561,20 @@ function CustomerDetail({
             </div>
           </div>
 
-          {/* ── Finance DetailTabs ────────────────────────────────────── */}
-
-          <div>
-            <DetailTabs
-              entityType="customer-finance"
-              activeTab={financeActiveTab}
-              onTabChange={handleFinanceTabChange}
-              standardTabs={FINANCE_STANDARD_TABS}
-              additionalTabs={FINANCE_ADDITIONAL_TABS}
-              badges={{}}
-              showColumnSelector={false}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-2">
-                {financeActiveTab === "transactions" && (
-                  <TransactionTabs
-                    orgType="customer"
-                    orgId={customerData.id!}
-                  />
-                )}
-              </div>
+          {/* ── Transactions ────────────────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+              <TransactionTabs
+                orgType="customer"
+                orgId={customerData.id!}
+              />
             </div>
           </div>
 
-          {/* ── Items DetailTabs ────────────────────────────────────── */}
-          <div>
-            <DetailTabs
-              entityType="customer-items"
-              activeTab={itemsActiveTab}
-              onTabChange={handleItemsTabChange}
-              standardTabs={ITEMS_STANDARD_TABS}
-              additionalTabs={ITEMS_ADDITIONAL_TABS}
-              badges={{}}
-              showColumnSelector={false}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-2">
-                {itemsActiveTab === "products" && (
-                  <ItemTabs orgType="customer" orgId={customerData.id!} />
-                )}
-              </div>
+          {/* ── Products ────────────────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+              <ItemTabs orgType="customer" orgId={customerData.id!} />
             </div>
           </div>
         </div>
