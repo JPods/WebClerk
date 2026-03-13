@@ -41,7 +41,7 @@
  *   onActionIdsChange={(ids) => setContact({ ...contact, actions: { ids } })}
  * />
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FaTasks,
   FaChevronDown,
@@ -58,6 +58,7 @@ import {
   FaClipboardCheck,
   FaTruck,
   FaThumbsUp,
+  FaSlidersH,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
 import { getRecords, saveRecord } from "../../../../api/wcapi";
@@ -68,6 +69,8 @@ import type {
   ActionStatus,
   ActionKind,
 } from "./types";
+import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
+import { useColumnSetups } from "@/hooks/useColumnSetups";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
@@ -493,6 +496,18 @@ const ActionCard: React.FC<ActionCardProps> = ({
 // Actions Table Component (for viewMode="table")
 // ---------------------------------------------------------------------------
 
+/** Column metadata for ColumnSetupDialog */
+const ACTION_COLUMN_METAS = [
+  { key: "ida", label: "IDA" },
+  { key: "action", label: "Action" },
+  { key: "project", label: "Project" },
+  { key: "status", label: "Status" },
+  { key: "progress", label: "Progress" },
+  { key: "priority", label: "Priority" },
+  { key: "difficulty", label: "Difficulty" },
+  { key: "assigned", label: "Assigned" },
+];
+
 interface ActionsTableProps {
   actions: Array<
     ActionEntry & {
@@ -504,6 +519,7 @@ interface ActionsTableProps {
     }
   >;
   isEditing?: boolean;
+  visibleColumns?: Set<string>;
   onEdit?: (action: ActionEntry) => void;
   onDelete?: (action: ActionEntry) => void;
   onComplete?: (action: ActionEntry) => void;
@@ -512,6 +528,7 @@ interface ActionsTableProps {
 const ActionsTable: React.FC<ActionsTableProps> = ({
   actions,
   isEditing,
+  visibleColumns,
   onEdit,
   onDelete,
   onComplete,
@@ -556,14 +573,14 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
       <table className="w-full text-xs">
         <thead className="sticky top-0 bg-white dark:bg-slate-800 z-10">
           <tr className="border-b dark:border-slate-600 text-left text-slate-600 dark:text-slate-400">
-            <th className="py-2 px-2 font-medium">IDA</th>
-            <th className="py-2 px-2 font-medium">Action</th>
-            <th className="py-2 px-2 font-medium">Project</th>
-            <th className="py-2 px-2 font-medium">Status</th>
-            <th className="py-2 px-2 font-medium">Progress</th>
-            <th className="py-2 px-2 font-medium">Priority</th>
-            <th className="py-2 px-2 font-medium">Difficulty</th>
-            <th className="py-2 px-2 font-medium">Assigned</th>
+            {(!visibleColumns || visibleColumns.has("ida")) && <th className="py-2 px-2 font-medium">IDA</th>}
+            {(!visibleColumns || visibleColumns.has("action")) && <th className="py-2 px-2 font-medium">Action</th>}
+            {(!visibleColumns || visibleColumns.has("project")) && <th className="py-2 px-2 font-medium">Project</th>}
+            {(!visibleColumns || visibleColumns.has("status")) && <th className="py-2 px-2 font-medium">Status</th>}
+            {(!visibleColumns || visibleColumns.has("progress")) && <th className="py-2 px-2 font-medium">Progress</th>}
+            {(!visibleColumns || visibleColumns.has("priority")) && <th className="py-2 px-2 font-medium">Priority</th>}
+            {(!visibleColumns || visibleColumns.has("difficulty")) && <th className="py-2 px-2 font-medium">Difficulty</th>}
+            {(!visibleColumns || visibleColumns.has("assigned")) && <th className="py-2 px-2 font-medium">Assigned</th>}
             {isEditing && <th className="py-2 px-2 font-medium">Actions</th>}
           </tr>
         </thead>
@@ -573,9 +590,12 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
               key={action.id || idx}
               className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
+              {(!visibleColumns || visibleColumns.has("ida")) && (
               <td className="py-2 px-2 text-slate-600 dark:text-slate-400 font-mono">
                 {action.ida || action.id || "--"}
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("action")) && (
               <td className="py-2 px-2 max-w-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">
@@ -586,10 +606,16 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                   </span>
                 </div>
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("project")) && (
               <td className="py-2 px-2 text-slate-600 dark:text-slate-300">
                 {action.project_name || "--"}
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("status")) && (
               <td className="py-2 px-2">{getStatusBadge(action.status)}</td>
+              )}
+              {(!visibleColumns || visibleColumns.has("progress")) && (
               <td className="py-2 px-2">
                 <div className="flex items-center gap-1">
                   <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
@@ -603,6 +629,8 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                   </span>
                 </div>
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("priority")) && (
               <td className="py-2 px-2">
                 <span
                   className={`px-1.5 py-0.5 rounded text-xs ${getPriorityColor(
@@ -612,9 +640,13 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                   {action.priority || "normal"}
                 </span>
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("difficulty")) && (
               <td className="py-2 px-2 text-center text-slate-600 dark:text-slate-300">
                 {action.difficulty ?? "--"}
               </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("assigned")) && (
               <td className="py-2 px-2">
                 {action.assigned_to?.length ? (
                   <div className="flex flex-wrap gap-1">
@@ -633,6 +665,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                   "--"
                 )}
               </td>
+              )}
               {isEditing && (
                 <td className="py-2 px-2">
                   <div className="flex items-center gap-1">
@@ -1340,6 +1373,32 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingAction, setEditingAction] = useState<ActionEntry | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+  const [showColumnDialog, setShowColumnDialog] = useState(false);
+  const columnSetups = useColumnSetups("panel:actions");
+
+  // Build default config from column metas
+  const defaultConfig = useMemo<import("@/hooks/useColumnSetups").ColumnSetupEntry>(() => {
+    const order = ACTION_COLUMN_METAS.map((m) => m.key);
+    const visibility: Record<string, boolean> = {};
+    ACTION_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
+    return { order, visibility, widths: {}, sort: null };
+  }, []);
+
+  // Apply active setup (if any) over default
+  const activeConfig = useMemo(() => {
+    if (!columnSetups.activeSetupName) return defaultConfig;
+    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
+    return applied ?? defaultConfig;
+  }, [columnSetups, defaultConfig]);
+
+  const visibleCols = useMemo(() => {
+    const vis = activeConfig.visibility;
+    const result = new Set<string>();
+    for (const m of ACTION_COLUMN_METAS) {
+      if (vis[m.key] !== false) result.add(m.key);
+    }
+    return result;
+  }, [activeConfig]);
 
   const parentModel = parentModelName ?? _entityType;
   const parentId = parentIdOverride ?? _entityId;
@@ -1594,6 +1653,20 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Column setup badge (table view only) */}
+          {viewMode === "table" && !isCollapsed && (
+            <button
+              type="button"
+              title="Configure columns"
+              className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowColumnDialog(true);
+              }}
+            >
+              <FaSlidersH size={10} />
+            </button>
+          )}
           {isCollapsed ? (
             <FaChevronDown size={12} />
           ) : (
@@ -1642,6 +1715,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 <ActionsTable
                   actions={actions as any}
                   isEditing={canEdit}
+                  visibleColumns={visibleCols}
                   onEdit={(action) =>
                     handleEdit(
                       action,
@@ -1706,6 +1780,20 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
         onSave={handleSave}
         assigneeOptions={assigneeOptions}
         projectOptions={projectOptions}
+      />
+      {/* Column setup dialog */}
+      <ColumnSetupDialog
+        open={showColumnDialog}
+        title="Action Columns"
+        columnMetas={ACTION_COLUMN_METAS}
+        config={activeConfig}
+        onSave={(entry) => {
+          columnSetups.saveSetup("current", entry);
+          setShowColumnDialog(false);
+        }}
+        onClose={() => setShowColumnDialog(false)}
+        namedSetups={columnSetups.setups}
+        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
       />
     </div>
   );

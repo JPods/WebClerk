@@ -744,6 +744,32 @@ Multiple floating windows are central to the enterprise UX. Power users open sev
 - Topic deep-dives go in `readmes/topics/{category}/`
 - Migration tracking in `readmes/api-migration-rest-to-wcapi.md`
 - Legacy reference: `vue2020/src/components/` for feature parity checks
+- Legacy knowledge extraction: `readmes/legacy/` — see below
+
+---
+
+## 18a. Legacy Reference Strategy
+
+The workspace includes two legacy codebases used as **reference only** during conversion:
+
+| Alias | Path | Use For |
+|-------|------|---------|
+| **wc2** | `00WebClerk19/Project/Sources/` | Business rules, 4D triggers, calculations, table structures |
+| **vue2020** | `vue2020/` | UI patterns, component behaviors, API call shapes |
+
+**Rules of engagement:**
+
+1. Consult legacy code **on-demand** when building a feature that needs parity or domain clarification
+2. **Ask the user** before investing time in ambiguous or complex legacy areas — there is signal and noise
+3. Extract the *business intent*, not the implementation — don't port 4D patterns into Python/React
+4. **Record valuable findings** in `readmes/legacy/` so they survive after wc2/vue2020 are removed
+5. Mark uncertain items with `⚠️ UNVERIFIED` so the user can confirm
+
+The `readmes/legacy/` directory in both R25 and wc3 captures extracted knowledge:
+- UI patterns and component behaviors (R25)
+- Business rules, field mappings, and calculation logic (wc3)
+
+> **Post-development:** Once conversion is complete, wc2 and vue2020 will be removed from the workspace. The `readmes/legacy/` files become the permanent record.
 
 ---
 
