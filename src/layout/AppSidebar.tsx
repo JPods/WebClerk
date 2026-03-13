@@ -173,6 +173,8 @@ const navItems: NavItem[] = [
       { name: "Work Orders", path: PageRoutes.transactionsWorkOrderList },
       { name: "Receipts", path: PageRoutes.transactionsReceiptList },
       { name: "Adjustments", path: PageRoutes.transactionsAdjustmentList },
+      { name: "Payments", path: PageRoutes.transactionsPaymentList },
+      { name: "Apply Payments", path: PageRoutes.transactionsApplyPayments },
     ],
   },
 

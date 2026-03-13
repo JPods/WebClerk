@@ -106,7 +106,7 @@ const MODEL_DETAIL_BASES: Record<string, string> = {
   audit: "/accounts/audit/detail",
   currency: "/accounts/currency/detail",
   ledger: "/accounts/ledger/detail",
-  payment: "/accounts/payment/detail",
+  payment: "/transactions/payment/detail",
 
   // Communications
   domain: "/communications/domain/detail",

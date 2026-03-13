@@ -18,7 +18,7 @@ import { DetailTabs, useDetailTabs, TabConfig } from "../../../../../components/
 import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import QAPanel from "../../../../common/components/panels/QAPanel";
-import ContactLinksPanel from "../../../../transactions/components/ContactPanel";
+import ContactLinksPanel from "../../../../common/components/panels/ContactPanel";
 import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
 import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
