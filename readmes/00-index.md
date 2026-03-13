@@ -22,9 +22,11 @@
 - `transaction-services.md` - **Single Point of Authority services** (lines, tax, shipping, commissions, etc.)
 - `transaction-calculations.md` - Frontend calculation logic
 - `TransactionModelsAlignment.md` - wc3 ↔ r25 model mapping
+- `payments.md` - **Payment module** — list, detail, panel, dialog, apply-payments, legacy crosswalk
 
 ## Additional Topics (`topics/`)
 
+- `components.md` - **Component & file inventory** — every .tsx/.ts by area, qqq-flagged dead code catalog
 - `config-defaults.md` - **Defaults by table** — modelDefaults, fieldDefaults, select lists
 - `admin-workbench.md` - Admin panel features
 - `admin-window.md` - Admin window component

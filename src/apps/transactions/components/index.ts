@@ -7,7 +7,6 @@
 export { default as FieldLabel } from "./FieldLabel";
 
 // Refs/Links Components
-export { default as ContactPanel } from "./ContactPanel";
 export { default as ContactLinksTable } from "./ContactLinksTable";
 export type {
   ContactLinkDisplayRow,
@@ -17,14 +16,11 @@ export type {
 } from "./ContactLinksTable";
 
 // Comments and Actions
-export { default as CommentsPanel } from "./CommentsPanel";
 
 // Metadata and Admin
 export { default as MetadataPanel } from "./MetadataPanel";
-export { default as JsonFieldEditor } from "./JsonFieldEditor";
 
 // Financials
-export { default as FinancialsCard } from "./FinancialsCard";
 
 // Flow and Lineage
 

@@ -1,5 +1,5 @@
 import QATab from "./QATab";
-import { normalizeRefsLinksContact } from "./ContactPanel";
+import { normalizeRefsLinksContact } from "@/apps/common/components/panels/ContactPanelx2";
 /**
  * TransactionDetail - Base component for all transaction detail pages
  * Provides common tabbed layout with standard sections
@@ -56,20 +56,18 @@ import {
 } from "../../../api/wcapi";
 
 // Import toolbar
-import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
+import TransactionToolbar, { type TransactionType } from "@/apps/common/components/TransactionToolbar";
 import OrgSearchDialog, {
   type SearchableOrgType,
   type OrgSearchResult,
 } from "@/apps/common/components/OrgSearchDialog";
 
-// Import shared components
-import ContactPanel from "./ContactPanel";
-
-import CommentsPanel from "./CommentsPanel";
-import FinancialsCard from "./FinancialsCard";
+// Import shared panels (canonical: common/components/panels/)
+import ContactPanel from "@/apps/common/components/panels/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import FinancialsPanel from "@/apps/common/components/panels/FinancialsPanel";
 import { DocumentsPanel } from "@/apps/common/components/panels";
-
-import JsonFieldEditor from "./JsonFieldEditor";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import RelatedTransactions from "@/components/common/RelatedTransactions";
 
 // Import types
@@ -2174,7 +2172,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // --- Real-time totals from lines ---
   // Recomputes sell/cost/totals whenever lines change during editing,
-  // so SummaryCard and FinancialsCard always show up-to-date values.
+  // so SummaryCard and FinancialsPanel always show up-to-date values.
   const liveCalc = useRealTimeCalculations(
     currentData?.lines ?? [],
     transactionType,
@@ -2487,7 +2485,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
       case "financials":
         return currentData ? (
-          <FinancialsCard
+          <FinancialsPanel
             totals={liveTotals}
             cost={liveCost}
             sell={liveSell}
