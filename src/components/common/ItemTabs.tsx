@@ -1,7 +1,7 @@
 /**
  * ItemTabs - Third-row tab bar for navigating item sub-types (lines & serials)
  *
- * Sits below TransactionTabs on org detail pages (Customer, Vendor).
+ * Sits below TransactionTabPanel on org detail pages (Customer, Vendor).
  * Shows a filterable list of line items and serial records linked to the org.
  *
  * Tabs: All · Line Items · Serials

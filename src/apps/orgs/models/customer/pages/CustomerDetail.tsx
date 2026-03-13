@@ -28,11 +28,9 @@ import {
   FaChevronRight,
   FaEdit,
   FaTrash,
-  FaDollarSign,
   FaAddressCard,
   FaQuestionCircle,
   FaTimes,
-  FaTruckLoading,
 } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import {
@@ -47,18 +45,12 @@ import { DevBadge } from "@/components/common/DevBadge";
 import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import {
   BasicInformationPanel,
-  CommentsPanel,
-  ActionsPanel,
-  DocumentsPanel,
-  RawDataPanel,
-  ContactPanel,
   normalizeRefsLinksContact,
-  QAPanel,
+  CoreTabPanel,
 } from "@/apps/common/components/panels";
-import TransactionTabs from "@/components/common/TransactionTabs";
+import TransactionTabPanel from "@/components/common/TransactionTabPanel";
 import ItemTabs from "@/components/common/ItemTabs";
 import {
-  DetailTabs,
   useDetailTabs,
   useColumnCount,
   ColumnSelector,
@@ -226,29 +218,7 @@ export const CUSTOMER_ADDITIONAL_TABS = [
   { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
 ];
 
-export const FINANCE_STANDARD_TABS: string[] = ["transactions"];
 
-export const FINANCE_ADDITIONAL_TABS = [
-  {
-    id: "transactions",
-    label: "Transactions",
-    icon: <FaDollarSign size={14} />,
-  },
-];
-
-const VALID_FINANCE_TABS = ["transactions"];
-
-export const ITEMS_STANDARD_TABS: string[] = [];
-
-export const ITEMS_ADDITIONAL_TABS = [
-  {
-    id: "products",
-    label: "Products",
-    icon: <FaTruckLoading size={14} />,
-  },
-];
-
-const VALID_ITEMS_TABS = ["products"];
 
 export const buildCustomerTabBadges = (
   data: any,
@@ -301,10 +271,7 @@ function CustomerDetail({
     "actions",
     VALID_TABS,
   );
-  const { activeTab: financeActiveTab, setActiveTab: handleFinanceTabChange } =
-    useDetailTabs("customer-finance", "transactions", VALID_FINANCE_TABS);
-  const { activeTab: itemsActiveTab, setActiveTab: handleItemsTabChange } =
-    useDetailTabs("customer-items", "products", VALID_ITEMS_TABS);
+
   const { columnCount, setColumnCount: handleColumnChange } = useColumnCount(
     "customer",
     3,
@@ -1353,286 +1320,111 @@ function CustomerDetail({
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
         <div className="space-y-2 px-4 py-2">
-          {/* ── DetailTabs ────────────────────────────────────────── */}
-          <div>
-            <DetailTabs
-              entityType="customer"
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              standardTabs={CUSTOMER_STANDARD_TABS}
-              additionalTabs={CUSTOMER_ADDITIONAL_TABS}
-              badges={tabBadges}
-              showColumnSelector={false}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-2">
-                {/* Standard Tabs - Comments */}
-                {activeTab === "comments" && (
-                  <CommentsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    comments={data?.comments}
-                    isEditing={mode !== "view" || isEditing}
-                    onChange={(comments) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            comments,
-                          } as any),
-                      )
-                    }
-                    onSave={async (comments) => {
-                      if (!data?.id) return;
-                      try {
-                        await updateCustomer({
-                          id: data.id,
-                          comments: { mode: "update", value: comments },
-                        } as any);
-                        dispatch(
-                          showToast({
-                            message: "Comments saved",
-                            type: "success",
-                          }),
+          {/* ── Org detail tabs (actions · comments · contacts · docs · qa · raw) ── */}
+          <CoreTabPanel
+            entityType="customer"
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            standardTabs={CUSTOMER_STANDARD_TABS}
+            additionalTabs={CUSTOMER_ADDITIONAL_TABS}
+            tabBadges={tabBadges}
+            columnCount={columnCount}
+            onColumnCountChange={handleColumnChange}
+            data={data}
+            entityId={data?.id || 0}
+            mode={mode}
+            isEditing={isEditing}
+            onSaveComments={async (comments) => {
+              if (!data?.id) return;
+              await updateCustomer({
+                id: data.id,
+                comments: { mode: "update", value: comments },
+              } as any);
+            }}
+            onSaveActions={async (actions) => {
+              if (!data?.id) return;
+              await updateCustomer({ id: data.id, actions } as any);
+            }}
+            onRefreshRecord={async () => {
+              if (!data?.id) return;
+              const refreshed = await getRecord("customer", data.id);
+              const next = (refreshed as any)?.record ?? refreshed;
+              if (next) setFetchedRecord(next as any);
+            }}
+            onRecordChange={(patch) =>
+              setFetchedRecord(
+                (prev) => ({ ...(prev || data || {}), ...patch } as any),
+              )
+            }
+            fkContacts={fkContacts}
+            fkContactsLoading={fkContactsLoading}
+            orgDisplayName={customerData.display_name}
+            primaryContactId={data?.contact_id}
+            onSetPrimary={handleSetPrimary}
+            onRefreshContacts={() => setFkRefreshTrigger((n) => n + 1)}
+            onContactsChange={(newContacts) => {
+              const currentRefs = safeParseJson(
+                formData.refs as unknown as string | undefined,
+                { links: {} },
+              );
+              setValue(
+                "refs" as keyof CustomerFormValues,
+                JSON.stringify(
+                  {
+                    ...currentRefs,
+                    links: { ...currentRefs.links, contact: newContacts },
+                  },
+                  null,
+                  2,
+                ) as any,
+                { shouldDirty: true },
+              );
+            }}
+            onContactSaveSuccess={() => {
+              setFkRefreshTrigger((n) => n + 1);
+              if (customerData.id) {
+                getRecord("customer", customerData.id)
+                  .then((res: any) => {
+                    const rec = res?.record ?? res;
+                    if (rec) {
+                      setFetchedRecord(rec);
+                      Object.keys(rec).forEach((key) => {
+                        setValue(
+                          key as keyof CustomerFormValues,
+                          key in JSON_DEFAULTS
+                            ? JSON.stringify(
+                                rec[key] ?? JSON_DEFAULTS[key],
+                                null,
+                                2,
+                              )
+                            : rec[key],
                         );
-                      } catch {
-                        dispatch(
-                          showToast({
-                            message: "Failed to save comments",
-                            type: "error",
-                          }),
-                        );
-                      }
-                    }}
-                    currentUser={`${currentUser?.name_first} ${currentUser?.name_last}`}
-                    currentUserId={currentUser?.id}
-                  />
-                )}
-
-                {/* Standard Tabs - Actions */}
-
-                {activeTab === "actions" && (
-                  <ActionsPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={
-                      Array.isArray(data?.actions) ? data.actions : undefined
+                      });
                     }
-                    actionIds={
-                      data?.actions &&
-                      typeof data.actions === "object" &&
-                      "ids" in data.actions
-                        ? (data.actions as { ids?: number[] }).ids
-                        : undefined
-                    }
-                    viewMode="table"
-                    isEditing={isEditing}
-                    parentModelName="customer"
-                    parentIdOverride={data?.id}
-                    onChange={(actions) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            actions,
-                          } as any),
-                      )
-                    }
-                    onActionIdsChange={(ids) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            actions: { ids },
-                          } as any),
-                      )
-                    }
-                    onSave={async (actions) => {
-                      if (!data?.id) return;
-                      try {
-                        await updateCustomer({ id: data.id, actions } as any);
-                        // Refresh from server to capture latest refs/actions snapshot
-                        try {
-                          const refreshed = await getRecord(
-                            "customer",
-                            data.id,
-                          );
-                          const next = (refreshed as any)?.record ?? refreshed;
-                          if (next) {
-                            setFetchedRecord(next as any);
-                          }
-                        } catch (refreshErr) {
-                          console.error(
-                            "[CustomerDetail] Action refresh failed",
-                            refreshErr,
-                          );
-                        }
-                        dispatch(
-                          showToast({
-                            message: "Action saved",
-                            type: "success",
-                          }),
-                        );
-                      } catch {
-                        dispatch(
-                          showToast({
-                            message: "Failed to save action",
-                            type: "error",
-                          }),
-                        );
-                      }
-                    }}
-                    assigneeOptions={contactOptions}
-                    projectOptions={projectOptions}
-                  />
-                )}
-                {activeTab === "contacts" && (
-                  <ContactPanel
-                    contacts={fkContacts}
-                    isEditing={true}
-                    loading={fkContactsLoading}
-                    parent_model="customer"
-                    parentId={customerData.id}
-                    customer_id={customerData.id}
-                    customer_name={customerData.display_name}
-                    primaryContactId={data?.contact_id}
-                    onSetPrimary={handleSetPrimary}
-                    onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                    onChange={(newContacts) => {
-                      const currentRefs = safeParseJson(
-                        formData.refs as unknown as string | undefined,
-                        { links: {} },
-                      );
-                      setValue(
-                        "refs" as keyof CustomerFormValues,
-                        JSON.stringify(
-                          {
-                            ...currentRefs,
-                            links: {
-                              ...currentRefs.links,
-                              contact: newContacts,
-                            },
-                          },
-                          null,
-                          2,
-                        ) as any,
-                        { shouldDirty: true },
-                      );
-                    }}
-                    onSaveSuccess={() => {
-                      setFkRefreshTrigger((n) => n + 1);
-                      if (customerData.id) {
-                        getRecord("customer", customerData.id)
-                          .then((res: any) => {
-                            const rec = res?.record ?? res;
-                            if (rec) {
-                              setFetchedRecord(rec);
-                              Object.keys(rec).forEach((key) => {
-                                if (key in JSON_DEFAULTS) {
-                                  setValue(
-                                    key as keyof CustomerFormValues,
-                                    JSON.stringify(
-                                      rec[key] ?? JSON_DEFAULTS[key],
-                                      null,
-                                      2,
-                                    ),
-                                  );
-                                } else {
-                                  setValue(
-                                    key as keyof CustomerFormValues,
-                                    rec[key],
-                                  );
-                                }
-                              });
-                            }
-                          })
-                          .catch(() => {});
-                      }
-                    }}
-                  />
-                )}
+                  })
+                  .catch(() => {});
+              }
+            }}
+            customer_id={customerData.id}
+            contactOptions={contactOptions}
+            projectOptions={projectOptions}
+            currentUser={currentUser}
+          />
 
-                {/* Standard Tabs - Documents */}
-                {activeTab === "documents" && (
-                  <DocumentsPanel
-                    parent_model="customer"
-                    parentId={data?.id || 0}
-                    data={data?.refs?.links?.document}
-                    isEditing={mode !== "view" || isEditing}
-                    onChange={(docs) => {
-                      console.log("Documents updated:", docs);
-                    }}
-                  />
-                )}
-
-                {/* Q&A tab */}
-                {activeTab === "qa" && (
-                  <QAPanel
-                    parent_model="customer"
-                    parentId={data?.id || 0}
-                    data={data?.qa}
-                  />
-                )}
-
-                {/* Standard Tabs - Raw (Admin) */}
-                {activeTab === "raw" && (
-                  <RawDataPanel
-                    entityType="customer"
-                    entityId={data?.id || 0}
-                    data={data}
-                  />
-                )}
-              </div>
+          {/* ── Transactions ────────────────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+                <TransactionTabPanel
+                orgType="customer"
+                orgId={customerData.id!}
+              />
             </div>
           </div>
 
-          {/* ── Finance DetailTabs ────────────────────────────────────── */}
-
-          <div>
-            <DetailTabs
-              entityType="customer-finance"
-              activeTab={financeActiveTab}
-              onTabChange={handleFinanceTabChange}
-              standardTabs={FINANCE_STANDARD_TABS}
-              additionalTabs={FINANCE_ADDITIONAL_TABS}
-              badges={{}}
-              showColumnSelector={false}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-2">
-                {financeActiveTab === "transactions" && (
-                  <TransactionTabs
-                    orgType="customer"
-                    orgId={customerData.id!}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Items DetailTabs ────────────────────────────────────── */}
-          <div>
-            <DetailTabs
-              entityType="customer-items"
-              activeTab={itemsActiveTab}
-              onTabChange={handleItemsTabChange}
-              standardTabs={ITEMS_STANDARD_TABS}
-              additionalTabs={ITEMS_ADDITIONAL_TABS}
-              badges={{}}
-              showColumnSelector={false}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 cus-bg-black-light rounded-md">
-              <div className="p-2">
-                {itemsActiveTab === "products" && (
-                  <ItemTabs orgType="customer" orgId={customerData.id!} />
-                )}
-              </div>
+          {/* ── Products ────────────────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+              <ItemTabs orgType="customer" orgId={customerData.id!} />
             </div>
           </div>
         </div>

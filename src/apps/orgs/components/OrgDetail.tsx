@@ -17,7 +17,7 @@ import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgM
 import orgApi from '../services/orgApi';
 import { QAPanel } from '@/apps/common/components/panels';
 import { ScalarCard, JsonCard, BaseModelCards } from '@/apps/common/components/detail';
-import TransactionTabs from '@/components/common/TransactionTabs';
+import TransactionTabPanel from '@/components/common/TransactionTabPanel';
 import ItemTabs from '@/components/common/ItemTabs';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import InternationalPhoneInput from '@/components/form/input/InternationalPhoneInput';
@@ -1099,7 +1099,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         {(orgType === 'customer' || orgType === 'vendor') && org.id && (
           <>
             <div>
-              <TransactionTabs orgType={orgType} orgId={org.id} />
+              <TransactionTabPanel orgType={orgType} orgId={org.id} />
             </div>
             <div>
               <ItemTabs orgType={orgType} orgId={org.id} />
@@ -1194,7 +1194,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
       {(orgType === 'customer' || orgType === 'vendor') && org.id && (
         <>
           <div>
-            <TransactionTabs orgType={orgType} orgId={org.id} />
+            <TransactionTabPanel orgType={orgType} orgId={org.id} />
           </div>
           <div>
             <ItemTabs orgType={orgType} orgId={org.id} />

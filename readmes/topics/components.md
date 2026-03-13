@@ -161,6 +161,7 @@ Domain-aware shared components living in the `apps/` tree.
 | `SerialPanel.tsx` | Serial numbers linked to entity |
 | `ShippingPanel.tsx` | Shipping details for sell-side transactions |
 | `TemplateQAPanel.tsx` | Template-driven Q&A with predefined choices, image attachments |
+| `TransactionPanel.tsx` | Record header (ida, status, attention, email, phone, total, balance, priority) + TransactionToolbar |
 | `TransactionsPanel.tsx` | Transactions for an org (proposals, orders, invoices, etc.) |
 
 ### Panel Utilities

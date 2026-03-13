@@ -101,6 +101,7 @@ src/apps/common/components/
     ├── SerialPanel.tsx              # Serial numbers
     ├── ShippingPanel.tsx            # Shipping details
     ├── TemplateQAPanel.tsx          # Template-based Q&A
+    ├── TransactionPanel.tsx         # Record header (ida/status/totals) + TransactionToolbar
     └── TransactionsPanel.tsx        # Related transactions list
 ```
 

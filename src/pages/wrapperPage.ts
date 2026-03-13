@@ -37,14 +37,24 @@ import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
 import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDetail";
 import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";
 import ManufacturerList from "../apps/orgs/models/manufacturer/pages/ManufacturerList";
+import ManufacturerDetail, { ManufacturerDetailPage } from "../apps/orgs/models/manufacturer/pages/ManufacturerDisplay";
 import OrganizationsList from "../apps/orgs/models/organization/pages/OrganizationList";
 import RepList from "../apps/orgs/models/rep/pages/RepList";
+import RepDetail, { RepDetailPage } from "../apps/orgs/models/rep/pages/RepDisplay";
 import VendorList from "../apps/orgs/models/vendor/pages/VendorList";
 
 // Alias CustomerDetail for route compatibility
 const CustomerDetailPage = CustomerDetail;
 const CustomerAddPage = CustomerDetail;
 const CustomerEditPage = CustomerDetail;
+
+// Alias ManufacturerDetail for route compatibility
+const ManufacturerAddPage = ManufacturerDetailPage;
+const ManufacturerEditPage = ManufacturerDetailPage;
+
+// Alias RepDetail for route compatibility
+const RepAddPage = RepDetailPage;
+const RepEditPage = RepDetailPage;
 
 // Core
 import CoreContactList from "../apps/core/models/contact/pages/ContactList";
@@ -80,8 +90,14 @@ export {
   CustomerEditPage,
   EmployeeList,
   ManufacturerList,
+    ManufacturerDetailPage,
+    ManufacturerAddPage,
+    ManufacturerEditPage,
   OrganizationsList,
   RepList,
+    RepDetailPage,
+    RepAddPage,
+    RepEditPage,
   VendorList,
   NotionTrackerPage,
   KanbanBoardPage,
