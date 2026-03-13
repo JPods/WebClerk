@@ -50,21 +50,12 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 import {
   BasicInformationPanel,
-  CommentsPanel,
-  ActionsPanel,
-  DocumentsPanel,
-  MetadataPanel,
-  RawDataPanel,
-  ContactPanel,
+  RelatedTabPanel,
   normalizeRefsLinksContact,
-  QAPanel,
-  RefsPanel,
-  PrefsPanel,
 } from "@/apps/common/components/panels";
 import TransactionTabs from "@/components/common/TransactionTabs";
 import ItemTabs from "@/components/common/ItemTabs";
 import {
-  DetailTabs,
   useDetailTabs,
   useColumnCount,
   ColumnSelector,
@@ -1339,248 +1330,107 @@ function VendorDetail({
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
         <div className="flex-1 overflow-y-auto">
-          {/* ── DetailTabs ────────────────────────────────────────── */}
-          <div>
-            <DetailTabs
-              entityType="vendor"
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              standardTabs={VENDOR_STANDARD_TABS}
-              additionalTabs={VENDOR_ADDITIONAL_TABS}
-              badges={tabBadges}
-              showColumnSelector={true}
-              columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
-            />
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4">
-                {/* Standard Tabs - Comments */}
-                {activeTab === "comments" && (
-                  <CommentsPanel
-                    entityType="vendor"
-                    entityId={data?.id || 0}
-                    comments={data?.comments}
-                    isEditing={mode !== "view" || isEditing}
-                    onChange={(comments) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            comments,
-                          } as any),
-                      )
-                    }
-                    onSave={async (comments) => {
-                      if (!data?.id) return;
-                      try {
-                        await updateVendor({
-                          id: data.id,
-                          comments: { mode: "update", value: comments },
-                        } as any);
-                        dispatch(
-                          showToast({
-                            message: "Comments saved",
-                            type: "success",
-                          }),
-                        );
-                      } catch {
-                        dispatch(
-                          showToast({
-                            message: "Failed to save comments",
-                            type: "error",
-                          }),
-                        );
-                      }
-                    }}
-                    currentUser={`${currentUser?.name_first} ${currentUser?.name_last}`}
-                    currentUserId={currentUser?.id}
-                  />
-                )}
-
-                {/* Standard Tabs - Actions */}
-
-                {activeTab === "actions" && (
-                  <ActionsPanel
-                    entityType="vendor"
-                    entityId={data?.id || 0}
-                    data={
-                      Array.isArray(data?.actions) ? data.actions : undefined
-                    }
-                    actionIds={
-                      data?.actions &&
-                      typeof data.actions === "object" &&
-                      "ids" in data.actions
-                        ? (data.actions as { ids?: number[] }).ids
-                        : undefined
-                    }
-                    viewMode="table"
-                    isEditing={isEditing}
-                    parentModelName="vendor"
-                    parentIdOverride={data?.id}
-                    onChange={(actions) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            actions,
-                          } as any),
-                      )
-                    }
-                    onActionIdsChange={(ids) =>
-                      setFetchedRecord(
-                        (prev) =>
-                          ({
-                            ...(prev || data || {}),
-                            actions: { ids },
-                          } as any),
-                      )
-                    }
-                    onSave={async (actions) => {
-                      if (!data?.id) return;
-                      try {
-                        await updateVendor({ id: data.id, actions } as any);
-                        // Refresh from server to capture latest refs/actions snapshot
-                        try {
-                          const refreshed = await getRecord("vendor", data.id);
-                          const next = (refreshed as any)?.record ?? refreshed;
-                          if (next) {
-                            setFetchedRecord(next as any);
-                          }
-                        } catch (refreshErr) {
-                          console.error(
-                            "[VendorDetail] Action refresh failed",
-                            refreshErr,
+          <RelatedTabPanel
+            entityType="vendor"
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            standardTabs={VENDOR_STANDARD_TABS}
+            additionalTabs={VENDOR_ADDITIONAL_TABS}
+            tabBadges={tabBadges}
+            showColumnSelector
+            columnCount={columnCount}
+            onColumnCountChange={handleColumnChange}
+            data={data}
+            entityId={data?.id || 0}
+            mode={mode}
+            isEditing={isEditing}
+            onSaveComments={async (comments) => {
+              if (!data?.id) return;
+              await updateVendor({
+                id: data.id,
+                comments: { mode: "update", value: comments },
+              } as any);
+            }}
+            onSaveActions={async (actions) => {
+              if (!data?.id) return;
+              await updateVendor({ id: data.id, actions } as any);
+            }}
+            onRefreshRecord={async () => {
+              if (!data?.id) return;
+              const refreshed = await getRecord("vendor", data.id);
+              const next = (refreshed as any)?.record ?? refreshed;
+              if (next) setFetchedRecord(next as any);
+            }}
+            onRecordChange={(patch) =>
+              setFetchedRecord(
+                (prev) => ({ ...(prev || data || {}), ...patch } as any),
+              )
+            }
+            fkContacts={fkContacts}
+            fkContactsLoading={fkContactsLoading}
+            orgDisplayName={vendorData.display_name}
+            primaryContactId={data?.contact_id}
+            onSetPrimary={handleSetPrimary}
+            onRefreshContacts={() => setFkRefreshTrigger((n) => n + 1)}
+            onContactsChange={(newContacts) => {
+              const currentRefs = safeParseJson(
+                formData.refs as unknown as string | undefined,
+                { links: {} },
+              );
+              setValue(
+                "refs" as keyof VendorFormValues,
+                JSON.stringify(
+                  {
+                    ...currentRefs,
+                    links: { ...currentRefs.links, contact: newContacts },
+                  },
+                  null,
+                  2,
+                ) as any,
+                { shouldDirty: true },
+              );
+            }}
+            onContactSaveSuccess={() => {
+              setFkRefreshTrigger((n) => n + 1);
+              if (vendorData.id) {
+                getRecord("vendor", vendorData.id)
+                  .then((res: any) => {
+                    const rec = res?.record ?? res;
+                    if (rec) {
+                      setFetchedRecord(rec);
+                      Object.keys(rec).forEach((key) => {
+                        if (key in JSON_DEFAULTS) {
+                          setValue(
+                            key as keyof VendorFormValues,
+                            JSON.stringify(
+                              rec[key] ?? JSON_DEFAULTS[key],
+                              null,
+                              2,
+                            ),
                           );
+                        } else {
+                          setValue(key as keyof VendorFormValues, rec[key]);
                         }
-                        dispatch(
-                          showToast({
-                            message: "Action saved",
-                            type: "success",
-                          }),
-                        );
-                      } catch {
-                        dispatch(
-                          showToast({
-                            message: "Failed to save action",
-                            type: "error",
-                          }),
-                        );
-                      }
-                    }}
-                    assigneeOptions={contactOptions}
-                    projectOptions={projectOptions}
-                  />
-                )}
-                {activeTab === "contacts" && (
-                  <ContactPanel
-                    contacts={fkContacts}
-                    isEditing={true}
-                    loading={fkContactsLoading}
-                    parent_model="vendor"
-                    parentId={vendorData.id}
-                    vendor_id={vendorData.id}
-                    vendor_name={vendorData.display_name}
-                    primaryContactId={data?.contact_id}
-                    onSetPrimary={handleSetPrimary}
-                    onRefresh={() => setFkRefreshTrigger((n) => n + 1)}
-                    onChange={(newContacts) => {
-                      const currentRefs = safeParseJson(
-                        formData.refs as unknown as string | undefined,
-                        { links: {} },
-                      );
-                      setValue(
-                        "refs" as keyof VendorFormValues,
-                        JSON.stringify(
-                          {
-                            ...currentRefs,
-                            links: {
-                              ...currentRefs.links,
-                              contact: newContacts,
-                            },
-                          },
-                          null,
-                          2,
-                        ) as any,
-                        { shouldDirty: true },
-                      );
-                    }}
-                    onSaveSuccess={() => {
-                      setFkRefreshTrigger((n) => n + 1);
-                      if (vendorData.id) {
-                        getRecord("vendor", vendorData.id)
-                          .then((res: any) => {
-                            const rec = res?.record ?? res;
-                            if (rec) {
-                              setFetchedRecord(rec);
-                              Object.keys(rec).forEach((key) => {
-                                if (key in JSON_DEFAULTS) {
-                                  setValue(
-                                    key as keyof VendorFormValues,
-                                    JSON.stringify(
-                                      rec[key] ?? JSON_DEFAULTS[key],
-                                      null,
-                                      2,
-                                    ),
-                                  );
-                                } else {
-                                  setValue(
-                                    key as keyof VendorFormValues,
-                                    rec[key],
-                                  );
-                                }
-                              });
-                            }
-                          })
-                          .catch(() => {});
-                      }
-                    }}
-                  />
-                )}
-
-                {/* Standard Tabs - Documents */}
-                {activeTab === "documents" && (
-                  <DocumentsPanel
-                    parent_model="vendor"
-                    parentId={data?.id || 0}
-                    data={data?.refs?.links?.document}
-                    isEditing={mode !== "view" || isEditing}
-                    onChange={(docs) => {
-                      console.log("Documents updated:", docs);
-                    }}
-                  />
-                )}
-
-                {/* Q&A tab */}
-                {activeTab === "qa" && (
-                  <QAPanel
-                    parent_model="vendor"
-                    parentId={data?.id || 0}
-                    data={data?.qa}
-                  />
-                )}
-
-                {/* Standard Tabs - Raw (Admin) */}
-                {activeTab === "raw" && (
-                  <RawDataPanel
-                    entityType="vendor"
-                    entityId={data?.id || 0}
-                    data={data}
-                  />
-                )}
-
-                {/* ── TransactionTabs ────────────────────────────────────── */}
-
+                      });
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
+            contactOptions={contactOptions}
+            projectOptions={projectOptions}
+            currentUser={currentUser ?? undefined}
+            extraTabContent={
+              <>
                 {activeTab === "financial" && (
                   <TransactionTabs orgType="vendor" orgId={vendorData.id!} />
                 )}
-                {/* ── ItemTabs ────────────────────────────────────── */}
-
                 {activeTab === "items" && (
                   <ItemTabs orgType="vendor" orgId={vendorData.id!} />
                 )}
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          />
         </div>
       ) : (
         <div className="flex items-center justify-between py-2 gap-4">
