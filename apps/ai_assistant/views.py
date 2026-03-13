@@ -24,6 +24,14 @@ from rest_framework.views import APIView
 from common.api_responses import api_response
 from .models import Conversation, Message
 from .services.rag_service import RAGService
+from .services.alice_notes import (
+    create_note,
+    resolve_pending,
+    get_report,
+    log_search_feedback,
+    CATEGORY_PURPOSE_MAP,
+    VALID_ROLES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -449,3 +457,170 @@ class ReindexView(APIView):
             "source": source,
             "total_chunks": stats["count"],
         })
+
+
+# ── Alice Notes ─────────────────────────────────────────────────────
+
+class NoteView(APIView):
+    """
+    POST /wcapi/ai/note/
+    Body: {
+        "category": "pending" | "log",
+        "role": "keyword_gap" | "search" | ...,
+        "name": "Missing keyword field: phone",
+        "parent_model": "customer",          // optional
+        "details": { ... }                   // optional JSON payload
+    }
+
+    PATCH /wcapi/ai/note/
+    Body: { "id": 123 }
+    Resolves an alice_pending record (sets is_active=False).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        category = request.data.get("category", "").strip()
+        role = request.data.get("role", "").strip()
+        name = request.data.get("name", "").strip()
+
+        if not category or not role or not name:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="category, role, and name are required",
+                error_code="missing_fields",
+            )
+
+        try:
+            setting = create_note(
+                category,
+                role=role,
+                name=name,
+                parent_model=request.data.get("parent_model"),
+                details=request.data.get("details"),
+            )
+        except ValueError as exc:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=str(exc),
+                error_code="invalid_note",
+            )
+
+        return api_response(
+            status_code=status.HTTP_201_CREATED,
+            data={
+                "id": setting.pk,
+                "name": setting.name,
+                "purpose": setting.purpose,
+                "role": setting.role,
+                "parent_model": setting.parent_model,
+            },
+        )
+
+    def patch(self, request):
+        note_id = request.data.get("id")
+        if not note_id:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="id is required",
+                error_code="missing_id",
+            )
+        try:
+            setting = resolve_pending(int(note_id))
+        except Exception as exc:
+            return api_response(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message=str(exc),
+                error_code="not_found",
+            )
+
+        return api_response(data={
+            "id": setting.pk,
+            "is_active": setting.is_active,
+            "resolved_at": setting.data.get("resolved_at"),
+        })
+
+
+class ReportView(APIView):
+    """
+    GET /wcapi/ai/report/
+    Query params:
+        category      — "pending" | "log" | omit for both
+        days          — lookback window (default 30)
+        parent_model  — filter to one model
+        role          — filter to one role
+        resolved      — "true" to include resolved pending items
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        category = request.query_params.get("category") or None
+        days = int(request.query_params.get("days", "30"))
+        parent_model = request.query_params.get("parent_model") or None
+        role = request.query_params.get("role") or None
+        include_resolved = request.query_params.get("resolved", "").lower() == "true"
+
+        try:
+            report = get_report(
+                category,
+                days=days,
+                parent_model=parent_model,
+                role=role,
+                include_resolved=include_resolved,
+            )
+        except ValueError as exc:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=str(exc),
+                error_code="invalid_params",
+            )
+
+        return api_response(data=report)
+
+
+class SearchFeedbackView(APIView):
+    """
+    POST /wcapi/ai/search-feedback/
+    Body: {
+        "rating": 1 | -1,
+        "query": "acm, @west",
+        "parent_model": "customer",
+        "result_count": 12,            // optional
+        "coaching": "I was looking for Acme West division"  // optional
+    }
+
+    Always creates an alice_log (search_feedback).
+    If rating is negative, also creates an alice_pending (keyword_gap).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        rating = request.data.get("rating")
+        query = request.data.get("query", "").strip()
+        parent_model = request.data.get("parent_model", "").strip()
+
+        if rating not in (1, -1):
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="rating must be 1 or -1",
+                error_code="invalid_rating",
+            )
+        if not query or not parent_model:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="query and parent_model are required",
+                error_code="missing_fields",
+            )
+
+        result = log_search_feedback(
+            rating=rating,
+            query=query,
+            parent_model=parent_model,
+            result_count=request.data.get("result_count", 0),
+            coaching=request.data.get("coaching", ""),
+            user_id=request.user.pk,
+        )
+
+        return api_response(
+            status_code=status.HTTP_201_CREATED,
+            data=result,
+        )
