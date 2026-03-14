@@ -10,7 +10,6 @@ import { DevBadge } from "@/components/common/DevBadge";
 import {
   createManufacturer,
   updateManufacturer,
-  fetchManufacturers,
 } from "../services/manufacturerApi";
 import {
   getRecord,
@@ -176,7 +175,7 @@ function ManufacturerDetail({
     control,
     watch,
   } = useForm<ManufacturerFormValues>({
-    resolver: zodResolver(manufacturerSchema),
+    resolver: zodResolver(manufacturerSchema) as any,
     defaultValues: { is_active: false, version: 1, org_type: "manufacturer" },
   });
 
@@ -191,9 +190,8 @@ function ManufacturerDetail({
     baseMode === "view" && isEditing ? "edit" : baseMode;
 
   const data = useMemo(() => {
-    if (dataProp || fetchedRecord) {
-      return { ...(dataProp || {}), ...(fetchedRecord || {}) } as any;
-    }
+    if (fetchedRecord) return fetchedRecord as any;
+    if (dataProp) return dataProp as any;
     return routeState.data || null;
   }, [dataProp, fetchedRecord, routeState.data]);
 
@@ -210,9 +208,9 @@ function ManufacturerDetail({
     if (!Number.isFinite(manufacturerId) || manufacturerId <= 0) return;
     setLoading(true);
     setError(null);
-    fetchManufacturers(manufacturerId)
-      .then((res) => {
-        const record = res?.data?.items || res?.data;
+    getRecord("manufacturer", manufacturerId)
+      .then((res: any) => {
+        const record = res?.record ?? res;
         setFetchedRecord(record || null);
       })
       .catch((err) =>
@@ -546,10 +544,10 @@ function ManufacturerDetail({
               isDirty={isDirty}
               isSaving={isSubmitting}
               isEditing
-              onSave={handleSubmit(onSubmit)}
+              onSave={handleSubmit(onSubmit as any)}
               onSaveAndClose={
                 inline && onCancelInline
-                  ? handleSubmit(async (fd) => {
+                  ? handleSubmit(async (fd: any) => {
                       await onSubmit(fd);
                       onCancelInline();
                     })
@@ -670,12 +668,14 @@ function ManufacturerDetail({
               entityType="manufacturer"
               activeTab={activeTab}
               onTabChange={handleTabChange}
-              standardTabs={MANUFACTURER_STANDARD_TABS}
+              standardTabs={MANUFACTURER_STANDARD_TABS as Array<
+                "actions" | "comments" | "documents" | "raw"
+              >}
               additionalTabs={MANUFACTURER_ADDITIONAL_TABS}
               tabBadges={tabBadges}
               showColumnSelector
               columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
+              onColumnCountChange={(count) => handleColumnChange(count as 2 | 3)}
               data={data}
               entityId={data?.id || 0}
               mode={mode}
@@ -728,7 +728,18 @@ function ManufacturerDetail({
               }}
               contactOptions={contactOptions}
               projectOptions={projectOptions}
-              currentUser={currentUser ?? undefined}
+              currentUser={
+                currentUser
+                  ? {
+                      id:
+                        typeof currentUser.id === "number"
+                          ? currentUser.id
+                          : Number(currentUser.id) || undefined,
+                      name_first: currentUser.name_first,
+                      name_last: currentUser.name_last,
+                    }
+                  : undefined
+              }
             />
           </div>
         )}
