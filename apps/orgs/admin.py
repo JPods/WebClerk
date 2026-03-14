@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib import admin
+from django.contrib import messages
 import logging
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import OrgBase, Customer, Vendor, Rep, Employee, Manufacturer
+from .services.primary_org import get_primary_org_id, set_primary_org
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +48,12 @@ class OrgBaseAdminForm(forms.ModelForm):
 class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
-    list_display = ("id", "company", "org_type", "status", "is_active", "version")
+    list_display = ("id", "company", "primary_org_badge", "org_type", "status", "is_active", "version")
     list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
     search_fields = ("display_name", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")
     raw_id_fields = ("contact", "terms_fk")
+    actions = ("mark_as_primary_organization",)
     
     # Scalar fields alphabetical, then JSONB fields alphabetical
     fieldsets = (
@@ -100,6 +103,35 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         except Exception as e:
             logger.error("Error saving %s: %s", obj.__class__.__name__, e)
             raise
+
+    @admin.display(description=".primary_org")
+    def primary_org_badge(self, obj):
+        primary_org_id = get_primary_org_id()
+        return "PRIMARY" if primary_org_id and obj.pk == primary_org_id else ""
+
+    @admin.action(description="Mark selected org as primary organization")
+    def mark_as_primary_organization(self, request, queryset):
+        if not getattr(request.user, "is_superuser", False):
+            self.message_user(request, "Only superusers may change the primary organization.", level=messages.ERROR)
+            return
+
+        selected = list(queryset[:2])
+        if len(selected) != 1:
+            self.message_user(request, "Select exactly one org record to mark as primary.", level=messages.WARNING)
+            return
+
+        org = selected[0]
+        try:
+            setting = set_primary_org(org, actor=request.user)
+        except Exception as exc:
+            self.message_user(request, f"Failed to set primary organization: {exc}", level=messages.ERROR)
+            return
+
+        self.message_user(
+            request,
+            f"Primary organization set to org id={org.pk} using Setting id={setting.pk}.",
+            level=messages.SUCCESS,
+        )
 
 
 def _proxy_admin(model, base: type[OrgBaseAdmin]):  # helper to clone config

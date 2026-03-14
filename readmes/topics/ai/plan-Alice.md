@@ -273,6 +273,19 @@ Ollama + Celery tasks that continuously analyze, clean, and optimize live data w
 | Task | Runs inline on every line save (no Celery task — latency-critical path) |
 | Documentation | [calculation-audit-Alice.md](calculation-audit-Alice.md) — full details, query examples, configuration |
 
+#### 5J. Daily Org Financial Observation Log ✅
+
+| Aspect | Detail |
+|---|---|
+| Goal | Produce a daily audit record proving receivables aging, org financial refresh, and lock-related exceptions were reviewed |
+| AI Role | **Operational observation log.** Daily maintenance writes a structured `alice_log` (`role=health_check`) record summarizing financial scrub + pending processing outcomes and recent transaction activity |
+| Source Command | `python manage.py org_financial_maintenance --mode daily --activity-hours 24` |
+| Data Captured | `receivables_aged.updated_count`, `updated_by_org_type`, pending processing metrics, recent transaction counts, and unusual flags (`locked_queued`, `locked_skipped`, `scrub_errors`, `pending_errors`, `missing_org`) |
+| Attention Signal | `needs_attention=true` when any unusual metric is non-zero; includes `attention_reasons` list for triage |
+| Risk | Low — write-only observation record; maintenance flow remains authoritative |
+| Priority | High — creates persistent day-over-day proof of financial maintenance health |
+| Service | `apps/orgs/services/financial_maintenance.py` — `write_daily_alice_observation()` |
+
 #### Phase 5 Sequencing
 
 | Order | Task | Status | Service File |

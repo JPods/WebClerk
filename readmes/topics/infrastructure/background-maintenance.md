@@ -82,6 +82,20 @@ python manage.py export_data
 | `update_attention` | Recalculate attention flags on records |
 | `populate_cache` | Pre-warm frequently accessed data |
 | `align_action_contacts` | Sync action contact references |
+| `org_financial_maintenance --mode daily` | Daily org financial scrub + pending drain + Alice health_check log |
+
+### org_financial_maintenance (daily)
+
+```bash
+python manage.py org_financial_maintenance --mode daily --activity-hours 24
+```
+
+This is the recommended daily financial-integrity command for org records. It performs:
+
+- org financial scrub/reconciliation
+- pending locked-org update processing
+- recent transaction activity summary
+- `alice_log` observation creation for unusual conditions
 
 ---
 

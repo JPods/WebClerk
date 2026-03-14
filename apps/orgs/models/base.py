@@ -308,6 +308,14 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	
 	def save(self, *args, **kwargs):
 		"""Override save to ensure org_type is set correctly for proxy models."""
+		previous_display_name = None
+		if self.pk:
+			previous_display_name = (
+				OrgBase.objects.filter(pk=self.pk)
+				.values_list("display_name", flat=True)
+				.first()
+			)
+
 		# For proxy models, ensure org_type is set correctly
 		if getattr(self._meta, 'proxy', False):
 			model_name = self.__class__.__name__
@@ -330,3 +338,27 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			# Log validation errors but continue with save for admin
 			logger.warning("Validation error during save (continuing): %s", e)
 		super().save(*args, **kwargs)
+
+		# Keep contact.company aligned with the customer org display_name.
+		if (
+			(self.org_type or "").lower() == "customer"
+			and self.pk
+			and self.display_name
+			and previous_display_name != self.display_name
+		):
+			try:
+				from apps.core.models import Contact
+				from apps.orgs.services.contact_linking import resolve_contact_ids_for_customer_org
+				now_ms = int(timezone.now().timestamp() * 1000)
+				linked_contact_ids = resolve_contact_ids_for_customer_org(self)
+				if linked_contact_ids:
+					Contact.objects.filter(id__in=linked_contact_ids).exclude(company=self.display_name).update(
+						company=self.display_name,
+						dt_modified=now_ms,
+					)
+			except Exception as e:
+				logger.warning(
+					"Failed syncing Contact.company for customer org %s: %s",
+					self.pk,
+					e,
+				)
