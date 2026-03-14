@@ -664,6 +664,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.scheduler.tasks.task_ensure_model_defaults',
         'schedule': crontab(hour=2, minute=0),
     },
+
+    # 2:20 AM - Alice schema watch assessment
+    'alice-schema-watch-nightly': {
+        'task': 'apps.ai_assistant.tasks.alice_schema_watch_task',
+        'schedule': crontab(hour=2, minute=20),
+    },
     
     # 3:00 AM - data backup
     'export-data-backup-daily': {

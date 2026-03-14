@@ -48,7 +48,8 @@ class OrgBaseAdminForm(forms.ModelForm):
 class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
-    list_display = ("id", "company", "primary_org_badge", "org_type", "status", "is_active", "version")
+    # Scalar fields: address_full, address_id, attention, display_name, domain, domain_id, dt_created, dt_modified, email, email_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, org_type, phone, phone_id, price_level, security_level, status, terms, uuid, version
+    list_display = ("ida", "display_name", "status", "email", "phone", "address_full", "is_active", "dt_created")
     list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
     search_fields = ("display_name", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")

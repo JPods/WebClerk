@@ -41,6 +41,30 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+# ─── Alice: Schema Watch ─────────────────────────────────────────────
+
+def alice_schema_watch_task() -> dict:
+    """Nightly task: let Alice assess schema changes and impacted pages.
+
+    Uses working tree/staged git diff context, writes Alice notes, and
+    emits a markdown report artifact under readmes/topics/ai/reports.
+    """
+    logger.info("Starting Alice schema watch task")
+    started = timezone.now()
+
+    from django.core.management import call_command
+
+    call_command("alice_schema_watch", quiet=True)
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        "status": "ok",
+        "duration_seconds": duration,
+    }
+    logger.info("Alice schema watch complete in %.1fs", duration)
+    return result
+
+
 # ─── 5E: Health Scoring ───────────────────────────────────────────────
 
 def health_scoring_task(limit: int = 500, use_llm: bool = False) -> dict:

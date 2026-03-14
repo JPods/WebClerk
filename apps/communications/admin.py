@@ -9,7 +9,8 @@ from common.models import default_metadata
 @admin.register(Address)
 class AddressAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Address model."""
-    list_display = ('id', 'address1', 'city', 'country', 'address_type')
+    # Scalar fields: address1, address2, address_type, city, country, dt_created, dt_modified, full, health_rating, ida, instructions, is_active, is_archived, is_deleted, is_locked, latitude, longitude, security_level, state, uuid, version, zip
+    list_display = ("ida", "address1", "address2", "address_type", "city", "country", "is_active", "dt_created")
     list_filter = ('address_type', 'country', 'state')
     search_fields = ('address1', 'address2', 'city', 'zip', 'full')
     readonly_fields = ('full',)
@@ -30,7 +31,8 @@ class AddressAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
 @admin.register(Email)
 class EmailAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Email model."""
-    list_display = ('id', 'email', 'name', 'contact', 'is_primary', 'is_verified')
+    # Scalar fields: attention, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_deleted, is_locked, is_primary, is_verified, name, opt_out, security_level, type, uuid, version
+    list_display = ("ida", "name", "type", "email", "is_primary", "is_verified", "is_active", "dt_created")
     list_filter = ('opt_out', 'is_primary', 'is_verified')
     search_fields = ('email', 'name', 'attention')
     #readonly_fields = ('uuid', 'status_display')
@@ -53,7 +55,8 @@ class EmailAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
 @admin.register(Phone)
 class PhoneAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Phone model."""
-    list_display = ('id', 'number', 'name', 'contact', 'country_code', 'opt_out')  # Changed dt_verified to get_dt_verified
+    # Scalar fields: attention, country_code, dt_created, dt_modified, format, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, number, opt_out, security_level, uuid, version
+    list_display = ("ida", "name", "number", "attention", "country_code", "format", "is_active", "dt_created")
     list_filter = ('country_code', 'opt_out')  # Remove dt_verified from list_filter since it's now a property
     search_fields = ('number', 'name', 'attention')
     #readonly_fields = ('uuid')  # Add get_dt_verified
@@ -72,7 +75,8 @@ class PhoneAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
 @admin.register(Domain)
 class DomainAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Domain model."""
-    list_display = ('id', 'path', 'type', 'contact')  # Use get_dt_verified
+    # Scalar fields: comment, count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, path, security_level, sequence, status, type, uuid, version
+    list_display = ("ida", "status", "type", "comment", "count_accessed", "health_rating", "is_active", "dt_created")
     list_filter = ('type',)  # Remove dt_verified from list_filter
     search_fields = ('path', 'type')
     #readonly_fields = ('uuid')  # Use get_dt_verified
