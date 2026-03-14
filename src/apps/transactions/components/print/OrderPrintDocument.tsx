@@ -106,6 +106,7 @@ export interface OrderPrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
 
   // Document details
   dateCreated?: string;
@@ -269,6 +270,7 @@ const transformOrderData = (data: OrderPrintData, lines?: OrderLineData[]) => {
     zip: data.shipZip,
     country: data.shipCountry,
     phone: data.shipPhone,
+    email: data.shipEmail,
     phoneCell: data.shipPhone,
   };
 
@@ -331,6 +333,8 @@ const OrderPrintDocument: React.FC<OrderPrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="OrderPrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

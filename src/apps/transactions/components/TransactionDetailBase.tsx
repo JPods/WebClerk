@@ -17,6 +17,8 @@ import {
   WorkorderPrintDocument,
   ReceiptPrintDocument,
   AdjustmentPrintDocument,
+  RequisitionPrintDocument,
+  ProjectPrintDocument,
 } from "./print";
 import { useRealTimeCalculations } from "@/hooks/useRealTimeCalculations";
 import {
@@ -94,6 +96,8 @@ const FORM_SOURCE_PATHS: Record<string, string> = {
   workorder:  'src/apps/transactions/components/print/WorkorderPrintDocument.tsx',
   receipt:    'src/apps/transactions/components/print/ReceiptPrintDocument.tsx',
   adjustment: 'src/apps/transactions/components/print/AdjustmentPrintDocument.tsx',
+  requisition:'src/apps/transactions/components/print/RequisitionPrintDocument.tsx',
+  project:    'src/apps/transactions/components/print/ProjectPrintDocument.tsx',
 };
 
 // Extend Transaction type locally to ensure 'lines' exists
@@ -181,6 +185,10 @@ function normalizeTransactionFkFields<T extends Record<string, any>>(
 ): T {
   if (!input || typeof input !== "object") return input;
   const out: T = { ...(input as any) };
+  const metadataUndefined =
+    (out as any)?.metadata && typeof (out as any).metadata === "object"
+      ? ((out as any).metadata.undefined as Record<string, unknown> | undefined)
+      : undefined;
 
   const setIfMissing = (targetField: string, ...candidates: unknown[]) => {
     const existing = normalizeFkId((out as any)[targetField]);
@@ -206,6 +214,44 @@ function normalizeTransactionFkFields<T extends Record<string, any>>(
   );
   setIfMissing("contact_id", out.contact_id, out.contact, out.id_contact);
   setIfMissing("terms_id", out.terms_id, out.terms_fk, out.terms);
+
+  // During development, keep exact schema-style labels (dt, due_date, po_number)
+  // while persisting values in metadata.undefined when no concrete DB fields exist.
+  if (!(out as any).dt && typeof metadataUndefined?.dt === "string") {
+    (out as any).dt = metadataUndefined.dt;
+  }
+  if (!(out as any).due_date && typeof metadataUndefined?.due_date === "string") {
+    (out as any).due_date = metadataUndefined.due_date;
+  }
+  if (!(out as any).po_number && typeof metadataUndefined?.po_number === "string") {
+    (out as any).po_number = metadataUndefined.po_number;
+  }
+
+  return out;
+}
+
+function persistDevScalarsToMetadata<T extends Record<string, any>>(input: T): T {
+  if (!input || typeof input !== "object") return input;
+
+  const out: T = { ...(input as any) };
+  const existingMetadata =
+    out.metadata && typeof out.metadata === "object" ? out.metadata : {};
+  const existingUndefined =
+    (existingMetadata as any).undefined &&
+    typeof (existingMetadata as any).undefined === "object"
+      ? (existingMetadata as any).undefined
+      : {};
+
+  const nextUndefined: Record<string, unknown> = { ...existingUndefined };
+
+  if (typeof (out as any).dt === "string") nextUndefined.dt = (out as any).dt;
+  if (typeof (out as any).due_date === "string") nextUndefined.due_date = (out as any).due_date;
+  if (typeof (out as any).po_number === "string") nextUndefined.po_number = (out as any).po_number;
+
+  out.metadata = {
+    ...existingMetadata,
+    undefined: nextUndefined,
+  } as any;
 
   return out;
 }
@@ -884,7 +930,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     const rawId = data?.id;
     const payloadWithId = {
       ...stripTransactionFkAliases(
-        normalizeTransactionFkFields(editData as any),
+        persistDevScalarsToMetadata(normalizeTransactionFkFields(editData as any)),
       ),
       ...(rawId ? { id: rawId } : { id: undefined }),
     };
@@ -979,10 +1025,25 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       const result = await performSave();
       if (!result) return;
 
-      const normalized = normalizeTransactionFkFields(result as any);
+      const savedId = (result as any)?.id ?? data?.id;
+      let normalized = normalizeTransactionFkFields(result as any);
+
+      // Re-read from API after save so the UI reflects exactly what persisted.
+      if (savedId) {
+        try {
+          const fresh = await getRecord(modelName, Number(savedId));
+          normalized = normalizeTransactionFkFields((fresh?.record ?? fresh) as any);
+        } catch (refreshError) {
+          console.warn(
+            "[TransactionDetailBase] Post-save refresh failed, using save response:",
+            refreshError,
+          );
+        }
+      }
+
       setData(normalized); // Update view state
-      setEditData(normalized); // Update edit state
-      setIsEditing(false);
+      setEditData(normalized); // Keep editing with latest saved state
+      setIsEditing(true);
       setHasUnsavedChanges(false);
       dispatch(
         showToast({
@@ -990,7 +1051,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           type: "success",
         }),
       );
-      onSaved?.(result);
     } catch (e) {
       const errorMsg = getDisplayErrorMessage(e, "Failed to save");
       setError(errorMsg);
@@ -998,7 +1058,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, performSave, onSaved, dispatch, typeLabel]);
+  }, [editData, performSave, dispatch, typeLabel, data?.id, modelName]);
 
   // Toolbar handlers
   // --- OrgSearchDialog state ---
@@ -1137,6 +1197,60 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [printCustomer, setPrintCustomer] = useState<any | null>(null);
+
+  const buildCoachPayload = useCallback(
+    (transaction: any, customerFallback?: any | null) => {
+      if (!transaction) return transaction;
+
+      const refs = transaction.refs || {};
+      const links = refs.links || {};
+      const originalCustomer = Array.isArray(links.customer)
+        ? links.customer[0]
+        : links.customer;
+      const mergedCustomer = customerFallback || originalCustomer;
+
+      return {
+        ...transaction,
+        refs: {
+          ...refs,
+          links: {
+            ...links,
+            customer: mergedCustomer ? [mergedCustomer] : links.customer,
+          },
+        },
+      };
+    },
+    [],
+  );
+
+  const normalizedPrintType = useMemo(() => {
+    const key = String(transactionType || "").toLowerCase();
+    const aliases: Record<string, string> = {
+      "work-order": "workorder",
+      work_order: "workorder",
+      wo: "workorder",
+      purchase_order: "purchase",
+      po: "purchase",
+      sales_order: "order",
+      quote: "proposal",
+    };
+    return aliases[key] || key;
+  }, [transactionType]);
+
+  const supportsPrintPreview = useMemo(() => {
+    return [
+      "invoice",
+      "order",
+      "proposal",
+      "purchase",
+      "workorder",
+      "receipt",
+      "adjustment",
+      "requisition",
+      "project",
+    ].includes(normalizedPrintType);
+  }, [normalizedPrintType]);
 
   // FormCoach — validates data completeness before print
   const formCoach = useFormCoach(
@@ -1145,15 +1259,128 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 
   // Internal print handler (called after unsaved changes guard)
-  const executePrint = useCallback(() => {
-    if (onPrint && data) {
-      onPrint(data);
+  const executePrint = useCallback(async () => {
+    if (!supportsPrintPreview) {
+      dispatch(
+        showToast({
+          message: `Print template not configured for ${typeLabel || transactionType}`,
+          type: "warning",
+        }),
+      );
+      return;
+    }
+
+    let dataForPrint = data;
+
+    if (isEditing && hasUnsavedChanges && editData) {
+      setSaving(true);
+      dispatch(
+        showToast({
+          message: "Saving before print...",
+          type: "info",
+        }),
+      );
+
+      try {
+        const saved = await performSave();
+        if (!saved) {
+          dispatch(
+            showToast({
+              message: "Unable to save before printing",
+              type: "warning",
+            }),
+          );
+          return;
+        }
+
+        const normalizedSaved = normalizeTransactionFkFields(saved as any);
+        setData(normalizedSaved);
+        setEditData(normalizedSaved);
+        setHasUnsavedChanges(false);
+        dataForPrint = normalizedSaved;
+
+        dispatch(
+          showToast({
+            message: `${typeLabel} saved before printing`,
+            type: "success",
+          }),
+        );
+      } catch (e) {
+        const errorMsg = getDisplayErrorMessage(e, "Failed to save before printing");
+        setError(errorMsg);
+        dispatch(showToast({ message: errorMsg, type: "error" }));
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    if (onPrint && dataForPrint) {
+      onPrint(dataForPrint);
     } else {
+      let coachPayload = dataForPrint as Record<string, unknown> | null;
+
+      if (normalizedPrintType === "order" && dataForPrint?.customer_id) {
+        let customerForCoach = printCustomer;
+
+        if (!customerForCoach) {
+          try {
+            const detail = await getRecord("customer", Number(dataForPrint.customer_id));
+            customerForCoach = detail?.record || null;
+            setPrintCustomer(customerForCoach);
+          } catch {
+            customerForCoach = null;
+          }
+        }
+
+        coachPayload = buildCoachPayload(dataForPrint, customerForCoach);
+      }
+
       // Run the form coach check before showing print preview
-      formCoach.runCheck();
+      formCoach.runCheck(coachPayload);
       setShowPrintPreview(true);
     }
-  }, [onPrint, data, formCoach]);
+  }, [
+    supportsPrintPreview,
+    dispatch,
+    typeLabel,
+    transactionType,
+    onPrint,
+    data,
+    isEditing,
+    hasUnsavedChanges,
+    editData,
+    performSave,
+    normalizedPrintType,
+    printCustomer,
+    buildCoachPayload,
+    formCoach,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydratePrintCustomer = async () => {
+      if (!showPrintPreview || normalizedPrintType !== "order" || !data?.customer_id) {
+        if (!showPrintPreview && !cancelled) setPrintCustomer(null);
+        return;
+      }
+
+      try {
+        const detail = await getRecord("customer", Number(data.customer_id));
+        const record = detail?.record || null;
+        if (!cancelled) setPrintCustomer(record);
+      } catch (error) {
+        if (!cancelled) setPrintCustomer(null);
+      }
+    };
+
+    hydratePrintCustomer();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showPrintPreview, normalizedPrintType, data?.customer_id]);
 
   // Guarded print handler - warns if there are unsaved changes
   const handlePrint = useMemo(
@@ -1210,15 +1437,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     // Try to get document number based on type
     const docNum =
-      transactionType === "invoice"
+      normalizedPrintType === "invoice"
         ? (data as any).invoice_no || (data as any).ida || data.id
-        : transactionType === "order"
+        : normalizedPrintType === "order"
         ? (data as any).order_no || (data as any).ida || data.id
         : (data as any).ida || data.id;
 
     // Transform transaction data to print format based on type
     const printContent = (() => {
-      switch (transactionType) {
+      switch (normalizedPrintType) {
         case "invoice":
           // Transform Transaction to InvoicePrintData
           const invoiceData = {
@@ -1249,12 +1476,59 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               data.refs?.links?.contact?.find(
                 (c: any) => c.purpose === "billto",
               )?.display_name,
-            address1: data.refs?.links?.customer?.[0]?.address_full,
+            address1:
+              data.refs?.links?.contact?.find(
+                (c: any) => c.purpose === "billto",
+              )?.address_full || data.refs?.links?.customer?.[0]?.address_full,
+            address2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.address_full,
+            city: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.city,
+            state: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.state,
+            zip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.zip,
+            country: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "billto",
+            )?.country,
             phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
             phoneCell: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "billto",
             )?.phone,
             email: data.email || data.refs?.links?.customer?.[0]?.email,
+
+            // Shipping contact info
+            shipAttention: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.display_name,
+            shipAddress1: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipAddress2: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.address_full,
+            shipCity: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.city,
+            shipState: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.state,
+            shipZip: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.zip,
+            shipCountry: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.country,
+            shipPhone: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -1313,6 +1587,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           );
 
         case "order":
+          const billToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "billto",
+          );
+          const shipToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "shipto",
+          );
+          const customerLink = Array.isArray(data.refs?.links?.customer)
+            ? data.refs?.links?.customer?.[0]
+            : data.refs?.links?.customer;
+
           // Transform Transaction to OrderPrintData with contact extraction
           const orderData = {
             id: data.id,
@@ -1322,79 +1606,56 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
             // Customer info from refs - handle both array and object formats
             customerID: data.customer_id,
-            firstName: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.name_first,
-            lastName: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.name_last,
-            company: Array.isArray(data.refs?.links?.customer)
-              ? data.refs?.links?.customer?.[0]?.company ||
-                data.refs?.links?.customer?.[0]?.display_name
-              : (data.refs?.links?.customer as any)?.company ||
-                (data.refs?.links?.customer as any)?.display_name,
+            firstName: billToContact?.name_first || (printCustomer as any)?.name_first,
+            lastName: billToContact?.name_last || (printCustomer as any)?.name_last,
+            company:
+              customerLink?.company ||
+              customerLink?.display_name ||
+              (printCustomer as any)?.display_name ||
+              (printCustomer as any)?.company,
             attention:
               data.attention ||
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.display_name,
-            address1: Array.isArray(data.refs?.links?.customer)
-              ? data.refs?.links?.customer?.[0]?.address_full
-              : (data.refs?.links?.customer as any)?.address_full,
-            address2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.address_full,
-            city: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.city,
-            state: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.state,
-            zip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.zip,
-            country: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.country,
+              billToContact?.display_name ||
+              (printCustomer as any)?.attention ||
+              (printCustomer as any)?.display_name,
+            address1:
+              billToContact?.address_full ||
+              customerLink?.address_full ||
+              (printCustomer as any)?.address_full,
+            address2: billToContact?.address2 || (printCustomer as any)?.address2,
+            city: billToContact?.city || (printCustomer as any)?.city,
+            state: billToContact?.state || (printCustomer as any)?.state,
+            zip: billToContact?.zip || (printCustomer as any)?.zip,
+            country: billToContact?.country || (printCustomer as any)?.country,
             phone:
               data.phone ||
-              (Array.isArray(data.refs?.links?.customer)
-                ? data.refs?.links?.customer?.[0]?.phone
-                : (data.refs?.links?.customer as any)?.phone),
-            phoneCell: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.phone,
+              billToContact?.phone ||
+              customerLink?.phone ||
+              (printCustomer as any)?.phone,
+            phoneCell: billToContact?.phone,
             email:
               data.email ||
-              (Array.isArray(data.refs?.links?.customer)
-                ? data.refs?.links?.customer?.[0]?.email
-                : (data.refs?.links?.customer as any)?.email),
+              billToContact?.email ||
+              customerLink?.email ||
+              (printCustomer as any)?.email,
 
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipCity: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.city,
-            shipState: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.state,
-            shipZip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.zip,
-            shipCountry: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.country,
-            shipPhone: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.phone,
+            shipAttention:
+              shipToContact?.display_name ||
+              billToContact?.display_name ||
+              (printCustomer as any)?.attention,
+            shipAddress1:
+              shipToContact?.address_full ||
+              billToContact?.address_full ||
+              customerLink?.address_full ||
+              (printCustomer as any)?.address_full,
+            shipAddress2: shipToContact?.address2 || billToContact?.address2,
+            shipCity: shipToContact?.city || billToContact?.city || (printCustomer as any)?.city,
+            shipState: shipToContact?.state || billToContact?.state || (printCustomer as any)?.state,
+            shipZip: shipToContact?.zip || billToContact?.zip || (printCustomer as any)?.zip,
+            shipCountry: shipToContact?.country || billToContact?.country || (printCustomer as any)?.country,
+            shipPhone: shipToContact?.phone || billToContact?.phone || (printCustomer as any)?.phone,
+            shipEmail: shipToContact?.email || billToContact?.email || (printCustomer as any)?.email,
 
             // Document details
             dateCreated: (() => {
@@ -1544,6 +1805,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipPhone: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "shipto",
             )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -1670,6 +1934,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipPhone: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "shipto",
             )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -1796,6 +2063,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipPhone: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "shipto",
             )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -1922,6 +2192,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipPhone: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "shipto",
             )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -2049,6 +2322,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             shipPhone: data.refs?.links?.contact?.find(
               (c: any) => c.purpose === "shipto",
             )?.phone,
+            shipEmail: data.refs?.links?.contact?.find(
+              (c: any) => c.purpose === "shipto",
+            )?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -2103,11 +2379,54 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             />
           );
 
+        case "requisition":
+          const requisitionData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            requisition_no:
+              (data as any).requisition_no || (data as any).ida || data.ida,
+            status: data.status,
+            requested_by: (data as any).requested_by,
+            department: (data as any).department,
+            priority: (data as any).priority,
+            notes:
+              (data as any).notes ||
+              extractPublicComment(data.comments?.public) ||
+              data.conditions_description,
+            dt_created: data.dt_created,
+            due_date: (data as any).due_date,
+            customer_id: data.customer_id,
+            refs: data.refs,
+            comments: data.comments,
+          };
+
+          return <RequisitionPrintDocument data={requisitionData} />;
+
+        case "project":
+          const projectData = {
+            id: data.id,
+            ida: (data as any).ida || data.ida,
+            name: (data as any).name || (data as any).title || data.ida,
+            description:
+              (data as any).description ||
+              extractPublicComment(data.comments?.public) ||
+              data.conditions_description,
+            status: data.status,
+            start_date: (data as any).start_date || data.dt_created,
+            end_date: (data as any).end_date || (data as any).due_date,
+            customer_id: data.customer_id,
+            refs: data.refs,
+            comments: data.comments,
+          };
+
+          return <ProjectPrintDocument data={projectData} />;
+
         default:
-          // Fallback to order print for other types
-          return <OrderPrintDocument data={data as any} />;
+          return null;
       }
     })();
+
+    if (!printContent) return null;
 
     return (
       <PrintPreviewModal
@@ -2582,7 +2901,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               </button>
             </div>
             <div className="flex items-center gap-2">
-              {data?.id && (
+              {data?.id && supportsPrintPreview && (
                 <button
                   onClick={handlePrint}
                   className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-colors flex items-center gap-2"
@@ -2633,7 +2952,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             onSaveAndClose={handleSaveAndClose}
             onClone={canClone ? handleClone : undefined}
             onTransfer={canTransfer ? handleTransfer : undefined}
-            onPrint={handlePrint}
+            onPrint={supportsPrintPreview ? handlePrint : undefined}
             onEmail={handleEmail}
             onDelete={canDelete ? handleDelete : undefined}
             onCancel={handleCancel}
