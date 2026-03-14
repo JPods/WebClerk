@@ -11,6 +11,7 @@
     - [Backend enforcement](#backend-enforcement)
     - [Frontend enforcement](#frontend-enforcement)
     - [Audit query](#audit-query)
+  - [Daily Org Financial Integrity Log](#daily-org-financial-integrity-log)
 
 <!-- TOC END -->
 
@@ -83,3 +84,37 @@ SELECT 'workorders' AS tbl, id FROM workorders WHERE id = 0;
 
 If any rows are returned, investigate the source and either reassign a valid
 sequence id or delete the rogue row after confirming it holds no real data.
+
+## Daily Org Financial Integrity Log
+
+Run this command daily to keep org financial records synchronized and create an auditable observation record:
+
+```bash
+python manage.py org_financial_maintenance --mode daily --activity-hours 24
+```
+
+What this daily run covers:
+
+- Ages receivables/payables into org financial records for customer/vendor orgs.
+- Accounts for recent transaction activity in org-level financial snapshots.
+- Processes queued pending org-financial updates created when records were locked.
+- Writes a daily `alice_log` health-check record with unusual conditions that need follow-up.
+
+The daily observation highlights:
+
+- `locked_queued`, `locked_skipped`
+- `scrub_errors`, `pending_errors`, `missing_org`
+- per-model transaction activity counts in the selected window
+
+Useful variants:
+
+```bash
+# Preview only
+python manage.py org_financial_maintenance --mode daily --dry-run
+
+# Narrow to one org type
+python manage.py org_financial_maintenance --mode daily --org-type customer
+
+# Skip writing the Alice observation (not recommended for daily runs)
+python manage.py org_financial_maintenance --mode daily --no-alice-log
+```

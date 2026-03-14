@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.orgs.models import OrgBase, Employee, Manufacturer, Rep, Vendor
+from apps.orgs.models.constants import flatten_financial_for_type
 
 
 class OrgBaseSerializer(serializers.ModelSerializer):
@@ -61,12 +62,22 @@ class OrgBaseSerializer(serializers.ModelSerializer):
 class VendorSerializer(OrgBaseSerializer):
     """Vendor serializer (OrgBase proxy)."""
 
+    financial = serializers.SerializerMethodField()
+
+    def get_financial(self, obj):
+        return flatten_financial_for_type(getattr(obj, "financial", None), "vendor")
+
     class Meta(OrgBaseSerializer.Meta):
         model = Vendor
 
 
 class RepSerializer(OrgBaseSerializer):
     """Rep serializer (OrgBase proxy)."""
+
+    financial = serializers.SerializerMethodField()
+
+    def get_financial(self, obj):
+        return flatten_financial_for_type(getattr(obj, "financial", None), "rep")
 
     class Meta(OrgBaseSerializer.Meta):
         model = Rep
@@ -75,12 +86,22 @@ class RepSerializer(OrgBaseSerializer):
 class EmployeeSerializer(OrgBaseSerializer):
     """Employee serializer (OrgBase proxy)."""
 
+    financial = serializers.SerializerMethodField()
+
+    def get_financial(self, obj):
+        return flatten_financial_for_type(getattr(obj, "financial", None), "employee")
+
     class Meta(OrgBaseSerializer.Meta):
         model = Employee
 
 
 class ManufacturerSerializer(OrgBaseSerializer):
     """Manufacturer serializer (OrgBase proxy)."""
+
+    financial = serializers.SerializerMethodField()
+
+    def get_financial(self, obj):
+        return flatten_financial_for_type(getattr(obj, "financial", None), "manufacturer")
 
     class Meta(OrgBaseSerializer.Meta):
         model = Manufacturer

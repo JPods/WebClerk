@@ -17,6 +17,7 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from common.models import BaseModel
@@ -215,68 +216,175 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         if self.is_superuser and not self.role:
             self.role = 'admin'
         super().save(*args, **kwargs)
-        
-        # After save, ensure account email exists as an Email record linked to this contact
-        self._ensure_account_email_linked()
+        # After save, keep scalar comm fields and communication tables in sync.
+        self._sync_primary_communication_links()
+
+    @staticmethod
+    def _norm_comm_value(value):
+        return str(value or "").strip()
+
+    def _find_or_create_comm_record(self, model_cls, lookup_kwargs, create_kwargs):
+        """Resolve a communication row for this contact.
+
+        Resolution order:
+        1) existing row owned by this contact
+        2) existing unowned row (contact is null) -> claim for this contact
+        3) create a new row for this contact
+        """
+        own = model_cls.objects.filter(contact_id=self.pk, **lookup_kwargs).first()
+        if own:
+            return own
+
+        unowned = model_cls.objects.filter(contact__isnull=True, **lookup_kwargs).first()
+        if unowned:
+            unowned.contact_id = self.pk
+            unowned.save(update_fields=['contact', 'dt_modified'])
+            return unowned
+
+        payload = {'contact_id': self.pk, **create_kwargs}
+        return model_cls.objects.create(**payload)
+
+    def _sync_primary_communication_links(self):
+        """Synchronize primary scalar comm values with communication models and refs.links."""
+        try:
+            from apps.communications.models import Address, Domain, Email, Phone
+
+            updates = {}
+
+            normalized_email = self._norm_comm_value(self.email).lower()
+            if normalized_email:
+                email_obj = self._find_or_create_comm_record(
+                    Email,
+                    {'email': normalized_email},
+                    {
+                        'email': normalized_email,
+                        'name': 'account',
+                        'is_primary': True,
+                        'is_verified': False,
+                    },
+                )
+                if self.email_id != email_obj.id:
+                    updates['email_id'] = email_obj.id
+
+            normalized_phone = self._norm_comm_value(self.phone)
+            if normalized_phone:
+                phone_obj = self._find_or_create_comm_record(
+                    Phone,
+                    {'number': normalized_phone},
+                    {'number': normalized_phone, 'name': 'primary'},
+                )
+                if self.phone_id != phone_obj.id:
+                    updates['phone_id'] = phone_obj.id
+
+            normalized_domain = self._norm_comm_value(self.domain)
+            if normalized_domain:
+                domain_obj = self._find_or_create_comm_record(
+                    Domain,
+                    {'path': normalized_domain},
+                    {'path': normalized_domain, 'type': 'website', 'status': 'active'},
+                )
+                if self.domain_id != domain_obj.id:
+                    updates['domain_id'] = domain_obj.id
+
+            normalized_address_full = self._norm_comm_value(self.address_full)
+            if normalized_address_full:
+                own_addr = Address.objects.filter(
+                    contact_id=self.pk,
+                ).filter(Q(full=normalized_address_full) | Q(address1=normalized_address_full)).first()
+                if own_addr:
+                    address_obj = own_addr
+                else:
+                    unowned_addr = Address.objects.filter(contact__isnull=True).filter(
+                        Q(full=normalized_address_full) | Q(address1=normalized_address_full),
+                    ).first()
+                    if unowned_addr:
+                        unowned_addr.contact_id = self.pk
+                        unowned_addr.save(update_fields=['contact', 'dt_modified'])
+                        address_obj = unowned_addr
+                    else:
+                        address_obj = Address.objects.create(
+                            contact_id=self.pk,
+                            address1=normalized_address_full,
+                            full=normalized_address_full,
+                        )
+
+                if self.address_id != address_obj.id:
+                    updates['address_id'] = address_obj.id
+
+            refs = self.refs if isinstance(self.refs, dict) else {}
+            links = refs.get('links', {})
+            if not isinstance(links, dict):
+                links = {}
+
+            links['email'] = [
+                {
+                    'id': e.id,
+                    'email': e.email,
+                    'name': e.name or '',
+                    'is_primary': bool(e.is_primary),
+                }
+                for e in Email.objects.filter(contact_id=self.pk).order_by('id')
+            ]
+            links['phone'] = [
+                {
+                    'id': p.id,
+                    'number': p.number,
+                    'name': p.name or '',
+                    'country_code': p.country_code or '',
+                    'format': p.format or '',
+                }
+                for p in Phone.objects.filter(contact_id=self.pk).order_by('id')
+            ]
+            links['domain'] = [
+                {
+                    'id': d.id,
+                    'path': d.path,
+                    'name': d.type or '',
+                    'status': d.status,
+                }
+                for d in Domain.objects.filter(contact_id=self.pk).order_by('id')
+            ]
+            links['address'] = [
+                {
+                    'id': a.id,
+                    'name': a.address_type or '',
+                    'address1': a.address1,
+                    'address2': a.address2,
+                    'city': a.city,
+                    'state': a.state,
+                    'zip': a.zip,
+                    'country': a.country,
+                    'full': a.full,
+                }
+                for a in Address.objects.filter(contact_id=self.pk).order_by('id')
+            ]
+
+            refs['links'] = links
+            updates['refs'] = refs
+
+            type(self).objects.filter(pk=self.pk).update(**updates)
+
+            if 'email_id' in updates:
+                self.email_id = updates['email_id']
+            if 'phone_id' in updates:
+                self.phone_id = updates['phone_id']
+            if 'domain_id' in updates:
+                self.domain_id = updates['domain_id']
+            if 'address_id' in updates:
+                self.address_id = updates['address_id']
+            self.refs = refs
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to sync communication links for contact {self.pk}: {e}")
     
     def _ensure_account_email_linked(self):
         """
         If the account email (self.email) is not already in refs.links.email,
         create an Email record and link it with name='account'.
         """
-        if not self.email:
-            return
-        
-        # Check if email already exists in refs.links.email
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        links = refs.get('links', {})
-        if not isinstance(links, dict):
-            links = {}
-        email_links = links.get('email', [])
-        if not isinstance(email_links, list):
-            email_links = []
-        
-        # Check if account email is already linked
-        for email_entry in email_links:
-            if isinstance(email_entry, dict) and email_entry.get('email') == self.email:
-                return  # Already linked, nothing to do
-        
-        # Create the Email record and link it
-        try:
-            from apps.communications.models import Email
-            
-            # Check if an Email record with this address already exists
-            existing_email = Email.objects.filter(email=self.email).first()
-            if existing_email:
-                email_obj = existing_email
-            else:
-                email_obj = Email.objects.create(
-                    email=self.email,
-                    name='account',
-                    is_primary=True,
-                    is_verified=False,
-                )
-            
-            # Add to refs.links.email
-            email_link = {
-                'id': email_obj.id,
-                'email': email_obj.email,
-                'name': 'account',
-                'is_primary': True,
-            }
-            email_links.append(email_link)
-            links['email'] = email_links
-            refs['links'] = links
-            
-            # Update refs without triggering another full save (avoid recursion)
-            type(self).objects.filter(pk=self.pk).update(refs=refs)
-            # Refresh the in-memory refs
-            self.refs = refs
-        except Exception as e:
-            # Log but don't fail the contact save
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Failed to auto-create account email record for contact {self.pk}: {e}")
+        # Kept for backward compatibility. Primary comm sync now handles this.
+        self._sync_primary_communication_links()
     
     @property
     def display_name(self):
