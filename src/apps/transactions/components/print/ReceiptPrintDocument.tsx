@@ -47,6 +47,7 @@ export interface ReceiptPrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
   
   // Document details
   dateCreated?: string;
@@ -116,8 +117,18 @@ const transformReceiptData = (data: ReceiptPrintData, lines?: ReceiptLineData[])
     email: data.email,
   };
 
-  // For receipts, ship-to is not applicable
-  const shipTo: PrintParty = {};
+  const shipTo: PrintParty = {
+    attention: data.shipAttention,
+    company: data.company,
+    address1: data.shipAddress1,
+    address2: data.shipAddress2,
+    city: data.shipCity,
+    state: data.shipState,
+    zip: data.shipZip,
+    country: data.shipCountry,
+    phone: data.shipPhone,
+    email: data.shipEmail,
+  };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
     lineNum: line.lineNum || idx + 1,
@@ -168,6 +179,8 @@ const ReceiptPrintDocument: React.FC<ReceiptPrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="ReceiptPrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

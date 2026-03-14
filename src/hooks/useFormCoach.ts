@@ -70,11 +70,146 @@ const dig = (obj: Record<string, unknown>, path: string): unknown => {
   }, obj);
 };
 
+const asRecord = (value: unknown): Record<string, unknown> | undefined => {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+};
+
+const firstNonBlank = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim() !== '') return value;
+  }
+  return undefined;
+};
+
+const getPrimaryCustomer = (
+  data: Record<string, unknown>,
+): Record<string, unknown> | undefined => {
+  const customer = dig(data, 'refs.links.customer');
+  if (Array.isArray(customer)) return asRecord(customer[0]);
+  return asRecord(customer);
+};
+
+const makeFallbackContact = (
+  data: Record<string, unknown>,
+  purpose: 'billto' | 'shipto',
+): Record<string, unknown> | undefined => {
+  const customer = getPrimaryCustomer(data);
+  const existingContacts = dig(data, 'refs.links.contact');
+  const contactList = Array.isArray(existingContacts)
+    ? existingContacts.filter((c): c is Record<string, unknown> => !!asRecord(c)).map((c) => c as Record<string, unknown>)
+    : [];
+  const billTo = contactList.find((c) => c.purpose === 'billto');
+
+  if (purpose === 'billto') {
+    const billtoAddress = firstNonBlank(
+      data.billto_address_full,
+      data.billto_address1,
+      data.address_full,
+      customer?.address_full,
+    );
+    const billtoCity = firstNonBlank(data.billto_city, data.city, customer?.city);
+    const billtoState = firstNonBlank(data.billto_state, data.state, customer?.state);
+    const billtoZip = firstNonBlank(data.billto_zip, data.zip, customer?.zip);
+    const billtoEmail = firstNonBlank(data.billto_email, data.email, customer?.email);
+    const billtoPhone = firstNonBlank(data.billto_phone, data.phone, customer?.phone);
+    const billtoName = firstNonBlank(
+      data.attention,
+      customer?.attention,
+      customer?.display_name,
+    );
+
+    if (!billtoAddress && !billtoEmail && !billtoPhone && !billtoName) return undefined;
+
+    return {
+      purpose: 'billto',
+      display_name: billtoName,
+      address_full: billtoAddress,
+      city: billtoCity,
+      state: billtoState,
+      zip: billtoZip,
+      email: billtoEmail,
+      phone: billtoPhone,
+    };
+  }
+
+  const shiptoAddress = firstNonBlank(
+    data.shipto_address_full,
+    data.ship_address,
+    data.shipping_address,
+    billTo?.address_full,
+    customer?.address_full,
+  );
+  const shiptoCity = firstNonBlank(
+    data.shipto_city,
+    data.ship_city,
+    data.shipping_city,
+    billTo?.city,
+    customer?.city,
+  );
+  const shiptoState = firstNonBlank(
+    data.shipto_state,
+    data.ship_state,
+    data.shipping_state,
+    billTo?.state,
+    customer?.state,
+  );
+  const shiptoZip = firstNonBlank(
+    data.shipto_zip,
+    data.ship_zip,
+    data.shipping_zip,
+    billTo?.zip,
+    customer?.zip,
+  );
+  const shiptoEmail = firstNonBlank(
+    data.shipto_email,
+    data.ship_email,
+    data.shipping_email,
+    billTo?.email,
+    customer?.email,
+  );
+  const shiptoPhone = firstNonBlank(
+    data.shipto_phone,
+    data.ship_phone,
+    data.shipping_phone,
+    billTo?.phone,
+    customer?.phone,
+  );
+  const shiptoName = firstNonBlank(
+    data.shipto_attention,
+    data.ship_attention,
+    data.attention,
+    billTo?.display_name,
+    customer?.attention,
+    customer?.display_name,
+  );
+
+  if (!shiptoAddress && !shiptoEmail && !shiptoPhone && !shiptoName) return undefined;
+
+  return {
+    purpose: 'shipto',
+    display_name: shiptoName,
+    address_full: shiptoAddress,
+    city: shiptoCity,
+    state: shiptoState,
+    zip: shiptoZip,
+    email: shiptoEmail,
+    phone: shiptoPhone,
+  };
+};
+
 /** Check if a contact with given purpose exists and has address fields */
 const findContact = (data: Record<string, unknown>, purpose: string) => {
   const contacts = dig(data, 'refs.links.contact') as Array<Record<string, unknown>> | undefined;
-  if (!Array.isArray(contacts)) return undefined;
-  return contacts.find((c) => c.purpose === purpose);
+  if (Array.isArray(contacts)) {
+    const found = contacts.find((c) => c?.purpose === purpose);
+    if (found) return found;
+  }
+
+  if (purpose === 'billto' || purpose === 'shipto') {
+    return makeFallbackContact(data, purpose);
+  }
+
+  return undefined;
 };
 
 /** Check a party block (contact or customer) for address completeness */
@@ -321,7 +456,7 @@ export interface UseFormCoachReturn {
   hasWarnings: boolean;
   hasIssues: boolean;
   /** Run validation checks and return issues */
-  runCheck: () => CoachIssue[];
+  runCheck: (dataOverride?: Record<string, unknown> | null) => CoachIssue[];
   /** Clear all issues */
   clearIssues: () => void;
   /** Whether check has been run at least once */
@@ -342,8 +477,10 @@ export function useFormCoach(
     [extraRules],
   );
 
-  const runCheck = useCallback((): CoachIssue[] => {
-    if (!data) {
+  const runCheck = useCallback((dataOverride?: Record<string, unknown> | null): CoachIssue[] => {
+    const sourceData = dataOverride ?? data;
+
+    if (!sourceData) {
       setIssues([]);
       setHasChecked(true);
       return [];
@@ -358,7 +495,7 @@ export function useFormCoach(
       }
 
       try {
-        const result = rule.check(data);
+        const result = rule.check(sourceData);
         if (result) {
           found.push({
             key: rule.key,

@@ -113,12 +113,35 @@ const shouldNeverCache = (url: string): boolean => {
   return NEVER_CACHE_PATTERNS.some((pattern) => url.includes(pattern));
 };
 
+const getHeaderValue = (headers: any, key: string): string | undefined => {
+  if (!headers) return undefined;
+  const direct = headers?.[key];
+  if (typeof direct === "string") return direct;
+
+  const lowerKey = key.toLowerCase();
+  const lower = headers?.[lowerKey];
+  if (typeof lower === "string") return lower;
+
+  if (typeof headers?.get === "function") {
+    const viaGet = headers.get(key) ?? headers.get(lowerKey);
+    if (typeof viaGet === "string") return viaGet;
+  }
+
+  return undefined;
+};
+
 const wrapGetWithCache = (client: AxiosInstance) => {
   const originalGet = client.get.bind(client);
   client.get = async function patchedGet(url: any, config: any = {}) {
+    const wcapiCacheExempt =
+      getHeaderValue(config?.headers, "x-wcapi-cache-exempt") ===
+      "default-company";
+
     // WCAPI = Database = NEVER CACHE
     // These endpoints serve live database records that can change any moment
-    if (shouldNeverCache(url)) {
+    // Exception: allow explicit opt-in for primary organization/default company
+    // reads to stabilize print branding in-session.
+    if (shouldNeverCache(url) && !wcapiCacheExempt) {
       return originalGet(url, config);
     }
 

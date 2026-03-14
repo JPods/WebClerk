@@ -102,6 +102,12 @@ const LinesTable: React.FC<{
 };
 
 export interface PrintDocumentLayoutProps extends PrintDocumentProps {
+  templateName?: string;
+  partyTitles?: {
+    billTo?: string;
+    shipTo?: string;
+    shipFrom?: string;
+  };
   children?: React.ReactNode;
 }
 
@@ -118,11 +124,31 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
   showSignature = true,
   paperSize = 'letter',
   logoUrl,
+  templateName,
+  partyTitles,
   children,
 }) => {
   const dimensions = PAPER_DIMENSIONS[paperSize];
   const typeLabel = DOCUMENT_TYPE_LABELS[meta.documentType];
   const resolvedLogoUrl = logoUrl || company?.logoUrl || '/images/logo/webclerk.png';
+  const primeParty: PrintParty = {
+    attention: company?.attention,
+    company: company?.name,
+    address1: (company as any)?.address_full || company?.address?.line1,
+    address2:
+      company?.address?.line2 ||
+      (company?.domain ? `Domain: ${company.domain}` : undefined),
+    city: company?.address?.city,
+    state: company?.address?.state,
+    zip: company?.address?.zip,
+    country: company?.address?.country,
+    phone: (company as any)?.phone || company?.phone,
+    email: (company as any)?.email || company?.email,
+  };
+  const markerFlag = (import.meta.env.VITE_PRINT_TEMPLATE_MARKER || '').toLowerCase();
+  const showTemplateMarker = markerFlag
+    ? ['1', 'true', 'yes', 'on'].includes(markerFlag)
+    : import.meta.env.DEV;
 
   return (
     <div 
@@ -134,6 +160,15 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
         boxSizing: 'border-box',
       }}
     >
+      {/* Dev marker: helps identify which print template rendered this document */}
+      {showTemplateMarker && (
+        <div className="flex justify-end mb-2">
+          <span className="text-[10px] uppercase tracking-wide text-gray-600 border border-dashed border-gray-400 px-2 py-0.5 rounded-sm">
+            Template: {templateName || `${meta.documentType}PrintTemplate`}
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-300">
         {/* Logo + Company Info - Left */}
@@ -152,11 +187,6 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
               </a>
             </p>
           )}
-          <p>{company?.address.line1}</p>
-          {company?.address.line2 && <p>{company.address.line2}</p>}
-          <p>{company?.address.city}, {company?.address.state} {company?.address.zip}</p>
-          <p>{company?.phone}</p>
-          <p>{company?.email}</p>
         </div>
         
         {/* Center Spacer */}
@@ -177,17 +207,23 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
       </div>
 
       {/* Party Addresses Row */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <PartyBlock title="Bill To" party={billTo} />
-        <PartyBlock title="Ship To" party={shipTo} />
-        {shipFrom && <PartyBlock title="Ship From" party={shipFrom} />}
-        {meta.shipVia && (
-          <div className="text-xs">
-            <p className="text-gray-500 mb-1 font-medium">Ship Via:</p>
-            <p className="text-gray-700">{meta.shipVia}</p>
-          </div>
-        )}
+      <div className="grid grid-cols-3 gap-4 mb-2">
+        <PartyBlock title="Prime Company" party={primeParty} />
+        <PartyBlock title={partyTitles?.billTo || 'Bill To'} party={billTo} />
+        <PartyBlock title={partyTitles?.shipTo || 'Ship To'} party={shipTo} />
       </div>
+
+      {(shipFrom || meta.shipVia) && (
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {shipFrom && <PartyBlock title={partyTitles?.shipFrom || 'Ship From'} party={shipFrom} />}
+          {meta.shipVia && (
+            <div className="text-xs">
+              <p className="text-gray-500 mb-1 font-medium">Ship Via:</p>
+              <p className="text-gray-700">{meta.shipVia}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contract Detail Tag (Large centered text) */}
       {meta.contractDetailTag && (

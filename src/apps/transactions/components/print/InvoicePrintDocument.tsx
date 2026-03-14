@@ -37,6 +37,17 @@ export interface InvoicePrintData {
   phone?: string;
   phoneCell?: string;
   email?: string;
+
+  // Shipping contact info
+  shipAttention?: string;
+  shipAddress1?: string;
+  shipAddress2?: string;
+  shipCity?: string;
+  shipState?: string;
+  shipZip?: string;
+  shipCountry?: string;
+  shipPhone?: string;
+  shipEmail?: string;
   
   // Document details
   dateCreated?: string;
@@ -120,7 +131,7 @@ const transformInvoiceData = (data: InvoicePrintData, lines?: InvoiceLineData[])
   };
 
   const billTo: PrintParty = {
-    attention: 'Attention Accounts Payable',
+    attention: data.attention,
     firstName: data.firstName,
     lastName: data.lastName,
     company: data.company,
@@ -130,17 +141,21 @@ const transformInvoiceData = (data: InvoicePrintData, lines?: InvoiceLineData[])
     state: data.state,
     zip: data.zip,
     country: data.country,
+    phone: data.phone,
+    email: data.email,
   };
 
   const shipTo: PrintParty = {
-    attention: data.attention,
+    attention: data.shipAttention || data.attention,
     company: data.company,
-    address1: data.address1,
-    address2: data.address2,
-    city: data.city,
-    state: data.state,
-    zip: data.zip,
-    country: data.country,
+    address1: data.shipAddress1 || data.address1,
+    address2: data.shipAddress2 || data.address2,
+    city: data.shipCity || data.city,
+    state: data.shipState || data.state,
+    zip: data.shipZip || data.zip,
+    country: data.shipCountry || data.country,
+    phone: data.shipPhone,
+    email: data.shipEmail,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
@@ -201,6 +216,8 @@ const InvoicePrintDocument: React.FC<InvoicePrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="InvoicePrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

@@ -46,6 +46,10 @@ export interface GetDetailPayload {
   related?: Record<string, any[]>;
 }
 
+type GetRecordsOptions = {
+  cacheExempt?: "default-company";
+};
+
 function getBackendErrorMessage(err: any, fallback: string): string {
   const data = err?.response?.data;
   if (!data) {
@@ -126,15 +130,24 @@ export async function getModelDetail(model_name: string) {
   }
 }
 
-export async function getRecords(model_name: string, params?: any) {
+export async function getRecords(
+  model_name: string,
+  params?: any,
+  options?: GetRecordsOptions,
+) {
   const resolved = resolveModelName(model_name);
+  const allowDefaultCompanyCache = options?.cacheExempt === "default-company";
+  const headers = allowDefaultCompanyCache
+    ? { "x-wcapi-cache-exempt": "default-company" }
+    : undefined;
   try {
     // Never cache wcapi/get calls - always fetch fresh database records
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
       `/wcapi/get/`,
       {
         params: { model_name: resolved, ...params },
-        cache: false,
+        cache: allowDefaultCompanyCache,
+        headers,
       } as any,
     );
     return res.data.data;
@@ -144,7 +157,8 @@ export async function getRecords(model_name: string, params?: any) {
         `/api/wcapi/get/`,
         {
           params: { model_name: resolved, ...params },
-          cache: false,
+          cache: allowDefaultCompanyCache,
+          headers,
         } as any,
       );
       return res2.data.data;

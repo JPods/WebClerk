@@ -10,6 +10,13 @@ import { DevTools } from './components/DevTools';
 import { AiHelpWidget } from './components/AiHelpWidget';
 import { UserIssueReporter } from './components/UserIssueReporter';
 import { DevIssueReporter } from './components/DevIssueReporter';
+import { useDefaultCompany } from './hooks/useDefaultCompany';
+
+function PrimeCompanyBootstrap() {
+  useDefaultCompany();
+
+  return null;
+}
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -48,6 +55,7 @@ export default function App() {
         <WindowManagerProvider>
           <StaffBadgePrefsProvider>
             <AuthInitializer />
+            <PrimeCompanyBootstrap />
             <div className="min-h-screen bg-slate-50 text-slate-900">
               <Router />
               {/* Fixed position badge with expandable details */}
