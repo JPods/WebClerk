@@ -158,6 +158,125 @@ Use this table structure in follow-up docs:
 - apps/orgs/services/primary_org.py
 - apps/core/models/setting.py
 
+## wc3/r25 Startup Bootstrap (Single Read)
+
+Use one startup bootstrap path in r25 to load primary organization defaults once,
+then hydrate app state from that result.
+
+### Goals
+
+- One bootstrap call at app startup, not repeated per page.
+- Resolve canonical org identity from `org_id`.
+- Keep wc2 defaults available for migration, but behind a normalized payload.
+- Fail gracefully so login/navigation still works when defaults are unavailable.
+
+### Backend Contract (wcapi Foundation)
+
+1. Read singleton setting through wcapi get:
+
+- endpoint: `GET /wcapi/get/`
+- model_name: `setting`
+- lookup: `purpose=db_defaults`, `name=primary_organization`, `is_active=true`
+
+2. Resolve `data.org_id` to canonical org record through wcapi get:
+
+- endpoint: `GET /wcapi/get/`
+- model_name: `customer` (or canonical org model key used by registry)
+- id: `org_id`
+
+3. Return (or construct in r25) a single bootstrap object:
+
+```json
+{
+  "primary_organization": {
+    "setting_id": 147,
+    "org_id": 2,
+    "display_name": "WebClerk",
+    "company": "WebClerk",
+    "org_type": "customer",
+    "is_active": true,
+    "wc2defaults": { "...": "legacy keys" }
+  },
+  "organization": {
+    "id": 2,
+    "company": "WebClerk",
+    "org_type": "customer",
+    "is_active": true
+  },
+  "config": {
+    "inventory": {},
+    "pricing": {},
+    "shipping": {},
+    "ui": {},
+    "integrations": {}
+  }
+}
+```
+
+### Frontend Runtime Rules (r25)
+
+- Run bootstrap once after auth bootstrap succeeds.
+- Store bootstrap payload in app state (Redux/React Query/context), not HTTP cache.
+- Expose one selector/hook for app-wide reads (example: `usePrimaryOrgBootstrap()`).
+- Pages/components must read from bootstrap state first and avoid direct singleton fetches.
+
+### Error and Fallback Behavior
+
+- If `primary_organization` setting is missing:
+  - set bootstrap state to `missing_defaults`
+  - continue app startup with safe defaults
+  - show operator warning in settings/admin surfaces
+- If org lookup by `org_id` fails:
+  - keep setting snapshot fields (`display_name`, `company`, `org_type`, `is_active`)
+  - mark `organization` as unresolved
+- Retry policy:
+  - one immediate retry on transient failure
+  - then backoff/manual refresh action from UI
+
+### Ownership
+
+- wc3 owns persistence and validation of `primary_organization`.
+- r25 owns bootstrap orchestration and in-memory cache lifetime.
+- Both sides treat `wc2defaults` as transitional migration data.
+
+### Implementation Checklist
+
+#### wc3 tracker
+
+| Task | Owner | Status |
+| --- | --- | --- |
+| Add or confirm service function that returns active `primary_organization` by `purpose + name`. | wc3 | todo |
+| Add or confirm service function that resolves canonical org by `org_id` and validates `is_active`. | wc3 | todo |
+| Ensure wcapi response envelope always returns `status`, `message`, `data`, `error`, `meta`. | wc3 | todo |
+| Add validation for required keys: `org_id`, `display_name`, `company`, `org_type`, `is_active`. | wc3 | todo |
+| Add guardrail so only one active `primary_organization` exists per database. | wc3 | todo |
+| Add backend test for happy path bootstrap payload shape. | wc3 | todo |
+| Add backend test for missing setting (`missing_defaults` compatible contract). | wc3 | todo |
+| Add backend test for unresolved `org_id` fallback behavior. | wc3 | todo |
+
+#### r25 tracker
+
+| Task | Owner | Status |
+| --- | --- | --- |
+| Add `bootstrapPrimaryOrganization()` to startup flow after auth bootstrap. | r25 | todo |
+| Fetch setting once through wcapi get and resolve organization once by `org_id`. | r25 | todo |
+| Normalize legacy `wc2defaults` into typed `config.*` object for UI and services. | r25 | todo |
+| Store bootstrap payload in app state (Redux/React Query/context), not HTTP cache. | r25 | todo |
+| Add `usePrimaryOrgBootstrap()` hook and shared selectors for app-wide reads. | r25 | todo |
+| Refactor pages and services that fetch singleton defaults directly to use bootstrap state. | r25 | todo |
+| Add retry behavior: one immediate retry, then manual refresh trigger. | r25 | todo |
+| Add UI warning surface when state is `missing_defaults` or `organization_unresolved`. | r25 | todo |
+
+#### Cross-stack acceptance tracker
+
+| Check | Owner | Status |
+| --- | --- | --- |
+| Cold app start performs one bootstrap sequence only. | wc3+r25 | todo |
+| No repeated singleton or org fetch loops on route changes. | wc3+r25 | todo |
+| App remains navigable when defaults are missing. | wc3+r25 | todo |
+| Bootstrap data is available before transaction and detail pages render dependent defaults. | wc3+r25 | todo |
+| Logging includes clear bootstrap status for operator diagnostics. | wc3+r25 | todo |
+
 ## Current .data Inventory (Draft)
 
 This section is auto-generated from the live `primary_organization` Setting and contains draft explanations.
