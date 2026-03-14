@@ -18,5 +18,6 @@ fi
 # Run the analyze_commits command (async, don't block the commit)
 cd "$REPO_ROOT"
 python manage.py analyze_commits --commit "$COMMIT_HASH" --quiet &>/dev/null &
+python manage.py alice_schema_watch --commit "$COMMIT_HASH" --quiet &>/dev/null &
 
 exit 0

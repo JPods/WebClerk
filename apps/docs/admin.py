@@ -44,7 +44,8 @@ class DocumentAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    list_display = ('id', 'name', 'status', 'model_name', 'mime_type', 'size_bytes', 'dt_created')
+    # Scalar fields: body, checksum, comment, confidential, count_accessed, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, mime_type, model_name, name, retention_period, search_vector, security_level, sequence, size_bytes, slug, status, uuid, version
+    list_display = ("ida", "name", "description", "status", "body", "checksum", "is_active", "dt_created")
     list_filter = ('status', 'model_name', 'confidential', 'is_active')
     search_fields = ('name', 'slug', 'description')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
@@ -97,7 +98,8 @@ class QuestionAnswerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'refs',
         'setting',
     )
-    list_display = ('id', 'question', 'answer', 'parent_model', 'parent_id', 'status', 'sequence', 'dt_created')
+    # Scalar fields: answer, answer_id, count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, parent_id, parent_model, question, question_id, search_vector, security_level, sequence, status, uuid, version
+    list_display = ("ida", "status", "answer", "answer_id", "count_accessed", "health_rating", "is_active", "dt_created")
     list_filter = ('status', 'parent_model', 'is_active')
     search_fields = ('question', 'answer', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
@@ -149,7 +151,8 @@ class TagAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    list_display = ('id', 'name', 'purpose', 'status', 'model_name', 'record_id', 'sequence', 'dt_created')
+    # Scalar fields: count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, purpose, record_id, security_level, sequence, status, uuid, version
+    list_display = ("ida", "name", "status", "count_accessed", "health_rating", "is_locked", "is_active", "dt_created")
     list_filter = ('purpose', 'status', 'model_name', 'is_active')
     search_fields = ('name', 'purpose', 'model_name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
@@ -199,7 +202,8 @@ class LinkageEntryAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    list_display = ('id', 'group_id', 'model_name', 'record_id', 'purpose', 'role', 'name', 'dt_created')
+    # Scalar fields: dt_created, dt_modified, group_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, note, purpose, record_id, role, security_level, sequence, uuid, version
+    list_display = ("ida", "name", "group_id", "health_rating", "is_locked", "model_name", "is_active", "dt_created")
     list_filter = ('model_name', 'purpose', 'role', 'is_active')
     search_fields = ('name', 'purpose', 'note', 'model_name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')

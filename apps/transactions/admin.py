@@ -3,6 +3,7 @@ from django.db import models as dj_models
 from django.utils.html import format_html
 from datetime import datetime
 from common.admin_schema_labels import SchemaLabelsAdminMixin
+from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, Order, OrderLine, Purchase, PurchaseLine,
@@ -153,14 +154,16 @@ class JSONBFieldsetMixin:
 
 @admin.register(Invoice)
 class InvoiceAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
+    list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(InvoiceLine)
 class InvoiceLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "invoice", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -175,7 +178,8 @@ class InvoiceLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTota
 
 @admin.register(WorkOrderLine)
 class WorkOrderLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "workorder", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
@@ -234,106 +238,121 @@ class WorkOrderLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTo
 
 @admin.register(Order)
 class OrderAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
+    list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(OrderLine)
 class OrderLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "order", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Purchase)
 class PurchaseAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "vendor", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
+    list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Project)
 class ProjectAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "name", "is_active", "intent", "status", "priority", "date_created")
+    # Scalar fields: attention, burndown, category, dt_created, dt_kanban, dt_modified, health_rating, id_contact, ida, intent, is_active, is_archived, is_deleted, is_locked, name, priority, profit, profit_velocity, security_level, situation, slug, status, uuid, version
+    list_display = ("ida", "name", "status", "attention", "burndown", "category", "is_active", "dt_created")
     list_filter = ("status", "priority")
     search_fields = ("id", "name", "intent", "slug")
     details_fieldset_title = "Project Details"
 
 @admin.register(PurchaseLine)
 class PurchaseLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "purchase", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Proposal)
 class ProposalAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
+    list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(ProposalLine)
 class ProposalLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "proposal", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Requisition)
 class RequisitionAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "name", "purpose", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, purpose, security_level, status, uuid, version
+    list_display = ("ida", "name", "status", "health_rating", "is_locked", "purpose", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida", "name")
 
 
 @admin.register(RequisitionLine)
 class RequisitionLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "requisition", "qty_staged", "item_ida_item", "item_description", "status", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
+    list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Receipt)
 class ReceiptAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "dt_received", "is_active", "date_created")
+    # Scalar fields: dt_created, dt_modified, dt_received, health_rating, ida, is_active, is_archived, is_deleted, is_locked, notes, security_level, source_type, uuid, version
+    list_display = ("ida", "dt_received", "health_rating", "is_locked", "notes", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("id", "ida")
 
 
 @admin.register(WorkOrder)
 class WorkOrderAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "status", "customer", "totals_total", "totals_cost", "totals_margin_pc", "totals_balance", "priority", "is_active", "date_created")
+    # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
+    list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
 @admin.register(Payment)
 class PaymentAdmin(SchemaLabelsAdminMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "ida", "contact", "amount", "status", "gateway", "dt_payment", "reconciled", "reference_number")
+    # Scalar fields: amount, dt_created, dt_modified, dt_payment, dt_processed, dt_reconciliation, fee_amount, gateway, health_rating, id_gateway_payment_intent, id_gateway_transaction, ida, is_active, is_archived, is_deleted, is_locked, notes, reconciled, reference_number, security_level, status, uuid, version
+    list_display = ("ida", "status", "amount", "dt_payment", "dt_processed", "dt_reconciliation", "is_active", "dt_created")
     list_filter = ("status", "gateway", "reconciled", "is_active")
     search_fields = ("reference_number", "id_gateway_transaction", "id_gateway_payment_intent", "notes", "ida")
     readonly_fields = ("uuid", "dt_created", "dt_modified")
 
 
 @admin.register(PaymentMethod)
-class PaymentMethodAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    list_display = ("id", "name", "is_active")
+class PaymentMethodAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
+    # Scalar fields: description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, uuid, version
+    list_display = ("ida", "name", "description", "health_rating", "is_locked", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("name", "description")
 
 
 @admin.register(PaymentTerm)
-class PaymentTermAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    list_display = ("id", "name", "days", "is_active")
+class PaymentTermAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
+    # Scalar fields: days, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, uuid, version
+    list_display = ("ida", "name", "description", "days", "health_rating", "is_locked", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("name", "description")
 
 
 @admin.register(PaymentApplication)
 class PaymentApplicationAdmin(SchemaLabelsAdminMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "payment", "invoice", "amount", "applied_at")
+    # Scalar fields: amount, applied_at, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, notes, security_level, uuid, version
+    list_display = ("ida", "amount", "applied_at", "health_rating", "is_locked", "notes", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("notes", "ida")
     readonly_fields = ("uuid", "dt_created", "dt_modified")

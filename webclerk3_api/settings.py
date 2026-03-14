@@ -894,6 +894,12 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=2, minute=0),
     },
 
+    # ── Alice schema watch (daily 2:20 AM) ─────────────────────────
+    'alice-schema-watch-nightly': {
+        'task': 'apps.ai_assistant.tasks.alice_schema_watch_task',
+        'schedule': crontab(hour=2, minute=20),
+    },
+
     # ── Data backup (daily 3 AM) ────────────────────────────────────
     'export-data-backup-daily': {
         'task': 'apps.support.scheduler.tasks.task_export_data',
