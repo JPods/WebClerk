@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * useInflightSaves — tracks background save promises so we can delay
  * window close until all writes have landed.

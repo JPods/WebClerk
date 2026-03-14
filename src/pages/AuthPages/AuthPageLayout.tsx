@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useEffect } from "react";
 import GridShape from "../../components/common/GridShape";
 import { Link, useNavigate } from "react-router";

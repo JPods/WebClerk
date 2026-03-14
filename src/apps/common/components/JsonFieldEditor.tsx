@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * JsonFieldEditor - Generic JSON editor for admin power users
  * Supports view/edit modes with syntax highlighting and validation

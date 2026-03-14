@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export default function TwentyOneIsToNine() {
   return (
     <div className="aspect-21/9 overflow-hidden rounded-lg">

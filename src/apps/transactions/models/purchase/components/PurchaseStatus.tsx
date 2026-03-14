@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { FaChevronRight, FaClock, FaCheck, FaTruck, FaArchive, FaBan } from 'react-icons/fa';
 import { usePurchaseStatus, STATUS_CONFIG, PURCHASE_STATUSES, normalizePurchaseStatus } from '../hooks/usePurchaseStatus';
 import type { PurchaseStatus, StatusTransition } from '../hooks/usePurchaseStatus';

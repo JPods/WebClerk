@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { AxiosRequestConfig } from "axios";
 
 export type RequestStatus = "running" | "success" | "error" | "canceled";

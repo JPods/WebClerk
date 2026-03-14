@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import GridShape from "../../components/common/GridShape";
 import { Link } from "react-router";
 import PageMeta from "../../components/common/PageMeta";

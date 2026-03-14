@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * PanelTable — shared tabular layout for panels with column headers,
  * visibility / order persistence, and a "Columns" badge that opens

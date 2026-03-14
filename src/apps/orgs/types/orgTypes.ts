@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Organization Types - Matches wc3 OrgBase schema exactly
  * @see webClerk3/apps/orgs/models/base.py

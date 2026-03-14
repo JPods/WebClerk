@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ContactLinksTable - Display contact links in a tabular format with draggable columns
  * This component provides a detailed table view of contacts linked to a transaction.

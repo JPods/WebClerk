@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export function to_snake(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1_$2')

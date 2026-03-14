@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ContactPanel - Display contacts grouped by purpose with editing support
  * Syncs with refs.links.contact structure from API

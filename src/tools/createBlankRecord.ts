@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Utility to create a blank record matching WC3 CoreModel, BaseModel, and model_name
 import { BaseModelFields } from '../apps/utils/kanban/taskFormTypes';
 

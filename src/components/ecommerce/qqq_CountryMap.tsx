@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // react plugin for creating vector maps
 import { VectorMap } from "@react-jvectormap/core";
 import { worldMill } from "@react-jvectormap/world";

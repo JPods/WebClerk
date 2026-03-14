@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * InventoryMonitor – floating window that polls a single Item's quantity
  * buckets every 10 seconds and displays them in real time.

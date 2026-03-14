@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Add TaskPriority type for compatibility with string-based priorities
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
 export interface LocalizedTextMap {

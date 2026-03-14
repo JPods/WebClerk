@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Contact Types — matches wc3 Contact (StandardLinksMixin + BaseModel + AbstractBaseUser)
  * @see webClerk3/apps/core/models/contact.py

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy, ComponentType } from 'react';
 import { FaCheck, FaRedo, FaDownload, FaEye, FaFilter, FaChevronDown, FaChevronRight, FaComment, FaTimes, FaCopy, FaExternalLinkAlt, FaSyncAlt } from 'react-icons/fa';
 

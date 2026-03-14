@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import ComponentCard from "../../common/ComponentCard";
 import FileInput from "../input/FileInput";
 import Label from "../Label";

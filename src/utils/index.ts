@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Utility functions salvaged from Vue2020 utils.js
 
 export const formatPhoneNum = (phoneNumberString: string): string | null => {

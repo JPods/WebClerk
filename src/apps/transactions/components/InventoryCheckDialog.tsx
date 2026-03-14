@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * InventoryCheckDialog — modal dialog that fetches and displays an item's
  * inventory quantity buckets.  Launched from the LinesCard inventory badge.

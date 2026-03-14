@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export function validate_snake_case(obj: any, path: string = "root"): void {
   if (obj === null || typeof obj !== "object") return;
   for (const key of Object.keys(obj)) {

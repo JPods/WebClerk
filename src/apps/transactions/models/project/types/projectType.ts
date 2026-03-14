@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Project Types — matches wc3 Project model
  * @see webClerk3/apps/transactions/models/project.py

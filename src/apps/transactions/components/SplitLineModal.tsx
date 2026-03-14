@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * SplitLineModal - Split a line item into multiple shipments/allocations
  * Allows dividing quantity across multiple lines with different ship dates or warehouses

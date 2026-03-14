@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * QAPanel - Unified Q&A Panel (Freeform + Template-driven)
  * 

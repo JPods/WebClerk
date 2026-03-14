@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * useConsoleCapture.ts — Captures browser console errors and unhandled
  * exceptions for the AI debugger.

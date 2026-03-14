@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useSearchParams } from 'react-router-dom';

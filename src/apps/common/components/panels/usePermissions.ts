@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * usePermissions - Hook for panel permission checking
  * Determines if current user can view or edit a panel based on their role

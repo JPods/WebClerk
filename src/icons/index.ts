@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { ReactComponent as PlusIcon } from "./plus.svg?react";
 import { ReactComponent as CloseIcon } from "./close.svg?react";
 import { ReactComponent as BoxIcon } from "./box.svg?react";

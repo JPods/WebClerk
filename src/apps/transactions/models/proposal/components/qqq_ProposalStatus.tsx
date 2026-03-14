@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { FaChevronRight, FaClock, FaCheck, FaTimes, FaBan } from 'react-icons/fa';
 import { useProposalStatus, STATUS_CONFIG } from '../hooks/useProposalStatus';
 import type { ProposalStatus } from '../hooks/useProposalStatus';

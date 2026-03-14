@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // API endpoint constants extracted and translated from vue2020
 // Base URLs
 export const BASE_URL = "http://localhost:8000"; // backend server with port
