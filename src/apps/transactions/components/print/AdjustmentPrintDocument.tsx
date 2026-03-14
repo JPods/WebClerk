@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * AdjustmentPrintDocument - Print-ready adjustment document
  * US Letter (8.5" x 11") format

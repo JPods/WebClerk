@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 type AspectRatioVideoProps = {
   videoUrl: string; // URL of the video
   aspectRatio?: string; // Aspect ratio in the format "width/height", default is "16/9"

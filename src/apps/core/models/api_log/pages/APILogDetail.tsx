@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { FaTimes, FaCopy, FaCheck } from "react-icons/fa";
 import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";

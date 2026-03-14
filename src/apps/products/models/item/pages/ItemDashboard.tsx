@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { Item } from '../../../../../model/item';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';

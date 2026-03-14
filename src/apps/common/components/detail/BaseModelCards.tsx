@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * BaseModelCards — Renders the standard Identity + Envelopes cards
  * that appear on every BaseModel-backed Detail page.

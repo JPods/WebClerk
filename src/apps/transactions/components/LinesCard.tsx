@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // is used on all order, invoice, and transfer transaction types, so it has some conditional logic based on transactionType prop and the shape of the line objects (which can vary between transactions and between existing lines vs new lines being added from the item search)
 import React from "react";
 import {

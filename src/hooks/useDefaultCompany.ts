@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * useDefaultCompany Hook
  * Fetches company branding from primary_organization (db_defaults)

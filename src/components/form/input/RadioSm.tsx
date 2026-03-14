@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 interface RadioProps {
   id: string; // Unique ID for the radio button
   name: string; // Group name for the radio button

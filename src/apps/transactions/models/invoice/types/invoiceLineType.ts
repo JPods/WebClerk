@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * InvoiceLine Types — matches wc3 InvoiceLine (BaseSellLineModel → BaseLineCore → BaseModel)
  * @see webClerk3/apps/transactions/models/invoice_line.py

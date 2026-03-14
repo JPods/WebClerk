@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * OrgDetail - Base organization detail/edit component
  * Provides a reusable tabbed interface for viewing/editing org aspects

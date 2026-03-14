@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * OrderLine Types — matches wc3 OrderLine (BaseSellLineModel → BaseLineCore → BaseModel)
  * @see webClerk3/apps/transactions/models/order_line.py

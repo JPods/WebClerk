@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * AiHelpWidget.tsx — Floating AI assistant chat widget with mode switching
  * and browser console error capture.

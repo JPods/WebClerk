@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ActivityLogTab - Shows transaction history and audit log
  * Displays timeline of changes, actions, and events

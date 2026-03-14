@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // TypeScript interfaces for Item model, matching Django schema as closely as possible.
 // Extend as needed for richer typing and API integration.
 

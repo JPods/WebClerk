@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * PrintDocumentLayout - Base layout for print-ready documents
  * US Letter size (8.5" x 11") optimized

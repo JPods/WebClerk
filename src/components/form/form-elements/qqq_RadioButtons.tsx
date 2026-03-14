@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Radio from "../input/Radio";

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export default function TwoColumnImageGrid() {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

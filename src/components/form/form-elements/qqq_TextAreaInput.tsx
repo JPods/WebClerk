@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useMemo } from "react";
 import { FieldError, useForm } from "react-hook-form";
 import ComponentCard from "../../common/ComponentCard";

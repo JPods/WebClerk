@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * TransactionTotals — Display component for the three-envelope totals shape
  * returned by computeHeaderTotals / useRealTimeCalculations.

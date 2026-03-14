@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * UsageDisplay - Follows 3-column standard with tab navigation
  * Tabs: Actions, Comments, Documents, History, Raw

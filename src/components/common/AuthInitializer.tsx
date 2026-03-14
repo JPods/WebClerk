@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useEffect } from "react";
 import { mapApiProfileToUser, userDetails } from "../../api/auth";
 import { bootstrapAuth, clearTokens } from "../../api/axios";

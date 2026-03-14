@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * fieldDefaults.ts — Field-level behavior rules (r25 source of truth)
  *

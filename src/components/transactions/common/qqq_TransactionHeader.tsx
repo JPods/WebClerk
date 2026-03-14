@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useState, useEffect } from 'react';
 import { useWCAPI } from '../../../hooks/useWCAPI';
 

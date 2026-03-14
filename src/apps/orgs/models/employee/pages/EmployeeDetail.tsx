@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * EmployeeDetail - Employee detail/edit component using OrgDetail base
  * Admin-only access, uses shared org infrastructure

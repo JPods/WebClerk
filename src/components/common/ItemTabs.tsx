@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ItemTabs - Third-row tab bar for navigating item sub-types (lines & serials)
  *

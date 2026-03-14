@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Network information for different base URLs
 // VITE_API_URL / VITE_API_URL_PROD -> Protected (post-login) API
 // VITE_AUTH_API_URL / VITE_AUTH_API_URL_PROD -> Auth server (login, refresh, signup)

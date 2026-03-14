@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * useDragAndDrop - Custom hook for drag and drop reordering
  * Uses HTML5 Drag and Drop API for simple list reordering

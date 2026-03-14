@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import jsPDF from 'jspdf';
 import { generateProposalPdf } from '../proposalPdfService';

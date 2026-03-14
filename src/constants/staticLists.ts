@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export const staticLists = {
   companyLatLng: [['lat', '38.7634288'], ['lng', '-92.4900556']],
   aQAType: [

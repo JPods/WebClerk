@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Helper: map user JSON to OrderPrintData and OrderLineData
 export function mapJsonToOrderPrintData(json: any): {
   data: OrderPrintData;

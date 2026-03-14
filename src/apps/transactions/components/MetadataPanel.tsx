@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * MetadataPanel - Admin-only collapsible metadata display
  * Shows history, health, access, flags, versioning

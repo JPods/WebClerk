@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import DataTableBase, {
   TableColumn,

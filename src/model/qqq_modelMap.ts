@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Canonical mapping of domain terms used in UI → backend model_name
 export const Model = {
   product: 'item',

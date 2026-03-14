@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Item Types — matches wc3 Item (StatsMixin + BaseModel)
  * @see webClerk3/apps/products/models/item.py
