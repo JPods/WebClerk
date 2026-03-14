@@ -91,6 +91,46 @@ stop_celery() {
   pkill -f "celery -A webclerk3_api" 2>/dev/null || true
 }
 
+print_prime_startup_info() {
+  echo "[startup] Prime setting + org snapshot"
+  "$PY_BIN" manage.py shell <<'PY' || true
+from apps.core.models import Setting
+from apps.orgs.models import OrgBase
+
+rows = list(Setting.objects.filter(purpose='db_defaults', name='primary_organization', is_active=True).order_by('-id')[:1])
+if not rows:
+    print('[startup] primary_organization setting: MISSING')
+    raise SystemExit(0)
+
+s = rows[0]
+d = s.data or {}
+model_name = d.get('model_name') or d.get('org_type') or 'customer'
+org_id = d.get('id') or d.get('org_id')
+print(f"[startup] setting_id={s.id} model_name={model_name} id={org_id} company={d.get('company')}")
+
+if not org_id:
+    print('[startup] prime org: MISSING id in setting.data (id/org_id)')
+    raise SystemExit(0)
+
+try:
+    oid = int(org_id)
+except Exception:
+    print(f"[startup] prime org: INVALID id value: {org_id}")
+    raise SystemExit(0)
+
+org = OrgBase.objects.filter(pk=oid).first()
+if not org:
+    print(f"[startup] prime org: NOT FOUND id={oid}")
+    raise SystemExit(0)
+
+print(
+    f"[startup] prime org id={org.id} org_type={org.org_type} "
+    f"company={org.company} phone={org.phone} email={org.email} "
+    f"attention={getattr(org, 'attention', None)} address_full={getattr(org, 'address_full', None)}"
+)
+PY
+}
+
 # ── Ensure Ollama is running for LLM features ───────────────────
 ensure_ollama() {
   # Check if ollama is installed
@@ -132,6 +172,7 @@ trap stop_celery EXIT
 
 while true; do
   free_port_8000
+  print_prime_startup_info
   set +e
   "$PY_BIN" manage.py runserver
   EXIT_CODE=$?
