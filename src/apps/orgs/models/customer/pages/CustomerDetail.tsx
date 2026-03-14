@@ -9,7 +9,6 @@ import { Input, Select } from "../../../../../components/wrapper";
 import {
   createCustomer,
   updateCustomer,
-  fetchCustomers,
   deleteCustomer,
 } from "../services/customerApi";
 import {
@@ -48,8 +47,10 @@ import {
   normalizeRefsLinksContact,
   CoreTabPanel,
 } from "@/apps/common/components/panels";
-import TransactionTabPanel from "@/components/common/TransactionTabPanel";
-import ItemTabs from "@/components/common/ItemTabs";
+import TransactionTabPanel, {
+  TransactionSelection,
+} from "@/components/common/TransactionTabPanel";
+import LinesPanel from "@/components/common/LinesPanel";
 import {
   useDetailTabs,
   useColumnCount,
@@ -297,6 +298,8 @@ function CustomerDetail({
   const [projectOptions, setProjectOptions] = useState<
     Array<{ id: string; name?: string; intent?: string }>
   >([]);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<TransactionSelection | null>(null);
 
   // Detect mode from route if modeProp not provided
   const routeMode = useMemo(() => {
@@ -322,14 +325,14 @@ function CustomerDetail({
     if (dataProp) return; // Skip if data provided via props
     // Respect explicit modeProp (inline add) as well as route-derived mode
     if (modeProp === "add" || routeMode === "add") return; // No fetch needed for add mode
-    if (!Number.isFinite(customerId)) return;
+    if (!Number.isFinite(customerId) || customerId <= 0) return;
 
     setLoading(true);
     setError(null);
-    fetchCustomers(customerId)
-      .then((res) => {
-        const data = res?.data?.items || res?.data;
-        setFetchedRecord(data || null);
+    getRecord("customer", customerId)
+      .then((res: any) => {
+        const record = res?.record ?? res;
+        setFetchedRecord(record || null);
       })
       .catch((err) => {
         setError(err?.message || "Failed to load customer.");
@@ -415,7 +418,7 @@ function CustomerDetail({
   // to avoid re-triggering when other windows change the browser URL.
   useEffect(() => {
     if (inline) return; // Skip window management for inline rendering
-    const record = dataProp || fetchedRecord;
+    const record = fetchedRecord || dataProp;
     if (!record && routeMode !== "add") return;
     const title =
       record?.display_name ||
@@ -430,7 +433,7 @@ function CustomerDetail({
         ? "/org/customer/add"
         : `/org/customer/detail/${custId}`;
     ensureWindow(stablePath, `${prefix}${title}`, { maximized: false });
-  }, [inline, dataProp, fetchedRecord, ensureWindow, customerId, routeMode]);
+  }, [inline, fetchedRecord, dataProp, ensureWindow, customerId, routeMode]);
 
   // ---------------------------------------------------------------------------
   // Nav Arrows (prev/next from list order)
@@ -469,7 +472,7 @@ function CustomerDetail({
       return;
     }
     // Use stable path for closing window
-    const record = dataProp || fetchedRecord;
+    const record = fetchedRecord || dataProp;
     const custId = record?.id ?? customerId;
     const stablePath =
       routeMode === "add"
@@ -488,7 +491,7 @@ function CustomerDetail({
   // Removed duplicate openRecord. Using the new openRecord handler below.
 
   const handleDeleteClick = useCallback(async () => {
-    const record = dataProp || fetchedRecord;
+    const record = fetchedRecord || dataProp;
     if (onDeleteProp) {
       onDeleteProp();
       return;
@@ -554,10 +557,8 @@ function CustomerDetail({
   const mode: "add" | "edit" | "view" =
     baseMode === "view" && isEditing ? "edit" : baseMode;
   const data = useMemo(() => {
-    if (dataProp || fetchedRecord) {
-      // Prefer live fetched changes over initial prop payload to ensure tabs render updates
-      return { ...(dataProp || {}), ...(fetchedRecord || {}) } as any;
-    }
+    if (fetchedRecord) return fetchedRecord as any;
+    if (dataProp) return dataProp as any;
     return routeState.data || null;
   }, [dataProp, fetchedRecord, routeState.data]);
 
@@ -731,6 +732,19 @@ function CustomerDetail({
               org_type: "customer" as const,
             });
       if (res) {
+        const savedId = Number(res?.id ?? data?.id ?? customerId);
+        if (Number.isFinite(savedId) && savedId > 0) {
+          try {
+            const refreshed = await getRecord("customer", savedId);
+            const next = (refreshed as any)?.record ?? refreshed;
+            if (next) {
+              setFetchedRecord(next as any);
+            }
+          } catch (refreshErr) {
+            console.error("[CustomerDetail] post-save refresh failed:", refreshErr);
+          }
+        }
+
         dispatch(
           showToast({
             message: `Customer ${
@@ -1325,11 +1339,13 @@ function CustomerDetail({
             entityType="customer"
             activeTab={activeTab}
             onTabChange={handleTabChange}
-            standardTabs={CUSTOMER_STANDARD_TABS}
+            standardTabs={CUSTOMER_STANDARD_TABS as Array<
+              "actions" | "comments" | "documents" | "raw"
+            >}
             additionalTabs={CUSTOMER_ADDITIONAL_TABS}
             tabBadges={tabBadges}
             columnCount={columnCount}
-            onColumnCountChange={handleColumnChange}
+            onColumnCountChange={(count) => handleColumnChange(count as 2 | 3)}
             data={data}
             entityId={data?.id || 0}
             mode={mode}
@@ -1408,23 +1424,36 @@ function CustomerDetail({
             customer_id={customerData.id}
             contactOptions={contactOptions}
             projectOptions={projectOptions}
-            currentUser={currentUser}
+            currentUser={
+              currentUser
+                ? {
+                    id:
+                      typeof currentUser.id === "number"
+                        ? currentUser.id
+                        : Number(currentUser.id) || undefined,
+                    name_first: currentUser.name_first,
+                    name_last: currentUser.name_last,
+                  }
+                : undefined
+            }
           />
 
           {/* ── Transactions ────────────────────────────────────── */}
           <div className="flex-1 cus-bg-black-light rounded-md">
             <div className="p-2">
-                <TransactionTabPanel
+              <TransactionTabPanel
                 orgType="customer"
                 orgId={customerData.id!}
+                financial={customerData?.financial}
+                onTransactionModifierClick={setSelectedTransaction}
               />
             </div>
           </div>
 
-          {/* ── Products ────────────────────────────────────── */}
+          {/* ── Lines (read-only) ───────────────────────────── */}
           <div className="flex-1 cus-bg-black-light rounded-md">
             <div className="p-2">
-              <ItemTabs orgType="customer" orgId={customerData.id!} />
+              <LinesPanel selection={selectedTransaction} />
             </div>
           </div>
         </div>

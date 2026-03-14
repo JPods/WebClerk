@@ -10,7 +10,6 @@ import { DevBadge } from "@/components/common/DevBadge";
 import {
   createRep,
   updateRep,
-  fetchReps,
 } from "../services/repApi";
 import {
   getRecord,
@@ -170,7 +169,7 @@ function RepDetail({
     control,
     watch,
   } = useForm<RepFormValues>({
-    resolver: zodResolver(repSchema),
+    resolver: zodResolver(repSchema) as any,
     defaultValues: { is_active: false, version: 1, org_type: "rep" },
   });
 
@@ -185,9 +184,8 @@ function RepDetail({
     baseMode === "view" && isEditing ? "edit" : baseMode;
 
   const data = useMemo(() => {
-    if (dataProp || fetchedRecord) {
-      return { ...(dataProp || {}), ...(fetchedRecord || {}) } as any;
-    }
+    if (fetchedRecord) return fetchedRecord as any;
+    if (dataProp) return dataProp as any;
     return routeState.data || null;
   }, [dataProp, fetchedRecord, routeState.data]);
 
@@ -204,9 +202,9 @@ function RepDetail({
     if (!Number.isFinite(repId) || repId <= 0) return;
     setLoading(true);
     setError(null);
-    fetchReps(repId)
-      .then((res) => {
-        const record = res?.data?.items || res?.data;
+    getRecord("rep", repId)
+      .then((res: any) => {
+        const record = res?.record ?? res;
         setFetchedRecord(record || null);
       })
       .catch((err) => setError(err?.message || "Failed to load rep."))
@@ -518,10 +516,10 @@ function RepDetail({
               isDirty={isDirty}
               isSaving={isSubmitting}
               isEditing
-              onSave={handleSubmit(onSubmit)}
+              onSave={handleSubmit(onSubmit as any)}
               onSaveAndClose={
                 inline && onCancelInline
-                  ? handleSubmit(async (fd) => {
+                  ? handleSubmit(async (fd: any) => {
                       await onSubmit(fd);
                       onCancelInline();
                     })
@@ -639,12 +637,14 @@ function RepDetail({
               entityType="rep"
               activeTab={activeTab}
               onTabChange={handleTabChange}
-              standardTabs={REP_STANDARD_TABS}
+              standardTabs={REP_STANDARD_TABS as Array<
+                "actions" | "comments" | "documents" | "raw"
+              >}
               additionalTabs={REP_ADDITIONAL_TABS}
               tabBadges={tabBadges}
               showColumnSelector
               columnCount={columnCount}
-              onColumnCountChange={handleColumnChange}
+              onColumnCountChange={(count) => handleColumnChange(count as 2 | 3)}
               data={data}
               entityId={data?.id || 0}
               mode={mode}
@@ -694,7 +694,18 @@ function RepDetail({
               }}
               contactOptions={contactOptions}
               projectOptions={projectOptions}
-              currentUser={currentUser ?? undefined}
+              currentUser={
+                currentUser
+                  ? {
+                      id:
+                        typeof currentUser.id === "number"
+                          ? currentUser.id
+                          : Number(currentUser.id) || undefined,
+                      name_first: currentUser.name_first,
+                      name_last: currentUser.name_last,
+                    }
+                  : undefined
+              }
             />
           </div>
         )}

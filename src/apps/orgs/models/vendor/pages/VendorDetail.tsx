@@ -28,13 +28,9 @@ import {
   FaChevronRight,
   FaEdit,
   FaTrash,
-  FaDollarSign,
   FaAddressCard,
   FaQuestionCircle,
   FaTimes,
-  FaProductHunt,
-  FaComment,
-  FaTruckLoading,
 } from "react-icons/fa";
 import { vendorSchema } from "../utils/vendorSchema";
 import {
@@ -53,8 +49,10 @@ import {
   CoreTabPanel,
   normalizeRefsLinksContact,
 } from "@/apps/common/components/panels";
-import TransactionTabPanel from "@/components/common/TransactionTabPanel";
-import ItemTabs from "@/components/common/ItemTabs";
+import TransactionTabPanel, {
+  TransactionSelection,
+} from "@/components/common/TransactionTabPanel";
+import LinesPanel from "@/components/common/LinesPanel";
 import {
   useDetailTabs,
   useColumnCount,
@@ -224,7 +222,6 @@ const VALID_TABS = [
   "comments",
   "contacts",
   "documents",
-  "financial",
   "history",
   "metadata",
   "prefs",
@@ -237,8 +234,6 @@ export const VENDOR_STANDARD_TABS = ["actions", "comments", "documents", "raw"];
 
 export const VENDOR_ADDITIONAL_TABS = [
   { id: "contacts", label: "Contacts", icon: <FaAddressCard size={14} /> },
-  { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-  { id: "items", label: "Items", icon: <FaTruckLoading size={14} /> },
   { id: "qa", label: "Q&A", icon: <FaQuestionCircle size={14} /> },
 ];
 
@@ -318,6 +313,8 @@ function VendorDetail({
   const [projectOptions, setProjectOptions] = useState<
     Array<{ id: string; name?: string; intent?: string }>
   >([]);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<TransactionSelection | null>(null);
 
   // Detect mode from route if modeProp not provided
   const routeMode = useMemo(() => {
@@ -1329,7 +1326,7 @@ function VendorDetail({
       </div>
       {/* Scrollable content: detail panels · transactions · items */}
       {mode !== "add" ? (
-        <div className="flex-1 overflow-y-auto">
+        <div className="space-y-2 px-4 py-2">
           <CoreTabPanel
             entityType="vendor"
             activeTab={activeTab}
@@ -1420,17 +1417,26 @@ function VendorDetail({
             contactOptions={contactOptions}
             projectOptions={projectOptions}
             currentUser={currentUser ?? undefined}
-            extraTabContent={
-              <>
-                {activeTab === "financial" && (
-                  <TransactionTabPanel orgType="vendor" orgId={vendorData.id!} />
-                )}
-                {activeTab === "items" && (
-                  <ItemTabs orgType="vendor" orgId={vendorData.id!} />
-                )}
-              </>
-            }
           />
+
+          {/* ── Transactions ────────────────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+              <TransactionTabPanel
+                orgType="vendor"
+                orgId={vendorData.id!}
+                financial={vendorData?.financial}
+                onTransactionModifierClick={setSelectedTransaction}
+              />
+            </div>
+          </div>
+
+          {/* ── Lines (read-only) ───────────────────────────── */}
+          <div className="flex-1 cus-bg-black-light rounded-md">
+            <div className="p-2">
+              <LinesPanel selection={selectedTransaction} />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-between py-2 gap-4">
