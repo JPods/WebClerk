@@ -17,7 +17,7 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { useWindowManager } from "@/context/WindowManagerContext";
-import { getRecords } from "@/api/wcapi";
+import { getModelNames, getRecords } from "@/api/wcapi";
 import {
   getModelDetailPath,
   getModelWindowTitle,
@@ -101,21 +101,43 @@ const ItemTabs: React.FC<ItemTabsProps> = ({
   const [lines, setLines] = useState<LineItemRecord[]>([]);
   const [serials, setSerials] = useState<SerialRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canFetchLines, setCanFetchLines] = useState<boolean | null>(null);
 
   const windowManager = useWindowManager();
 
   const filterField = orgType === "customer" ? "customer_id" : "vendor_id";
 
+  // Discover if the backend exposes the generic "line" model to avoid 400s
+  useEffect(() => {
+    let cancelled = false;
+    getModelNames()
+      .then((payload) => {
+        if (cancelled) return;
+        const names = payload?.model_names || [];
+        setCanFetchLines(names.includes("line"));
+      })
+      .catch(() => {
+        if (!cancelled) setCanFetchLines(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Fetch lines and serials in parallel
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || canFetchLines === null) return;
     let cancelled = false;
     setLoading(true);
 
+    const linePromise = canFetchLines
+      ? getRecords("line", { [filterField]: orgId, limit: 200 }).catch(() => ({
+          results: [],
+        }))
+      : Promise.resolve({ results: [] });
+
     Promise.all([
-      getRecords("line", { [filterField]: orgId, limit: 200 }).catch(() => ({
-        results: [],
-      })),
+      linePromise,
       getRecords("serial", { [filterField]: orgId, limit: 200 }).catch(() => ({
         results: [],
       })),
@@ -129,7 +151,7 @@ const ItemTabs: React.FC<ItemTabsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [orgId, filterField]);
+  }, [orgId, filterField, canFetchLines]);
 
   const totalCount = lines.length + serials.length;
 

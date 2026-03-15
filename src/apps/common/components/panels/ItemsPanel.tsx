@@ -15,12 +15,12 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { useWindowManager } from "@/context/WindowManagerContext";
-import { getRecords } from "@/api/wcapi";
+import { getModelNames, getRecords } from "@/api/wcapi";
 import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { PanelTable } from "./PanelTable";
 import type { PanelColumnDef } from "./PanelTable";
 
@@ -126,6 +126,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
   const [lines, setLines] = useState<LineItemRecord[]>([]);
   const [serials, setSerials] = useState<SerialRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canFetchLines, setCanFetchLines] = useState<boolean | null>(null);
 
   const windowManager = useWindowManager();
 
@@ -136,56 +137,158 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
     forceReadOnly: true,
   });
 
-  const filterField =
-    orgType === "customer" ? "customer_id" : "vendor_id";
+  const filterField = orgType === "customer" ? "customer_id" : "vendor_id";
+
+  // Discover if the backend exposes the generic "line" model to avoid 400s
+  useEffect(() => {
+    let cancelled = false;
+    getModelNames()
+      .then((payload) => {
+        if (cancelled) return;
+        const names = payload?.model_names || [];
+        setCanFetchLines(names.includes("line"));
+      })
+      .catch(() => {
+        if (!cancelled) setCanFetchLines(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Column definitions for line items
-  const lineColumns = useMemo<PanelColumnDef<LineItemRecord>[]>(() => [
-    { key: "ida", label: "ida", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
-      render: (r) => r.item_ida ?? r.ida ?? `#${r.id}` },
-    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
-      render: (r) => r.item_name ?? r.description ?? "—" },
-    { key: "description", label: "description", defaultVisible: false, cellClassName: "text-slate-500 dark:text-slate-400 min-w-[100px] flex-1",
-      render: (r) => (r.description && r.description !== r.item_name ? r.description : "—") },
-    { key: "quantity", label: "qty", cellClassName: "text-slate-600 dark:text-slate-300 w-[60px] text-right",
-      render: (r) => formatQty(r.quantity) },
-    { key: "unit_price", label: "unit_price", cellClassName: "text-slate-600 dark:text-slate-300 w-[80px] text-right",
-      render: (r) => formatCurrency(r.unit_price, r.currency) },
-    { key: "total", label: "total", cellClassName: "font-medium text-slate-700 dark:text-slate-200 w-[80px] text-right",
-      render: (r) => formatCurrency(r.total, r.currency) },
-    { key: "status", label: "status", defaultVisible: false, cellClassName: "w-[70px]",
-      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{String(r.status)}</span> : "—" },
-    { key: "source_ida", label: "source", cellClassName: "text-slate-400 font-mono w-[70px]",
-      render: (r) => r.source_ida ?? "—" },
-  ], []);
+  const lineColumns = useMemo<PanelColumnDef<LineItemRecord>[]>(
+    () => [
+      {
+        key: "ida",
+        label: "ida",
+        cellClassName:
+          "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
+        render: (r) => r.item_ida ?? r.ida ?? `#${r.id}`,
+      },
+      {
+        key: "item_name",
+        label: "item_name",
+        cellClassName:
+          "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+        render: (r) => r.item_name ?? r.description ?? "—",
+      },
+      {
+        key: "description",
+        label: "description",
+        defaultVisible: false,
+        cellClassName:
+          "text-slate-500 dark:text-slate-400 min-w-[100px] flex-1",
+        render: (r) =>
+          r.description && r.description !== r.item_name ? r.description : "—",
+      },
+      {
+        key: "quantity",
+        label: "qty",
+        cellClassName: "text-slate-600 dark:text-slate-300 w-[60px] text-right",
+        render: (r) => formatQty(r.quantity),
+      },
+      {
+        key: "unit_price",
+        label: "unit_price",
+        cellClassName: "text-slate-600 dark:text-slate-300 w-[80px] text-right",
+        render: (r) => formatCurrency(r.unit_price, r.currency),
+      },
+      {
+        key: "total",
+        label: "total",
+        cellClassName:
+          "font-medium text-slate-700 dark:text-slate-200 w-[80px] text-right",
+        render: (r) => formatCurrency(r.total, r.currency),
+      },
+      {
+        key: "status",
+        label: "status",
+        defaultVisible: false,
+        cellClassName: "w-[70px]",
+        render: (r) =>
+          r.status ? (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+              {String(r.status)}
+            </span>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        key: "source_ida",
+        label: "source",
+        cellClassName: "text-slate-400 font-mono w-[70px]",
+        render: (r) => r.source_ida ?? "—",
+      },
+    ],
+    [],
+  );
 
   // Column definitions for serials
-  const serialColumns = useMemo<PanelColumnDef<SerialRecord>[]>(() => [
-    { key: "serial_number", label: "serial", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[100px]",
-      render: (r) => r.serial_number ?? r.ida ?? `#${r.id}` },
-    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
-      render: (r) => r.item_name ?? "—" },
-    { key: "status", label: "status", cellClassName: "w-[80px]",
-      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{r.status}</span> : "—" },
-    { key: "location", label: "location", cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
-      render: (r) => r.location ?? "—" },
-    { key: "dt_created", label: "dt_created", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
-      render: (r) => formatDate(r.dt_created) },
-  ], []);
+  const serialColumns = useMemo<PanelColumnDef<SerialRecord>[]>(
+    () => [
+      {
+        key: "serial_number",
+        label: "serial",
+        cellClassName:
+          "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[100px]",
+        render: (r) => r.serial_number ?? r.ida ?? `#${r.id}`,
+      },
+      {
+        key: "item_name",
+        label: "item_name",
+        cellClassName:
+          "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+        render: (r) => r.item_name ?? "—",
+      },
+      {
+        key: "status",
+        label: "status",
+        cellClassName: "w-[80px]",
+        render: (r) =>
+          r.status ? (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+              {r.status}
+            </span>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        key: "location",
+        label: "location",
+        cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
+        render: (r) => r.location ?? "—",
+      },
+      {
+        key: "dt_created",
+        label: "dt_created",
+        defaultVisible: false,
+        cellClassName: "text-slate-400 w-[80px]",
+        render: (r) => formatDate(r.dt_created),
+      },
+    ],
+    [],
+  );
 
-  // Fetch lines and serials in parallel
+  // Fetch lines and serials in parallel (skip lines if model is unavailable)
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || canFetchLines === null) return;
     let cancelled = false;
     setLoading(true);
 
+    const linePromise = canFetchLines
+      ? getRecords("line", { [filterField]: orgId, limit: 200 }).catch(() => ({
+          results: [],
+        }))
+      : Promise.resolve({ results: [] });
+
     Promise.all([
-      getRecords("line", { [filterField]: orgId, limit: 200 }).catch(
-        () => ({ results: [] })
-      ),
-      getRecords("serial", { [filterField]: orgId, limit: 200 }).catch(
-        () => ({ results: [] })
-      ),
+      linePromise,
+      getRecords("serial", { [filterField]: orgId, limit: 200 }).catch(() => ({
+        results: [],
+      })),
     ]).then(([lineResult, serialResult]) => {
       if (cancelled) return;
       setLines((lineResult as any)?.results ?? []);
@@ -196,7 +299,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [orgId, filterField]);
+  }, [orgId, filterField, canFetchLines]);
 
   if (canView === false) return null;
 
@@ -207,13 +310,23 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
   const handleItemClick = (line: LineItemRecord) => {
     if (!line.item_id) return;
     const path = getModelDetailPath("item", line.item_id);
-    const title = getModelWindowTitle("item", line.item_id, line.item_ida, line.item_name);
+    const title = getModelWindowTitle(
+      "item",
+      line.item_id,
+      line.item_ida,
+      line.item_name,
+    );
     windowManager.ensureWindow(path, title, { maximized: false });
   };
 
   const handleSerialClick = (serial: SerialRecord) => {
     const path = getModelDetailPath("serial", serial.id);
-    const title = getModelWindowTitle("serial", serial.id, serial.ida, serial.serial_number);
+    const title = getModelWindowTitle(
+      "serial",
+      serial.id,
+      serial.ida,
+      serial.serial_number,
+    );
     windowManager.ensureWindow(path, title, { maximized: false });
   };
 
@@ -290,23 +403,21 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
                 />
               </div>
             )
+          ) : totalSerials === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-6">
+              No serials found.
+            </p>
           ) : (
-            totalSerials === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">
-                No serials found.
-              </p>
-            ) : (
-              <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
-                <PanelTable<SerialRecord>
-                  storageKey="panel:items:serials"
-                  columns={serialColumns}
-                  data={serials}
-                  rowKey={(r) => r.id}
-                  onRowAction={(r) => handleSerialClick(r)}
-                  compact={compact}
-                />
-              </div>
-            )
+            <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+              <PanelTable<SerialRecord>
+                storageKey="panel:items:serials"
+                columns={serialColumns}
+                data={serials}
+                rowKey={(r) => r.id}
+                onRowAction={(r) => handleSerialClick(r)}
+                compact={compact}
+              />
+            </div>
           )}
         </div>
       )}
@@ -314,4 +425,4 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ItemsPanel, 'ItemsPanel', 'teal');
+export default withDevIdentifier(ItemsPanel, "ItemsPanel", "teal");

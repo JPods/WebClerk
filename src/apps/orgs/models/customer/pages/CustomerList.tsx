@@ -466,7 +466,8 @@ export default function CustomerList() {
               searchPlaceholder="Search customer, display_name, org_type..."
               noDataMessage="No customer found"
               customActions={customActions}
-              onRowClicked={handleView}
+              //onRowClicked={handleView}
+              onRowDoubleClicked={handleView}
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
               filtersOpen={filtersOpen}

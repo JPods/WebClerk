@@ -9,7 +9,7 @@
  *
  * @see readmes/tab-navigation.md — Tier 2 Org Tabs
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -23,7 +23,7 @@ import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { PanelTable } from "./PanelTable";
 import type { PanelColumnDef } from "./PanelTable";
 
@@ -135,6 +135,9 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [data, setData] = useState<Record<string, TransactionRecord[]>>({});
   const [loading, setLoading] = useState(true);
+  const inflightRequests = useRef<
+    Map<string, Promise<Record<string, TransactionRecord[]>>>
+  >(new Map());
 
   const windowManager = useWindowManager();
 
@@ -148,53 +151,114 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   const tables = useMemo(() => SUB_TABLES[orgType] ?? [], [orgType]);
 
   // Column definitions for transaction rows
-  const txnColumns = useMemo<PanelColumnDef<TransactionRecord>[]>(() => [
-    { key: "ida", label: "ida", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
-      render: (r) => r.ida ?? `#${r.id}` },
-    { key: "name", label: "name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
-      render: (r) => r.name ?? "\u2014" },
-    { key: "status", label: "status", cellClassName: "w-[80px]",
-      render: (r) => r.status ? <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">{r.status}</span> : "\u2014" },
-    { key: "total", label: "total", cellClassName: "text-slate-600 dark:text-slate-300 w-[90px] text-right",
-      render: (r) => formatCurrency(r.total, r.currency) },
-    { key: "dt_created", label: "dt_created", cellClassName: "text-slate-400 w-[80px]",
-      render: (r) => formatDate(r.dt_created) },
-    { key: "dt_modified", label: "dt_modified", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
-      render: (r) => formatDate(r.dt_modified) },
-  ], []);
+  const txnColumns = useMemo<PanelColumnDef<TransactionRecord>[]>(
+    () => [
+      {
+        key: "ida",
+        label: "ida",
+        cellClassName:
+          "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
+        render: (r) => r.ida ?? `#${r.id}`,
+      },
+      {
+        key: "name",
+        label: "name",
+        cellClassName:
+          "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+        render: (r) => r.name ?? "\u2014",
+      },
+      {
+        key: "status",
+        label: "status",
+        cellClassName: "w-[80px]",
+        render: (r) =>
+          r.status ? (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+              {r.status}
+            </span>
+          ) : (
+            "\u2014"
+          ),
+      },
+      {
+        key: "total",
+        label: "total",
+        cellClassName: "text-slate-600 dark:text-slate-300 w-[90px] text-right",
+        render: (r) => formatCurrency(r.total, r.currency),
+      },
+      {
+        key: "dt_created",
+        label: "dt_created",
+        cellClassName: "text-slate-400 w-[80px]",
+        render: (r) => formatDate(r.dt_created),
+      },
+      {
+        key: "dt_modified",
+        label: "dt_modified",
+        defaultVisible: false,
+        cellClassName: "text-slate-400 w-[80px]",
+        render: (r) => formatDate(r.dt_modified),
+      },
+    ],
+    [],
+  );
 
   // Fetch all sub-tables in parallel
   useEffect(() => {
     if (!orgId) return;
+    const cacheKey = `${orgType}-${orgId}`;
     let cancelled = false;
     setLoading(true);
 
-    Promise.all(
-      tables.map(async (t) => {
-        try {
-          const result = await getRecords(t.model, {
-            [t.filterField]: orgId,
-            limit: 100,
-          });
-          return { model: t.model, records: result?.results ?? [] };
-        } catch {
-          return { model: t.model, records: [] };
-        }
-      }),
-    ).then((results) => {
-      if (cancelled) return;
+    const executeFetch = async (): Promise<
+      Record<string, TransactionRecord[]>
+    > => {
+      const results = await Promise.all(
+        tables.map(async (t) => {
+          try {
+            const result = await getRecords(t.model, {
+              [t.filterField]: orgId,
+              limit: 100,
+            });
+            return { model: t.model, records: result?.results ?? [] };
+          } catch {
+            return { model: t.model, records: [] };
+          }
+        }),
+      );
+
       const map: Record<string, TransactionRecord[]> = {};
       results.forEach((r) => {
         map[r.model] = r.records;
       });
-      setData(map);
-      setLoading(false);
-    });
+      return map;
+    };
+
+    const existingRequest = inflightRequests.current.get(cacheKey);
+    const request = existingRequest ?? executeFetch();
+    inflightRequests.current.set(cacheKey, request);
+
+    request
+      .then((map) => {
+        if (cancelled) return;
+        setData(map);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData({});
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+        if (inflightRequests.current.get(cacheKey) === request) {
+          inflightRequests.current.delete(cacheKey);
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [orgId, tables]);
+  }, [orgId, orgType, tables]);
 
   if (canView === false) return null;
 

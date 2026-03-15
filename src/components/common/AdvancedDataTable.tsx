@@ -12,10 +12,7 @@ import { FaGripVertical } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-  parseFragments,
-  matchesFragments,
-} from "@/utils/searchFragments";
+import { parseFragments, matchesFragments } from "@/utils/searchFragments";
 
 /**
  * @deprecated Import from '@/utils/searchFragments' instead.
@@ -347,12 +344,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
     setColumns(ordered);
     setColumnVisibility(visibilityArr);
     didHydrateLayoutRef.current = true;
-  }, [
-    initialColumns,
-    columns,
-    readPersistedLayout,
-    getColumnPersistKey,
-  ]);
+  }, [initialColumns, columns, readPersistedLayout, getColumnPersistKey]);
 
   // Persist layout whenever user changes it
   useEffect(() => {
@@ -640,7 +632,9 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       const frags = parseFragments(effectiveSearchTerm);
       if (frags.length > 0) {
         // Send raw terms to backend (backend parses fragments server-side)
-        onDatabaseSearch(frags.map((f) => (f.mode === "contains" ? `@${f.value}` : f.value)));
+        onDatabaseSearch(
+          frags.map((f) => (f.mode === "contains" ? `@${f.value}` : f.value)),
+        );
       }
     }
   }, [searchDatabase, onDatabaseSearch, effectiveSearchTerm]);
@@ -947,7 +941,9 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       widths?: Record<string, string>;
     }) => {
       const byKey = new Map(
-        columns.map((col, index) => [getColumnPersistKey(col, index), col] as const),
+        columns.map(
+          (col, index) => [getColumnPersistKey(col, index), col] as const,
+        ),
       );
       const nextColumns: TableColumn<T>[] = [];
       const used = new Set<string>();
@@ -957,11 +953,14 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         if (col) {
           const maybeWidth = layout.widths?.[key];
           const widthWithUnit = maybeWidth
-            ? maybeWidth.toString().includes("%") || maybeWidth.toString().includes("px")
+            ? maybeWidth.toString().includes("%") ||
+              maybeWidth.toString().includes("px")
               ? maybeWidth
               : `${maybeWidth}px`
             : undefined;
-          nextColumns.push(widthWithUnit ? { ...col, width: widthWithUnit } : col);
+          nextColumns.push(
+            widthWithUnit ? { ...col, width: widthWithUnit } : col,
+          );
           used.add(key);
         }
       }
@@ -971,11 +970,14 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
         if (!used.has(key)) {
           const maybeWidth = layout.widths?.[key];
           const widthWithUnit = maybeWidth
-            ? maybeWidth.toString().includes("%") || maybeWidth.toString().includes("px")
+            ? maybeWidth.toString().includes("%") ||
+              maybeWidth.toString().includes("px")
               ? maybeWidth
               : `${maybeWidth}px`
             : undefined;
-          nextColumns.push(widthWithUnit ? { ...col, width: widthWithUnit } : col);
+          nextColumns.push(
+            widthWithUnit ? { ...col, width: widthWithUnit } : col,
+          );
         }
       });
 

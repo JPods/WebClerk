@@ -46,6 +46,19 @@ export interface GetDetailPayload {
   related?: Record<string, any[]>;
 }
 
+// In-flight dedupe for wcapi/get to prevent duplicate concurrent requests
+const inflightGetRecords = new Map<string, Promise<any>>();
+
+const buildGetRecordsKey = (
+  model: string,
+  params?: Record<string, any>,
+): string => {
+  const entries = Object.entries(params || {}).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  return `${model}:${JSON.stringify(entries)}`;
+};
+
 function getBackendErrorMessage(err: any, fallback: string): string {
   const data = err?.response?.data;
   if (!data) {
@@ -128,29 +141,41 @@ export async function getModelDetail(model_name: string) {
 
 export async function getRecords(model_name: string, params?: any) {
   const resolved = resolveModelName(model_name);
-  try {
-    // Never cache wcapi/get calls - always fetch fresh database records
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      `/wcapi/get/`,
-      {
-        params: { model_name: resolved, ...params },
-        cache: false,
-      } as any,
-    );
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        `/api/wcapi/get/`,
+  const cacheKey = buildGetRecordsKey(resolved, params);
+
+  const existing = inflightGetRecords.get(cacheKey);
+  if (existing) return existing;
+
+  const request = (async () => {
+    try {
+      // Never cache wcapi/get calls - always fetch fresh database records
+      const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        `/wcapi/get/`,
         {
           params: { model_name: resolved, ...params },
           cache: false,
         } as any,
       );
-      return res2.data.data;
+      return res.data.data;
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+          `/api/wcapi/get/`,
+          {
+            params: { model_name: resolved, ...params },
+            cache: false,
+          } as any,
+        );
+        return res2.data.data;
+      }
+      throw err;
+    } finally {
+      inflightGetRecords.delete(cacheKey);
     }
-    throw err;
-  }
+  })();
+
+  inflightGetRecords.set(cacheKey, request);
+  return request;
 }
 
 // ---------------------------------------------------------------------------
