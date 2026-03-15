@@ -286,7 +286,7 @@ class TemplateAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Mode
 class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Pending model."""
     # Scalar fields: dt_created, dt_modified, dt_processed, ida, is_active, model_name, name, purpose, record_id, security_level, uuid, version
-    list_display = ("ida", "name", "dt_processed", "model_name", "purpose", "record_id", "is_active", "dt_created")
+    list_display = ("ida", "name", "dt_processed", "model_name", "purpose", "record_id", "on_hand", "on_p", "on_so", "on_in", "on_po", "is_active", "dt_created")
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
