@@ -11,7 +11,7 @@ export const AddressFormat: React.FC<{ value?: string | null }> = ({
         href={mapUrl}
         target="_blank"
         rel="noreferrer"
-        className="text-xs font-mono text-blue-900 dark:text-blue-400 cursor-pointer hover:underline"
+        className="text-xs font-mono text-green-900 dark:text-green-400 cursor-pointer hover:underline"
       >
         {value}
       </a>

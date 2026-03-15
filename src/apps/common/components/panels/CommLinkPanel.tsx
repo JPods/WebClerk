@@ -40,6 +40,10 @@ import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { PhoneFormat, PhoneLable } from "../detail/PhoneFormat";
+import { EmailFormat, EmailLable } from "../detail/EmailFormat";
+import { AddressFormat, AddressLable } from "../detail/AddressFormat";
+import { DomainFormat, DomainLable } from "../detail/DomainFormat";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -640,7 +644,18 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
           {/* ─── Scalar value row ─── */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-24 shrink-0">
-              {SCALAR_LABEL[type]} :
+              {type === "phone" ? (
+                <PhoneLable value={formatPhoneNumber(scalarValue || "")} />
+              ) : type === "email" ? (
+                <EmailLable value={scalarValue} />
+              ) : type === "address" ? (
+                <AddressLable value={scalarValue} />
+              ) : type === "domain" ? (
+                <DomainLable value={scalarValue} />
+              ) : (
+                SCALAR_LABEL[type]
+              )}{" "}
+              :
             </span>
             {isEditing ? (
               <>
@@ -707,7 +722,7 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
               });
               return !isAlreadyLinked;
             });
-
+            console.log("displayItems", displayItems);
             return displayItems.length > 0 ? (
               <div className="border border-slate-100 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800">
                 {displayItems.map((item: any, idx: number) => {
@@ -777,7 +792,17 @@ const CommLinkPanel: React.FC<CommLinkPanelProps> = ({
                               : "text-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          {val || "—"}
+                          {type === "phone" ? (
+                            <PhoneFormat value={val} />
+                          ) : type === "email" ? (
+                            <EmailFormat value={val} />
+                          ) : type === "address" ? (
+                            <AddressFormat value={val} />
+                          ) : type === "domain" ? (
+                            <DomainFormat value={val} />
+                          ) : (
+                            val
+                          )}{" "}
                         </span>
 
                         {/* Secondary label */}

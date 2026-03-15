@@ -6,7 +6,7 @@ export const DomainFormat: React.FC<{ value?: string | null }> = ({
     <>
       <a
         href={`https://${value}`}
-        className="text-xs font-mono text-blue-900 dark:text-blue-400 cursor-pointer hover:underline"
+        className="text-xs font-mono text-yellow-900 dark:text-yellow-400 cursor-pointer hover:underline"
         target="_blank"
       >
         {value}
