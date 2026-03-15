@@ -24,6 +24,7 @@ from django.core.management.base import BaseCommand
 
 from apps.ai_assistant.services.alice_notes import create_note
 from apps.ai_assistant.services.schema_drift_detector import SchemaDriftDetector
+from apps.ai_assistant.services.to_alice_overrides import load_validated_to_alice_overrides
 
 
 SCHEMA_FILE_PATTERNS = (
@@ -253,9 +254,9 @@ def _extract_admin_usage(repo_root: Path, model_names: list[str]) -> dict[str, l
 
 def _pick_useful_scalar(scalars: list[str]) -> str:
     preferred = [
-        "company",
         "name",
         "display_name",
+        "company",
         "title",
         "number",
         "code",
@@ -284,8 +285,10 @@ def _pick_useful_scalar(scalars: list[str]) -> str:
 def _build_admin_field_plan(
     model_names: list[str],
     drift_report: dict[str, Any],
+    override_map: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     plan: dict[str, dict[str, Any]] = {}
+    override_map = override_map or {}
 
     for model_name in model_names:
         model_data = drift_report.get("per_model", {}).get(model_name, {})
@@ -304,12 +307,18 @@ def _build_admin_field_plan(
             list_display = ["ida", "id"]
 
         details_order = scalars + jsonb
+        override = override_map.get(model_name, {})
+        if override.get("list_display"):
+            list_display = list(override["list_display"])
+        if override.get("detail_order"):
+            details_order = list(override["detail_order"])
 
         plan[model_name] = {
             "list_display": list_display,
             "details_order": details_order,
             "scalar_fields": scalars,
             "jsonb_fields": jsonb,
+            "to_alice_sources": list(override.get("sources", [])),
         }
 
     return plan
@@ -420,6 +429,19 @@ class Command(BaseCommand):
             if not model_block.get("django_field_map"):
                 model_block["django_field_map"] = detector._get_django_fields(model_name) or {}
 
+        model_fields = {
+            model_name: {
+                "scalar_fields": sorted(
+                    [name for name, info in drift_report.get("per_model", {}).get(model_name, {}).get("django_field_map", {}).items() if info.get("django_type") != "JSONField"]
+                ),
+                "jsonb_fields": sorted(
+                    [name for name, info in drift_report.get("per_model", {}).get(model_name, {}).get("django_field_map", {}).items() if info.get("django_type") == "JSONField"]
+                ),
+            }
+            for model_name in effective_models
+        }
+        to_alice_overrides, to_alice_audit = load_validated_to_alice_overrides(repo_root, model_fields)
+
         field_level_impacts = _assess_impacted_pages(r25_root, effective_models, drift_report)
         if field_level_impacts:
             impacted_pages = [row["page"] for row in field_level_impacts]
@@ -427,7 +449,7 @@ class Command(BaseCommand):
             impacted_pages = _react_pages_for_models(r25_root, effective_models)
 
         admin_usage = _extract_admin_usage(repo_root, effective_models)
-        admin_field_plan = _build_admin_field_plan(effective_models, drift_report)
+        admin_field_plan = _build_admin_field_plan(effective_models, drift_report, to_alice_overrides)
 
         report_file = ""
         if not no_report:
@@ -469,12 +491,37 @@ class Command(BaseCommand):
                 )
                 lines.append("- Scalar fields (alphabetical): " + ", ".join(scalar_fields))
                 lines.append("- JSONB fields (alphabetical): " + ", ".join(jsonb_fields))
+                if model_plan.get("to_alice_sources"):
+                    lines.append("- To_Alice sources applied: " + ", ".join(model_plan["to_alice_sources"]))
+
+            lines.extend(["", "## To_Alice Consumption"])
+            if to_alice_audit.get("applied"):
+                for item in to_alice_audit["applied"]:
+                    lines.append(
+                        "- Applied "
+                        f"[{item.get('source')}] model={item.get('model')} "
+                        f"list_display={','.join(item.get('list_display', [])) or '(unchanged)'} "
+                        f"detail_order={','.join(item.get('detail_order', [])[:8]) or '(unchanged)'}"
+                    )
+                    if item.get("invalid_list_display") or item.get("invalid_detail_order"):
+                        lines.append(
+                            "  invalid_fields: "
+                            + ", ".join(item.get("invalid_list_display", []) + item.get("invalid_detail_order", []))
+                        )
+            else:
+                lines.append("- No To_Alice overrides were applied.")
+            for item in to_alice_audit.get("ignored", []):
+                lines.append(
+                    "- Ignored "
+                    f"[{item.get('source')}] model={item.get('model') or '(unknown)'} reason={item.get('reason')}"
+                )
 
             lines.extend(
                 [
                     "",
                     "## User Overrides",
-                    "<!-- To_Alice: Add alternative instructions below. Example: model=customer; list_display=ida,company; detail_order=company,status,metadata,refs -->",
+                    "<!-- To_Alice: -->",
+                    "- Example To_Alice payload: model=customer; list_display=ida,display_name; detail_order=display_name,status,addresses,contacts",
                     "- To provide alternative instructions, add a note via /wcapi/ai/note/ with:",
                     "  category=pending, role=config_suggestion, name='Schema report override',",
                     "  details={model, list_display, detail_order, rationale}",
@@ -509,6 +556,8 @@ class Command(BaseCommand):
                 "report_file": report_file,
                 "admin_usage": admin_usage,
                 "admin_field_plan": admin_field_plan,
+                "to_alice_overrides": to_alice_overrides,
+                "to_alice_audit": to_alice_audit,
             },
         )
 
@@ -528,6 +577,7 @@ class Command(BaseCommand):
                     "report_file": report_file,
                     "admin_usage": admin_usage,
                     "admin_field_plan": admin_field_plan,
+                    "to_alice_overrides": to_alice_overrides,
                 },
             )
             pending_id = pending.pk

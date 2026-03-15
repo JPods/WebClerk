@@ -22,6 +22,8 @@ from django.contrib import admin
 from django.core.management.base import BaseCommand
 from django.db import models as dj_models
 
+from apps.ai_assistant.services.to_alice_overrides import load_validated_to_alice_overrides
+
 # ---------------------------------------------------------------------------
 # Field preference heuristics
 # ---------------------------------------------------------------------------
@@ -29,10 +31,10 @@ from django.db import models as dj_models
 # Scalars pulled toward the front of list_display (in order of preference)
 PREFERRED = [
     "ida",
-    "name", "display_name", "company",
+    "name", "display_name",
     "number", "code", "title", "sku",
     "description", "status", "type", "kind",
-    "email", "phone",
+    "email", "phone", "company",
 ]
 
 # Always appended last (after the 6 preferred slots are filled)
@@ -135,6 +137,20 @@ def _find_list_display_node(class_node: ast.ClassDef):
     return None
 
 
+def _find_assign_node(class_node: ast.ClassDef, target_name: str):
+    for stmt in class_node.body:
+        if isinstance(stmt, ast.Assign):
+            for t in stmt.targets:
+                if isinstance(t, ast.Name) and t.id == target_name:
+                    return stmt
+    return None
+
+
+def _format_detail_order_override(fields: list[str], indent: str) -> str:
+    fields_str = ", ".join(f'"{field}"' for field in fields)
+    return f"{indent}detail_order_override = ({fields_str})"
+
+
 def _indent_of_line(line: str) -> str:
     return line[: len(line) - len(line.lstrip())]
 
@@ -168,6 +184,17 @@ class Command(BaseCommand):
         app_filter = options.get("app")
 
         # ---- Build file → [(model, admin_class)] map --------------------
+        model_fields_by_name: dict[str, dict[str, list[str]]] = {}
+        for model, admin_obj in admin.site._registry.items():
+            if not model.__module__.startswith("apps."):
+                continue
+            model_fields_by_name[model._meta.model_name] = {
+                "scalar_fields": _model_fields(model)[0],
+                "jsonb_fields": _model_fields(model)[1],
+            }
+
+        override_map, override_audit = load_validated_to_alice_overrides(WC3_ROOT, model_fields_by_name)
+
         file_map: dict[Path, list[tuple]] = {}
         for model, admin_obj in admin.site._registry.items():
             if not model.__module__.startswith("apps."):
@@ -234,6 +261,9 @@ class Command(BaseCommand):
 
                 scalars, json_fields = _model_fields(model)
                 best_8 = _pick_8(scalars)
+                override = override_map.get(model._meta.model_name, {})
+                if override.get("list_display"):
+                    best_8 = list(override["list_display"])
 
                 # Determine whether to add ScalarFirstFieldsetMixin
                 has_mixin = _class_has_fieldsets_mixin(node)
@@ -261,6 +291,7 @@ class Command(BaseCommand):
                         "scalars": scalars,
                         "json_fields": json_fields,
                         "best_8": best_8,
+                        "detail_order_override": list(override.get("detail_order", [])),
                         "need_mixin": need_mixin,
                     }
                 )
@@ -293,6 +324,8 @@ class Command(BaseCommand):
         self.stdout.write(
             f"\n{verb} {total_classes} admin class(es) across {total_files} file(s)."
         )
+        if override_audit["applied"]:
+            self.stdout.write(f"Consumed {len(override_audit['applied'])} To_Alice override(s).")
         if dry_run:
             self.stdout.write("Run with --apply to write changes.")
 
@@ -361,6 +394,7 @@ def _apply_combined(
         node: ast.ClassDef = info["node"]
         scalars: list[str] = info["scalars"]
         best_8: list[str] = info["best_8"]
+        detail_order_override: list[str] = info.get("detail_order_override", [])
         need_mixin: bool = info["need_mixin"]
 
         first_body_lineno = node.body[0].lineno
@@ -393,7 +427,19 @@ def _apply_combined(
             # insert lands above the new list_display, not the old one.
             patches.append((ld_0, ld_0, [scalar_comment_text]))
 
-        # 3. Mixin in inheritance
+        # 3. detail_order_override for ScalarFirstFieldsetMixin-backed admins.
+        detail_node = _find_assign_node(node, "detail_order_override")
+        if detail_order_override:
+            new_detail_line = _format_detail_order_override(detail_order_override, indent) + "\n"
+            insert_line = ld_1 if ld_node is not None else ld_0 + 1
+            if detail_node is not None:
+                patches.append((detail_node.lineno - 1, detail_node.end_lineno, [new_detail_line]))
+            else:
+                patches.append((insert_line, insert_line, [new_detail_line]))
+        elif detail_node is not None:
+            patches.append((detail_node.lineno - 1, detail_node.end_lineno, []))
+
+        # 4. Mixin in inheritance
         if need_mixin:
             class_line_idx = node.lineno - 1
             class_line = lines[class_line_idx]

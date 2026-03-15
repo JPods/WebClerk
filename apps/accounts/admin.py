@@ -14,6 +14,10 @@ class GLAccountAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Mod
 	list_filter = ("is_active",)
 	search_fields = ("account_number", "name")
 
+	def get_readonly_fields(self, request, obj=None):
+		readonly = list(super().get_readonly_fields(request, obj))
+		return tuple(field for field in readonly if field != "ida")
+
 
 @admin.register(Currency)
 class CurrencyAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
