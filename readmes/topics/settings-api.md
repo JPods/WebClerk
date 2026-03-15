@@ -18,6 +18,70 @@ import { apiClient } from '@/api/axios';
 
 ---
 
+## Standard Settings Bridge (Recommended)
+
+Use the shared bridge for all new settings flows (structure/format/selectlist/list column config).
+
+Files:
+
+- `src/api/settingsBridge.ts`
+- `src/hooks/useSettingRecord.ts`
+
+Scope contract:
+
+```typescript
+type SettingScope = {
+  purpose: string;
+  parent_model?: string;
+  name?: string;
+  role?: string;
+};
+```
+
+Bridge API:
+
+```typescript
+import {
+  fetchLatestSettingRecord,
+  upsertSettingRecord,
+} from '@/api/settingsBridge';
+
+const scope = {
+  purpose: 'list_column_config',
+  parent_model: 'customer',
+  name: 'list_column_config:customer',
+};
+
+const latest = await fetchLatestSettingRecord(scope);
+
+await upsertSettingRecord({
+  scope,
+  data: columnLayoutObject,
+});
+```
+
+Hook API:
+
+```typescript
+import { useSettingRecord } from '@/hooks/useSettingRecord';
+
+const { data, loading, saving, refresh, save } = useSettingRecord({
+  purpose: 'list_column_config',
+  parent_model: 'customer',
+  name: 'list_column_config:customer',
+});
+
+await save(columnLayoutObject);
+```
+
+Notes:
+
+- `upsertSettingRecord` searches existing records using scope filters and updates the latest row if found; otherwise it creates one.
+- For `list_column_config`, store the layout object directly in `setting.data`.
+- This replaces one-off, purpose-specific query/save implementations for new work.
+
+---
+
 ## Generic Settings Fetch
 
 For any setting purpose, use the generic GET endpoint:

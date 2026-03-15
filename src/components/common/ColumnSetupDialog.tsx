@@ -8,6 +8,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnSetupEntry, ColumnSort } from "@/hooks/useColumnSetups";
+import {
+  fetchLatestSettingRecord,
+  upsertSettingRecord,
+} from "@/api/settingsBridge";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -368,31 +372,126 @@ export const ColumnSetupDialog = ({
   ]);
 
   const handleUploadToServer = useCallback(async () => {
-    if (!columnSetupsApi?.uploadToServer) return;
     try {
       setIsSyncing(true);
-      // Upload the current in-dialog draft so server data mirrors unsaved local edits.
-      await columnSetupsApi.uploadToServer(buildConfig);
+      const mergedSetups = (() => {
+        const base = [...namedSetups];
+        const trimmedName = setupName.trim();
+        if (!trimmedName) return base;
+        const idx = base.findIndex((s) => s.name === trimmedName);
+        const updated = { name: trimmedName, config: buildConfig };
+        if (idx >= 0) {
+          const next = [...base];
+          next[idx] = updated;
+          return next;
+        }
+        return [...base, updated];
+      })();
+
+      const activeName =
+        selectedSetupName && selectedSetupName !== "__current__"
+          ? selectedSetupName
+          : setupName.trim() || null;
+
+      await upsertSettingRecord<Record<string, unknown>>({
+        scope: {
+          purpose: "list_column_config",
+          parent_model: "customer",
+          name: "list_column_config:customer",
+        },
+        data: {
+          v: 1,
+          current: buildConfig,
+          setups: mergedSetups,
+          active: activeName,
+        },
+      });
       alert("Column setups uploaded to server successfully");
     } catch (err) {
       alert(`Upload failed: ${(err as Error).message}`);
     } finally {
       setIsSyncing(false);
     }
-  }, [columnSetupsApi, buildConfig]);
+  }, [buildConfig, namedSetups, selectedSetupName, setupName]);
 
   const handleDownloadFromServer = useCallback(async () => {
-    if (!columnSetupsApi?.downloadFromServer) return;
     try {
       setIsSyncing(true);
-      await columnSetupsApi.downloadFromServer();
+      const latest = await fetchLatestSettingRecord<Record<string, unknown>>({
+        purpose: "list_column_config",
+        parent_model: "customer",
+        name: "list_column_config:customer",
+      });
+
+      if (!latest?.data) {
+        throw new Error("No saved column layout found on server");
+      }
+
+      const serverData = latest.data as Record<string, unknown>;
+
+      // Preferred simple shape: direct ColumnSetupEntry saved in setting.data
+      let nextConfig: ColumnSetupEntry | null = null;
+      if (Array.isArray(serverData.order) && typeof serverData.visibility === "object") {
+        nextConfig = {
+          order: serverData.order as string[],
+          visibility: (serverData.visibility as Record<string, boolean>) ?? {},
+          widths: (serverData.widths as Record<string, string>) ?? {},
+          sort: (serverData.sort as ColumnSort | null) ?? null,
+          jsonb: (serverData.jsonb as Record<string, Record<string, unknown>>) ?? {},
+        };
+      }
+
+      // Collection shape: restore active or first setup, fallback to current.
+      if (!nextConfig && Array.isArray(serverData.setups)) {
+        const setups = serverData.setups as Array<{ name?: string; config?: Record<string, unknown> }>;
+        const active = typeof serverData.active === "string" ? serverData.active : null;
+        const activeSetup = active
+          ? setups.find((s) => s?.name === active)
+          : null;
+        const chosen = activeSetup ?? setups[0] ?? null;
+        const cfg = chosen?.config;
+        if (cfg && Array.isArray(cfg.order) && typeof cfg.visibility === "object") {
+          nextConfig = {
+            order: cfg.order as string[],
+            visibility: (cfg.visibility as Record<string, boolean>) ?? {},
+            widths: (cfg.widths as Record<string, string>) ?? {},
+            sort: (cfg.sort as ColumnSort | null) ?? null,
+            jsonb: (cfg.jsonb as Record<string, Record<string, unknown>>) ?? {},
+          };
+          if (chosen?.name) {
+            setSelectedSetupName(chosen.name);
+            setSetupName(chosen.name);
+          }
+        }
+      }
+
+      // Backward compatibility: legacy collection wrapper current shape
+      if (!nextConfig && serverData.current && typeof serverData.current === "object") {
+        const current = serverData.current as Record<string, unknown>;
+        if (Array.isArray(current.order) && typeof current.visibility === "object") {
+          nextConfig = {
+            order: current.order as string[],
+            visibility: (current.visibility as Record<string, boolean>) ?? {},
+            widths: (current.widths as Record<string, string>) ?? {},
+            sort: (current.sort as ColumnSort | null) ?? null,
+            jsonb: (current.jsonb as Record<string, Record<string, unknown>>) ?? {},
+          };
+        }
+      }
+
+      if (!nextConfig) {
+        throw new Error("Saved server payload is not a valid column layout shape");
+      }
+
+      hydrateFromConfig(nextConfig);
+      onPreview?.(nextConfig);
       alert("Column setups downloaded from server successfully");
     } catch (err) {
       alert(`Download failed: ${(err as Error).message}`);
     } finally {
       setIsSyncing(false);
     }
-  }, [columnSetupsApi]);
+  }, [hydrateFromConfig, onPreview]);
 
   if (!open) return null;
 
