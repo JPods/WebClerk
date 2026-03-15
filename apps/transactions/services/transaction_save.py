@@ -306,14 +306,22 @@ class InsufficientInventoryError(Exception):
 
 
 def _line_staged_qty(line_data: Dict[str, Any]) -> float:
-    """Get the staged/committed quantity from line data.
-    
-    Uses canonical field names: staged (committed) or active (user input).
+    """Get the effective line quantity from line data.
+
+    Pending and transfer validations should follow the user's current qty,
+    which is stored in quantity.active. For legacy payloads without active,
+    fall back to staged.
     """
     qty_data = line_data.get('quantity') or {}
     if not isinstance(qty_data, dict):
         return 0.0
-    return float(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
+    return float(
+        qty_data.get('active', 0)
+        or qty_data.get('staged', 0)
+        or qty_data.get('placed', 0)
+        or qty_data.get('actioned', 0)
+        or 0
+    )
 
 
 def _validate_transfer_quantities_and_inventory(
@@ -938,7 +946,13 @@ def save_transaction_with_lines(
 
                 # ── Capture old quantity before update for delta calculation ──
                 old_qty_data = getattr(existing_line, 'quantity', {}) or {}
-                old_qty_staged = float(old_qty_data.get('staged', 0) or old_qty_data.get('active', 0) or 0)
+                old_qty_effective = float(
+                    old_qty_data.get('active', 0)
+                    or old_qty_data.get('staged', 0)
+                    or old_qty_data.get('placed', 0)
+                    or old_qty_data.get('actioned', 0)
+                    or 0
+                )
 
                 # JSON fields that should deep-merge (not replace) on update
                 json_merge_fields = {'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source'}
@@ -954,8 +968,14 @@ def save_transaction_with_lines(
 
                 # ── Check for quantity change and create pending delta ──
                 new_qty_data = getattr(existing_line, 'quantity', {}) or {}
-                new_qty_staged = float(new_qty_data.get('staged', 0) or new_qty_data.get('active', 0) or 0)
-                quantity_delta = new_qty_staged - old_qty_staged
+                new_qty_effective = float(
+                    new_qty_data.get('active', 0)
+                    or new_qty_data.get('staged', 0)
+                    or new_qty_data.get('placed', 0)
+                    or new_qty_data.get('actioned', 0)
+                    or 0
+                )
+                quantity_delta = new_qty_effective - old_qty_effective
 
                 if quantity_delta != 0 and current_item_id:
                     # Collect pending delta for quantity change on existing line
@@ -1020,12 +1040,20 @@ def save_transaction_with_lines(
                 qty_data = line_data.get('quantity', {}) or {}
                 # Use canonical field names: staged (committed) or active (user input)
                 qty_staged = float(
-                    qty_data.get('staged', 0)
-                    or qty_data.get('active', 0)
+                    qty_data.get('active', 0)
+                    or qty_data.get('staged', 0)
+                    or qty_data.get('placed', 0)
+                    or qty_data.get('actioned', 0)
                     or 0
                 )
                 if not qty_staged and hasattr(new_line, 'quantity') and isinstance(new_line.quantity, dict):
-                    qty_staged = float(new_line.quantity.get('staged', 0) or new_line.quantity.get('active', 0) or 0)
+                    qty_staged = float(
+                        new_line.quantity.get('active', 0)
+                        or new_line.quantity.get('staged', 0)
+                        or new_line.quantity.get('placed', 0)
+                        or new_line.quantity.get('actioned', 0)
+                        or 0
+                    )
 
                 cost_data = line_data.get('cost', {}) or {}
                 price_data = line_data.get('price', {}) or {}

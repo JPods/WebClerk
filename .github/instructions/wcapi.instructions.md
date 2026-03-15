@@ -34,6 +34,25 @@ When a line has no children, `children_active` is absent and `remaining = active
 | `remaining` | Quantity still available for child transfers | Computed: `active − children_active.sum` |
 | `children_active` | Denormalized tracker: `{"sum": N, "lines": [{"id": X, "active": Y}, ...]}` | Transfer code on parent line |
 
+### Effective Transfer Quantity (Critical)
+
+For transfer validation and Pending deltas in `save_transaction_with_lines()`,
+the backend resolves the line quantity using this precedence:
+
+```
+active -> staged -> placed -> actioned
+```
+
+Why:
+- `active` is the user's current edited value and is authoritative for pending math.
+- `staged` is typically the transferred snapshot from the source line.
+- `placed` / `actioned` remain as compatibility fallbacks for legacy payloads.
+
+Example:
+- Source order line transferred with `staged=7`
+- User edits invoice line to `active=4` before save
+- Pending uses `qty=4` (not `7`) for `on_in`, `on_so`, and `on_hand` deltas.
+
 ---
 
 ## Transfer Code Paths
