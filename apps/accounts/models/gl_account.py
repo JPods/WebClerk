@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+from django.core.exceptions import ValidationError
 
 from common.models import BaseModel
 from apps.accounts.choices import (
@@ -81,9 +83,51 @@ class GlAccount(BaseModel):
 
     class Meta:
         db_table = 'gl_accounts'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['account_number'],
+                condition=(
+                    Q(is_active=True)
+                    & Q(is_deleted=False)
+                    & Q(is_archived=False)
+                    & Q(account_number__isnull=False)
+                    & ~Q(account_number='')
+                ),
+                name='uniq_active_gl_account_account_number',
+            ),
+        ]
 
     def __str__(self):
         if self.account_number and self.name:
             return f"{self.account_number} - {self.name}"
         return f"{self.name or 'GlAccount'} ({self.id})"
+
+    def clean(self):
+        super().clean()
+        account_number = (self.account_number or "").strip()
+        if not account_number:
+            return
+
+        should_enforce = (
+            bool(getattr(self, "is_active", True))
+            and not bool(getattr(self, "is_deleted", False))
+            and not bool(getattr(self, "is_archived", False))
+        )
+        if not should_enforce:
+            return
+
+        exists = self.__class__.objects.filter(
+            account_number=account_number,
+            is_active=True,
+            is_deleted=False,
+            is_archived=False,
+        ).exclude(pk=self.pk).exists()
+        if exists:
+            raise ValidationError({
+                "account_number": f"An active gl_account with account_number '{account_number}' already exists."
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
     

@@ -49,7 +49,7 @@ class ContactAdmin(SchemaLabelsAdminMixin, BaseUserAdmin):
     list_display = ("ida", "company", "title", "email", "phone", "address_full", "is_active", "dt_created")
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
-    readonly_fields = ('id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined', 'version')
+    readonly_fields = ('id', 'uuid', 'dt_created', 'dt_modified', 'dt_joined', 'version')
     raw_id_fields = ('customer', 'vendor', 'manufacturer', 'rep', 'employee')
     ordering = ('name_last', 'name_first')
     object_fields = (
@@ -138,7 +138,7 @@ class ContactAdmin(SchemaLabelsAdminMixin, BaseUserAdmin):
 class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Action model."""
     # Scalar fields: burndown, contact_id, difficulty, dt_completed, dt_created, dt_deadline, dt_end_original, dt_expected, dt_modified, dt_start, dt_start_original, dt_updated, duration, health_rating, ida, is_active, is_archived, is_deleted, is_locked, kanban_column, linkage, percent_complete, priority, project_id, project_ida, project_name, security_level, sequence, status, uuid, version
-    list_display = ("ida", "status", "burndown", "contact_id", "difficulty", "dt_completed", "is_active", "dt_created")
+    list_display = ("ida", "project_name", "priority", "status", "burndown", "kanban_column", "assigned_to_names", "description_en", "contact_id", "difficulty", "dt_completed", "is_active", "dt_created")
     list_filter = ('kanban_column', 'status', 'priority')
     search_fields = ('project_id', 'action')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
@@ -197,6 +197,44 @@ class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
         project_id = forms.CharField(required=False, label='Project ID')
 
     action_form = AssignProjectIdActionForm
+
+    @admin.display(description='assigned_to')
+    def assigned_to_names(self, obj):
+        """Render names from assigned_to JSON for changelist readability."""
+        assigned = obj.assigned_to
+        if not assigned:
+            return '-'
+
+        def pick_name(entry):
+            if isinstance(entry, str):
+                return entry
+            if not isinstance(entry, dict):
+                return None
+            return (
+                entry.get('name')
+                or entry.get('full_name')
+                or entry.get('display_name')
+                or entry.get('title')
+                or entry.get('email')
+                or entry.get('ida')
+            )
+
+        if isinstance(assigned, dict):
+            return pick_name(assigned) or '-'
+
+        if isinstance(assigned, list):
+            names = [pick_name(entry) for entry in assigned]
+            names = [name for name in names if name]
+            return ', '.join(names) if names else '-'
+
+        return str(assigned)
+
+    @admin.display(description='description.en')
+    def description_en(self, obj):
+        desc = obj.description
+        if isinstance(desc, dict):
+            return desc.get('en') or '-'
+        return desc or '-'
     
     def get_action_title(self, obj):
         action_dict = obj.action or {}

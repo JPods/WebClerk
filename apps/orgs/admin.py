@@ -52,7 +52,7 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_display = ("ida", "display_name", "status", "email", "phone", "address_full", "is_active", "dt_created")
     list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
     search_fields = ("display_name", "domains", "contacts", "email", "phone")
-    readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")
+    readonly_fields = ("id", "uuid", "dt_created", "dt_modified", "version")
     raw_id_fields = ("contact", "terms_fk")
     actions = ("mark_as_primary_organization",)
     

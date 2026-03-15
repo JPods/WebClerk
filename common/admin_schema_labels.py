@@ -6,6 +6,12 @@ from django.core.exceptions import FieldDoesNotExist
 class SchemaLabelsAdminMixin:
     """Use model field names as labels in Django admin list and detail views."""
 
+    def get_readonly_fields(self, request, obj=None):  # type: ignore[override]
+        readonly = list(super().get_readonly_fields(request, obj))
+        # Allow ida to be edited across admin forms unless a specific admin
+        # class re-adds it explicitly.
+        return tuple(field for field in readonly if field != "ida")
+
     def formfield_for_dbfield(self, db_field, request, **kwargs):  # type: ignore[override]
         formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
         if formfield is not None:
