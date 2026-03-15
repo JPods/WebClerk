@@ -10,12 +10,14 @@ export type TranslationFormEntry = {
 
 export type TaskAttachment = {
   id: string;
-  file?: File;
-  documentId?: number;
-  type: string;
   name: string;
+  type: string;
   size: number;
+  checksum?: string;
+  file?: File;
   previewUrl?: string;
+  documentId?: number;
+  url?: string;
 };
 
 export type CoreModelFields = {
@@ -40,18 +42,6 @@ export type ActionModelFields = {
   actions?: Record<string, any>;
 };
 
-export type TaskAttachment = {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  checksum?: string;
-  file?: File;
-  previewUrl?: string;
-  documentId?: number;
-  url?: string;
-};
-
 export type TaskAssignee = { id: string; name: string };
 
 export type TaskFormFieldValue = string | TaskAttachment[] | TaskAssignee[];
@@ -71,8 +61,8 @@ export type TaskFormState = BaseModelFields &
     difficulty: string;
     percent_complete: string;
     status_code?: string;
-    is_active?: string;
-    priority_value?: TaskPriority;
+    is_active?: boolean;
+    priority_value?: TaskPriority | number;
     difficulty_value?: string;
     progress_value?: string;
     attachments?: TaskAttachment[];

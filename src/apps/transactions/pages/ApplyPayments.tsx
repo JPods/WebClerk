@@ -14,7 +14,7 @@ import { useDispatch } from 'react-redux';
 import { FaSearch, FaCheck, FaSync, FaTimes, FaSpinner, FaPlus } from 'react-icons/fa';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
 import ComponentCard from '@/components/common/ComponentCard';
-import { getRecords } from '@/api/wcapi';
+import { getRecords, GetListPayload } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
 import PaymentDialog from '../components/PaymentDialog';
@@ -27,6 +27,10 @@ interface OrgSearchResult {
   email?: string | null;
   phone?: string | null;
 }
+
+type SearchPayload = Pick<GetListPayload, 'results'> & {
+  items?: unknown[];
+};
 
 const ApplyPayments: React.FC = () => {
   const dispatch = useDispatch();
@@ -66,7 +70,7 @@ const ApplyPayments: React.FC = () => {
     setSearchingOrgs(true);
     try {
       const trimmed = query.trim();
-      const result = await getRecords('customer', {
+      const result = (await getRecords('customer', {
         limit: 20,
         is_active: true,
         // Be generous with search params; different deployments may key off different names
@@ -74,11 +78,15 @@ const ApplyPayments: React.FC = () => {
         q: trimmed,
         keywords: trimmed,
         display_name: trimmed,
-      });
+      })) as SearchPayload;
 
-      const records: any[] = result?.results || result?.items || [];
+      const records = Array.isArray(result?.results)
+        ? result.results
+        : Array.isArray(result?.items)
+          ? result.items
+          : [];
       setOrgResults(
-        records.map((r: any) => ({
+        records.map((r) => ({
           id: r.id,
           display_name: r.display_name || r.company || r.name || `#${r.id}`,
           ida: r.ida,
@@ -116,12 +124,13 @@ const ApplyPayments: React.FC = () => {
     }
   }, [selectedOrg]);
 
-  const loadCustomerData = useCallback(async (orgId: string) => {
+  const loadCustomerData = useCallback(async (orgId: number | string) => {
     setLoadingData(true);
+    const orgKey = String(orgId);
     try {
       const [invoiceData, paymentData] = await Promise.all([
-        getUnpaidInvoices(orgId),
-        getAvailablePayments(orgId)
+        getUnpaidInvoices(orgKey),
+        getAvailablePayments(orgKey)
       ]);
       setInvoices(invoiceData);
       setPayments(paymentData);

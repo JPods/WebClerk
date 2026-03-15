@@ -309,7 +309,13 @@ export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Extract id and mode from payload if present (they go at root level, not in data)
   const { id, mode, ...data } = payload;
-  const body: any = { model_name: resolved, data };
+  const hasDataField = Object.prototype.hasOwnProperty.call(data, "data");
+  // SaveWcapiView merges and removes top-level `data` wrapper for compatibility.
+  // If the model itself has a `data` field (e.g. setting.data), use `record`
+  // wrapper so the actual field is preserved.
+  const body: any = hasDataField
+    ? { model_name: resolved, record: data }
+    : { model_name: resolved, data };
   if (id !== undefined) {
     body.id = id;
   }

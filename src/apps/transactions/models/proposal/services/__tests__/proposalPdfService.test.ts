@@ -225,7 +225,7 @@ describe('Proposal PDF Service', () => {
           id: 1,
           item: { ida_item: 'ITEM-001' },
           quantity: { staged: 2 },
-          price: { unit: 10.00, extended: 20.00 },
+          price: { unit: 10.00, extended: 20.00, discount_amount: 0 },
         },
       ],
     };

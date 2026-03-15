@@ -371,14 +371,15 @@ export const ColumnSetupDialog = ({
     if (!columnSetupsApi?.uploadToServer) return;
     try {
       setIsSyncing(true);
-      await columnSetupsApi.uploadToServer();
+      // Upload the current in-dialog draft so server data mirrors unsaved local edits.
+      await columnSetupsApi.uploadToServer(buildConfig);
       alert("Column setups uploaded to server successfully");
     } catch (err) {
       alert(`Upload failed: ${(err as Error).message}`);
     } finally {
       setIsSyncing(false);
     }
-  }, [columnSetupsApi]);
+  }, [columnSetupsApi, buildConfig]);
 
   const handleDownloadFromServer = useCallback(async () => {
     if (!columnSetupsApi?.downloadFromServer) return;

@@ -182,7 +182,7 @@ export const RecordListColumn = () => {
   const handleSearchFeedback = useCallback(
     async (rating: 1 | -1, coaching = "") => {
       const query = list.search?.trim();
-      const modelKey = selectedTable?.key;
+      const modelKey = selectedTable?.id;
       if (!query || !modelKey) return;
 
       lastFeedbackQuery.current = query;
@@ -206,7 +206,7 @@ export const RecordListColumn = () => {
         // Feedback is best-effort — don't disrupt the user
       }
     },
-    [list.search, list.total, selectedTable?.key],
+    [list.search, list.total, selectedTable?.id],
   );
 
   const handleCoachingSubmit = useCallback(() => {
@@ -238,8 +238,8 @@ export const RecordListColumn = () => {
         minWidth: field.minWidth,
         width: field.width,
         sortField: field.id,
-        selector: (row) => String(row[field.id] ?? ''),
-        cell: (row) => formatCellValue(row[field.id], row, field),
+        selector: (row: AdminRecord) => String(row[field.id] ?? ''),
+        cell: (row: AdminRecord) => formatCellValue(row[field.id], row, field),
         center: field.align === "center",
         right: field.align === "right",
         wrap: field.kind === "text" || field.kind === "json",
@@ -453,8 +453,8 @@ export const RecordListColumn = () => {
             paginationPerPage={list.pageSize}
             paginationRowsPerPageOptions={list.pageSizeOptions}
             paginationDefaultPage={list.page}
-            onChangeRowsPerPage={(newPageSize) => setListPageSize(newPageSize)}
-            onChangePage={(newPage) => setListPage(newPage)}
+            onChangeRowsPerPage={(newPageSize: number) => setListPageSize(newPageSize)}
+            onChangePage={(newPage: number) => setListPage(newPage)}
           />
         </div>
       </div>

@@ -71,7 +71,9 @@ const buildSignal = (config: AxiosRequestConfig, controller: AbortController): A
     return controller.signal;
   }
   // Mirror existing aborts into our controller
-  existing.addEventListener("abort", () => controller.abort(), { once: true });
+  if (typeof existing.addEventListener === "function") {
+    existing.addEventListener("abort", () => controller.abort(), { once: true });
+  }
   return controller.signal;
 };
 

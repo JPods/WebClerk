@@ -40,6 +40,10 @@ import {
   GLJournalList,
   GLJournalDetail,
   LedgerList,
+  TallySummaryList,
+  SalesDimensionTallyList,
+  InventoryUsageTallyList,
+  TallyRegistryList,
   TaxJurisdictionList,
   TermList,
   // Communications
@@ -423,6 +427,22 @@ const Router: React.FC = () => {
             element={<GLJournalDetail />}
           />
           <Route path={PageRoutes.ledgerList} element={<LedgerList />} />
+          <Route
+            path={PageRoutes.tallySummaryList}
+            element={<TallySummaryList />}
+          />
+          <Route
+            path={PageRoutes.salesDimensionTallyList}
+            element={<SalesDimensionTallyList />}
+          />
+          <Route
+            path={PageRoutes.inventoryUsageTallyList}
+            element={<InventoryUsageTallyList />}
+          />
+          <Route
+            path={PageRoutes.tallyRegistryList}
+            element={<TallyRegistryList />}
+          />
           <Route
             path={PageRoutes.taxJurisdictionList}
             element={<TaxJurisdictionList />}
