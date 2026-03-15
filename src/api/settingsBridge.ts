@@ -1,0 +1,73 @@
+import { getRecords, saveRecord } from "@/api/wcapi";
+
+export interface SettingScope {
+  purpose: string;
+  parent_model?: string;
+  name?: string;
+  role?: string;
+}
+
+export interface SettingRecord<T = unknown> {
+  id?: number;
+  name?: string | null;
+  purpose?: string | null;
+  parent_model?: string | null;
+  role?: string | null;
+  data?: T | null;
+  dt_created?: number;
+  dt_modified?: number;
+  is_active?: boolean;
+}
+
+function pickRows(result: any): SettingRecord[] {
+  if (Array.isArray(result?.results)) return result.results as SettingRecord[];
+  if (Array.isArray(result?.data?.results)) return result.data.results as SettingRecord[];
+  if (Array.isArray(result?.records)) return result.records as SettingRecord[];
+  if (Array.isArray(result?.data?.records)) return result.data.records as SettingRecord[];
+  return [];
+}
+
+function sortLatest(a: SettingRecord, b: SettingRecord): number {
+  const aTs = Number(a?.dt_modified ?? a?.dt_created ?? 0);
+  const bTs = Number(b?.dt_modified ?? b?.dt_created ?? 0);
+  if (aTs !== bTs) return bTs - aTs;
+  return Number(b?.id ?? 0) - Number(a?.id ?? 0);
+}
+
+export async function fetchLatestSettingRecord<T = unknown>(
+  scope: SettingScope,
+): Promise<SettingRecord<T> | null> {
+  const params: Record<string, unknown> = {
+    purpose: scope.purpose,
+    limit: 50,
+  };
+  if (scope.parent_model) params.parent_model = scope.parent_model;
+  if (scope.name) params.name = scope.name;
+  if (scope.role) params.role = scope.role;
+
+  const result = await getRecords("setting", params);
+  const rows = pickRows(result);
+  if (!rows.length) return null;
+  return [...rows].sort(sortLatest)[0] as SettingRecord<T>;
+}
+
+export async function upsertSettingRecord<T = unknown>(args: {
+  scope: SettingScope;
+  data: T;
+}): Promise<SettingRecord<T>> {
+  const { scope, data } = args;
+  const existing = await fetchLatestSettingRecord<T>(scope);
+
+  const payload: Record<string, unknown> = {
+    purpose: scope.purpose,
+    data,
+  };
+
+  if (scope.parent_model) payload.parent_model = scope.parent_model;
+  if (scope.name) payload.name = scope.name;
+  if (scope.role) payload.role = scope.role;
+  if (existing?.id) payload.id = existing.id;
+
+  const saved = await saveRecord("setting", payload);
+  return (saved as SettingRecord<T>) ?? ({ ...payload } as SettingRecord<T>);
+}

@@ -1448,6 +1448,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     const printContent = (() => {
       switch (normalizedPrintType) {
         case "invoice":
+          const invoiceBillToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "billto",
+          );
+          const invoiceShipToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "shipto",
+          );
+          const invoiceCustomerLink = Array.isArray(data.refs?.links?.customer)
+            ? data.refs?.links?.customer?.[0]
+            : data.refs?.links?.customer;
+
           // Transform Transaction to InvoicePrintData
           const invoiceData = {
             id: data.id,
@@ -1460,76 +1470,81 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             // Customer info from refs
             customerID: data.customer_id,
             firstName:
-              data.refs?.links?.customer?.[0]?.name_first ||
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.name_first,
+              invoiceBillToContact?.name_first || invoiceCustomerLink?.name_first,
             lastName:
-              data.refs?.links?.customer?.[0]?.name_last ||
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.name_last,
+              invoiceBillToContact?.name_last || invoiceCustomerLink?.name_last,
             company:
-              data.refs?.links?.customer?.[0]?.company ||
-              data.refs?.links?.customer?.[0]?.display_name,
+              invoiceCustomerLink?.company ||
+              invoiceCustomerLink?.display_name ||
+              (data as any).company,
             attention:
               data.attention ||
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.display_name,
+              invoiceBillToContact?.display_name ||
+              invoiceCustomerLink?.attention ||
+              invoiceCustomerLink?.display_name,
             address1:
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.address_full || data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.address_full,
-            city: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.city,
-            state: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.state,
-            zip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.zip,
-            country: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.country,
-            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.phone,
-            email: data.email || data.refs?.links?.customer?.[0]?.email,
+              invoiceBillToContact?.address_full ||
+              invoiceCustomerLink?.address_full ||
+              (data as any).address_full,
+            address2: invoiceBillToContact?.address2 || (data as any).address2,
+            city:
+              invoiceBillToContact?.city ||
+              invoiceCustomerLink?.city ||
+              (data as any).city,
+            state:
+              invoiceBillToContact?.state ||
+              invoiceCustomerLink?.state ||
+              (data as any).state,
+            zip:
+              invoiceBillToContact?.zip ||
+              invoiceCustomerLink?.zip ||
+              (data as any).zip,
+            country:
+              invoiceBillToContact?.country ||
+              invoiceCustomerLink?.country ||
+              (data as any).country,
+            phone:
+              data.phone ||
+              invoiceBillToContact?.phone ||
+              invoiceCustomerLink?.phone,
+            phoneCell: invoiceBillToContact?.phone,
+            email:
+              data.email ||
+              invoiceBillToContact?.email ||
+              invoiceCustomerLink?.email,
 
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipCity: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.city,
-            shipState: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.state,
-            shipZip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.zip,
-            shipCountry: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.country,
-            shipPhone: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.phone,
-            shipEmail: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.email,
+            shipAttention:
+              invoiceShipToContact?.display_name || invoiceBillToContact?.display_name,
+            shipAddress1:
+              invoiceShipToContact?.address_full ||
+              invoiceBillToContact?.address_full ||
+              invoiceCustomerLink?.address_full,
+            shipAddress2: invoiceShipToContact?.address2 || invoiceBillToContact?.address2,
+            shipCity:
+              invoiceShipToContact?.city ||
+              invoiceBillToContact?.city ||
+              invoiceCustomerLink?.city,
+            shipState:
+              invoiceShipToContact?.state ||
+              invoiceBillToContact?.state ||
+              invoiceCustomerLink?.state,
+            shipZip:
+              invoiceShipToContact?.zip ||
+              invoiceBillToContact?.zip ||
+              invoiceCustomerLink?.zip,
+            shipCountry:
+              invoiceShipToContact?.country ||
+              invoiceBillToContact?.country ||
+              invoiceCustomerLink?.country,
+            shipPhone:
+              invoiceShipToContact?.phone ||
+              invoiceBillToContact?.phone ||
+              invoiceCustomerLink?.phone,
+            shipEmail:
+              invoiceShipToContact?.email ||
+              invoiceBillToContact?.email ||
+              invoiceCustomerLink?.email,
 
             // Document details
             dateCreated: data.dt_created
@@ -1735,6 +1750,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           );
 
         case "proposal":
+          const proposalBillToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "billto",
+          );
+          const proposalShipToContact = data.refs?.links?.contact?.find(
+            (c: any) => c.purpose === "shipto",
+          );
+          const proposalCustomerLink = Array.isArray(data.refs?.links?.customer)
+            ? data.refs?.links?.customer?.[0]
+            : data.refs?.links?.customer;
+
           // Transform Transaction to ProposalPrintData with contact extraction
           const proposalData = {
             id: data.id,
@@ -1745,70 +1770,74 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
             // Customer info from refs
             customerID: data.customer_id,
-            firstName: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.name_first,
-            lastName: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.name_last,
+            firstName: proposalBillToContact?.name_first || proposalCustomerLink?.name_first,
+            lastName: proposalBillToContact?.name_last || proposalCustomerLink?.name_last,
             company:
-              data.refs?.links?.customer?.[0]?.company ||
-              data.refs?.links?.customer?.[0]?.display_name,
+              proposalCustomerLink?.company ||
+              proposalCustomerLink?.display_name ||
+              (data as any).company,
             attention:
               data.attention ||
-              data.refs?.links?.contact?.find(
-                (c: any) => c.purpose === "billto",
-              )?.display_name,
-            address1: data.refs?.links?.customer?.[0]?.address_full,
-            address2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.address_full,
-            city: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.city,
-            state: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.state,
-            zip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.zip,
-            country: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.country,
-            phone: data.phone || data.refs?.links?.customer?.[0]?.phone,
-            phoneCell: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "billto",
-            )?.phone,
-            email: data.email || data.refs?.links?.customer?.[0]?.email,
+              proposalBillToContact?.display_name ||
+              proposalCustomerLink?.attention ||
+              proposalCustomerLink?.display_name,
+            address1:
+              proposalBillToContact?.address_full ||
+              proposalCustomerLink?.address_full ||
+              (data as any).address_full,
+            address2: proposalBillToContact?.address2 || (data as any).address2,
+            city: proposalBillToContact?.city || proposalCustomerLink?.city || (data as any).city,
+            state:
+              proposalBillToContact?.state ||
+              proposalCustomerLink?.state ||
+              (data as any).state,
+            zip: proposalBillToContact?.zip || proposalCustomerLink?.zip || (data as any).zip,
+            country:
+              proposalBillToContact?.country ||
+              proposalCustomerLink?.country ||
+              (data as any).country,
+            phone:
+              data.phone ||
+              proposalBillToContact?.phone ||
+              proposalCustomerLink?.phone,
+            phoneCell: proposalBillToContact?.phone,
+            email:
+              data.email ||
+              proposalBillToContact?.email ||
+              proposalCustomerLink?.email,
 
             // Shipping contact info
-            shipAttention: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.display_name,
-            shipAddress1: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipAddress2: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.address_full,
-            shipCity: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.city,
-            shipState: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.state,
-            shipZip: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.zip,
-            shipCountry: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.country,
-            shipPhone: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.phone,
-            shipEmail: data.refs?.links?.contact?.find(
-              (c: any) => c.purpose === "shipto",
-            )?.email,
+            shipAttention:
+              proposalShipToContact?.display_name || proposalBillToContact?.display_name,
+            shipAddress1:
+              proposalShipToContact?.address_full ||
+              proposalBillToContact?.address_full ||
+              proposalCustomerLink?.address_full,
+            shipAddress2: proposalShipToContact?.address2 || proposalBillToContact?.address2,
+            shipCity:
+              proposalShipToContact?.city ||
+              proposalBillToContact?.city ||
+              proposalCustomerLink?.city,
+            shipState:
+              proposalShipToContact?.state ||
+              proposalBillToContact?.state ||
+              proposalCustomerLink?.state,
+            shipZip:
+              proposalShipToContact?.zip ||
+              proposalBillToContact?.zip ||
+              proposalCustomerLink?.zip,
+            shipCountry:
+              proposalShipToContact?.country ||
+              proposalBillToContact?.country ||
+              proposalCustomerLink?.country,
+            shipPhone:
+              proposalShipToContact?.phone ||
+              proposalBillToContact?.phone ||
+              proposalCustomerLink?.phone,
+            shipEmail:
+              proposalShipToContact?.email ||
+              proposalBillToContact?.email ||
+              proposalCustomerLink?.email,
 
             // Document details
             dateCreated: data.dt_created
