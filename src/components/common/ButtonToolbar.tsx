@@ -25,10 +25,16 @@ import {
   FaFilePdf,
   FaFileCode,
 } from "react-icons/fa";
-import PrintReportDropdown, { type QuickFilterItem } from "./PrintReportDropdown";
+import PrintReportDropdown, {
+  type QuickFilterItem,
+} from "./PrintReportDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
-import { useColumnSetups, type ColumnSetupEntry } from "@/hooks/useColumnSetups";
+import {
+  useColumnSetups,
+  type ColumnSetupEntry,
+} from "@/hooks/useColumnSetups";
 import { ColumnSetupDialog } from "./ColumnSetupDialog";
+import Badge from "../ui/badge/Badge";
 
 export interface ColumnFilter {
   key: string;
@@ -154,13 +160,19 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   const [internalColumns, setInternalColumns] =
     useState<TableColumn<T>[]>(columns);
 
-  const getColumnIdentity = useCallback((col: TableColumn<T>, index: number) => {
-    if (col.id != null) return `id:${String(col.id)}`;
-    if (typeof col.name === "string") return `name:${col.name.trim().toLowerCase()}`;
-    if (typeof col.selector === "string") return `selector:${(col.selector as string).trim().toLowerCase()}`;
-    if (typeof col.sortField === "string") return `sortField:${col.sortField.trim().toLowerCase()}`;
-    return `index:${index}`;
-  }, []);
+  const getColumnIdentity = useCallback(
+    (col: TableColumn<T>, index: number) => {
+      if (col.id != null) return `id:${String(col.id)}`;
+      if (typeof col.name === "string")
+        return `name:${col.name.trim().toLowerCase()}`;
+      if (typeof col.selector === "string")
+        return `selector:${(col.selector as string).trim().toLowerCase()}`;
+      if (typeof col.sortField === "string")
+        return `sortField:${col.sortField.trim().toLowerCase()}`;
+      return `index:${index}`;
+    },
+    [],
+  );
 
   const incomingSchemaSignature = useMemo(
     () =>
@@ -250,7 +262,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
     } catch {
       // Ignore errors
     }
-
   }, [storageKey, columns.length, onColumnVisibilityChange]);
 
   // Save column layout
@@ -443,7 +454,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           >
             <FaPlus className="w-4 h-4" />
           </button>
-
           {/* Select All */}
           <button
             onClick={() => tableRef?.current?.selectAll?.()}
@@ -453,7 +463,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           >
             <FaCheckSquare className="w-4 h-4" />
           </button>
-
           {/* Clear Selection */}
           <button
             onClick={() => tableRef?.current?.clearSelection?.()}
@@ -463,7 +472,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           >
             <FaTimes className="w-4 h-4" />
           </button>
-
           {/* Import */}
           <button
             onClick={() => effectiveImportInputRef?.current?.click()}
@@ -480,9 +488,10 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
             className="hidden"
             onChange={handleImportChange}
           />
-
           {/* Print / Report dropdown */}
-          {modelKey && (getReportsForModel(modelKey).length > 0 || (quickFilters && quickFilters.length > 0)) ? (
+          {modelKey &&
+          (getReportsForModel(modelKey).length > 0 ||
+            (quickFilters && quickFilters.length > 0)) ? (
             <PrintReportDropdown
               modelKey={modelKey}
               onSelect={onSelectReport}
@@ -500,7 +509,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               <FaPrint className="w-4 h-4" />
             </button>
           )}
-
           {/* Export Dropdown */}
           {enableExport && (
             <div className="relative" ref={exportDropdownRef}>
@@ -523,7 +531,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               </button>
             </div>
           )}
-
           {/* Column Manager */}
           <div className="relative" ref={columnManagerRef}>
             <button
@@ -541,7 +548,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               )}
             </button>
           </div>
-
           {/* Refresh */}
           <button
             onClick={onRefresh}
@@ -551,7 +557,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           >
             <FaSync className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
-
           {/* Filters Toggle */}
           {filters.length > 0 && (
             <button
@@ -572,7 +577,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               )}
             </button>
           )}
-
           {/* Clear Filters */}
           {(searchTerm || activeFilterCount > 0) && (
             <button
@@ -584,7 +588,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               Clear
             </button>
           )}
-
           {/* <div className="flex items-center justify-between"> */}
           <div className="relative">
             {enableDatabaseSearch && (
@@ -619,16 +622,17 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               </button>
             )}
           </div>
-
           <button
             onClick={handleBulkDelete}
             disabled={count === 0 || !handleBulkDelete}
             title="Delete Selected"
-            className="w-9 h-9 flex items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            className="w-9 h-9 flex text-xs items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
           >
             <FaTrash className="w-4 h-4" />
           </button>
-
+          {selectedCount ? (
+            <Badge color="warning">{selectedCount}</Badge>
+          ) : null}
           {/* Custom Actions Slot */}
           {customActions}
           {/* </div> */}
@@ -838,54 +842,58 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         </div>
       )}
 
-
       {/* Column Setup Edit Dialog */}
-      {editingSetupName && (() => {
-        const setup = columnSetupsApi.setups.find((s) => s.name === editingSetupName);
-        const isCurrent = editingSetupName === "__current__";
-        const dialogConfig = setup?.config ?? buildCurrentConfig();
-        const dialogTitle = isCurrent ? "Current Columns" : editingSetupName;
-        return (
-          <ColumnSetupDialog
-            open={true}
-            title={dialogTitle}
-            columnMetas={columnMetas}
-            config={dialogConfig}
-            existingSetupNames={columnSetupsApi.setups.map((s) => s.name)}
-            namedSetups={columnSetupsApi.setups}
-            initialSetupName={isCurrent ? null : editingSetupName}
-            onSaveNamed={(name, cfg) => {
-              const exists = columnSetupsApi.setups.some((s) => s.name === name);
-              if (exists) {
-                columnSetupsApi.updateSetup(name, cfg);
-              } else {
-                columnSetupsApi.saveSetup(name, cfg);
-              }
-            }}
-            onClose={() => setEditingSetupName(null)}
-            onPreview={(config) => {
-              tableRef?.current?.applyColumnLayout?.({
-                order: config.order,
-                visibility: config.visibility,
-                widths: config.widths,
-              });
-            }}
-            onSave={(config) => {
-              if (!isCurrent) {
-                columnSetupsApi.updateSetup(editingSetupName, config);
-              }
-              applyConfig(config);
-              tableRef?.current?.applyColumnLayout?.({
-                order: config.order,
-                visibility: config.visibility,
-                widths: config.widths,
-              });
-              setEditingSetupName(null);
-            }}
-            columnSetupsApi={columnSetupsApi}
-          />
-        );
-      })()}
+      {editingSetupName &&
+        (() => {
+          const setup = columnSetupsApi.setups.find(
+            (s) => s.name === editingSetupName,
+          );
+          const isCurrent = editingSetupName === "__current__";
+          const dialogConfig = setup?.config ?? buildCurrentConfig();
+          const dialogTitle = isCurrent ? "Current Columns" : editingSetupName;
+          return (
+            <ColumnSetupDialog
+              open={true}
+              title={dialogTitle}
+              columnMetas={columnMetas}
+              config={dialogConfig}
+              existingSetupNames={columnSetupsApi.setups.map((s) => s.name)}
+              namedSetups={columnSetupsApi.setups}
+              initialSetupName={isCurrent ? null : editingSetupName}
+              onSaveNamed={(name, cfg) => {
+                const exists = columnSetupsApi.setups.some(
+                  (s) => s.name === name,
+                );
+                if (exists) {
+                  columnSetupsApi.updateSetup(name, cfg);
+                } else {
+                  columnSetupsApi.saveSetup(name, cfg);
+                }
+              }}
+              onClose={() => setEditingSetupName(null)}
+              onPreview={(config) => {
+                tableRef?.current?.applyColumnLayout?.({
+                  order: config.order,
+                  visibility: config.visibility,
+                  widths: config.widths,
+                });
+              }}
+              onSave={(config) => {
+                if (!isCurrent) {
+                  columnSetupsApi.updateSetup(editingSetupName, config);
+                }
+                applyConfig(config);
+                tableRef?.current?.applyColumnLayout?.({
+                  order: config.order,
+                  visibility: config.visibility,
+                  widths: config.widths,
+                });
+                setEditingSetupName(null);
+              }}
+              columnSetupsApi={columnSetupsApi}
+            />
+          );
+        })()}
     </div>
   );
 };

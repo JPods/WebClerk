@@ -15,7 +15,8 @@ import ContactDetail2 from "./ContactDetail2";
 import ContactDetail3 from "./ContactDetail3";
 import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
-import { defaultCountries, usePhoneInput } from "react-international-phone";
+import { PhoneFormat } from "@/apps/common/components/detail/PhoneFormat";
+import { EmailFormat } from "@/apps/common/components/detail/EmailFormat";
 interface ContactData {
   id: string | number;
   email?: string;
@@ -138,22 +139,6 @@ const ContactList = () => {
     [dispatch],
   );
 
-  /**
-   * PhoneDisplay - Format and display phone numbers using react-international-phone
-   * Uses the library's formatting logic for consistent display with the input component
-   */
-  const PhoneDisplay: React.FC<{ value?: string | null }> = ({ value }) => {
-    const { inputValue } = usePhoneInput({
-      value: value || "",
-      countries: defaultCountries,
-      defaultCountry: "us",
-      forceDialCode: true,
-    });
-
-    if (!value) return null;
-    return <>{inputValue}</>;
-  };
-
   // Columns hook - similar pattern to useCustomerColumns
   const useContactColumns = (
     handleEdit: (row: ContactData) => void,
@@ -185,7 +170,7 @@ const ContactList = () => {
           sortable: true,
           wrap: true,
           width: "15%",
-          cell: (row: ContactData) => row.email || "-",
+          cell: (row: ContactData) => <EmailFormat value={row.email} />,
         },
         {
           name: "name_first",
@@ -218,7 +203,7 @@ const ContactList = () => {
         {
           name: "Phone",
           selector: (row: ContactData) => row.phone || "-",
-          cell: (row: ContactData) => <PhoneDisplay value={row.phone} />,
+          cell: (row: ContactData) => <PhoneFormat value={row.phone} />,
           sortable: true,
           width: "12%",
         },
@@ -253,44 +238,6 @@ const ContactList = () => {
                 {"No"}
               </span>
             ),
-        },
-        {
-          name: "Actions",
-          width: "140px",
-          cell: (row: ContactData) => (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleView(row);
-                }}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
-                title="View"
-              >
-                <FaEye className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(row);
-                }}
-                className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
-                title="Edit"
-              >
-                <FaEdit className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteRow(row);
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
-                title="Delete"
-              >
-                <FaTrash className="w-4 h-4" />
-              </button>
-            </div>
-          ),
         },
       ],
       [handleEdit, handleView, handleDeleteRow],
@@ -543,7 +490,8 @@ const ContactList = () => {
               searchPlaceholder="Search contact, name_first, name_last..."
               noDataMessage="No contact found"
               customActions={customActions}
-              onRowClicked={handleView}
+              //onRowClicked={handleView}
+              onRowDoubleClicked={handleView}
             />
             {/* )} */}
           </ComponentCard>
