@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
   export class PageRoutes {
     static readonly productsItemDetail: string = "/products/item/detail/:id";
   static readonly login: string = "/";
@@ -21,8 +22,14 @@
   static readonly customerEdit: string = "/org/customer/edit";
   static readonly employeeList: string = "/org/employee/list";
   static readonly manufacturerList: string = "/org/manufacturer/list";
+    static readonly manufacturerDetail: string = "/org/manufacturer/detail";
+    static readonly manufacturerAdd: string = "/org/manufacturer/add";
+    static readonly manufacturerEdit: string = "/org/manufacturer/edit";
   static readonly organizationList: string = "/org/organization/list";
   static readonly repList: string = "/org/rep/list";
+    static readonly repDetail: string = "/org/rep/detail";
+    static readonly repAdd: string = "/org/rep/add";
+    static readonly repEdit: string = "/org/rep/edit";
   static readonly vendorList: string = "/org/vendor/list";
 
   static readonly test: string = "/test";
@@ -69,6 +76,11 @@
     "/transactions/invoice/detail/:id?";
   static readonly transactionsApplyPayments: string =
     "/transactions/apply-payments";
+
+  static readonly transactionsPaymentList: string =
+    "/transactions/payment/list";
+  static readonly transactionsPaymentDetail: string =
+    "/transactions/payment/detail/:id?";
 
   static readonly transactionsPurchaseList: string =
     "/transactions/purchase/list";

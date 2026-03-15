@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * PrintReportDropdown — A dropdown button that lists available
  * reports/print options for a given model, sourced from reportLists.ts.

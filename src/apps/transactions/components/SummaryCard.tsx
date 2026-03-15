@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React from "react";
 import FieldLabel from "../components/FieldLabel";
 import { Input, DropDown } from "../../../components/wrapper";
@@ -94,6 +95,15 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   onCustomerSelect,
   orgLinks,
 }) => {
+  const statusOptions = [
+    { value: "planned", label: "planned" },
+    { value: "released", label: "released" },
+    { value: "in_progress", label: "in_progress" },
+    { value: "hold", label: "hold" },
+    { value: "complete", label: "complete" },
+    { value: "canceled", label: "canceled" },
+  ];
+
   // Handle customer selection from CustomerSalesPanel
   const handleCustomerSelect = (selectionData: CustomerSelectionData | null) => {
     if (onCustomerSelect) {
@@ -352,9 +362,21 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 mandatory
                 className="text-slate-500 dark:text-slate-400"
               />
-              <dd>
-                <StatusBadge status={data.status} />
-              </dd>
+              {isEditing && onChange ? (
+                <DropDown
+                  id="status"
+                  options={statusOptions}
+                  placeholder="Select Status"
+                  value={data.status ?? "planned"}
+                  onChange={(value: string) => onChange("status", value)}
+                  className="dark:bg-dark-900"
+                  disabled={!isEditing}
+                />
+              ) : (
+                <dd>
+                  <StatusBadge status={data.status} />
+                </dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel

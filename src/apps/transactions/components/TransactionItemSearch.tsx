@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * TransactionItemSearch - Shared item search component for all transaction types
  * Configurable to show price (for sales) or cost (for purchases) as the primary value

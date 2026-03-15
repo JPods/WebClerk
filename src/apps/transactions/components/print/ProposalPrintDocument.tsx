@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ProposalPrintDocument - Print-ready proposal/quote document
  * US Letter (8.5" x 11") format
@@ -46,6 +47,7 @@ export interface ProposalPrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
   
   // Document details
   dateCreated?: string;
@@ -144,6 +146,7 @@ const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData
     zip: data.shipZip,
     country: data.shipCountry,
     phone: data.shipPhone,
+    email: data.shipEmail,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
@@ -201,6 +204,8 @@ const ProposalPrintDocument: React.FC<ProposalPrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="ProposalPrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

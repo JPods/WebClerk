@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useSelector } from "react-redux";
 import { createPortal } from "react-dom";
 import { RootState } from "../../store";

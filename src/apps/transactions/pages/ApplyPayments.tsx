@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ApplyPayments - Bulk Payment Application Page
  * 
@@ -10,12 +11,13 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { FaSearch, FaCheck, FaSync, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaCheck, FaSync, FaTimes, FaSpinner, FaPlus } from 'react-icons/fa';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
 import ComponentCard from '@/components/common/ComponentCard';
 import { getRecords } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
+import PaymentDialog from '../components/PaymentDialog';
 
 // Org search result type
 interface OrgSearchResult {
@@ -52,6 +54,7 @@ const ApplyPayments: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
   const [applyAmount, setApplyAmount] = useState<string>('');
   const [applying, setApplying] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // Search for customers/orgs
   const searchOrgs = useCallback(async (query: string) => {
@@ -481,6 +484,13 @@ const ApplyPayments: React.FC = () => {
                   <FaSync className={loadingData ? 'animate-spin' : ''} />
                   Refresh
                 </button>
+                <button
+                  onClick={() => setShowPaymentDialog(true)}
+                  className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded flex items-center gap-1"
+                >
+                  <FaPlus />
+                  Make Payment
+                </button>
                 {selectedPayment && (
                   <span className="text-xs text-green-600 dark:text-green-400">
                     Selected: {formatCurrency(paymentAvailable)} available
@@ -611,6 +621,17 @@ const ApplyPayments: React.FC = () => {
           </div>
         </ComponentCard>
       )}
+      
+      {/* Make Payment Dialog */}
+      <PaymentDialog
+        isOpen={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        customer_id={selectedOrg?.id}
+        customer_name={selectedOrg?.display_name}
+        onPaymentAdded={() => {
+          if (selectedOrg) loadCustomerData(String(selectedOrg.id));
+        }}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // This file defines TypeScript types and interfaces for phone models only.
 // Do not place implementation logic here. For logic, use Phone.ts.
 

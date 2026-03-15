@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React from "react";
 import { Navigate } from "react-router";
 import { PageRoutes } from "./Routes";
@@ -9,8 +10,14 @@ import {
   CustomerEditPage,
   EmployeeList,
   ManufacturerList,
+    ManufacturerDetailPage,
+    ManufacturerAddPage,
+    ManufacturerEditPage,
   OrganizationsList,
   RepList,
+    RepDetailPage,
+    RepAddPage,
+    RepEditPage,
   VendorList,
   Home,
   KanbanBoardDataPage,
@@ -79,6 +86,8 @@ import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
+import PaymentListPage from "../apps/transactions/models/payment/pages/PaymentListPage";
+import PaymentDetailPage from "../apps/transactions/models/payment/pages/PaymentDetailPage";
 import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
@@ -107,8 +116,14 @@ export const protectedRoutesConfig = [
   { path: `${PageRoutes.customerEdit}/:id`, element: <CustomerEditPage /> },
   { path: PageRoutes.employeeList, element: <EmployeeList /> },
   { path: PageRoutes.manufacturerList, element: <ManufacturerList /> },
+    { path: `${PageRoutes.manufacturerDetail}/:id`, element: <ManufacturerDetailPage /> },
+    { path: PageRoutes.manufacturerAdd, element: <ManufacturerAddPage /> },
+    { path: `${PageRoutes.manufacturerEdit}/:id`, element: <ManufacturerEditPage /> },
   { path: PageRoutes.organizationList, element: <OrganizationsList /> },
   { path: PageRoutes.repList, element: <RepList /> },
+    { path: `${PageRoutes.repDetail}/:id`, element: <RepDetailPage /> },
+    { path: PageRoutes.repAdd, element: <RepAddPage /> },
+    { path: `${PageRoutes.repEdit}/:id`, element: <RepEditPage /> },
   { path: PageRoutes.vendorList, element: <VendorList /> },
   { path: PageRoutes.coreSettingList, element: <CoreSettingList /> },
   { path: PageRoutes.coreSettingDetail, element: <CoreSettingDetail /> },
@@ -168,6 +183,8 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsInvoiceList, element: <InvoiceList /> },
   { path: PageRoutes.transactionsInvoiceDetail, element: <InvoiceDetail /> },
   { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
+  { path: PageRoutes.transactionsPaymentList, element: <PaymentListPage /> },
+  { path: PageRoutes.transactionsPaymentDetail, element: <PaymentDetailPage /> },
   { path: PageRoutes.transactionsPurchaseList, element: <PurchaseList /> },
   { path: PageRoutes.transactionsPurchaseDetail, element: <PurchaseDetail /> },
   { path: PageRoutes.transactionsProposalList, element: <ProposalList /> },

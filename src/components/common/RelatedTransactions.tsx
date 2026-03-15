@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * RelatedTransactions - Shows only parent/child related transactions
  *
@@ -7,7 +8,7 @@
  *
  * Does NOT show all transactions for the linked org — only direct relationships.
  *
- * @see TransactionTabs for org pages that show all org transactions
+ * @see TransactionTabPanel for org pages that show org transactions by selected type
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ProposalDetail - Refactored to use TransactionDetailBase with SummaryCard
  * Standardized to match OrderDetail.tsx pattern

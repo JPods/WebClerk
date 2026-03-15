@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Shared Panel Components - Barrel Export
  *
@@ -83,6 +84,9 @@ export type { SerialPanelProps, SerialRecord } from "./SerialPanel";
 export { default as ShippingPanel } from "./ShippingPanel";
 export { default as TransactionsPanel } from "./TransactionsPanel";
 export type { TransactionsPanelProps, TransactionRecord } from "./TransactionsPanel";
+export { default as TransactionPanel } from "./TransactionPanel";
+export type { TransactionPanelProps, TransactionHeaderData } from "./TransactionPanel";
+export { default as PaymentPanel } from "./PaymentPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
 export { default as CommunicationsPanel } from "./CommunicationsPanel";
 export { default as EmailGatePanel } from "./EmailGatePanel";
@@ -92,6 +96,8 @@ export type { CommType, CommLinkPanelProps } from "./CommLinkPanel";
 export { default as OrgLinkPanel } from "./OrgLinkPanel";
 export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";
+export { default as CoreTabPanel } from "./CoreTabPanel";
+export type { CoreTabPanelProps } from "./CoreTabPanel";
 
 // Shared panel table component
 export { PanelTable } from "./PanelTable";

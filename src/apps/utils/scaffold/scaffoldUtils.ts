@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 export const kebabCaseToTitle = (value: string): string => {
   return value
     .replace(/[-_]+/g, " ")

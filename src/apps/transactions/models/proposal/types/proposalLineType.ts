@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * ProposalLine Types — matches wc3 BaseSellLineModel
  * @see webClerk3/apps/transactions/models/base_line_model.py

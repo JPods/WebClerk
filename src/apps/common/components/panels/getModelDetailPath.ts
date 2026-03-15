@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * getModelDetailPath — Maps a model name + record ID to its detail route.
  *
@@ -106,7 +107,7 @@ const MODEL_DETAIL_BASES: Record<string, string> = {
   audit: "/accounts/audit/detail",
   currency: "/accounts/currency/detail",
   ledger: "/accounts/ledger/detail",
-  payment: "/accounts/payment/detail",
+  payment: "/transactions/payment/detail",
 
   // Communications
   domain: "/communications/domain/detail",

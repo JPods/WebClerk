@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // Assume these icons are imported from an icon library
@@ -173,6 +174,8 @@ const navItems: NavItem[] = [
       { name: "Work Orders", path: PageRoutes.transactionsWorkOrderList },
       { name: "Receipts", path: PageRoutes.transactionsReceiptList },
       { name: "Adjustments", path: PageRoutes.transactionsAdjustmentList },
+      { name: "Payments", path: PageRoutes.transactionsPaymentList },
+      { name: "Apply Payments", path: PageRoutes.transactionsApplyPayments },
     ],
   },
 

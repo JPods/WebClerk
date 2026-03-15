@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // src/store/slices/toastSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // TypeScript interface for Audit model based on webclerk3 Django model
 
 export interface Audit {

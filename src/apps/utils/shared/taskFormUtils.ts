@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import type { TaskPriority } from "../kanban/type/kanban";
 import type { TranslationFormEntry, TaskFormState } from "../kanban/taskFormTypes";
 

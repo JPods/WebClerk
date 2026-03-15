@@ -314,8 +314,22 @@ const ROLE_OPTIONS = [
 
 type CommType = CommunicationModalType;
 
+type DuplicateCommBucket = {
+  type: "email" | "phone" | "domain" | "address";
+  value: string;
+  rows: any[];
+};
+
 function commTypeToModelName(type: CommType): string {
   return type;
+}
+
+function normalizeCommValue(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizePhoneValue(value: unknown): string {
+  return normalizeCommValue(value).replace(/[^\d+]/g, "");
 }
 
 function commTypeToContactIdField(
@@ -670,7 +684,6 @@ function ContactDetail({
 
   useEffect(() => {
     if (contactIdFromUrl != null && contactIdFromUrl !== fetchedData?.id) {
-      if (initialData?.id === contactIdFromUrl) return;
       setIsLoading(true);
       getRecord("contact", contactIdFromUrl)
         .then((result) =>
@@ -681,7 +694,7 @@ function ContactDetail({
         )
         .finally(() => setIsLoading(false));
     }
-  }, [contactIdFromUrl, initialData?.id, fetchedData?.id]);
+  }, [contactIdFromUrl, fetchedData?.id]);
 
   // ---------------------------------------------------------------------------
   // Communications local state
@@ -2002,6 +2015,103 @@ function ContactDetail({
         | z.infer<typeof updateContactSchema>,
     ) => {
       try {
+        const currentContactId = Number(data?.id || 0);
+        const duplicateBuckets: DuplicateCommBucket[] = [];
+
+        const emailValue = normalizeCommValue((formData as any).email).toLowerCase();
+        if (emailValue) {
+          const res: any = await getRecords("email", {
+            search: emailValue,
+            q: emailValue,
+            limit: 100,
+          });
+          const rows = (res?.results || []).filter((r: any) => {
+            const value = normalizeCommValue(r?.email).toLowerCase();
+            const owner = Number(r?.contact ?? r?.contact_id ?? 0);
+            return value === emailValue && owner > 0 && owner !== currentContactId;
+          });
+          if (rows.length > 0) {
+            duplicateBuckets.push({ type: "email", value: emailValue, rows });
+          }
+        }
+
+        const phoneValue = normalizePhoneValue((formData as any).phone);
+        if (phoneValue) {
+          const res: any = await getRecords("phone", {
+            search: phoneValue,
+            q: phoneValue,
+            limit: 100,
+          });
+          const rows = (res?.results || []).filter((r: any) => {
+            const value = normalizePhoneValue(r?.number ?? r?.value);
+            const owner = Number(r?.contact ?? r?.contact_id ?? 0);
+            return value === phoneValue && owner > 0 && owner !== currentContactId;
+          });
+          if (rows.length > 0) {
+            duplicateBuckets.push({ type: "phone", value: phoneValue, rows });
+          }
+        }
+
+        const domainValue = normalizeCommValue((formData as any).domain).toLowerCase();
+        if (domainValue) {
+          const res: any = await getRecords("domain", {
+            search: domainValue,
+            q: domainValue,
+            limit: 100,
+          });
+          const rows = (res?.results || []).filter((r: any) => {
+            const value = normalizeCommValue(r?.path ?? r?.domain).toLowerCase();
+            const owner = Number(r?.contact ?? r?.contact_id ?? 0);
+            return value === domainValue && owner > 0 && owner !== currentContactId;
+          });
+          if (rows.length > 0) {
+            duplicateBuckets.push({ type: "domain", value: domainValue, rows });
+          }
+        }
+
+        const addressValue = normalizeCommValue((formData as any).address_full).toLowerCase();
+        if (addressValue) {
+          const res: any = await getRecords("address", {
+            search: addressValue,
+            q: addressValue,
+            limit: 100,
+          });
+          const rows = (res?.results || []).filter((r: any) => {
+            const value = normalizeCommValue(r?.full ?? r?.address1).toLowerCase();
+            const owner = Number(r?.contact ?? r?.contact_id ?? 0);
+            return value === addressValue && owner > 0 && owner !== currentContactId;
+          });
+          if (rows.length > 0) {
+            duplicateBuckets.push({ type: "address", value: addressValue, rows });
+          }
+        }
+
+        if (duplicateBuckets.length > 0) {
+          const totalMatches = duplicateBuckets.reduce(
+            (acc, bucket) => acc + bucket.rows.length,
+            0,
+          );
+          dispatch(
+            showToast({
+              message: `Found ${totalMatches} matching communication value(s) already linked to other contact(s).`,
+              type: "warning",
+            }),
+          );
+
+          const shouldOpen = window.confirm(
+            "Matching communication values already exist on other contacts. Open communication list windows to review them?",
+          );
+          if (shouldOpen) {
+            duplicateBuckets.forEach((bucket) => {
+              const path = `/communications/${bucket.type}/list?search=${encodeURIComponent(
+                bucket.value,
+              )}`;
+              const label = `${bucket.type} matches: ${bucket.value}`;
+              windowManager.ensureWindow(path, label, { maximized: false });
+            });
+          }
+        }
+
         const mappedRefs = formData.refs
           ? mapRefsFormToApi(formData.refs)
           : undefined;
@@ -2163,6 +2273,7 @@ function ContactDetail({
       data?.employee_id,
       data?.manufacturer_id,
       data?.other_id,
+      windowManager,
     ],
   );
 

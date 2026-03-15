@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * QuickAddRecent - Shows recently added items for quick re-adding
  * Displays items that were recently added to orders for fast repeat selection

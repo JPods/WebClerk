@@ -12,6 +12,7 @@ interface ImportMetaEnv {
 	readonly VITE_NOTION_REDIRECT_URI?: string;
 	readonly VITE_NOTION_SCOPE?: string;
 	readonly VITE_NOTION_OAUTH_OWNER?: string;
+	readonly VITE_PRINT_TEMPLATE_MARKER?: string;
 }
 
 interface ImportMeta {

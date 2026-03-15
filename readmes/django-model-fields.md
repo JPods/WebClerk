@@ -439,7 +439,8 @@ Plus ALL BaseModel inherited fields (id, uuid, ida, metadata, refs, prefs, comme
     "currency": "USD",
     "account": {"dt_opened": null, "dt_last_activity": null, "hold": false, "cod_only": false, "inactive": false},
     "rating": {"internal": null, "comments": "", "credit_score": null},
-    "settings": {"discount_pct": 0, "tax_exempt": false, "tax_exempt_id": "", "terms_id": null, "notes": ""}
+    "settings": {"discount_pct": 0, "tax_exempt": false, "tax_exempt_id": "", "terms_id": null, "notes": ""},
+    "complaints": {"our_fault":0, "their_fault":0, "unresolved":0, "costs":{"us":0,"partner":0,"rep":0}},
   },
   "customer": {
     "credit": {"limit": 0, "high": 0, "available": 0},
@@ -452,13 +453,11 @@ Plus ALL BaseModel inherited fields (id, uuid, ida, metadata, refs, prefs, comme
     "deposits": {"unapplied": 0},
     "collection": {"cost_mtd": 0, "cost_ytd": 0, "cost_alltime": 0},
     "minimums": {"order": 0},
-    "stats": {
-      "proposals": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
-      "orders": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
-      "invoices": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
-      "payments": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}}
+    "proposals": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
+    "orders": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
+    "invoices": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}},
+    "payments": {"issued": {"count":0,"value":0}, "canceled": {"count":0,"value":0}, "executed": {"count":0,"value":0}
     },
-    "complaints": {"our_fault":0, "their_fault":0, "unresolved":0, "costs":{"us":0,"partner":0,"rep":0}},
     "small_stings": {
       "received": {"count":0,"value":0,"paid":0,"pending":0},
       "issued": {"count":0,"value":0,"collected":0,"pending":0},
@@ -473,8 +472,7 @@ Plus ALL BaseModel inherited fields (id, uuid, ida, metadata, refs, prefs, comme
     "costs": {"mtd": 0, "ytd": 0},
     "payments_made": {"mtd": 0, "ytd": 0, "dt_last_payment": null},
     "minimums": {"order": 0, "purchase": 0},
-    "stats": {"purchases": {"issued":{"count":0,"value":0},"canceled":{"count":0,"value":0},"executed":{"count":0,"value":0}}},
-    "complaints": {"our_fault":0,"their_fault":0,"unresolved":0,"costs":{"us":0,"partner":0,"rep":0}},
+    "purchases": {"issued":{"count":0,"value":0},"canceled":{"count":0,"value":0},"executed":{"count":0,"value":0}},
     "small_stings": { ... }
   },
   "rep": {
@@ -491,6 +489,7 @@ Plus ALL BaseModel inherited fields (id, uuid, ida, metadata, refs, prefs, comme
   },
   "manufacturer": {
     "purchases": {"mtd":0,"ytd":0,"lifetime":0},
+    "commissions": {"mtd":0,"ytd":0,"lifetime":0},
     "rebates": {"earned_ytd":0,"received_ytd":0,"pending":0},
     "pricing_tier": null,
     "lead_time_days": 0,

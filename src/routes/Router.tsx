@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import WcapiRouteHandler from "./WcapiRouteHandler";
 // import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import ItemDetail from "../apps/products/models/item/pages/ItemDetail";
@@ -85,6 +86,8 @@ import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
+import PaymentListPage from "../apps/transactions/models/payment/pages/PaymentListPage";
+import PaymentDetailPage from "../apps/transactions/models/payment/pages/PaymentDetailPage";
 import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
@@ -334,6 +337,14 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.transactionsApplyPayments}
             element={<ApplyPayments />}
+          />
+          <Route
+            path={PageRoutes.transactionsPaymentList}
+            element={<PaymentListPage />}
+          />
+          <Route
+            path={PageRoutes.transactionsPaymentDetail}
+            element={<PaymentDetailPage />}
           />
           <Route
             path={PageRoutes.transactionsPurchaseList}

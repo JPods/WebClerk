@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * CommentsPanel - Generic comments panel with CRUD operations
  * Tabs: Public | Process | Partner | Notes

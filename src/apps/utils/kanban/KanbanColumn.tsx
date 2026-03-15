@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { memo, useMemo, useRef } from "react";
 import { useDrop } from "react-dnd";
 import clsx from "clsx";

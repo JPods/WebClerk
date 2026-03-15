@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Print Document Components
  * Export all print-ready document components for transactions
@@ -59,3 +60,15 @@ export type {
   AdjustmentLineData, 
   AdjustmentPrintDocumentProps 
 } from './AdjustmentPrintDocument';
+
+export { default as RequisitionPrintDocument } from './RequisitionPrintDocument';
+export type {
+  RequisitionPrintData,
+  RequisitionPrintDocumentProps
+} from './RequisitionPrintDocument';
+
+export { default as ProjectPrintDocument } from './ProjectPrintDocument';
+export type {
+  ProjectPrintData,
+  ProjectPrintDocumentProps
+} from './ProjectPrintDocument';

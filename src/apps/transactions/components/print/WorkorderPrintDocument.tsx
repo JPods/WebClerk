@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * WorkorderPrintDocument - Print-ready work order document
  * US Letter (8.5" x 11") format
@@ -47,6 +48,7 @@ export interface WorkorderPrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
   
   // Document details
   dateCreated?: string;
@@ -109,10 +111,9 @@ const transformWorkorderData = (data: WorkorderPrintData, lines?: WorkorderLineD
     salesId: data.technicianId,
     terms: data.terms,
     fob: data.fob,
-    priority: data.priority,
-    dateStarted: data.dateStarted,
-    dateCompleted: data.dateCompleted,
-    workDescription: data.workDescription,
+    dateOrdered: data.dateStarted,
+    dateNeeded: data.dateCompleted,
+    actionBy: data.priority,
   };
 
   const billTo: PrintParty = {
@@ -141,6 +142,7 @@ const transformWorkorderData = (data: WorkorderPrintData, lines?: WorkorderLineD
     zip: data.shipZip,
     country: data.shipCountry,
     phone: data.shipPhone,
+    email: data.shipEmail,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
@@ -154,14 +156,15 @@ const transformWorkorderData = (data: WorkorderPrintData, lines?: WorkorderLineD
 
   const totals: PrintTotals = {
     salesAmount: data.amount,
-    laborCost: data.laborCost,
-    materialCost: data.materialCost,
+    subtotal: data.laborCost,
+    shipping: data.materialCost,
     salesTax: data.salesTax,
     total: data.total,
   };
 
   const comments: PrintComments = {
     public: data.comment,
+    process: data.workDescription,
     contractDetail: data.contractDetail,
     pvTermState: data.pvTermState,
   };
@@ -195,6 +198,8 @@ const WorkorderPrintDocument: React.FC<WorkorderPrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="WorkorderPrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

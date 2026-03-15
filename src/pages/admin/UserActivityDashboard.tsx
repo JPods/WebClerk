@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * UserActivityDashboard.tsx — Admin page showing daily user API usage,
  * response patterns, and diagnostic hints.

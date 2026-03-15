@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * Manufacturer Types — matches wc3 OrgBase (proxy: org_type="manufacturer")
  * @see webClerk3/apps/orgs/models/base.py

@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type LoadingState = {

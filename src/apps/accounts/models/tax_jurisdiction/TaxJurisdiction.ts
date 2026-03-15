@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // WC3 ↔ R25 TypeScript alignment interface for TaxJurisdiction
 export interface TaxJurisdiction {
   id: number;

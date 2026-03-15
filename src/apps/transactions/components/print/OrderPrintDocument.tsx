@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 // Helper: map user JSON to OrderPrintData and OrderLineData
 export function mapJsonToOrderPrintData(json: any): {
   data: OrderPrintData;
@@ -106,6 +107,7 @@ export interface OrderPrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
 
   // Document details
   dateCreated?: string;
@@ -269,6 +271,7 @@ const transformOrderData = (data: OrderPrintData, lines?: OrderLineData[]) => {
     zip: data.shipZip,
     country: data.shipCountry,
     phone: data.shipPhone,
+    email: data.shipEmail,
     phoneCell: data.shipPhone,
   };
 
@@ -331,6 +334,8 @@ const OrderPrintDocument: React.FC<OrderPrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="OrderPrintDocument.tsx"
+      partyTitles={{ billTo: 'Customer Bill To', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo}

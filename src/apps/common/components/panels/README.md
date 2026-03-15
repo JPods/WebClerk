@@ -1,8 +1,60 @@
-# Shared Components & Panels
+# Panels — Canonical Location & Rules
 
-Reusable components for displaying and editing common data structures across all model detail pages. These panels align with the Django `BaseModel` JSONB field structure (`.metadata`, `.refs`, `.prefs`, `.comments`, `.actions`).
+> **Updated:** 2026-03-13  
+> **Rule:** All shared panels live here. No re-export shims. No legacy paths.
 
-> **Last updated:** 2025-02-13
+---
+
+## Rules
+
+### 1. One canonical path per component
+
+Every panel has exactly one source file. Import it directly. Never create re-export shims or proxy files in other directories.
+
+```tsx
+// CORRECT — import from canonical location
+import ContactPanel from "@/apps/common/components/panels/ContactPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+
+// WRONG — never import from a shim or proxy
+import ContactPanel from "./ContactPanel";          // shim in transactions/
+import CommentsPanel from "../transactions/components/CommentsPanel";  // dead path
+```
+
+### 2. Where does it live?
+
+| Scope | Path | Examples |
+|-------|------|---------|
+| **Shared across apps** | `src/apps/common/components/panels/` | ContactPanel, CommentsPanel, PaymentPanel, FinancialsPanel, DocumentsPanel |
+| **Shared non-panel components** | `src/apps/common/components/` | TransactionToolbar, JsonFieldEditor, OrgSearchDialog |
+| **Transaction-only** | `src/apps/transactions/components/` | SummaryCard, LinesCard, TransactionDetailBase, MetadataPanel (transaction-specific) |
+| **Model-specific pages** | `src/apps/{app}/models/{model}/pages/` | PaymentListPage, PaymentDetailPage |
+
+Decision test: **"Is this used by more than one app?"**
+- Yes → `common/components/panels/` (or `common/components/` if not a panel)
+- No, transaction-only → `transactions/components/`
+- No, model-specific → `models/{model}/pages/`
+
+### 3. No barrel indirection for shims
+
+The barrel at `common/components/panels/index.ts` re-exports real components. Never use a barrel to re-export a shim. Every barrel entry must point to an actual source file in the same directory.
+
+### 4. Transaction-specific ≠ duplicate
+
+`MetadataPanel` exists in both locations — this is correct:
+
+| File | Purpose |
+|------|---------|
+| `common/components/panels/MetadataPanel.tsx` | Generic entity metadata (key-value editor) |
+| `transactions/components/MetadataPanel.tsx` | Transaction-specific metadata (history, health, flags, versioning) |
+
+These are **different components** with different props and rendering. The naming collision is acceptable because they serve different contexts.
+
+### 5. FinancialsPanel naming
+
+`FinancialsPanel` is the component name. There is no `FinancialsCard`. The old alias was a naming mistake.
 
 ---
 
@@ -10,114 +62,76 @@ Reusable components for displaying and editing common data structures across all
 
 ```
 src/apps/common/components/
-├── JsonFieldEditor.tsx           # Generic JSON editor (admin power users)
-├── TransactionToolbar.tsx        # Action toolbar (save, clone, transfer, print)
+├── JsonFieldEditor.tsx              # Generic JSON editor (admin)
+├── TransactionToolbar.tsx           # Action toolbar (save, clone, print)
+├── OrgSearchDialog.tsx              # Org/customer search modal
 │
 └── panels/
-    ├── README.md                 # This documentation
-    ├── index.ts                  # Barrel exports
-    ├── types.ts                  # Shared types (aligned with Django models)
-    ├── usePermissions.ts         # Permission checking hook
-    ├── documentUpload.ts         # Upload utilities (multi-file, geo, virus scan)
-    ├── qaUtils.ts                # Q&A question groups, counters, image upload
+    ├── README.md                    # THIS FILE — rules and inventory
+    ├── index.ts                     # Barrel exports
+    ├── types.ts                     # Shared types
+    ├── getModelDetailPath.ts        # Model → detail route mapping
+    ├── usePermissions.ts            # Permission checking hook
+    ├── documentUpload.ts            # Upload utilities
+    ├── qaUtils.ts                   # Q&A helpers
     │
-    │── # Standard Tab Panels (shown as tabs on detail pages)
-    ├── ActionsPanel.tsx          # Tasks/actions with status tracking
-    ├── CommentsPanel.tsx         # Comments with Public/Process/Partner/History
-    ├── ContactPanel.tsx          # Contacts grouped by purpose with editing
-    ├── DocumentsPanel.tsx        # File uploads, preview, download
-    ├── FinancialsPanel.tsx       # Org financial summary (credit, aging, AR/AP)
-    ├── TransactionFinancialsPanel.tsx  # Transaction financials (subtotal, tax, total)
-    ├── QAPanel.tsx               # Q&A with question/answer workflow
-    ├── LinkagesPanel.tsx         # Cross-table record flow (proposal→order→invoice)
-    ├── ShippingPanel.tsx         # Shipping details (carrier, tracking, weight)
-    ├── BasicInformationPanel.tsx # Common org scalar fields (name, email, phone)
-    ├── CommunicationsPanel.tsx   # Email/phone/address/domain CRUD (direct API)
-    ├── ContactPanel.tsx          # Contacts grouped by purpose with editing (canonical)
-    │
-    │── # Admin / Developer Panels
-    ├── MetadataPanel.tsx         # Admin-only key-value metadata editor
-    ├── RefsPanel.tsx             # Admin-only relationships & lineage viewer
-    ├── PrefsPanel.tsx            # User/entity preferences (display/notifications)
-    ├── RawDataPanel.tsx          # Admin-only raw JSON viewer with syntax highlight
-    ├── TemplateQAPanel.tsx       # Template-based Q&A (not yet integrated)
-    └── ModelDataPanel.tsx        # Generic model data display (not yet integrated)
+    ├── # Entity Panels (used across all apps)
+    ├── ActionsPanel.tsx             # Tasks with status tracking
+    ├── BasicInformationPanel.tsx    # Org scalar fields
+    ├── CommentsPanel.tsx            # Comments (Public/Process/Partner/History)
+    ├── CommLinkPanel.tsx            # Communication links
+    ├── CommunicationsPanel.tsx      # Email/phone/address/domain CRUD
+    ├── ContactPanel.tsx             # Contacts grouped by purpose
+    ├── ContactPanelx2.tsx           # Contact normalization utilities
+    ├── DocumentsPanel.tsx           # File uploads, preview, download
+    ├── EmailGatePanel.tsx           # Email gateway integration
+    ├── FinancialsPanel.tsx          # Org financials (credit, aging, AR/AP)
+    ├── HistoryPanel.tsx             # Record history timeline
+    ├── ItemsPanel.tsx               # Line items display
+    ├── LinkagesPanel.tsx            # Cross-table record flow
+    ├── MetadataPanel.tsx            # Generic metadata editor
+    ├── ModelDataPanel.tsx           # Generic model data display
+    ├── OrgLinkPanel.tsx             # Org relationship links
+    ├── PanelTable.tsx               # Shared table component for panels
+    ├── PaymentPanel.tsx             # Payments linked to entity
+    ├── PrefsPanel.tsx               # User/entity preferences
+    ├── QAPanel.tsx                  # Q&A workflow
+    ├── RawDataPanel.tsx             # Raw JSON viewer
+    ├── RefsPanel.tsx                # Relationships & lineage
+    ├── SerialPanel.tsx              # Serial numbers
+    ├── ShippingPanel.tsx            # Shipping details
+    ├── TemplateQAPanel.tsx          # Template-based Q&A
+    ├── TransactionPanel.tsx         # Record header (ida/status/totals) + TransactionToolbar
+    └── TransactionsPanel.tsx        # Related transactions list
 ```
 
-Also in `transactions/components/` (transaction-specific, not shared):
+Transaction-only components (NOT shared panels):
 
 ```
 src/apps/transactions/components/
-├── TransactionDetailBase.tsx     # Base shell for all transaction detail pages
-├── SummaryCard.tsx               # Transaction header (customer, totals, dates)
-├── LinesCard.tsx                 # Line items grid with inline editing
-├── LineDetailsModal.tsx          # Side-drawer for single line item editing
-├── ContactLinksTable.tsx         # Spreadsheet-style contact table (drag columns)
-├── QATab.tsx                     # Wraps QAPanel + question group selection
-├── MetadataPanel.tsx             # Transaction-specific metadata (history, health)
-├── PartySelector.tsx             # Customer/Vendor/Manufacturer search dropdown
-├── TransactionItemSearch.tsx     # Item search for adding to transactions
-├── CustomerSalesPanel.tsx        # Customer search + financial data + terms
-├── ActionsModal.tsx              # Task creation modal (legacy → TransactionTaskModal)
-├── TransactionTaskModal.tsx      # Task creation/edit slide-out panel
-├── TransactionTaskModal.types.ts # Task type definitions
-├── useTransactionTasks.ts        # Hook for task CRUD operations
-├── AddPaymentModal.tsx           # Record payment against order
-├── ApplyPaymentModal.tsx         # Apply existing payment to invoice
-├── SplitLineModal.tsx            # Split line quantity across allocations
-├── FieldLabel.tsx                # Label styling (mandatory/locked states)
-├── ActivityLogTab.tsx            # Timeline view (pending integration)
-├── QuickAddRecent.tsx            # Recent items for quick re-adding (pending)
-├── PrintPreviewModal.tsx         # Print preview with options (pending)
-├── print/                        # Print document templates per transaction type
-│
-│── # Re-export stubs (canonical source is common/)
-├── CommentsPanel.tsx             # → common/panels/CommentsPanel
-├── FinancialsCard.tsx            # → common/panels/TransactionFinancialsPanel
-├── JsonFieldEditor.tsx           # → common/components/JsonFieldEditor
-├── TransactionToolbar.tsx        # → common/components/TransactionToolbar
-└── ContactPanel.tsx              # → common/panels/ContactPanel
-```
-
----
-
-## Panel Inventory
-
-### Standard Tab Panels
-
-These should appear as tabs on every model that supports them:
-
-| Panel | Component | Data Source | Purpose |
-|-------|-----------|-------------|---------|
-| Action | `ActionsPanel` | `.actions` | Tasks with status, priority, assignees, due dates |
-| Contact | `ContactPanel` | `.refs.links.contact` | Linked contacts grouped by purpose |
-| Comments | `CommentsPanel` | `.comments` | Public/Process/Partner/History comment tabs |
-| Documents | `DocumentsPanel` | `.refs.links.document` | File uploads, preview, download, delete |
-| Financials | `FinancialsPanel` | `.financial` | Org financials (credit, aging, payment history) |
-| Financials | `TransactionFinancialsPanel` | `.financials` | Transaction totals (subtotal, tax, shipping, total) |
-| QA | `QAPanel` / `QATab` | Q&A API | Question/answer workflow with templates |
-| Linkage | `LinkagesPanel` | Linkage API | Cross-table record flow tracking |
-| Shipping | `ShippingPanel` | `.shipping` | Carrier, tracking, weight, FOB |
-| Basic Info | `BasicInformationPanel` | Org scalars | Name, email, phone, company, title |
-| Communications | `CommunicationsPanel` | `.refs.links.{email,phone,address,domain}` | Email/phone/address/domain CRUD |
-
-### Contact Sub-Panels (accessed via CommunicationsPanel)
-
-These are managed through `CommunicationsPanel` with direct API persistence:
-
-| Record Type | API Model | refs.links key | Fields |
-|-------------|-----------|----------------|--------|
-| Email | `email` | `.refs.links.email` | address, name, type, is_primary |
-| Phone | `phone` | `.refs.links.phone` | number, format, name, type |
-| Address | `address` | `.refs.links.address` | address1/2, city, state, zip, country |
-| Domain | `domain` | `.refs.links.domain` | domain, name, type, is_primary |
-
-### Admin / Developer Panels
-
-| Panel | Component | Data Source | Access | Purpose |
-|-------|-----------|-------------|--------|---------|
-| JSON Editor | `JsonFieldEditor` | Any JSONB field | admin | Inline JSON edit with validation |
-| Metadata | `MetadataPanel` | `.metadata` | admin | Key-value editor (security, version, health) |
+├── TransactionDetailBase.tsx        # Base shell for transaction details
+├── SummaryCard.tsx                  # Transaction header (totals, dates)
+├── LinesCard.tsx                    # Line items grid
+├── LineDetailsModal.tsx             # Single line item editing
+├── MetadataPanel.tsx                # Transaction-specific metadata
+├── ContactLinksTable.tsx            # Spreadsheet-style contact table
+├── CustomerSalesPanel.tsx           # Customer financial data + terms
+├── PartySelector.tsx                # Customer/Vendor search dropdown
+├── TransactionItemSearch.tsx        # Item search for line items
+├── PaymentDialog.tsx                # Payment creation modal
+├── AddPaymentModal.tsx              # Quick payment against order
+├── ApplyPaymentModal.tsx            # Apply payment to invoice
+├── SplitLineModal.tsx               # Split line quantity
+├── FieldLabel.tsx                   # Label styling
+├── QATab.tsx                        # QAPanel wrapper
+├── ActivityLogTab.tsx               # Timeline view
+├── QuickAddRecent.tsx               # Recent items
+├── PrintPreviewModal.tsx            # Print preview
+├── InventoryCheckDialog.tsx         # Inventory validation
+├── TransactionTaskModal.tsx         # Task creation slide-out
+├── ActionsModal.tsx                 # Legacy task modal
+└── print/                           # Print document templates
+``` |
 | Refs | `RefsPanel` | `.refs` | admin | Relationships, lineage, system links |
 | Prefs | `PrefsPanel` | `.prefs` | admin | User/entity preferences |
 | Raw Data | `RawDataPanel` | Full entity | admin | Raw JSON viewer with syntax highlight |

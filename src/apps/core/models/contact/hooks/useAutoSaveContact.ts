@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * useAutoSaveContact — auto-saves a new contact the first time the user
  * attempts to create a child record (comm, action, document, etc.)

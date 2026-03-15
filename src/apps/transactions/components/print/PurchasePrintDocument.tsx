@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
  * PurchasePrintDocument - Print-ready purchase order document
  * US Letter (8.5" x 11") format
@@ -47,6 +48,7 @@ export interface PurchasePrintData {
   shipZip?: string;
   shipCountry?: string;
   shipPhone?: string;
+  shipEmail?: string;
   
   // Document details
   dateCreated?: string;
@@ -148,6 +150,7 @@ const transformPurchaseData = (data: PurchasePrintData, lines?: PurchaseLineData
     zip: data.shipZip,
     country: data.shipCountry,
     phone: data.shipPhone,
+    email: data.shipEmail,
   };
 
   const printLines: PrintLineItem[] = (lines || data.lines || []).map((line, idx) => ({
@@ -214,6 +217,8 @@ const PurchasePrintDocument: React.FC<PurchasePrintDocumentProps> = ({
 
   return (
     <PrintDocumentLayout
+      templateName="PurchasePrintDocument.tsx"
+      partyTitles={{ billTo: 'Vendor', shipTo: 'Customer Ship To' }}
       company={company}
       meta={meta}
       billTo={billTo} // This is actually the Vendor

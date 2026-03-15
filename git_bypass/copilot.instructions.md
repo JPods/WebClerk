@@ -595,6 +595,51 @@ pnpm test -- --run --coverage  # With coverage
 
 ---
 
+## 14a. File Organization Discipline (ENFORCED)
+
+Every `.tsx` and `.ts` file has **one correct home**. Duplicates, re-export shims, and orphaned files are banned.
+
+### Canonical Locations
+
+| Scope | Path | What lives here |
+|-------|------|----------------|
+| Shared UI (no domain logic) | `src/components/` | Buttons, modals, tables, form inputs, layout, auth, header |
+| Cross-app domain components | `src/apps/common/components/` | TransactionToolbar, JsonFieldEditor, OrgSearchDialog |
+| Cross-app panels | `src/apps/common/components/panels/` | ContactPanel, CommentsPanel, FinancialsPanel, etc. |
+| Transaction-only components | `src/apps/transactions/components/` | TransactionDetailBase, SummaryCard, LinesCard, MetadataPanel |
+| Org-level shared | `src/apps/orgs/components/` | OrgDetail, OrgEntityList, OrgFinancialsPanel |
+| Model pages, services, types | `src/apps/{app}/models/{model}/` | Detail, List, Display, api, types, schema, utils |
+
+### Where-Does-It-Live Decision Test
+
+1. **Used by more than one app?** → `common/components/panels/` (panel) or `common/components/` (non-panel)
+2. **Transaction-only?** → `transactions/components/`
+3. **Model-specific?** → `models/{model}/pages/`
+4. **Pure UI primitive?** → `src/components/ui/` or `src/components/form/`
+
+### Rules
+
+1. **No re-export shims.** Never create a file that only re-exports from another location. Import from the canonical path directly.
+2. **No dated backup files.** Don't save `MyComponent_03-13-2026.tsx` — use git history instead.
+3. **No duplicate names across directories.** If two files export the same component name, one is wrong. Exception: `MetadataPanel` exists in both `common/panels/` (generic) and `transactions/components/` (transaction-specific) — these are genuinely different components.
+4. **No orphaned components.** Every component must be imported by at least one active file. A component consumed only by other orphans is itself orphaned.
+5. **`qqq_` prefix for dead code.** Unused files are renamed with a `qqq_` prefix to flag for review. Never import a `qqq_`-prefixed file. This is a holding pattern — they should eventually be deleted.
+6. **No barrel indirection for shims.** Barrel files (`index.ts`) re-export real, co-located source files. Never create a barrel entry that proxies to another directory.
+
+### Audit Checklist (Alice)
+
+When reviewing PRs or auditing the codebase:
+- **Search for duplicate component names** across `src/components/`, `src/apps/common/components/`, and `src/apps/*/components/`
+- **Check that every non-qqq .tsx/.ts exports something that is imported** by at least one active file
+- **Flag files stored outside their canonical scope** (e.g., a panel living in `src/components/` instead of `common/components/panels/`)
+- **Flag re-export shims** — any file whose only purpose is `export { default } from "somewhere/else"`
+- **Flag dated backup files** (pattern: `*_MM-DD-YYYY.*` or `* copy.*`)
+- **Report findings** categorized as: DUPLICATE, ORPHAN, MISPLACED, SHIM, BACKUP
+
+> **Deep dive:** `readmes/topics/components.md` — full file-by-file inventory with qqq catalog.
+
+---
+
 ## 15. Development-Mode UI Rules
 
 During active development, every layout that displays or edits a record **must show the record's primary key (ID)** so developers can immediately tell whether a record has been persisted.

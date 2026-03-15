@@ -1,3 +1,4 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
