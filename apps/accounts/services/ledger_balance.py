@@ -45,6 +45,8 @@ from typing import TYPE_CHECKING, Optional, Dict, Any
 from django.db import models, transaction
 from django.apps import apps as dj_apps
 
+from apps.accounts.services.gl_defaults import get_invoice_payment_staging_defaults
+
 if TYPE_CHECKING:
     from apps.orgs.models import OrgBase
 
@@ -328,6 +330,86 @@ def _stamp_ledger_metadata(invoice, ledger_records, dt_sync: int) -> None:
 PURPOSE_LEDGER_SYNC = 'ledger_sync'
 
 
+def _as_decimal_amount(value: object) -> Decimal:
+    try:
+        return Decimal(str(value or 0))
+    except Exception:
+        return Decimal('0')
+
+
+def _stage_invoice_gl_accounts(invoice) -> None:
+    defaults = get_invoice_payment_staging_defaults()
+    total_val = _as_decimal_amount(((getattr(invoice, 'totals', None) or {}).get('total')))
+    if total_val == 0:
+        total_val = _as_decimal_amount(getattr(invoice, 'total', 0))
+
+    metadata = getattr(invoice, 'metadata', None) or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    metadata['gl_accounts'] = {
+        'event': 'invoice_created',
+        'postings': [
+            {
+                'side': 'debit',
+                'purpose': 'accounts_receivable',
+                'account': defaults.get('accounts_receivable', ''),
+                'amount': float(total_val),
+            },
+            {
+                'side': 'credit',
+                'purpose': 'sales_revenue',
+                'account': defaults.get('sales_revenue', ''),
+                'amount': float(total_val),
+            },
+        ],
+    }
+    invoice.metadata = metadata
+    try:
+        now_ms = int(datetime.now().timestamp() * 1000)
+        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=metadata, dt_modified=now_ms)
+    except Exception:
+        pass
+
+
+def _stage_payment_gl_accounts(payment) -> None:
+    payment_method = getattr(payment, 'payment_method', None)
+    method_metadata = getattr(payment_method, 'metadata', None) if payment_method else None
+    defaults = get_invoice_payment_staging_defaults(
+        payment_method_name=getattr(payment_method, 'name', ''),
+        payment_method_metadata=method_metadata if isinstance(method_metadata, dict) else None,
+    )
+    amount = _as_decimal_amount(getattr(payment, 'amount', 0))
+
+    metadata = getattr(payment, 'metadata', None) or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    metadata['gl_accounts'] = {
+        'event': 'payment_received',
+        'postings': [
+            {
+                'side': 'debit',
+                'purpose': 'cash_receipt',
+                'account': defaults.get('cash_receipt', ''),
+                'amount': float(amount),
+            },
+            {
+                'side': 'credit',
+                'purpose': 'accounts_receivable',
+                'account': defaults.get('accounts_receivable', ''),
+                'amount': float(amount),
+            },
+        ],
+    }
+    payment.metadata = metadata
+    try:
+        now_ms = int(datetime.now().timestamp() * 1000)
+        payment.__class__.objects.filter(pk=payment.pk).update(metadata=metadata, dt_modified=now_ms)
+    except Exception:
+        pass
+
+
 def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'Pending':
     """
     Create a Pending record that commands a ledger ↔ invoice re-sync.
@@ -402,6 +484,8 @@ def on_invoice_save(invoice, replace_ledgers: bool = True) -> None:
     """
     from .terms_ledger import apply_terms_for_invoice
     from django.utils import timezone as tz
+
+    _stage_invoice_gl_accounts(invoice)
 
     # ── Step 1: Create/replace ledger records ────────────────────────
     ledger_records = apply_terms_for_invoice(invoice, replace=replace_ledgers)
@@ -479,6 +563,8 @@ def on_payment_save(payment) -> None:
         payment: The saved Payment instance
     """
     from .terms_ledger import record_payment
+
+    _stage_payment_gl_accounts(payment)
     
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     

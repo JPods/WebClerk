@@ -521,13 +521,17 @@ class SaveWcapiView(APIView):
             if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines'):
                 continue
 
-            # Auto-set to update mode if field_data doesn't have proper structure
+            # Normalize field payload:
+            # - Operation envelope: {'mode'|'task': ..., 'value': ...}
+            # - Plain value payload (including dict/list): treat as update value directly.
             if not isinstance(field_data, dict):
-                # Convert non-dict values to dict with update mode
                 field_data = {'mode': 'update', 'value': field_data}
-            elif 'mode' not in field_data and 'task' not in field_data:
-                # Add update mode to dict that doesn't have mode or task
-                field_data = {**field_data, 'mode': 'update'}
+            elif ('mode' in field_data) or ('task' in field_data):
+                # Already an operation envelope
+                pass
+            else:
+                # Plain object payload (e.g. setting.data JSON): use it as the value.
+                field_data = {'mode': 'update', 'value': field_data}
 
             # Extract mode from 'mode' or 'task' key
             if 'mode' in field_data:

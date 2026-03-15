@@ -14,6 +14,7 @@ from common.relationship_stats_mixin import RelationshipStatsMixin
 
 from .constants import *
 from apps.orgs.choices import ORG_STATUS_CHOICES
+from apps.accounts.services.gl_defaults import get_org_role_gl_defaults
 
 
 # ---------------- Unified model -----------------
@@ -337,6 +338,14 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		except Exception as e:
 			# Log validation errors but continue with save for admin
 			logger.warning("Validation error during save (continuing): %s", e)
+
+		if not isinstance(self.gl_accounts, dict):
+			self.gl_accounts = {}
+		role_defaults = get_org_role_gl_defaults(self.org_type)
+		for key, value in role_defaults.items():
+			if value and not self.gl_accounts.get(key):
+				self.gl_accounts[key] = value
+
 		super().save(*args, **kwargs)
 
 		# Keep contact.company aligned with the customer org display_name.

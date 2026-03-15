@@ -16,7 +16,16 @@ from apps.orgs.services.primary_org import (
 
 @pytest.mark.django_db
 def test_set_primary_org_creates_setting_and_getters_work():
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company="Primary Co", status="active")
+    org = OrgBase.objects.create(
+        org_type=OrgType.CUSTOMER,
+        company="Primary Co",
+        status="active",
+        gl_accounts={
+            "sales": "REV-SALES-000",
+            "inventory": "ASSET-INVENTORY-000",
+            "cogs": "COGS-PRODUCTS-000",
+        },
+    )
 
     setting = set_primary_org(org)
 
@@ -24,6 +33,9 @@ def test_set_primary_org_creates_setting_and_getters_work():
     assert setting.name == PRIMARY_ORG_SETTING_NAME
     assert setting.parent_model == PRIMARY_ORG_SETTING_PARENT_MODEL
     assert setting.data["org_id"] == org.pk
+    assert setting.data["default_gl_accounts"]["revenue"] == "REV-SALES-000"
+    assert setting.data["default_gl_accounts"]["inventory"] == "ASSET-INVENTORY-000"
+    assert setting.data["default_gl_accounts"]["cogs"] == "COGS-PRODUCTS-000"
     assert get_primary_org_id() == org.pk
     assert get_primary_org().pk == org.pk
 

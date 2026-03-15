@@ -7,6 +7,15 @@ Body: { "action": "<action_name>", "params": { ... } }
 Actions:
   generate_kanban_projects  — bulk-create Project records with sequential kanban dates
   get_receivable_aging      — return per-customer aging summary for open AR ledgers
+    get_tally_summary_by_period — return period totals across core transaction models
+    get_tally_sales_by_customer_month — sales grouped by customer and month
+    get_tally_sales_by_manufacturer_month — sales grouped by manufacturer and month
+    get_tally_sales_by_customer_year — year-over-year sales grouped by customer and year
+    get_tally_inventory_usage_by_month — inventory movement grouped by item and month
+    get_tally_inventory_yearly_summary — yearly inventory usage and valuation summary
+    get_tally_report_registry — list named tally report registry entries
+    execute_tally_report — execute a report by report_key and params
+    export_tally_report — export report output as csv/json content
 """
 from __future__ import annotations
 
@@ -21,6 +30,37 @@ from rest_framework.views import APIView
 from common.api_responses import api_response
 
 logger = logging.getLogger(__name__)
+
+
+def _log_tally_observation(request, action_name: str, params: Dict[str, Any], result: Dict[str, Any]) -> None:
+    """Persist a lightweight alice_log observation for tally usage."""
+    try:
+        from apps.ai_assistant.services.alice_notes import create_note
+
+        rows = result.get("rows") if isinstance(result, dict) else []
+        totals = result.get("totals") if isinstance(result, dict) else {}
+        details = {
+            "action": action_name,
+            "start_date": params.get("start_date") or result.get("start_date"),
+            "end_date": params.get("end_date") or result.get("end_date"),
+            "row_count": len(rows) if isinstance(rows, list) else 0,
+            "total_count": (totals or {}).get("count", 0) if isinstance(totals, dict) else 0,
+            "total_amount": (totals or {}).get("total", 0) if isinstance(totals, dict) else 0,
+            "missing_models": result.get("missing_models", []),
+            "source": "wcapi.manage",
+        }
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            details["user_id"] = request.user.pk
+
+        create_note(
+            "log",
+            role="user_interaction",
+            name=f"{action_name} viewed",
+            parent_model="report",
+            details=details,
+        )
+    except Exception:
+        logger.exception("Failed to write alice_log for tally action %s", action_name)
 
 
 # ---------------------------------------------------------------------------
@@ -210,9 +250,81 @@ def _get_receivable_aging(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _get_tally_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return period totals across core transaction families."""
+    from apps.core.services.tally_reports import get_tally_summary_by_period
+
+    return get_tally_summary_by_period(params)
+
+
+def _get_tally_sales_by_customer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return sales grouped by customer and month."""
+    from apps.core.services.tally_reports import get_tally_sales_by_customer_month
+
+    return get_tally_sales_by_customer_month(params)
+
+
+def _get_tally_sales_by_manufacturer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return sales grouped by manufacturer and month."""
+    from apps.core.services.tally_reports import get_tally_sales_by_manufacturer_month
+
+    return get_tally_sales_by_manufacturer_month(params)
+
+
+def _get_tally_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return year-over-year sales grouped by customer and year."""
+    from apps.core.services.tally_reports import get_tally_sales_by_customer_year
+
+    return get_tally_sales_by_customer_year(params)
+
+
+def _get_tally_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return inventory usage grouped by item and month."""
+    from apps.core.services.tally_reports import get_tally_inventory_usage_by_month
+
+    return get_tally_inventory_usage_by_month(params)
+
+
+def _get_tally_inventory_yearly_summary(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Return yearly inventory usage summary and valuation metrics."""
+    from apps.core.services.tally_reports import get_tally_inventory_yearly_summary
+
+    return get_tally_inventory_yearly_summary(params)
+
+
+def _get_tally_report_registry(params: Dict[str, Any]) -> Dict[str, Any]:
+    """List registered tally report keys and metadata."""
+    from apps.core.services.tally_registry import list_tally_reports
+
+    return list_tally_reports()
+
+
+def _execute_tally_report(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute a tally report by key via registry."""
+    from apps.core.services.tally_registry import execute_tally_report
+
+    return execute_tally_report(params)
+
+
+def _export_tally_report(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Export tally report output as csv/json string content."""
+    from apps.core.services.tally_registry import export_tally_report
+
+    return export_tally_report(params)
+
+
 _ACTION_DISPATCH = {
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
+    "get_tally_summary_by_period": _get_tally_summary_by_period,
+    "get_tally_sales_by_customer_month": _get_tally_sales_by_customer_month,
+    "get_tally_sales_by_manufacturer_month": _get_tally_sales_by_manufacturer_month,
+    "get_tally_sales_by_customer_year": _get_tally_sales_by_customer_year,
+    "get_tally_inventory_usage_by_month": _get_tally_inventory_usage_by_month,
+    "get_tally_inventory_yearly_summary": _get_tally_inventory_yearly_summary,
+    "get_tally_report_registry": _get_tally_report_registry,
+    "execute_tally_report": _execute_tally_report,
+    "export_tally_report": _export_tally_report,
 }
 
 
@@ -264,6 +376,9 @@ class ManageWcapiView(APIView):
                 message=f"action '{action_name}' failed",
                 error={"code": "action_failed", "details": {"action": action_name}},
             )
+
+        if action_name.startswith("get_tally_"):
+            _log_tally_observation(request, action_name, params, result)
 
         return api_response(
             data=result,

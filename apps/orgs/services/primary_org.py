@@ -13,13 +13,37 @@ PRIMARY_ORG_SETTING_PURPOSE = "db_defaults"
 PRIMARY_ORG_SETTING_PARENT_MODEL = "customer"
 
 
+def _pick_gl_code(source: dict[str, Any], *keys: str) -> str | None:
+    for key in keys:
+        value = source.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _extract_default_gl_accounts(org: OrgBase) -> dict[str, str]:
+    raw_accounts = org.gl_accounts if isinstance(org.gl_accounts, dict) else {}
+    mapped = {
+        "revenue": _pick_gl_code(raw_accounts, "revenue", "sales"),
+        "inventory": _pick_gl_code(raw_accounts, "inventory"),
+        "cogs": _pick_gl_code(raw_accounts, "cogs", "cost", "expense"),
+        "purchase": _pick_gl_code(raw_accounts, "purchase", "payables", "accounts_payable"),
+        "variance": _pick_gl_code(raw_accounts, "variance"),
+        "commission": _pick_gl_code(raw_accounts, "commission"),
+        "tax_payable": _pick_gl_code(raw_accounts, "tax_payable", "tax"),
+    }
+    return {key: value for key, value in mapped.items() if value}
+
+
 def _build_primary_org_payload(org: OrgBase) -> dict[str, Any]:
+    default_gl_accounts = _extract_default_gl_accounts(org)
     return {
         "org_id": org.pk,
         "org_type": org.org_type,
         "company": org.company,
         "display_name": org.display_name,
         "is_active": org.is_active,
+        "default_gl_accounts": default_gl_accounts,
     }
 
 
