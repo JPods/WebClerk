@@ -46,6 +46,7 @@ Defined in `apps/core/choices.py` → `SETTING_PURPOSE_CHOICES`:
 | `keywords`            | Per-table keyword/denorm field config |
 | `workbench_fields`    | Workbench column config |
 | `detail_field_access` | Detail page field access rules |
+| `list_column_config`  | Named list-column layout payloads keyed by parent model |
 | `qa_counters`         | QA counter configuration |
 | `qa_questions`        | QA question configuration |
 | `admin`               | Admin-level settings |
@@ -86,9 +87,46 @@ startup via wcapi and cached for the session.
 
 ## wcapi access
 
-```
+```http
 GET /wcapi/get/?model_name=setting&name=transaction_defaults&purpose=React_settings&is_active=true&limit=1
 ```
+
+Common scoped lookup pattern:
+
+```http
+GET /wcapi/get/?model_name=setting&purpose=<purpose>&parent_model=<canonical_model>&name=<optional_name>&is_active=true&limit=50
+```
+
+For `list_column_config`, prefer:
+
+```text
+purpose=list_column_config
+parent_model=<canonical model key>
+name=list_column_config:<canonical model key>
+```
+
+The model has a uniqueness constraint for active list-column configs by `parent_model + purpose`.
+
+Save pattern:
+
+```http
+POST /wcapi/save/
+```
+
+```json
+{
+   "model_name": "setting",
+   "purpose": "list_column_config",
+   "parent_model": "customer",
+   "name": "list_column_config:customer",
+   "data": { ... column layout object ... }
+}
+```
+
+Important save contract:
+
+- `setting.data` accepts object-valued JSON payloads directly.
+- Save parsing treats plain dict/list field payloads as field values, so nested layout objects persist without wrapping each field in `{"mode":...,"value":...}`.
 
 All CRUD on settings goes through the standard wcapi gateway — no
 per-model REST endpoints.
