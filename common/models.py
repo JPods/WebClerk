@@ -247,6 +247,9 @@ def default_metadata() -> dict:
         # then creates the Erosion row and writes the id back.
         "small_stings": [],
         "erosions": [],
+        # Temporary snippets/hints for short-lived UX helpers.
+        # Each entry should include clear_dt (epoch ms) so background cleanup can prune it.
+        "temp": [],
         "undefined": {},
     }
 
@@ -509,6 +512,7 @@ class MetadataMixin(models.Model):
         # Ensure erosion annotation arrays exist
         self.metadata.setdefault("small_stings", [])
         self.metadata.setdefault("erosions", [])
+        self.metadata.setdefault("temp", [])
         self.metadata["flags"].setdefault("schema_rev", 1)
 
     def save(self, *args, **kwargs):  # inject history
@@ -558,6 +562,89 @@ class MetadataMixin(models.Model):
         if not isinstance(self.metadata, dict):
             self.metadata = default_metadata()
         self.metadata["source"] = value or {}
+
+    # metadata.temp helpers --------------------------------------------------
+    def get_temp_entries(self) -> list[dict]:
+        if not isinstance(self.metadata, dict):
+            return []
+        entries = self.metadata.get("temp", [])
+        if not isinstance(entries, list):
+            return []
+        return [e for e in entries if isinstance(e, dict)]
+
+    def add_temp_entry(
+        self,
+        kind: str,
+        snippet: str,
+        *,
+        clear_dt: int | None = None,
+        ttl_days: int = 30,
+        source: str = "alice",
+        extra: dict | None = None,
+    ) -> dict:
+        """Append a temporary metadata snippet with required clear-by timestamp.
+
+        clear_dt is epoch milliseconds. If omitted, ttl_days from now is used.
+        """
+        now_ms = int(timezone.now().timestamp() * 1000)
+        if clear_dt is None:
+            clear_dt = now_ms + (max(ttl_days, 1) * 24 * 60 * 60 * 1000)
+
+        if not isinstance(self.metadata, dict):
+            self.metadata = default_metadata()
+        self._init_metadata_if_needed()
+
+        entry = {
+            "id": str(uuid.uuid4()),
+            "kind": kind or "hint",
+            "snippet": snippet or "",
+            "source": source or "alice",
+            "dt_created": now_ms,
+            "clear_dt": int(clear_dt),
+        }
+        if isinstance(extra, dict) and extra:
+            entry["extra"] = extra
+
+        temp_list = self.metadata.setdefault("temp", [])
+        if not isinstance(temp_list, list):
+            temp_list = []
+            self.metadata["temp"] = temp_list
+        temp_list.append(entry)
+        return entry
+
+    def clear_expired_temp_entries(self, now_ms: int | None = None) -> int:
+        """Remove expired metadata.temp entries in-memory and return count removed."""
+        if not isinstance(self.metadata, dict):
+            return 0
+        temp = self.metadata.get("temp", [])
+        if not isinstance(temp, list):
+            self.metadata["temp"] = []
+            return 0
+
+        if now_ms is None:
+            now_ms = int(timezone.now().timestamp() * 1000)
+
+        kept: list[dict] = []
+        removed = 0
+        for entry in temp:
+            if not isinstance(entry, dict):
+                removed += 1
+                continue
+            clear_dt = entry.get("clear_dt")
+            try:
+                clear_dt_int = int(clear_dt)
+            except (TypeError, ValueError):
+                # Invalid entries are considered expired to avoid permanent clutter.
+                removed += 1
+                continue
+            if clear_dt_int <= now_ms:
+                removed += 1
+                continue
+            kept.append(entry)
+
+        if removed:
+            self.metadata["temp"] = kept
+        return removed
 
  
 

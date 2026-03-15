@@ -906,6 +906,13 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=0),
     },
 
+    # ── Metadata temp cleanup (daily 3:20 AM) ───────────────────────
+    'cleanup-metadata-temp-daily': {
+        'task': 'apps.support.scheduler.tasks.task_cleanup_metadata_temp',
+        'schedule': crontab(hour=3, minute=20),
+        'kwargs': {'limit_per_model': 1000},
+    },
+
     # ── Registry docs (daily 5 AM) ─────────────────────────────────
     'refresh-model-registry-docs-daily': {
         'task': 'apps.support.scheduler.tasks.task_refresh_model_registry_docs',

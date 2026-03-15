@@ -9,6 +9,7 @@ from common.models import BaseModel
 from common.stats_mixin import StatsMixin
 from apps.products.choices import ITEM_KIND_CHOICES
 from apps.products.uom import normalize_uom, can_convert, convert
+from apps.accounts.services.gl_defaults import get_item_gl_defaults
 from apps.products.variant_utils import (
     derive_variant_set_uuid,
     derive_variant_uuid,
@@ -330,6 +331,14 @@ class Item(StatsMixin, BaseModel):
                 val.setdefault(k, v)
         if hasattr(self, 'prefs'):
             self.prefs = ensure_item_prefs(getattr(self, 'prefs'))  # type: ignore[attr-defined]
+
+        if not isinstance(self.gls, dict):
+            self.gls = {}
+        item_gl_defaults = get_item_gl_defaults()
+        for gl_key in ("revenue", "inventory", "cogs", "purchase", "variance"):
+            if not self.gls.get(gl_key) and item_gl_defaults.get(gl_key):
+                self.gls[gl_key] = item_gl_defaults[gl_key]
+
         # Normalize UOMs to canonical codes (store uppercase)
         if self.uom:
             self.uom = normalize_uom(self.uom)

@@ -96,6 +96,7 @@ IMPLEMENTATION WITH CELERY + REDIS
 import traceback
 from celery import shared_task
 from celery.utils.log import get_task_logger
+from django.apps import apps
 from django.core.management import call_command
 from django.utils import timezone
 from io import StringIO
@@ -269,6 +270,93 @@ def task_ensure_model_defaults(self, app=None, model=None):
         return result
     except Exception as exc:
         logger.error(f"ensure_model_defaults failed: {exc}")
+        if run:
+            run.fail(str(exc), traceback.format_exc())
+        self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=1, default_retry_delay=120)
+def task_cleanup_metadata_temp(self, limit_per_model: int = 1000):
+    """Prune expired metadata.temp snippets from BaseModel-backed records.
+
+    A temp entry must have clear_dt (epoch ms). Entries with clear_dt <= now are removed.
+    Invalid temp entries are also removed to prevent unbounded metadata growth.
+    """
+    task_name = 'cleanup_metadata_temp'
+    run = _create_task_run(task_name, self.request.id or '', {'limit_per_model': limit_per_model})
+
+    now_ms = int(timezone.now().timestamp() * 1000)
+    scanned_models = 0
+    changed_records = 0
+    removed_entries = 0
+    model_stats: dict[str, dict[str, int]] = {}
+
+    try:
+        for model in apps.get_models():
+            try:
+                if model._meta.abstract:
+                    continue
+                field_names = {f.name for f in model._meta.get_fields()}
+                if 'metadata' not in field_names:
+                    continue
+                if not hasattr(model, 'clear_expired_temp_entries'):
+                    continue
+
+                qs = model.objects.all()
+                if 'is_deleted' in field_names:
+                    qs = qs.filter(is_deleted=False)
+                # Prefer recently touched rows when sampling is limited.
+                if 'dt_modified' in field_names:
+                    qs = qs.order_by('-dt_modified')
+                elif 'id' in field_names:
+                    qs = qs.order_by('-id')
+
+                scanned_models += 1
+                scanned = 0
+                changed = 0
+                removed = 0
+
+                for obj in qs.iterator():
+                    if scanned >= max(limit_per_model, 1):
+                        break
+                    scanned += 1
+                    try:
+                        count = obj.clear_expired_temp_entries(now_ms=now_ms)
+                    except Exception:
+                        continue
+                    if count > 0:
+                        obj.save(update_fields=['metadata'])
+                        changed += 1
+                        removed += count
+
+                changed_records += changed
+                removed_entries += removed
+                model_stats[f"{model._meta.app_label}.{model.__name__}"] = {
+                    'scanned': scanned,
+                    'changed': changed,
+                    'removed_entries': removed,
+                }
+            except Exception:
+                continue
+
+        result = {
+            'status': 'ok',
+            'scanned_models': scanned_models,
+            'changed_records': changed_records,
+            'removed_entries': removed_entries,
+            'model_stats': model_stats,
+        }
+        if run:
+            run.complete(result)
+        logger.info(
+            "metadata.temp cleanup complete: models=%s changed_records=%s removed_entries=%s",
+            scanned_models,
+            changed_records,
+            removed_entries,
+        )
+        return result
+    except Exception as exc:
+        logger.error(f"metadata.temp cleanup failed: {exc}")
         if run:
             run.fail(str(exc), traceback.format_exc())
         self.retry(exc=exc)
