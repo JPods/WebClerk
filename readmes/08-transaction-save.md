@@ -52,6 +52,30 @@ The backend is authoritative for all pending-related decisions:
 | Quantity buckets | Derived from type + transfer status | Front-end data |
 | Duplicate detection | `(invoice_line_id, order_line_id)` pair guard | None |
 
+### Effective Transfer Quantity (Critical)
+
+When `save_transaction_with_lines()` validates transfers and builds Pending deltas,
+line quantity is resolved with this precedence:
+
+```text
+active -> staged -> placed -> actioned
+```
+
+Interpretation:
+
+- `active` is authoritative for user-edited transfer quantities.
+- `staged` is usually the inherited transfer snapshot.
+- `placed` and `actioned` are legacy fallback keys.
+
+This prevents overstatement when a transferred line keeps an older `staged` value
+but the user lowers `active` before saving.
+
+Example:
+
+- Transfer creates invoice line with `staged=7`.
+- User edits line to `active=4`.
+- Pending uses `qty=4` for `on_in`, `on_so`, and `on_hand`.
+
 ---
 
 ## Key Functions in `transaction_save.py`
