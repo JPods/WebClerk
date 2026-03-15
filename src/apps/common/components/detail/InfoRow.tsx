@@ -18,6 +18,8 @@ export interface InfoRowProps {
   isCurrency?: boolean;
   /** Make the value a clickable link: email→mailto, phone→tel, address→Google Maps */
   linkType?: "email" | "phone" | "address";
+  /** If true, apply the link to the label instead of the value */
+  linkOnLabel?: boolean;
 }
 
 export function formatDisplayValue(val: unknown, isCurrency = false): string {
@@ -41,58 +43,49 @@ const InfoRow: React.FC<InfoRowProps> = ({
   highlight = false,
   isCurrency = false,
   linkType,
+  linkOnLabel = true,
 }) => {
   const isElement = React.isValidElement(value);
   const displayVal = isElement ? value : formatDisplayValue(value, isCurrency);
 
-  /** Wrap the rendered value in an <a> tag when linkType is set and value is a non-empty string */
-  const renderLinkedValue = (content: React.ReactNode) => {
+  /** Wrap content in an <a> tag when linkType is set and value is a non-empty string */
+  const renderLinked = (content: React.ReactNode) => {
     if (!linkType || typeof value !== "string" || !value) return content;
     const linkClasses =
       "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
-    switch (linkType) {
-      case "email":
-        return (
-          <a
-            href={`mailto:${value}`}
-            className={linkClasses}
-            title={`Email ${value}`}
-          >
-            {content}
-          </a>
-        );
-      case "phone":
-        return (
-          <a
-            href={`tel:${value.replace(/[^+\d]/g, "")}`}
-            className={linkClasses}
-            title={`Call ${value}`}
-          >
-            {content}
-          </a>
-        );
-      case "address":
-        return (
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(value)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClasses}
-            title="Open in Maps"
-          >
-            {content}
-          </a>
-        );
-      default:
-        return content;
-    }
+    const telValue = value.replace(/[^+\d]/g, "");
+    const href =
+      linkType === "email"
+        ? `mailto:${value}`
+        : linkType === "phone"
+        ? `tel:${telValue}`
+        : `https://maps.google.com/?q=${encodeURIComponent(value)}`;
+    const title =
+      linkType === "email"
+        ? `Email ${value}`
+        : linkType === "phone"
+        ? `Call ${value}`
+        : "Open in Maps";
+    const extraProps =
+      linkType === "address"
+        ? { target: "_blank", rel: "noopener noreferrer" }
+        : {};
+    return (
+      <a href={href} className={linkClasses} title={title} {...extraProps}>
+        {content}
+      </a>
+    );
   };
+
+  const labelNode = (
+    <dt className="w-36 shrink-0 text-right text-xs font-mono text-gray-500 dark:text-gray-400">
+      {linkOnLabel ? renderLinked(label) : label}
+    </dt>
+  );
 
   return (
     <div className="flex items-baseline gap-2 py-1">
-      <dt className="w-36 shrink-0 text-right text-xs font-mono text-gray-500 dark:text-gray-400">
-        {label}
-      </dt>
+      {labelNode}
       <dd
         className={`text-sm break-all ${
           highlight
@@ -100,9 +93,13 @@ const InfoRow: React.FC<InfoRowProps> = ({
             : "text-gray-900 dark:text-white"
         }`}
       >
-        {renderLinkedValue(
-          typeof displayVal === "string" ? displayVal : displayVal ?? "—",
-        )}
+        {linkOnLabel
+          ? typeof displayVal === "string"
+            ? displayVal
+            : displayVal ?? "—"
+          : renderLinked(
+              typeof displayVal === "string" ? displayVal : displayVal ?? "—",
+            )}
       </dd>
     </div>
   );

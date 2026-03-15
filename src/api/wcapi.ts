@@ -158,8 +158,7 @@ export async function getRecords(
         `/api/wcapi/get/`,
         {
           params: { model_name: resolved, ...params },
-          cache: allowDefaultCompanyCache,
-          headers,
+          cache: false,
         } as any,
       );
       return res2.data.data;

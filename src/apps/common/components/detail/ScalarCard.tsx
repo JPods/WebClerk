@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import InfoRow from "./InfoRow";
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 export interface ScalarField {
   /** Label — should match schema field name exactly */
@@ -77,9 +77,12 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
         <div className="px-4 py-3 bg-white dark:bg-slate-900">
           <dl className={`grid gap-x-6 gap-y-0 ${gridClasses[columns]}`}>
             {fields.map((f) => {
-              const span = f.colSpan && f.colSpan > 1
-                ? f.colSpan === 3 ? "col-span-3" : "col-span-2"
-                : undefined;
+              const span =
+                f.colSpan && f.colSpan > 1
+                  ? f.colSpan === 3
+                    ? "col-span-3"
+                    : "col-span-2"
+                  : undefined;
               return span ? (
                 <div key={f.label} className={span}>
                   <InfoRow
@@ -106,4 +109,4 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
   );
 };
 
-export default withDevIdentifier(ScalarCard, 'ScalarCard', 'amber');
+export default withDevIdentifier(ScalarCard, "ScalarCard", "amber");

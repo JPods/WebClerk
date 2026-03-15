@@ -142,6 +142,10 @@ import DropDown from "@/components/form/input/DropDown";
 import { useColumnCount, ColumnSelector } from "@/components/common/DetailTabs";
 import HistoryPanel from "@/apps/common/components/panels/HistoryPanel";
 import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
+import { PhoneLable } from "@/apps/common/components/detail/PhoneFormat";
+import { EmailLable } from "@/apps/common/components/detail/EmailFormat";
+import { AddressLable } from "@/apps/common/components/detail/AddressFormat";
+import { DomainLable } from "@/apps/common/components/detail/DomainFormat";
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -454,6 +458,7 @@ interface HorizontalFieldProps {
   children: React.ReactNode;
   error?: string;
   required?: boolean;
+  labelAddon?: React.ReactNode;
 }
 
 function HorizontalField({
@@ -462,6 +467,7 @@ function HorizontalField({
   children,
   error,
   required,
+  labelAddon,
 }: HorizontalFieldProps) {
   return (
     <div className="flex items-center gap-2 py-1.5">
@@ -469,7 +475,10 @@ function HorizontalField({
         htmlFor={htmlFor}
         className="w-32 shrink-0 text-left text-sm font-medium text-slate-600 dark:text-slate-400"
       >
-        {label} :{required && <span className="text-red-500 ml-0.5">*</span>}
+        <span className="inline-flex items-center gap-1">
+          {labelAddon ? labelAddon : label}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </span>
       </Label>
       <div className="flex-1 min-w-0">
         {children}
@@ -2018,7 +2027,9 @@ function ContactDetail({
         const currentContactId = Number(data?.id || 0);
         const duplicateBuckets: DuplicateCommBucket[] = [];
 
-        const emailValue = normalizeCommValue((formData as any).email).toLowerCase();
+        const emailValue = normalizeCommValue(
+          (formData as any).email,
+        ).toLowerCase();
         if (emailValue) {
           const res: any = await getRecords("email", {
             search: emailValue,
@@ -2028,7 +2039,9 @@ function ContactDetail({
           const rows = (res?.results || []).filter((r: any) => {
             const value = normalizeCommValue(r?.email).toLowerCase();
             const owner = Number(r?.contact ?? r?.contact_id ?? 0);
-            return value === emailValue && owner > 0 && owner !== currentContactId;
+            return (
+              value === emailValue && owner > 0 && owner !== currentContactId
+            );
           });
           if (rows.length > 0) {
             duplicateBuckets.push({ type: "email", value: emailValue, rows });
@@ -2045,14 +2058,18 @@ function ContactDetail({
           const rows = (res?.results || []).filter((r: any) => {
             const value = normalizePhoneValue(r?.number ?? r?.value);
             const owner = Number(r?.contact ?? r?.contact_id ?? 0);
-            return value === phoneValue && owner > 0 && owner !== currentContactId;
+            return (
+              value === phoneValue && owner > 0 && owner !== currentContactId
+            );
           });
           if (rows.length > 0) {
             duplicateBuckets.push({ type: "phone", value: phoneValue, rows });
           }
         }
 
-        const domainValue = normalizeCommValue((formData as any).domain).toLowerCase();
+        const domainValue = normalizeCommValue(
+          (formData as any).domain,
+        ).toLowerCase();
         if (domainValue) {
           const res: any = await getRecords("domain", {
             search: domainValue,
@@ -2060,16 +2077,22 @@ function ContactDetail({
             limit: 100,
           });
           const rows = (res?.results || []).filter((r: any) => {
-            const value = normalizeCommValue(r?.path ?? r?.domain).toLowerCase();
+            const value = normalizeCommValue(
+              r?.path ?? r?.domain,
+            ).toLowerCase();
             const owner = Number(r?.contact ?? r?.contact_id ?? 0);
-            return value === domainValue && owner > 0 && owner !== currentContactId;
+            return (
+              value === domainValue && owner > 0 && owner !== currentContactId
+            );
           });
           if (rows.length > 0) {
             duplicateBuckets.push({ type: "domain", value: domainValue, rows });
           }
         }
 
-        const addressValue = normalizeCommValue((formData as any).address_full).toLowerCase();
+        const addressValue = normalizeCommValue(
+          (formData as any).address_full,
+        ).toLowerCase();
         if (addressValue) {
           const res: any = await getRecords("address", {
             search: addressValue,
@@ -2077,12 +2100,20 @@ function ContactDetail({
             limit: 100,
           });
           const rows = (res?.results || []).filter((r: any) => {
-            const value = normalizeCommValue(r?.full ?? r?.address1).toLowerCase();
+            const value = normalizeCommValue(
+              r?.full ?? r?.address1,
+            ).toLowerCase();
             const owner = Number(r?.contact ?? r?.contact_id ?? 0);
-            return value === addressValue && owner > 0 && owner !== currentContactId;
+            return (
+              value === addressValue && owner > 0 && owner !== currentContactId
+            );
           });
           if (rows.length > 0) {
-            duplicateBuckets.push({ type: "address", value: addressValue, rows });
+            duplicateBuckets.push({
+              type: "address",
+              value: addressValue,
+              rows,
+            });
           }
         }
 
@@ -2103,9 +2134,9 @@ function ContactDetail({
           );
           if (shouldOpen) {
             duplicateBuckets.forEach((bucket) => {
-              const path = `/communications/${bucket.type}/list?search=${encodeURIComponent(
-                bucket.value,
-              )}`;
+              const path = `/communications/${
+                bucket.type
+              }/list?search=${encodeURIComponent(bucket.value)}`;
               const label = `${bucket.type} matches: ${bucket.value}`;
               windowManager.ensureWindow(path, label, { maximized: false });
             });
@@ -2721,7 +2752,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("email") && (
-                <HorizontalField label="email" htmlFor="email">
+                <HorizontalField
+                  label="email"
+                  htmlFor="email"
+                  labelAddon={<EmailLable value={watch("email")} />}
+                >
                   <Input
                     type="text"
                     id="email"
@@ -2732,24 +2767,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("phone") && (
-                <HorizontalField label="phone" htmlFor="phone">
-                  {/* <Controller
-                    name="phone"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        type="text"
-                        id="phone"
-                        placeholder="+91 (123) 456-7890"
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const formatted = formatPhoneNumber(e.target.value);
-                          field.onChange(formatted);
-                        }}
-                        disabled={isFieldDisabled("phone")}
-                      />
-                    )}
-                  /> */}
+                <HorizontalField
+                  label="phone"
+                  htmlFor="phone"
+                  labelAddon={<PhoneLable value={watch("phone")} />}
+                >
                   <Controller
                     name="phone"
                     control={control}
@@ -2766,7 +2788,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("domain") && (
-                <HorizontalField label="domain" htmlFor="domain">
+                <HorizontalField
+                  label="domain"
+                  htmlFor="domain"
+                  labelAddon={<DomainLable value={watch("domain")} />}
+                >
                   <Input
                     type="text"
                     id="domain"
@@ -2777,7 +2803,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("address_full") && (
-                <HorizontalField label="address_full" htmlFor="address_full">
+                <HorizontalField
+                  label="address_full"
+                  htmlFor="address_full"
+                  labelAddon={<AddressLable value={watch("address_full")} />}
+                >
                   <Input
                     type="text"
                     id="address_full"
