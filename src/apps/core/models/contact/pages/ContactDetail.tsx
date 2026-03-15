@@ -144,6 +144,8 @@ import HistoryPanel from "@/apps/common/components/panels/HistoryPanel";
 import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 import { PhoneLable } from "@/apps/common/components/detail/PhoneFormat";
 import { EmailLable } from "@/apps/common/components/detail/EmailFormat";
+import { AddressLable } from "@/apps/common/components/detail/AddressFormat";
+import { DomainLable } from "@/apps/common/components/detail/DomainFormat";
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -2786,7 +2788,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("domain") && (
-                <HorizontalField label="domain" htmlFor="domain">
+                <HorizontalField
+                  label="domain"
+                  htmlFor="domain"
+                  labelAddon={<DomainLable value={watch("domain")} />}
+                >
                   <Input
                     type="text"
                     id="domain"
@@ -2797,7 +2803,11 @@ function ContactDetail({
                 </HorizontalField>
               )}
               {shouldRenderField("address_full") && (
-                <HorizontalField label="address_full" htmlFor="address_full">
+                <HorizontalField
+                  label="address_full"
+                  htmlFor="address_full"
+                  labelAddon={<AddressLable value={watch("address_full")} />}
+                >
                   <Input
                     type="text"
                     id="address_full"

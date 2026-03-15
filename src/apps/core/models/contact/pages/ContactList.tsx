@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
-import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
