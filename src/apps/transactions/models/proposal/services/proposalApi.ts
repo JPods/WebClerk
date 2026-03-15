@@ -10,6 +10,19 @@ import {
   UpdateProposalLineRequest
 } from '../types/proposalLineType';
 
+type PatchActionResponse<T> = {
+  status?: number;
+  data?: T;
+};
+
+function normalizePatchResponse<T>(res: unknown): { status: number; data: T } {
+  const maybe = (res ?? {}) as PatchActionResponse<T>;
+  return {
+    status: maybe.status ?? 200,
+    data: (maybe.data ?? res) as T,
+  };
+}
+
 export const fetchProposals = async (params?: any): Promise<{ status: number; data: { results: Proposal[]; total: number } }> => {
   const res = await getRecords('proposal', params);
   return { status: 200, data: { results: res.results || [], total: res.total || 0 } };
@@ -27,7 +40,7 @@ export const createProposal = async (data: Partial<ProposalFormData>): Promise<{
     ...data,
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<Proposal>(res);
 };
 
 export const updateProposal = async (id: number, data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {
@@ -37,7 +50,7 @@ export const updateProposal = async (id: number, data: Partial<ProposalFormData>
     id,
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<Proposal>(res);
 };
 
 export const deleteProposal = async (id: number): Promise<{ status: number; data: any }> => {
@@ -47,7 +60,7 @@ export const deleteProposal = async (id: number): Promise<{ status: number; data
     method: 'delete',
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<any>(res);
 };
 
 // Proposal Actions - Note: Backend action endpoint may need implementation
@@ -87,7 +100,7 @@ export const createProposalLine = async (proposalId: number, data: CreateProposa
     ...data,
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<ProposalLine>(res);
 };
 
 export const updateProposalLine = async (proposalId: number, lineId: number, data: UpdateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
@@ -98,7 +111,7 @@ export const updateProposalLine = async (proposalId: number, lineId: number, dat
     id: lineId,
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<ProposalLine>(res);
 };
 
 export const deleteProposalLine = async (_proposalId: number, lineId: number): Promise<{ status: number; data: any }> => {
@@ -108,5 +121,5 @@ export const deleteProposalLine = async (_proposalId: number, lineId: number): P
     method: 'delete',
   };
   const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  return normalizePatchResponse<any>(res);
 };

@@ -3,8 +3,10 @@ import jsPDF from 'jspdf';
 import { Proposal } from '../types/proposalType';
 import { ProposalLine } from '../types/proposalLineType';
 
-type ProposalSummary = Pick<Proposal, 'id' | 'status' | 'dt_created' | 'dt_modified'> & {
+type ProposalSummary = Pick<Proposal, 'id' | 'status'> & {
   ida?: Proposal['ida'];
+  dt_created?: number | string;
+  dt_modified?: number | string;
 };
 
 interface ProposalPdfData {
@@ -12,6 +14,14 @@ interface ProposalPdfData {
   lines: Array<Partial<ProposalLine>>;
   customerName?: string;
   vendorName?: string;
+}
+
+function formatDateLabel(value: number | string | undefined): string {
+  if (value === undefined || value === null) {
+    return 'Not specified';
+  }
+  const dt = new Date(value);
+  return Number.isNaN(dt.getTime()) ? 'Not specified' : dt.toLocaleDateString();
 }
 
 export const generateProposalPdf = (data: ProposalPdfData): void => {
@@ -51,9 +61,9 @@ export const generateProposalPdf = (data: ProposalPdfData): void => {
     doc.text(`Vendor: ${vendorName}`, 20, yPos);
     yPos += 8;
   }
-  doc.text(`Created: ${new Date(proposal.dt_created).toLocaleDateString()}`, 20, yPos);
+  doc.text(`Created: ${formatDateLabel(proposal.dt_created)}`, 20, yPos);
   yPos += 8;
-  doc.text(`Modified: ${new Date(proposal.dt_modified).toLocaleDateString()}`, 20, yPos);
+  doc.text(`Modified: ${formatDateLabel(proposal.dt_modified)}`, 20, yPos);
   yPos += 15;
 
   // Line items table

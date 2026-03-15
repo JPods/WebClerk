@@ -1843,6 +1843,7 @@ function ItemDetail({
     resolver: zodResolver(itemSchema),
     defaultValues: {
       name: "",
+      sku: "",
       description: "",
       price: undefined,
       category: "",
@@ -1897,6 +1898,7 @@ function ItemDetail({
 
     const normalizedItem = {
       name: data.name || "",
+      sku: data.sku || "",
       description: data.description || "",
       price: typeof data.price === "number" ? data.price : priceObj.base,
       category: data.category || "",
@@ -2224,6 +2226,24 @@ function ItemDetail({
     }
   };
 
+  const handleRawDataChange = (value: unknown) => {
+    if (!isAdmin || !value || typeof value !== "object" || Array.isArray(value)) {
+      return;
+    }
+
+    const nextData: ItemData = {
+      ...(data || {}),
+      ...(value as ItemData),
+    };
+
+    if (!nextData.id && activeItemId) {
+      nextData.id = activeItemId;
+    }
+
+    setFetchedData(nextData);
+    reset(dataToFormValues(nextData));
+  };
+
   // Show loading state while fetching
   if (isLoading) {
     return (
@@ -2352,7 +2372,8 @@ function ItemDetail({
                 <JsonFieldEditor
                   label="Full Item JSON"
                   value={data}
-                  readonly
+                  readonly={!isAdmin}
+                  onChange={handleRawDataChange}
                   defaultExpanded
                   maxHeight="600px"
                 />
@@ -2411,6 +2432,23 @@ function ItemDetail({
               </FieldRow>
             )}
 
+            {shouldRenderField("sku") && (
+              <FieldRow
+                label="sku"
+                htmlFor="sku"
+                error={errors.sku?.message as string | undefined}
+              >
+                <Input
+                  type="text"
+                  id="sku"
+                  placeholder="SKU"
+                  {...register("sku")}
+                  error={!!errors.sku?.message}
+                  disabled={isFieldDisabled("sku")}
+                />
+              </FieldRow>
+            )}
+
             {shouldRenderField("category") && (
               <FieldRow
                 label="Category1"
@@ -2429,23 +2467,6 @@ function ItemDetail({
               </FieldRow>
             )}
 
-            {shouldRenderField("description") && (
-              <FieldRow
-                label="Description"
-                htmlFor="description"
-                error={errors.description?.message as string | undefined}
-                required
-              >
-                <Input
-                  type="text"
-                  id="description"
-                  placeholder="Description"
-                  {...register("description")}
-                  error={!!errors.description?.message}
-                  disabled={isFieldDisabled("description")}
-                />
-              </FieldRow>
-            )}
             {shouldRenderField("kind") && (
               <FieldRow label="Kind" htmlFor="kind">
                 <Controller
@@ -2931,7 +2952,8 @@ function ItemDetail({
               <JsonFieldEditor
                 label="Full Item JSON"
                 value={data}
-                readonly
+                readonly={!isAdmin}
+                onChange={handleRawDataChange}
                 defaultExpanded
                 maxHeight="600px"
               />

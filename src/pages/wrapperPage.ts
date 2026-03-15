@@ -20,6 +20,10 @@ import GLJournalList from "../apps/accounts/models/gl_journal/pages/GLJournalLis
 import GLJournalDetail from "../apps/accounts/models/gl_journal/pages/GLJournalDetail";
 import LedgerList from "../apps/accounts/models/ledger/pages/LedgerList";
 import ReceivableList from "../apps/accounts/models/ledger/pages/ReceivableList";
+import TallySummaryList from "../apps/accounts/models/ledger/pages/TallySummaryList";
+import SalesDimensionTallyList from "../apps/accounts/models/ledger/pages/SalesDimensionTallyList";
+import InventoryUsageTallyList from "../apps/accounts/models/ledger/pages/InventoryUsageTallyList";
+import TallyRegistryList from "../apps/accounts/models/ledger/pages/TallyRegistryList";
 import TaxJurisdictionList from "../apps/accounts/models/tax_jurisdiction/pages/TaxJurisdictionList";
 import TermList from "../apps/accounts/models/term/pages/TermList";
 
@@ -118,6 +122,10 @@ export {
   GLJournalDetail,
   LedgerList,
   ReceivableList,
+  TallySummaryList,
+  SalesDimensionTallyList,
+  InventoryUsageTallyList,
+  TallyRegistryList,
   TaxJurisdictionList,
   TermList,
   DomainList,
