@@ -34,7 +34,7 @@ export const PhoneLable: React.FC<{
     forceDialCode: true,
   });
 
-  if (!value) return null;
+  if (!value) return labelText;
   return (
     <>
       <a

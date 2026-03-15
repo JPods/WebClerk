@@ -1,7 +1,7 @@
 export const AddressFormat: React.FC<{ value?: string | null }> = ({
   value,
 }) => {
-  if (!value) return "--";
+  if (!value) return null;
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     value,
   )}`;
@@ -23,7 +23,7 @@ export const AddressLable: React.FC<{
   value?: string | null;
   labelText?: string;
 }> = ({ value, labelText = "address_full" }) => {
-  if (!value) return null;
+  if (!value) return labelText;
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     value,
   )}`;

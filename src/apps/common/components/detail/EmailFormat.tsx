@@ -1,5 +1,5 @@
 export const EmailFormat: React.FC<{ value?: string | null }> = ({ value }) => {
-  if (!value) return "--";
+  if (!value) return null;
   return (
     <>
       <a
@@ -16,7 +16,7 @@ export const EmailLable: React.FC<{
   value?: string | null;
   labelText?: string;
 }> = ({ value, labelText = "email" }) => {
-  if (!value) return null;
+  if (!value) return labelText;
   return (
     <>
       <a
