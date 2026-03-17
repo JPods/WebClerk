@@ -2,7 +2,7 @@
  * ContactDetail.tsx  (primary)
  *
  * Panel-based Contact Detail with ScalarCard / JsonCard / BaseModelCards,
- * ContactInfoPanel, OrgLinkPanel, and EmailGatePanel.
+ * CommLinkPanel, OrgLinkPanel, and EmailGatePanel.
  * View and edit modes share the same panel layout.
  *
  * Standard Contact Detail page following the enterprise UI pattern:
@@ -116,7 +116,7 @@ import {
 import {
   ActionsPanel,
   CommentsPanel,
-  ContactInfoPanel,
+  CommLinkPanel,
   CommunicationsPanel,
   DocumentsPanel,
   MetadataPanel,
@@ -328,11 +328,6 @@ function commTypeToModelName(type: CommType): string {
   return type;
 }
 
-const normalizeCommId = (value: unknown): number | undefined => {
-  const num = Number(value);
-  return Number.isFinite(num) && num > 0 ? num : undefined;
-};
-
 function normalizeCommValue(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -358,13 +353,6 @@ function commTypeToContactScalarField(
   if (type === "address") return "address_full";
   return "domain";
 }
-
-const commTypeToLinkField = (type: CommType): keyof CommunicationsData => {
-  if (type === "email") return "emails";
-  if (type === "phone") return "phones";
-  if (type === "address") return "addresses";
-  return "domains";
-};
 
 function getCommDisplayValue(type: CommType, item: any): string {
   if (!item) return "";
@@ -440,39 +428,6 @@ function mapModalToCommModelPayload(
     };
   }
 }
-
-const buildRefsLinkEntry = (
-  type: CommType,
-  record: any,
-  scalarValue: string,
-  attention?: string,
-) => {
-  if (type === "email")
-    return {
-      id: record?.id,
-      name: record?.name || "",
-      address: record?.email || record?.address || scalarValue,
-      attention: attention || record?.attention || "",
-    };
-  if (type === "phone")
-    return {
-      id: record?.id,
-      name: record?.name || "",
-      number: record?.number || record?.value || scalarValue,
-      attention: attention || record?.attention || "",
-    };
-  if (type === "domain")
-    return {
-      id: record?.id,
-      name: record?.name || record?.type || "",
-      domain: record?.domain || record?.path || scalarValue,
-    };
-  return {
-    id: record?.id,
-    name: record?.name || record?.address_type || "",
-    address: record?.full || scalarValue,
-  };
-};
 
 /** Maps parent org model name → the foreign-key field on Contact */
 const PARENT_MODEL_TO_ID_FIELD: Record<string, string> = {
@@ -558,38 +513,41 @@ const normalizeContactFkFields = (record: any) => {
     if (typeof v === "number" && Number.isFinite(v)) return v;
     if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v)))
       return Number(v);
+    if (typeof v === "object") {
+      const nested = (v as any).id;
+      if (typeof nested === "number" && Number.isFinite(nested)) return nested;
+      if (
+        typeof nested === "string" &&
+        nested.trim() &&
+        !Number.isNaN(Number(nested))
+      )
+        return Number(nested);
+    }
     return undefined;
   };
 
-  const idFields = [
-    "id",
-    "email_id",
-    "phone_id",
-    "address_id",
-    "domain_id",
-    "customer_id",
-    "vendor_id",
-    "other_id",
-    "project_id",
-  ];
-
-  idFields.forEach((key) => {
-    if (key in out) {
-      out[key] = pickId((out as any)[key]);
-    }
-  });
+  // WCAPI often returns FK ids under the field name (customer, rep, ...) not the attname (customer_id).
+  if (out.customer_id == null) out.customer_id = pickId(out.customer);
+  if (out.rep_id == null) out.rep_id = pickId(out.rep);
+  if (out.vendor_id == null) out.vendor_id = pickId(out.vendor);
+  if (out.employee_id == null) out.employee_id = pickId(out.employee);
+  if (out.manufacturer_id == null)
+    out.manufacturer_id = pickId(out.manufacturer);
 
   return out;
 };
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
 
 function ContactDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
   onSaved,
-  inline: _inline,
+  inline: _inline = false,
   onCancelInline,
-  getContactData: _getContactData,
   id: idProp,
   recordId,
 }: ContactAddProps) {
@@ -807,46 +765,6 @@ function ContactDetail({
     }
   }, [data?.communications, data?.refs?.links]);
 
-  const handleContactCreated = useCallback(
-    (newId: number, res: any) => {
-      const record = res?.record ?? res;
-      setFetchedData(normalizeContactFkFields(record));
-      setEffectiveMode("edit");
-
-      // Let other panes know a contact was created so they can refresh
-      window.dispatchEvent(
-        new CustomEvent("contact-saved", {
-          detail: { contactId: newId, parentModel, parentId },
-        }),
-      );
-
-      // Link back to parent org if opened from an org detail page
-      if (parentModel && parentId) {
-        saveRecord(parentModel, {
-          id: parentId,
-          refs: { links: { contact: [newId] } },
-        }).catch((err: any) =>
-          console.error(
-            `[ContactDetail] Failed to link contact to ${parentModel} #${parentId}:`,
-            err,
-          ),
-        );
-      }
-    },
-    [parentModel, parentId, saveRecord, setEffectiveMode, setFetchedData],
-  );
-
-  const { ensureContactId, autoSaveInProgress } = useAutoSaveContact({
-    recordMode,
-    activeContactId,
-    getValues: () => formGetAllValuesRef.current?.() ?? {},
-    parentModel,
-    parentId,
-    parentCustomerId,
-    parentCustomerName,
-    onContactCreated: handleContactCreated,
-  });
-
   // setValue is initialized by useForm later in this component.
   // We store it in a ref so earlier callbacks (defined before useForm) don't hit TDZ.
   const formSetValueRef = useRef<null | ((...args: any[]) => void)>(null);
@@ -881,6 +799,7 @@ function ContactDetail({
             name: r.name || "",
             type: r.type || "",
             email: r.email,
+            address: r.email,
             value: r.email,
             is_primary: !!r.is_primary,
             is_verified: !!r.is_verified,
@@ -972,51 +891,78 @@ function ContactDetail({
 
   const [commSaving, setCommSaving] = useState(false);
 
-  const openCommSelect = async (type: CommType) => {
-    const cid = await ensureContactId();
-    if (!cid) return;
-    setCommSelectQuery("");
-    setCommSelectState({ open: true, type });
-  };
+  // ---------------------------------------------------------------------------
+  // Auto-save contact on first child-record attempt
+  // ---------------------------------------------------------------------------
+
+  const handleContactCreated = useCallback(
+    (newId: number, res: any) => {
+      const record = res?.record ?? res;
+      setFetchedData(normalizeContactFkFields(record));
+      setEffectiveMode("edit");
+
+      // Broadcast so parent panels can refresh
+      window.dispatchEvent(
+        new CustomEvent("contact-saved", {
+          detail: { contactId: newId, parentModel, parentId },
+        }),
+      );
+
+      // Sync parent org's refs.links.contact[]
+      if (parentModel && parentId) {
+        saveRecord(parentModel, {
+          id: parentId,
+          refs: { links: { contact: [newId] } },
+        }).catch((err: any) =>
+          console.error(
+            `[ContactDetail] Failed to link contact to ${parentModel} #${parentId}:`,
+            err,
+          ),
+        );
+      }
+    },
+    [parentModel, parentId],
+  );
+
+  const { ensureContactId, autoSaveInProgress } = useAutoSaveContact({
+    recordMode,
+    activeContactId,
+    getValues: () => formGetAllValuesRef.current?.() ?? {},
+    parentModel,
+    parentId,
+    parentCustomerId,
+    parentCustomerName,
+    onContactCreated: handleContactCreated,
+  });
 
   const closeCommSelect = () =>
     setCommSelectState((s) => ({ ...s, open: false }));
 
-  // ---------------------------------------------------------------------------
-  // Fetch global communications for select dialog
-  // ---------------------------------------------------------------------------
-
+  // Global search results for selector dialog (shows all records; not limited to this contact)
   useEffect(() => {
     if (!commSelectState.open) return;
+
     let cancelled = false;
-    const fetchGlobal = async () => {
+    (async () => {
       setCommGlobalLoading(true);
       try {
         const modelName = commTypeToModelName(commSelectState.type);
-        const params: Record<string, any> = {
-          limit: 50,
-          offset: 0,
-        };
-        if (commSelectQuery.trim()) {
-          params.search = commSelectQuery.trim();
+        const q = commSelectQuery.trim();
+        const params: Record<string, any> = { limit: 200 };
+        if (q) {
+          params.search = q;
+          params.q = q;
         }
         const res: any = await getRecords(modelName, params);
-        const results = res?.results ?? res?.data ?? [];
-        if (!cancelled) {
-          setCommGlobalResults(results);
-        }
+        const rows: any[] = res?.results || [];
+        if (!cancelled) setCommGlobalResults(rows);
       } catch (e) {
-        if (!cancelled) {
-          console.warn("[ContactDetail] comm global fetch failed:", e);
-        }
+        if (!cancelled) setCommGlobalResults([]);
       } finally {
-        if (!cancelled) {
-          setCommGlobalLoading(false);
-        }
+        if (!cancelled) setCommGlobalLoading(false);
       }
-    };
+    })();
 
-    fetchGlobal();
     return () => {
       cancelled = true;
     };
@@ -1132,12 +1078,7 @@ function ContactDetail({
             is_primary: !!r.is_primary,
             is_verified: !!r.is_verified,
           }));
-          const fallback = (data?.refs?.links as any)?.email || [];
-          const nextEmails = emails.length > 0 ? emails : fallback;
-          setCommunications((prev) => ({
-            ...(prev || {}),
-            emails: nextEmails,
-          }));
+          setCommunications((prev) => ({ ...(prev || {}), emails }));
         } else if (type === "phone") {
           const phones = rows.map((r) => ({
             id: r.id,
@@ -1147,12 +1088,7 @@ function ContactDetail({
             format: r.format || "",
             country_code: r.country_code || "",
           }));
-          const fallback = (data?.refs?.links as any)?.phone || [];
-          const nextPhones = phones.length > 0 ? phones : fallback;
-          setCommunications((prev) => ({
-            ...(prev || {}),
-            phones: nextPhones,
-          }));
+          setCommunications((prev) => ({ ...(prev || {}), phones }));
         } else if (type === "address") {
           const addresses = rows.map((r) => ({
             id: r.id,
@@ -1165,12 +1101,7 @@ function ContactDetail({
             country: r.country,
             full: r.full,
           }));
-          const fallback = (data?.refs?.links as any)?.address || [];
-          const nextAddresses = addresses.length > 0 ? addresses : fallback;
-          setCommunications((prev) => ({
-            ...(prev || {}),
-            addresses: nextAddresses,
-          }));
+          setCommunications((prev) => ({ ...(prev || {}), addresses }));
         } else if (type === "domain") {
           const domains = rows.map((r) => ({
             id: r.id,
@@ -1184,57 +1115,75 @@ function ContactDetail({
               ? String(r.status).toLowerCase() === "active"
               : false,
           }));
-          const fallback = (data?.refs?.links as any)?.domain || [];
-          const nextDomains = domains.length > 0 ? domains : fallback;
-          setCommunications((prev) => ({
-            ...(prev || {}),
-            domains: nextDomains,
-          }));
+          setCommunications((prev) => ({ ...(prev || {}), domains }));
         }
       } catch (e) {
         console.warn("[ContactDetail] refreshCommType failed:", e);
       }
     },
-    [activeContactId, data?.domain_id, data?.refs?.links],
-  );
-
-  const findCommItemById = useCallback(
-    (type: CommType, id: number) => {
-      const matchId = (val: any) => Number(val?.id) === id;
-      if (type === "email") return communications?.emails?.find(matchId);
-      if (type === "phone") return communications?.phones?.find(matchId);
-      if (type === "address") return communications?.addresses?.find(matchId);
-      return communications?.domains?.find(matchId);
-    },
-    [communications],
+    [activeContactId, data?.domain_id],
   );
 
   const setPrimaryCommWithoutRefetch = useCallback(
-    async (type: CommType, commId: number) => {
-      // Only adjust refs.links primary flags client-side; do not touch contact scalars or *_id
-      setFetchedData((prev: any) => {
-        const base = prev || data;
-        const existingRefs = base?.refs || {};
-        const existingLinks = existingRefs.links || {};
-        const currentArray = existingLinks[type] || [];
-        const nextArray = currentArray.map((item: any) => {
-          if (Number(item?.id) === commId) return { ...item, is_primary: true };
-          return { ...item, is_primary: false };
+    async (type: CommType, commId: number, displayValue: string) => {
+      if (!activeContactId) return;
+      const idField = commTypeToContactIdField(type);
+      const scalarField = commTypeToContactScalarField(type);
+
+      const payload: Record<string, any> = {
+        id: activeContactId,
+        mode: "update",
+        [idField]: commId,
+      };
+
+      // Do NOT blindly overwrite Contact.email (login + unique).
+      // Only mirror the selected email into the scalar field when it matches the current form value
+      // (or when current is blank). This prevents 400s from uniqueness/validation.
+      if (type === "email") {
+        const currentEmailRaw =
+          (formGetValuesRef.current?.("email") as string | undefined) ??
+          (data?.email as string | undefined) ??
+          "";
+        const currentEmail = String(currentEmailRaw || "")
+          .trim()
+          .toLowerCase();
+        const selectedEmail = String(displayValue || "")
+          .trim()
+          .toLowerCase();
+        if (!currentEmail || currentEmail === selectedEmail) {
+          payload[scalarField] = displayValue;
+        }
+      } else {
+        payload[scalarField] = displayValue;
+      }
+      try {
+        await updateContact(payload as any);
+        if (payload[scalarField] !== undefined) {
+          formSetValueRef.current?.(scalarField as any, displayValue, {
+            shouldDirty: true,
+          });
+        }
+      } catch (err: any) {
+        const details = err?.response?.data || err;
+        console.error("[ContactDetail] Failed to set primary comm:", {
+          type,
+          commId,
+          scalarField,
+          idField,
+          payload,
+          details,
         });
-        return {
-          ...base,
-          refs: {
-            ...existingRefs,
-            links: {
-              ...existingLinks,
-              [type]: nextArray,
-            },
-          },
-        };
-      });
-      await refreshCommType(type);
+        const message =
+          details?.message ||
+          details?.detail ||
+          details?.error?.details ||
+          err?.message ||
+          "Failed to update contact";
+        dispatch(showToast({ message: String(message), type: "error" }));
+        throw err;
+      }
     },
-    [data, refreshCommType, setFetchedData],
+    [activeContactId, updateContact, dispatch],
   );
 
   const handleSelectComm = useCallback(
@@ -1247,10 +1196,11 @@ function ContactDetail({
       try {
         const linkedId = await copyCommToThisContact(type, item);
         await refreshCommType(type);
-        await setPrimaryCommWithoutRefetch(type, linkedId);
+        const displayValue = getCommDisplayValue(type, item);
+        await setPrimaryCommWithoutRefetch(type, linkedId, displayValue);
         closeCommSelect();
       } catch {
-        // setPrimaryCommWithoutRefetch emits toast/log on failure
+        // toast/log already emitted in setPrimaryCommWithoutRefetch
       } finally {
         setCommSaving(false);
       }
@@ -1261,7 +1211,6 @@ function ContactDetail({
       copyCommToThisContact,
       refreshCommType,
       setPrimaryCommWithoutRefetch,
-      closeCommSelect,
     ],
   );
 
@@ -1278,16 +1227,11 @@ function ContactDetail({
       setCommSaving(true);
       try {
         const modelName = commTypeToModelName(type);
-        const idField = commTypeToContactIdField(type);
-        const existingId =
-          normalizeCommId((payload as any)?.id) ||
-          normalizeCommId(formGetValuesRef.current?.(idField)) ||
-          normalizeCommId((data as any)?.[idField]);
-
-        const modelPayload = {
-          ...mapModalToCommModelPayload(type, payload, contactId),
-          ...(existingId ? { id: existingId } : {}),
-        };
+        const modelPayload = mapModalToCommModelPayload(
+          type,
+          payload,
+          contactId,
+        );
 
         console.log("[ContactDetail] Phase 1: Saving communication record:", {
           type: modelName,
@@ -1295,43 +1239,123 @@ function ContactDetail({
           payload: modelPayload,
         });
 
+        // ── Step 1: Create/Update the communication record
         const res: any = await saveRecord(modelName, modelPayload);
+
+        console.log("[ContactDetail] Phase 2: saveRecord response:", {
+          status: res?.status,
+          statusCode: res?.statusCode,
+          hasRecord: !!res?.record,
+          hasId: res?.id || (res?.record && res.record.id),
+          fullResponse: res,
+        });
+
         const record = res?.record ?? res;
         const responseId = Number(record?.id ?? res?.id);
-        const newId = existingId || responseId;
+
+        // For edit mode, verify the response ID matches the payload ID
+        const newId = payload?.id && payload.id > 0 ? payload.id : responseId;
 
         if (!Number.isFinite(newId) || newId <= 0) {
           throw new Error(
             `Failed to ${
-              existingId ? "update" : "create"
+              payload?.id ? "update" : "create"
             } ${modelName} record. Response: ${JSON.stringify({
               newId,
               responseId,
               record,
               resId: res?.id,
-              payloadId: modelPayload?.id,
+              payloadId: payload?.id,
             })}`,
           );
         }
 
-        const refsLinkItem = buildRefsLinkEntry(
-          type,
-          { ...record, id: newId },
-          getCommDisplayValue(type, { ...record, ...(payload as any) }) || "",
-          (payload as any)?.attention || data?.attention,
+        console.log(
+          `[ContactDetail] Phase 3: Successfully ${
+            payload?.id ? "updated" : "created"
+          } ${modelName} record #${newId}`,
         );
 
-        const linkFieldName = `${type}s`;
+        // ── Step 2: Normalize the created/updated record for refs.links
+        // Use response record data, and fallback to formData for fields that might not be in response
+        let refsLinkItem: any = {
+          id: newId,
+          ...(record || {}),
+        };
+
+        if (type === "email") {
+          refsLinkItem = {
+            id: newId,
+            email: record?.email || (payload as any)?.email || "",
+            name: record?.name || (payload as any)?.name || "",
+            type: record?.type || "",
+            is_primary:
+              record?.is_primary !== undefined
+                ? !!record.is_primary
+                : !!(payload as any)?.is_primary,
+            is_verified: !!record?.is_verified,
+          };
+        } else if (type === "phone") {
+          refsLinkItem = {
+            id: newId,
+            number: record?.number || (payload as any)?.number || "",
+            name: record?.name || (payload as any)?.name || "",
+            country_code: record?.country_code || "",
+            format: record?.format || "",
+          };
+        } else if (type === "address") {
+          refsLinkItem = {
+            id: newId,
+            address1: record?.address1 || (payload as any)?.address1 || "",
+            address2: record?.address2 || (payload as any)?.address2 || "",
+            city: record?.city || (payload as any)?.city || "",
+            state: record?.state || (payload as any)?.state || "",
+            zip: record?.zip || (payload as any)?.zip || "",
+            country: record?.country || (payload as any)?.country || "",
+            full: record?.full || "",
+            address_type: record?.address_type || "",
+          };
+        } else if (type === "domain") {
+          refsLinkItem = {
+            id: newId,
+            domain:
+              record?.domain || record?.path || (payload as any)?.domain || "",
+            path:
+              record?.path || record?.domain || (payload as any)?.domain || "",
+            type: record?.type || (payload as any)?.type || "website",
+            status: record?.status || "active",
+          };
+        }
+
+        console.log("[ContactDetail] Phase 4: Normalized refs.links item:", {
+          type,
+          refsLinkItem,
+        });
+
+        // ── Step 3: Update contact's refs.links[type] array
+        const linkFieldName = `${type}s`; // e.g., "emails", "phones", "addresses", "domains"
         const currentLinks =
           communications?.[linkFieldName as keyof CommunicationsData] || [];
-        const updatedLinks = currentLinks.some(
-          (item: any) => Number(item?.id) === newId,
-        )
-          ? currentLinks.map((item: any) =>
-              Number(item?.id) === newId ? { ...item, ...refsLinkItem } : item,
-            )
-          : [...currentLinks, refsLinkItem];
 
+        // Add new item to the array (in edit mode, replace existing item with same ID)
+        const updatedLinks =
+          payload?.id && payload.id > 0
+            ? currentLinks.map((item: any) =>
+                item.id === payload.id ? refsLinkItem : item,
+              )
+            : [...currentLinks, refsLinkItem];
+
+        console.log("[ContactDetail] Phase 5: Updating contact.refs.links:", {
+          type,
+          linkFieldName,
+          currentCount: currentLinks.length,
+          newCount: updatedLinks.length,
+          updatedLinks,
+          contactId,
+        });
+
+        // Save refs.links update to contact
+        // Fetch current contact data to get the full refs object
         const currentContactData = await getRecord("contact", contactId);
         const currentContact =
           (currentContactData as any)?.record ?? currentContactData;
@@ -1348,10 +1372,32 @@ function ContactDetail({
           },
         };
 
-        const updateRes = await saveRecord("contact", updatePayload);
+        console.log("[ContactDetail] Phase 5b: Contact update payload:", {
+          contactId,
+          updatePayload,
+        });
 
+        const updateRes = await saveRecord("contact", updatePayload);
+        console.log("[ContactDetail] Phase 5c: Contact update response:", {
+          status: updateRes?.status,
+          hasRecord: !!updateRes?.record,
+          updateRes,
+        });
+
+        console.log(
+          `[ContactDetail] Phase 6: Successfully updated contact.refs.links.${type}`,
+        );
+
+        // ── Step 4: Refresh the communications list
         await refreshCommType(type);
 
+        console.log("[ContactDetail] Phase 6b: After refreshCommType:", {
+          type,
+          updatedLinks,
+        });
+
+        // ── Step 4b: Update fetchedData to reflect new refs.links in local state
+        // This forces UI re-render without waiting for full refetch
         if (updateRes?.record) {
           setFetchedData((prev: any) => ({
             ...(prev || data),
@@ -1364,6 +1410,48 @@ function ContactDetail({
             },
           }));
         }
+
+        // ── Step 5: Update the form state to reflect the new primary
+        const displayValue = getCommDisplayValue(type, refsLinkItem);
+
+        console.log("[ContactDetail] Phase 7: Setting primary comm:", {
+          type,
+          newId,
+          displayValue,
+        });
+
+        // Update the form's scalar field (email, phone, etc.)
+        formSetValueRef.current?.(
+          commTypeToContactScalarField(type) as any,
+          displayValue,
+          {
+            shouldDirty: true,
+          },
+        );
+
+        // Update the contact's FK field (*_id)
+        const idField = commTypeToContactIdField(type);
+        formSetValueRef.current?.(idField as any, newId, {
+          shouldDirty: true,
+        });
+
+        console.log(
+          `[ContactDetail] Phase 8: Successfully updated contact.${idField} = ${newId}`,
+        );
+
+        console.log(
+          "[ContactDetail] Phase 9: COMPLETE - All steps successful",
+          {
+            type,
+            newId,
+            commRecordId: newId,
+            contactId,
+            updatedLinksCount: updatedLinks.length,
+            formField: commTypeToContactScalarField(type),
+            idField,
+            displayValue,
+          },
+        );
 
         dispatch(
           showToast({
@@ -1394,15 +1482,12 @@ function ContactDetail({
       }
     },
     [
-      commModalState.type,
-      communications,
-      data,
       ensureContactId,
-      formGetValuesRef,
+      commModalState.type,
+      dispatch,
       refreshCommType,
       saveRecord,
-      setFetchedData,
-      dispatch,
+      setPrimaryCommWithoutRefetch,
     ],
   );
 
@@ -1518,11 +1603,11 @@ function ContactDetail({
 
   const additionalTabs: TabConfig[] = useMemo(
     () => [
-      // {
-      //   id: "communications",
-      //   label: "Refs. Contact",
-      //   icon: <Phone size={14} />,
-      // },
+      {
+        id: "communications",
+        label: "Refs. Contact",
+        icon: <Phone size={14} />,
+      },
       { id: "history", label: "History", icon: <History size={14} /> },
       { id: "metadata", label: "Metadata", icon: <History size={14} /> },
       { id: "prefs", label: "Prefs", icon: <SlidersHorizontal size={14} /> },
@@ -1633,12 +1718,12 @@ function ContactDetail({
 
   const {
     register,
+    control,
     handleSubmit,
     getValues,
     reset,
     setValue,
     watch,
-    control,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(
@@ -1694,7 +1779,7 @@ function ContactDetail({
   const watchedFirstName = useWatch({ control, name: "name_first" });
   const watchedLastName = useWatch({ control, name: "name_last" });
 
-  // Watch all reactive form values (used by ContactInfoPanel / OrgLinkPanel)
+  // Watch all reactive form values (used by CommLinkPanel / OrgLinkPanel)
   const watchedValues = watch();
 
   useEffect(() => {
@@ -1725,12 +1810,6 @@ function ContactDetail({
     // reset once for this record id and remember it to avoid loops.
     reset({
       ...data,
-      // Communication FK IDs - preserve so scalar sync can update existing records
-      email_id: normalizeNumber(data.email_id),
-      phone_id: normalizeNumber(data.phone_id),
-      address_id: normalizeNumber(data.address_id),
-      domain_id: normalizeNumber(data.domain_id),
-      // Org FK IDs
       customer_id: normalizeNumber(data.customer_id ?? data.customer),
       rep_id: normalizeNumber(data.rep_id ?? data.rep),
       vendor_id: normalizeNumber(data.vendor_id ?? data.vendor),
@@ -1935,197 +2014,6 @@ function ContactDetail({
   );
 
   // ---------------------------------------------------------------------------
-  // Sync scalar fields -> existing communication records (no new rows)
-  // ---------------------------------------------------------------------------
-
-  const syncScalarCommunications = useCallback(
-    async (contactId: number, formData: any, savedContact: any) => {
-      if (!contactId) return;
-
-      const attentionVal =
-        (formData as any)?.attention ||
-        savedContact?.attention ||
-        data?.attention ||
-        "";
-
-      const baseRefs =
-        (savedContact?.refs?.links as Record<string, any[]>) ||
-        (data?.refs?.links as Record<string, any[]>) ||
-        {};
-
-      let nextRefs = { ...baseRefs };
-      const nextComms: Partial<CommunicationsData> = {};
-
-      const upsertById = (arr: any[], item: any) => {
-        const idx = arr.findIndex((row: any) => Number(row?.id) === item.id);
-        if (idx >= 0)
-          return arr.map((row, i) => (i === idx ? { ...row, ...item } : row));
-        return [...arr, item];
-      };
-
-      for (const type of ["email", "phone", "address", "domain"] as const) {
-        const scalarField = commTypeToContactScalarField(type);
-        const scalarValue = (formData as any)?.[scalarField];
-        if (!scalarValue) continue;
-
-        const idField = commTypeToContactIdField(type);
-        const currentLinks = Array.isArray(nextRefs[type])
-          ? nextRefs[type]
-          : [];
-
-        // Priority: form -> savedContact -> data -> refs.links first entry
-        const candidateIds = [
-          normalizeCommId((formData as any)?.[idField]),
-          normalizeCommId((savedContact as any)?.[idField]),
-          normalizeCommId((data as any)?.[idField]),
-          normalizeCommId(currentLinks[0]?.id),
-        ].filter(Boolean) as number[];
-
-        const targetId = candidateIds.length > 0 ? candidateIds[0] : undefined;
-        if (!targetId) {
-          console.warn(
-            `[ContactDetail] Skipping ${type} scalar sync — no existing id.`,
-          );
-          continue;
-        }
-
-        // Verify the communication record exists before updating
-        const modelName = commTypeToModelName(type);
-        let existingRecord: any = null;
-        try {
-          existingRecord = await getRecord(modelName, targetId);
-        } catch {
-          console.warn(
-            `[ContactDetail] ${type} record #${targetId} not found, skipping update.`,
-          );
-          continue;
-        }
-
-        if (!existingRecord?.id) {
-          console.warn(
-            `[ContactDetail] ${type} record #${targetId} invalid, skipping.`,
-          );
-          continue;
-        }
-
-        const primaryLink = currentLinks.find(
-          (l: any) => Number(l?.id) === targetId,
-        );
-
-        const payload: Record<string, any> = {
-          id: targetId,
-          contact_id: contactId,
-        };
-
-        if (type === "email") {
-          payload.email = scalarValue;
-          payload.attention = attentionVal;
-          payload.is_primary = true;
-        } else if (type === "phone") {
-          payload.number = scalarValue;
-          payload.attention = attentionVal;
-        } else if (type === "domain") {
-          payload.path = scalarValue;
-          payload.status =
-            existingRecord?.status || primaryLink?.status || "active";
-        } else {
-          payload.full = scalarValue;
-          payload.address1 = scalarValue;
-          payload.address_type =
-            existingRecord?.address_type ||
-            primaryLink?.address_type ||
-            primaryLink?.name ||
-            "";
-        }
-
-        try {
-          const res: any = await saveRecord(modelName, payload);
-          const record = res?.record ?? res ?? { id: targetId };
-
-          const linkEntry = buildRefsLinkEntry(
-            type,
-            { ...record, id: targetId },
-            String(scalarValue),
-            attentionVal,
-          );
-
-          const updatedLinks = currentLinks.length
-            ? currentLinks.some((l: any) => Number(l?.id) === targetId)
-              ? currentLinks.map((l: any) =>
-                  Number(l?.id) === targetId ? { ...l, ...linkEntry } : l,
-                )
-              : [...currentLinks, linkEntry]
-            : [linkEntry];
-
-          nextRefs = { ...nextRefs, [type]: updatedLinks };
-
-          const linkKey = commTypeToLinkField(type);
-          const commEntry =
-            type === "email"
-              ? {
-                  id: targetId,
-                  email: scalarValue,
-                  value: scalarValue,
-                  is_primary: true,
-                  attention: attentionVal,
-                }
-              : type === "phone"
-              ? {
-                  id: targetId,
-                  number: scalarValue,
-                  value: scalarValue,
-                  attention: attentionVal,
-                }
-              : type === "domain"
-              ? {
-                  id: targetId,
-                  domain: scalarValue,
-                  path: scalarValue,
-                  value: scalarValue,
-                  status: primaryLink?.status || "active",
-                }
-              : {
-                  id: targetId,
-                  full: scalarValue,
-                  address1: scalarValue,
-                  name: primaryLink?.name || primaryLink?.address_type || "",
-                };
-
-          const baseArr =
-            (nextComms[linkKey] as any[]) ??
-            (communications?.[linkKey] as any[]) ??
-            [];
-          nextComms[linkKey] = upsertById(baseArr, commEntry) as any;
-        } catch (err) {
-          console.error(`[ContactDetail] Failed to sync ${type} scalar:`, err);
-        }
-      }
-
-      setFetchedData((prev: any) => {
-        const base = prev || savedContact || data;
-        return {
-          ...base,
-          refs: {
-            ...(base?.refs || {}),
-            links: {
-              ...(base?.refs?.links || {}),
-              ...nextRefs,
-            },
-          },
-        };
-      });
-
-      if (Object.keys(nextComms).length > 0) {
-        setCommunications((prev) => ({
-          ...(prev || {}),
-          ...(nextComms as any),
-        }));
-      }
-    },
-    [communications, data, saveRecord, setCommunications, setFetchedData],
-  );
-
-  // ---------------------------------------------------------------------------
   // Form Submission
   // ---------------------------------------------------------------------------
 
@@ -2267,13 +2155,9 @@ function ContactDetail({
 
         const basePayload = {
           email: formData.email,
-          email_id: (formData as any).email_id ?? data?.email_id,
           phone: formData.phone,
-          phone_id: (formData as any).phone_id ?? data?.phone_id,
           domain: formData.domain,
-          domain_id: (formData as any).domain_id ?? data?.domain_id,
           address_full: formData.address_full,
-          address_id: (formData as any).address_id ?? data?.address_id,
           name_first: formData.name_first,
           name_last: formData.name_last,
           name_middle: formData.name_middle,
@@ -2313,14 +2197,6 @@ function ContactDetail({
               }
             : basePayload;
 
-        // ── EDIT MODE: Update comm records BEFORE contact save ──
-        // The backend's contact save hooks search by email/phone VALUE.
-        // If we don't update the comm record first, the backend won't find
-        // a match and will create a new record instead of reusing the existing one.
-        if (recordMode === "edit" && data?.id) {
-          await syncScalarCommunications(data.id, formData, data);
-        }
-
         const res =
           recordMode === "add"
             ? await createContact(payload as CreateContactRequest)
@@ -2334,9 +2210,6 @@ function ContactDetail({
           // The ID is only known after wc3 saves the record and returns it.
           const newContactId =
             (res as any)?.record?.id ?? res?.id ?? (res as any)?.data?.id;
-
-          const savedContactRecord = (res as any)?.record ?? res;
-
           console.log(
             "[ContactDetail] Save response:",
             res,
@@ -2432,7 +2305,6 @@ function ContactDetail({
       data?.manufacturer_id,
       data?.other_id,
       windowManager,
-      syncScalarCommunications,
     ],
   );
 
@@ -3399,7 +3271,7 @@ function ContactDetail({
                     />
                   )}
 
-                  {/* {activeTab === "communications" && activeContactId && (
+                  {activeTab === "communications" && activeContactId && (
                     <CommunicationsPanel
                       entityType="contact"
                       entityId={activeContactId}
@@ -3432,7 +3304,7 @@ function ContactDetail({
                       primaryDomainId={data?.domain_id}
                       onSetPrimaryItem={handleSetPrimaryItem}
                     />
-                  )} */}
+                  )}
 
                   {activeTab === "documents" && (
                     <DocumentsPanel
@@ -3508,13 +3380,14 @@ function ContactDetail({
             </div>
           )}
 
-          {/* ── Communications — ContactInfoPanel per type ── */}
+          {/* ── Communications — CommLinkPanel per type ── */}
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 my-2 flex items-center gap-2">
             <FaAddressBook size={16} />
             Contact Information
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-0">
             {(["email", "phone", "address", "domain"] as const).map((cType) => {
+              const scalarField = commTypeToContactScalarField(cType);
               const scalarVal =
                 cType === "email"
                   ? watchedValues?.email ?? data?.email
@@ -3523,11 +3396,6 @@ function ContactDetail({
                   : cType === "address"
                   ? watchedValues?.address_full ?? data?.address_full
                   : watchedValues?.domain ?? data?.domain;
-              const reflinksForType =
-                (data?.refs?.links as any)?.[cType] ?? ([] as any[]);
-              const primaryLink = reflinksForType.find(
-                (rl: any) => rl?.is_primary === true || rl?.is_primary === 1,
-              );
               const primaryIdVal =
                 cType === "email"
                   ? data?.email_id
@@ -3536,7 +3404,6 @@ function ContactDetail({
                   : cType === "address"
                   ? data?.address_id
                   : data?.domain_id;
-              console.log("primaryIdVal", primaryIdVal);
               const commItems =
                 cType === "email"
                   ? communications?.emails || []
@@ -3546,7 +3413,7 @@ function ContactDetail({
                   ? communications?.addresses || []
                   : communications?.domains || [];
               return (
-                <ContactInfoPanel
+                <CommLinkPanel
                   key={cType}
                   type={cType}
                   scalarValue={scalarVal as string | null | undefined}
@@ -3555,25 +3422,27 @@ function ContactDetail({
                   reflinks={data?.refs?.links}
                   isEditing={isEditing}
                   contactId={activeContactId}
-                  onSetPrimary={async (id) => {
-                    await setPrimaryCommWithoutRefetch(cType, id);
-                  }}
-                  onItemsChanged={async (nextLinksForType) => {
-                    setFetchedData((prev: any) => {
-                      const base = prev || data;
-                      const existingRefs = base?.refs || {};
-                      const existingLinks = existingRefs.links || {};
-                      return {
-                        ...base,
-                        refs: {
-                          ...existingRefs,
-                          links: {
-                            ...existingLinks,
-                            [cType]: nextLinksForType,
-                          },
-                        },
-                      };
+                  onScalarChange={(val) => {
+                    formSetValueRef.current?.(scalarField as any, val, {
+                      shouldDirty: true,
                     });
+                  }}
+                  onSaveScalar={async (val) => {
+                    if (!activeContactId) return;
+                    await updateContact({
+                      id: activeContactId,
+                      [scalarField]: val,
+                    } as any);
+                    dispatch(
+                      showToast({ message: `${cType} saved`, type: "success" }),
+                    );
+                  }}
+                  onSetPrimary={async (id, displayVal) => {
+                    await setPrimaryCommWithoutRefetch(cType, id, displayVal);
+                    await refreshCommType(cType);
+                  }}
+                  onItemsChanged={async () => {
+                    await refreshCommType(cType);
                   }}
                   defaultExpanded={isEditing}
                 />

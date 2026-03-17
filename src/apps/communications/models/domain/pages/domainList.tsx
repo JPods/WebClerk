@@ -354,8 +354,7 @@ export default function DomainList() {
               searchPlaceholder="Search domains..."
               noDataMessage="No domains found"
               customActions={customActions}
-              //onRowClicked={handleView}
-              onRowDoubleClicked={handleView}
+              onRowClicked={handleView}
               rowClickMode="onlyIdAndActions"
               rowClickAllowedColumnNames={["id", "action", "actions"]}
               rowKeyField="id"
