@@ -43,15 +43,16 @@ DENORM_REGISTRY: Dict[str, List[str]] = {
 
     # ── Contact (source: Contact) ───────────────────────────────────────
     "contact": [
+        "id",
         "ida", "display_name",
         "company", "title", "role", "email", "phone", "attention",
     ],
 
     # ── Communication records ───────────────────────────────────────────
-    "email":   ["ida", "email", "name", "type", "is_primary"],
-    "phone":   ["ida", "number", "format", "name"],
-    "address": ["ida", "address1", "city", "state", "zip", "country", "full"],
-    "domain":  ["ida", "path", "type"],
+    "email":   ["id", "ida", "email", "name", "type", "is_primary", "is_verified", "opt_out"],
+    "phone":   ["id", "ida", "number", "country_code", "format", "name", "opt_out"],
+    "address": ["id", "ida", "address1", "city", "state", "zip", "country", "full"],
+    "domain":  ["id", "ida", "path", "type", "status"],
 
     # ── Catalog / Inventory ─────────────────────────────────────────────
     "item":      ["ida", "name", "sku", "description", "kind", "uom"],

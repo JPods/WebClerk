@@ -40,7 +40,7 @@ python manage.py runserver 0.0.0.0:8000
 
 | Variable | Default | Notes |
 |---|---|---|
-| `DB_MODE` | `remote` | **The main switch.** `remote` · `local` · `write-through` |
+| `DB_MODE` | `remote` | **The main switch.** `remote` · `local` · `bill` · `write-through` |
 | `REMOTE_DATABASE_HOST` | `76.13.185.210` | VPS Postgres (team/production). |
 | `REMOTE_DATABASE_PORT` | `5432` | |
 | `REMOTE_DATABASE_NAME` | `commerce_expert` | |
@@ -51,6 +51,11 @@ python manage.py runserver 0.0.0.0:8000
 | `LOCAL_DATABASE_NAME` | `commerce_expert` | |
 | `LOCAL_DATABASE_USER` | *(your OS user)* | |
 | `LOCAL_DATABASE_PASS` | *(empty)* | |
+| `BILL_DATABASE_HOST` | `localhost` | Second local Postgres database host (personal sandbox). |
+| `BILL_DATABASE_PORT` | `5432` | |
+| `BILL_DATABASE_NAME` | `commerce_expert_bill` | |
+| `BILL_DATABASE_USER` | *(falls back to LOCAL_DATABASE_USER)* | |
+| `BILL_DATABASE_PASS` | *(falls back to LOCAL_DATABASE_PASS)* | |
 
 ### Write-through mode
 
@@ -88,6 +93,7 @@ You only need to change **`DB_MODE`** — no frontend changes required.
 # Shell script (updates .env for you)
 cd tools && ./switch-dataset.sh remote   # team collaboration
 cd tools && ./switch-dataset.sh local    # local debugging
+cd tools && ./switch-dataset.sh bill     # personal second local DB
 
 # Or edit .env directly
 DB_MODE=local
@@ -122,6 +128,12 @@ LOCAL_DATABASE_PORT=5432
 LOCAL_DATABASE_NAME=commerce_expert
 LOCAL_DATABASE_USER=<your-os-user>
 LOCAL_DATABASE_PASS=
+
+BILL_DATABASE_HOST=localhost
+BILL_DATABASE_PORT=5432
+BILL_DATABASE_NAME=commerce_expert_bill
+BILL_DATABASE_USER=<your-os-user>
+BILL_DATABASE_PASS=
 
 WRITE_THROUGH_TIMEOUT=30
 
