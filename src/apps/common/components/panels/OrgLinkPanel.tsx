@@ -41,6 +41,7 @@ import type {
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -928,13 +929,21 @@ function OrgRecordEditor({
               <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                 {fd.label}
               </label>
-              <input
-                type="text"
-                value={values[fd.key] ?? ""}
-                onChange={(e) => onChange(fd.key, e.target.value)}
-                placeholder={fd.placeholder || ""}
-                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-              />
+              {fd.key === "phone" ? (
+                <InternationalPhoneInput
+                  value={values[fd.key] ?? ""}
+                  onChange={(value) => onChange(fd.key, value)}
+                  placeholder={fd.placeholder || ""}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={values[fd.key] ?? ""}
+                  onChange={(e) => onChange(fd.key, e.target.value)}
+                  placeholder={fd.placeholder || ""}
+                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                />
+              )}
             </div>
           );
         })}
