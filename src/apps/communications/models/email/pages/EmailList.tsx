@@ -396,7 +396,8 @@ export default function EmailList() {
               searchPlaceholder="Search emails, names, attention..."
               noDataMessage="No emails found"
               customActions={customActions}
-              onRowClicked={handleView}
+              //onRowClicked={handleView}
+              onRowDoubleClicked={handleView}
               rowClickMode="onlyIdAndActions"
               rowClickAllowedColumnNames={["id", "action", "actions"]}
               rowKeyField="id"

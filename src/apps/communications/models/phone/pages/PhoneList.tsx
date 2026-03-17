@@ -398,7 +398,8 @@ export default function PhoneList() {
               searchPlaceholder="Search phones..."
               noDataMessage="No phones found"
               customActions={customActions}
-              onRowClicked={handleView}
+              //onRowClicked={handleView}
+              onRowDoubleClicked={handleView}
               rowClickMode="onlyIdAndActions"
               rowClickAllowedColumnNames={["id", "action", "actions"]}
               rowKeyField="id"

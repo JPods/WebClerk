@@ -365,7 +365,8 @@ export default function AddressList() {
               searchPlaceholder="Search addresses..."
               noDataMessage="No addresses found"
               customActions={customActions}
-              onRowClicked={handleView}
+              //onRowClicked={handleView}
+              onRowDoubleClicked={handleView}
               rowClickMode="onlyIdAndActions"
               rowClickAllowedColumnNames={["id", "action", "actions"]}
               rowKeyField="id"
