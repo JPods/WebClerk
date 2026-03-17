@@ -19,20 +19,21 @@ import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 // WRONG — never import from a shim or proxy
-import ContactPanel from "./ContactPanel";          // shim in transactions/
-import CommentsPanel from "../transactions/components/CommentsPanel";  // dead path
+import ContactPanel from "./ContactPanel"; // shim in transactions/
+import CommentsPanel from "../transactions/components/CommentsPanel"; // dead path
 ```
 
 ### 2. Where does it live?
 
-| Scope | Path | Examples |
-|-------|------|---------|
-| **Shared across apps** | `src/apps/common/components/panels/` | ContactPanel, CommentsPanel, PaymentPanel, FinancialsPanel, DocumentsPanel |
-| **Shared non-panel components** | `src/apps/common/components/` | TransactionToolbar, JsonFieldEditor, OrgSearchDialog |
-| **Transaction-only** | `src/apps/transactions/components/` | SummaryCard, LinesCard, TransactionDetailBase, MetadataPanel (transaction-specific) |
-| **Model-specific pages** | `src/apps/{app}/models/{model}/pages/` | PaymentListPage, PaymentDetailPage |
+| Scope                           | Path                                   | Examples                                                                            |
+| ------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Shared across apps**          | `src/apps/common/components/panels/`   | ContactPanel, CommentsPanel, PaymentPanel, FinancialsPanel, DocumentsPanel          |
+| **Shared non-panel components** | `src/apps/common/components/`          | TransactionToolbar, JsonFieldEditor, OrgSearchDialog                                |
+| **Transaction-only**            | `src/apps/transactions/components/`    | SummaryCard, LinesCard, TransactionDetailBase, MetadataPanel (transaction-specific) |
+| **Model-specific pages**        | `src/apps/{app}/models/{model}/pages/` | PaymentListPage, PaymentDetailPage                                                  |
 
 Decision test: **"Is this used by more than one app?"**
+
 - Yes → `common/components/panels/` (or `common/components/` if not a panel)
 - No, transaction-only → `transactions/components/`
 - No, model-specific → `models/{model}/pages/`
@@ -45,10 +46,10 @@ The barrel at `common/components/panels/index.ts` re-exports real components. Ne
 
 `MetadataPanel` exists in both locations — this is correct:
 
-| File | Purpose |
-|------|---------|
-| `common/components/panels/MetadataPanel.tsx` | Generic entity metadata (key-value editor) |
-| `transactions/components/MetadataPanel.tsx` | Transaction-specific metadata (history, health, flags, versioning) |
+| File                                         | Purpose                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| `common/components/panels/MetadataPanel.tsx` | Generic entity metadata (key-value editor)                         |
+| `transactions/components/MetadataPanel.tsx`  | Transaction-specific metadata (history, health, flags, versioning) |
 
 These are **different components** with different props and rendering. The naming collision is acceptable because they serve different contexts.
 
@@ -79,7 +80,7 @@ src/apps/common/components/
     ├── ActionsPanel.tsx             # Tasks with status tracking
     ├── BasicInformationPanel.tsx    # Org scalar fields
     ├── CommentsPanel.tsx            # Comments (Public/Process/Partner/History)
-    ├── CommLinkPanel.tsx            # Communication links
+    ├── ContactInfoPanel.tsx            # Communication links
     ├── CommunicationsPanel.tsx      # Email/phone/address/domain CRUD
     ├── ContactPanel.tsx             # Contacts grouped by purpose
     ├── ContactPanelx2.tsx           # Contact normalization utilities
@@ -107,7 +108,7 @@ src/apps/common/components/
 
 Transaction-only components (NOT shared panels):
 
-```
+````
 src/apps/transactions/components/
 ├── TransactionDetailBase.tsx        # Base shell for transaction details
 ├── SummaryCard.tsx                  # Transaction header (totals, dates)
@@ -328,26 +329,26 @@ const ADMIN_ROLES = ['admin', 'superadmin', 'super_admin', 'administrator'];
 const MANAGER_ROLES = [...ADMIN_ROLES, 'manager'];
 const USER_ROLES = [...MANAGER_ROLES, 'user'];
 const ALL_ROLES = [...USER_ROLES, 'viewer', 'guest'];
-```
+````
 
 ### Default Permissions
 
-| Panel | View | Edit | Theme |
-|-------|------|------|-------|
-| BasicInformationPanel | all | user+ | Slate |
-| CommentsPanel | all | user+ | Blue |
-| ActionsPanel | all | user+ | Emerald |
-| DocumentsPanel | all | user+ | Slate |
-| QAPanel | all | user+ | Indigo |
-| ContactPanel | all | user+ | Blue |
-| CommunicationsPanel | all | user+ | Teal |
-| LinkagesPanel | all | admin | Violet |
-| FinancialsPanel | manager+ | admin | Green |
-| ShippingPanel | all | user+ | Slate |
-| MetadataPanel | admin | admin | Amber |
-| RefsPanel | admin | admin | Cyan |
-| PrefsPanel | user+ | admin | Purple |
-| RawDataPanel | admin | admin | Gray |
+| Panel                 | View     | Edit  | Theme   |
+| --------------------- | -------- | ----- | ------- |
+| BasicInformationPanel | all      | user+ | Slate   |
+| CommentsPanel         | all      | user+ | Blue    |
+| ActionsPanel          | all      | user+ | Emerald |
+| DocumentsPanel        | all      | user+ | Slate   |
+| QAPanel               | all      | user+ | Indigo  |
+| ContactPanel          | all      | user+ | Blue    |
+| CommunicationsPanel   | all      | user+ | Teal    |
+| LinkagesPanel         | all      | admin | Violet  |
+| FinancialsPanel       | manager+ | admin | Green   |
+| ShippingPanel         | all      | user+ | Slate   |
+| MetadataPanel         | admin    | admin | Amber   |
+| RefsPanel             | admin    | admin | Cyan    |
+| PrefsPanel            | user+    | admin | Purple  |
+| RawDataPanel          | admin    | admin | Gray    |
 
 ---
 
@@ -394,8 +395,11 @@ interface EntityMetadata {
     synced: { dt: number; contact_id: number };
   };
   health?: {
-    rating: number; completeness: number; accuracy: number;
-    freshness: number; consistency: number;
+    rating: number;
+    completeness: number;
+    accuracy: number;
+    freshness: number;
+    consistency: number;
   };
   flags?: Record<string, boolean>;
   [key: string]: unknown;
@@ -422,8 +426,10 @@ interface EntityRefs {
     [key: string]: RefLink[] | undefined;
   };
   lineage?: {
-    parent_id?: number; parent_type?: string;
-    source_id?: number; source_type?: string;
+    parent_id?: number;
+    parent_type?: string;
+    source_id?: number;
+    source_type?: string;
   };
 }
 ```
@@ -434,13 +440,15 @@ interface EntityRefs {
 interface EntityPrefs {
   userdefined?: Record<string, unknown>;
   display?: {
-    layout?: 'grid' | 'list' | 'card' | 'table';
+    layout?: "grid" | "list" | "card" | "table";
     columns?: string[];
-    sort?: { field: string; order: 'asc' | 'desc' };
+    sort?: { field: string; order: "asc" | "desc" };
   };
   notifications?: {
-    email?: boolean; sms?: boolean; push?: boolean;
-    frequency?: 'immediate' | 'daily' | 'weekly';
+    email?: boolean;
+    sms?: boolean;
+    push?: boolean;
+    frequency?: "immediate" | "daily" | "weekly";
   };
   defaults?: Record<string, unknown>;
 }
@@ -458,7 +466,10 @@ interface EntityComments {
 }
 
 interface CommentEntry {
-  ts: string; by: string | number; text: string; source?: string;
+  ts: string;
+  by: string | number;
+  text: string;
+  source?: string;
 }
 ```
 
@@ -467,12 +478,20 @@ interface CommentEntry {
 ```typescript
 interface ActionEntry {
   required?: boolean;
-  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
+  status?: "pending" | "in_progress" | "completed" | "cancelled" | "on_hold";
   who?: number | string;
   when?: number | string;
   what?: string;
-  kind?: 'task' | 'followup' | 'call' | 'email' | 'review' | 'approve' | 'ship' | 'other';
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  kind?:
+    | "task"
+    | "followup"
+    | "call"
+    | "email"
+    | "review"
+    | "approve"
+    | "ship"
+    | "other";
+  priority?: "low" | "normal" | "high" | "urgent";
   extra?: object;
 }
 ```
@@ -497,17 +516,17 @@ User adds/edits/deletes email, phone, address, or domain
 
 `TransactionDetailBase` is the shell for all transaction detail pages. It internally imports and provides:
 
-| Panel | Source |
-|-------|--------|
-| TransactionToolbar | `common/components/TransactionToolbar` (via re-export) |
-| ContactPanel | `common/panels/ContactPanel` (via re-export) |
-| ContactLinksTable | `transactions/components/ContactLinksTable` |
-| CommentsPanel | `common/panels/CommentsPanel` (via re-export) |
-| MetadataPanel | `transactions/components/MetadataPanel` (transaction-specific) |
-| FinancialsCard | `common/panels/TransactionFinancialsPanel` (via re-export) |
-| DocumentsPanel | `common/panels/DocumentsPanel` |
-| JsonFieldEditor | `common/components/JsonFieldEditor` (via re-export) |
-| QATab | `transactions/components/QATab` (wraps `common/panels/QAPanel`) |
+| Panel              | Source                                                          |
+| ------------------ | --------------------------------------------------------------- |
+| TransactionToolbar | `common/components/TransactionToolbar` (via re-export)          |
+| ContactPanel       | `common/panels/ContactPanel` (via re-export)                    |
+| ContactLinksTable  | `transactions/components/ContactLinksTable`                     |
+| CommentsPanel      | `common/panels/CommentsPanel` (via re-export)                   |
+| MetadataPanel      | `transactions/components/MetadataPanel` (transaction-specific)  |
+| FinancialsCard     | `common/panels/TransactionFinancialsPanel` (via re-export)      |
+| DocumentsPanel     | `common/panels/DocumentsPanel`                                  |
+| JsonFieldEditor    | `common/components/JsonFieldEditor` (via re-export)             |
+| QATab              | `transactions/components/QATab` (wraps `common/panels/QAPanel`) |
 
 Transaction detail pages extend this base and add model-specific components (SummaryCard, LinesCard, ShippingPanel, etc.).
 
@@ -529,7 +548,7 @@ import {
   ShippingPanel,
   BasicInformationPanel,
   CommunicationsPanel,
-} from '@/apps/common/components/panels';
+} from "@/apps/common/components/panels";
 
 // Admin panels
 import {
@@ -537,26 +556,45 @@ import {
   RefsPanel,
   PrefsPanel,
   RawDataPanel,
-} from '@/apps/common/components/panels';
+} from "@/apps/common/components/panels";
 
 // Shared components (not in panels/)
-import JsonFieldEditor from '@/apps/common/components/JsonFieldEditor';
-import TransactionToolbar from '@/apps/common/components/TransactionToolbar';
+import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
 
 // Types
 import type {
-  BasePanelProps, EntityType, UserRole,
-  EntityMetadata, EntityRefs, EntityPrefs, EntityComments,
-  ActionEntry, CommentEntry, QAEntry, DocumentEntry,
-  FinancialSummary, EmailLink, PhoneLink, AddressLink,
-  LinkageData, LinkedRecord,
-} from '@/apps/common/components/panels';
+  BasePanelProps,
+  EntityType,
+  UserRole,
+  EntityMetadata,
+  EntityRefs,
+  EntityPrefs,
+  EntityComments,
+  ActionEntry,
+  CommentEntry,
+  QAEntry,
+  DocumentEntry,
+  FinancialSummary,
+  EmailLink,
+  PhoneLink,
+  AddressLink,
+  LinkageData,
+  LinkedRecord,
+} from "@/apps/common/components/panels";
 
 // Utilities
 import {
   usePermissions,
-  ADMIN_ROLES, MANAGER_ROLES, USER_ROLES, ALL_ROLES,
-  uploadDocument, uploadDocuments, deleteDocument,
-  getQAQuestions, getQAAnswers, applyQuestionGroup,
-} from '@/apps/common/components/panels';
+  ADMIN_ROLES,
+  MANAGER_ROLES,
+  USER_ROLES,
+  ALL_ROLES,
+  uploadDocument,
+  uploadDocuments,
+  deleteDocument,
+  getQAQuestions,
+  getQAAnswers,
+  applyQuestionGroup,
+} from "@/apps/common/components/panels";
 ```

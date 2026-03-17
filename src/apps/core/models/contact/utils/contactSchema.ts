@@ -31,31 +31,33 @@ export const addressRefSchema = z.object({
    happens in mapRefsFormToApi().
 ----------------------------- */
 
-export const refsSchema = z.object({
-  tags: z.array(z.any()).default([]),
-  categories: z.array(z.any()).default([]),
-  keywords: z.array(z.any()).default([]),
-  related_ids: z.array(z.any()).default([]),
-  depends_on: z.record(z.any()).default({}),
-  links: z
-    .object({
-      rep: z.array(z.any()).default([]),
-      item: z.array(z.any()).default([]),
-      email: z.array(z.any()).default([]),
-      phone: z.array(z.any()).default([]),
-      order: z.array(z.any()).default([]),
-      domain: z.array(z.any()).default([]),
-      contact: z.array(z.any()).default([]),
-      customer: z.array(z.any()).default([]),
-      document: z.array(z.any()).default([]),
-      address: z.array(z.any()).default([]),
-      manufacturer: z.array(z.any()).default([]),
-      project: z.array(z.any()).default([]),
-      vendor: z.array(z.any()).default([]),
-    })
-    .passthrough()
-    .default({}),
-}).passthrough();
+export const refsSchema = z
+  .object({
+    tags: z.array(z.any()).default([]),
+    categories: z.array(z.any()).default([]),
+    keywords: z.array(z.any()).default([]),
+    related_ids: z.array(z.any()).default([]),
+    depends_on: z.record(z.any()).default({}),
+    links: z
+      .object({
+        rep: z.array(z.any()).default([]),
+        item: z.array(z.any()).default([]),
+        email: z.array(z.any()).default([]),
+        phone: z.array(z.any()).default([]),
+        order: z.array(z.any()).default([]),
+        domain: z.array(z.any()).default([]),
+        contact: z.array(z.any()).default([]),
+        customer: z.array(z.any()).default([]),
+        document: z.array(z.any()).default([]),
+        address: z.array(z.any()).default([]),
+        manufacturer: z.array(z.any()).default([]),
+        project: z.array(z.any()).default([]),
+        vendor: z.array(z.any()).default([]),
+      })
+      .passthrough()
+      .default({}),
+  })
+  .passthrough();
 
 /* -----------------------------
    CREATE
@@ -63,7 +65,10 @@ export const refsSchema = z.object({
 
 /* Helper: valueAsNumber returns NaN for empty inputs — normalise to undefined */
 const optionalNumber = z.preprocess(
-  (v) => (v === "" || v === null || (typeof v === "number" && isNaN(v)) ? undefined : v),
+  (v) =>
+    v === "" || v === null || (typeof v === "number" && isNaN(v))
+      ? undefined
+      : v,
   z.number().optional(),
 );
 
@@ -72,6 +77,10 @@ export const contactSchema = z
     password: z.string().min(8),
     cnf_password: z.string(),
     email: z.string().email(),
+    email_id: optionalNumber,
+    phone_id: optionalNumber,
+    address_id: optionalNumber,
+    domain_id: optionalNumber,
     name_first: z.string().min(1),
     name_last: z.string().min(1),
     name_middle: z.string().optional(),
@@ -106,6 +115,7 @@ export const contactSchema = z
 
 export const updateContactSchema = z.object({
   email: z.string().email(),
+  email_id: optionalNumber,
   name_first: z.string().min(1),
   name_last: z.string().min(1),
   name_middle: z.string().optional(),
@@ -113,8 +123,11 @@ export const updateContactSchema = z.object({
   name_suffix: z.string().optional(),
   attention: z.string().optional(),
   phone: z.string().optional().nullable(),
+  phone_id: optionalNumber,
   address_full: z.string().optional().nullable(),
+  address_id: optionalNumber,
   domain: z.string().optional().nullable(),
+  domain_id: optionalNumber,
   role: z.string().optional(),
   company: z.string().optional(),
   title: z.string().optional(),
