@@ -316,26 +316,39 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
             if not isinstance(links, dict):
                 links = {}
 
-            links['email'] = [
+            email_links = [
                 {
                     'id': e.id,
                     'email': e.email,
                     'name': e.name or '',
                     'is_primary': bool(e.is_primary),
+                    'is_verified': bool(e.is_verified),
+                    'opt_out': e.opt_out or '',
                 }
                 for e in Email.objects.filter(contact_id=self.pk).order_by('id')
             ]
-            links['phone'] = [
+            if email_links:
+                links['email'] = email_links
+            else:
+                links.pop('email', None)
+
+            phone_links = [
                 {
                     'id': p.id,
                     'number': p.number,
                     'name': p.name or '',
                     'country_code': p.country_code or '',
                     'format': p.format or '',
+                    'opt_out': bool(p.opt_out),
                 }
                 for p in Phone.objects.filter(contact_id=self.pk).order_by('id')
             ]
-            links['domain'] = [
+            if phone_links:
+                links['phone'] = phone_links
+            else:
+                links.pop('phone', None)
+
+            domain_links = [
                 {
                     'id': d.id,
                     'path': d.path,
@@ -344,7 +357,12 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
                 }
                 for d in Domain.objects.filter(contact_id=self.pk).order_by('id')
             ]
-            links['address'] = [
+            if domain_links:
+                links['domain'] = domain_links
+            else:
+                links.pop('domain', None)
+
+            address_links = [
                 {
                     'id': a.id,
                     'name': a.address_type or '',
@@ -358,6 +376,10 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
                 }
                 for a in Address.objects.filter(contact_id=self.pk).order_by('id')
             ]
+            if address_links:
+                links['address'] = address_links
+            else:
+                links.pop('address', None)
 
             refs['links'] = links
             updates['refs'] = refs

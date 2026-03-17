@@ -79,32 +79,79 @@ def _read_bucket_ids(value: Any) -> set[int]:
     return out
 
 
+def _contact_link_snapshot(contact: Contact) -> dict[str, Any]:
+    return {
+        "id": contact.id,
+        "name_first": contact.name_first or "",
+        "name_last": contact.name_last or "",
+        "display_name": contact.get_full_name() if hasattr(contact, "get_full_name") else (contact.attention or ""),
+        "email": contact.email or "",
+        "phone": contact.phone or "",
+        "attention": contact.attention or "",
+        "company": contact.company or "",
+    }
+
+
+def _comm_keywords(comm_obj: Any, contact: Contact) -> list[str]:
+    values: list[str] = []
+
+    # Contact-derived search tokens (requested: include first/last names)
+    values.extend([
+        contact.name_first or "",
+        contact.name_last or "",
+        contact.attention or "",
+        contact.email or "",
+        contact.phone or "",
+        contact.company or "",
+    ])
+
+    # Communication row-derived tokens
+    if isinstance(comm_obj, Email):
+        values.extend([comm_obj.email or "", comm_obj.name or "", comm_obj.type or ""])
+    elif isinstance(comm_obj, Phone):
+        values.extend([comm_obj.number or "", comm_obj.name or "", comm_obj.format or "", comm_obj.country_code or ""])
+    elif isinstance(comm_obj, Domain):
+        values.extend([comm_obj.path or "", comm_obj.type or "", comm_obj.status or ""])
+    elif isinstance(comm_obj, Address):
+        values.extend([
+            comm_obj.full or "",
+            comm_obj.address1 or "",
+            comm_obj.city or "",
+            comm_obj.state or "",
+            comm_obj.zip or "",
+            comm_obj.country or "",
+        ])
+
+    # Keep existing keywords too, but normalize to lowercase and dedupe.
+    refs = comm_obj.refs if isinstance(comm_obj.refs, dict) else {}
+    existing = refs.get("keywords") if isinstance(refs.get("keywords"), list) else []
+    values.extend([str(v) for v in existing if isinstance(v, str)])
+
+    normalized = sorted({v.strip().lower() for v in values if isinstance(v, str) and v.strip()})
+    return normalized
+
+
 def _ensure_comm_contact_ref(comm_obj, contact: Contact, dry_run: bool) -> bool:
     refs = comm_obj.refs if isinstance(comm_obj.refs, dict) else {}
     links = refs.get("links") if isinstance(refs.get("links"), dict) else {}
-    bucket = links.get("contact") if isinstance(links.get("contact"), list) else []
+    previous_bucket = links.get("contact") if isinstance(links.get("contact"), list) else []
 
-    found = False
-    for item in bucket:
-        if isinstance(item, int) and item == contact.id:
-            found = True
-            break
-        if isinstance(item, dict) and item.get("id") == contact.id:
-            found = True
-            break
-
-    if found:
-        return False
-
-    bucket.append(
-        {
-            "id": contact.id,
-            "email": contact.email or "",
-            "attention": contact.attention or "",
-        }
-    )
-    links["contact"] = bucket
+    # FK owner is authoritative. Keep one canonical contact snapshot only.
+    snapshot = _contact_link_snapshot(contact)
+    canonical_bucket: list[dict[str, Any]] = [snapshot]
+    links["contact"] = canonical_bucket
     refs["links"] = links
+
+    changed = previous_bucket != canonical_bucket
+
+    new_keywords = _comm_keywords(comm_obj, contact)
+    old_keywords = refs.get("keywords") if isinstance(refs.get("keywords"), list) else []
+    if old_keywords != new_keywords:
+        refs["keywords"] = new_keywords
+        changed = True
+
+    if not changed:
+        return False
 
     if not dry_run:
         now_ms = int(timezone.now().timestamp() * 1000)

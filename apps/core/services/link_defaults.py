@@ -84,10 +84,62 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
         "keyword_fields": ["display_name", "email", "phone", "attention"],
         "link_template": {
             "id": "id",
+            "display_name": "display_name",
             "attention": "display_name",
             "email": "email",
             "phone": "phone",
             "role": None,  # Set at link time: "buyer", "ap", "shipping"
+        },
+    },
+
+    "email": {
+        "keyword_fields": ["email", "name", "type"],
+        "link_template": {
+            "id": "id",
+            "email": "email",
+            "name": "name",
+            "type": "type",
+            "is_primary": "is_primary",
+            "is_verified": "is_verified",
+            "opt_out": "opt_out",
+        },
+    },
+
+    "phone": {
+        "keyword_fields": ["number", "name", "format"],
+        "link_template": {
+            "id": "id",
+            "number": "number",
+            "name": "name",
+            "country_code": "country_code",
+            "format": "format",
+            "opt_out": "opt_out",
+        },
+    },
+
+    "address": {
+        "keyword_fields": ["full", "address1", "city", "state", "zip", "country"],
+        "link_template": {
+            "id": "id",
+            "name": "address_type",
+            "address1": "address1",
+            "address2": "address2",
+            "city": "city",
+            "state": "state",
+            "zip": "zip",
+            "country": "country",
+            "full": "full",
+        },
+    },
+
+    "domain": {
+        "keyword_fields": ["path", "type", "status"],
+        "link_template": {
+            "id": "id",
+            "path": "path",
+            "name": "type",
+            "type": "type",
+            "status": "status",
         },
     },
     

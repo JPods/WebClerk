@@ -205,6 +205,22 @@ For debugging consistency in all generated/admin UI outputs:
 - Do not capitalize, title-case, prettify, or humanize labels.
 - Apply this rule everywhere (list headers, detail labels, exports, and generated config).
 
+## Readme Action Header Policy (Copilot + Alice)
+
+When creating or updating operational readmes/playbooks in this domain, include this block at the top (right under the title):
+
+```text
+Action:
+Function:
+Frequency:
+Process:
+```
+
+Keep each value short and execution-oriented.
+
+- `Function:` should name the concrete callable when one exists, such as a function, service method, management command, task, endpoint, or script.
+- If no single callable exists, `Function:` should name the owning subsystem or process owner.
+
 ---
 
 ## Pending as Compensating Transactions (Cross-Domain)

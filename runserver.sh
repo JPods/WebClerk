@@ -14,12 +14,12 @@ if [ ! -x "$PY_BIN" ]; then
 fi
 
 echo "Starting Django with same-terminal auto-restart loop"
-echo "Use this command for dev: ./runserver.sh [local]"
+echo "Use this command for dev: ./runserver.sh [local|bill|remote]"
 
-# Accept optional argument: ./runserver.sh local
+# Accept optional argument: ./runserver.sh local|bill|remote
 INITIAL_DB_MODE="${1:-remote}"
-if [[ "$INITIAL_DB_MODE" != "local" && "$INITIAL_DB_MODE" != "remote" ]]; then
-  echo "Usage: ./runserver.sh [local|remote]  (default: remote)"
+if [[ "$INITIAL_DB_MODE" != "local" && "$INITIAL_DB_MODE" != "bill" && "$INITIAL_DB_MODE" != "remote" ]]; then
+  echo "Usage: ./runserver.sh [local|bill|remote]  (default: remote)"
   exit 1
 fi
 

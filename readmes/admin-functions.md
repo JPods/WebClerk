@@ -56,10 +56,12 @@ Run with `python manage.py <command> [options]`.
 | `populate_cache` | Populates Redis cache with settings, constants, keywords, access rules. | `--cache-type all\|settings\|...` `--silent` |
 | `mark_superusers` | Sets Contact #1 and #2 as superusers (role=admin, password=`1111pass`). | — |
 | `align_action_contacts` | Fuzzy-matches Actions to Contacts and backfills `contact_id` FK. | — |
+| `contact_communications_maintenance` | Reconciles Contact <-> Email/Phone/Domain/Address FK ownership and two-way refs denormalization (`contact.refs.links.*` and `communication.refs.links.contact` + `communication.refs.keywords`). | `--contact-id` `--limit` `--dry-run` `--allow-reassign-owned` `--no-repair-dangling` `--no-alice` |
 | `update_attention` | Updates `attention` field = `name_first` + `name_last` for all contacts. | — |
 | `create_layout_status` | Scans R25 for per-model layout files and creates a tracking Setting. | `--reset` `--dry-run` |
 | `create_popup_choices` | Normalizes legacy wc2 popup/choice JSON into Setting records. | `--reset` `--dry-run` |
 | `refs_build_settings` | Manages Settings for `refs` field templates. | `--list` `--model` |
+| `audit_refs_templates` | Audits refs link/keyword template coverage for key models and emits Alice notes for gaps. | `--models` `--no-alice` |
 | `draft_fields` | Outputs JSON with field names/example values for a model. | `<app.model>` |
 | `test_db` | Database smoke test — verifies Contact/Setting access. | — |
 | `tmp_projectidfix` | **One-time:** repairs empty project names and links Actions to Projects. | — |

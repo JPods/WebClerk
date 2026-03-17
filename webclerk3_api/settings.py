@@ -113,9 +113,10 @@ _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-# DB_MODE toggle: "remote", "local", or "write-through" - set in .env
+# DB_MODE toggle: "remote", "local", "bill", or "write-through" - set in .env
 # - remote:        reads & writes go to remote DB (team/production, default)
 # - local:         reads & writes go to local DB (isolated debugging)
+# - bill:          reads & writes go to a second local DB (personal data sandbox)
 # - write-through: reads from local DB, writes forwarded to remote DB,
 #                  response bundle stored locally — keeps both in sync
 _db_mode = config('DB_MODE', default='remote').lower()
@@ -139,6 +140,17 @@ _local_db_cfg = {
     'PASSWORD': config('LOCAL_DATABASE_PASS', default=''),
     'HOST': config('LOCAL_DATABASE_HOST', default='localhost'),
     'PORT': config('LOCAL_DATABASE_PORT', default='5432'),
+    'ATOMIC_REQUESTS': False,
+}
+
+# ── Bill DB configuration (second local DB for personal sandbox data) ──
+_bill_db_cfg = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': config('BILL_DATABASE_NAME', default='commerce_expert_bill'),
+    'USER': config('BILL_DATABASE_USER', default=config('LOCAL_DATABASE_USER', default='williamjames')),
+    'PASSWORD': config('BILL_DATABASE_PASS', default=config('LOCAL_DATABASE_PASS', default='')),
+    'HOST': config('BILL_DATABASE_HOST', default=config('LOCAL_DATABASE_HOST', default='localhost')),
+    'PORT': config('BILL_DATABASE_PORT', default=config('LOCAL_DATABASE_PORT', default='5432')),
     'ATOMIC_REQUESTS': False,
 }
 
@@ -178,6 +190,15 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         LOCAL_SYNC_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
+    elif _db_mode == 'bill':
+        # Second local database for personal data loading/testing
+        DATABASES = {
+            'default': _bill_db_cfg,
+        }
+        WRITE_THROUGH_ENABLED = False
+        LOCAL_SYNC_ENABLED = False
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'[webClerk3] Database: BILL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
     else:
         # Remote database for team collaboration (default)
         DATABASES = {

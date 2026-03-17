@@ -258,6 +258,24 @@ When generating or modifying code, follow these rules:
 - Check `wcapi_registry.py` before referencing a model — it must be registered
 - Use the composable mixin system — inherit from `BaseModel` or `TransactionBaseModel`
 - Place business logic in `apps/{app}/services/`; shared logic in `common/`
+
+## 9. Readme Action Header Policy (Copilot + Alice)
+
+For any new or substantially updated readme/playbook/runbook, place this block at the very top of the document (immediately under the title):
+
+```text
+Action:
+Function:
+Frequency:
+Process:
+```
+
+Rules:
+- Keep values concise and operational (what to do, why it exists, how often, and how to run it).
+- `Function:` should name the concrete function, command, service, management command, task, or entry point when one exists.
+- If there is no single callable, `Function:` should name the owning subsystem/service responsibility.
+- This applies to docs authored by Copilot and to Alice-generated or Alice-maintained operational docs.
+- If a readme lacks this header during an update, add it as part of the same change.
 - Use Celery for async side-effects (keyword refresh, email sends, sync)
 - Use `refs.links` for cross-model relationships
 - Import denorm field lists from `common.denorm_registry` — never hard-code
