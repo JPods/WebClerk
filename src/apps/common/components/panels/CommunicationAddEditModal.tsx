@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { FaSpinner } from "react-icons/fa";
+import { formatAddressFull } from "@/utils/addressFull";
 
 export type CommunicationModalType = "email" | "phone" | "address" | "domain";
 
@@ -91,6 +92,17 @@ export const CommunicationAddEditModal: React.FC<
     const payload = data?.id
       ? ({ id: data.id, ...formData } as any)
       : ({ ...formData } as any);
+
+    if (type === "address") {
+      payload.full = formatAddressFull({
+        address1: payload.address1,
+        address2: payload.address2,
+        city: payload.city,
+        state: payload.state,
+        zip: payload.zip,
+        country: payload.country,
+      });
+    }
 
     try {
       // Await the parent's async save handler (which includes refresh)
@@ -215,6 +227,19 @@ export const CommunicationAddEditModal: React.FC<
                   required
                 />
               </div>
+              <div>
+                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  Address 2
+                </label>
+                <input
+                  type="text"
+                  value={(formData.address2 as string) || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address2: e.target.value })
+                  }
+                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
@@ -271,6 +296,24 @@ export const CommunicationAddEditModal: React.FC<
                     className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  full
+                </label>
+                <input
+                  type="text"
+                  value={formatAddressFull({
+                    address1: formData.address1 as string,
+                    address2: formData.address2 as string,
+                    city: formData.city as string,
+                    state: formData.state as string,
+                    zip: formData.zip as string,
+                    country: formData.country as string,
+                  })}
+                  readOnly
+                  className="w-full px-2 py-1.5 text-sm border rounded bg-slate-50 dark:bg-slate-700/40 dark:border-slate-600 text-slate-600 dark:text-slate-300"
+                />
               </div>
             </>
           )}

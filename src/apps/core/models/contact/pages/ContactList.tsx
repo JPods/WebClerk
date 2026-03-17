@@ -17,6 +17,7 @@ import { deleteRecord, getRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 import { PhoneFormat } from "@/apps/common/components/detail/PhoneFormat";
 import { EmailFormat } from "@/apps/common/components/detail/EmailFormat";
+import { useSearchParams } from "react-router-dom";
 interface ContactData {
   id: string | number;
   email?: string;
@@ -32,6 +33,7 @@ interface ContactData {
 
 const ContactList = () => {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
 
   const [data, setData] = useState<ContactData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +54,22 @@ const ContactList = () => {
   const tableRef = useRef<AdvancedDataTableHandle<ContactData>>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const sharedContactIds = useMemo(() => {
+    const idsParam = searchParams.get("ids");
+    if (!idsParam) return null;
+
+    const ids = idsParam
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isFinite(value) && value > 0);
+
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [searchParams]);
+  const sharedType = searchParams.get("shared_type") || "";
+  const sharedValue = searchParams.get("shared_value") || "";
+  const pageTitle = sharedContactIds
+    ? `Shared ${sharedType || "communication"} contacts`
+    : "Contact List";
 
   // Fetch actions
   const fetchActions = useCallback(async () => {
@@ -389,16 +407,20 @@ const ContactList = () => {
 
   // Filter data based on filterValues from PageBreadcrumb
   const filteredData = useMemo(() => {
-    if (Object.keys(filterValues).length === 0) return data;
+    const baseData = sharedContactIds
+      ? data.filter((row) => sharedContactIds.has(Number(row.id)))
+      : data;
 
-    return data.filter((row) => {
+    if (Object.keys(filterValues).length === 0) return baseData;
+
+    return baseData.filter((row) => {
       return Object.entries(filterValues).every(([key, value]) => {
         if (!value) return true; // Skip empty filters
         const rowValue = String(row[key] || "").toLowerCase();
         return rowValue.includes(value.toLowerCase());
       });
     });
-  }, [data, filterValues]);
+  }, [data, filterValues, sharedContactIds]);
 
   const handleBulkDelete = useCallback(async () => {
     if (!selectedContacts.length) return;
@@ -432,7 +454,7 @@ const ContactList = () => {
   return (
     <>
       <ButtonToolbar
-        pageTitle="Contact List"
+        pageTitle={pageTitle}
         title="Contact"
         modelKey="contact"
         searchTerm={searchTerm}
@@ -444,7 +466,7 @@ const ContactList = () => {
         importInputRef={importInputRef}
         selectedRows={selectedContacts}
         selectedCount={selectedContacts.length}
-        totalCount={data.length}
+        totalCount={sharedContactIds ? filteredData.length : data.length}
         filteredCount={filteredData.length}
         onRefresh={fetchActions}
         loading={loading}
@@ -466,6 +488,12 @@ const ContactList = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+          {sharedContactIds && (
+            <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+              Showing contacts linked to shared {sharedType || "communication"}
+              {sharedValue ? `: ${sharedValue}` : ""}
+            </div>
+          )}
           <ComponentCard className=" cus-bg-purple-light rounded-md">
             <AdvancedDataTable
               ref={tableRef}

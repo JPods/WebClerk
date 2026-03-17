@@ -103,6 +103,7 @@ import {
   Phone,
   SlidersHorizontal,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 
 // Shared detail card components
@@ -146,6 +147,8 @@ import { PhoneLable } from "@/apps/common/components/detail/PhoneFormat";
 import { EmailLable } from "@/apps/common/components/detail/EmailFormat";
 import { AddressLable } from "@/apps/common/components/detail/AddressFormat";
 import { DomainLable } from "@/apps/common/components/detail/DomainFormat";
+import { formatAddressFull } from "@/utils/addressFull";
+import Badge from "@/components/ui/badge/Badge";
 
 // ---------------------------------------------------------------------------
 // Create Transaction Dropdown
@@ -324,6 +327,8 @@ type DuplicateCommBucket = {
   rows: any[];
 };
 
+type PrimaryCommScalarField = "email" | "phone" | "domain" | "address_full";
+
 function commTypeToModelName(type: CommType): string {
   return type;
 }
@@ -334,6 +339,13 @@ function normalizeCommValue(value: unknown): string {
 
 function normalizePhoneValue(value: unknown): string {
   return normalizeCommValue(value).replace(/[^\d+]/g, "");
+}
+
+function normalizeCommLookupValue(type: CommType, value: unknown): string {
+  const text = normalizeCommValue(value);
+  if (type === "phone") return normalizePhoneValue(text);
+  if (type === "email" || type === "domain") return text.toLowerCase();
+  return text.toLowerCase();
 }
 
 function commTypeToContactIdField(
@@ -354,22 +366,118 @@ function commTypeToContactScalarField(
   return "domain";
 }
 
+function commTypeToStateField(type: CommType): keyof CommunicationsData {
+  if (type === "email") return "emails";
+  if (type === "phone") return "phones";
+  if (type === "address") return "addresses";
+  return "domains";
+}
+
 function getCommDisplayValue(type: CommType, item: any): string {
   if (!item) return "";
   if (type === "email") return item.email || item.address || item.value || "";
   if (type === "phone") return item.number || item.value || item.format || "";
   if (type === "domain") return item.domain || item.value || item.path || "";
-  // address
   return (
     item.full ||
-    [
-      item.address1,
-      [item.city, item.state, item.zip].filter(Boolean).join(", "),
-      item.country,
-    ]
-      .filter(Boolean)
-      .join(", ")
+    formatAddressFull({
+      address1: item.address1,
+      address2: item.address2,
+      city: item.city,
+      state: item.state,
+      zip: item.zip,
+      country: item.country,
+    })
   );
+}
+
+function mergeCommCollections(
+  type: CommType,
+  primary: any[] = [],
+  fallback: any[] = [],
+) {
+  const seen = new Set<string>();
+  const merged: any[] = [];
+
+  const pushUnique = (item: any) => {
+    if (!item) return;
+
+    const id = Number(item?.id);
+    const key =
+      Number.isFinite(id) && id > 0
+        ? `id:${id}`
+        : `value:${normalizeCommLookupValue(type, getCommDisplayValue(type, item))}`;
+
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  };
+
+  primary.forEach(pushUnique);
+  fallback.forEach(pushUnique);
+
+  return merged;
+}
+
+function buildCommRefsLinkItem(type: CommType, record: any) {
+  if (type === "email") {
+    return {
+      id: record?.id,
+      email: record?.email || record?.address || record?.value || "",
+      name: record?.name || "",
+      type: record?.type || "",
+      is_primary: !!record?.is_primary,
+      is_verified: !!record?.is_verified,
+    };
+  }
+
+  if (type === "phone") {
+    return {
+      id: record?.id,
+      number: record?.number || record?.value || "",
+      name: record?.name || "",
+      country_code: record?.country_code || "",
+      format: record?.format || "",
+    };
+  }
+
+  if (type === "address") {
+    return {
+      id: record?.id,
+      address1: record?.address1 || "",
+      address2: record?.address2 || "",
+      city: record?.city || "",
+      state: record?.state || "",
+      zip: record?.zip || "",
+      country: record?.country || "",
+      full:
+        record?.full ||
+        formatAddressFull({
+          address1: record?.address1,
+          address2: record?.address2,
+          city: record?.city,
+          state: record?.state,
+          zip: record?.zip,
+          country: record?.country,
+        }),
+      address_type: record?.address_type || record?.name || "",
+    };
+  }
+
+  return {
+    id: record?.id,
+    domain: record?.domain || record?.path || record?.value || "",
+    path: record?.path || record?.domain || record?.value || "",
+    type: record?.type || "",
+    status: record?.status || "active",
+  };
+}
+
+function mergeContactLinks(existing: any[] = [], contactLink: any) {
+  const deduped = existing.filter(
+    (entry: any) => Number(entry?.id) !== Number(contactLink?.id),
+  );
+  return [...deduped, contactLink];
 }
 
 function mapModalToCommModelPayload(
@@ -415,15 +523,28 @@ function mapModalToCommModelPayload(
   if (type === "address") {
     // address
     const address1 = String((formData as any).address1 || "").trim();
+    const address2 = String((formData as any).address2 || "").trim();
+    const city = String((formData as any).city || "").trim();
+    const state = String((formData as any).state || "").trim();
+    const zip = String((formData as any).zip || "").trim();
+    const country = String((formData as any).country || "").trim();
     return {
       ...(formData.id ? { id: formData.id } : {}),
       contact_id: contactId,
       address1,
-      address2: (formData as any).address2 || "",
-      city: (formData as any).city || "",
-      state: (formData as any).state || "",
-      zip: (formData as any).zip || "",
-      country: (formData as any).country || "",
+      address2,
+      city,
+      state,
+      zip,
+      country,
+      full: formatAddressFull({
+        address1,
+        address2,
+        city,
+        state,
+        zip,
+        country,
+      }),
       address_type: (formData as any).address_type || "",
     };
   }
@@ -709,29 +830,31 @@ function ContactDetail({
   // Communications local state
   // ---------------------------------------------------------------------------
 
-  // Helper to get non-empty array or fallback
+  // Merge table-backed records with contact refs so shared comm rows still display.
   const getCommsArray = (
+    type: CommType,
     primary: any[] | undefined,
     fallback: any[] | undefined,
-  ) => {
-    if (primary && primary.length > 0) return primary;
-    return fallback || [];
-  };
+  ) => mergeCommCollections(type, primary || [], fallback || []);
 
   const [communications, setCommunications] = useState<CommunicationsData>({
     emails: getCommsArray(
+      "email",
       data?.communications?.emails /* we pull optionally in communications */,
       data?.refs?.links?.email,
     ),
     phones: getCommsArray(
+      "phone",
       data?.communications?.phones,
       data?.refs?.links?.phone,
     ),
     addresses: getCommsArray(
+      "address",
       data?.communications?.addresses,
       data?.refs?.links?.address,
     ),
     domains: getCommsArray(
+      "domain",
       data?.communications?.domains,
       data?.refs?.links?.domain,
     ),
@@ -741,18 +864,22 @@ function ContactDetail({
     if (data?.communications || data?.refs?.links) {
       const next = {
         emails: getCommsArray(
+          "email",
           data.communications?.emails,
           data.refs?.links?.email,
         ),
         phones: getCommsArray(
+          "phone",
           data.communications?.phones,
           data.refs?.links?.phone,
         ),
         addresses: getCommsArray(
+          "address",
           data.communications?.addresses,
           data.refs?.links?.address,
         ),
         domains: getCommsArray(
+          "domain",
           data.communications?.domains,
           data.refs?.links?.domain,
         ),
@@ -770,6 +897,7 @@ function ContactDetail({
   const formSetValueRef = useRef<null | ((...args: any[]) => void)>(null);
   const formGetValuesRef = useRef<null | ((name: string) => any)>(null);
   const formGetAllValuesRef = useRef<null | (() => any)>(null);
+  const openingAddressDialogRef = useRef(false);
   // Remember last reset id to avoid repeated resets causing render loops
   const lastResetIdRef = useRef<number | null | undefined>(undefined);
 
@@ -803,6 +931,7 @@ function ContactDetail({
             value: r.email,
             is_primary: !!r.is_primary,
             is_verified: !!r.is_verified,
+            refs: r.refs,
           }));
 
         const rawPhones = (phoneRes as any)?.results ?? [];
@@ -818,6 +947,7 @@ function ContactDetail({
             value: r.number,
             format: r.format || "",
             country_code: r.country_code || "",
+            refs: r.refs,
           }));
 
         const rawAddresses = (addressRes as any)?.results ?? [];
@@ -836,6 +966,7 @@ function ContactDetail({
             zip: r.zip,
             country: r.country,
             full: r.full,
+            refs: r.refs,
           }));
 
         const rawDomains = (domainRes as any)?.results ?? [];
@@ -851,10 +982,32 @@ function ContactDetail({
             path: r.path,
             value: r.path,
             status: r.status,
+            refs: r.refs,
           }));
 
         if (!cancelled) {
-          setCommunications({ emails, phones, addresses, domains });
+          setCommunications({
+            emails: mergeCommCollections(
+              "email",
+              emails,
+              data?.refs?.links?.email || [],
+            ),
+            phones: mergeCommCollections(
+              "phone",
+              phones,
+              data?.refs?.links?.phone || [],
+            ),
+            addresses: mergeCommCollections(
+              "address",
+              addresses,
+              data?.refs?.links?.address || [],
+            ),
+            domains: mergeCommCollections(
+              "domain",
+              domains,
+              data?.refs?.links?.domain || [],
+            ),
+          });
         }
       } catch (e) {
         // If tables are empty or endpoint errors, fall back to refs-based comms.
@@ -1077,8 +1230,16 @@ function ContactDetail({
             value: r.email,
             is_primary: !!r.is_primary,
             is_verified: !!r.is_verified,
+            refs: r.refs,
           }));
-          setCommunications((prev) => ({ ...(prev || {}), emails }));
+          setCommunications((prev) => ({
+            ...(prev || {}),
+            emails: mergeCommCollections(
+              "email",
+              emails,
+              data?.refs?.links?.email || [],
+            ),
+          }));
         } else if (type === "phone") {
           const phones = rows.map((r) => ({
             id: r.id,
@@ -1087,8 +1248,16 @@ function ContactDetail({
             value: r.number,
             format: r.format || "",
             country_code: r.country_code || "",
+            refs: r.refs,
           }));
-          setCommunications((prev) => ({ ...(prev || {}), phones }));
+          setCommunications((prev) => ({
+            ...(prev || {}),
+            phones: mergeCommCollections(
+              "phone",
+              phones,
+              data?.refs?.links?.phone || [],
+            ),
+          }));
         } else if (type === "address") {
           const addresses = rows.map((r) => ({
             id: r.id,
@@ -1100,8 +1269,16 @@ function ContactDetail({
             zip: r.zip,
             country: r.country,
             full: r.full,
+            refs: r.refs,
           }));
-          setCommunications((prev) => ({ ...(prev || {}), addresses }));
+          setCommunications((prev) => ({
+            ...(prev || {}),
+            addresses: mergeCommCollections(
+              "address",
+              addresses,
+              data?.refs?.links?.address || [],
+            ),
+          }));
         } else if (type === "domain") {
           const domains = rows.map((r) => ({
             id: r.id,
@@ -1114,8 +1291,16 @@ function ContactDetail({
             verified: r.status
               ? String(r.status).toLowerCase() === "active"
               : false,
+            refs: r.refs,
           }));
-          setCommunications((prev) => ({ ...(prev || {}), domains }));
+          setCommunications((prev) => ({
+            ...(prev || {}),
+            domains: mergeCommCollections(
+              "domain",
+              domains,
+              data?.refs?.links?.domain || [],
+            ),
+          }));
         }
       } catch (e) {
         console.warn("[ContactDetail] refreshCommType failed:", e);
@@ -1158,6 +1343,9 @@ function ContactDetail({
       }
       try {
         await updateContact(payload as any);
+        formSetValueRef.current?.(idField as any, commId, {
+          shouldDirty: true,
+        });
         if (payload[scalarField] !== undefined) {
           formSetValueRef.current?.(scalarField as any, displayValue, {
             shouldDirty: true,
@@ -1217,6 +1405,55 @@ function ContactDetail({
   const handleAddNewComm = useCallback((type: CommType) => {
     setCommModalState({ open: true, type, data: undefined });
   }, []);
+
+  const openAddressDialogFromField = useCallback(async () => {
+    if (effectiveMode === "view") return;
+    if (isFieldDisabled("address_full") || autoSaveInProgress || commSaving)
+      return;
+    if (commModalState.open) return;
+
+    openingAddressDialogRef.current = true;
+
+    const contactId = await ensureContactId();
+    if (!contactId) {
+      openingAddressDialogRef.current = false;
+      return;
+    }
+
+    const currentAddressId = Number(
+      formGetValuesRef.current?.("address_id") ?? data?.address_id,
+    );
+    const existingAddress = Number.isFinite(currentAddressId)
+      ? communications?.addresses?.find(
+          (a: any) => Number(a?.id) === currentAddressId,
+        )
+      : undefined;
+
+    setCommModalState({
+      open: true,
+      type: "address",
+      data: existingAddress
+        ? {
+            id: existingAddress.id,
+            address1: existingAddress.address1 || "",
+            address2: existingAddress.address2 || "",
+            city: existingAddress.city || "",
+            state: existingAddress.state || "",
+            zip: existingAddress.zip || "",
+            country: existingAddress.country || "US",
+          }
+        : { country: "US" },
+    });
+  }, [
+    effectiveMode,
+    isFieldDisabled,
+    autoSaveInProgress,
+    commSaving,
+    commModalState.open,
+    ensureContactId,
+    data?.address_id,
+    communications?.addresses,
+  ]);
 
   const handleSaveNewComm = useCallback(
     async (payload: CommunicationModalData) => {
@@ -1420,20 +1657,9 @@ function ContactDetail({
           displayValue,
         });
 
-        // Update the form's scalar field (email, phone, etc.)
-        formSetValueRef.current?.(
-          commTypeToContactScalarField(type) as any,
-          displayValue,
-          {
-            shouldDirty: true,
-          },
-        );
+        await setPrimaryCommWithoutRefetch(type, newId, displayValue);
 
-        // Update the contact's FK field (*_id)
         const idField = commTypeToContactIdField(type);
-        formSetValueRef.current?.(idField as any, newId, {
-          shouldDirty: true,
-        });
 
         console.log(
           `[ContactDetail] Phase 8: Successfully updated contact.${idField} = ${newId}`,
@@ -1700,12 +1926,12 @@ function ContactDetail({
     return fields;
   }, [parentIdField, parentId, parentCustomerId]);
 
-  const isFieldDisabled = (fieldName: string) => {
+  function isFieldDisabled(fieldName: string) {
     if (effectiveMode === "view") return true;
     if (parentPopulatedFields.has(fieldName)) return true;
     if (!isAdmin && isFieldReadOnly(fieldName)) return true;
     return false;
-  };
+  }
 
   const shouldRenderField = (fieldName: string) => {
     if (isAdmin) return true;
@@ -1781,6 +2007,242 @@ function ContactDetail({
 
   // Watch all reactive form values (used by CommLinkPanel / OrgLinkPanel)
   const watchedValues = watch();
+
+  const maybeAutoSavePrimaryCommField = useCallback(
+    async (fieldName: PrimaryCommScalarField) => {
+      if (activeContactId || recordMode !== "add" || autoSaveInProgress) {
+        return;
+      }
+
+      const formData = formGetAllValuesRef.current?.() ?? getValues();
+      const fieldValue = String(formData?.[fieldName] ?? "").trim();
+      if (!fieldValue) return;
+
+      const email = String(formData?.email ?? "").trim();
+      const nameFirst = String(formData?.name_first ?? "").trim();
+      const nameLast = String(formData?.name_last ?? "").trim();
+
+      // Only auto-save once the minimum create payload is satisfiable.
+      if (!email || !nameFirst || !nameLast) return;
+
+      await ensureContactId();
+    },
+    [activeContactId, recordMode, autoSaveInProgress, getValues, ensureContactId],
+  );
+
+  const persistPrimaryCommFieldValue = useCallback(
+    async (type: CommType, rawValue: string) => {
+      const normalizedValue = normalizeCommLookupValue(type, rawValue);
+      if (!normalizedValue) return;
+
+      const contactId = activeContactId ?? (await ensureContactId());
+      if (!contactId) return;
+
+      const formData = formGetAllValuesRef.current?.() ?? getValues();
+      const contactLink = {
+        id: contactId,
+        name_first: formData?.name_first || data?.name_first || "",
+        name_last: formData?.name_last || data?.name_last || "",
+        email: formData?.email || data?.email || "",
+        phone: formData?.phone || data?.phone || "",
+        company: formData?.company || data?.company || "",
+        address_full: formData?.address_full || data?.address_full || "",
+        domain: formData?.domain || data?.domain || "",
+      };
+
+      const stateField = commTypeToStateField(type);
+      const currentItems = communications?.[stateField] || [];
+      let matchedRecord = currentItems.find(
+        (item: any) =>
+          normalizeCommLookupValue(type, getCommDisplayValue(type, item)) ===
+          normalizedValue,
+      );
+
+      if (!matchedRecord) {
+        const res: any = await getRecords(commTypeToModelName(type), {
+          search: rawValue,
+          q: rawValue,
+          limit: 200,
+        });
+        const rows: any[] = res?.results || [];
+        matchedRecord = rows.find(
+          (item: any) =>
+            normalizeCommLookupValue(type, getCommDisplayValue(type, item)) ===
+            normalizedValue,
+        );
+      }
+
+      let commRecord = matchedRecord;
+      if (!commRecord?.id) {
+        const created: any = await saveRecord(
+          commTypeToModelName(type),
+          mapModalToCommModelPayload(type, { [commTypeToContactScalarField(type)]: rawValue, ...(type === "email" ? { email: rawValue } : {}), ...(type === "phone" ? { number: rawValue } : {}), ...(type === "domain" ? { domain: rawValue } : {}) } as any, contactId),
+        );
+        commRecord = created?.record ?? created;
+      }
+
+      const commId = Number(commRecord?.id);
+      if (!Number.isFinite(commId) || commId <= 0) return;
+
+      const commDetail: any = await getRecord(commTypeToModelName(type), commId);
+      const commFullRecord = (commDetail as any)?.record ?? commDetail ?? commRecord;
+      const nextCommContactLinks = mergeContactLinks(
+        commFullRecord?.refs?.links?.contact || [],
+        contactLink,
+      );
+
+      await saveRecord(commTypeToModelName(type), {
+        id: commId,
+        refs: {
+          ...(commFullRecord?.refs || {}),
+          links: {
+            ...(commFullRecord?.refs?.links || {}),
+            contact: nextCommContactLinks,
+          },
+        },
+      });
+
+      const refsLinkItem = buildCommRefsLinkItem(type, commFullRecord);
+      const existingRefs = data?.refs || {};
+      const existingLinks = existingRefs?.links || {};
+      const currentBucket = Array.isArray(existingLinks?.[type])
+        ? existingLinks[type]
+        : [];
+      const withoutMatch = currentBucket.filter(
+        (item: any) => Number(item?.id) !== commId,
+      );
+      const nextBucket = [
+        { ...refsLinkItem, is_primary: true },
+        ...withoutMatch.map((item: any) => ({ ...item, is_primary: false })),
+      ];
+
+      await saveRecord("contact", {
+        id: contactId,
+        refs: {
+          ...existingRefs,
+          links: {
+            ...existingLinks,
+            [type]: nextBucket,
+          },
+        },
+      });
+
+      setFetchedData((prev: any) => ({
+        ...(prev || data),
+        refs: {
+          ...(prev?.refs || data?.refs || {}),
+          links: {
+            ...(prev?.refs?.links || data?.refs?.links || {}),
+            [type]: nextBucket,
+          },
+        },
+      }));
+
+      formSetValueRef.current?.(commTypeToContactIdField(type) as any, commId, {
+        shouldDirty: true,
+      });
+
+      await setPrimaryCommWithoutRefetch(
+        type,
+        commId,
+        getCommDisplayValue(type, refsLinkItem),
+      );
+      await refreshCommType(type);
+    },
+    [
+      activeContactId,
+      communications,
+      data,
+      ensureContactId,
+      getValues,
+      refreshCommType,
+      setPrimaryCommWithoutRefetch,
+    ],
+  );
+
+  const emailField = register("email", {
+    onBlur: () => {
+      void persistPrimaryCommFieldValue("email", String(formGetValuesRef.current?.("email") || ""));
+    },
+  });
+
+  const domainField = register("domain", {
+    onBlur: () => {
+      void persistPrimaryCommFieldValue("domain", String(formGetValuesRef.current?.("domain") || ""));
+    },
+  });
+
+  const addressFullField = register("address_full", {
+    onBlur: () => {
+      if (openingAddressDialogRef.current) {
+        openingAddressDialogRef.current = false;
+        return;
+      }
+      void persistPrimaryCommFieldValue(
+        "address",
+        String(formGetValuesRef.current?.("address_full") || ""),
+      );
+    },
+  });
+
+  const getPrimaryCommunicationRecord = useCallback(
+    (type: CommType) => {
+      const idField = commTypeToContactIdField(type);
+      const primaryId = Number(
+        formGetValuesRef.current?.(idField) ?? (data as any)?.[idField],
+      );
+      if (!Number.isFinite(primaryId) || primaryId <= 0) return null;
+
+      const stateField = commTypeToStateField(type);
+      const items = communications?.[stateField] || [];
+      return (
+        items.find((item: any) => Number(item?.id) === primaryId) || null
+      );
+    },
+    [communications, data],
+  );
+
+  const getSharedContactsForType = useCallback(
+    (type: CommType) => {
+      const record = getPrimaryCommunicationRecord(type);
+      const contacts = Array.isArray(record?.refs?.links?.contact)
+        ? record.refs.links.contact
+        : [];
+      return contacts.filter((entry: any) => Number(entry?.id) > 0);
+    },
+    [getPrimaryCommunicationRecord],
+  );
+
+  const openSharedContactsWindow = useCallback(
+    (type: CommType) => {
+      const contacts = getSharedContactsForType(type);
+      if (contacts.length === 0) return;
+
+      const ids = Array.from(
+        new Set(
+          contacts
+            .map((entry: any) => Number(entry?.id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+        ),
+      );
+      if (ids.length === 0) return;
+
+      const scalarField = commTypeToContactScalarField(type);
+      const value = String(
+        formGetValuesRef.current?.(scalarField) ?? (data as any)?.[scalarField] ?? "",
+      ).trim();
+
+      const qs = new URLSearchParams();
+      qs.set("ids", ids.join(","));
+      qs.set("shared_type", type);
+      if (value) qs.set("shared_value", value);
+
+      const path = `/core/contact/list?${qs.toString()}`;
+      const title = `Shared ${type} contacts`;
+      windowManager.ensureWindow(path, title, { maximized: false, width: 1100, height: 720 });
+    },
+    [data, getSharedContactsForType, windowManager],
+  );
 
   useEffect(() => {
     if (!isEditing) return;
@@ -1889,19 +2351,38 @@ function ContactDetail({
         shouldValidate: true,
       });
 
+      // Keep contact.company aligned when selecting a customer from toolbar/search.
+      if (targetField === "customer_id") {
+        const companyName = org.display_name || org.company || "";
+        if (companyName) {
+          setValue("company", companyName, {
+            shouldDirty: true,
+            shouldValidate: false,
+          });
+        }
+      }
+
       // 2. Update refs.links.<org_type> with selected record data
       const orgType = org.org_type || ID_FIELD_TO_ORG_TYPE[targetField];
       if (orgType && orgType !== "organization") {
+        const linkEntry = {
+          id: org.id,
+          name: org.display_name || org.company || `#${org.id}`,
+          display_name: org.display_name || org.company || `#${org.id}`,
+          ida: org.ida,
+          email: org.email,
+          phone: org.phone,
+        };
+
+        // Keep refs in RHF state because submit payload is built from formData.refs.
+        setValue(`refs.links.${orgType}` as any, [linkEntry], {
+          shouldDirty: true,
+          shouldValidate: false,
+        });
+
         setFetchedData((prev: any) => {
           const existing = prev || data;
           const currentLinks = existing?.refs?.links || {};
-          const linkEntry = {
-            id: org.id,
-            display_name: org.display_name,
-            ida: org.ida,
-            email: org.email,
-            phone: org.phone,
-          };
           return {
             ...existing,
             refs: {
@@ -1978,13 +2459,14 @@ function ContactDetail({
         if (match) {
           payload.address_full =
             match.full ||
-            [
-              match.address1,
-              [match.city, match.state, match.zip].filter(Boolean).join(", "),
-              match.country,
-            ]
-              .filter(Boolean)
-              .join(", ");
+            formatAddressFull({
+              address1: match.address1,
+              address2: match.address2,
+              city: match.city,
+              state: match.state,
+              zip: match.zip,
+              country: match.country,
+            });
         }
       } else if (type === "domain") {
         const match = communications?.domains?.find((d: any) => d.id === id);
@@ -2643,7 +3125,7 @@ function ContactDetail({
           {/* ── Assign Org button ── */}
           <button
             type="button"
-            onClick={() => setOrgSearchField("other_id")}
+            onClick={() => setOrgSearchField("customer_id")}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
             title="Search and assign an organization"
           >
@@ -2755,13 +3237,29 @@ function ContactDetail({
                 <HorizontalField
                   label="email"
                   htmlFor="email"
-                  labelAddon={<EmailLable value={watch("email")} />}
+                  labelAddon={
+                    <div className="inline-flex items-center gap-1.5">
+                      <EmailLable value={watch("email")} />
+                      {getSharedContactsForType("email").length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => openSharedContactsWindow("email")}
+                          className="inline-flex"
+                          title="Open related contacts"
+                        >
+                          <Badge size="sm" color="info" startIcon={<Users size={11} />}>
+                            {getSharedContactsForType("email").length}
+                          </Badge>
+                        </button>
+                      )}
+                    </div>
+                  }
                 >
                   <Input
                     type="text"
                     id="email"
                     placeholder="email"
-                    {...register("email")}
+                    {...emailField}
                     disabled={isFieldDisabled("email")}
                   />
                 </HorizontalField>
@@ -2770,7 +3268,23 @@ function ContactDetail({
                 <HorizontalField
                   label="phone"
                   htmlFor="phone"
-                  labelAddon={<PhoneLable value={watch("phone")} />}
+                  labelAddon={
+                    <div className="inline-flex items-center gap-1.5">
+                      <PhoneLable value={watch("phone")} />
+                      {getSharedContactsForType("phone").length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => openSharedContactsWindow("phone")}
+                          className="inline-flex"
+                          title="Open related contacts"
+                        >
+                          <Badge size="sm" color="info" startIcon={<Users size={11} />}>
+                            {getSharedContactsForType("phone").length}
+                          </Badge>
+                        </button>
+                      )}
+                    </div>
+                  }
                 >
                   <Controller
                     name="phone"
@@ -2779,7 +3293,13 @@ function ContactDetail({
                       <InternationalPhoneInput
                         id="phone"
                         value={field.value ?? ""}
-                        onBlur={field.onBlur}
+                        onBlur={() => {
+                          field.onBlur();
+                          void persistPrimaryCommFieldValue(
+                            "phone",
+                            String(formGetValuesRef.current?.("phone") || ""),
+                          );
+                        }}
                         onChange={field.onChange}
                         disabled={isFieldDisabled("phone")}
                       />
@@ -2791,13 +3311,29 @@ function ContactDetail({
                 <HorizontalField
                   label="domain"
                   htmlFor="domain"
-                  labelAddon={<DomainLable value={watch("domain")} />}
+                  labelAddon={
+                    <div className="inline-flex items-center gap-1.5">
+                      <DomainLable value={watch("domain")} />
+                      {getSharedContactsForType("domain").length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => openSharedContactsWindow("domain")}
+                          className="inline-flex"
+                          title="Open related contacts"
+                        >
+                          <Badge size="sm" color="info" startIcon={<Users size={11} />}>
+                            {getSharedContactsForType("domain").length}
+                          </Badge>
+                        </button>
+                      )}
+                    </div>
+                  }
                 >
                   <Input
                     type="text"
                     id="domain"
                     placeholder="domain"
-                    {...register("domain")}
+                    {...domainField}
                     disabled={isFieldDisabled("domain")}
                   />
                 </HorizontalField>
@@ -2806,13 +3342,31 @@ function ContactDetail({
                 <HorizontalField
                   label="address_full"
                   htmlFor="address_full"
-                  labelAddon={<AddressLable value={watch("address_full")} />}
+                  labelAddon={
+                    <div className="inline-flex items-center gap-1.5">
+                      <AddressLable value={watch("address_full")} />
+                      {getSharedContactsForType("address").length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => openSharedContactsWindow("address")}
+                          className="inline-flex"
+                          title="Open related contacts"
+                        >
+                          <Badge size="sm" color="info" startIcon={<Users size={11} />}>
+                            {getSharedContactsForType("address").length}
+                          </Badge>
+                        </button>
+                      )}
+                    </div>
+                  }
                 >
                   <Input
                     type="text"
                     id="address_full"
                     placeholder="address_full"
-                    {...register("address_full")}
+                    {...addressFullField}
+                    onFocus={openAddressDialogFromField}
+                    onClick={openAddressDialogFromField}
                     disabled={isFieldDisabled("address_full")}
                   />
                 </HorizontalField>
