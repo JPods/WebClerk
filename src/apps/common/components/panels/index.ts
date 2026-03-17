@@ -69,9 +69,7 @@ export { default as DocumentsPanel } from "./DocumentsPanel";
 export { default as QAPanel } from "./QAPanel";
 export { default as ContactPanel } from "./ContactPanel";
 export { default as ContactLinksPanel } from "./ContactPanel";
-export {
-  normalizeRefsLinksContact,
-} from "./ContactPanel";
+export { normalizeRefsLinksContact } from "./ContactPanel";
 export type { RefContact } from "./ContactPanel";
 
 // Legacy grouped-by-purpose version (renamed from original ContactPanel)
@@ -83,18 +81,28 @@ export { default as SerialPanel } from "./SerialPanel";
 export type { SerialPanelProps, SerialRecord } from "./SerialPanel";
 export { default as ShippingPanel } from "./ShippingPanel";
 export { default as TransactionsPanel } from "./TransactionsPanel";
-export type { TransactionsPanelProps, TransactionRecord } from "./TransactionsPanel";
+export type {
+  TransactionsPanelProps,
+  TransactionRecord,
+} from "./TransactionsPanel";
 export { default as TransactionPanel } from "./TransactionPanel";
-export type { TransactionPanelProps, TransactionHeaderData } from "./TransactionPanel";
+export type {
+  TransactionPanelProps,
+  TransactionHeaderData,
+} from "./TransactionPanel";
 export { default as PaymentPanel } from "./PaymentPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
 export { default as CommunicationsPanel } from "./CommunicationsPanel";
 export { default as EmailGatePanel } from "./EmailGatePanel";
 export type { EmailGateResult, EmailGatePanelProps } from "./EmailGatePanel";
-export { default as CommLinkPanel } from "./CommLinkPanel";
-export type { CommType, CommLinkPanelProps } from "./CommLinkPanel";
+export { default as ContactInfoPanel } from "./ContactInfoPanel";
+export type { CommType, ContactInfoPanelProps } from "./ContactInfoPanel";
 export { default as OrgLinkPanel } from "./OrgLinkPanel";
-export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
+export type {
+  OrgField,
+  OrgScalarField,
+  OrgLinkPanelProps,
+} from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";
 export { default as CoreTabPanel } from "./CoreTabPanel";
 export type { CoreTabPanelProps } from "./CoreTabPanel";

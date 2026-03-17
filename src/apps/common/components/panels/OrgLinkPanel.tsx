@@ -41,6 +41,11 @@ import type {
   SearchableOrgType,
 } from "@/apps/common/components/OrgSearchDialog";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import {
+  PhoneInput,
+  defaultCountries,
+  usePhoneInput,
+} from "react-international-phone";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -875,6 +880,20 @@ function OrgRecordEditor({
   loading,
   isNew,
 }: OrgRecordEditorProps) {
+  const PhoneDisplayValue: React.FC<{ value?: string | null }> = ({
+    value,
+  }) => {
+    const { inputValue } = usePhoneInput({
+      value: value || "",
+      countries: defaultCountries,
+      defaultCountry: "us",
+      forceDialCode: true,
+    });
+
+    if (!value) return null;
+    return <>{inputValue}</>;
+  };
+
   if (loading) {
     return (
       <div className="px-3 py-4 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-2 text-sm text-slate-500">
@@ -883,7 +902,6 @@ function OrgRecordEditor({
       </div>
     );
   }
-
   return (
     <div className="ml-4 mr-2 mb-2 mt-1 px-3 py-3 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
       {/* DEV: editing badge */}
@@ -928,13 +946,32 @@ function OrgRecordEditor({
               <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                 {fd.label}
               </label>
-              <input
-                type="text"
-                value={values[fd.key] ?? ""}
-                onChange={(e) => onChange(fd.key, e.target.value)}
-                placeholder={fd.placeholder || ""}
-                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-              />
+              {fd.label.toLowerCase() === "phone" ? (
+                <div className="space-y-1">
+                  <PhoneInput
+                    value={values[fd.key] ?? ""}
+                    onChange={(val) => onChange(fd.key, val)}
+                    defaultCountry="us"
+                    countries={defaultCountries}
+                    forceDialCode
+                    className="w-full"
+                    inputClassName="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    countrySelectorStyleProps={{
+                      buttonClassName:
+                        "h-8 rounded-l border border-r-0 border-slate-300 dark:border-slate-600 bg-transparent px-2 text-xs",
+                      dropdownArrowClassName: "text-slate-500",
+                    }}
+                  />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={values[fd.key] ?? ""}
+                  onChange={(e) => onChange(fd.key, e.target.value)}
+                  placeholder={fd.placeholder || ""}
+                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                />
+              )}
             </div>
           );
         })}
