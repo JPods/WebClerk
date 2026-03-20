@@ -7,19 +7,22 @@ import { fetchSettings, deleteSetting } from "../services/settingApi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
+import { useLocation } from "react-router";
 import SettingDetail from "./SettingDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 
 export default function SettingList() {
+  const location = useLocation();
+  const routeState = (location.state as any) || {};
   const [data, setData] = useState<any[]>([]);
   const [selectedSetting, setSelectedSetting] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchDatabase, setSearchDatabase] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(routeState.searchTerm || "");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(routeState.filterValues || {});
+  const [filtersOpen, setFiltersOpen] = useState(Boolean(routeState.filtersOpen));
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
   const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
@@ -50,6 +53,18 @@ export default function SettingList() {
     getSettingData();
   }, [getSettingData]);
 
+  useEffect(() => {
+    if (routeState.searchTerm !== undefined) {
+      setSearchTerm(routeState.searchTerm || "");
+    }
+    if (routeState.filterValues) {
+      setFilterValues(routeState.filterValues);
+    }
+    if (routeState.filtersOpen !== undefined) {
+      setFiltersOpen(Boolean(routeState.filtersOpen));
+    }
+  }, [routeState.filtersOpen, routeState.filterValues, routeState.searchTerm]);
+
   // Handle database search
   const handleDatabaseSearch = useCallback(async (terms: string[]) => {
     const query = terms.join(' ');
@@ -78,7 +93,7 @@ export default function SettingList() {
   };
 
   const handleAdd = () => {
-    setSelectedSetting(null);
+    setSelectedSetting(routeState.addDefaults || null);
     setFormMode("add");
   };
 
@@ -165,6 +180,16 @@ export default function SettingList() {
     },
   ];
 
+  const filters = useMemo(
+    () => [
+      { key: "name", label: "Name", type: "text" },
+      { key: "purpose", label: "Purpose", type: "text" },
+      { key: "parent_model", label: "Parent Model", type: "text" },
+      { key: "role", label: "Role", type: "text" },
+    ],
+    [],
+  );
+
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
     if (Object.keys(filterValues).length === 0) return data;
@@ -205,6 +230,7 @@ export default function SettingList() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
         storageKey="setting-list"
+        filters={filters}
         filterValues={filterValues}
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
@@ -219,7 +245,7 @@ export default function SettingList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Setting
+                {filterValues.purpose === "search" ? "Add Search" : "Add Setting"}
               </button>
             </div>
             <AdvancedDataTable
@@ -228,6 +254,7 @@ export default function SettingList() {
               data={filteredData}
               storageKey="setting_list"
               loading={loading}
+              filters={filters}
               onRowActivate={handleEdit}
               enableDatabaseSearch={true}
               searchDatabase={searchDatabase}

@@ -12,6 +12,25 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { FaCode } from "react-icons/fa";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
+function syntaxHighlightJson(json: string): string {
+  return json.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let cls = "text-violet-700 dark:text-violet-400";
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match)
+          ? "text-sky-700 dark:text-sky-400"
+          : "text-emerald-700 dark:text-emerald-400";
+      } else if (/true|false/.test(match)) {
+        cls = "text-amber-700 dark:text-amber-400";
+      } else if (/null/.test(match)) {
+        cls = "text-rose-700 dark:text-rose-400";
+      }
+      return `<span class="${cls}">${match}</span>`;
+    },
+  );
+}
+
 export interface RawJsonCardProps {
   /** The JSON object to render */
   data: Record<string, unknown> | null | undefined;
@@ -59,9 +78,12 @@ const RawJsonCard: React.FC<RawJsonCardProps> = ({
       </button>
       {isExpanded && (
         <div className="px-4 py-3 bg-white dark:bg-slate-900">
-          <pre className="text-xs text-slate-700 dark:text-slate-300 overflow-auto max-h-96 whitespace-pre-wrap">
-            {JSON.stringify(filteredData, null, 2)}
-          </pre>
+          <pre
+            className="text-xs text-slate-700 dark:text-slate-300 overflow-auto max-h-96 whitespace-pre-wrap"
+            dangerouslySetInnerHTML={{
+              __html: syntaxHighlightJson(JSON.stringify(filteredData, null, 2)),
+            }}
+          />
         </div>
       )}
     </div>

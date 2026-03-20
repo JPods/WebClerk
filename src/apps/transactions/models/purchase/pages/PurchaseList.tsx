@@ -5,6 +5,11 @@ import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchPurchases, fetchPurchaseDetail } from "../services/purchaseApi";
+import {
+  buildSearchPresetParams,
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -90,6 +95,43 @@ export default function PurchaseList() {
       setLoading(false);
     }
   }, []);
+
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values: Record<string, SearchPresetInputValue> = {},
+    ) => {
+      try {
+        setLoading(true);
+        setSearchDatabase(true);
+        setSearchTerm("");
+        const res = await fetchPurchases(
+          buildSearchPresetParams(preset, {
+            values,
+            params: { limit: 500 },
+          }),
+        );
+        if (res.status === 200) {
+          const sanitizedItems = Array.isArray(res.data.items)
+            ? res.data.items.map((item: any) => sanitizeRecord(item, numericPurchaseKeys))
+            : [];
+          setData(sanitizedItems);
+        } else {
+          dispatch(
+            showToast({ message: "Failed to run saved search", type: "error" }),
+          );
+        }
+      } catch (error) {
+        console.error("Saved search failed:", error);
+        dispatch(
+          showToast({ message: "Failed to run saved search", type: "error" }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const openPurchase = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -292,6 +334,7 @@ export default function PurchaseList() {
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
+        onApplySearchPreset={handleApplySearchPreset}
       />
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>

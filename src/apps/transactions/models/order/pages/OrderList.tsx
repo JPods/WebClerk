@@ -9,6 +9,11 @@ import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { deleteAction } from "@/api/userProfile";
 import { fetchOrders, fetchOrderDetail } from "../services/orderApi";
+import {
+  buildSearchPresetParams,
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -120,6 +125,41 @@ export default function OrderList() {
       getOrderData(filter);
     },
     [getOrderData],
+  );
+
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values: Record<string, SearchPresetInputValue> = {},
+    ) => {
+      try {
+        setLoading(true);
+        setQuickFilter("all");
+        setSearchDatabase(true);
+        setSearchTerm("");
+        const res = await fetchOrders(
+          buildSearchPresetParams(preset, {
+            values,
+            params: { limit: 500 },
+          }),
+        );
+        if (res.status === 200) {
+          setData(res.data.items);
+        } else {
+          dispatch(
+            showToast({ message: "Failed to run saved search", type: "error" }),
+          );
+        }
+      } catch (error) {
+        console.error("Saved search failed:", error);
+        dispatch(
+          showToast({ message: "Failed to run saved search", type: "error" }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
   );
 
   // Auto-refresh when another window saves/transfers a transaction.
@@ -563,6 +603,7 @@ export default function OrderList() {
             % • Delivered: {statusCounts.delivered || 0}
           </span>
         }
+        onApplySearchPreset={handleApplySearchPreset}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

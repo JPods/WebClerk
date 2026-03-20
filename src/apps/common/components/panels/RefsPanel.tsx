@@ -36,6 +36,25 @@ import { usePermissions } from "./usePermissions";
 import type { BasePanelProps, EntityRefs, RefLink } from "./types";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
+function syntaxHighlightJson(json: string): string {
+  return json.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let cls = "text-violet-700 dark:text-violet-400";
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match)
+          ? "text-sky-700 dark:text-sky-400"
+          : "text-emerald-700 dark:text-emerald-400";
+      } else if (/true|false/.test(match)) {
+        cls = "text-amber-700 dark:text-amber-400";
+      } else if (/null/.test(match)) {
+        cls = "text-rose-700 dark:text-rose-400";
+      }
+      return `<span class="${cls}">${match}</span>`;
+    },
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -364,9 +383,12 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
               <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
                 View raw JSON
               </summary>
-              <pre className="mt-2 text-xs font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-48">
-                {JSON.stringify(data, null, 2)}
-              </pre>
+              <pre
+                className="mt-2 text-xs font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-48 whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{
+                  __html: syntaxHighlightJson(JSON.stringify(data, null, 2)),
+                }}
+              />
             </details>
           )}
         </div>

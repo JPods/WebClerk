@@ -28,6 +28,7 @@ import {
 import PrintReportDropdown, {
   type QuickFilterItem,
 } from "./PrintReportDropdown";
+import SearchPresetDropdown from "./SearchPresetDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
 import {
   useColumnSetups,
@@ -35,6 +36,15 @@ import {
 } from "@/hooks/useColumnSetups";
 import { ColumnSetupDialog } from "./ColumnSetupDialog";
 import Badge from "../ui/badge/Badge";
+import {
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
+
+type ActivePresetState = {
+  id?: number;
+  name: string;
+};
 
 export interface ColumnFilter {
   key: string;
@@ -88,6 +98,10 @@ interface BreadcrumbProps<T = any> {
   customActions?: React.ReactNode;
   summaryContent?: React.ReactNode;
   children?: React.ReactNode;
+  onApplySearchPreset?: (
+    preset: SearchPresetRecord,
+    values?: Record<string, SearchPresetInputValue>,
+  ) => Promise<void> | void;
 }
 
 const ButtonToolbar = <T extends Record<string, any> = any>({
@@ -132,6 +146,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   customActions,
   summaryContent,
   children,
+  onApplySearchPreset,
 }: BreadcrumbProps<T>) => {
   // exportFileName available for future use if needed
   void _exportFileName;
@@ -148,6 +163,8 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
 
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [activePreset, setActivePreset] =
+    useState<ActivePresetState | null>(null);
   const [exportDropdownPosition, setExportDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -352,7 +369,19 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
   const clearFilters = () => {
     onSearchTermChange?.("");
     onFilterValuesChange?.({});
+    setActivePreset(null);
   };
+
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values?: Record<string, SearchPresetInputValue>,
+    ) => {
+      await onApplySearchPreset?.(preset, values);
+      setActivePreset({ id: preset.id, name: preset.name || "Saved Search" });
+    },
+    [onApplySearchPreset],
+  );
 
   const activeFilterCount = Object.values(filterValues).filter(Boolean).length;
 
@@ -602,6 +631,27 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
               </label>
             )}
           </div>
+          {modelKey && onApplySearchPreset ? (
+            <SearchPresetDropdown
+              modelKey={modelKey}
+              onApplyPreset={handleApplySearchPreset}
+              disabled={loading}
+              activePresetId={activePreset?.id}
+            />
+          ) : null}
+          {activePreset ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200">
+              {activePreset.name}
+              <button
+                type="button"
+                onClick={() => setActivePreset(null)}
+                className="text-indigo-500 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-100"
+                title="Clear active saved search indicator"
+              >
+                <FaTimes className="w-3 h-3" />
+              </button>
+            </span>
+          ) : null}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <FaSearch className="w-4 h-4 text-gray-400" />

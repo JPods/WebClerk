@@ -12,6 +12,11 @@ import Badge from "../../../../../components/ui/badge/Badge";
 import ActionDetail from "./ActionDetail";
 import { PageRoutes } from "../../../../../routes/Routes";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import {
+  runSearchPreset,
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
 
 interface ActionData {
   id: string | number;
@@ -567,6 +572,37 @@ const ActionListPage = () => {
     setSelectedAction(null);
   };
 
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values: Record<string, SearchPresetInputValue> = {},
+    ) => {
+      setLoading(true);
+      try {
+        setSearchDatabase(true);
+        setSearchTerm("");
+        const response = await runSearchPreset("action", preset, {
+          values,
+          params: { limit: 500 },
+        });
+        const actions = Array.isArray(response?.results) ? response.results : [];
+        const normalizedActions = actions.map((action, index) => ({
+          ...action,
+          id: action.id || action.pk || action.uuid || `temp-${index}`,
+          actionText: getTranslatedText(action.action, action.languages),
+          descriptionText: getTranslatedText(action.description, action.languages),
+        }));
+        setData(normalizedActions);
+      } catch (error) {
+        console.error("Saved search error:", error);
+        dispatch(showToast({ message: "Saved search failed", type: "error" }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch, getTranslatedText],
+  );
+
   // Filter data based on filterValues from ButtonToolbar
   const filteredData = useMemo(() => {
     if (Object.keys(filterValues).length === 0) return data;
@@ -589,7 +625,7 @@ const ActionListPage = () => {
       <ButtonToolbar
         pageTitle="Actions List"
         title="Actions"
-        modelKey="actions"
+        modelKey="action"
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         handleAddInline={handleAdd}
@@ -615,6 +651,7 @@ const ActionListPage = () => {
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
+        onApplySearchPreset={handleApplySearchPreset}
       />
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>

@@ -137,6 +137,26 @@ export async function getRecords(
   options?: GetRecordsOptions,
 ) {
   const resolved = resolveModelName(model_name);
+  const normalizedParams = { ...(params || {}) };
+
+  // Standardize list search param to `keyword` for wcapi/get parity with wc3.
+  if (normalizedParams.keyword == null) {
+    if (
+      typeof normalizedParams.search === "string" &&
+      normalizedParams.search.trim()
+    ) {
+      normalizedParams.keyword = normalizedParams.search;
+    } else if (
+      typeof normalizedParams.q === "string" &&
+      normalizedParams.q.trim()
+    ) {
+      normalizedParams.keyword = normalizedParams.q;
+    }
+  }
+
+  delete normalizedParams.search;
+  delete normalizedParams.q;
+
   const allowDefaultCompanyCache = options?.cacheExempt === "default-company";
   const headers = allowDefaultCompanyCache
     ? { "x-wcapi-cache-exempt": "default-company" }
@@ -146,7 +166,7 @@ export async function getRecords(
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
       `/wcapi/get/`,
       {
-        params: { model_name: resolved, ...params },
+        params: { model_name: resolved, ...normalizedParams },
         cache: allowDefaultCompanyCache,
         headers,
       } as any,
@@ -157,7 +177,7 @@ export async function getRecords(
       const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
         `/api/wcapi/get/`,
         {
-          params: { model_name: resolved, ...params },
+          params: { model_name: resolved, ...normalizedParams },
           cache: false,
         } as any,
       );
@@ -435,7 +455,7 @@ export async function searchItems(
 ): Promise<GetListPayload> {
   const params: any = {
     model_name: "item",
-    search: query,
+    keyword: query,
   };
   if (options?.limit) {
     params.limit = options.limit;
@@ -529,6 +549,181 @@ export interface DetailFieldSettingRecord {
     hidden: string[];
     readOnly: string[];
   };
+}
+
+export interface SearchPresetRecord {
+  id: number;
+  name: string;
+  role?: string | null;
+  model_name: string;
+  keyword?: string | null;
+  search_fields?: string[] | null;
+  filters?: Record<string, any> | null;
+  ordering?: string | null;
+  pagination?: Record<string, any> | null;
+  request_keyword?: string | null;
+  request_filters?: Record<string, { field: string; lookup?: string }> | null;
+  relative_period?: { field: string; preset: string } | null;
+  dt_modified?: number | null;
+}
+
+export type SearchPresetInputValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Array<string | number | boolean>;
+
+export interface RunSearchPresetOptions {
+  values?: Record<string, SearchPresetInputValue>;
+  params?: Record<string, any>;
+  cacheExempt?: GetRecordsOptions["cacheExempt"];
+}
+
+function isIsoDateOnly(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+}
+
+function normalizePresetRequestValue(
+  rawValue: SearchPresetInputValue,
+  paramName: string,
+  preset?: SearchPresetRecord,
+): any {
+  const normalized = normalizeSearchPresetValue(rawValue);
+
+  if (typeof normalized !== "string") {
+    return normalized;
+  }
+
+  const trimmed = normalized.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (trimmed === "true") {
+    return true;
+  }
+  if (trimmed === "false") {
+    return false;
+  }
+
+  const requestSpec = preset?.request_filters?.[paramName];
+  const requestField = requestSpec?.field || paramName;
+  const lookup = requestSpec?.lookup || "exact";
+  if (requestField.startsWith("dt_") && isIsoDateOnly(trimmed)) {
+    const suffix = lookup === "lte" || paramName.toLowerCase().includes("end")
+      ? "T23:59:59.999"
+      : "T00:00:00.000";
+    const timestamp = new Date(`${trimmed}${suffix}`).getTime();
+    if (!Number.isNaN(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  return trimmed;
+}
+
+function normalizeSearchPresetValue(value: SearchPresetInputValue): any {
+  if (Array.isArray(value)) {
+    return value.join(",");
+  }
+  return value;
+}
+
+function hasSearchPresetValue(value: SearchPresetInputValue): boolean {
+  if (value == null) {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+  return true;
+}
+
+export function buildSearchPresetParams(
+  preset: SearchPresetRecord,
+  options?: RunSearchPresetOptions,
+): Record<string, any> {
+  const params = { ...(options?.params || {}) };
+  const values = options?.values || {};
+
+  if (preset.id != null) {
+    params.saved_search_id ??= preset.id;
+  } else if (preset.name) {
+    params.saved_search ??= preset.name;
+  }
+
+  if (
+    preset.request_keyword &&
+    params.keyword == null &&
+    params.search == null &&
+    params.q == null
+  ) {
+    const keywordValue = values[preset.request_keyword];
+    if (hasSearchPresetValue(keywordValue)) {
+      params.keyword = normalizeSearchPresetValue(keywordValue);
+    }
+  }
+
+  if (preset.request_filters) {
+    Object.keys(preset.request_filters).forEach((paramName) => {
+      if (params[paramName] != null) {
+        return;
+      }
+      const rawValue = values[paramName];
+      if (!hasSearchPresetValue(rawValue)) {
+        return;
+      }
+      params[paramName] = normalizePresetRequestValue(
+        rawValue,
+        paramName,
+        preset,
+      );
+    });
+  }
+
+  return params;
+}
+
+export async function runSearchPreset(
+  model_name: string,
+  preset: SearchPresetRecord,
+  options?: RunSearchPresetOptions,
+): Promise<GetListPayload> {
+  const params = buildSearchPresetParams(preset, options);
+  return getRecords(model_name, params, {
+    cacheExempt: options?.cacheExempt,
+  });
+}
+
+export async function getSearchPresets(
+  model_name: string,
+): Promise<SearchPresetRecord[]> {
+  const resolved = resolveModelName(model_name);
+
+  try {
+    const res = await apiClient.get<ApiEnvelope<{ results: SearchPresetRecord[] }>>(
+      "/wcapi/search-presets/",
+      {
+        params: { model_name: resolved },
+      },
+    );
+    return res.data.data.results || [];
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<
+        ApiEnvelope<{ results: SearchPresetRecord[] }>
+      >("/api/wcapi/search-presets/", {
+        params: { model_name: resolved },
+      });
+      return res2.data.data.results || [];
+    }
+    throw err;
+  }
 }
 
 // Module-level cache for detail field settings to prevent duplicate API calls

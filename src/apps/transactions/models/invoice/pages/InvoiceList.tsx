@@ -9,6 +9,11 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchInvoices } from "../services/invoiceApi";
+import {
+  buildSearchPresetParams,
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -85,6 +90,40 @@ export default function InvoiceList() {
       setLoading(false);
     }
   }, []);
+
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values: Record<string, SearchPresetInputValue> = {},
+    ) => {
+      try {
+        setLoading(true);
+        setSearchDatabase(true);
+        setSearchTerm("");
+        const res = await fetchInvoices(
+          buildSearchPresetParams(preset, {
+            values,
+            params: { limit: 500 },
+          }),
+        );
+        if (res.status === 200) {
+          setData(res.data.items);
+        } else {
+          dispatch(
+            showToast({ message: "Failed to run saved search", type: "error" }),
+          );
+        }
+      } catch (error) {
+        console.error("Saved search failed:", error);
+        dispatch(
+          showToast({ message: "Failed to run saved search", type: "error" }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     getInvoiceData();
@@ -447,6 +486,7 @@ export default function InvoiceList() {
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
+        onApplySearchPreset={handleApplySearchPreset}
       />
       {/* Summary Cards */}
       {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

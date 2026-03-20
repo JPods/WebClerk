@@ -5,6 +5,11 @@ import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchWorkorders, fetchWorkorderDetail } from "../services/workorderApi";
+import {
+  buildSearchPresetParams,
+  type SearchPresetInputValue,
+  type SearchPresetRecord,
+} from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -78,6 +83,40 @@ export default function WorkorderList() {
       setLoading(false);
     }
   }, []);
+
+  const handleApplySearchPreset = useCallback(
+    async (
+      preset: SearchPresetRecord,
+      values: Record<string, SearchPresetInputValue> = {},
+    ) => {
+      try {
+        setLoading(true);
+        setSearchDatabase(true);
+        setSearchTerm("");
+        const res = await fetchWorkorders(
+          buildSearchPresetParams(preset, {
+            values,
+            params: { limit: 500 },
+          }),
+        );
+        if (res.status === 200) {
+          setData(res.data.items || []);
+        } else {
+          dispatch(
+            showToast({ message: "Failed to run saved search", type: "error" }),
+          );
+        }
+      } catch (error) {
+        console.error("Saved search failed:", error);
+        dispatch(
+          showToast({ message: "Failed to run saved search", type: "error" }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dispatch],
+  );
 
   const openWorkorder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
@@ -232,6 +271,7 @@ export default function WorkorderList() {
         enableDatabaseSearch
         searchDatabase={searchDatabase}
         onSearchModeChange={setSearchDatabase}
+        onApplySearchPreset={handleApplySearchPreset}
         columns={columns}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
