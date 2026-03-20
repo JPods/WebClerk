@@ -380,6 +380,35 @@ class SaveWcapiView(APIView):
         model_key = to_model_name(model_cls) or raw_model_name
         console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
 
+        # Saved searches are global admin-managed settings.
+        if model_key == 'setting':
+            purpose_value = data.get('purpose')
+            tentative_record_id = coerce_int(data.get('id') or request.query_params.get('id'))
+            if purpose_value is None and tentative_record_id:
+                try:
+                    purpose_value = model_cls.objects.filter(id=tentative_record_id).values_list('purpose', flat=True).first()
+                except Exception:
+                    purpose_value = None
+
+            if str(purpose_value or '').strip().lower() == 'search':
+                user = getattr(request, 'user', None)
+                is_admin_writer = bool(
+                    user
+                    and getattr(user, 'is_authenticated', False)
+                    and (
+                        getattr(user, 'is_superuser', False)
+                        or getattr(user, 'is_staff', False)
+                        or str(getattr(user, 'role', '')).lower() == 'admin'
+                    )
+                )
+                if not is_admin_writer:
+                    return api_response(
+                        success=False,
+                        status_code=403,
+                        message='Only admin users can create or update saved searches',
+                        error={'code': 'saved_search_admin_required'},
+                    )
+
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
         header_if_match = request.META.get('HTTP_IF_MATCH')
         body_version = coerce_int(data.get('version'))

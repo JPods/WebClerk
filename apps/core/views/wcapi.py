@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Set
+from datetime import timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from django.utils import timezone
 
 from apps.core.services import wcapi as services
 from apps.core.services.role_filter import inject_role_filters
@@ -339,7 +341,145 @@ class WCAPIGetView(APIView):
         logger.debug("_collect_lines: merged %d db + %d ref → %d lines", len(db_lines), len(ref_lines), len(merged))
         return merged
 
-    def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
+    def _field_types(self, ModelCls) -> Dict[str, str]:
+        field_types: Dict[str, str] = {}
+        for field in ModelCls._meta.get_fields():
+            if hasattr(field, "get_internal_type"):
+                field_types[field.name] = field.get_internal_type()
+        return field_types
+
+    def _coerce_filter_value(self, field_type: str, value: Any, lookup_type: str = "exact") -> Any:
+        if value is None:
+            return None
+
+        if lookup_type in {"in", "range"}:
+            if isinstance(value, str):
+                parts = [part.strip() for part in value.split(",") if part.strip()]
+            elif isinstance(value, list):
+                parts = value
+            else:
+                parts = [value]
+            return [self._coerce_filter_value(field_type, part, "exact") for part in parts]
+
+        if isinstance(value, str):
+            lowered = value.lower()
+            if field_type in {"BooleanField", "NullBooleanField"}:
+                if lowered in {"true", "1", "yes"}:
+                    return True
+                if lowered in {"false", "0", "no"}:
+                    return False
+                if lowered in {"null", "none", ""}:
+                    return None
+
+            if field_type in {"IntegerField", "BigIntegerField", "PositiveIntegerField", "SmallIntegerField"}:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return value
+
+            if field_type in {"FloatField", "DecimalField"}:
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return value
+
+        return value
+
+    def _resolve_relative_period(self, spec: Any) -> Dict[str, int]:
+        if not isinstance(spec, dict):
+            return {}
+
+        field_name = str(spec.get("field") or "").strip()
+        preset = str(spec.get("preset") or "").strip().lower()
+        if not field_name or not preset:
+            return {}
+
+        now = timezone.localtime(timezone.now())
+        if preset == "current_month":
+            start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if start.month == 12:
+                next_start = start.replace(year=start.year + 1, month=1)
+            else:
+                next_start = start.replace(month=start.month + 1)
+        elif preset == "current_quarter":
+            quarter_start_month = ((now.month - 1) // 3) * 3 + 1
+            start = now.replace(month=quarter_start_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+            if quarter_start_month == 10:
+                next_start = start.replace(year=start.year + 1, month=1)
+            else:
+                next_start = start.replace(month=quarter_start_month + 3)
+        else:
+            return {}
+
+        end = next_start - timedelta(milliseconds=1)
+        return {
+            f"{field_name}__gte": int(start.timestamp() * 1000),
+            f"{field_name}__lte": int(end.timestamp() * 1000),
+        }
+
+    def _request_filter_specs(self, saved_data: Dict[str, Any], ModelCls) -> Dict[str, Dict[str, Any]]:
+        raw_specs = saved_data.get("request_filters")
+        if not isinstance(raw_specs, dict):
+            return {}
+
+        field_names = {f.name for f in ModelCls._meta.get_fields()}
+        allowed_lookups = {
+            "gte", "lte", "gt", "lt", "in", "startswith", "endswith", "icontains",
+            "exact", "iexact", "contains", "range", "isnull", "ne",
+        }
+        normalized: Dict[str, Dict[str, Any]] = {}
+        for param_name, spec in raw_specs.items():
+            if not isinstance(param_name, str) or not param_name.strip():
+                continue
+            if isinstance(spec, str):
+                spec = {"field": spec}
+            if not isinstance(spec, dict):
+                continue
+
+            field_name = str(spec.get("field") or "").strip()
+            lookup = str(spec.get("lookup") or "exact").strip()
+            if field_name not in field_names or lookup not in allowed_lookups:
+                continue
+
+            normalized[param_name.strip()] = {
+                "field": field_name,
+                "lookup": lookup,
+            }
+        return normalized
+
+    def _saved_request_filters(
+        self,
+        request,
+        saved_data: Dict[str, Any],
+        ModelCls,
+    ) -> tuple[Dict[str, Any], Set[str]]:
+        specs = self._request_filter_specs(saved_data, ModelCls)
+        if not specs:
+            return {}, set()
+
+        field_types = self._field_types(ModelCls)
+        filters: Dict[str, Any] = {}
+        consumed: Set[str] = set()
+        for param_name, spec in specs.items():
+            raw_value = request.query_params.get(param_name)
+            if raw_value in (None, ""):
+                continue
+            field_name = spec["field"]
+            lookup = spec["lookup"]
+            key = field_name if lookup == "exact" else f"{field_name}__{lookup}"
+            filters[key] = self._coerce_filter_value(field_types.get(field_name, ""), raw_value, lookup)
+            consumed.add(param_name)
+
+        return filters, consumed
+
+    def _saved_request_keyword(self, request, saved_data: Dict[str, Any]) -> Optional[str]:
+        request_keyword = saved_data.get("request_keyword")
+        if isinstance(request_keyword, str):
+            candidate = (request.query_params.get(request_keyword) or "").strip()
+            return candidate or None
+        return None
+
+    def _parse_filters(self, request, model_key: str, ModelCls, reserved_keys: Optional[Set[str]] = None) -> Dict[str, Any]:
         """
         Parse and validate filter parameters from query string.
         
@@ -352,6 +492,8 @@ class WCAPIGetView(APIView):
         """
         filters = {}
         field_names = {f.name for f in ModelCls._meta.get_fields()}
+        field_types = self._field_types(ModelCls)
+        reserved_keys = reserved_keys or set()
 
         def _resolve_parent_field() -> Optional[str]:
             parent_candidates = (
@@ -363,18 +505,15 @@ class WCAPIGetView(APIView):
                     return candidate
             return None
         
-        # Build a map of field name to field type for type coercion
-        field_types = {}
-        for f in ModelCls._meta.get_fields():
-            if hasattr(f, 'get_internal_type'):
-                field_types[f.name] = f.get_internal_type()
-        
         logger.info(f"[_parse_filters] model_key={model_key}, query_params={dict(request.query_params)}")
         
         for key, value in request.query_params.items():
             # Skip reserved parameters
             if key in {'model_name', 'id', 'fields', 'limit', 'offset', 'page', 'page_size', 
-                      'q', 'search', 'order_by', 'ordering', 'model_name_filter'}:
+                    'q', 'search', 'keyword', 'search_fields', 'saved_search', 'saved_search_name',
+                    'saved_search_id', 'search_id', 'order_by', 'ordering', 'model_name_filter'}:
+                continue
+            if key in reserved_keys:
                 continue
 
             # Map generic parent filters to the actual FK field on line models
@@ -388,17 +527,8 @@ class WCAPIGetView(APIView):
             if field_base not in field_names:
                 continue
             
-            # Type coercion for boolean fields
-            field_type = field_types.get(field_base, '')
-            if field_type == 'BooleanField' or field_type == 'NullBooleanField':
-                if value.lower() in ('true', '1', 'yes'):
-                    value = True
-                elif value.lower() in ('false', '0', 'no'):
-                    value = False
-                elif value.lower() in ('null', 'none', ''):
-                    value = None
-            
             # Support common lookup formats
+            lookup_type = 'exact'
             if '__' in key:
                 lookup_type = key.split('__')[1]
                 # Support common lookups: gte, lte, gt, lt, in, startswith, endswith, icontains
@@ -412,24 +542,139 @@ class WCAPIGetView(APIView):
                 # Handle 'ne' (not equal) by converting to Q object later
                 if lookup_type == 'ne':
                     # Store for later Q object handling
-                    filters[key] = value
+                    filters[key] = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
                     continue
-            
-            filters[key] = value
+
+            filters[key] = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
         
         logger.info(f"[_parse_filters] Parsed filters: {filters}")
         return filters
 
+    def _is_admin_user(self, request) -> bool:
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return bool(
+            getattr(user, "is_superuser", False)
+            or getattr(user, "is_staff", False)
+            or str(getattr(user, "role", "")).lower() == "admin"
+        )
+
+    def _validate_search_fields(self, ModelCls, raw_fields: Any) -> List[str]:
+        if raw_fields is None:
+            return []
+
+        if isinstance(raw_fields, str):
+            requested = [f.strip() for f in raw_fields.split(",") if f.strip()]
+        elif isinstance(raw_fields, list):
+            requested = [str(f).strip() for f in raw_fields if str(f).strip()]
+        else:
+            return []
+
+        allowed_types = {"CharField", "TextField", "EmailField", "URLField", "SlugField"}
+        valid: List[str] = []
+
+        for name in requested:
+            try:
+                field_obj = ModelCls._meta.get_field(name)
+                internal = field_obj.get_internal_type() if hasattr(field_obj, "get_internal_type") else ""
+                if internal in allowed_types and name not in valid:
+                    valid.append(name)
+            except Exception:
+                continue
+
+        return valid
+
+    def _parse_search_fields(self, request, ModelCls) -> List[str]:
+        raw = request.query_params.get("search_fields")
+        return self._validate_search_fields(ModelCls, raw)
+
+    def _normalize_saved_filters(self, raw_filters: Any, ModelCls) -> Dict[str, Any]:
+        if not isinstance(raw_filters, dict):
+            return {}
+
+        field_names = {f.name for f in ModelCls._meta.get_fields()}
+        allowed_lookups = {
+            "gte", "lte", "gt", "lt", "in", "startswith", "endswith", "icontains",
+            "exact", "iexact", "contains", "range", "isnull", "ne",
+        }
+
+        normalized: Dict[str, Any] = {}
+        for key, value in raw_filters.items():
+            if not isinstance(key, str) or not key:
+                continue
+            field_base = key.split("__")[0]
+            if field_base not in field_names:
+                continue
+            if "__" in key:
+                lookup_type = key.split("__", 1)[1]
+                if lookup_type not in allowed_lookups:
+                    continue
+            normalized[key] = value
+        return normalized
+
+    def _resolve_saved_search(self, request, model_key: str) -> Optional[Dict[str, Any]]:
+        search_id = request.query_params.get("saved_search_id") or request.query_params.get("search_id")
+        search_name = request.query_params.get("saved_search") or request.query_params.get("saved_search_name")
+
+        if not search_id and not search_name:
+            return None
+
+        from apps.core.models.setting import Setting
+
+        qs = Setting.objects.filter(
+            is_active=True,
+            purpose="search",
+            parent_model=model_key,
+        )
+
+        if search_id:
+            if not str(search_id).isdigit():
+                raise ValueError("saved_search_id must be numeric")
+            qs = qs.filter(pk=int(search_id))
+        elif search_name:
+            qs = qs.filter(name=search_name)
+
+        setting = qs.order_by("-dt_modified").first()
+        if not setting:
+            raise LookupError("saved search not found")
+
+        required_role = str(setting.role or "").strip().lower()
+        user_role = str(getattr(getattr(request, "user", None), "role", "") or "").strip().lower()
+        role_open = required_role in {"", "all", "*"}
+        if not role_open and not self._is_admin_user(request) and user_role != required_role:
+            raise PermissionError("saved search is not shared with your role")
+
+        data = setting.data if isinstance(setting.data, dict) else {}
+        return {
+            "id": setting.id,
+            "name": setting.name,
+            "role": setting.role,
+            "data": data,
+        }
+
     def _parse_search(self, request, model_key: str, ModelCls) -> Optional[str]:
         """
-        Get search query from 'q' or 'search' parameter.
+        Get search query from 'q', 'search', or 'keyword' parameter.
         
         Returns search string or None if not provided.
         """
-        search_query = (request.query_params.get('q') or request.query_params.get('search') or '').strip()
+        search_query = (
+            request.query_params.get('q')
+            or request.query_params.get('search')
+            or request.query_params.get('keyword')
+            or ''
+        ).strip()
         return search_query if search_query else None
 
-    def _apply_search(self, qs, search_query: str, model_key: str, ModelCls) -> Any:
+    def _apply_search(
+        self,
+        qs,
+        search_query: str,
+        model_key: str,
+        ModelCls,
+        search_fields_override: Optional[List[str]] = None,
+    ) -> Any:
         """
         Apply fragment-based search across configured search fields.
 
@@ -446,9 +691,12 @@ class WCAPIGetView(APIView):
 
         from common.search_utils import build_fragment_query
 
+        search_fields = list(search_fields_override or [])
+
         # Get search fields from registry config
-        config = get_registry_config(model_key)
-        search_fields = list(config.search_fields) if config and config.search_fields else []
+        if not search_fields:
+            config = get_registry_config(model_key)
+            search_fields = list(config.search_fields) if config and config.search_fields else []
 
         # Fallback to common searchable fields
         if not search_fields:
@@ -511,7 +759,7 @@ class WCAPIGetView(APIView):
         
         return qs
 
-    def _parse_pagination(self, request) -> tuple[int, int]:
+    def _parse_pagination(self, request, defaults: Optional[Dict[str, Any]] = None) -> tuple[int, int]:
         """
         Parse pagination parameters (limit/offset or page/page_size).
         
@@ -522,8 +770,14 @@ class WCAPIGetView(APIView):
         - page + page_size: ?page=2&page_size=50 (page is 1-indexed)
         """
         # Check for page-based pagination first
+        defaults = defaults or {}
+
         page = request.query_params.get('page')
         page_size = request.query_params.get('page_size')
+        if not page and defaults.get('page') is not None:
+            page = str(defaults.get('page'))
+        if not page_size and defaults.get('page_size') is not None:
+            page_size = str(defaults.get('page_size'))
         
         if page and page_size:
             try:
@@ -536,8 +790,12 @@ class WCAPIGetView(APIView):
                 pass
         
         # Fall back to limit + offset
-        limit = request.query_params.get('limit', '500')
-        offset = request.query_params.get('offset', '0')
+        limit = request.query_params.get('limit')
+        offset = request.query_params.get('offset')
+        if limit is None:
+            limit = str(defaults.get('limit', '500'))
+        if offset is None:
+            offset = str(defaults.get('offset', '0'))
         
         try:
             limit_int = min(int(limit), 1000)  # Max 1000 records
@@ -546,6 +804,31 @@ class WCAPIGetView(APIView):
             return limit_int, offset_int
         except (ValueError, TypeError):
             return 500, 0
+
+    def _validate_ordering(self, ordering: str, ModelCls) -> Optional[str]:
+        # Map common field names
+        ordering_map = {
+            'created_at': 'dt_created',
+            '-created_at': '-dt_created',
+            'updated_at': 'dt_modified',
+            '-updated_at': '-dt_modified',
+            'name': 'name',
+            '-name': '-name',
+        }
+
+        if ordering in ordering_map:
+            ordering = ordering_map[ordering]
+
+        field_name = ordering.lstrip('-')
+        field_names = {f.name for f in ModelCls._meta.get_fields()}
+        if field_name not in field_names:
+            return None
+
+        try:
+            ModelCls.objects.active().order_by(ordering)
+            return ordering
+        except Exception:
+            return None
 
     def _parse_ordering(self, request, model_key: str, ModelCls) -> Optional[str]:
         """
@@ -558,33 +841,8 @@ class WCAPIGetView(APIView):
         ordering = request.query_params.get('ordering') or request.query_params.get('order_by')
         if not ordering:
             return None
-        
-        # Map common field names
-        ordering_map = {
-            'created_at': 'dt_created',
-            '-created_at': '-dt_created',
-            'updated_at': 'dt_modified',
-            '-updated_at': '-dt_modified',
-            'name': 'name',
-            '-name': '-name',
-        }
-        
-        if ordering in ordering_map:
-            ordering = ordering_map[ordering]
-        
-        # Validate field exists (remove - prefix if present)
-        field_name = ordering.lstrip('-')
-        field_names = {f.name for f in ModelCls._meta.get_fields()}
-        
-        if field_name not in field_names:
-            return None
-        
-        try:
-            # Test ordering by applying to empty queryset
-            ModelCls.objects.active().order_by(ordering)
-            return ordering
-        except Exception:
-            return None
+
+        return self._validate_ordering(ordering, ModelCls)
 
     def _handle(
         self,
@@ -688,11 +946,54 @@ class WCAPIGetView(APIView):
             # Apply RBAC field filtering for single record
             if request.user and request.user.is_authenticated:
                 payload = filter_response_data(request.user, model_key, payload)
+
+            # Contact detail UI depends on full refs for related links/tags panels.
+            # Force canonical refs payload after field projection so React always
+            # receives the complete contact.refs structure.
+            if self._normalize_model_key(model_key) == "contact":
+                try:
+                    from common.refs.contact_refs import normalize_refs_for_response
+                    payload["refs"] = normalize_refs_for_response(getattr(obj, "refs", {}) or {})
+                except Exception:
+                    payload["refs"] = getattr(obj, "refs", {}) or {}
             
             return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
         ModelCls, qs = services.get_queryset(model_key, request=request)
+
+        saved_search = None
+        try:
+            saved_search = self._resolve_saved_search(request, model_key)
+        except LookupError as e:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_404_NOT_FOUND,
+                message=str(e),
+                error={"code": "saved_search_not_found"},
+            )
+        except PermissionError as e:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_403_FORBIDDEN,
+                message=str(e),
+                error={"code": "saved_search_forbidden"},
+            )
+        except ValueError as e:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=str(e),
+                error={"code": "invalid_saved_search"},
+            )
+
+        saved_data = saved_search.get("data") if isinstance(saved_search, dict) else {}
+        if not isinstance(saved_data, dict):
+            saved_data = {}
+
+        request_keyword = self._saved_request_keyword(request, saved_data)
+        saved_request_filters, consumed_filter_params = self._saved_request_filters(request, saved_data, ModelCls)
+        relative_filters = self._resolve_relative_period(saved_data.get("relative_period"))
         
         # Apply role-based access filters (RBAC)
         if request.user and request.user.is_authenticated:
@@ -702,11 +1003,37 @@ class WCAPIGetView(APIView):
         
         # Apply search first (before filters for better performance with indexes)
         search_query = self._parse_search(request, model_key, ModelCls)
+        if not search_query and request_keyword:
+            search_query = request_keyword
+        if not search_query and isinstance(saved_data.get("keyword"), str):
+            candidate = str(saved_data.get("keyword") or "").strip()
+            if candidate:
+                search_query = candidate
+
+        request_search_fields = self._parse_search_fields(request, ModelCls)
+        saved_search_fields = self._validate_search_fields(ModelCls, saved_data.get("search_fields"))
+        effective_search_fields = request_search_fields or saved_search_fields
+
         if search_query:
-            qs = self._apply_search(qs, search_query, model_key, ModelCls)
+            qs = self._apply_search(
+                qs,
+                search_query,
+                model_key,
+                ModelCls,
+                search_fields_override=effective_search_fields,
+            )
         
         # Parse and apply filters
-        filters = self._parse_filters(request, model_key, ModelCls)
+        filters = self._parse_filters(request, model_key, ModelCls, reserved_keys=consumed_filter_params)
+        explicit_filter_keys = set(filters.keys())
+        saved_filters = self._normalize_saved_filters(saved_data.get("filters"), ModelCls)
+        for key, value in saved_filters.items():
+            filters.setdefault(key, value)
+        for key, value in relative_filters.items():
+            filters.setdefault(key, value)
+        for key, value in saved_request_filters.items():
+            if key not in explicit_filter_keys:
+                filters[key] = value
         qs = self._apply_filters(qs, filters)
         
         # Get total count before pagination
@@ -714,6 +1041,8 @@ class WCAPIGetView(APIView):
         
         # Parse and apply ordering
         ordering = self._parse_ordering(request, model_key, ModelCls)
+        if not ordering and isinstance(saved_data.get("ordering"), str):
+            ordering = self._validate_ordering(saved_data.get("ordering"), ModelCls)
         if ordering:
             qs = qs.order_by(ordering)
         else:
@@ -727,7 +1056,14 @@ class WCAPIGetView(APIView):
                     pass
         
         # Parse pagination
-        limit, offset = self._parse_pagination(request)
+        pagination_defaults: Dict[str, Any] = {}
+        if isinstance(saved_data.get("pagination"), dict):
+            pagination_defaults.update(saved_data.get("pagination") or {})
+        for key in ("limit", "offset", "page", "page_size"):
+            if saved_data.get(key) is not None and key not in pagination_defaults:
+                pagination_defaults[key] = saved_data.get(key)
+
+        limit, offset = self._parse_pagination(request, defaults=pagination_defaults)
         
         # Apply pagination
         qs_paginated = qs[offset:offset + limit]
@@ -776,9 +1112,16 @@ class WCAPIGetView(APIView):
         if request.query_params:
             response_data["query"] = {
                 "search": search_query,
+                "search_fields": effective_search_fields,
                 "filters": filters,
                 "ordering": ordering,
-                "pagination": {"limit": limit, "offset": offset}
+                "pagination": {"limit": limit, "offset": offset},
+                "saved_search": {
+                    "id": saved_search.get("id") if saved_search else None,
+                    "name": saved_search.get("name") if saved_search else None,
+                    "role": saved_search.get("role") if saved_search else None,
+                },
+                "request_keyword": request_keyword,
             }
         
         return api_response(data=response_data, status_code=status.HTTP_200_OK)
@@ -900,7 +1243,7 @@ Retrieve records from any configured model with comprehensive query support.
   - Negation: ?status__ne=canceled
 
 **Search:** Full-text search across configured searchable fields
-  - ?q=search_term or ?search=search_term
+    - ?q=search_term or ?search=search_term or ?keyword=search_term
   - Uses model's configured search_fields from registry
   - Falls back to common fields (name, title, email, code, etc.)
 
@@ -945,6 +1288,34 @@ Retrieve records from any configured model with comprehensive query support.
                 required=False,
                 location=OpenApiParameter.QUERY,
                 description="Search query - searches across model's searchable fields (case-insensitive)",
+            ),
+            OpenApiParameter(
+                name="keyword",
+                type=str,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Alias for search query (comma-separated terms supported with AND semantics)",
+            ),
+            OpenApiParameter(
+                name="search_fields",
+                type=str,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated text fields to search (overrides model default search field set)",
+            ),
+            OpenApiParameter(
+                name="saved_search_id",
+                type=int,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Apply a stored search Setting by ID (purpose=search, parent_model=model_name)",
+            ),
+            OpenApiParameter(
+                name="saved_search",
+                type=str,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Apply a stored search Setting by name (purpose=search)",
             ),
             OpenApiParameter(
                 name="limit",
@@ -1043,6 +1414,114 @@ class ModelNameListView(APIView):
             "message": "OK",
             "data": {"model_names": model_names, "count": len(model_names)}
         }, status=status.HTTP_200_OK)
+
+
+class SearchPresetListView(APIView):
+    """List role-visible saved searches (Setting purpose=search) for a model."""
+
+    http_method_names = ["get", "options", "head"]
+
+    @staticmethod
+    def _is_admin_user(user) -> bool:
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return bool(
+            getattr(user, "is_superuser", False)
+            or getattr(user, "is_staff", False)
+            or str(getattr(user, "role", "")).lower() == "admin"
+        )
+
+    @extend_schema(
+        operation_id="search_preset_list",
+        summary="List saved search presets",
+        description=(
+            "Returns saved search presets for a model (Setting purpose=search). "
+            "Non-admin users see role-matching and global presets; admins see all."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="model_name",
+                type=str,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="Canonical model key (for example: customer, item, invoice)",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="SearchPresetListResponse",
+                fields={
+                    "results": serializers.ListField(child=serializers.JSONField()),
+                    "count": serializers.IntegerField(),
+                    "model_name": serializers.CharField(),
+                },
+            ),
+            400: inline_serializer(
+                name="SearchPresetListErrorResponse",
+                fields={"detail": serializers.CharField()},
+            ),
+        },
+    )
+    def get(self, request, **kwargs):
+        model_key = (request.query_params.get("model_name") or "").strip().lower()
+        if not model_key:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="model_name parameter is required",
+                error={"code": "missing_model_name"},
+            )
+
+        from apps.core.models import Setting
+
+        qs = Setting.objects.filter(
+            is_active=True,
+            purpose="search",
+            parent_model=model_key,
+        )
+
+        user = getattr(request, "user", None)
+        if not self._is_admin_user(user):
+            user_role = str(getattr(user, "role", "") or "").strip()
+            role_filters = (
+                Q(role__isnull=True)
+                | Q(role="")
+                | Q(role="*")
+                | Q(role__iexact="all")
+            )
+            if user_role:
+                role_filters |= Q(role__iexact=user_role)
+            qs = qs.filter(role_filters)
+
+        presets = []
+        for setting in qs.order_by("name", "-dt_modified"):
+            payload = setting.data if isinstance(setting.data, dict) else {}
+            presets.append(
+                {
+                    "id": setting.id,
+                    "name": setting.name,
+                    "role": setting.role,
+                    "model_name": setting.parent_model,
+                    "keyword": payload.get("keyword"),
+                    "search_fields": payload.get("search_fields"),
+                    "filters": payload.get("filters"),
+                    "ordering": payload.get("ordering"),
+                    "pagination": payload.get("pagination"),
+                    "request_keyword": payload.get("request_keyword"),
+                    "request_filters": payload.get("request_filters"),
+                    "relative_period": payload.get("relative_period"),
+                    "dt_modified": getattr(setting, "dt_modified", None),
+                }
+            )
+
+        return api_response(
+            data={
+                "results": presets,
+                "count": len(presets),
+                "model_name": model_key,
+            },
+            status_code=status.HTTP_200_OK,
+        )
 
 
 class ModelDetailView(APIView):

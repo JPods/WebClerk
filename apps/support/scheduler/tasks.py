@@ -101,11 +101,9 @@ from django.core.management import call_command
 from django.utils import timezone
 from io import StringIO
 
-from common.tasks import (
-    refresh_keywords_task,
-    recompute_relationship_counts,
-    recompute_basic_stats,
-    refresh_model_registry_docs,
+from .registry import (
+    build_celery_beat_schedule,
+    run_maintenance_function,
 )
 
 logger = get_task_logger(__name__)
@@ -162,7 +160,11 @@ def task_refresh_keywords(self, limit=500, batch_size=200):
     
     try:
         logger.info(f"Starting keyword refresh (limit={limit})")
-        result = refresh_keywords_task(limit=limit, batch_size=batch_size)
+        result = run_maintenance_function(
+            task_name=task_name,
+            limit=limit,
+            batch_size=batch_size,
+        )
         logger.info(f"Keyword refresh complete: {result}")
         if run:
             run.complete(result)
@@ -194,7 +196,11 @@ def task_recompute_relationship_counts(self, limit=5000, batch_size=500):
     
     try:
         logger.info(f"Starting relationship count recompute (limit={limit})")
-        result = recompute_relationship_counts(limit=limit, batch_size=batch_size)
+        result = run_maintenance_function(
+            task_name=task_name,
+            limit=limit,
+            batch_size=batch_size,
+        )
         logger.info(f"Relationship recompute complete: {result}")
         if run:
             run.complete(result)
@@ -222,7 +228,11 @@ def task_recompute_basic_stats(self, limit=5000, batch_size=500):
     
     try:
         logger.info(f"Starting stats normalization (limit={limit})")
-        result = recompute_basic_stats(limit=limit, batch_size=batch_size)
+        result = run_maintenance_function(
+            task_name=task_name,
+            limit=limit,
+            batch_size=batch_size,
+        )
         logger.info(f"Stats normalization complete: {result}")
         if run:
             run.complete(result)
@@ -405,7 +415,7 @@ def task_refresh_model_registry_docs(self):
     
     try:
         logger.info("Starting model registry docs refresh")
-        result = refresh_model_registry_docs()
+        result = run_maintenance_function(task_name=task_name)
         logger.info(f"Model registry docs refresh complete: {result}")
         if run:
             run.complete(result)
@@ -712,73 +722,4 @@ def task_aggregate_user_daily_logs(self, target_date_str=None):
 #   from apps.scheduler.tasks import CELERY_BEAT_SCHEDULE
 #
 
-from celery.schedules import crontab
-
-CELERY_BEAT_SCHEDULE = {
-    # -------------------------------------------------------------------------
-    # Frequent tasks (< 1 hour)
-    # -------------------------------------------------------------------------
-    
-    # Every 15 minutes - keep search keywords fresh
-    'refresh-keywords-every-15-min': {
-        'task': 'apps.scheduler.tasks.task_refresh_keywords',
-        'schedule': crontab(minute='*/15'),
-        'kwargs': {'limit': 500, 'batch_size': 200},
-    },
-    
-    # -------------------------------------------------------------------------
-    # Hourly tasks
-    # -------------------------------------------------------------------------
-    
-    # Every hour at :00 - sync relationship counts
-    'recompute-relationship-counts-hourly': {
-        'task': 'apps.scheduler.tasks.task_recompute_relationship_counts',
-        'schedule': crontab(minute=0),
-        'kwargs': {'limit': 5000, 'batch_size': 500},
-    },
-    
-    # -------------------------------------------------------------------------
-    # Daily tasks (off-peak hours)
-    # -------------------------------------------------------------------------
-
-    # 1:30 AM - aggregate user daily logs from APILog
-    'aggregate-user-daily-logs-nightly': {
-        'task': 'apps.support.scheduler.tasks.task_aggregate_user_daily_logs',
-        'schedule': crontab(hour=1, minute=30),
-    },
-    
-    # 2:00 AM - ensure model defaults
-    'ensure-model-defaults-daily': {
-        'task': 'apps.scheduler.tasks.task_ensure_model_defaults',
-        'schedule': crontab(hour=2, minute=0),
-    },
-
-    # 2:20 AM - Alice schema watch assessment
-    'alice-schema-watch-nightly': {
-        'task': 'apps.ai_assistant.tasks.alice_schema_watch_task',
-        'schedule': crontab(hour=2, minute=20),
-    },
-    
-    # 3:00 AM - data backup
-    'export-data-backup-daily': {
-        'task': 'apps.scheduler.tasks.task_export_data',
-        'schedule': crontab(hour=3, minute=0),
-    },
-    
-    # 5:00 AM - refresh documentation
-    'refresh-model-registry-docs-daily': {
-        'task': 'apps.scheduler.tasks.task_refresh_model_registry_docs',
-        'schedule': crontab(hour=5, minute=0),
-    },
-    
-    # -------------------------------------------------------------------------
-    # Weekly tasks
-    # -------------------------------------------------------------------------
-    
-    # Sunday 4:00 AM - full stats normalization
-    'recompute-basic-stats-weekly': {
-        'task': 'apps.scheduler.tasks.task_recompute_basic_stats',
-        'schedule': crontab(hour=4, minute=0, day_of_week='sunday'),
-        'kwargs': {'limit': 50000, 'batch_size': 500},
-    },
-}
+CELERY_BEAT_SCHEDULE = build_celery_beat_schedule()

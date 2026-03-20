@@ -3,7 +3,7 @@
 > **Version**: 2.0  
 > **Updated**: 2026-02-16  
 > **Scope**: Actual state of calculations today, known bugs, plan for fixes  
-> **Companion**: `08-transaction-calculations.md` (design reference), `celery-redis-pending.md` (inventory processing)
+> **Companion**: `08-transaction-calculations.md` (design reference), `maintenance.md` (inventory processing + scheduler)
 
 ---
 
@@ -260,7 +260,7 @@ When a line is saved, `update_inventory_on_save()` fires via signal and creates 
 | Purchase | `inventory_line_add` | `on_po` (on purchase order) |
 | Work Order | `inventory_line_add` | `on_wo` (on work order) |
 
-The `Pending → Item` processing flow is documented in `celery-redis-pending.md`. The Celery worker (or inline fallback) drains pending records and applies deltas to `Item.data.quantity`.
+The `Pending → Item` processing flow is documented in `maintenance.md`. The Celery worker (or inline fallback) drains pending records and applies deltas to `Item.data.quantity`.
 
 ### Value Transfer
 
@@ -415,6 +415,6 @@ DB_MODE=remote bin/python tools/audit_calcs.py
 ## Related Documents
 
 - [08-transaction-calculations.md](08-transaction-calculations.md) — Full calculation design reference (formulas, edge cases, API endpoints)
-- [celery-redis-pending.md](celery-redis-pending.md) — Pending record processing architecture
+- [maintenance.md](maintenance.md) — Pending record processing architecture and scheduler operations
 - [ledger-financial-system.md](ledger-financial-system.md) — Invoice aging, payments, ledger records
 - [inventory_flow_testing.md](inventory_flow_testing.md) — Inventory flow test procedures

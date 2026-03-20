@@ -1,7 +1,36 @@
 from apps.core.constants.keyword_requirements import get_keyword_requirements
 from apps.core.services.cache_service import cache_service
 from django.apps import apps
+from django.db import models
 from common.ignore_fields import IGNORE_WORDS
+
+
+DEFAULT_TEXT_SCALAR_FIELD_TYPES = (
+    models.CharField,
+    models.TextField,
+    models.EmailField,
+    models.URLField,
+    models.SlugField,
+    models.UUIDField,
+)
+
+EXCLUDED_SCALAR_KEYWORD_FIELDS = {
+    "password",
+    "comment",
+}
+
+
+def _default_scalar_keyword_fields(model):
+    """Return text-like scalar field names used for baseline keyword extraction."""
+    fields = []
+    for field in getattr(model._meta, "concrete_fields", []):
+        if (
+            isinstance(field, DEFAULT_TEXT_SCALAR_FIELD_TYPES)
+            and field.name not in EXCLUDED_SCALAR_KEYWORD_FIELDS
+        ):
+            fields.append(field.name)
+    return fields
+
 
 def _extract_keywords_from_value(value):
     """
@@ -100,10 +129,7 @@ def build_keywords_for_record(model_name, record_id):
             # Fallback to loading from DB if cache miss
             requirements = get_keyword_requirements()
         
-        if model_name not in requirements:
-            return []
-
-        model_config = requirements[model_name]
+        model_config = requirements.get(model_name, {})
         
         # Try to find the model in any app
         model = None
@@ -125,6 +151,16 @@ def build_keywords_for_record(model_name, record_id):
         
         keywords = set()  # Use set for automatic deduplication
 
+        # Baseline extraction: always include scalar text-like model fields.
+        # This keeps keyword search useful even when refs_setup is missing.
+        for field_name in _default_scalar_keyword_fields(model):
+            keywords.update(_extract_keywords_from_field(record, field_name))
+
+        refs_data = getattr(record, 'refs', None)
+        if refs_data and isinstance(refs_data, dict):
+            # Aggregate refs.tags into refs.keywords.
+            keywords.update(_extract_keywords_from_value(refs_data.get('tags', [])))
+
         # Process self fields first (highest priority)
         self_fields = model_config.get('self_fields', [])
         for field_path in self_fields:
@@ -133,7 +169,6 @@ def build_keywords_for_record(model_name, record_id):
 
         # Process related models with safety limits
         related_keywords = model_config.get('related_keywords', {})
-        refs_data = getattr(record, 'refs', None)
 
         if refs_data and isinstance(refs_data, dict):
             links = refs_data.get('links', {})
@@ -198,7 +233,7 @@ def build_keywords_for_record(model_name, record_id):
                     # Skip if related model doesn't exist or query fails
                     continue
 
-        return list(keywords)  # Convert set back to list
+        return sorted(keywords)
 
     except Exception as e:
         # Log the error for debugging but don't fail the save operation

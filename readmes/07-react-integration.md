@@ -408,5 +408,5 @@ This integration provides a modern, feature-rich transaction management system b
 ## Related Documentation
 
 - [08-transaction-save.md](08-transaction-save.md) — Backend transaction save patterns
-- [celery-redis-pending.md](celery-redis-pending.md) — Pending inventory processing
+- [maintenance.md](maintenance.md) — Pending inventory processing and scheduler operations
 - [03-wcapi-gateway.md](03-wcapi-gateway.md) — WCAPI gateway overview

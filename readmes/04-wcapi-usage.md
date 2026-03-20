@@ -381,4 +381,4 @@ For saving transactions with lines (orders, invoices, purchases, work orders), s
 - [05-model-registry.md](05-model-registry.md) — Available models and their configurations
 - [06-api-conventions.md](06-api-conventions.md) — Model naming and data conventions
 - [08-transaction-save.md](08-transaction-save.md) — Transaction save patterns (collect-then-create)
-- [celery-redis-pending.md](celery-redis-pending.md) — Background processing of Pending records
+- [maintenance.md](maintenance.md) — Background processing of Pending records and scheduler operations

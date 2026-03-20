@@ -12,6 +12,12 @@ from django.http import Http404, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
+
+try:
+    from django_json_widget.widgets import JSONEditorWidget
+except Exception:
+    JSONEditorWidget = None
+
 from apps.transactions.models import Project
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
@@ -21,9 +27,32 @@ from .models import (
 )
 
 
+class ContactAdminForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        refs_field = self.fields.get("refs")
+        if not refs_field:
+            return
+
+        if JSONEditorWidget is not None:
+            refs_field.widget = JSONEditorWidget(width="100%", height="480px")
+        else:
+            refs_field.widget = forms.Textarea(
+                attrs={
+                    "rows": 24,
+                    "style": "font-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+                }
+            )
+
+
 @admin.register(Contact)
 class ContactAdmin(SchemaLabelsAdminMixin, BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
+    form = ContactAdminForm
     scalar_fields = (
         'id',
         'ida',

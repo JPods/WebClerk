@@ -1,6 +1,6 @@
 # Transaction Save Patterns
 
-> **Reading order**: [← 07-react-integration](07-react-integration.md) | [celery-redis-pending →](celery-redis-pending.md)
+> **Reading order**: [← 07-react-integration](07-react-integration.md) | [maintenance →](maintenance.md)
 
 ---
 
@@ -278,6 +278,6 @@ await saveRecord('order', { id: orderId, is_active: false });
 
 ## Related Documentation
 
-- [celery-redis-pending.md](celery-redis-pending.md) — Background processing of Pending records
+- [maintenance.md](maintenance.md) — Background processing of Pending records and scheduler operations
 - [06-api-conventions.md](06-api-conventions.md) — Model naming and related data conventions
 - [05-model-registry.md](05-model-registry.md) — Available models and their configurations

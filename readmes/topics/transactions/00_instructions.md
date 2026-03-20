@@ -266,7 +266,7 @@ Inventory changes are triggered by transaction state changes:
 | WorkOrder completion receipt | Increment finished goods |
 
 Processed by `services/inventory_flow.py` and `services/pending_inventory_processor.py`.
-Background dispatch via Celery — see `readmes/topics/infrastructure/celery-redis-pending.md`.
+Background dispatch via Celery — see `readmes/maintenance.md`.
 
 ---
 
@@ -306,7 +306,7 @@ Documented in `readmes/09-transaction-calc-status.md`:
 | File | Content |
 |------|---------|
 | `readmes/09-transaction-calc-status.md` | Quantity key mismatch + totals signal gap |
-| `readmes/topics/infrastructure/celery-redis-pending.md` | Celery/Redis dispatch architecture |
+| `readmes/maintenance.md` | Celery/Redis dispatch architecture and maintenance runbook |
 | `readmes/topics/inventory/` | Inventory model and flow docs |
 
 ---

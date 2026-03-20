@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
+    'django_json_widget',
     'rest_framework',
     'rest_framework_simplejwt',
     # 'rest_framework_simplejwt.token_blacklist',  # Removed — we don't blacklist tokens (see cookie_token_refresh.py)

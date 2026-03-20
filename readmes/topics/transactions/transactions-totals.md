@@ -585,7 +585,7 @@ graph TD
 ### Error Handling & Fallbacks
 
 - **Signal failures:** If a signal handler fails, Django logs the error and continues active other signals. Critical inventory and totals signals should be monitored for exceptions.
-- **Celery worker offline:** If no Celery worker is alive, inventory active falls back to synchronous inline execution. See [celery-redis-pending.md](../../celery-redis-pending.md) for details.
+- **Celery worker offline:** If no Celery worker is alive, inventory active falls back to synchronous inline execution. See [maintenance.md](../../maintenance.md) for details.
 - **Pending record issues:** If Pending records cannot be created or processed, inventory deltas may be lost. Safety net: Celery Beat retries every 30s.
 - **Database errors:** All saves are wrapped in atomic transactions; partial failures roll back changes.
 - **Validation:** Lines and headers are validated before save; invalid payloads return 400 errors.
@@ -623,7 +623,7 @@ Suppose an OrderLine is saved with `quantity.staged = 5` for item #42:
 
 ### Cross-links & Related Documents
 
-- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task active
+- [../../maintenance.md](../../maintenance.md) — Celery & Redis background task active
 - [../infrastructure/celery.md](../infrastructure/celery.md) — Celery + Redis installation & Django configuration
 - [../inventory/inventory.md](../inventory/inventory.md) — Inventory layering, PendingInventoryAdjustment, Item bucket schema
 - [transaction_line_save.md](transaction_line_save.md) — Save endpoint architecture
@@ -649,7 +649,7 @@ Only ProposalLine registers the totals signal.  See `signals.py:218`
 For the full Celery + Redis architecture, broker configuration, Beat schedule,
 worker liveness detection, and inline fallback, see:
 
-- [../../celery-redis-pending.md](../../celery-redis-pending.md) — Celery & Redis background task active
+- [../../maintenance.md](../../maintenance.md) — Celery & Redis background task active
 - [../infrastructure/celery.md](../infrastructure/celery.md) — Celery + Redis installation & Django configuration
 - [../inventory/inventory.md](../inventory/inventory.md) — Inventory layering, PendingInventoryAdjustment, Item bucket schema
 

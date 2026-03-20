@@ -8,6 +8,9 @@ outside of the Celery context (e.g., manual runs, testing).
 from typing import Optional
 from django.utils import timezone
 from django.apps import apps
+from django.db.utils import ProgrammingError, OperationalError
+
+from .registry import SCHEDULED_TASK_DEFINITIONS
 
 
 def get_or_create_scheduled_tasks():
@@ -18,69 +21,46 @@ def get_or_create_scheduled_tasks():
     Returns dict of created/existing task records.
     """
     from .models import ScheduledTask, TaskConfig
-    from .tasks import CELERY_BEAT_SCHEDULE
     
     results = {'created': [], 'existing': []}
     
-    task_definitions = {
-        'refresh_keywords': {
-            'task_path': 'apps.scheduler.tasks.task_refresh_keywords',
-            'description': 'Refresh search keywords for records with pending updates',
-            'frequency': ScheduledTask.Frequency.MINUTES_15,
-            'run_at_minute': 0,
-        },
-        'recompute_relationship_counts': {
-            'task_path': 'apps.scheduler.tasks.task_recompute_relationship_counts',
-            'description': 'Update denormalized relationship counts (parents, children, linked)',
-            'frequency': ScheduledTask.Frequency.HOURLY,
-            'run_at_minute': 0,
-        },
-        'recompute_basic_stats': {
-            'task_path': 'apps.scheduler.tasks.task_recompute_basic_stats',
-            'description': 'Normalize stats containers on StatsMixin models',
-            'frequency': ScheduledTask.Frequency.WEEKLY,
-            'run_at_hour': 4,
-            'run_on_day': 6,  # Sunday
-        },
-        'ensure_model_defaults': {
-            'task_path': 'apps.scheduler.tasks.task_ensure_model_defaults',
-            'description': 'Ensure all JSONB envelope fields have proper default structures',
-            'frequency': ScheduledTask.Frequency.DAILY,
-            'run_at_hour': 2,
-        },
-        'export_data': {
-            'task_path': 'apps.scheduler.tasks.task_export_data',
-            'description': 'Export all model data to JSON backup files',
-            'frequency': ScheduledTask.Frequency.DAILY,
-            'run_at_hour': 3,
-        },
-        'refresh_model_registry_docs': {
-            'task_path': 'apps.scheduler.tasks.task_refresh_model_registry_docs',
-            'description': 'Regenerate model registry README, JSON, and CSV files',
-            'frequency': ScheduledTask.Frequency.DAILY,
-            'run_at_hour': 5,
-        },
-    }
+    task_definitions = SCHEDULED_TASK_DEFINITIONS
     
-    for name, definition in task_definitions.items():
-        task, created = ScheduledTask.objects.get_or_create(
-            name=name,
-            defaults={
-                'task_path': definition['task_path'],
-                'description': definition.get('description', ''),
-                'frequency': definition.get('frequency', ScheduledTask.Frequency.DAILY),
-                'run_at_hour': definition.get('run_at_hour', 0),
-                'run_at_minute': definition.get('run_at_minute', 0),
-                'run_on_day': definition.get('run_on_day', 0),
-            }
-        )
-        
-        if created:
-            results['created'].append(name)
-            # Create default config
-            TaskConfig.objects.create(task=task)
-        else:
-            results['existing'].append(name)
+    try:
+        for name, definition in task_definitions.items():
+            task, created = ScheduledTask.objects.get_or_create(
+                name=name,
+                defaults={
+                    'task_path': definition['task_path'],
+                    'description': definition.get('description', ''),
+                    'frequency': definition.get('frequency', ScheduledTask.Frequency.DAILY),
+                    'run_at_hour': definition.get('run_at_hour', 0),
+                    'run_at_minute': definition.get('run_at_minute', 0),
+                    'run_on_day': definition.get('run_on_day', 0),
+                }
+            )
+
+            if created:
+                results['created'].append(name)
+                # Create default config
+                TaskConfig.objects.create(task=task)
+            else:
+                results['existing'].append(name)
+                # Keep key scheduler metadata in sync with central registry.
+                dirty = False
+                for key in ('task_path', 'description', 'frequency', 'run_at_hour', 'run_at_minute', 'run_on_day'):
+                    expected = definition.get(key, getattr(task, key))
+                    if getattr(task, key) != expected:
+                        setattr(task, key, expected)
+                        dirty = True
+                if dirty:
+                    task.save(update_fields=[
+                        'task_path', 'description', 'frequency',
+                        'run_at_hour', 'run_at_minute', 'run_on_day',
+                        'dt_modified', 'version',
+                    ])
+    except (ProgrammingError, OperationalError) as exc:
+        results['error'] = f'scheduler tables unavailable: {exc}'
     
     return results
 

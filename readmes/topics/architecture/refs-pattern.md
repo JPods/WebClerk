@@ -180,4 +180,4 @@ const customerName = record.refs?.links?.customer?.[0]?.company ?? "Unknown";
 - [refs-fk-audit-report.md](refs-fk-audit-report.md) — Detailed audit of FK vs refs coexistence
 - [refs-denormalization-playbook.md](refs-denormalization-playbook.md) — FK-first denormalization process with Contact/Communication examples
 - [django-improvements.md](django-improvements.md) — Org snapshot implementation (Section 16)
-- [admin-functions.md](../../admin-functions.md) — Management command reference
+- [maintenance.md](../../maintenance.md) — Management command and maintenance runbook

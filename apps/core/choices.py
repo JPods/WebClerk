@@ -46,6 +46,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("purchase_defaults", "purchase_defaults"),
     ("accounting_defaults", "accounting_defaults"),
     ("keywords", "keywords"),
+    ("search", "search"),
     ("workbench_fields", "workbench_fields"),
     ("detail_field_access", "detail_field_access"),
     ("qa_counters", "qa_counters"),
