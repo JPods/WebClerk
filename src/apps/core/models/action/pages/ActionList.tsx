@@ -386,7 +386,7 @@ const ActionListPage = () => {
         sortable: false,
         width: "150px",
         cell: (row: ActionData) => {
-          const assignees = row.assigned_to || [];
+          const assignees = Array.isArray(row.assigned_to) ? row.assigned_to : [];
           if (assignees.length === 0) return <span className="text-gray-400">Unassigned</span>;
           
           return (
