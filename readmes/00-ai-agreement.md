@@ -49,6 +49,9 @@ New to the project? Read these in order:
 - `migrations-squash.md` - Database migrations
 - `connections.md` - External integrations
 
+**`topics/ai/`** - AI agent collaboration
+- `pattern-recognition.md` - Allie + Alice observation → pattern → feature pipeline
+
 **Data files (root):**
 - `model-registry.json` - Machine-readable model list
 - `model-fields.json` - Field definitions
@@ -146,6 +149,22 @@ All API responses use a standard envelope:
 
 Files prefixed `00-` through `07-` are the core onboarding sequence. Other files are topic-specific references.
 
+## AI Agents
+
+Three agents collaborate in this codebase. Each has a defined role and a defined boundary.
+
+| Agent | Spec | Role |
+|-------|------|------|
+| **Alice** | `.github/agents/Alice.agent.md` | Search quality, keyword denormalization, alice notes, user behavior observation, pattern → feature recommendations |
+| **Allie** | `.github/agents/Allie.agent.md` | Bill's personal AI companion; cross-domain synthesis; WhatIf store (project 24); validates Alice's pattern candidates; sovereign agent into WebClerk |
+| **Claude Code** | `.github/instructions/copilot.instructions.md` | Code generation, architecture, multi-file edits, deep codebase research |
+
+**Pattern recognition loop:** Alice observes → logs to `alice_log` → detects pattern → creates `alice_pending config_suggestion` → Allie validates → promotes to `Setting` feature or routes to WhatIf store → Bill activates. See `topics/ai/pattern-recognition.md`.
+
+**Coordination protocol (master):** `/Volumes/Allie/readmes/19-agent-coordination.md`
+
+---
+
 ## Working With AI
 
 When starting a session, share this context:
@@ -177,4 +196,4 @@ All team members should:
 
 ---
 
-*Last updated: January 2026*
+*Last updated: April 2026*

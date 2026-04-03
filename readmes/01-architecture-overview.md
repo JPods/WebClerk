@@ -17,6 +17,10 @@ WebClerk3 is a Django-based backend application designed for managing commerce a
 - **JSON-First Design**: Extensive use of JSON fields for extensibility without schema churn
 - **Soft Lifecycle Management**: Reversible deletes and archiving
 - **Field-Level Permissions**: Granular access control via settings-driven matrices
+- **Open Source, Anti-Monopoly**: Free software removes platform lock-in; value lives in the data layer, not the software layer — see [Data Library Ecosystem](topics/architecture/data-library-ecosystem.md)
+- **DynamicCatalogs**: Upstream data library service (dynamiccatalogs.com) — ingests raw supplier data, applies distribution agreements to produce retailer-specific landed cost, pushes via wcapi, receives and propagates retailer corrections — see [DynamicCatalogs](topics/architecture/dynamic-catalogs.md)
+- **Dual Hosting**: Desktop hosting (local server, staff access, no cloud dependency) + Cloud hosting (customer access, geographic redundancy) with automatic conflict resolution on reconnect — see [Dual Hosting Model](topics/architecture/dual-hosting-model.md)
+- **Origin**: WebClerk3 is the direct descendant of *Desktop Hosting: A Developer's Guide to Unattended Communications* (Bill James, Wiley ~2002) — the vision, the library model, the Bottom-Up principle, and the Spiral of Excellence all originate there — see [Desktop Hosting Lineage](topics/architecture/desktop-hosting-lineage.md)
 
 ## Architecture Layers
 
