@@ -183,6 +183,54 @@ Thresholds are guidelines, not hard rules. Alice uses judgment. Allie validates.
 6. **If WhatIf**: Allie creates action in project 24; Alice's pending stays open until the WhatIf resolves
 7. **Bill approves active features** — Setting `is_active=True` means live for users
 
+## Low-Noise Friction Signals
+
+Alice should help surface recurring friction, but she should not create a large burden-accounting bureaucracy.
+
+When Alice sends a pattern or recommendation that reflects growing strain, prefer only these shared fields first:
+- `resolution_time_sec`
+- `delay_ratio`
+- `clarification_count`
+- `retry_count`
+- `repeat_failure_class`
+
+These are enough to tell Allie whether a burden pattern is real, recurring, and worth retrospection. If they are not enough, expand later based on evidence, not theory.
+
+## Happiness As A Reportable Item
+
+Alice should also tally a reportable `happiness` item in WebClerk by agent and reporting period.
+
+This item should be stored as a JSONB object. WebClerk already uses JSONB to allow schema evolution without constant migrations, and this report needs that flexibility because the evidence and rubric details will evolve with experience.
+
+The item should include:
+- `agent`
+- `group`
+- `period`
+- `category = profit_and_loss`
+- `subcategory = unhappiness_cost`
+- `happiness` on the shared `1-10` scale
+- `background` as an array of supporting evidence
+- `rubric_version`
+- `unhappiness_gap = 10 - happiness`
+- `cost_method = agent_estimate | proxy_scale`
+- `estimated_unhappiness_cost_monthly_usd`
+- `scaled_defect_cost_monthly_usd = (10 - happiness) * 1000`
+- `unhappiness_cost_monthly_usd`
+
+The comparable reporting keys should stay stable at the top level. Extra domain-specific evidence, rubric logic, and later extensions should remain inside the same JSONB object rather than forcing a rigid early schema.
+
+This lets Alice do two jobs at once:
+1. Keep a comparable tally of burden by agent.
+2. Express the cost of unresolved friction in economic terms inside WebClerk.
+
+The accounting placement should be explicit: this belongs in a Profit and Loss category so the cost of unhappiness is reviewed as an operating cost rather than left as an isolated AI note.
+
+If the agent can justify its own dollar estimate, Alice should preserve that estimate and mark `cost_method = agent_estimate`.
+
+If the agent cannot justify a direct estimate, Alice should fall back to the scaled defect rule and mark `cost_method = proxy_scale`.
+
+The `$1,000/month` rule is a standard fallback proxy, not a claim of exact accounting. It is there to force attention and comparison when exact dollars are not yet known.
+
 ---
 
 ## Future: Allie Recommending to Bill Proactively

@@ -30,6 +30,7 @@ Purpose: Track removal / consolidation tasks that surfaced during refactors (Org
 
 | Area | Item / File / Pattern | Action | Rationale | Status | Impact |
 |------|-----------------------|--------|-----------|--------|--------|
+| Docs / Planning | In-flight April 2026 efforts parked for follow-up | Capture current partial work in readmes until implementation is resumed | Avoid losing context across interrupted work | 🟡 | M |
 | Products | `items_carried.py` | (Removed) verify branch parity & purge from stale feature branches | Legacy alias; replaced by `OrgItem` | ✅ | M |
 | Products → Item model | Duplicate scalar + JSON pricing/cost: `default_price`, `default_cost` vs `price.base` / `cost.avg/last/standard` | Decide: keep both (cache) OR mark decimals deprecated & add sync invariant test | Prevent drift / confusion | ❓ | M |
 | Products → Item model | Field naming: `is_print_not` | Rename to `is_print_suppressed` (backwards compat alias for one release) | Clarity | ⏳ | L |
@@ -48,6 +49,17 @@ Purpose: Track removal / consolidation tasks that surfaced during refactors (Org
 | Migrations | Legacy stubbed migrations (overrides) | Schedule real deletion once all active branches rebased to squash baseline | Repo hygiene | ⏳ | M |
 | Docs | Ensure each complex model group has README: (OrgItem/Catalog ✅, Inventory ✅, Reservations ✅ inline section, Delivery/Checks partial) | Add `delivery-workflow.md` & `inventory-health.md` | Onboarding | ⏳ | M |
 | Automation | Health management command for catalog/orgitem/inventory invariants | Implement `python manage.py system_health --section=products` | Faster QuestionAnswer | ⏳ | H |
+
+## Deferred Follow-Up Notes
+
+- Agent happiness reporting effort remains in progress across `readmes/00-ai-agreement.md`, `readmes/topics/ai/pattern-recognition.md`, and `readmes/ledger-financial-system.md`.
+  - Finish the reporting shape, JSONB storage rules, and accounting category wiring before treating it as active policy.
+- Kanban project generation effort remains in progress in `apps/core/views/manage_view.py`, `tests/test_manage_kanban_projects_action.py`, and `readmes/topics/models/project-kanban-generation.md`.
+  - Resume with endpoint validation, doc cross-links, and any follow-on manage action cleanup.
+- Local environment hardening documentation remains in progress in `readmes/env-setup.md`, `git_bypass/README.md`, and `git_bypass/vscode-env-settings-local-only.md`.
+  - Revisit after confirming the final local-only settings workflow across the multi-root workspace.
+- GL dollars-by-account-code smoke coverage remains in progress in `tests/test_dollars_by_account_code.py`.
+  - Resume once the posting-service contract and unmapped handling-account policy are settled.
 
 ## Recently Completed
 

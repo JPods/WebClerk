@@ -68,11 +68,11 @@ def _log_tally_observation(request, action_name: str, params: Dict[str, Any], re
 # ---------------------------------------------------------------------------
 
 def _generate_kanban_projects(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Create N Project records with evenly-spaced dt_kanban dates.
+    """Create N Project records with Wednesday-aligned dt_kanban dates.
 
     params:
         count        – number of projects to create (required, 1-100)
-        start_date   – ISO date string for the first project, e.g. "2026-03-01" (required)
+        start_date   – ISO date string used to find the first Wednesday on or after it
         interval_days – days between each project's dt_kanban (default 7)
     """
     from apps.transactions.models.project import Project
@@ -90,6 +90,10 @@ def _generate_kanban_projects(params: Dict[str, Any]) -> Dict[str, Any]:
     if start is None:
         raise ValueError(f"Invalid start_date: {start_str}")
 
+    # Normalize to the first Wednesday on or after the requested start date.
+    days_until_wednesday = (2 - start.weekday()) % 7
+    first_wednesday = start + timedelta(days=days_until_wednesday)
+
     interval = int(params.get("interval_days", 7))
     if interval < 1:
         raise ValueError("interval_days must be >= 1")
@@ -97,7 +101,7 @@ def _generate_kanban_projects(params: Dict[str, Any]) -> Dict[str, Any]:
     created_ids = []
     for i in range(count):
         dt = datetime(
-            start.year, start.month, start.day,
+            first_wednesday.year, first_wednesday.month, first_wednesday.day,
             tzinfo=dt_tz.utc,
         ) + timedelta(days=i * interval)
 
@@ -117,7 +121,8 @@ def _generate_kanban_projects(params: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "created": len(created_ids),
         "ids": created_ids,
-        "start_date": start_str,
+        "requested_start_date": start_str,
+        "start_date": first_wednesday.isoformat(),
         "interval_days": interval,
     }
 

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.communications',
     'apps.core',
     'apps.docs',
+    'apps.jpods',
     'apps.orgs',
     'apps.products',
     # 'apps.scheduler',  # TODO: Create scheduler app

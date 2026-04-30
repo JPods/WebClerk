@@ -161,6 +161,8 @@ Three agents collaborate in this codebase. Each has a defined role and a defined
 
 **Pattern recognition loop:** Alice observes → logs to `alice_log` → detects pattern → creates `alice_pending config_suggestion` → Allie validates → promotes to `Setting` feature or routes to WhatIf store → Bill activates. See `topics/ai/pattern-recognition.md`.
 
+**Happiness reporting:** Alice also tallies a reportable `happiness` item in WebClerk by agent and reporting period. Each item is a JSONB object with a stable comparable core, a `background` evidence array, and an `unhappiness_cost_monthly_usd` that comes either from an agent estimate or the fallback scaled defect rule.
+
 **Coordination protocol (master):** `/Volumes/Allie/readmes/19-agent-coordination.md`
 
 ---

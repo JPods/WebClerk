@@ -4,6 +4,9 @@ The backend reads its configuration from `webClerk3/.env`, which is
 **git-ignored**.  Copy the template below into a new `.env` file when
 setting up a fresh clone.
 
+For local-only configuration rationale and rebuild steps, see
+`webClerk3/git_bypass/README.md`.
+
 > The React frontend has its own `.env` — see `React2025/readmes/02-env-setup.md`.
 
 ---
@@ -144,3 +147,20 @@ EMAIL_HOST_PASSWORD=
 
 SENTRY_DSN=
 ```
+
+---
+
+## Readme plan: environment hardening (recommended)
+
+1. Keep Python env-file injection enabled in each workspace folder:
+	- `.vscode/settings.json`
+	- `python.envFile=${workspaceFolder}/.env`
+	- `python.terminal.useEnvFile=true`
+2. Pin the interpreter in `webClerk3/.vscode/settings.json` to avoid accidental global Python usage:
+	- `python.defaultInterpreterPath=/Users/williamjames/Documents/CommerceExpert/webClerk3/bin/python`
+3. Keep `.env-example` in lock-step with `.env` keys (no secrets), and update this readme whenever new keys are introduced.
+4. After changing env or VS Code settings, open a fresh terminal (or reload window) before running `manage.py` commands.
+5. Add a quick validation step to startup docs:
+	- run `python -c "import os; print(os.getenv('DB_MODE'))"` and confirm expected value.
+6. Keep shared multi-root defaults in `/Users/williamjames/Documents/CommerceExpert/CommerceExpert.code-workspace` for consistent behavior across `React2025`, `webClerk3`, `vue2020`, and `00WebClerk19/Project/Sources`.
+7. Track local-only (git-ignored) editor settings in `webClerk3/git_bypass/vscode-env-settings-local-only.md` so setup can be reproduced on a new machine.

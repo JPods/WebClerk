@@ -25,6 +25,8 @@ urlpatterns = [
     # Core API endpoints
     path('', include('apps.core.urls')),
     path('wcapi/ai/', include('apps.ai_assistant.urls')),
+    path('wcapi/jpods/', include('apps.jpods.urls')),
+    path('jpods/',      include('apps.jpods.urls')),
     path('api/orgs/', include('apps.orgs.urls')),
     path('api/docs/', include('apps.docs.urls')),
     path('api/transactions/', include('apps.transactions.urls')),

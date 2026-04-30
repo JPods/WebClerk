@@ -4,6 +4,50 @@
 
 The ledger system provides real-time tracking of customer, vendor, manufacturer, rep, and employee financial data. It uses a **hybrid approach** combining real-time pending records for operational data with batch processing for aggregate metrics.
 
+## Profit And Loss Category For Unhappiness Cost
+
+We will create a Profit and Loss category for agent unhappiness cost.
+
+The reporting payload should be stored as a JSONB object so the system can preserve a comparable core while allowing the defect evidence and rubric details to evolve over time.
+
+Purpose:
+- give Alice a standard accounting bucket for happiness reporting by agent
+- let unhappiness appear as a visible operating cost in monthly review
+- keep the `$1,000` per point gap rule attached to a clear financial category
+- avoid freezing the reporting shape too early when the agents are still learning how to describe their own defects
+
+Expected fields for each reporting item:
+- `category = profit_and_loss`
+- `subcategory = unhappiness_cost`
+- `agent`
+- `group`
+- `period`
+- `happiness`
+- `unhappiness_gap`
+- `cost_method = agent_estimate | proxy_scale`
+- `estimated_unhappiness_cost_monthly_usd`
+- `scaled_defect_cost_monthly_usd`
+- `unhappiness_cost_monthly_usd`
+- `background`
+- `rubric_version`
+
+Recommended storage rule:
+- stable reporting keys stay queryable at the top level of the JSONB object
+- background evidence remains as arrays/objects inside JSONB
+- group-specific extensions are allowed without requiring new columns for each new lesson learned
+
+If the agent can estimate its own monthly dollar impact credibly, preserve that estimate as the primary cost.
+
+If it cannot, use the fallback scaled defect cost:
+
+$$
+scaled\_defect\_cost\_monthly\_usd = (10 - happiness) \times 1000
+$$
+
+This follows the same management logic as Small Stings: a defect still deserves a scale even when exact dollars are not yet known.
+
+This does not claim GAAP precision. It is a management accounting signal for the cost of recurring friction and low happiness across agents.
+
 ## Implementation Files
 
 ### Django (webClerk3)
