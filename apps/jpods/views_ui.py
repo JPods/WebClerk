@@ -196,6 +196,7 @@ class UIPriceView(APIView):
     Body: {"origin_station_id": "S001", "destination_station_id": "S003"}
     Returns personalized price for the authenticated rider.
     """
+    authentication_classes = []   # MyCarryOnPermission validates its own token
     permission_classes = [MyCarryOnPermission]
 
     def post(self, request):
@@ -269,6 +270,7 @@ class TravelView(APIView):
     Body: price response fields (origin, destination, price, item_id, etc.)
     Posts invoice to Alice. Pod dispatch wired when Natalie inbound API is ready.
     """
+    authentication_classes = []   # MyCarryOnPermission validates its own token
     permission_classes = [MyCarryOnPermission]
 
     def post(self, request):

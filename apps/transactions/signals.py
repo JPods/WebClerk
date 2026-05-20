@@ -387,10 +387,14 @@ def allie_order_event(sender, instance: Order, created, **kwargs):
 @receiver(post_save, sender=Invoice)
 def allie_invoice_event(sender, instance: Invoice, created, **kwargs):
     status = getattr(instance, "status", "")
+    released = getattr(instance, "STATUS_RELEASED", "released")
+    complete  = getattr(instance, "STATUS_COMPLETE", "complete")
     # Distinguish the fulfillment boundary from generic updates.
-    # order_fulfilled is the tool boundary: money moved, goods committed.
-    if not created and status == getattr(instance, "STATUS_RELEASED", None) \
-            and getattr(instance, "_original_status", None) != status:
+    # order_fulfilled fires on STATUS_RELEASED (standard) or STATUS_COMPLETE
+    # (JPods trip invoices — created directly at complete, no released step).
+    fulfillment_statuses = {released, complete}
+    prev = getattr(instance, "_original_status", None)
+    if status in fulfillment_statuses and (created or prev != status):
         event = "order_fulfilled"
     elif created:
         event = "invoice_created"
