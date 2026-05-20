@@ -11,8 +11,27 @@ their logic genuinely differs per model.
 """
 from __future__ import annotations
 import json
+import subprocess
+import pathlib
 from decimal import Decimal
 from django.db.models.signals import post_save, pre_save, post_delete
+
+_ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
+
+def _allie(event: str, message: str = "", data: dict | None = None):
+    """Fire-and-forget Allie event capture. Never raises, never blocks request cycle."""
+    if not _ALLIE_CAPTURE.exists():
+        return
+    try:
+        args = ["python3", str(_ALLIE_CAPTURE),
+                "--source", "webclerk3",
+                "--event",  event,
+                "--message", message]
+        if data:
+            args += ["--data", json.dumps(data)]
+        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
 from django.dispatch import receiver
 from apps.transactions.models import (
     ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
@@ -350,3 +369,43 @@ def create_payment_ledger(sender, instance: Payment, created, **kwargs):
         logging.getLogger('transactions.signals').warning(
             "Failed to detect late-payment erosion for payment #%s", instance.pk, exc_info=True
         )
+
+
+# =============================================================================
+# ALLIE CAPTURE — development process + transaction monitoring
+# Fire-and-forget. These receivers never block the request cycle.
+# =============================================================================
+
+@receiver(post_save, sender=Order)
+def allie_order_event(sender, instance: Order, created, **kwargs):
+    event = "order_created" if created else "order_updated"
+    _allie(event,
+           f"Order #{instance.pk}",
+           {"id": instance.pk, "status": getattr(instance, "status", "")})
+
+
+@receiver(post_save, sender=Invoice)
+def allie_invoice_event(sender, instance: Invoice, created, **kwargs):
+    status = getattr(instance, "status", "")
+    # Distinguish the fulfillment boundary from generic updates.
+    # order_fulfilled is the tool boundary: money moved, goods committed.
+    if not created and status == getattr(instance, "STATUS_RELEASED", None) \
+            and getattr(instance, "_original_status", None) != status:
+        event = "order_fulfilled"
+    elif created:
+        event = "invoice_created"
+    else:
+        event = "invoice_updated"
+    _allie(event,
+           f"Invoice #{instance.pk} status={status}",
+           {"id": instance.pk, "status": status,
+            "order": getattr(instance, "order_id", None)})
+
+
+@receiver(post_save, sender=Payment)
+def allie_payment_event(sender, instance: Payment, created, **kwargs):
+    status = getattr(instance, "status", "")
+    event = "payment_created" if created else f"payment_{status}"
+    _allie(event,
+           f"Payment #{instance.pk} status={status}",
+           {"id": instance.pk, "status": status})

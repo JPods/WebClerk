@@ -18,9 +18,31 @@ In production, require OTP, biometric, or mycarryon.io credential before returni
 
 from __future__ import annotations
 
+import json
 import logging
+import pathlib
+import subprocess
 import uuid as uuid_module
 from datetime import datetime
+
+
+_ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
+
+
+def _allie(event: str, message: str = "", data: dict | None = None):
+    """Fire-and-forget Allie event capture. Never raises, never blocks request."""
+    if not _ALLIE_CAPTURE.exists():
+        return
+    try:
+        args = ["python3", str(_ALLIE_CAPTURE),
+                "--source", "WC3",
+                "--event",  event,
+                "--message", message[:200]]
+        if data:
+            args += ["--data", json.dumps(data)]
+        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
 
 from rest_framework.permissions import BasePermission, AllowAny
 from rest_framework.response import Response
@@ -211,6 +233,15 @@ class UIPriceView(APIView):
             display += f" ({discount_label})"
         elif price_level != "retail":
             display += f" ({price_level} rate)"
+
+        # Tool boundary: Alice priced a trip. Rider is about to commit.
+        # Captures origin/destination/price — feeds Alice's pattern loop.
+        _allie("price_query",
+               f"{origin} → {destination} = {currency} {final_price:.2f}",
+               {"origin": origin, "destination": destination,
+                "price": str(final_price), "currency": currency,
+                "price_level": price_level, "network_id": network_id,
+                "contact_id": contact.pk})
 
         return Response({
             "contact_id": contact.pk,
