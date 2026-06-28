@@ -199,6 +199,7 @@ export const apiClient = axios.create({
     typeof window !== "undefined" && window.location.protocol === "http:"
       ? ""
       : NetworkInfo.API_URL,
+  timeout: 30_000,
 });
 
 // Separate client for Notion integration endpoints
@@ -212,6 +213,7 @@ export const authClient = axios.create({
     typeof window !== "undefined" && window.location.protocol === "http:"
       ? ""
       : NetworkInfo.AUTH_URL,
+  timeout: 15_000,
   withCredentials: true,
 });
 

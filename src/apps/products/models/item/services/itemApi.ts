@@ -1,61 +1,41 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
-import { deleteRecord } from "@/api/wcapi";
+/* LastChecked: 2026-06-27 | WhereUsed: ItemList, ItemDetail | WhoCreated: Unknown */
+import { getRecords, getRecord, saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import type {
   CreateItemRequest,
   ItemApiTask,
   UpdateItemRequest,
 } from "../types/itemType";
 
-const unwrap = <T>(response: any): T => {
-  if (!response) return [] as unknown as T;
-  if (response.data?.data) return response.data.data as T;
-  if (response.data) return response.data as T;
-  return response as T;
-};
-
 export const createItem = async (
   payload: CreateItemRequest
 ): Promise<ItemApiTask> => {
-  const model_name: string = "item";
-  const res = await apiClient.post(PostLoginURL.allSave, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<ItemApiTask>(res);
+  return saveRecord("item", payload) as Promise<ItemApiTask>;
 };
 
 export const updateItem = async (
   payload: UpdateItemRequest
 ): Promise<ItemApiTask> => {
-  const model_name: string = "item";
-  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
-    ...payload,
-    model_name,
-  });
-  return unwrap<ItemApiTask>(res);
+  return saveRecord("item", payload) as Promise<ItemApiTask>;
 };
 
 export const deleteItem = async (id: number) => {
-  return deleteRecord('item', id);
+  return deleteRecord("item", id);
 };
 
 export const fetchItems = async (id: any = "") => {
-  try {
-    const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=item" + (id ? `&id=${id}` : "")
-    );
-    return res;
-  } catch (error: any) {
-    return error.response?.data || error.message;
+  if (id) {
+    const record = await getRecord("item", id);
+    return { status: 200, data: { data: record } };
   }
+  const result = await getRecords("item");
+  return { status: 200, data: result };
 };
 
 export const fetchItem = async (id?: number): Promise<{ data: ItemApiTask | ItemApiTask[] }> => {
-  const url = id 
-    ? `${PostLoginURL.allTypes}model_name=item&id=${id}`
-    : `${PostLoginURL.allTypes}model_name=item`;
-  const res = await apiClient.get(url);
-  return { data: unwrap<ItemApiTask | ItemApiTask[]>(res) };
+  if (id) {
+    const record = await getRecord("item", id);
+    return { data: record as ItemApiTask };
+  }
+  const result = await getRecords("item");
+  return { data: result as ItemApiTask[] };
 };

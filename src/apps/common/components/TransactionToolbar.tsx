@@ -23,6 +23,8 @@ import {
   FaSpinner,
   FaChevronDown,
   FaTasks,
+  FaLock,
+  FaUnlock,
 } from "react-icons/fa";
 import PrintReportDropdown from "@/components/common/PrintReportDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
@@ -77,6 +79,12 @@ interface TransactionToolbarProps {
   canClone?: boolean;
   /** Whether transfer is allowed */
   canTransfer?: boolean;
+  /** Callback for Post to GL (journalize) action — invoice/payment only */
+  onPostGL?: () => Promise<void> | void;
+  /** Callback for Reverse GL action — journalized records only */
+  onReverseGL?: () => Promise<void> | void;
+  /** Whether record is locked (journalized) */
+  isLocked?: boolean;
   /** Callback for Add Task action */
   onAddTask?: () => void;
   /** Whether to show Add Task button */
@@ -107,6 +115,9 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   canDelete = true,
   canClone = true,
   canTransfer = true,
+  onPostGL,
+  onReverseGL,
+  isLocked = false,
   onAddTask,
   showTaskButton = true,
   taskCount,
@@ -285,6 +296,42 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
               <FaCopy size={14} />
             )}
             <span className="hidden md:inline">Clone</span>
+          </button>
+        )}
+
+        {/* Post to GL (journalize) — only for unlocked invoice/payment */}
+        {!isNewRecord && onPostGL && !isLocked && (
+          <button
+            type="button"
+            onClick={() => handleAction("postGL", onPostGL)}
+            disabled={actionInProgress !== null}
+            className={`${secondaryButton} text-xs`}
+            title="Post to General Ledger (journalize — locks record)"
+          >
+            {actionInProgress === "postGL" ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <FaLock size={14} />
+            )}
+            <span className="hidden md:inline">Post GL</span>
+          </button>
+        )}
+
+        {/* Reverse GL — only for locked (journalized) records */}
+        {!isNewRecord && onReverseGL && isLocked && (
+          <button
+            type="button"
+            onClick={() => handleAction("reverseGL", onReverseGL)}
+            disabled={actionInProgress !== null}
+            className={`${secondaryButton} text-xs text-amber-600 hover:text-amber-700`}
+            title="Reverse GL entries (unlocks record for editing)"
+          >
+            {actionInProgress === "reverseGL" ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <FaUnlock size={14} />
+            )}
+            <span className="hidden md:inline">Reverse GL</span>
           </button>
         )}
 

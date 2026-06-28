@@ -105,8 +105,7 @@ export default function ItemList() {
       const res = await fetchItems();
       if (res.status === 200) {
         const normalized = extractItems(res);
-        // Limit to first 10 records to reduce initial load time
-        setItems(normalized.slice(0, 10));
+        setItems(normalized);
         if (!normalized.length) {
           dispatch(
             showToast({

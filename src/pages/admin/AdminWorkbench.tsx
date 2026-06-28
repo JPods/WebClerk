@@ -1,8 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createBlankRecord } from '../../tools/createBlankRecord';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
+import { PageRoutes } from '../../routes/Routes';
 import { NetworkInfo } from '../../routes/network';
 import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting, getAllWorkbenchFieldsSettings } from '../../api/wcapi';
 
@@ -89,6 +90,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const AdminWorkbench: React.FC = () => {
+  const navigate = useNavigate();
   const [modelNames, setModelNames] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState<boolean>(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
@@ -97,6 +99,14 @@ const AdminWorkbench: React.FC = () => {
   const [recordsLoading, setRecordsLoading] = useState<boolean>(false);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [recordSearch, setRecordSearch] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Wrap record updates to track dirty state
+  const updateField = useCallback((field: string, value: unknown) => {
+    setSelectedRecord((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setIsDirty(true);
+  }, []);
   const [selectedRecord, setSelectedRecord] = useState<WorkbenchRecord | null>(null);
   const [allFields, setAllFields] = useState<string[]>([]);
   const [workbenchSetting, setWorkbenchSetting] = useState<WorkbenchFieldsSetting | null>(null);
@@ -336,11 +346,21 @@ const AdminWorkbench: React.FC = () => {
           <h1 className="text-lg font-semibold text-slate-900">Admin Workbench</h1>
           <p className="mt-0.5 text-xs text-slate-400">Role: {roleLabel}</p>
         </div>
-        <div className="text-right text-xs text-slate-500">
-          <div>{totalModelCount ? `${totalModelCount} models` : 'No models'}</div>
-          {selectedModel && (
-            <div className="mt-0.5 text-[11px] text-slate-400">{selectedModel}</div>
-          )}
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate(PageRoutes.accountingDashboard)}
+            className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">
+            Accounting
+          </button>
+          <button onClick={() => navigate(PageRoutes.aliceTraining)}
+            className="px-3 py-1.5 text-xs font-medium bg-purple-600 text-white rounded hover:bg-purple-700">
+            Alice Training
+          </button>
+          <div className="text-right text-xs text-slate-500 ml-3">
+            <div>{totalModelCount ? `${totalModelCount} models` : 'No models'}</div>
+            {selectedModel && (
+              <div className="mt-0.5 text-[11px] text-slate-400">{selectedModel}</div>
+            )}
+          </div>
         </div>
       </header>
       <div className="border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
@@ -419,13 +439,22 @@ const AdminWorkbench: React.FC = () => {
             </div>
             <div className={`${colBase} w-full md:basis-[30%] md:max-w-2xl md:flex-none`}>
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-700">
-                    {selectedModelLabel ? `Records (${selectedModelLabel})` : 'Records'}
-                  </span>
-                  {selectedModel && (
-                    <p className="text-xs text-gray-400">{selectedModel}</p>
-                  )}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {selectedModelLabel ? `Records (${selectedModelLabel})` : 'Records'}
+                    </span>
+                    {selectedModel && (
+                      <span className="ml-2 text-xs text-gray-400">{records.length} records</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Filter records..."
+                    value={recordSearch}
+                    onChange={(e) => setRecordSearch(e.target.value)}
+                    className="w-40 rounded border border-gray-300 px-2 py-1 text-xs"
+                  />
                 </div>
               </div>
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
@@ -470,7 +499,14 @@ const AdminWorkbench: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((record, index) => {
+                    {records.filter((record) => {
+                      if (!recordSearch.trim()) return true;
+                      const search = recordSearch.toLowerCase();
+                      return visibleListFields.some((f) => {
+                        const v = record[f];
+                        return String(v ?? '').toLowerCase().includes(search);
+                      });
+                    }).map((record, index) => {
                       const recordId = toNumericId(record.id);
                       const rowKey = recordId ?? `${selectedModel || 'record'}-${index}`;
                       const isActive = recordId !== null && selectedId === recordId;
@@ -481,6 +517,7 @@ const AdminWorkbench: React.FC = () => {
                           onClick={() => {
                             if (recordId !== null) {
                               setSelectedId(recordId);
+                              setIsDirty(false);
                             }
                           }}
                         >
@@ -510,8 +547,26 @@ const AdminWorkbench: React.FC = () => {
                     <p className="text-xs text-gray-400">Record #{selectedId}</p>
                   ) : null}
                 </div>
-                <div className="space-x-2">
-                  <button className="px-3 py-1 text-sm rounded border hover:bg-gray-100" onClick={handleSave} disabled={!selectedRecord}>Save</button>
+                <div className="flex items-center gap-2">
+                  {isDirty && <span className="text-xs text-amber-600 font-medium">unsaved</span>}
+                  <button className="px-3 py-1 text-sm rounded border bg-blue-600 text-white hover:bg-blue-700" onClick={() => { handleSave(); setIsDirty(false); }} disabled={!selectedRecord}>Save</button>
+                  <button
+                    className="px-3 py-1 text-sm rounded border text-red-600 border-red-300 hover:bg-red-50"
+                    disabled={!selectedRecord || !selectedId}
+                    onClick={async () => {
+                      if (!selectedModel || !selectedId) return;
+                      if (!confirm(`Delete ${selectedModel} #${selectedId}?`)) return;
+                      try {
+                        const { deleteRecord: del } = await import('../../api/wcapi');
+                        await del(selectedModel, selectedId);
+                        setRecords((prev) => prev.filter((r) => toNumericId(r.id) !== selectedId));
+                        setSelectedRecord(null);
+                        setSelectedId(null);
+                      } catch (e) {
+                        console.error('Delete failed:', e);
+                      }
+                    }}
+                  >Delete</button>
                 </div>
               </div>
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
@@ -544,17 +599,109 @@ const AdminWorkbench: React.FC = () => {
                       .filter((field) => Object.prototype.hasOwnProperty.call(selectedRecord, field))
                       .map((field) => {
                         const value = selectedRecord[field];
-                        const displayValue = typeof value === 'object' && value !== null
-                          ? JSON.stringify(value)
-                          : String(value ?? '');
+                        const isReadOnly = ['id', 'dt_created', 'dt_modified', 'version', 'uuid', 'ida'].includes(field);
+                        const isBoolean = typeof value === 'boolean';
+                        const isNumber = typeof value === 'number' && !field.startsWith('dt_');
+                        const isJson = typeof value === 'object' && value !== null;
+                        const isLongText = typeof value === 'string' && value.length > 100;
+                        const isTimestamp = field.startsWith('dt_') && typeof value === 'number';
+
+                        // Read-only fields (identity + system)
+                        if (isReadOnly) {
+                          return (
+                            <label key={field} className="text-sm">
+                              <div className="mb-1 text-gray-400 text-xs">{field}</div>
+                              <div className="w-full rounded bg-gray-50 border border-gray-200 px-2 py-1 text-xs text-gray-500 font-mono">
+                                {isTimestamp && value ? new Date(value as number).toLocaleString() : String(value ?? '')}
+                              </div>
+                            </label>
+                          );
+                        }
+
+                        // Boolean toggle
+                        if (isBoolean) {
+                          return (
+                            <label key={field} className="text-sm flex items-center gap-2 py-1">
+                              <input
+                                type="checkbox"
+                                checked={value as boolean}
+                                onChange={(e) => updateField(field, e.target.checked)
+                                }
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                              />
+                              <span className="text-gray-600">{field}</span>
+                            </label>
+                          );
+                        }
+
+                        // JSON — collapsible editor
+                        if (isJson) {
+                          const jsonStr = JSON.stringify(value, null, 2);
+                          const isLarge = jsonStr.length > 200;
+                          return (
+                            <label key={field} className="text-sm sm:col-span-2">
+                              <div className="mb-1 text-gray-600 flex items-center gap-2">
+                                {field}
+                                <span className="text-xs text-gray-400 font-mono">JSON ({jsonStr.length} chars)</span>
+                              </div>
+                              <textarea
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-xs font-mono bg-slate-50"
+                                rows={isLarge ? 8 : 3}
+                                value={jsonStr}
+                                onChange={(e) => {
+                                  try {
+                                    const parsed = JSON.parse(e.target.value);
+                                    updateField(field, parsed);
+                                  } catch {
+                                    // Allow invalid JSON while typing — don't update state
+                                  }
+                                }}
+                              />
+                            </label>
+                          );
+                        }
+
+                        // Number input
+                        if (isNumber) {
+                          return (
+                            <label key={field} className="text-sm">
+                              <div className="mb-1 text-gray-600">{field}</div>
+                              <input
+                                type="number"
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm font-mono"
+                                value={value as number}
+                                onChange={(e) => updateField(field, parseFloat(e.target.value) || 0)
+                                }
+                              />
+                            </label>
+                          );
+                        }
+
+                        // Long text — textarea
+                        if (isLongText) {
+                          return (
+                            <label key={field} className="text-sm sm:col-span-2">
+                              <div className="mb-1 text-gray-600">{field}</div>
+                              <textarea
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                rows={4}
+                                value={String(value ?? '')}
+                                onChange={(e) => updateField(field, e.target.value)
+                                }
+                              />
+                            </label>
+                          );
+                        }
+
+                        // Default — text input
                         return (
                           <label key={field} className="text-sm">
                             <div className="mb-1 text-gray-600">{field}</div>
                             <input
                               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                              value={displayValue}
-                              onChange={(event) =>
-                                setSelectedRecord((prev) => (prev ? { ...prev, [field]: event.target.value } : prev))
+                              value={String(value ?? '')}
+                              onChange={(e) =>
+                                setSelectedRecord((prev) => (prev ? { ...prev, [field]: e.target.value } : prev))
                               }
                             />
                           </label>

@@ -191,6 +191,16 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
+    name: "Accounting",
+    path: "/accounting",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Alice Training",
+    path: "/training",
+  },
+  {
+    icon: <GridIcon />,
     name: "CycleDetails",
     path: PageRoutes.detailReview,
   },

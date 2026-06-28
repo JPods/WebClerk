@@ -68,6 +68,8 @@ import {
   TagList,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import AccountingDashboard from "../pages/admin/AccountingDashboard";
+import AliceTraining from "../pages/admin/AliceTraining";
 import DetailReview from "../pages/admin/DetailReview";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
@@ -158,6 +160,8 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.actionList, element: <ActionListPage /> },
   { path: PageRoutes.actionDetail, element: <ActionDetail /> },
   { path: PageRoutes.adminWorkbench, element: <AdminWorkbench /> },
+  { path: PageRoutes.accountingDashboard, element: <AccountingDashboard /> },
+  { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
   { path: PageRoutes.detailReview, element: <DetailReview /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
