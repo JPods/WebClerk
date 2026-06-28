@@ -1124,6 +1124,12 @@ def save_transaction_with_lines(
         from apps.products.dispatch_pending import dispatch_pending_processing
         dispatch_pending_processing(limit=200, caller='transaction_save')
 
+    # ── Phase 4b: Tax & shipping ──────────────────────────────────────
+    # Currently fixed values entered by user on the invoice. Tax service
+    # (tax_service.py) exists with Avalara/TaxJar/builtin support but is
+    # not wired in until API option is offered. Totals calculation in
+    # calculate_header_totals() already includes tax and shipping fields.
+
     # ── Phase 5: Ledger / AR hooks (invoice only) ────────────────────
     # Creates ledger records based on payment terms, updates org aging.
     # Mirrors legacy 4D Ledger_InvSave: delete-and-recreate pattern.

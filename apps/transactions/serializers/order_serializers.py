@@ -11,6 +11,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderLineSerializer(serializers.ModelSerializer):
     parent_id = serializers.IntegerField(required=True)
+    action = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
+    flow = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
+    source = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
 
     class Meta:
         model = OrderLine
@@ -22,6 +25,9 @@ class OrderLineSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "dt_created", "dt_modified"]
 
     def create(self, validated_data):
+        # Strip non-model fields
+        for k in ("action", "flow", "source"):
+            validated_data.pop(k, None)
         parent_id = validated_data.pop("parent_id", None)
         if parent_id is None:
             raise serializers.ValidationError({"parent_id": "This field is required."})
@@ -29,16 +35,19 @@ class OrderLineSerializer(serializers.ModelSerializer):
             parent = Order.objects.get(pk=parent_id)
         except Order.DoesNotExist:
             raise serializers.ValidationError({"parent_id": "Invalid order id"})
-        validated_data["parent"] = parent
+        validated_data["order"] = parent
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # Strip non-model fields
+        for k in ("action", "flow", "source"):
+            validated_data.pop(k, None)
         if "parent_id" in validated_data:
             parent_id = validated_data.pop("parent_id")
             try:
                 parent = Order.objects.get(pk=parent_id)
             except Order.DoesNotExist:
                 raise serializers.ValidationError({"parent_id": "Invalid order id"})
-            validated_data["parent"] = parent
+            validated_data["order"] = parent
         return super().update(instance, validated_data)
 

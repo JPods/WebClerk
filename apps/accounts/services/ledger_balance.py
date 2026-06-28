@@ -410,6 +410,117 @@ def _stage_payment_gl_accounts(payment) -> None:
         pass
 
 
+def post_staged_gl_entries(instance) -> int:
+    """Convert staged metadata.gl_accounts postings into actual GlJournal records.
+
+    USER-INITIATED ACTION — not called automatically on save. Invoices,
+    receipts, and payments remain editable until a user explicitly journals
+    them. Call this when the user selects "Post to GL" or equivalent action.
+
+    Reads instance.metadata['gl_accounts']['postings'] and creates one
+    GlJournal per posting. Guards against double-posting by checking
+    source_id + source_model.
+
+    Returns the number of GlJournal records created.
+    """
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+
+    metadata = getattr(instance, 'metadata', None)
+    if not isinstance(metadata, dict):
+        return 0
+    gl_data = metadata.get('gl_accounts')
+    if not isinstance(gl_data, dict):
+        return 0
+    postings = gl_data.get('postings')
+    if not isinstance(postings, list) or not postings:
+        return 0
+
+    source_id = instance.pk
+    source_model = instance._meta.model_name
+    event = gl_data.get('event', '')
+
+    # Guard against double-posting
+    if GlJournal.objects.filter(source_id=source_id, source_model=source_model).exists():
+        return 0
+
+    # Determine journal type from event
+    type_map = {
+        'invoice_created': 'sales',
+        'payment_received': 'general',
+    }
+    journal_type = type_map.get(event, 'general')
+
+    created = 0
+    for posting in postings:
+        if not isinstance(posting, dict):
+            continue
+        side = posting.get('side', '')
+        amount = float(posting.get('amount', 0) or 0)
+        if amount == 0:
+            continue
+        GlJournal.objects.create(
+            account=posting.get('account', ''),
+            debit=amount if side == 'debit' else None,
+            credit=amount if side == 'credit' else None,
+            source='automation',
+            type=journal_type,
+            source_id=source_id,
+            source_model=source_model,
+        )
+        created += 1
+    return created
+
+
+def reverse_gl_entries(instance, reason: str = '') -> int:
+    """Create contra entries that reverse all GL postings for an instance.
+
+    USER-INITIATED ACTION — called when a journalized record needs correction.
+    The original entries stay as permanent record; reversal creates mirror
+    entries (debit↔credit swapped, same amounts). Standard double-entry
+    accounting: no erasure, only reversal.
+
+    After reversal, the record is unlocked (is_locked=False) so it can
+    be edited and re-journalized.
+
+    Returns the number of reversal GlJournal records created.
+    """
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+
+    source_id = instance.pk
+    source_model = instance._meta.model_name
+
+    originals = GlJournal.objects.filter(
+        source_id=source_id,
+        source_model=source_model,
+    )
+    if not originals.exists():
+        return 0
+
+    # Check for existing reversals — use a reversal source_model marker
+    reversal_model = f'{source_model}_reversal'
+    if GlJournal.objects.filter(source_id=source_id, source_model=reversal_model).exists():
+        return 0  # already reversed
+
+    created = 0
+    for orig in originals:
+        # Swap debit↔credit
+        GlJournal.objects.create(
+            account=orig.account,
+            debit=orig.credit,    # original credit becomes reversal debit
+            credit=orig.debit,    # original debit becomes reversal credit
+            source='automation',
+            type=orig.type,
+            source_id=source_id,
+            source_model=reversal_model,
+        )
+        created += 1
+
+    # Unlock the record so it can be edited and re-journalized
+    instance.__class__.objects.filter(pk=source_id).update(is_locked=False)
+
+    return created
+
+
 def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'Pending':
     """
     Create a Pending record that commands a ledger ↔ invoice re-sync.
@@ -565,7 +676,7 @@ def on_payment_save(payment) -> None:
     from .terms_ledger import record_payment
 
     _stage_payment_gl_accounts(payment)
-    
+
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     
     # AUDIT: Delete existing ledgers for this payment before recreating

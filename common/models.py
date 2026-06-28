@@ -805,7 +805,10 @@ class CommentsMixin(models.Model):
         return txt[:255]
 
     def _get_linkage_id(self) -> int | None:
-        """Return linkage id if present in refs.links.linkage[0]."""
+        """Return linkage id if present in refs.links.linkage[0].
+
+        Handles both raw int format [1] and denormalized dict format [{"id": 1}].
+        """
         if not hasattr(self, 'refs'):
             return None
         refs = getattr(self, 'refs') or {}
@@ -816,7 +819,10 @@ class CommentsMixin(models.Model):
             return None
         linkage_list = links.get('linkage') or []
         if isinstance(linkage_list, list) and linkage_list:
-            return linkage_list[0]
+            first = linkage_list[0]
+            if isinstance(first, dict):
+                return first.get('id')
+            return first
         return None
 
     # ---- Public API -------------------------------------------------------
@@ -842,8 +848,8 @@ class CommentsMixin(models.Model):
         linkage_id = self._get_linkage_id() if use_linkage else None
         if linkage_id:
             try:
-                from apps.docs.models.linkage import Linkage  # local import to avoid cycles
-                linkage = Linkage.objects.filter(pk=linkage_id).first()
+                from apps.docs.models.linkage_entry import LinkageEntry  # local import to avoid cycles
+                linkage = LinkageEntry.objects.filter(pk=linkage_id).first()
                 if linkage:
                     return linkage.add_comment(channel=channel, text=clipped, by=str(by), model=model, record_id=record_id, scope=scope, source=source)
             except Exception:  # pragma: no cover
@@ -882,8 +888,8 @@ class CommentsMixin(models.Model):
         linkage_id = self._get_linkage_id()
         if linkage_id:
             try:
-                from apps.docs.models.linkage import Linkage
-                linkage = Linkage.objects.filter(pk=linkage_id).first()
+                from apps.docs.models.linkage_entry import LinkageEntry
+                linkage = LinkageEntry.objects.filter(pk=linkage_id).first()
                 if linkage:
                     return linkage.aggregated_comment_summary()
             except Exception:  # pragma: no cover

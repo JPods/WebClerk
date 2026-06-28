@@ -44,7 +44,7 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
             parent = Invoice.objects.get(pk=parent_id)
         except Invoice.DoesNotExist:
             raise serializers.ValidationError({"parent_id": "Invalid invoice id"})
-        validated_data["parent"] = parent
+        validated_data["invoice"] = parent
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -57,5 +57,5 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
                 parent = Invoice.objects.get(pk=parent_id)
             except Invoice.DoesNotExist:
                 raise serializers.ValidationError({"parent_id": "Invalid invoice id"})
-            validated_data["parent"] = parent
+            validated_data["invoice"] = parent
         return super().update(instance, validated_data)

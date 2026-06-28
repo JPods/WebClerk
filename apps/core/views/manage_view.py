@@ -5,6 +5,7 @@ POST /wcapi/manage/
 Body: { "action": "<action_name>", "params": { ... } }
 
 Actions:
+  post_gl_entries            — post staged GL journal entries for invoice/payment; locks record
   generate_kanban_projects  — bulk-create Project records with sequential kanban dates
   get_receivable_aging      — return per-customer aging summary for open AR ledgers
     get_tally_summary_by_period — return period totals across core transaction models
@@ -318,7 +319,202 @@ def _export_tally_report(params: Dict[str, Any]) -> Dict[str, Any]:
     return export_tally_report(params)
 
 
+def _post_gl_entries(params: dict) -> dict:
+    """Post staged GL journal entries for an invoice or payment.
+
+    User-initiated action — records stay editable until this is called.
+    After posting, the record should be locked (is_locked=True) to prevent
+    edits. Corrections require reversing transactions.
+
+    Params:
+        model_name: 'invoice' or 'payment'
+        id: record primary key
+    """
+    from django.apps import apps as dj_apps
+    from apps.accounts.services.ledger_balance import post_staged_gl_entries
+
+    model_name = params.get('model_name', '').lower()
+    record_id = params.get('id')
+    if not model_name or not record_id:
+        raise ValueError("model_name and id are required")
+    if model_name not in ('invoice', 'payment'):
+        raise ValueError("model_name must be 'invoice' or 'payment'")
+
+    # Resolve model
+    app_label = 'transactions'
+    Model = dj_apps.get_model(app_label, model_name.capitalize())
+    try:
+        instance = Model.objects.get(pk=record_id)
+    except Model.DoesNotExist:
+        raise ValueError(f"{model_name} #{record_id} not found")
+
+    # Check not already locked
+    if getattr(instance, 'is_locked', False):
+        raise ValueError(f"{model_name} #{record_id} is already journalized (locked)")
+
+    # Post GL entries
+    count = post_staged_gl_entries(instance)
+    if count == 0:
+        return {
+            'posted': 0,
+            'message': f"No GL entries to post (already posted or no staged data)",
+        }
+
+    # Lock the record — no further edits without reversal
+    Model.objects.filter(pk=record_id).update(is_locked=True)
+
+    return {
+        'posted': count,
+        'model_name': model_name,
+        'id': record_id,
+        'locked': True,
+        'message': f"Posted {count} GL entries for {model_name} #{record_id}. Record is now locked.",
+    }
+
+
+def _reverse_gl_entries(params: dict) -> dict:
+    """Reverse GL journal entries for a journalized invoice or payment.
+
+    Creates contra entries (debit↔credit swapped). Original entries remain
+    as permanent record. Record is unlocked after reversal so it can be
+    edited and re-journalized.
+
+    Params:
+        model_name: 'invoice' or 'payment'
+        id: record primary key
+        reason: optional reason for reversal
+    """
+    from django.apps import apps as dj_apps
+    from apps.accounts.services.ledger_balance import reverse_gl_entries
+
+    model_name = params.get('model_name', '').lower()
+    record_id = params.get('id')
+    reason = params.get('reason', '')
+    if not model_name or not record_id:
+        raise ValueError("model_name and id are required")
+    if model_name not in ('invoice', 'payment'):
+        raise ValueError("model_name must be 'invoice' or 'payment'")
+
+    app_label = 'transactions'
+    Model = dj_apps.get_model(app_label, model_name.capitalize())
+    try:
+        instance = Model.objects.get(pk=record_id)
+    except Model.DoesNotExist:
+        raise ValueError(f"{model_name} #{record_id} not found")
+
+    if not getattr(instance, 'is_locked', False):
+        raise ValueError(f"{model_name} #{record_id} is not journalized (not locked)")
+
+    count = reverse_gl_entries(instance, reason=reason)
+    if count == 0:
+        return {
+            'reversed': 0,
+            'message': f"No entries to reverse (already reversed or no GL entries)",
+        }
+
+    return {
+        'reversed': count,
+        'model_name': model_name,
+        'id': record_id,
+        'unlocked': True,
+        'message': f"Reversed {count} GL entries for {model_name} #{record_id}. Record unlocked for editing.",
+    }
+
+
+def _run_training_flow(params: dict) -> dict:
+    """Alice: run a training/health-check transaction cycle.
+
+    Creates proposal → order → invoice → payment → PO → receipt
+    for a specific customer and item. All records flagged with
+    metadata.training=True so reporting excludes them.
+
+    Params:
+        customer_id: customer org to use
+        item_id: item to transact
+        proposal_qty: (default 5)
+        order_qty: (default 4)
+        invoice_qty: (default 3)
+        po_qty: (default 10)
+        receive_qty: (default 8)
+    """
+    from apps.transactions.services.training_flow import TrainingFlow
+
+    customer_id = params.get('customer_id')
+    item_id = params.get('item_id')
+    if not customer_id or not item_id:
+        raise ValueError("customer_id and item_id are required")
+
+    flow = TrainingFlow(customer_id=int(customer_id), item_id=int(item_id))
+    return flow.run_full_cycle(
+        proposal_qty=int(params.get('proposal_qty', 5)),
+        order_qty=int(params.get('order_qty', 4)),
+        invoice_qty=int(params.get('invoice_qty', 3)),
+        po_qty=int(params.get('po_qty', 10)),
+        receive_qty=int(params.get('receive_qty', 8)),
+    )
+
+
+def _cleanup_training(params: dict) -> dict:
+    """Alice: clean up all training-flagged records."""
+    from apps.transactions.services.training_flow import cleanup_training_records
+    return cleanup_training_records()
+
+
+def _get_orphan_counts(params: dict) -> dict:
+    """Admin dashboard: orphan record counts by table.
+
+    Returns list of models with null or dangling FK counts.
+    Only includes relationships with orphans > 0.
+    """
+    from apps.core.services.orphan_detection import get_orphan_counts
+    results = get_orphan_counts()
+    return {
+        'orphans': results,
+        'total_orphans': sum(r['total_orphans'] for r in results),
+        'tables_with_orphans': len(results),
+    }
+
+
+def _get_orphan_detail(params: dict) -> dict:
+    """Admin dashboard: list actual orphan records for a model.
+
+    Params:
+        app: Django app label (e.g. 'transactions')
+        model: model name (e.g. 'OrderLine')
+        fk_field: FK field name (e.g. 'order_id')
+        type: 'null', 'dangling', or 'all' (default 'all')
+        limit: max records (default 100)
+        offset: pagination offset (default 0)
+    """
+    from apps.core.services.orphan_detection import get_orphan_detail
+
+    app = params.get('app', '')
+    model = params.get('model', '')
+    fk_field = params.get('fk_field', '')
+    if not app or not model or not fk_field:
+        raise ValueError("app, model, and fk_field are required")
+
+    return get_orphan_detail(
+        child_app=app,
+        child_model_name=model,
+        fk_field=fk_field,
+        orphan_type=params.get('type', 'all'),
+        limit=int(params.get('limit', 100)),
+        offset=int(params.get('offset', 0)),
+    )
+
+
 _ACTION_DISPATCH = {
+    "post_gl_entries": _post_gl_entries,
+    "reverse_gl_entries": _reverse_gl_entries,
+    "run_training_flow": _run_training_flow,
+    "cleanup_training": _cleanup_training,
+    "get_orphan_counts": _get_orphan_counts,
+    "get_orphan_detail": _get_orphan_detail,
+    "get_accounting_dashboard": lambda params: __import__(
+        'apps.accounts.services.accounting_dashboard',
+        fromlist=['get_accounting_dashboard']
+    ).get_accounting_dashboard(),
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
     "get_tally_summary_by_period": _get_tally_summary_by_period,

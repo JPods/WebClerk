@@ -1,11 +1,12 @@
 import pytest
-from django.utils import timezone
 
-from common.tasks import recompute_relationship_counts, recompute_basic_stats
-from apps.orgs.models.base_org_model import OrgBase, OrgType
 
 @pytest.mark.django_db
 def test_recompute_relationship_counts_updates_changed_orgs():
+    from common.tasks import recompute_relationship_counts
+    from apps.orgs.models.base import OrgBase
+    from apps.orgs.models.constants import OrgType
+
     # Org with empty relations should not be updated (no counts)
     o1 = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Org One', status='active')
     # Org with relations will have counts populated
@@ -29,6 +30,10 @@ def test_recompute_relationship_counts_updates_changed_orgs():
 
 @pytest.mark.django_db
 def test_recompute_basic_stats_normalizes_structure():
+    from common.tasks import recompute_basic_stats
+    from apps.orgs.models.base import OrgBase
+    from apps.orgs.models.constants import OrgType
+
     o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Org Three', status='active')
     # Force an invalid/malformed state by setting a scalar instead of dict
     OrgBase.objects.filter(pk=o.pk).update(stats=123)  # type: ignore[arg-type]
@@ -41,6 +46,9 @@ def test_recompute_basic_stats_normalizes_structure():
 
 @pytest.mark.django_db
 def test_atomic_append_alias_deprecated_but_functional():
+    from apps.orgs.models.base import OrgBase
+    from apps.orgs.models.constants import OrgType
+
     # Guard: atomic_append method should still exist (alias of atomic_list_append)
     o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Alias Org', status='active')
     v = o.version

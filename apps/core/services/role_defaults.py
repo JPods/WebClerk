@@ -27,6 +27,12 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
     "user_customer": {
         "is_portal": True,
         "description": "Customer portal user - view own orders/invoices",
+        # Portal users: no cost visibility, no price_level changes, no negative qty
+        "restricted_fields": {
+            "edit_deny": ["price_level"],
+            "negative_quantity": False,
+            "view_deny": ["cost", "cost.standard", "cost.last", "cost.avg", "cost.landed"],
+        },
         "models": {
             "order": {
                 "query_filters": {
@@ -275,6 +281,15 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
     "user_sales": {
         "is_portal": False,
         "description": "Internal sales - all customer transactions",
+        # Staff authority restrictions (2026-06-27):
+        #   - price_level: NOT editable (staff/admin only)
+        #   - negative quantity: NOT allowed (staff/admin only for returns)
+        #   - cost fields: NOT visible (staff/admin only)
+        "restricted_fields": {
+            "edit_deny": ["price_level"],           # on order/invoice lines — staff only
+            "negative_quantity": False,              # returns require staff authority
+            "view_deny": ["cost", "cost.standard", "cost.last", "cost.avg", "cost.landed"],
+        },
         "models": {
             "order": {
                 "query_filters": {},  # All orders
@@ -314,6 +329,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "item": {
                 "query_filters": {},
                 "view_fields": "*",
+                "view_deny": ["cost"],  # Cost hidden from sales — staff only
                 "edit_fields": [],  # Read-only
                 "allow_create": False,
                 "allow_delete": False,

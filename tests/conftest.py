@@ -47,10 +47,9 @@ class ContactFactory(DjangoModelFactory):
     class Meta:
         model = "core.Contact"
 
-    username = factory.Sequence(lambda n: f"user{n}")
-    email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
-    first_name = factory.Faker("first_name")
-    last_name = factory.Faker("last_name")
+    email = factory.Sequence(lambda n: f"user{n}@example.com")
+    name_first = factory.Faker("first_name")
+    name_last = factory.Faker("last_name")
     is_active = True
 
 
@@ -81,8 +80,8 @@ class WarehouseFactory(DjangoModelFactory):
     class Meta:
         model = "products.Warehouse"
 
-    ida = factory.Sequence(lambda n: f"WH-{n:03d}")
     name = factory.Sequence(lambda n: f"Warehouse {n}")
+    code = factory.Sequence(lambda n: f"WH{n:03d}")
     is_active = True
 
 

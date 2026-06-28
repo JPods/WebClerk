@@ -115,13 +115,14 @@ _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-# DB_MODE toggle: "remote", "local", "bill", or "write-through" - set in .env
-# - remote:        reads & writes go to remote DB (team/production, default)
-# - local:         reads & writes go to local DB (isolated debugging)
-# - bill:          reads & writes go to a second local DB (personal data sandbox)
-# - write-through: reads from local DB, writes forwarded to remote DB,
-#                  response bundle stored locally — keeps both in sync
-_db_mode = config('DB_MODE', default='remote').lower()
+# DB_MODE: forced to 'local' until production server is stood up.
+# Remote/write-through modes existed here but were removed 2026-06-27
+# after python-decouple silently read a stale env var ('bill') instead
+# of the .env value ('local'), routing all queries to the remote DB.
+# When production is ready, redesign with proper environment separation
+# (not a toggle on a dev machine). Remote DB config (_remote_db_cfg)
+# is kept below for reference but unused.
+_db_mode = 'local'
 
 # ── Remote DB configuration (shared by remote + write-through modes) ──
 _remote_db_cfg = {
@@ -145,16 +146,6 @@ _local_db_cfg = {
     'ATOMIC_REQUESTS': False,
 }
 
-# ── Bill DB configuration (second local DB for personal sandbox data) ──
-_bill_db_cfg = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': config('BILL_DATABASE_NAME', default='commerce_expert_bill'),
-    'USER': config('BILL_DATABASE_USER', default=config('LOCAL_DATABASE_USER', default='williamjames')),
-    'PASSWORD': config('BILL_DATABASE_PASS', default=config('LOCAL_DATABASE_PASS', default='')),
-    'HOST': config('BILL_DATABASE_HOST', default=config('LOCAL_DATABASE_HOST', default='localhost')),
-    'PORT': config('BILL_DATABASE_PORT', default=config('LOCAL_DATABASE_PORT', default='5432')),
-    'ATOMIC_REQUESTS': False,
-}
 
 if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
     # Postgres path (default)
@@ -192,15 +183,6 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         LOCAL_SYNC_ENABLED = False
         print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
-    elif _db_mode == 'bill':
-        # Second local database for personal data loading/testing
-        DATABASES = {
-            'default': _bill_db_cfg,
-        }
-        WRITE_THROUGH_ENABLED = False
-        LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: BILL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
     else:
         # Remote database for team collaboration (default)
         DATABASES = {
@@ -927,6 +909,20 @@ CELERY_BEAT_SCHEDULE = {
     'export-data-backup-daily': {
         'task': 'apps.support.scheduler.tasks.task_export_data',
         'schedule': crontab(hour=3, minute=0),
+    },
+
+    # ── Aging reconciliation (daily 2:40 AM) ─────────────────────────
+    'reconcile-aging-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_reconcile_aging',
+        'schedule': crontab(hour=2, minute=40),
+        'kwargs': {'batch_size': 500},
+    },
+
+    # ── Refs↔FK mismatch audit (daily 3:40 AM) ───────────────────────
+    'audit-refs-fk-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_audit_refs_fk',
+        'schedule': crontab(hour=3, minute=40),
+        'kwargs': {'batch_size': 500},
     },
 
     # ── Metadata temp cleanup (daily 3:20 AM) ───────────────────────

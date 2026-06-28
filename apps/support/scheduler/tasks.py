@@ -717,6 +717,94 @@ def task_aggregate_user_daily_logs(self, target_date_str=None):
 # -----------------------------------------------------------------------------
 # Celery Beat Schedule
 # -----------------------------------------------------------------------------
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_audit_refs_fk(self, batch_size=200):
+    """Nightly audit: detect FK ↔ refs.links mismatches and log them.
+
+    Walks key models, compares FK-based related record sets against
+    refs.links arrays, and writes RefsMismatchLog entries for any drift.
+    Runs at 3:40 AM UTC via Celery beat.
+    """
+    from apps.core.models.refs_mismatch_log import RefsMismatchLog
+    from apps.orgs.models import OrgBase
+    from apps.core.models import Contact
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Define FK↔refs pairs to audit: (parent_model, parent_qs, related_model, fk_field, refs_link_key)
+    audit_pairs = [
+        ('customer', OrgBase.objects.filter(org_type='customer', is_active=True, is_deleted=False),
+         'contact', 'customer_id', 'contact'),
+        ('vendor', OrgBase.objects.filter(org_type='vendor', is_active=True, is_deleted=False),
+         'contact', 'vendor_id', 'contact'),
+    ]
+
+    total_checked = 0
+    total_mismatches = 0
+
+    for parent_model, parent_qs, related_model, fk_field, refs_key in audit_pairs:
+        for parent in parent_qs[:batch_size]:
+            total_checked += 1
+            # FK-based: find related records via FK
+            fk_ids = list(
+                Contact.objects.filter(**{fk_field: parent.pk})
+                .values_list('pk', flat=True)
+            )
+            # Refs-based: read from parent.refs.links
+            refs = getattr(parent, 'refs', None) or {}
+            links = refs.get('links', {})
+            refs_entries = links.get(refs_key, [])
+            refs_ids = [
+                e.get('id') for e in refs_entries
+                if isinstance(e, dict) and e.get('id')
+            ]
+
+            entry = RefsMismatchLog.log_mismatch(
+                parent_model=parent_model,
+                parent_id=parent.pk,
+                related_model=related_model,
+                fk_field=fk_field,
+                fk_ids=fk_ids,
+                refs_ids=refs_ids,
+                caller='task_audit_refs_fk',
+            )
+            if entry:
+                total_mismatches += 1
+
+    logger.info(
+        "Refs↔FK audit: %d records checked, %d mismatches logged",
+        total_checked, total_mismatches,
+    )
+    return {'checked': total_checked, 'mismatches': total_mismatches}
+
+
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_reconcile_aging(self, batch_size=100):
+    """Nightly aging reconciliation — recalculates aging buckets for all orgs.
+
+    Calls reconcile_financials management command logic.
+    Runs at 2:40 AM UTC via Celery beat.
+    """
+    from apps.accounts.services.ledger_balance import update_org_balances
+    from apps.orgs.models import OrgBase
+    import logging
+    logger = logging.getLogger(__name__)
+
+    orgs = OrgBase.objects.filter(is_active=True, is_deleted=False)[:batch_size]
+    updated = 0
+    errors = 0
+    for org in orgs:
+        try:
+            update_org_balances(org)
+            updated += 1
+        except Exception as e:
+            errors += 1
+            logger.warning("Aging update failed for org #%s: %s", org.pk, e)
+
+    logger.info("Aging reconciliation: %d orgs updated, %d errors", updated, errors)
+    return {'updated': updated, 'errors': errors}
+
+
 # Import this in Django settings:
 #
 #   from apps.scheduler.tasks import CELERY_BEAT_SCHEDULE
