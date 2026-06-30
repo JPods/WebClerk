@@ -62,7 +62,20 @@ class Payment(BaseModel):
     class Meta:
         db_table = "payments"
 
-    # Existing fields
+    PAYMENT_TYPE_CHOICES = [
+        ('received', 'Received'),      # AR — money in (customer pays us)
+        ('disbursed', 'Disbursed'),     # AP — money out (we pay vendor/employee)
+    ]
+
+    type = models.CharField(
+        max_length=20,
+        choices=PAYMENT_TYPE_CHOICES,
+        default='received',
+        db_index=True,
+        help_text="Direction: received (AR, money in) or disbursed (AP, money out)"
+    )
+
+    # Parent transaction references
     invoice = models.ForeignKey(
         'transactions.Invoice',
         on_delete=models.CASCADE,
@@ -70,14 +83,23 @@ class Payment(BaseModel):
         blank=True,
         related_name='payments',
         db_column='invoice_id',
-        help_text="Invoice this payment is for (nullable for order-level deposits)"
+        help_text="Invoice this payment applies to (AR — received)"
+    )
+    purchase = models.ForeignKey(
+        'transactions.Purchase',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='payments',
+        db_column='purchase_id',
+        help_text="Purchase this payment applies to (AP — disbursed)"
     )
     contact = models.ForeignKey(
         'core.Contact',
         on_delete=models.CASCADE,
         related_name='payments',
         db_column='contact_id',
-        help_text="Contact who made the payment"
+        help_text="Contact who made or received the payment"
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2, help_text="Payment amount")
     dt_payment = models.DateTimeField(help_text="Date the payment was made")

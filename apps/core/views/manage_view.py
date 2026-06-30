@@ -526,6 +526,31 @@ _ACTION_DISPATCH = {
     "get_tally_report_registry": _get_tally_report_registry,
     "execute_tally_report": _execute_tally_report,
     "export_tally_report": _export_tally_report,
+    # ── Order Production (GAP-01) ──
+    "spawn_work_order": lambda p: __import__('apps.transactions.services.order_production', fromlist=['spawn_work_order']).spawn_work_order(p['order_id']),
+    "record_production_action": lambda p: __import__('apps.transactions.services.order_production', fromlist=['record_production_action']).record_production_action(p['order_id'], p['action_text'], p.get('assigned_to')),
+    "partial_ship": lambda p: __import__('apps.transactions.services.order_production', fromlist=['partial_ship']).partial_ship(p['order_id'], p['shipped_lines']),
+    "complete_order": lambda p: __import__('apps.transactions.services.order_production', fromlist=['complete_order']).complete_order(p['order_id']),
+    # ── Backorder Management (GAP-04) ──
+    "get_open_backorders": lambda p: __import__('apps.transactions.services.backorder', fromlist=['get_open_backorders']).get_open_backorders(p.get('item_id')),
+    "fulfill_backorder": lambda p: __import__('apps.transactions.services.backorder', fromlist=['fulfill_backorder']).fulfill_backorder(p['action_id'], p['qty_fulfilled']),
+    "get_backorder_summary": lambda p: __import__('apps.transactions.services.backorder', fromlist=['get_backorder_summary_by_item']).get_backorder_summary_by_item(),
+    # ── Inventory Stacks FIFO/LIFO (GAP-02) ──
+    "receive_inventory": lambda p: __import__('apps.products.services.inventory_stacks', fromlist=['receive_inventory']).receive_inventory(p['item_id'], p['warehouse_id'], p['qty_received'], __import__('decimal').Decimal(str(p['unit_cost'])), p.get('source_type', 'purchase'), p.get('source_id'), p.get('lot', ''), p.get('serial_numbers')),
+    "consume_inventory": lambda p: __import__('apps.products.services.inventory_stacks', fromlist=['consume_inventory']).consume_inventory(p['item_id'], p['qty_to_consume'], p.get('method', 'fifo'), p.get('warehouse_id'), p.get('source_type', 'invoice'), p.get('source_id')),
+    "get_inventory_summary": lambda p: __import__('apps.products.services.inventory_stacks', fromlist=['get_item_inventory_summary']).get_item_inventory_summary(p['item_id'], p.get('warehouse_id')),
+    # ── Serial Lifecycle (GAP-03) ──
+    "create_serial_on_receive": lambda p: __import__('apps.products.services.serial_lifecycle', fromlist=['create_serial_on_receive']).create_serial_on_receive(p['item_id'], p['serial_number'], p.get('vendor_id'), p.get('purchase_id'), p.get('purchase_line_id'), p.get('unit_cost', '0'), p.get('warehouse_id'), p.get('model_ida', '')),
+    "assign_serial_on_ship": lambda p: __import__('apps.products.services.serial_lifecycle', fromlist=['assign_serial_on_ship']).assign_serial_on_ship(p['serial_id'], p['customer_id'], p.get('invoice_id'), p.get('invoice_line_id'), p.get('warranty_months', 12)),
+    "return_serial": lambda p: __import__('apps.products.services.serial_lifecycle', fromlist=['return_serial']).return_serial(p['serial_id'], p.get('reason', ''), p.get('warehouse_id')),
+    "get_serial_history": lambda p: __import__('apps.products.services.serial_lifecycle', fromlist=['get_serial_history']).get_serial_history(p['serial_id']),
+    "find_serials_by_customer": lambda p: __import__('apps.products.services.serial_lifecycle', fromlist=['find_serials_by_customer']).find_serials_by_customer(p['customer_id']),
+    # ── Campaign ROI (GAP-10) ──
+    "create_campaign": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['create_campaign']).create_campaign(p['name'], __import__('decimal').Decimal(str(p.get('budget', 0))), p.get('channel', ''), p.get('start_date'), p.get('end_date'), p.get('description', '')),
+    "record_campaign_spend": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['record_campaign_spend']).record_campaign_spend(p['campaign_id'], __import__('decimal').Decimal(str(p['amount']))),
+    "calculate_campaign_roi": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['calculate_campaign_roi']).calculate_campaign_roi(p['campaign_id']),
+    "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['get_all_campaigns']).get_all_campaigns(),
+    "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
 }
 
 

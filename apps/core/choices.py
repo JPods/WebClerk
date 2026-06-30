@@ -57,6 +57,10 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("list_column_config", "list_column_config"),
     ("alice_pending", "alice_pending"),
     ("alice_log", "alice_log"),
+    ("field_access", "field_access"),
+    ("seed", "seed"),
+    ("alice_coaching", "alice_coaching"),
+    ("campaign", "campaign"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

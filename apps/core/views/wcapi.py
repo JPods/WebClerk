@@ -871,7 +871,10 @@ class WCAPIGetView(APIView):
             if not obj:
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
-            # Verify user has access to this record via role filters
+            # ── RBAC: verify user can see this specific record ──────
+            # Same scoping as list queries — external users can only
+            # view records linked to their org. Returns empty if the
+            # record doesn't pass the role filter. See wcapi-query-scoping.md
             if request.user and request.user.is_authenticated and not request.user.is_superuser:
                 role_q = inject_role_filters(request.user, model_key)
                 if role_q:
@@ -995,7 +998,17 @@ class WCAPIGetView(APIView):
         saved_request_filters, consumed_filter_params = self._saved_request_filters(request, saved_data, ModelCls)
         relative_filters = self._resolve_relative_period(saved_data.get("relative_period"))
         
-        # Apply role-based access filters (RBAC)
+        # ── RBAC Query Scoping ──────────────────────────────────────
+        # All data flows through wcapi. For external users (customers,
+        # vendors, reps), inject_role_filters reads the field_access
+        # Setting for this model and adds Q filters that restrict the
+        # queryset to only records belonging to the user's org(s).
+        #
+        # Example: a customer with org_ids.customer=[5,12] querying
+        # orders gets: Order.objects.filter(customer_id__in=[5, 12])
+        #
+        # Superusers bypass all filters. See readmes/wcapi-query-scoping.md
+        # ───────────────────────────────────────────────────────────────
         if request.user and request.user.is_authenticated:
             role_q = inject_role_filters(request.user, model_key)
             if role_q:
