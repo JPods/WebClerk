@@ -13,6 +13,8 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import CustomerDetail from "./CustomerDetail";
 import { deleteRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import FieldConfigBar from "@/components/common/FieldConfigBar";
+import { useListFieldConfig } from "@/hooks/useListFieldConfig";
 import { defaultCountries, usePhoneInput } from "react-international-phone";
 
 export default function CustomerList() {
@@ -334,6 +336,7 @@ export default function CustomerList() {
     );
 
   const columns = useCustomerColumns(handleEdit, handleView, handleDelete);
+  const fieldConfig = useListFieldConfig('customer', columns);
 
   const customActions = (
     <div className="flex gap-2">
@@ -342,6 +345,17 @@ export default function CustomerList() {
         className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
       >
         <FaPlus className="w-3 h-3" />
+      </button>
+      <button
+        onClick={fieldConfig.togglePanel}
+        className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
+          fieldConfig.showPanel
+            ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700'
+            : 'text-gray-600 border-gray-300 hover:bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
+        }`}
+        title="Configure columns"
+      >
+        Cols
       </button>
     </div>
   );
@@ -406,13 +420,14 @@ export default function CustomerList() {
     });
   }, [data, filterValues]);
 
-  // Filter columns based on visibility from ButtonToolbar
+  // Filter columns: fieldConfig (persisted) takes priority, then ButtonToolbar toggle
   const visibleColumns = useMemo(() => {
-    if (columnVisibility.length === 0) return columns;
-    return columns.filter(
+    const base = fieldConfig.visibleColumns;
+    if (columnVisibility.length === 0) return base;
+    return base.filter(
       (_: any, index: number) => columnVisibility[index] !== false,
     );
-  }, [columns, columnVisibility]);
+  }, [fieldConfig.visibleColumns, columnVisibility]);
   return (
     <>
       <ButtonToolbar
@@ -444,6 +459,16 @@ export default function CustomerList() {
         onFilterValuesChange={setFilterValues}
         filtersOpen={filtersOpen}
         onFiltersOpenChange={setFiltersOpen}
+      />
+      <FieldConfigBar
+        show={fieldConfig.showPanel}
+        allKeys={fieldConfig.allKeys}
+        effectiveKeys={fieldConfig.effectiveKeys}
+        onToggle={fieldConfig.toggleField}
+        onAll={fieldConfig.setAll}
+        onClear={fieldConfig.clearAll}
+        onMove={fieldConfig.moveField}
+        onClose={fieldConfig.togglePanel}
       />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>

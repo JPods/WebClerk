@@ -4,6 +4,7 @@
  * Extends base with purchase-specific fields and SummaryCard
  */
 import React, { useCallback } from 'react';
+import ManageActionPanel from '@/components/common/ManageActionPanel';
 import {
   FaShoppingBag,
   FaTruck,
@@ -326,25 +327,32 @@ const PurchaseDetail: React.FC<PurchaseDetailProps> = (props) => {
   }, []);
 
   return (
-    <TransactionDetailBase
-      transactionType="purchase"
-      typeLabel="Purchase Order"
-      modelName="purchase"
-      renderHeader={(data, isEditing, onChange) => (
-        <PurchaseHeader data={data as Purchase} isEditing={isEditing} onChange={onChange as any} />
+    <>
+      <TransactionDetailBase
+        transactionType="purchase"
+        typeLabel="Purchase Order"
+        modelName="purchase"
+        renderHeader={(data, isEditing, onChange) => (
+          <PurchaseHeader data={data as Purchase} isEditing={isEditing} onChange={onChange as any} />
+        )}
+        renderLines={renderLines}
+        getCustomTabsAfter={getPurchaseTabsAfter}
+        renderCustomTab={renderCustomTab}
+        inline={props.inline}
+        modeProp={props.modeProp}
+        dataProp={props.dataProp}
+        idProp={resolvedId}
+        onCancelInline={props.onCancelInline}
+        onSaved={props.onSaved}
+        isAdmin={props.isAdmin}
+        canEdit={canEdit}
+      />
+      {resolvedId && (
+        <div className="mt-4 px-4">
+          <ManageActionPanel modelName="purchase" recordId={resolvedId} record={props.dataProp} />
+        </div>
       )}
-      renderLines={renderLines}
-      getCustomTabsAfter={getPurchaseTabsAfter}
-      renderCustomTab={renderCustomTab}
-      inline={props.inline}
-      modeProp={props.modeProp}
-      dataProp={props.dataProp}
-      idProp={resolvedId}
-      onCancelInline={props.onCancelInline}
-      onSaved={props.onSaved}
-      isAdmin={props.isAdmin}
-      canEdit={canEdit}
-    />
+    </>
   );
 };
 

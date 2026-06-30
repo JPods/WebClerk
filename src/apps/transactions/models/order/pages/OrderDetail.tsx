@@ -43,6 +43,7 @@ import { saveRecord, getRecord } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 import { ShippingPanel } from "@/apps/common/components/panels";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import ManageActionPanel from "@/components/common/ManageActionPanel";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -1141,6 +1142,13 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         showTaskButton={true}
         taskCount={pendingTaskCount}
       />
+
+      {/* Operations Actions */}
+      {currentOrderId && (
+        <div className="mt-4">
+          <ManageActionPanel modelName="order" recordId={currentOrderId} record={dataProp} onActionComplete={() => currentOrderId && fetchOrderData(currentOrderId)} />
+        </div>
+      )}
 
       {/* Task Modal */}
       <TransactionTaskModal

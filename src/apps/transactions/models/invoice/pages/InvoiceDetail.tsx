@@ -4,6 +4,8 @@
  * Extends base with invoice-specific fields and functionality
  */
 import React, { useCallback, useState } from "react";
+import { useParams } from "react-router-dom";
+import ManageActionPanel from "@/components/common/ManageActionPanel";
 import SummaryCard from "../../../components/SummaryCard";
 import {
   FaPercent,
@@ -447,19 +449,29 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({
     return status !== "paid" && status !== "void" && status !== "closed";
   }, []);
 
+  const { id: urlId } = useParams<{ id: string }>();
+  const invoiceId = urlId ? parseInt(urlId) : null;
+
   return (
-    <TransactionDetailBase
-      transactionType="invoice"
-      typeLabel="Invoice"
-      modelName="invoice"
-      customTabsBefore={INVOICE_TABS_BEFORE}
-      getCustomTabsAfter={getInvoiceTabsAfter}
-      renderCustomTab={renderCustomTab}
-      renderHeader={renderHeader}
-      renderLines={renderLines}
-      isAdmin={isAdmin}
-      canEdit={canEdit}
-    />
+    <>
+      <TransactionDetailBase
+        transactionType="invoice"
+        typeLabel="Invoice"
+        modelName="invoice"
+        customTabsBefore={INVOICE_TABS_BEFORE}
+        getCustomTabsAfter={getInvoiceTabsAfter}
+        renderCustomTab={renderCustomTab}
+        renderHeader={renderHeader}
+        renderLines={renderLines}
+        isAdmin={isAdmin}
+        canEdit={canEdit}
+      />
+      {invoiceId && (
+        <div className="mt-4 px-4">
+          <ManageActionPanel modelName="invoice" recordId={invoiceId} />
+        </div>
+      )}
+    </>
   );
 };
 

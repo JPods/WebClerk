@@ -503,6 +503,7 @@ export interface SettingRecord {
   data: {
     list: string[];
     detail: string[];
+    views?: Array<{ name: string; list: string[]; detail: string[]; listWidths?: Record<string, number> }>;
   };
 }
 

@@ -60,23 +60,15 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Accounts",
     subItems: [
-      { name: "Audit", path: "/accounts/audit/list" },
-      { name: "Currency", path: "/accounts/currency/list" },
-      { name: "Exchange Rate", path: "/accounts/exchange-rate/list" },
-      {
-        name: "Exchange Transaction",
-        path: "/accounts/exchange-transaction/list",
-      },
-      { name: "GL Account", path: "/accounts/gl-account/list" },
-      { name: "GL Journal", path: "/accounts/gl-journal/list" },
-      { name: "Ledger", path: "/accounts/ledger/list" },
-      { name: "Receivable Aging", path: "/accounts/receivable/list" },
-      { name: "Tally Summary", path: "/accounts/tally-summary/list" },
-      { name: "Sales Tallies", path: "/accounts/tally-sales/list" },
-      { name: "Inventory Tallies", path: "/accounts/tally-inventory/list" },
-      { name: "Tally Registry", path: "/accounts/tally-registry/list" },
-      { name: "Tax Jurisdiction", path: "/accounts/tax-jurisdiction/list" },
-      { name: "Term", path: "/accounts/term/list" },
+      { name: "Audit", path: "/admin-wb?model=audit" },
+      { name: "Currency", path: "/admin-wb?model=currency" },
+      { name: "Exchange Rate", path: "/admin-wb?model=exchange_rate" },
+      { name: "Exchange Transaction", path: "/admin-wb?model=exchange_transaction" },
+      { name: "GL Account", path: "/admin-wb?model=gl_account" },
+      { name: "GL Journal", path: "/admin-wb?model=gl_journal" },
+      { name: "Ledger", path: "/admin-wb?model=ledger" },
+      { name: "Tax Jurisdiction", path: "/admin-wb?model=tax_jurisdiction" },
+      { name: "Term", path: "/admin-wb?model=term" },
     ],
   },
   {
@@ -84,85 +76,56 @@ const navItems: NavItem[] = [
     name: "Core",
     subItems: [
       { name: "Action", path: PageRoutes.actionList },
-      { name: "Audit", path: "/core/audit/list" },
-      { name: "Contact", path: "/core/contact/list" },
-      { name: "Notification", path: "/core/notification/list" },
-      { name: "Pending", path: "/core/pending/list" },
-      { name: "Report", path: "/core/report/list" },
-      { name: "Setting", path: "/core/setting/list" },
-      { name: "Template", path: "/core/template/list" },
+      { name: "Contact", path: PageRoutes.coreContactList },
+      { name: "Notification", path: "/admin-wb?model=notification" },
+      { name: "Report", path: "/admin-wb?model=report" },
+      { name: "Setting", path: "/admin-wb?model=setting" },
+      { name: "Template", path: "/admin-wb?model=template" },
     ],
   },
-
   {
     icon: <GridIcon />,
     name: "Communications",
     subItems: [
-      { name: "Addresss", path: "/communications/address/list" },
-      { name: "Domains", path: "/communications/domain/list" },
-      { name: "Email Addresss", path: "/communications/email/list" },
-      { name: "Phone Numbers", path: "/communications/phone/list" },
+      { name: "Address", path: "/admin-wb?model=address" },
+      { name: "Domain", path: "/admin-wb?model=domain" },
+      { name: "Email", path: "/admin-wb?model=email" },
+      { name: "Phone", path: "/admin-wb?model=phone" },
     ],
   },
-  // {
-  //   icon: <GridIcon />,
-  //   name: "Core",
-  //   subItems: [
-  //     { name: "Action", path: "/core/action/list" },
-  //     { name: "Contact", path: "/core/contact/list" },
-  //     { name: "Report", path: "/core/report/list" },
-  //     { name: "Setting", path: "/core/setting/list" },
-  //     { name: "Template", path: "/core/template/list" },
-  //   ],
-  // },
   {
     icon: <GridIcon />,
     name: "Docs",
     subItems: [
-      { name: "Document", path: "/docs/document/list" },
-      { name: "Linkage", path: "/docs/linkage/list" },
-      { name: "Linkage Index", path: "/docs/linkage-index/list" },
-      { name: "Question Answer", path: "/docs/question-answer/list" },
-      { name: "Tag", path: "/docs/tag/list" },
+      { name: "Document", path: "/admin-wb?model=document" },
+      { name: "Question Answer", path: "/admin-wb?model=question_answer" },
+      { name: "Tag", path: "/admin-wb?model=tag" },
     ],
   },
   {
     icon: <GridIcon />,
     name: "Orgs",
     subItems: [
-      { name: "Customer", path: "/org/customer/list" },
-      { name: "Employees", path: "/org/employee/list" },
-      { name: "Manufacturers", path: "/org/manufacturer/list" },
-      { name: "Organizations", path: "/org/organization/list" },
-      { name: "Reps", path: "/org/rep/list" },
-      { name: "Vendors", path: "/org/vendor/list" },
+      { name: "Customer", path: "/org/customer" },
+      { name: "Vendor", path: "/org/vendor" },
+      { name: "Employee", path: "/org/employee" },
+      { name: "Rep", path: "/org/rep" },
+      { name: "Manufacturer", path: "/org/manufacturer" },
     ],
   },
-
   {
     icon: <GridIcon />,
     name: "Products",
     subItems: [
-      { name: "Overview", path: PageRoutes.products },
-      {
-        name: "Bill Of Materials",
-        path: PageRoutes.productsBillOfMaterialList,
-      },
-      { name: "Catalogs", path: PageRoutes.productsCatalogList },
-      { name: "Flows", path: PageRoutes.productsFlowList },
       { name: "Items", path: PageRoutes.productsItemList },
-      { name: "Item XRefs", path: PageRoutes.productsItemXrefList },
-      { name: "Matrics", path: PageRoutes.productsMatricsList },
-      { name: "Org Items", path: PageRoutes.productsOrgItemList },
-      { name: "Serials", path: PageRoutes.productsSerialList },
-      { name: "Services", path: PageRoutes.productsServiceList },
-      {
-        name: "Specifications",
-        path: PageRoutes.productsSpecificationList,
-      },
-      { name: "Usage", path: PageRoutes.productsUsageList },
-      { name: "Variants", path: PageRoutes.productsVariantList },
-      { name: "Warehouses", path: PageRoutes.productsWarehouseList },
+      { name: "Bill Of Material", path: "/admin-wb?model=bill_of_material" },
+      { name: "Catalog", path: "/admin-wb?model=catalog" },
+      { name: "Org Item", path: "/admin-wb?model=org_item" },
+      { name: "Serial", path: "/admin-wb?model=serial_log" },
+      { name: "Service", path: "/admin-wb?model=service" },
+      { name: "Variant", path: "/admin-wb?model=variant" },
+      { name: "Warehouse", path: "/admin-wb?model=warehouse" },
+      { name: "Item XRef", path: "/admin-wb?model=item_xref" },
     ],
   },
   {
@@ -172,10 +135,7 @@ const navItems: NavItem[] = [
       { name: "Orders", path: PageRoutes.transactionsOrderList },
       { name: "Invoices", path: PageRoutes.transactionsInvoiceList },
       { name: "Proposals", path: PageRoutes.transactionsProposalList },
-      {
-        name: "Purchase Orders",
-        path: PageRoutes.transactionsPurchaseList,
-      },
+      { name: "Purchases", path: PageRoutes.transactionsPurchaseList },
       { name: "Work Orders", path: PageRoutes.transactionsWorkOrderList },
       { name: "Receipts", path: PageRoutes.transactionsReceiptList },
       { name: "Adjustments", path: PageRoutes.transactionsAdjustmentList },
@@ -183,10 +143,9 @@ const navItems: NavItem[] = [
       { name: "Apply Payments", path: PageRoutes.transactionsApplyPayments },
     ],
   },
-
   {
     icon: <GridIcon />,
-    name: "Admin Workbench",
+    name: "DataBrowser",
     path: "/admin-wb",
   },
   {
@@ -213,6 +172,11 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "User Profile",
     path: "/profile",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Submit for Bonus",
+    path: "/submit-bonus",
   },
   {
     icon: <CalenderIcon />,
@@ -336,7 +300,17 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  const openWindow = (path: string, title: string) => {
+  const openWindow = (path: string, title: string, shiftKey?: boolean) => {
+    // Shift-click any model → open in DataBrowser
+    if (shiftKey && !path.startsWith('/admin-wb')) {
+      // Extract a model name from the path: /org/customer/list → customer, /products/item/list → item
+      const segments = path.replace(/^\//, '').split('/');
+      const modelGuess = segments.length >= 2 ? segments[segments.length - 2] : segments[0];
+      const dbPath = `/admin-wb?model=${modelGuess}`;
+      ensureWindow(dbPath, `DB: ${title}`);
+      activateWindow(dbPath);
+      return;
+    }
     ensureWindow(path, title);
     activateWindow(path);
   };
@@ -387,7 +361,7 @@ const AppSidebar: React.FC = () => {
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
-                onClick={() => openWindow(nav.path!, nav.name)}
+                onClick={(e) => openWindow(nav.path!, nav.name, e.shiftKey)}
               >
                 <span
                   className={`menu-item-icon-size ${
@@ -426,7 +400,7 @@ const AppSidebar: React.FC = () => {
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
                       }`}
-                      onClick={() => openWindow(subItem.path, subItem.name)}
+                      onClick={(e) => openWindow(subItem.path, subItem.name, e.shiftKey)}
                     >
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">

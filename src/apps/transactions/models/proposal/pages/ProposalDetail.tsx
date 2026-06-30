@@ -4,6 +4,8 @@
  * Standardized to match OrderDetail.tsx pattern
  */
 import React, { useCallback } from "react";
+import { useParams } from "react-router-dom";
+import ManageActionPanel from "@/components/common/ManageActionPanel";
 import { useDispatch } from "react-redux";
 import {
   FaExchangeAlt,
@@ -295,23 +297,33 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
     return status !== "accepted" && status !== "cancelled" && status !== "rejected";
   }, []);
 
+  const { id: urlId } = useParams<{ id: string }>();
+  const proposalId = props.dataProp?.id || (urlId ? parseInt(urlId) : null);
+
   return (
-    <TransactionDetailBase
-      transactionType="proposal"
-      typeLabel="Proposal"
-      modelName="proposal"
-      getCustomTabsAfter={getProposalTabsAfter}
-      renderCustomTab={renderCustomTab}
-      renderHeader={renderHeader}
-      renderLines={renderLines}
-      isAdmin={props.isAdmin}
-      canEdit={canEdit}
-      inline={props.inline}
-      modeProp={props.modeProp}
-      dataProp={props.dataProp}
-      onCancelInline={props.onCancelInline}
-      onSaved={props.onSaved}
-    />
+    <>
+      <TransactionDetailBase
+        transactionType="proposal"
+        typeLabel="Proposal"
+        modelName="proposal"
+        getCustomTabsAfter={getProposalTabsAfter}
+        renderCustomTab={renderCustomTab}
+        renderHeader={renderHeader}
+        renderLines={renderLines}
+        isAdmin={props.isAdmin}
+        canEdit={canEdit}
+        inline={props.inline}
+        modeProp={props.modeProp}
+        dataProp={props.dataProp}
+        onCancelInline={props.onCancelInline}
+        onSaved={props.onSaved}
+      />
+      {proposalId && (
+        <div className="mt-4 px-4">
+          <ManageActionPanel modelName="proposal" recordId={proposalId} />
+        </div>
+      )}
+    </>
   );
 };
 
