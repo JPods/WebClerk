@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { dbLog } from '@/utils/dbLog';
 import {
   getModelNames,
   getModelDetail,
@@ -134,9 +135,12 @@ export function useDataBrowser(isAuthenticated: boolean) {
     return p[p.length - 1] || selectedModel;
   }, [selectedModel]);
 
-  const visibleListFields = useMemo(() =>
-    workbenchSetting?.list?.length ? workbenchSetting.list : ['id', 'ida', 'name', 'email'],
-  [workbenchSetting?.list]);
+  const visibleListFields = useMemo(() => {
+    if (workbenchSetting?.list?.length) return workbenchSetting.list;
+    // Fallback: ida + first few actual fields from the model (no id, uuid)
+    const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_deleted' && f !== 'is_archived' && f !== 'is_locked' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
+    return fallback.length ? fallback : ['ida'];
+  }, [workbenchSetting?.list, allFields]);
 
   const visibleDetailFields = useMemo(() =>
     workbenchSetting?.detail?.length ? workbenchSetting.detail : allFields,
@@ -156,7 +160,10 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // Model selection
   // ---------------------------------------------------------------------------
 
+  const fetchingRef = useRef(false);
+
   const handleSelectModel = useCallback((name: string) => {
+    dbLog('handleSelectModel', { from: selectedModel, to: name });
     setSelectedModel(name);
     setPage(0);
     setActiveSearch(''); setSearchTerm('');
@@ -167,6 +174,12 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setColWidths({});
     setSelectedId(null);
     setSelectedRecord(null);
+    setAllFields([]); // clear stale fields from previous model
+    setFieldBehaviors({});
+    setWorkbenchSetting(null);
+    setRecordsLoading(false);
+    setRecordsError(null);
+    fetchingRef.current = false; // reset fetch guard so new model can fetch
   }, []);
 
   // Sync model with URL param
@@ -214,6 +227,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
   const fetchRecords = useCallback(async () => {
     if (!selectedModel || (modelNames.length && !modelNames.includes(selectedModel))) return;
+    if (fetchingRef.current) { dbLog.warn('fetchRecords:skip (already fetching)'); return; }
+    fetchingRef.current = true;
     try {
       setRecordsLoading(true); setRecordsError(null);
       const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
@@ -222,6 +237,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
       if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
       else if (isObj(rf)) fields = Object.keys(rf);
       setAllFields(fields);
+      dbLog('fetchRecords:fields', { model: selectedModel, fieldCount: fields.length, fields: fields.slice(0, 10) });
 
       const params: Record<string, unknown> = { limit: PAGE_SIZE, offset: page * PAGE_SIZE };
       if (activeSearch.trim()) params.keyword = activeSearch.trim();
@@ -230,7 +246,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
       const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
       setRecords(toRecList(list?.results));
       setTotalRecords(typeof list?.total === 'number' ? list.total : toRecList(list?.results).length);
-      setWorkbenchSetting(workbenchSettingsMap[selectedModel] || null);
+      const ws = workbenchSettingsMap[selectedModel] || null;
+      setWorkbenchSetting(ws);
+      dbLog('fetchRecords:workbenchSetting', { model: selectedModel, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
 
       // Load field behaviors
       try {
@@ -238,9 +256,16 @@ export function useDataBrowser(isAuthenticated: boolean) {
         const faRec = (faRes?.results || [])[0];
         setFieldBehaviors(faRec?.data?.field_behaviors || {});
       } catch { setFieldBehaviors({}); }
-    } catch (e) { setRecordsError(errMsg(e, 'Failed to load records')); }
-    finally { setRecordsLoading(false); }
-  }, [selectedModel, modelNames, page, activeSearch, sort, workbenchSettingsMap]);
+    } catch (e) {
+      const msg = errMsg(e, 'Failed to load records');
+      setRecordsError(msg);
+      dbLog.error('fetchRecords:failed', { model: selectedModel, error: msg });
+      // Do NOT retry on error — the useEffect won't re-fire unless deps change
+    }
+    finally { setRecordsLoading(false); fetchingRef.current = false; }
+  }, [selectedModel, modelNames, page, activeSearch, sort]);
+  // NOTE: workbenchSettingsMap intentionally excluded — it changes when layouts are saved,
+  // which would cause infinite re-fetch. We read it inside fetchRecords via closure.
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
@@ -394,7 +419,17 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setSelectedRecord(null); setSelectedId(null);
   }, [selectedModel, selectedId, modelLabel]);
 
-  // Update detail fields (from layout dialog)
+  // Update list fields (from field order dialog)
+  const updateListLayout = useCallback(async (fields: string[]) => {
+    if (!selectedModel) return;
+    const cur = workbenchSetting ?? { list: [], detail: [] };
+    const next: WorkbenchFieldsSetting = { ...cur, list: fields };
+    setWorkbenchSetting(next);
+    setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
+    await persistSetting(selectedModel, next);
+  }, [selectedModel, workbenchSetting, persistSetting]);
+
+  // Update detail fields (from field order dialog)
   const updateDetailLayout = useCallback(async (fields: string[], sizes: Record<string, number>) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
@@ -431,7 +466,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     fieldBehaviors, detailRowSizes, setDetailRowSizes,
     // CRUD
     updateField, handleSaveRecord, handleDeleteRecord,
-    persistSetting: (next: WorkbenchFieldsSetting) => selectedModel ? persistSetting(selectedModel, next) : Promise.resolve(),
+    updateListLayout,
     updateDetailLayout,
     // Export
     exportCSV,

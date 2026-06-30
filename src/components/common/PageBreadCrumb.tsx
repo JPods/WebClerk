@@ -1,4 +1,3 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, {
   RefObject,
   useMemo,
@@ -493,44 +492,6 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
     [getColumnPersistKey, storageKey],
   );
 
-  // Sync JSON editor when selected column changes
-  useEffect(() => {
-    if (selectedColIndex !== null && currentColumns[selectedColIndex]) {
-      setEditJson(
-        JSON.stringify(
-          getSerializableColumnProps(currentColumns[selectedColIndex]),
-          null,
-          2,
-        ),
-      );
-      setJsonError("");
-    }
-  }, [selectedColIndex, currentColumns]);
-
-  const applyJsonEdit = useCallback(() => {
-    if (selectedColIndex === null) return;
-    try {
-      const parsed = JSON.parse(editJson) as Record<string, unknown>;
-      const original = currentColumns[selectedColIndex];
-      const updated = { ...original };
-      for (const [key, val] of Object.entries(parsed)) {
-        if (typeof (original as Record<string, unknown>)[key] !== "function") {
-          (updated as Record<string, unknown>)[key] = val;
-        }
-      }
-      const newColumns = [...currentColumns];
-      newColumns[selectedColIndex] = updated;
-      if (onColumnsChange) {
-        onColumnsChange(newColumns);
-      } else {
-        setInternalColumns(newColumns);
-      }
-      setJsonError("");
-    } catch (err) {
-      setJsonError((err as Error).message);
-    }
-  }, [selectedColIndex, editJson, currentColumns, onColumnsChange]);
-
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -767,7 +728,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 if (!showColumnManager && effectiveColumnBtnRef.current) {
                   const rect =
                     effectiveColumnBtnRef.current.getBoundingClientRect();
-                  const panelWidth = 680;
+                  const panelWidth = 320;
                   let left = rect.left;
                   // Keep panel within viewport
                   if (left + panelWidth > window.innerWidth - 16) {
@@ -1088,7 +1049,7 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
         columnManagerPosition && (
           <div
             ref={columnManagerDropdownRef}
-            className="fixed z-[9999] w-[680px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
+            className="fixed z-[9999] w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
             style={{
               top: columnManagerPosition.top,
               left: columnManagerPosition.left,
@@ -1100,20 +1061,12 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Manage Columns
                 </h3>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={resetColumns}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={() => setShowColumnManager(false)}
-                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-                  >
-                    Close
-                  </button>
-                </div>
+                <button
+                  onClick={resetColumns}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                >
+                  Reset
+                </button>
               </div>
 
               {/* Quick Actions */}
@@ -1132,100 +1085,36 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                 </button>
               </div>
 
-              {/* Two-panel body */}
-              <div className="flex gap-3">
-                {/* Left: Column List */}
-                <div className="w-52 flex-shrink-0 flex flex-col">
-                  <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      <strong>👁</strong> eye show/hide &nbsp;
-                      <strong>↕</strong> drag reorder &nbsp;
-                      <strong>click</strong> to edit
-                    </p>
-                  </div>
-                  <DndProvider backend={HTML5Backend}>
-                    <div className="space-y-1 max-h-72 overflow-y-auto">
-                      {currentColumns.map((col, index) => (
-                        <DraggableColumnItem
-                          key={`col-${index}-${String(
-                            col.name || col.id || index,
-                          )}`}
-                          column={String(
-                            col.name || col.id || `Column ${index + 1}`,
-                          )}
-                          index={index}
-                          visible={columnVisibility[index] ?? true}
-                          isSelected={selectedColIndex === index}
-                          moveColumn={moveColumn}
-                          toggleVisibility={toggleColumnVisibility}
-                          onSelect={setSelectedColIndex}
-                        />
-                      ))}
-                    </div>
-                  </DndProvider>
-                </div>
-
-                {/* Right: JSON Editor */}
-                <div className="flex-1 min-w-0 flex flex-col">
-                  {selectedColIndex !== null &&
-                  currentColumns[selectedColIndex] ? (
-                    <>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate mr-2">
-                          {String(
-                            currentColumns[selectedColIndex].name ||
-                              currentColumns[selectedColIndex].id ||
-                              `Column ${selectedColIndex + 1}`,
-                          )}
-                        </span>
-                        <button
-                          onClick={applyJsonEdit}
-                          disabled={!!jsonError}
-                          className="flex-shrink-0 px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                      <textarea
-                        value={editJson}
-                        onChange={(e) => {
-                          setEditJson(e.target.value);
-                          try {
-                            JSON.parse(e.target.value);
-                            setJsonError("");
-                          } catch (err) {
-                            setJsonError((err as Error).message);
-                          }
-                        }}
-                        className="flex-1 w-full text-xs font-mono border border-gray-300 dark:border-gray-600 rounded p-2 focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 dark:text-green-400 resize-none"
-                        style={{ minHeight: "260px" }}
-                        spellCheck={false}
-                      />
-                      {jsonError && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 break-all">
-                          {jsonError}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center text-center p-4">
-                      <div>
-                        <FaFileCode className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Click a column to edit its properties as JSON
-                        </p>
-                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                          Supports non-scalar values like{" "}
-                          <code className="font-mono">options</code> arrays
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {/* Instructions */}
+              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  <strong>👁</strong> Click eye to show/hide &nbsp;
+                  <strong>↕</strong> Drag to reorder
+                </p>
               </div>
 
+              {/* Column List */}
+              <DndProvider backend={HTML5Backend}>
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {currentColumns.map((col, index) => (
+                    <DraggableColumnItem
+                      key={`col-${index}-${String(
+                        col.name || col.id || index,
+                      )}`}
+                      column={String(
+                        col.name || col.id || `Column ${index + 1}`,
+                      )}
+                      index={index}
+                      visible={columnVisibility[index] ?? true}
+                      moveColumn={moveColumn}
+                      toggleVisibility={toggleColumnVisibility}
+                    />
+                  ))}
+                </div>
+              </DndProvider>
+
               {/* Footer */}
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Visible:{" "}
                   <span className="font-medium text-blue-600">
@@ -1233,6 +1122,12 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
                   </span>{" "}
                   / {totalColumnCount}
                 </p>
+                <button
+                  onClick={() => setShowColumnManager(false)}
+                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

@@ -175,6 +175,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
+    name: "Alice Dashboard",
+    path: "/alice-dashboard",
+  },
+  {
+    icon: <GridIcon />,
     name: "Submit for Bonus",
     path: "/submit-bonus",
   },

@@ -47,6 +47,8 @@ import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 import APILogList from "../apps/core/models/api_log/pages/APILogList";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
+import AliceDashboard from "../pages/admin/AliceDashboard";
+import HelpDashboard from "../pages/admin/HelpDashboard";
 import Placeholder from "../pages/Placeholder";
 
 export const protectedRoutesConfig = [
@@ -109,6 +111,9 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.detailReview, element: <DetailReview /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
+  { path: "/alice-dashboard", element: <AliceDashboard /> },
+  { path: "/help", element: <HelpDashboard /> },
+  { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
   { path: PageRoutes.coreApiLogList, element: <APILogList /> },
   { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },
   { path: PageRoutes.coreTeamDashboard, element: <TeamDashboard /> },

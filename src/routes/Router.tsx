@@ -25,6 +25,8 @@ import {
   CoreContactDetail,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import AliceDashboard from "../pages/admin/AliceDashboard";
+import HelpDashboard from "../pages/admin/HelpDashboard";
 import DetailReview from "../pages/admin/DetailReview";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ItemList from "../apps/products/models/item/pages/ItemList";
@@ -143,6 +145,9 @@ const Router: React.FC = () => {
 
           {/* ── Admin tools ── */}
           <Route path={PageRoutes.adminWorkbench} element={<AdminWorkbench />} />
+          <Route path="/db" element={<Navigate to="/admin-wb" replace />} />
+          <Route path="/alice-dashboard" element={<AliceDashboard />} />
+          <Route path="/help" element={<HelpDashboard />} />
           <Route path={PageRoutes.detailReview} element={<DetailReview />} />
           <Route path={PageRoutes.modelWorkbench} element={<AllModelsWorkbench />} />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />

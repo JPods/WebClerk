@@ -12,6 +12,7 @@ import { clearTokens } from "../api/axios";
 import { clearUser } from "../store/slices/authSlice";
 import TaskManagerIndicator from "../components/header/TaskManagerIndicator";
 import InventoryMonitor from "../components/header/InventoryMonitor";
+import HelpMenu from "../components/common/HelpMenu";
 
 type Props = {
   activePath: string;
@@ -82,6 +83,7 @@ export default function MacTopBar({ activePath }: Props) {
       </div>
 
       <div className="flex items-center gap-3 text-xs">
+        <HelpMenu />
         <TaskManagerIndicator />
         <button
           onClick={() => setShowInventoryMonitor((v) => !v)}

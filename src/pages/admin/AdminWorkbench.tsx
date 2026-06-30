@@ -2,10 +2,12 @@
 import React, { useRef, useState } from 'react';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
-import { useDataBrowser, numId, PAGE_SIZE } from '../../hooks/useDataBrowser';
-import type { WorkbenchFieldsSetting } from '../../hooks/useDataBrowser';
+import { useDataBrowser, numId } from '../../hooks/useDataBrowser';
+import { dbLog } from '../../utils/dbLog';
 import BehaviorField from '../../components/common/BehaviorField';
-import DetailLayoutDialog from '../../components/common/DetailLayoutDialog';
+import FieldOrderDialog from '../../components/common/FieldOrderDialog';
+import DataGrid from '../../components/common/DataGrid';
+import type { RowColorRule } from '../../components/common/DataGrid';
 
 // ---------------------------------------------------------------------------
 // Theme tokens — JPods Console inspired
@@ -75,8 +77,7 @@ const AdminWorkbench: React.FC = () => {
   const [showFieldConfig, setShowFieldConfig] = useState<'list' | 'detail' | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveLayoutName, setSaveLayoutName] = useState('');
-  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
-  const [dragField, setDragField] = useState<string | null>(null);
+  const [showLayoutDialog, setShowLayoutDialog] = useState<'list' | 'detail' | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
 
@@ -87,10 +88,16 @@ const AdminWorkbench: React.FC = () => {
   const toggleTheme = () => { const n = theme === 'dark' ? 'light' : 'dark'; setTheme(n); localStorage.setItem('db-theme', n); };
   const cycleFontSize = () => { const n = fontSize === 'S' ? 'M' : fontSize === 'M' ? 'L' : 'S'; setFontSize(n); localStorage.setItem('db-fontsize', n); };
 
-  // Model filter
+  // Model filter — begins with, not contains
   const filteredModels = modelFilterText.trim()
-    ? db.modelNames.filter((n) => n.toLowerCase().includes(modelFilterText.toLowerCase()))
+    ? db.modelNames.filter((n) => n.toLowerCase().startsWith(modelFilterText.toLowerCase()))
     : db.modelNames;
+
+  // Track highlighted index in model picker for keyboard navigation
+  const [modelHighlight, setModelHighlight] = useState(0);
+
+  // Reset highlight when filter changes
+  React.useEffect(() => { setModelHighlight(0); }, [modelFilterText]);
 
   const inputStyle: React.CSSProperties = {
     background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: 4,
@@ -122,7 +129,14 @@ const AdminWorkbench: React.FC = () => {
         <Btn t={t} small variant="ghost" onClick={db.exportCSV}>CSV</Btn>
         <Btn t={t} small variant="ghost" onClick={() => setShowFieldConfig('list')}>List Cols</Btn>
         <Btn t={t} small variant="ghost" onClick={() => setShowFieldConfig('detail')}>Detail Fields</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => setShowLayoutDialog(true)}>Form</Btn>
+        <Btn t={t} small variant="ghost" onClick={() => {
+          dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
+          setShowLayoutDialog('list');
+        }}>List Order</Btn>
+        <Btn t={t} small variant="ghost" onClick={() => {
+          dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
+          setShowLayoutDialog('detail');
+        }}>Form Order</Btn>
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, borderLeft: `1px solid ${t.border}`, paddingLeft: 8 }}>
           <span style={{ fontSize: baseFontSize - 3, color: t.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Layouts</span>
           {db.savedViews.map((v) => (
@@ -143,25 +157,31 @@ const AdminWorkbench: React.FC = () => {
       {showModelPicker && (
         <div style={{ padding: '8px 12px', background: t.surfaceAlt, borderBottom: `1px solid ${t.border}`, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 280 }}>
-            <input ref={modelInputRef} type="text" placeholder="Type to filter..." value={modelFilterText}
+            <input ref={modelInputRef} type="text" placeholder="Type to filter (begins with)..." value={modelFilterText}
               onChange={(e) => setModelFilterText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { setShowModelPicker(false); setModelFilterText(''); }
-                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); modelSelectRef.current?.focus(); }
-                if (e.key === 'Enter' && filteredModels.length) { db.handleSelectModel(filteredModels[0]); setShowModelPicker(false); setModelFilterText(''); }
+                if (e.key === 'ArrowDown') { e.preventDefault(); setModelHighlight((h) => Math.min(h + 1, filteredModels.length - 1)); }
+                if (e.key === 'ArrowUp') { e.preventDefault(); setModelHighlight((h) => Math.max(h - 1, 0)); }
+                if (e.key === 'Enter' && filteredModels.length) { db.handleSelectModel(filteredModels[modelHighlight]); setShowModelPicker(false); setModelFilterText(''); }
               }}
               style={{ ...inputStyle, width: '100%' }} autoFocus />
-            <select ref={modelSelectRef} size={Math.min(12, Math.max(4, filteredModels.length))} value={db.selectedModel}
-              onChange={(e) => { db.handleSelectModel(e.target.value); setShowModelPicker(false); setModelFilterText(''); }}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') { setShowModelPicker(false); setModelFilterText(''); }
-                if (e.key === 'Enter') { db.handleSelectModel((e.target as HTMLSelectElement).value); setShowModelPicker(false); setModelFilterText(''); }
-                if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { e.preventDefault(); setModelFilterText((p) => p + e.key); modelInputRef.current?.focus(); }
-                if (e.key === 'Backspace') { e.preventDefault(); setModelFilterText((p) => p.slice(0, -1)); modelInputRef.current?.focus(); }
-              }}
-              style={{ ...inputStyle, width: '100%', cursor: 'pointer' }}>
-              {filteredModels.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <div ref={modelSelectRef as any} style={{ ...inputStyle, width: '100%', maxHeight: 240, overflowY: 'auto', padding: 0 }}>
+              {filteredModels.map((n, i) => (
+                <div key={n}
+                  onClick={() => { db.handleSelectModel(n); setShowModelPicker(false); setModelFilterText(''); }}
+                  onMouseEnter={() => setModelHighlight(i)}
+                  ref={i === modelHighlight ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
+                  style={{
+                    padding: '5px 10px', cursor: 'pointer', fontSize: baseFontSize - 1,
+                    background: i === modelHighlight ? (theme === 'dark' ? '#094771' : '#cfe2ff') : n === db.selectedModel ? (theme === 'dark' ? '#2d2d2d' : '#f1f3f5') : 'transparent',
+                    color: i === modelHighlight ? (theme === 'dark' ? '#fff' : '#000') : t.text,
+                    fontWeight: n === db.selectedModel ? 700 : 400,
+                  }}>
+                  {n}
+                </div>
+              ))}
+            </div>
             <div style={{ fontSize: baseFontSize - 3, color: t.textMuted }}>{filteredModels.length}/{db.modelNames.length} · Cmd/Ctrl+Shift+M</div>
           </div>
         </div>
@@ -219,72 +239,39 @@ const AdminWorkbench: React.FC = () => {
       {/* ═══ Two-pane body ═══ */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* List pane */}
-        <div tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-              e.preventDefault();
-              const ids = db.displayRecords.map((r) => numId(r.id)).filter((n): n is number => n !== null);
-              if (!ids.length) return;
-              const curIdx = db.selectedId !== null ? ids.indexOf(db.selectedId) : -1;
-              const nextIdx = e.key === 'ArrowDown' ? Math.min(curIdx + 1, ids.length - 1) : Math.max(curIdx - 1, 0);
-              db.setSelectedId(ids[nextIdx]); db.setIsDirty(false);
-              (e.currentTarget as HTMLElement).querySelector(`[data-rid="${ids[nextIdx]}"]`)?.scrollIntoView({ block: 'nearest' });
-            }
-          }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${t.border}`, minWidth: 0, outline: 'none' }}>
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            {db.recordsLoading && <div style={{ padding: 16, color: t.textMuted }}>Loading...</div>}
-            {db.recordsError && <div style={{ padding: 16, color: t.accentRed }}>{db.recordsError}</div>}
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: baseFontSize, tableLayout: 'fixed' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 1 }}>
-                  <th style={{ width: 28, padding: '6px 4px', textAlign: 'center' }}>
-                    <input type="checkbox" checked={db.selectedRowIds.size > 0 && db.displayRecords.every((r) => db.selectedRowIds.has(numId(r.id) ?? -1))}
-                      onChange={(e) => e.target.checked ? db.selectAllRows() : db.setSelectedRowIds(new Set())} />
-                  </th>
-                  {db.visibleListFields.map((f) => (
-                    <th key={f}
-                      style={{ position: 'relative', padding: '6px 8px', textAlign: 'left', color: t.textMuted, fontWeight: 600, fontSize: baseFontSize - 1, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', ...(db.colWidths[f] ? { width: db.colWidths[f], minWidth: db.colWidths[f], maxWidth: db.colWidths[f] } : {}) }}
-                      draggable onDragStart={() => setDragField(f)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragField) db.handleColumnDrop(dragField, f); setDragField(null); }}
-                      onClick={() => db.handleSort(f)}>
-                      {f}{db.sort?.field === f && <span style={{ marginLeft: 4, color: t.accent }}>{db.sort.direction === 'asc' ? '↑' : '↓'}</span>}
-                      <span style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, cursor: 'col-resize' }}
-                        onMouseDown={(e) => db.handleResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
-                        onMouseEnter={(e) => { (e.target as HTMLElement).style.background = t.resizeHandle; }}
-                        onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }} />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {db.displayRecords.map((rec, idx) => {
-                  const rid = numId(rec.id);
-                  const isActive = rid !== null && db.selectedId === rid;
-                  const isChecked = rid !== null && db.selectedRowIds.has(rid);
-                  return (
-                    <tr key={rid ?? `r-${idx}`} data-rid={rid}
-                      style={{ borderBottom: `1px solid ${t.border}`, background: isActive ? t.rowActive : isChecked ? t.rowChecked : 'transparent', cursor: 'pointer' }}
-                      onMouseEnter={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = t.rowHover; }}
-                      onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = 'transparent'; }}>
-                      <td style={{ padding: '4px', textAlign: 'center' }}>
-                        <input type="checkbox" checked={isChecked} onChange={() => rid !== null && db.toggleRow(rid)} />
-                      </td>
-                      {db.visibleListFields.map((f) => {
-                        const v = rec[f];
-                        return <td key={f} style={{ padding: '4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isActive ? '#fff' : t.text, ...(db.colWidths[f] ? { width: db.colWidths[f], minWidth: db.colWidths[f], maxWidth: db.colWidths[f] } : {}) }}
-                          onClick={() => { if (rid !== null) { db.setSelectedId(rid); db.setIsDirty(false); } }}
-                          title={String(v ?? '')}>{typeof v === 'object' && v !== null ? JSON.stringify(v).slice(0, 50) : String(v ?? '')}</td>;
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {!db.recordsLoading && !db.recordsError && db.displayRecords.length === 0 && (
-              <div style={{ padding: 16, textAlign: 'center', color: t.textMuted }}>No records — use List Cols to configure columns.</div>
-            )}
-          </div>
+        {/* List pane — DataGrid with all 10 features */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${t.border}`, minWidth: 0 }}>
+          {db.recordsLoading && <div style={{ padding: 16, color: t.textMuted }}>Loading...</div>}
+          {db.recordsError && <div style={{ padding: 16, color: t.accentRed }}>{db.recordsError}</div>}
+          {!db.recordsLoading && (
+            <DataGrid
+              records={db.displayRecords}
+              columns={db.visibleListFields}
+              colWidths={db.colWidths}
+              fieldBehaviors={db.fieldBehaviors}
+              selectedId={db.selectedId}
+              selectedRowIds={db.selectedRowIds}
+              sort={db.sort}
+              onSelectRecord={(id) => { db.setSelectedId(id); db.setIsDirty(false); }}
+              onToggleRow={db.toggleRow}
+              onSelectAll={db.selectAllRows}
+              onClearSelection={() => db.setSelectedRowIds(new Set())}
+              onSort={(field) => db.handleSort(field)}
+              onColumnDrop={db.handleColumnDrop}
+              onResizeStart={db.handleResizeStart}
+              onCellEdit={async (rid, field, value) => {
+                // Inline edit → save via wcapi
+                try {
+                  const { saveRecord } = await import('@/api/wcapi');
+                  await saveRecord(db.selectedModel, { id: rid, [field]: value });
+                  db.fetchRecords();
+                } catch (e) { console.error('Inline edit failed:', e); }
+              }}
+              numId={numId}
+              theme={t}
+              fontSize={baseFontSize}
+            />
+          )}
         </div>
 
         {/* Detail pane */}
@@ -320,10 +307,31 @@ const AdminWorkbench: React.FC = () => {
         </div>
       </div>
 
-      {/* Layout dialog */}
-      <DetailLayoutDialog open={showLayoutDialog} allFields={db.allFields} visibleFields={db.visibleDetailFields}
-        fieldBehaviors={db.fieldBehaviors} rowSizes={db.detailRowSizes} theme={theme}
-        onApply={db.updateDetailLayout} onClose={() => setShowLayoutDialog(false)} />
+      {/* Field order dialog — unified for list and detail, applies separately */}
+      <FieldOrderDialog
+        open={showLayoutDialog !== null}
+        mode={showLayoutDialog || 'list'}
+        allFields={db.allFields}
+        visibleFields={showLayoutDialog === 'detail' ? db.visibleDetailFields : db.visibleListFields}
+        fieldBehaviors={db.fieldBehaviors}
+        rowSizes={db.detailRowSizes}
+        colWidths={db.colWidths}
+        savedLayouts={db.savedViews}
+        activeLayoutName={db.activeViewName}
+        theme={theme}
+        onApply={(fields, rowSizes, colWidths) => {
+          if (showLayoutDialog === 'detail') {
+            db.updateDetailLayout(fields, rowSizes);
+          } else {
+            db.updateListLayout(fields);
+            db.setColWidths(colWidths);
+          }
+        }}
+        onSaveLayout={(name) => db.saveView(name)}
+        onLoadLayout={(layout) => db.loadView(layout)}
+        onDeleteLayout={(name) => db.deleteView(name)}
+        onClose={() => setShowLayoutDialog(null)}
+      />
     </div>
   );
 };

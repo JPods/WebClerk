@@ -7,8 +7,10 @@
  * timestamp, readonly, number, text.
  *
  * Label color: blue=actionable, green=select, purple=lookup, gray=readonly.
+ * Cmd+Option+Shift+click any label → opens field-level help in Help Dashboard.
  */
 import React from 'react';
+import { openFieldHelp } from './HelpMenu';
 
 interface BehaviorFieldProps {
   name: string;
@@ -54,12 +56,23 @@ export default function BehaviorField({
     marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em',
   };
 
+  // Cmd+Option+Shift+click on label → open field help
+  const handleLabelClick = (e: React.MouseEvent) => {
+    if (e.metaKey && e.altKey && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Try to get model from parent context — fallback to 'system'
+      const model = (record as any)?._model || 'system';
+      openFieldHelp(model, name);
+    }
+  };
+
   const wrapStyle: React.CSSProperties = span2 ? { gridColumn: '1 / -1' } : {};
 
   // ── Readonly ──
   if (behType === 'readonly') {
     const display = (f_startsDt(name) && typeof v === 'number') ? new Date(v).toLocaleString() : String(v ?? '--');
-    return <div style={wrapStyle}><span style={labelStyle}>{name}</span>
+    return <div style={wrapStyle}><span style={labelStyle} onClick={handleLabelClick}>{name}</span>
       <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>{display}</div>
     </div>;
   }
@@ -104,7 +117,7 @@ export default function BehaviorField({
 
   // ── Select ──
   if (behType === 'select' && beh.options) return <div style={wrapStyle}>
-    <span style={labelStyle}>{name}</span>
+    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <select style={{ ...inputStyle, width: '100%', cursor: 'pointer' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)}>
       <option value="">--</option>
       {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -119,7 +132,7 @@ export default function BehaviorField({
 
   // ── Currency ──
   if (behType === 'currency') return <div style={wrapStyle}>
-    <span style={labelStyle}>{name}</span>
+    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <span style={{ color: th.textMuted, fontSize }}>$</span>
       <input type="number" step="0.01" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', textAlign: 'right' }} value={v ?? ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
@@ -128,7 +141,7 @@ export default function BehaviorField({
 
   // ── Timestamp ──
   if (behType === 'timestamp') return <div style={wrapStyle}>
-    <span style={labelStyle}>{name}</span>
+    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>
       {v ? new Date(v as number).toLocaleString() : '--'}
     </div>
@@ -155,20 +168,20 @@ export default function BehaviorField({
   if (behType === 'textarea' || isLong) {
     const rows = rowSize || 4;
     return <div style={{ gridColumn: '1 / -1' }}>
-      <span style={labelStyle}>{name}</span>
+      <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
       <textarea style={{ ...inputStyle, width: '100%', resize: 'vertical' }} rows={rows} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
     </div>;
   }
 
   // ── Number ──
   if (behType === 'number' || (typeof v === 'number' && !f_startsDt(name))) return <div style={wrapStyle}>
-    <span style={labelStyle}>{name}</span>
+    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <input type="number" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v as number} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
   </div>;
 
   // ── Default text ──
   return <div style={wrapStyle}>
-    <span style={labelStyle}>{name}</span>
+    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
 }

@@ -7,6 +7,7 @@ import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
 import TaskManagerIndicator from "../components/header/TaskManagerIndicator";
+import HelpMenu from "../components/common/HelpMenu";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -191,6 +192,7 @@ const AppHeader: React.FC = () => {
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
+            <HelpMenu />
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
             <TaskManagerIndicator />

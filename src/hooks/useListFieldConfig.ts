@@ -1,56 +1,97 @@
 /**
- * useListFieldConfig — adds DataBrowser-style field selection and ordering to any list page.
+ * useListFieldConfig — unified column configuration for any list page.
  *
- * Usage in a list page:
- *   const allColumns = useMemo(() => [...], []);  // your full column definitions
- *   const { visibleColumns, FieldConfigBar } = useListFieldConfig('customer', allColumns);
- *   // render FieldConfigBar above the table, pass visibleColumns to AdvancedDataTable
+ * Single hook that manages field selection, ordering, widths, and saved layouts.
+ * Works with both DataGrid and legacy AdvancedDataTable columns.
+ * Stores everything in workbench_fields Settings (same as DataBrowser).
  *
- * Saves field visibility + order to the same workbench_fields Setting used by the DataBrowser,
- * so layouts are shared between dedicated pages and the DataBrowser.
+ * Usage:
+ *   const columns = useMemo(() => [...], []);
+ *   const fc = useListFieldConfig('customer', columns);
+ *   // Pass fc.visibleColumns to DataGrid or AdvancedDataTable
+ *   // Use fc.fieldOrderDialogProps with FieldOrderDialog
  */
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TableColumn } from 'react-data-table-component';
 import {
   getWorkbenchFieldsSetting,
   saveWorkbenchFieldsSetting,
+  getRecords,
 } from '@/api/wcapi';
 
-// Stable key for a column — uses the `name` prop (header label)
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface SavedLayout {
+  name: string;
+  list: string[];
+  detail: string[];
+  listWidths?: Record<string, number>;
+}
+
+interface WorkbenchData {
+  list: string[];
+  detail: string[];
+  views?: SavedLayout[];
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function colKey(col: TableColumn<any>): string {
   return typeof col.name === 'string' ? col.name : String(col.id ?? '');
 }
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
 export function useListFieldConfig<T>(
   modelName: string,
   allColumns: TableColumn<T>[],
 ) {
-  const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null); // null = show all
-  const [showPanel, setShowPanel] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null);
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
+  const [activeLayoutName, setActiveLayoutName] = useState<string | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
+  const [settingId, setSettingId] = useState<number | undefined>();
 
-  // Load saved config
+  // Load saved config + field behaviors
   useEffect(() => {
     if (!modelName || loaded) return;
     (async () => {
       try {
         const setting = await getWorkbenchFieldsSetting(modelName);
-        if (setting?.data?.list?.length) {
-          setVisibleKeys(setting.data.list);
+        if (setting) {
+          setSettingId(setting.id);
+          const data = setting.data as WorkbenchData;
+          if (data?.list?.length) setVisibleKeys(data.list);
+          if (data?.views) setSavedLayouts(data.views);
+          if ((setting as any).listWidths) setColWidths((setting as any).listWidths);
         }
-      } catch { /* no saved config — show all */ }
+      } catch { /* no saved config */ }
+
+      // Load field behaviors
+      try {
+        const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'field_access' }) as any;
+        const faRec = (faRes?.results || [])[0];
+        if (faRec?.data?.field_behaviors) setFieldBehaviors(faRec.data.field_behaviors);
+      } catch { /* no behaviors */ }
+
       setLoaded(true);
     })();
   }, [modelName, loaded]);
 
-  // All column keys in definition order
+  // All column keys
   const allKeys = useMemo(() => allColumns.map(colKey), [allColumns]);
-
-  // Effective visible keys
   const effectiveKeys = visibleKeys ?? allKeys;
 
-  // Filtered + ordered columns
+  // Filtered + ordered columns for AdvancedDataTable compatibility
   const visibleColumns = useMemo(() => {
     if (!visibleKeys) return allColumns;
     const colMap = new Map(allColumns.map((c) => [colKey(c), c]));
@@ -59,71 +100,120 @@ export function useListFieldConfig<T>(
       .filter((c): c is TableColumn<T> => !!c);
   }, [allColumns, visibleKeys]);
 
-  // Persist
-  const persist = useCallback(async (keys: string[]) => {
+  // Persist to Settings
+  const persist = useCallback(async (
+    keys?: string[],
+    widths?: Record<string, number>,
+    layouts?: SavedLayout[],
+  ) => {
     if (!modelName) return;
     try {
       const existing = await getWorkbenchFieldsSetting(modelName);
-      const data = existing?.data ?? { list: [], detail: [] };
-      data.list = keys;
+      const data: WorkbenchData = existing?.data as WorkbenchData ?? { list: [], detail: [] };
+      if (keys) data.list = keys;
+      if (layouts) data.views = layouts;
       await saveWorkbenchFieldsSetting({
         id: existing?.id,
         model_name: modelName,
         purpose: 'workbench_fields',
-        data,
+        data: { ...data },
       });
     } catch (e) {
       console.error('Failed to save field config:', e);
     }
   }, [modelName]);
 
-  const toggleField = useCallback((key: string) => {
-    setVisibleKeys((prev) => {
-      const current = prev ?? allKeys;
-      const next = current.includes(key)
-        ? current.filter((k) => k !== key)
-        : [...current, key];
-      persist(next);
-      return next;
-    });
-  }, [allKeys, persist]);
+  // Update list fields
+  const updateListFields = useCallback((keys: string[]) => {
+    setVisibleKeys(keys);
+    persist(keys);
+  }, [persist]);
 
-  const setAll = useCallback(() => {
-    setVisibleKeys(allKeys);
-    persist(allKeys);
-  }, [allKeys, persist]);
+  // Update widths
+  const updateWidths = useCallback((widths: Record<string, number>) => {
+    setColWidths(widths);
+  }, []);
 
-  const clearAll = useCallback(() => {
-    const minimal = allKeys.slice(0, 1); // keep at least one
-    setVisibleKeys(minimal);
-    persist(minimal);
-  }, [allKeys, persist]);
+  // Save layout
+  const saveLayout = useCallback((name: string) => {
+    const layout: SavedLayout = {
+      name,
+      list: visibleKeys ?? allKeys,
+      detail: [],
+      listWidths: colWidths,
+    };
+    const updated = [...savedLayouts.filter((l) => l.name !== name), layout];
+    setSavedLayouts(updated);
+    setActiveLayoutName(name);
+    persist(undefined, undefined, updated);
+  }, [visibleKeys, allKeys, colWidths, savedLayouts, persist]);
 
-  const moveField = useCallback((key: string, direction: 'up' | 'down') => {
-    setVisibleKeys((prev) => {
-      const current = [...(prev ?? allKeys)];
-      const idx = current.indexOf(key);
-      if (idx < 0) return current;
-      const target = direction === 'up' ? idx - 1 : idx + 1;
-      if (target < 0 || target >= current.length) return current;
-      [current[idx], current[target]] = [current[target], current[idx]];
-      persist(current);
-      return current;
-    });
-  }, [allKeys, persist]);
+  // Load layout
+  const loadLayout = useCallback((layout: SavedLayout) => {
+    setVisibleKeys(layout.list);
+    if (layout.listWidths) setColWidths(layout.listWidths);
+    setActiveLayoutName(layout.name);
+  }, []);
 
-  // Toggle panel visibility
-  const toggle = useCallback(() => setShowPanel((p) => !p), []);
+  // Delete layout
+  const deleteLayout = useCallback((name: string) => {
+    if (!confirm(`Delete layout "${name}"?`)) return;
+    const updated = savedLayouts.filter((l) => l.name !== name);
+    setSavedLayouts(updated);
+    if (activeLayoutName === name) setActiveLayoutName(null);
+    persist(undefined, undefined, updated);
+  }, [savedLayouts, activeLayoutName, persist]);
+
+  // Toggle dialog
+  const toggleDialog = useCallback(() => setShowDialog((p) => !p), []);
+
+  // FieldOrderDialog props — pass directly to the dialog
+  const fieldOrderDialogProps = useMemo(() => ({
+    open: showDialog,
+    mode: 'list' as const,
+    allFields: allKeys,
+    visibleFields: effectiveKeys,
+    fieldBehaviors,
+    colWidths,
+    savedLayouts,
+    activeLayoutName,
+    onApply: (fields: string[], _rowSizes: Record<string, number>, newWidths: Record<string, number>) => {
+      updateListFields(fields);
+      updateWidths(newWidths);
+    },
+    onSaveLayout: saveLayout,
+    onLoadLayout: loadLayout,
+    onDeleteLayout: deleteLayout,
+    onClose: () => setShowDialog(false),
+  }), [showDialog, allKeys, effectiveKeys, fieldBehaviors, colWidths, savedLayouts, activeLayoutName, updateListFields, updateWidths, saveLayout, loadLayout, deleteLayout]);
+
+  // DataGrid props — pass directly to DataGrid
+  const dataGridColumnProps = useMemo(() => ({
+    columns: effectiveKeys,
+    colWidths,
+  }), [effectiveKeys, colWidths]);
 
   return {
+    // For AdvancedDataTable (legacy compatibility)
     visibleColumns,
-    showPanel,
-    togglePanel: toggle,
-    effectiveKeys,
+    // For DataGrid
+    dataGridColumnProps,
+    // Shared
     allKeys,
-    toggleField,
-    setAll,
-    clearAll,
-    moveField,
+    effectiveKeys,
+    colWidths,
+    fieldBehaviors,
+    savedLayouts,
+    activeLayoutName,
+    // Actions
+    updateListFields,
+    updateWidths,
+    saveLayout,
+    loadLayout,
+    deleteLayout,
+    // Dialog
+    showDialog,
+    toggleDialog,
+    fieldOrderDialogProps,
   };
 }
