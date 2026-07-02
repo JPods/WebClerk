@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     # 'rest_framework_simplejwt.token_blacklist',  # Removed — we don't blacklist tokens (see cookie_token_refresh.py)
     'django_filters',
     'drf_spectacular',
+    # 'explorer',  # TODO: install in lib/python3.13 env
+    # 'import_export',  # TODO: install in lib/python3.13 env
     'drf_spectacular_sidecar',
 ]
 
@@ -816,6 +818,16 @@ WCAPI_WHITELIST_APPS = _env_list('WCAPI_WHITELIST_APPS')  # e.g., "transactions,
 WCAPI_ENFORCE_WRITES = True        # all writes via wcapi/save in views/tests/clients
 
 # --- Test Environment Overrides ---
+# ── SQL Explorer (QueryEditor for power users) ──────────────────────────────
+# TODO: install django-sql-explorer in lib/python3.13 env, then uncomment
+# EXPLORER_CONNECTIONS = {'default': 'default'}
+# EXPLORER_DEFAULT_CONNECTION = 'default'
+# EXPLORER_PERMISSION_VIEW = lambda r: r.user.is_staff
+# EXPLORER_PERMISSION_CHANGE = lambda r: r.user.is_superuser
+# EXPLORER_SCHEMA_EXCLUDE_TABLE_PREFIXES = ['django_', 'auth_', 'pg_']
+# EXPLORER_RECENT_QUERY_COUNT = 20
+# EXPLORER_SQL_BLACKLIST = ['DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'GRANT', 'REVOKE']
+
 import os as _os  # local alias to avoid shadowing
 if _os.environ.get('PYTEST_CURRENT_TEST'):
     # Relax wcapi gating in tests so any model can be fetched via /<model>/ routes

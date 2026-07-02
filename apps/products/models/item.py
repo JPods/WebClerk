@@ -236,6 +236,16 @@ class Item(StatsMixin, BaseModel):
     # volumen of sales, number of items, 
     # number of returns, margins, margin velocity
     quantity = models.JSONField(default=dict, blank=True, help_text="Inventory quantity status (on hand, allocated, available, on order)")
+    vendor = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        blank=True, null=True, db_index=True,
+        db_column='vendor_id', related_name='items_as_vendor',
+    )
+    manufacturer = models.ForeignKey(
+        'orgs.OrgBase', on_delete=models.SET_NULL,
+        blank=True, null=True, db_index=True,
+        db_column='manufacturer_id', related_name='items_as_manufacturer',
+    )
     row_version = models.IntegerField(default=0, db_index=True, help_text="Optimistic concurrency version (increments on each save)")
 
     # Properties for admin list_display

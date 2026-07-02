@@ -1,5 +1,9 @@
 from django.contrib import admin
 from django.db import models as dj_models
+try:
+    from import_export.admin import ImportExportModelAdmin
+except ImportError:
+    ImportExportModelAdmin = admin.ModelAdmin
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin  # noqa: F401 re-exported for app use
 from .models import (
@@ -13,7 +17,7 @@ from .models.specification import Specification
 
 
 @admin.register(Item)
-class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
+class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, ImportExportModelAdmin):
     # Scalar fields: base_uom, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, kind, name, qr_code, row_version, security_level, sku, specification_id, uom, uuid, version
     list_display = ("ida", "name", "sku", "description", "kind", "base_uom", "is_active", "dt_created")
     list_filter = ("kind", "is_active", "is_deleted")

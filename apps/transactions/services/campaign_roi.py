@@ -194,3 +194,131 @@ def link_transaction_to_campaign(model_name: str, record_id: int, campaign_id: i
     obj.save(update_fields=['source', 'dt_modified'])
 
     return {'model_name': model_name, 'record_id': record_id, 'campaign_id': campaign_id}
+
+
+def attribute_customer_to_campaign(customer_id: int, campaign_id: int) -> Dict:
+    """First-touch attribution: link a customer to a campaign.
+
+    Sets customer.refs.links.campaigns = [{campaign_id, dt}].
+    If campaigns list already exists and this campaign is already there, no-op.
+
+    Args:
+        customer_id: OrgBase PK (org_type='customer')
+        campaign_id: Setting PK (purpose='campaign')
+
+    Returns: {customer_id, campaign_id, attributed}
+    """
+    from apps.orgs.models import OrgBase
+
+    # Verify campaign exists
+    Setting.objects.get(pk=campaign_id, purpose='campaign')
+
+    customer = OrgBase.objects.get(pk=customer_id)
+    refs = customer.refs if isinstance(customer.refs, dict) else {}
+    links = refs.get('links', {})
+    if not isinstance(links, dict):
+        links = {}
+    campaigns = links.get('campaigns', [])
+    if not isinstance(campaigns, list):
+        campaigns = []
+
+    # First-touch: only add if not already attributed to this campaign
+    existing_ids = {c.get('campaign_id') for c in campaigns if isinstance(c, dict)}
+    if campaign_id in existing_ids:
+        return {'customer_id': customer_id, 'campaign_id': campaign_id, 'attributed': False}
+
+    campaigns.append({'campaign_id': campaign_id, 'dt': _now_ms()})
+    links['campaigns'] = campaigns
+    refs['links'] = links
+    customer.refs = refs
+    customer.save(update_fields=['refs'])
+
+    return {'customer_id': customer_id, 'campaign_id': campaign_id, 'attributed': True}
+
+
+def get_campaign_cac(campaign_id: int) -> Dict:
+    """Customer Acquisition Cost for a campaign.
+
+    CAC = campaign spend / count of customers attributed to this campaign.
+    Queries customers whose refs.links.campaigns contains this campaign_id.
+
+    Returns: {campaign_id, spend, customer_count, cac}
+    """
+    from apps.orgs.models import OrgBase
+
+    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    data = setting.data or {}
+    spent = _dec(data.get('spent', 0))
+
+    # Query customers with this campaign_id in refs.links.campaigns
+    # PostgreSQL jsonb containment: refs -> links -> campaigns @> [{"campaign_id": N}]
+    customers = OrgBase.objects.filter(
+        org_type='customer',
+        is_deleted=False,
+        refs__links__campaigns__contains=[{'campaign_id': campaign_id}],
+    )
+    customer_count = customers.count()
+
+    cac = (spent / customer_count) if customer_count > 0 else Decimal('0')
+
+    return {
+        'campaign_id': campaign_id,
+        'name': data.get('name', ''),
+        'spend': str(spent),
+        'customer_count': customer_count,
+        'cac': str(cac),
+    }
+
+
+def get_campaign_margin_velocity(campaign_id: int) -> Dict:
+    """Margin velocity for a campaign: margin * inventory turns.
+
+    For all orders linked to this campaign (via source.campaign_id),
+    calculate total margin and inventory turns from related invoices.
+    Margin velocity = margin * turns (not just revenue).
+
+    Returns: {campaign_id, name, order_count, revenue, cost, margin,
+              turns, margin_velocity}
+    """
+    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    data = setting.data or {}
+
+    # Get orders linked to campaign
+    orders = Order.objects.filter(
+        source__campaign_id=campaign_id,
+        is_deleted=False,
+    )
+    order_count = orders.count()
+
+    # Get invoices linked to campaign for realized revenue/cost
+    invoices = Invoice.objects.filter(
+        source__campaign_id=campaign_id,
+        is_deleted=False,
+    )
+
+    total_revenue = Decimal('0')
+    total_cost = Decimal('0')
+
+    for inv in invoices:
+        totals = inv.totals if isinstance(inv.totals, dict) else {}
+        total_revenue += _dec(totals.get('total', 0))
+        total_cost += _dec(totals.get('cost', 0))
+
+    margin = total_revenue - total_cost
+
+    # Inventory turns: revenue / average inventory cost
+    # Simplified: if cost > 0, turns = revenue / cost
+    turns = (total_revenue / total_cost) if total_cost > 0 else Decimal('0')
+
+    margin_velocity = margin * turns
+
+    return {
+        'campaign_id': campaign_id,
+        'name': data.get('name', ''),
+        'order_count': order_count,
+        'revenue': str(total_revenue),
+        'cost': str(total_cost),
+        'margin': str(margin),
+        'turns': str(turns.quantize(Decimal('0.01'))),
+        'margin_velocity': str(margin_velocity.quantize(Decimal('0.01'))),
+    }

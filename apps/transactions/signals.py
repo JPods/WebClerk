@@ -35,7 +35,7 @@ def _allie(event: str, message: str = "", data: dict | None = None):
 from django.dispatch import receiver
 from apps.transactions.models import (
     ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
-    Proposal, Order, Invoice, Payment,
+    Proposal, Order, Invoice, Payment, Purchase,
 )
 from apps.transactions.services.email_notifications import TransactionEmailService
 
@@ -413,3 +413,60 @@ def allie_payment_event(sender, instance: Payment, created, **kwargs):
     _allie(event,
            f"Payment #{instance.pk} status={status}",
            {"id": instance.pk, "status": status})
+
+
+# =============================================================================
+# AGENT BUS — notify Alice of transaction events
+# Fire-and-forget. Signal failure must never break the save.
+# =============================================================================
+
+def _bus_notify(model_name, instance, created):
+    """Send transaction event to Alice via the agent message bus."""
+    try:
+        from apps.core.services.agent_bus_bridge import send_to_bus
+        event = 'created' if created else 'updated'
+        ida = getattr(instance, 'ida', '') or f'{model_name}({instance.pk})'
+        status = getattr(instance, 'status', '')
+        total = float(getattr(instance, 'total', 0) or 0)
+        balance = float(getattr(instance, 'balance', 0) or 0)
+        send_to_bus('wc3', 'alice', f'{model_name} {ida} {event}',
+                    category='transaction',
+                    context={'model': model_name.lower(), 'id': instance.pk,
+                             'ida': ida, 'event': event, 'status': status,
+                             'total': total, 'balance': balance})
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=Order)
+def bus_order_saved(sender, instance, created, **kwargs):
+    _bus_notify('Order', instance, created)
+
+
+@receiver(post_save, sender=Invoice)
+def bus_invoice_saved(sender, instance, created, **kwargs):
+    _bus_notify('Invoice', instance, created)
+
+
+@receiver(post_save, sender=Proposal)
+def bus_proposal_saved(sender, instance, created, **kwargs):
+    _bus_notify('Proposal', instance, created)
+
+
+@receiver(post_save, sender=Purchase)
+def bus_purchase_saved(sender, instance, created, **kwargs):
+    _bus_notify('Purchase', instance, created)
+
+
+@receiver(post_save, sender=Payment)
+def bus_payment_saved(sender, instance, created, **kwargs):
+    try:
+        from apps.core.services.agent_bus_bridge import send_to_bus
+        event = 'created' if created else 'updated'
+        status = getattr(instance, 'status', '')
+        send_to_bus('wc3', 'alice', f'Payment #{instance.pk} {event}',
+                    category='transaction',
+                    context={'model': 'payment', 'id': instance.pk,
+                             'event': event, 'status': status})
+    except Exception:
+        pass

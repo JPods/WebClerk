@@ -140,7 +140,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         db_column='rep_id', related_name='contacts_as_rep',
         help_text="Associated sales rep org",
     )
-    other_id = models.BigIntegerField(null=True, blank=True, help_text="Other associated ID if applicable")
+    # other_id removed — use refs for general-purpose relations (Q9 decision 2026-07-01)
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
     department = models.CharField(max_length=100, blank=True, help_text="Department")

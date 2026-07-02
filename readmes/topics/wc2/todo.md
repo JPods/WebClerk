@@ -25,6 +25,12 @@ Source inventory from [00WebClerk19/Project/Sources](../../../../00WebClerk19/Pr
 - Forms files: 493
 - TableForms files: 10,629
 
+Convert from:
+- /Users/williamjames/Documents/CommerceExpert/vue2020 
+- /Users/williamjames/Documents/CommerceExpert/VueChimney
+- /Users/williamjames/Documents/CommerceExpert/00WebClerk19
+- /Users/williamjames/Documents/CommerceExpert/webclerk2
+
 ## High-Value Function Clusters To Mine
 
 ### 1) Tally and Reporting Behavior

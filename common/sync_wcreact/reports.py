@@ -57,14 +57,23 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "SalesYTD with ProductSummary",    "description": "YTD sales with product breakdown",              "output_type": "print", "category": "report",    "sort_order": 90},
         {"name": "Receivable Summary",              "description": "Summary of outstanding receivables",            "output_type": "print", "category": "summary",   "sort_order": 100},
         {"name": "Condition Report",                "description": "Print condition report (QA)",                   "output_type": "print", "category": "report",    "sort_order": 110},  # wc2: Print Condition Report QA
+        {"name": "Customer Statement",              "description": "Periodic account statement with balances",      "output_type": "print", "category": "statement", "sort_order": 115},
+        {"name": "Customer Profile",                "description": "Customer profile with contact and sales data",  "output_type": "print", "category": "report",    "sort_order": 116},
+        {"name": "Aging Report",                    "description": "Receivables aging (current/30/60/90)",          "output_type": "print", "category": "report",    "sort_order": 117},
+        {"name": "Receivables Report",              "description": "Detailed report of what customer owes",         "output_type": "print", "category": "report",    "sort_order": 118},
+        {"name": "Customer Activity Report",        "description": "Orders, invoices, and payments in period",      "output_type": "print", "category": "report",    "sort_order": 119},
         # -- email --
         {"name": "Email Statement",                 "description": "Email customer statement via SMTP",             "output_type": "email", "category": "statement", "sort_order": 200},
         {"name": "All listed Email",                "description": "Email all listed/selected customers",           "output_type": "email", "category": "letter",    "sort_order": 210},
         {"name": "Warranty Email on Print",         "description": "Send warranty email triggered by print",        "output_type": "email", "category": "letter",    "sort_order": 220},
+        {"name": "Customer Letter",                 "description": "Mail merge letter to customer",                 "output_type": "email", "category": "letter",    "sort_order": 230},
         # -- label --
         {"name": "iLabels Customer",                "description": "Print customer mailing labels",                 "output_type": "label", "category": "label",     "sort_order": 300},
+        {"name": "Mailing Labels",                  "description": "Customer mailing labels (standard format)",     "output_type": "label", "category": "label",     "sort_order": 310},
+        {"name": "Customer Labels",                 "description": "Address labels for customer mailings",          "output_type": "label", "category": "label",     "sort_order": 320},
         # -- export --
         {"name": "Customer Export",                 "description": "Export customer list to CSV",                    "output_type": "export", "category": "export",   "sort_order": 400},
+        {"name": "Customer List Export",            "description": "Export filtered customer list to CSV/Excel",     "output_type": "export", "category": "export",   "sort_order": 410},
         # -- merge --
         {"name": "Customer Mail Merge",             "description": "Merge customer data into Word template",        "output_type": "merge", "category": "letter",    "sort_order": 500},
         # -- json / api --
@@ -91,8 +100,13 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "List of Orders Report",           "description": "List report of selected orders",                "output_type": "print", "category": "list",      "sort_order": 130},  # wc2: List of Orders Report
         {"name": "Ad Source Report",                "description": "Order ad-source analysis",                      "output_type": "print", "category": "report",    "sort_order": 140},  # wc2: AdSource_Final
         {"name": "Show Vendor",                     "description": "Print vendor info linked to order",             "output_type": "print", "category": "report",    "sort_order": 150},  # wc2: Show Vendor
+        {"name": "Pick / Pull Request",             "description": "Pick/pull request with bin locations",          "output_type": "print", "category": "report",    "sort_order": 155},
+        {"name": "Proforma Invoice",                "description": "Proforma invoice for international shipment",   "output_type": "print", "category": "report",    "sort_order": 156},
+        {"name": "Customs Proforma",                "description": "Customs proforma declaration with values",      "output_type": "print", "category": "report",    "sort_order": 157},
+        {"name": "Back Order Report",               "description": "Items on order not yet shipped",                "output_type": "print", "category": "report",    "sort_order": 158},
         # -- email --
         {"name": "Email Order Confirmation",        "description": "Email order confirmation to customer",          "output_type": "email", "category": "letter",    "sort_order": 200},  # wc2: Email Order Option2
+        {"name": "Order Acknowledgement Email",     "description": "Email confirming receipt of order to customer",  "output_type": "email", "category": "letter",    "sort_order": 205},
         {"name": "Email Condition Report",          "description": "Email condition/repair report to customer",     "output_type": "email", "category": "letter",    "sort_order": 210},  # wc2: Email Condition Report
         {"name": "Email Printable Order",           "description": "Email printable order document",                "output_type": "email", "category": "letter",    "sort_order": 220},  # wc2: emailPrintableOrder
         # -- api  (posting to shippers / external systems) --
@@ -100,9 +114,12 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "Post Out Orders",                 "description": "POST order data to external system",            "output_type": "api",   "category": "utility",   "sort_order": 310},  # wc2: Post Out Orders
         {"name": "DMS Send Orders",                 "description": "Send orders to dealer management system",       "output_type": "api",   "category": "utility",   "sort_order": 320},  # wc2: DMS Send Orders
         {"name": "DMS Bring Orders In",             "description": "Import orders from dealer management system",   "output_type": "api",   "category": "utility",   "sort_order": 330},  # wc2: DMS Bring Orders In
+        # -- label --
+        {"name": "Shipping Label",                  "description": "Shipping label for order",                      "output_type": "label", "category": "label",     "sort_order": 350},
         # -- export --
         {"name": "Order Export",                    "description": "Export orders to CSV",                          "output_type": "export", "category": "export",   "sort_order": 400},
         {"name": "Order Web Print",                 "description": "Web-printable order export",                    "output_type": "export", "category": "export",   "sort_order": 410},  # wc2: OrderWebPrint
+        {"name": "Order Line Export",               "description": "Export order lines to CSV",                     "output_type": "export", "category": "export",   "sort_order": 420},
         # -- merge --
         {"name": "Order Mail Merge",                "description": "Merge order data into Word template",           "output_type": "merge", "category": "letter",    "sort_order": 500},
         # -- json --
@@ -122,6 +139,7 @@ REPORT_DEFS: dict[str, list[dict]] = {
     # ===================================================================
     "invoice": [
         # -- print (standard forms) --
+        {"name": "Invoice",                         "description": "Customer-facing invoice / bill",                "output_type": "print", "category": "report",    "sort_order": 5},
         {"name": "Invoice - Standard",              "description": "Standard invoice",                              "output_type": "print", "category": "report",    "sort_order": 10},   # wc2: Invoice 1 - Standard
         {"name": "Invoice - Shipping",              "description": "Invoice with shipping details",                 "output_type": "print", "category": "report",    "sort_order": 20},   # wc2: Invoice 2 - Shipping
         {"name": "Invoice - Shipping w/Disc",       "description": "Shipping invoice with discount",                "output_type": "print", "category": "report",    "sort_order": 30},   # wc2: Invoice 3 - Shipping w/disc
@@ -153,8 +171,10 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "PPC Credit Memo",                 "description": "Credit memo report",                            "output_type": "print", "category": "report",    "sort_order": 280},  # wc2: PPC Credit Memo
         {"name": "PeopleSoft Draft Billing",        "description": "PeopleSoft draft billing output",               "output_type": "print", "category": "report",    "sort_order": 290},  # wc2: PeopleSoft Draft Billing
         {"name": "Sales Tax Report",                "description": "Tax breakdown by jurisdiction",                  "output_type": "print", "category": "report",    "sort_order": 300,  "role_required": "admin"},
+        {"name": "Past Due Notice",                 "description": "Past due notice for overdue invoices",          "output_type": "print", "category": "statement", "sort_order": 310},
         # -- email --
         {"name": "Email Invoice",                   "description": "Email invoice to customer",                     "output_type": "email", "category": "letter",    "sort_order": 400},  # wc2: Email Invoice
+        {"name": "Invoice Email",                   "description": "Email invoice document to customer",            "output_type": "email", "category": "letter",    "sort_order": 405},
         {"name": "Direct All Invoices",             "description": "Batch email all selected invoices",             "output_type": "email", "category": "utility",   "sort_order": 410},  # wc2: Direct All Invoices
         # -- label --
         {"name": "iLabel Printing",                 "description": "Print shipping labels for invoice",             "output_type": "label", "category": "label",     "sort_order": 500},  # wc2: iLabel Printing2
@@ -164,6 +184,7 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "Post to UPS Tracking",            "description": "Post tracking number to UPS API",               "output_type": "api",   "category": "utility",   "sort_order": 610},  # wc2: Post to UPS Tracking
         # -- export --
         {"name": "Invoice Export",                  "description": "Export invoices to CSV",                         "output_type": "export", "category": "export",   "sort_order": 700},
+        {"name": "Invoice Line Export",             "description": "Export invoice lines to CSV",                    "output_type": "export", "category": "export",   "sort_order": 705},
         {"name": "UPS Export",                      "description": "Export UPS tracking data",                       "output_type": "export", "category": "export",   "sort_order": 710},  # wc2: UPS EXPORT
         {"name": "OrdNum UPS Export Track",         "description": "Export order-number to UPS tracking map",        "output_type": "export", "category": "export",   "sort_order": 720},  # wc2: OrdNum_UPS_Export_Track
         {"name": "UPS Order# Export",               "description": "Export UPS order numbers",                       "output_type": "export", "category": "export",   "sort_order": 730},  # wc2: !!UPS Order# Export
@@ -188,6 +209,9 @@ REPORT_DEFS: dict[str, list[dict]] = {
     # ===================================================================
     "proposal": [
         # -- print (multiple formats) --
+        {"name": "Proposal / Quote",                "description": "Customer-facing quotation document",             "output_type": "print", "category": "report",    "sort_order": 5},
+        {"name": "Estimate",                        "description": "Estimate / rough quote document",                "output_type": "print", "category": "report",    "sort_order": 6},
+        {"name": "Bid Document",                    "description": "Formal bid response document",                   "output_type": "print", "category": "report",    "sort_order": 7},
         {"name": "Proposal 1",                      "description": "Proposal format 1 (standard)",                   "output_type": "print", "category": "report",    "sort_order": 10},   # wc2: Proposal 1
         {"name": "Proposal 2",                      "description": "Proposal format 2",                              "output_type": "print", "category": "report",    "sort_order": 20},   # wc2: Proposal 2
         {"name": "Proposal 3",                      "description": "Proposal format 3",                              "output_type": "print", "category": "report",    "sort_order": 30},   # wc2: Proposal 3
@@ -197,6 +221,7 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "Proposal Summary",                "description": "Proposal selection summary",                     "output_type": "print", "category": "summary",   "sort_order": 70},
         # -- email --
         {"name": "Email Proposal Basic w/ Q&A",     "description": "Email proposal with question/answer section",    "output_type": "email", "category": "letter",    "sort_order": 200},  # wc2: Email Proposal Basic w/ Q&A
+        {"name": "Proposal Email",                  "description": "Email proposal document to customer",            "output_type": "email", "category": "letter",    "sort_order": 205},
         # -- api --
         {"name": "Post Out Proposal",               "description": "POST proposal to external system",               "output_type": "api",   "category": "utility",   "sort_order": 300},  # wc2: PostOutProposal
         # -- merge --
@@ -215,7 +240,9 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "Receiving Report",                "description": "Print receiving report",                          "output_type": "print", "category": "report",    "sort_order": 20},
         {"name": "Purchase Summary",                "description": "Purchase selection summary",                      "output_type": "print", "category": "summary",   "sort_order": 30},
         {"name": "Email Purchase Order",            "description": "Email PO to vendor",                              "output_type": "email", "category": "letter",    "sort_order": 200},  # wc2: Email PO
+        {"name": "PO Email to Vendor",              "description": "Email purchase order document to vendor",         "output_type": "email", "category": "letter",    "sort_order": 210},
         {"name": "Purchase Export",                 "description": "Export purchase orders to CSV",                    "output_type": "export", "category": "export",   "sort_order": 400},
+        {"name": "Purchase Line Export",            "description": "Export purchase order lines to CSV",               "output_type": "export", "category": "export",   "sort_order": 410},
         {"name": "Purchase JSON",                   "description": "Return PO data as structured JSON",               "output_type": "json",  "category": "export",   "sort_order": 500},
     ],
 
@@ -236,10 +263,15 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "PPC Items w/Qty Sold",            "description": "PPC items with quantity sold",                    "output_type": "print", "category": "report",    "sort_order": 100},  # wc2: PPC Items w/Qty Sold
         {"name": "Dept Items w/Descriptions",       "description": "Items by department with descriptions",           "output_type": "print", "category": "list",      "sort_order": 110},  # wc2: Dept Items w/Descriptions
         {"name": "Item Listing w/Descriptions",     "description": "Full item listing with descriptions",             "output_type": "print", "category": "list",      "sort_order": 120},  # wc2: Item listing w/Descriptions
+        {"name": "Product Spec Sheet",              "description": "Product specification sheet with attributes",     "output_type": "print", "category": "report",    "sort_order": 125},
+        {"name": "Reorder Report",                  "description": "Items below reorder point needing replenishment", "output_type": "print", "category": "report",    "sort_order": 126},
         # -- label --
         {"name": "Item Labels / Barcodes",          "description": "Print product labels / barcodes",                 "output_type": "label", "category": "label",     "sort_order": 200},  # wc2: Build Barcodes_Ver_04
+        {"name": "Item Labels",                     "description": "Shelf labels with barcode and pricing",           "output_type": "label", "category": "label",     "sort_order": 210},
+        {"name": "Item Barcode Labels",             "description": "Barcode labels for inventory scanning",           "output_type": "label", "category": "label",     "sort_order": 220},
         # -- export --
         {"name": "Item Export",                     "description": "Export items to CSV",                              "output_type": "export", "category": "export",   "sort_order": 400},
+        {"name": "Item Catalog Export",             "description": "Export product catalog to CSV/Excel",              "output_type": "export", "category": "export",   "sort_order": 410},
         # -- merge --
         {"name": "Item Spreadsheet Merge",          "description": "Merge item data into spreadsheet template",        "output_type": "merge", "category": "export",   "sort_order": 500},
         # -- json --
@@ -259,24 +291,31 @@ REPORT_DEFS: dict[str, list[dict]] = {
     ],
 
     # ===================================================================
-    # VENDOR reports  (wc2: Vendors table)
-    # ===================================================================
-    "vendor": [
-        {"name": "Vendor Contact List",             "description": "Active vendor list with contacts",                "output_type": "print",  "category": "list",    "sort_order": 10},   # wc2: SR[Vendors] Contact List
-        {"name": "AP Aging",                        "description": "Accounts payable aging report",                   "output_type": "print",  "category": "report",  "sort_order": 20,  "role_required": "admin"},
-        {"name": "Vendor Labels",                   "description": "Print vendor mailing labels",                     "output_type": "label",  "category": "label",   "sort_order": 100},
-        {"name": "Vendor Export",                   "description": "Export vendor list to CSV",                        "output_type": "export", "category": "export",  "sort_order": 200},
-        {"name": "Vendor JSON",                     "description": "Return vendor data as structured JSON",            "output_type": "json",   "category": "export",  "sort_order": 300},
-    ],
-
-    # ===================================================================
     # CONTACT reports
     # ===================================================================
     "contact": [
         {"name": "Contact List",                    "description": "Contact directory",                                "output_type": "print",  "category": "list",    "sort_order": 10},
+        {"name": "Contact Directory",               "description": "Contact directory with details",                   "output_type": "print",  "category": "list",    "sort_order": 15},
         {"name": "Contact Labels",                  "description": "Print contact mailing labels",                     "output_type": "label",  "category": "label",   "sort_order": 100},
         {"name": "Contact Export",                  "description": "Export contacts to CSV",                            "output_type": "export", "category": "export",  "sort_order": 200},
         {"name": "Contact Mail Merge",              "description": "Merge contact data into Word template",            "output_type": "merge",  "category": "letter",  "sort_order": 300},
+    ],
+
+    # ===================================================================
+    # VENDOR reports  (wc2: Vendors table)
+    # ===================================================================
+    "vendor": [
+        {"name": "Vendor Contact List",             "description": "Active vendor list with contacts",                "output_type": "print",  "category": "list",    "sort_order": 10},   # wc2: SR[Vendors] Contact List
+        {"name": "Vendor List",                     "description": "Vendor directory listing",                        "output_type": "print",  "category": "list",    "sort_order": 15},
+        {"name": "AP Aging",                        "description": "Accounts payable aging report",                   "output_type": "print",  "category": "report",  "sort_order": 20,  "role_required": "admin"},
+        {"name": "AP Aging Report",                 "description": "What we owe vendors by aging bucket",             "output_type": "print",  "category": "report",  "sort_order": 25,  "role_required": "admin"},
+        {"name": "Vendor Profile",                  "description": "Vendor profile with contact and purchase data",   "output_type": "print",  "category": "report",  "sort_order": 30},
+        {"name": "Vendor Statement",                "description": "Periodic account statement for vendor",           "output_type": "print",  "category": "statement", "sort_order": 40},
+        {"name": "Vendor Scorecard",                "description": "Vendor performance metrics (fill rate, lead time, quality)", "output_type": "print", "category": "report", "sort_order": 50},
+        {"name": "Vendor Labels",                   "description": "Print vendor mailing labels",                     "output_type": "label",  "category": "label",   "sort_order": 100},
+        {"name": "Vendor Export",                   "description": "Export vendor list to CSV",                        "output_type": "export", "category": "export",  "sort_order": 200},
+        {"name": "Vendor List Export",              "description": "Export filtered vendor list to CSV/Excel",         "output_type": "export", "category": "export",  "sort_order": 210},
+        {"name": "Vendor JSON",                     "description": "Return vendor data as structured JSON",            "output_type": "json",   "category": "export",  "sort_order": 300},
     ],
 
     # ===================================================================
@@ -292,9 +331,13 @@ REPORT_DEFS: dict[str, list[dict]] = {
     # PAYMENT reports  (wc2: Payments table)
     # ===================================================================
     "payment": [
+        {"name": "Payment Receipt",                 "description": "Confirmation of payment received",                 "output_type": "print",  "category": "report",  "sort_order": 5},
         {"name": "Period Payments Report",          "description": "Payment transactions for period",                  "output_type": "print",  "category": "report",  "sort_order": 10},   # wc2: Period Payments Report
         {"name": "Bank Deposit",                    "description": "Bank deposit report / slip",                        "output_type": "print",  "category": "report",  "sort_order": 20},   # wc2: Bank Deposit
+        {"name": "Deposit Report",                  "description": "Payments to deposit grouped by method",            "output_type": "print",  "category": "report",  "sort_order": 25},
         {"name": "Cash Drawer Reconciliation",      "description": "Cash drawer reconciliation report",                "output_type": "print",  "category": "report",  "sort_order": 30,  "role_required": "admin"},  # wc2: PPC Cash Drawer Reconciliation
+        {"name": "Payment Journal",                 "description": "Payment journal entries for period",               "output_type": "print",  "category": "report",  "sort_order": 35,  "role_required": "admin"},
+        {"name": "Disbursement Report",             "description": "Disbursements / AP payments for period",           "output_type": "print",  "category": "report",  "sort_order": 40,  "role_required": "admin"},
         {"name": "Payment Export",                  "description": "Export payments to CSV",                            "output_type": "export", "category": "export",  "sort_order": 100},
     ],
 
@@ -318,6 +361,8 @@ REPORT_DEFS: dict[str, list[dict]] = {
     "action": [
         {"name": "Action Report",                   "description": "Service/action history report",                    "output_type": "print",  "category": "report",  "sort_order": 10},   # wc2: Action Report
         {"name": "Publisher Report",                 "description": "Publisher-formatted service report",               "output_type": "print",  "category": "report",  "sort_order": 20},   # wc2: Publisher Report
+        {"name": "Task List",                       "description": "Task list with status and assignments",            "output_type": "print",  "category": "list",    "sort_order": 30},
+        {"name": "Project Status Report",           "description": "Project status summary with open actions",         "output_type": "print",  "category": "report",  "sort_order": 40},
         {"name": "Email Service Comments",          "description": "Email service comments to customer",               "output_type": "email",  "category": "letter",  "sort_order": 100},  # wc2: Email Service Comments
         {"name": "Send Mail (Service)",             "description": "Send service mail notification",                   "output_type": "email",  "category": "letter",  "sort_order": 110},  # wc2: Send Mail
         {"name": "Action Export",                   "description": "Export service records to CSV",                     "output_type": "export", "category": "export",  "sort_order": 200},
@@ -329,6 +374,94 @@ REPORT_DEFS: dict[str, list[dict]] = {
     "tax_jurisdiction": [
         {"name": "Tax Authority Listing",           "description": "Tax authority / jurisdiction listing",              "output_type": "print",  "category": "list",    "sort_order": 10},   # wc2: Tax Authority Listing
         {"name": "Tax Export",                      "description": "Export tax jurisdictions to CSV",                    "output_type": "export", "category": "export",  "sort_order": 100},
+    ],
+
+    # ===================================================================
+    # BILL OF MATERIAL reports
+    # ===================================================================
+    "bill_of_material": [
+        {"name": "BOM Report",                     "description": "Bill of materials with component detail",           "output_type": "print",  "category": "report",  "sort_order": 10},
+        {"name": "Where-Used Report",              "description": "Where-used report — which BOMs use a component",   "output_type": "print",  "category": "report",  "sort_order": 20},
+    ],
+
+    # ===================================================================
+    # DOCUMENT reports
+    # ===================================================================
+    "document": [
+        {"name": "Document Index",                 "description": "Index listing of all documents",                    "output_type": "print",  "category": "list",    "sort_order": 10},
+    ],
+
+    # ===================================================================
+    # GL ACCOUNT reports
+    # ===================================================================
+    "gl_account": [
+        {"name": "Chart of Accounts",              "description": "Chart of accounts listing",                         "output_type": "print",  "category": "list",    "sort_order": 10,  "role_required": "admin"},
+    ],
+
+    # ===================================================================
+    # GL JOURNAL reports
+    # ===================================================================
+    "gl_journal": [
+        {"name": "Journal Entry Report",           "description": "GL journal entries for period",                     "output_type": "print",  "category": "report",  "sort_order": 10,  "role_required": "admin"},
+        {"name": "Trial Balance",                  "description": "Trial balance — all GL accounts with balances",    "output_type": "print",  "category": "summary", "sort_order": 20,  "role_required": "admin"},
+        {"name": "Journal Listing",                "description": "GL entries listed by period",                       "output_type": "print",  "category": "list",    "sort_order": 30,  "role_required": "admin"},
+        {"name": "Sales Journal",                  "description": "Posted sales entries for period",                   "output_type": "print",  "category": "report",  "sort_order": 40,  "role_required": "admin"},
+        {"name": "Purchase Journal",               "description": "Posted purchase entries for period",                "output_type": "print",  "category": "report",  "sort_order": 50,  "role_required": "admin"},
+    ],
+
+    # ===================================================================
+    # LEDGER reports (AR/AP sub-ledger)
+    # ===================================================================
+    "ledger": [
+        {"name": "AR Aging Summary",               "description": "Accounts receivable aging summary",                "output_type": "print",  "category": "summary", "sort_order": 10,  "role_required": "admin"},
+        {"name": "AP Aging Summary",               "description": "Accounts payable aging summary",                   "output_type": "print",  "category": "summary", "sort_order": 20,  "role_required": "admin"},
+        {"name": "Open Receivables",               "description": "List of open receivable entries",                  "output_type": "print",  "category": "list",    "sort_order": 30},
+    ],
+
+    # ===================================================================
+    # QUESTION/ANSWER reports (inspection, checklists)
+    # ===================================================================
+    "question_answer": [
+        {"name": "Condition Report",               "description": "Condition report from Q&A inspection data",        "output_type": "print",  "category": "report",  "sort_order": 10},
+        {"name": "Inspection Checklist",            "description": "Inspection/installation checklist from Q&A",      "output_type": "print",  "category": "report",  "sort_order": 20},
+        {"name": "Q&A Report",                     "description": "Question and answer report for record",            "output_type": "print",  "category": "report",  "sort_order": 30},
+        {"name": "QA Summary Export",              "description": "Export Q&A summary to CSV",                        "output_type": "export", "category": "export",  "sort_order": 100},
+    ],
+
+    # ===================================================================
+    # WAREHOUSE reports
+    # ===================================================================
+    "warehouse": [
+        {"name": "Warehouse Inventory",            "description": "Inventory by warehouse/location",                   "output_type": "print",  "category": "report",  "sort_order": 10},
+        {"name": "Cycle Count Sheet",              "description": "Cycle count worksheet for physical inventory",     "output_type": "print",  "category": "report",  "sort_order": 20},
+    ],
+
+    # ===================================================================
+    # WORK ORDER reports (new-style model_name='work_order')
+    # ===================================================================
+    "work_order": [
+        {"name": "Work Order",                     "description": "Print work order form",                             "output_type": "print",  "category": "report",  "sort_order": 10},
+        {"name": "Service Report",                 "description": "Service report from work order",                    "output_type": "print",  "category": "report",  "sort_order": 20},
+        {"name": "Time & Materials Summary",       "description": "Time and materials summary for work order",        "output_type": "print",  "category": "summary", "sort_order": 30},
+    ],
+
+    # ===================================================================
+    # REP / SALES REP reports
+    # ===================================================================
+    "rep": [
+        {"name": "Commission Report",              "description": "Rep commission earnings by period",                 "output_type": "print",  "category": "report",  "sort_order": 10,  "role_required": "admin"},
+        {"name": "Sales by Rep",                   "description": "Revenue and margin by sales rep",                   "output_type": "print",  "category": "report",  "sort_order": 20},
+        {"name": "Rep Activity",                   "description": "Customers visited, orders placed by rep",          "output_type": "print",  "category": "report",  "sort_order": 30},
+        {"name": "Rep Export",                     "description": "Export rep data to CSV",                            "output_type": "export", "category": "export",  "sort_order": 100},
+    ],
+
+    # ===================================================================
+    # MANUFACTURER reports
+    # ===================================================================
+    "manufacturer": [
+        {"name": "Sales by Manufacturer",          "description": "Revenue by manufacturer/brand",                     "output_type": "print",  "category": "report",  "sort_order": 10},
+        {"name": "Rebate Accrual Report",          "description": "Manufacturer rebates earned vs received",          "output_type": "print",  "category": "report",  "sort_order": 20,  "role_required": "admin"},
+        {"name": "Manufacturer Export",            "description": "Export manufacturer data to CSV",                   "output_type": "export", "category": "export",  "sort_order": 100},
     ],
 }
 

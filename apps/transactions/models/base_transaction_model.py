@@ -181,6 +181,7 @@ class TransactionBaseModel(BaseModel):
     # services that compute totals can save results for queries and UI display.
     totals = models.JSONField(default=default_totals, blank=True, null=True)
     finance = models.JSONField(default=dict, blank=True, null=True)
+    commission = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
     # pulled from .refs to track related entities without FK constraints; updated by Celery tasks on save

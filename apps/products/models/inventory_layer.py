@@ -7,6 +7,7 @@ from apps.products.choices import (
     INVENTORY_MOVEMENT_TYPE_CHOICES,
     PENDING_INVENTORY_STATE_CHOICES,
 )
+from common.models import CoreModel
 from .item_base_model import ItemLinkedBase
 from .warehouse import Warehouse
 
@@ -277,7 +278,7 @@ class InventoryMovement(ItemLinkedBase):
         ]
 
 
-class PendingInventoryAdjustment(models.Model):
+class PendingInventoryAdjustment(CoreModel):
     """Deferred inventory mutation when target stack is locked or insufficient.
 
     Processing strategy (future service): a periodic job or unlock hook attempts
@@ -293,7 +294,6 @@ class PendingInventoryAdjustment(models.Model):
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
     reason = models.CharField(max_length=80, blank=True)
     request_ref = models.JSONField(default=dict, blank=True)
-    # dt_created is inherited from BaseModel/CoreModel
     dt_applied = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.CharField(max_length=120, blank=True)
 
@@ -303,12 +303,11 @@ class PendingInventoryAdjustment(models.Model):
             models.Index(fields=("inventory_layer", "state"), name="pendinv_stack_state_idx"),
         ]
 
-    def apply_now(self):  # stub logic
+    def apply_now(self):
         if self.state != self.STATE_PENDING:
             return False
         stack = self.inventory_layer
         if stack.remaining_qty() < self.qty and not stack.is_locked:
-            # insufficient still
             return False
         if stack.is_locked:
             return False
@@ -317,7 +316,7 @@ class PendingInventoryAdjustment(models.Model):
         from django.utils import timezone
         self.state = self.STATE_APPLIED
         self.dt_applied = timezone.now()
-        self.save(update_fields=["state", "dt_applied"])
+        self.save()
         return True
 
     def cancel(self, reason: str):
@@ -325,5 +324,5 @@ class PendingInventoryAdjustment(models.Model):
             return False
         self.state = self.STATE_CANCELED
         self.cancel_reason = reason[:120]
-        self.save(update_fields=["state", "cancel_reason"])
+        self.save()
         return True

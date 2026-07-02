@@ -17,6 +17,39 @@ Actions:
     get_tally_report_registry — list named tally report registry entries
     execute_tally_report — execute a report by report_key and params
     export_tally_report — export report output as csv/json content
+  Pricing Engine:
+    resolve_price              — resolve effective unit price for item (contract→level→base→floor)
+    get_price_matrix           — return all price levels and qty breaks for UI grid
+    apply_line_pricing         — resolve and update price on a transaction line
+  Tax Calculation:
+    calculate_line_tax         — compute tax for a single line extended price
+    calculate_transaction_tax  — compute and update tax for all lines of a transaction
+    get_tax_jurisdictions      — list active tax jurisdictions with rates
+  Totals Recalculation:
+    recalculate_totals         — recompute header totals from all lines
+    recalculate_line           — recompute single line extended + update parent totals
+  Document Conversion Chain:
+    convert_proposal_to_order      — proposal lines to new order (partial supported)
+    convert_order_to_invoice       — order lines to new invoice (partial supported)
+    convert_order_to_purchase      — order lines to new PO (drop-ship / procurement)
+    convert_proposal_to_invoice    — proposal direct to invoice (over-the-counter)
+    get_conversion_history         — trace parent/child chain for a transaction
+    bulk_convert                   — convert multiple source transactions at once
+  Shipping / Packing Workflow:
+    generate_pick_list             — pick list with bin locations for an order
+    confirm_pack                   — record packed lines with tracking/carrier/weight
+    ship_order                     — complete shipment via conversion chain (order -> invoice)
+    get_shipment_status            — what has shipped vs pending for an order
+  EOM (End of Month) Close:
+    run_eom_close                  — aging, GL verify, summary, lock period
+    get_eom_status                 — check if period is closed, what is pending
+    reopen_period                  — unlock a closed period (requires reason + contact)
+  Letter / Email Template (Mail Merge):
+    merge_template                 — merge a Document template with a record
+    preview_merge                  — preview merge without sending
+    send_email                     — merge + send via Django email backend
+    bulk_send                      — send to multiple records
+    get_available_templates        — list available templates
 """
 from __future__ import annotations
 
@@ -551,6 +584,92 @@ _ACTION_DISPATCH = {
     "calculate_campaign_roi": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['calculate_campaign_roi']).calculate_campaign_roi(p['campaign_id']),
     "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['get_all_campaigns']).get_all_campaigns(),
     "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
+    # ── Journalize (GL Posting) ──
+    "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
+    "journalize_payment": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_payment']).journalize_payment(p['payment_id'], p.get('ida_prefix', '')),
+    "journalize_purchase": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_purchase']).journalize_purchase(p['purchase_id'], p.get('ida_prefix', '')),
+    "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
+    # ── Payment Pending (One Path) ──
+    "apply_payment_to_invoice": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_payment_to_invoice']).apply_payment_to_invoice(p['payment_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id')),
+    "apply_pending_payments": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),
+    # ── Commission ──
+    "populate_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['populate_transaction_commission']).populate_transaction_commission(p['transaction_id'], p['model_name']),
+    "accrue_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['accrue_commission']).accrue_commission(p['transaction_id'], p['model_name'], p.get('ida_prefix', '')),
+    # ── Vendor Scorecard ──
+    "compute_vendor_scorecard": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['compute_vendor_scorecard']).compute_vendor_scorecard(p['vendor_id'], p.get('period_days', 90)),
+    "update_vendor_scorecard": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['update_vendor_scorecard']).update_vendor_scorecard(p['vendor_id']),
+    "get_all_vendor_scores": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['get_all_vendor_scores']).get_all_vendor_scores(),
+    # ── Suggest Purchase ──
+    "get_items_below_reorder": lambda p: __import__('apps.products.services.suggest_purchase', fromlist=['get_items_below_reorder']).get_items_below_reorder(p.get('warehouse_id')),
+    "suggest_purchase_orders": lambda p: __import__('apps.products.services.suggest_purchase', fromlist=['suggest_purchase_orders']).suggest_purchase_orders(p.get('warehouse_id')),
+    "create_draft_purchase": lambda p: __import__('apps.products.services.suggest_purchase', fromlist=['create_draft_purchase']).create_draft_purchase(p['vendor_id'], p['items']),
+    # ── Credit Check ──
+    "check_credit_limit": lambda p: __import__('apps.transactions.services.credit_check', fromlist=['check_credit_limit']).check_credit_limit(p['customer_id'], p.get('new_amount', 0)),
+    "acknowledge_credit_override": lambda p: __import__('apps.transactions.services.credit_check', fromlist=['acknowledge_credit_override']).acknowledge_credit_override(p['transaction_id'], p['model_name'], p['contact_id'], p.get('reason', '')),
+    # ── Campaign Enhancement (ORG-06) ──
+    "attribute_customer_campaign": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['attribute_customer_to_campaign']).attribute_customer_to_campaign(p['customer_id'], p['campaign_id']),
+    "get_campaign_cac": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['get_campaign_cac']).get_campaign_cac(p['campaign_id']),
+    "get_campaign_margin_velocity": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['get_campaign_margin_velocity']).get_campaign_margin_velocity(p['campaign_id']),
+    # ── Manufacturer Rebate (ORG-07) ──
+    "accrue_manufacturer_rebate": lambda p: __import__('apps.orgs.services.rebate_accrual', fromlist=['accrue_manufacturer_rebate']).accrue_manufacturer_rebate(p['manufacturer_id'], p.get('period_start_ms'), p.get('period_end_ms')),
+    "get_rebate_summary": lambda p: __import__('apps.orgs.services.rebate_accrual', fromlist=['get_rebate_summary']).get_rebate_summary(),
+    # ── MAP Enforcement (ORG-08) ──
+    "check_map_violation": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['check_map_violation']).check_map_violation(p['item_id'], p['sell_price']),
+    "check_order_map_violations": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['check_order_map_violations']).check_order_map_violations(p['order_id']),
+    "get_map_violations_report": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['get_map_violations_report']).get_map_violations_report(p.get('period_days', 30)),
+    # ── Pricing Engine ──
+    "resolve_price": lambda p: __import__('apps.products.services.pricing', fromlist=['resolve_price']).resolve_price(p['item_id'], p.get('customer_id'), p.get('qty', 1), p.get('price_level')),
+    "get_price_matrix": lambda p: __import__('apps.products.services.pricing', fromlist=['get_price_matrix']).get_price_matrix(p['item_id']),
+    "apply_line_pricing": lambda p: __import__('apps.products.services.pricing', fromlist=['apply_line_pricing']).apply_line_pricing(p['model_name'], p['line_id'], p.get('customer_id'), p.get('qty')),
+    # ── Tax Calculation ──
+    "calculate_line_tax": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['calculate_line_tax']).calculate_line_tax(p['line_price_extended'], p.get('tax_jurisdiction_id'), p.get('tax_rate')),
+    "calculate_transaction_tax": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['calculate_transaction_tax']).calculate_transaction_tax(p['transaction_id'], p['model_name']),
+    "get_tax_jurisdictions": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['get_tax_jurisdictions']).get_tax_jurisdictions(),
+    # ── Totals Recalculation ──
+    "recalculate_totals": lambda p: __import__('apps.transactions.services.totals', fromlist=['recalculate_totals']).recalculate_totals(p['transaction_id'], p['model_name']),
+    "recalculate_line": lambda p: __import__('apps.transactions.services.totals', fromlist=['recalculate_line']).recalculate_line(p['line_id'], p['model_name']),
+    # ── Agent Message Bus ──
+    "send_agent_message": lambda p: __import__('apps.core.services.agent_bus_bridge', fromlist=['send_to_bus']).send_to_bus(p.get('from', 'alice'), p['to'], p['subject'], p.get('body', ''), p.get('priority', 0), p.get('category'), p.get('context')),
+    "check_agent_inbox": lambda p: __import__('apps.core.services.agent_bus_bridge', fromlist=['check_inbox']).check_inbox(p.get('agent', 'alice'), p.get('unread_only', True)),
+    # ── Report Generation ──
+    "render_report": lambda p: __import__('apps.core.services.report_renderer', fromlist=['render_report_action']).render_report_action(p['report_name'], p['model_name'], p.get('record_id'), p.get('filters'), p.get('format', 'pdf')),
+    "get_available_reports": lambda p: __import__('apps.core.services.report_renderer', fromlist=['get_available_reports']).get_available_reports(p.get('model_name')),
+    # ── User Pattern Tracking (Alice coaching) ──
+    "log_user_navigation": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['log_user_navigation']).log_user_navigation(p['contact_id'], p['entries']),
+    "analyze_user_patterns": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['analyze_user_patterns']).analyze_user_patterns(p['contact_id']),
+    "get_all_user_patterns": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['get_all_user_patterns']).get_all_user_patterns(),
+    "save_alice_observation": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['save_alice_observation']).save_alice_observation(p['contact_id'], p['observation'], p.get('category', 'workflow')),
+    "log_user_search": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['log_user_search']).log_user_search(p['contact_id'], p['model'], p['search_term'], p.get('result_count', 0)),
+    "analyze_search_patterns": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['analyze_search_patterns']).analyze_search_patterns(),
+    "promote_search_preset": lambda p: __import__('apps.ai_assistant.services.user_patterns', fromlist=['promote_search_preset']).promote_search_preset(p['model'], p['term'], p.get('label', '')),
+    # ── Code Standards (Alice enforcement) ──
+    "scan_code_standards": lambda p: __import__('apps.ai_assistant.services.code_standards', fromlist=['scan_directory']).scan_directory(p.get('directory'), p.get('file_type', '.tsx')),
+    "scan_changed_files": lambda p: __import__('apps.ai_assistant.services.code_standards', fromlist=['scan_changed_files']).scan_changed_files(p['files']),
+    "get_migration_report": lambda p: __import__('apps.ai_assistant.services.code_standards', fromlist=['get_migration_report']).get_migration_report(),
+    # ── Document Conversion Chain ──
+    "convert_proposal_to_order": lambda p: __import__('apps.transactions.services.conversion', fromlist=['convert_proposal_to_order']).convert_proposal_to_order(p['proposal_id'], p.get('line_ids'), p.get('contact_id')),
+    "convert_order_to_invoice": lambda p: __import__('apps.transactions.services.conversion', fromlist=['convert_order_to_invoice']).convert_order_to_invoice(p['order_id'], p.get('line_ids'), p.get('contact_id')),
+    "convert_order_to_purchase": lambda p: __import__('apps.transactions.services.conversion', fromlist=['convert_order_to_purchase']).convert_order_to_purchase(p['order_id'], p.get('line_ids'), p.get('vendor_id'), p.get('contact_id')),
+    "convert_proposal_to_invoice": lambda p: __import__('apps.transactions.services.conversion', fromlist=['convert_proposal_to_invoice']).convert_proposal_to_invoice(p['proposal_id'], p.get('line_ids'), p.get('contact_id')),
+    "get_conversion_history": lambda p: __import__('apps.transactions.services.conversion', fromlist=['get_conversion_history']).get_conversion_history(p['transaction_id'], p['model_name']),
+    "bulk_convert": lambda p: __import__('apps.transactions.services.conversion', fromlist=['bulk_convert']).bulk_convert(p['source_model'], p['source_ids'], p['target_model'], p.get('contact_id'), p.get('vendor_id')),
+    # ── Shipping / Packing Workflow ──
+    "generate_pick_list": lambda p: __import__('apps.transactions.services.shipping', fromlist=['generate_pick_list']).generate_pick_list(p['order_id']),
+    "confirm_pack": lambda p: __import__('apps.transactions.services.shipping', fromlist=['confirm_pack']).confirm_pack(p['order_id'], p['packed_lines']),
+    "ship_order": lambda p: __import__('apps.transactions.services.shipping', fromlist=['ship_order']).ship_order(p['order_id'], p.get('shipping_data', {}), p.get('contact_id')),
+    "get_shipment_status": lambda p: __import__('apps.transactions.services.shipping', fromlist=['get_shipment_status']).get_shipment_status(p['order_id']),
+    # ── EOM (End of Month) Close ──
+    "run_eom_close": lambda p: __import__('apps.accounts.services.eom', fromlist=['run_eom_close']).run_eom_close(p['period_year'], p['period_month'], p.get('contact_id')),
+    "get_eom_status": lambda p: __import__('apps.accounts.services.eom', fromlist=['get_eom_status']).get_eom_status(p['period_year'], p['period_month']),
+    "reopen_period": lambda p: __import__('apps.accounts.services.eom', fromlist=['reopen_period']).reopen_period(p['period_year'], p['period_month'], p['contact_id'], p['reason']),
+    # ── Letter / Email Template (Mail Merge) ──
+    "merge_template": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['merge_template']).merge_template(p['template_id'], p['record_model'], p['record_id']),
+    "preview_merge": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['preview_merge']).preview_merge(p['template_id'], p['record_model'], p['record_id']),
+    "send_email": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['send_email']).send_email(p['template_id'], p['record_model'], p['record_id'], p.get('to_email'), p.get('contact_id')),
+    "bulk_send": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['bulk_send']).bulk_send(p['template_id'], p['record_model'], p['record_ids']),
+    "get_available_templates": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['get_available_templates']).get_available_templates(p.get('model_name')),
+    # ── Clone / Duplicate ──
+    "clone_record": lambda p: __import__('apps.core.services.clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
 }
 
 
@@ -594,12 +713,12 @@ class ManageWcapiView(APIView):
                 message=str(exc),
                 error={"code": "invalid_params", "details": {"action": action_name}},
             )
-        except Exception:
+        except Exception as exc:
             logger.exception("manage action %s failed", action_name)
             return api_response(
                 success=False,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                message=f"action '{action_name}' failed",
+                message=f"action '{action_name}' failed: {exc}",
                 error={"code": "action_failed", "details": {"action": action_name}},
             )
 

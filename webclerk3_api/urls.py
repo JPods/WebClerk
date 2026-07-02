@@ -36,6 +36,7 @@ urlpatterns = [
     path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
 
     path('admin/', admin.site.urls),
+    # path('explorer/', include('explorer.urls')),  # TODO: install django-sql-explorer in lib/python3.13
 ]
 
 # Serve static files in development (images, etc.)

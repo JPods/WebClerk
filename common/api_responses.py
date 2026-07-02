@@ -62,9 +62,14 @@ def api_response(
     success: bool = True,
     status_code: int = 200,
     error: Optional[Dict[str, Any]] = None,
+    error_code: Optional[str] = None,
 ) -> Response:
     """Return a DRF Response with the new strict envelope.
     """
+    if error_code and error is None:
+        error = {"code": error_code, "details": None}
+    elif error_code and error is not None:
+        error.setdefault("code", error_code)
     payload = build_api_envelope(data=data, message=message, status_code=status_code, error=error)
     resp = Response(payload, status=status_code)
     setattr(resp, '_api_enveloped', True)

@@ -376,6 +376,7 @@ class BaseLineCore(BaseModel):
     item = models.JSONField(default=dict, blank=True, null=True)
     quantity = models.JSONField(default=dict, blank=True, null=True)
     cost = models.JSONField(default=dict, blank=True, null=True)
+    commission = models.JSONField(default=dict, blank=True, null=True)
     tax = models.JSONField(default=dict, blank=True, null=True)
     physical = models.JSONField(default=dict, blank=True, null=True)
 

@@ -1,0 +1,177 @@
+WC2 → WC3 Gap Assessment
+
+  GAP Status — What's Done, What's Left
+
+  GAP: GAP-01
+  Feature: Order Production
+  Status: DONE
+  What was built this session: order_production.py rewired to adjust_item_quantity
+  What remains: WO spawn needs testing
+  ────────────────────────────────────────
+  GAP: GAP-02
+  Feature: Backorder Management
+  Status: DONE
+  What was built this session: backorder.py service exists
+  What remains: UI integration
+  ────────────────────────────────────────
+  GAP: GAP-03
+  Feature: Serial Lifecycle
+  Status: DONE
+  What was built this session: serial_lifecycle.py service exists
+  What remains: UI integration
+  ────────────────────────────────────────
+  GAP: GAP-04
+  Feature: Inventory FIFO/LIFO
+  Status: DONE
+  What was built this session: inventory_stacks.py + PendingInventoryAdjustment
+    (CoreModel)
+  What remains: —
+  ────────────────────────────────────────
+  GAP: GAP-05
+  Feature: Forecast Engine
+  Status: PARTIAL
+  What was built this session: suggest_purchase.py (reorder point → draft PO)
+  What remains: Demand forecasting, usage history trends
+  ────────────────────────────────────────
+  GAP: GAP-06
+  Feature: Requisition Management
+  Status: MISSING
+  What was built this session: —
+  What remains: Need requisition model + approval workflow
+  ────────────────────────────────────────
+  GAP: GAP-07
+  Feature: Sales Pipeline
+  Status: DROPPED
+  What was built this session: Leads abandoned — customers with status='prospect'
+  What remains: Campaign attribution covers the useful part
+  ────────────────────────────────────────
+  GAP: GAP-08
+  Feature: Service/Support
+  Status: MISSING
+  What was built this session: —
+  What remains: RMA, Pareto analysis, action-based resolution
+  ────────────────────────────────────────
+  GAP: GAP-09
+  Feature: Territory Management
+  Status: MISSING
+  What was built this session: —
+  What remains: Zip-to-rep assignment
+  ────────────────────────────────────────
+  GAP: GAP-10
+  Feature: Campaign/Ad Source
+  Status: DONE
+  What was built this session: campaign_roi.py + CAC + margin velocity + attribution
+  What remains: —
+  ────────────────────────────────────────
+  GAP: GAP-11
+  Feature: Commissions
+  Status: DONE
+  What was built this session: commission.py — object, splits, level factors, GL
+  accrual
+  What remains: Script-based calculation
+  ────────────────────────────────────────
+  GAP: GAP-12
+  Feature: Report Multi-Channel
+  Status: PARTIAL
+  What was built this session: 239 report records seeded
+  What remains: Routing logic (print/email/EDI)
+  ────────────────────────────────────────
+  GAP: GAP-13
+  Feature: Time Capture
+  Status: DEFERRED
+  What was built this session: —
+  What remains: External API integration
+  ────────────────────────────────────────
+  GAP: GAP-14
+  Feature: Call Reports                                                              
+  Status: MISSING                                                                    
+  What was built this session: —                                                       
+  What remains: Activity tracking linked to customers
+  ────────────────────────────────────────                                             
+  GAP: GAP-15                                                     
+  Feature: Item Period Sales                                                         
+  Status: PARTIAL                                                                    
+  What was built this session: Tally services (Phases 1-4 done)                        
+  What remains: Period comparison UI
+                                                                                       
+  Workflow Status                                                 
+                                                                                     
+  ┌────────────────────────────────┬──────────┬────────────────────────────────────┐ 
+  │            Workflow            │ Coverage │              Key gaps              │   
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤ 
+  │                                │          │ Credit check (built tonight),      │   
+  │ Customer→Order→Invoice→Payment │ ~75%     │ payment pending (built tonight),   │ 
+  │                                │          │ price resolution needs wiring      │ 
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤ 
+  │                                │          │ pricing.py exists,                 │ 
+  │ Product→Pricing→Inventory      │ ~60%     │ suggest_purchase built, MAP built. │   
+  │                                │          │  Missing: multi-tier price matrix  │ 
+  │                                │          │ UI                                 │   
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤   
+  │ Proposal→Order→Invoice         │          │ Conversion exists. Commission      │
+  │ conversion                     │ ~70%     │ carries forward. Missing: bulk     │   
+  │                                │          │ conversion                         │ 
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤   
+  │                                │          │ Modern detail pages done. List     │
+  │ React25 Page Audit             │ ~30%     │ pages need DataGrid migration. 3   │   
+  │                                │          │ files need decomposition           │ 
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤ 
+  │                                │          │ GL journalization (line-level),    │   
+  │ Financial Accounting           │ ~80%     │ commission accrual, GL resolution  │
+  │                                │          │ chains — all built tonight         │   
+  ├────────────────────────────────┼──────────┼────────────────────────────────────┤ 
+  │                                │          │ One-path pending for inventory +   │   
+  │ Data Integrity                 │ ~80%     │ cash, refs consistency, keyword    │
+  │                                │          │ indexing                           │   
+  └────────────────────────────────┴──────────┴────────────────────────────────────┘ 
+                                                                                       
+  Desktop Hosting Principles — How We're Tracking
+                                                                                       
+  ┌────────────────────────────────────────────┬───────────────────────────────────┐ 
+  │                 Principle                  │            WC3 Status             │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Local server as system of record           │ DONE — dual hosting model         │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Relationships determine permissions        │ DONE — field_access RBAC per      │
+  │                                            │ model                             │ 
+  ├────────────────────────────────────────────┼───────────────────────────────────┤ 
+  │ Three data types                           │ DONE — architecture in place      │   
+  │ (proprietary/transactional/common)         │                                   │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤   
+  │ Publish-based not message-based            │ DONE — wcapi single gate          │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Spiral of Excellence                       │ IN PROGRESS — Alice learning,     │
+  │                                            │ retrospection system              │
+  ├────────────────────────────────────────────┼───────────────────────────────────┤ 
+  │ Data library / DynamicCatalogs             │ PARTIAL — sync model exists,      │ 
+  │                                            │ catalog import not wired          │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤ 
+  │ Bottom-up not top-down                     │ DONE — architecture principle     │   
+  ├────────────────────────────────────────────┼───────────────────────────────────┤   
+  │ No single point of failure                 │ DONE — dual hosting               │ 
+  └────────────────────────────────────────────┴───────────────────────────────────┘   
+                                                                                       
+  What Needs Building Next (by priority)
+                                                                                       
+  Code needed:                                                                       
+  1. ~~Requisition model + approval flow (GAP-06)~~ — could be simple: Action with     
+  type='requisition' + approval status                                            
+  2. Service/Support / RMA (GAP-08) — Action with type='service', linked to            
+  customer/item                                                                      
+  3. Territory management (GAP-09) — zip ranges on rep record, auto-assign on customer 
+  save                                                                                
+  4. Report routing (GAP-12) — output_type dispatch (print/email/PDF)                  
+  5. Bulk proposal→order conversion (Workflow 3)                                       
+                                  
+  Tests needed:                                                                        
+  - Test Sequence 002: Full cycle with commissions, GL journalization, credit check  
+  - Test Sequence 003: Purchase cycle with vendor scorecard, receiving, inventory      
+  pending                                                                              
+  - Test Sequence 004: Multi-rep split commission with level factors                   
+                                                                                       
+  Training exercises needed:                                                         
+  - Already built 7 training docs with 38 drills                                       
+  - Need: Conversion chain drill (proposal→order→invoice→payment end-to-end)         
+  - Need: Report generation drill (when report routing is built)                       
+                                                                                     
+  What do you want to walk through first?                         

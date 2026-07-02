@@ -130,6 +130,11 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         kind='line',
         aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
     ),
+    'pending_payment_application': ModelMeta('pending_payment_application', 'apps.transactions.models.pending_payment.PendingPaymentApplication', 'Pending Payment Application', 'Pending Payment Applications', 'pending-payment-applications', kind='support', aliases=['pending_payment_applications']),
+    # Alice
+    'alice_observation': ModelMeta('alice_observation', 'apps.ai_assistant.models_alice.AliceObservation', 'Alice Observation', 'Alice Observations', 'alice-observations', kind='support', aliases=['alice_observations']),
+    'alice_preset': ModelMeta('alice_preset', 'apps.ai_assistant.models_alice.AlicePreset', 'Alice Preset', 'Alice Presets', 'alice-presets', kind='support', aliases=['alice_presets']),
+    'alice_coaching_log': ModelMeta('alice_coaching_log', 'apps.ai_assistant.models_alice.AliceCoachingLog', 'Alice Coaching Log', 'Alice Coaching Logs', 'alice-coaching-logs', kind='support', aliases=['alice_coaching_logs']),
     'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders']),
     'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),

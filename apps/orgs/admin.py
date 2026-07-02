@@ -1,6 +1,10 @@
 from django import forms
 from django.contrib import admin
 from django.contrib import messages
+try:
+    from import_export.admin import ImportExportModelAdmin
+except ImportError:
+    ImportExportModelAdmin = admin.ModelAdmin
 import logging
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from .models import OrgBase, Customer, Vendor, Rep, Employee, Manufacturer
@@ -45,7 +49,7 @@ class OrgBaseAdminForm(forms.ModelForm):
 
 
 @admin.register(OrgBase)
-class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
+class OrgBaseAdmin(SchemaLabelsAdminMixin, ImportExportModelAdmin or admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
     # Scalar fields: address_full, address_id, attention, display_name, domain, domain_id, dt_created, dt_modified, email, email_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, org_type, phone, phone_id, price_level, security_level, status, terms, uuid, version

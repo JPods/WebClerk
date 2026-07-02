@@ -18,6 +18,7 @@ from typing import List, Dict, Optional
 from django.db import transaction
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
+from apps.products.services.inventory_pending import adjust_item_quantity
 import time
 
 
@@ -176,6 +177,18 @@ def partial_ship(order_id: int, shipped_lines: List[Dict]) -> Dict:
             qty_data['remaining'] = max(0, qty_remaining)
             ol.quantity = qty_data
             ol.save(update_fields=['quantity', 'dt_modified'])
+
+            # ONE PATH: decrement item on_hand via adjust_item_quantity
+            if ol.item_fk_id and qty_shipped > 0:
+                adjust_item_quantity(
+                    item_id=ol.item_fk_id,
+                    field='on_hand',
+                    delta=-qty_shipped,
+                    reason='production_ship',
+                    source_type='order',
+                    source_id=order.pk,
+                    source_line_id=ol.pk,
+                )
 
             # Track backorder if remaining > 0
             if qty_remaining > 0:
