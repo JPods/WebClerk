@@ -17,6 +17,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { parseFragments, matchesFragments } from '@/utils/searchFragments';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,28 +54,92 @@ export interface RichColumn {
 }
 
 export interface DataGridProps {
-  records: any[];
-  columns: string[];                     // field names (simple mode)
+  records?: any[];
+  columns?: string[];                    // field names (simple mode)
   richColumns?: RichColumn[];            // rich column defs (optional, overrides simple)
-  colWidths: Record<string, number>;
-  fieldBehaviors: Record<string, any>;
-  selectedId: number | null;
-  selectedRowIds: Set<number>;
-  sort: { field: string; direction: 'asc' | 'desc' } | null;
+  colWidths?: Record<string, number>;
+  fieldBehaviors?: Record<string, any>;
+  selectedId?: number | null;
+  selectedRowIds?: Set<number>;
+  sort?: { field: string; direction: 'asc' | 'desc' } | null;
   pinnedColumn?: string | null;
   colorRules?: RowColorRule[];
   groupByField?: string | null;
-  onSelectRecord: (id: number) => void;
-  onToggleRow: (id: number) => void;
-  onSelectAll: () => void;
-  onClearSelection: () => void;
-  onSort: (field: string, multiSort?: boolean) => void;
-  onColumnDrop: (dragField: string, targetField: string) => void;
-  onResizeStart: (field: string, e: React.MouseEvent) => void;
+  onSelectRecord?: (id: number) => void;
+  onToggleRow?: (id: number) => void;
+  onSelectAll?: () => void;
+  onClearSelection?: () => void;
+  onSort?: (field: string, multiSort?: boolean) => void;
+  onColumnDrop?: (dragField: string, targetField: string) => void;
+  onResizeStart?: (field: string, e: React.MouseEvent) => void;
   onCellEdit?: (recordId: number, field: string, value: unknown) => void;
-  numId: (v: unknown) => number | null;
-  theme: any; // theme tokens
-  fontSize: number;
+  numId?: (v: unknown) => number | null;
+  theme?: any; // theme tokens
+  fontSize?: number;
+
+  // --- List-page convenience props (auto-managed state) ---
+  /** Alias for records — pass data here for backward compat */
+  data?: any[];
+  /** Legacy TableColumn-style column defs; auto-mapped to richColumns */
+  legacyColumns?: Array<{
+    id?: string | number;
+    name?: string | React.ReactNode;
+    selector?: ((row: any, index?: number) => any) | string;
+    cell?: (row: any, index: number, column: any, id: any) => React.ReactNode;
+    sortable?: boolean;
+    width?: string;
+    sortField?: string;
+    [key: string]: any;
+  }>;
+  /** Row click handler (receives full row object, not just id) */
+  onRowClicked?: (row: any) => void;
+  /** Row double-click handler */
+  onRowDoubleClicked?: (row: any) => void;
+  /** Row activate handler */
+  onRowActivate?: (row: any) => void;
+  /** Enable checkbox selection mode */
+  enableSelection?: boolean;
+  /** Called when selected rows change */
+  onSelectionChange?: (rows: any[]) => void;
+  /** Show loading spinner */
+  loading?: boolean;
+  /** External search term for client-side filtering */
+  externalSearchTerm?: string;
+  /** Callback for search term changes */
+  onExternalSearchTermChange?: (s: string) => void;
+  /** Message when no data */
+  noDataMessage?: string;
+  /** Hide the built-in header/toolbar */
+  hideHeader?: boolean;
+
+  // --- Ignored props (accepted but unused, for backward compat during migration) ---
+  title?: string;
+  storageKey?: string;
+  enableExport?: boolean;
+  exportFileName?: string;
+  searchPlaceholder?: string;
+  customActions?: React.ReactNode;
+  onAdd?: () => void;
+  onEditSelected?: (row: any) => void;
+  onDeleteSelected?: (rows: any[]) => void;
+  onImportFile?: (f: File) => void;
+  importAccept?: string;
+  onPrint?: () => void;
+  enableDatabaseSearch?: boolean;
+  searchDatabase?: boolean;
+  onSearchModeChange?: (searchDatabase: boolean) => void;
+  onDatabaseSearch?: (terms: string[]) => Promise<void> | void;
+  filters?: any;
+  filtersOpen?: boolean;
+  onFiltersOpenChange?: (open: boolean) => void;
+  onVisibleRowsChange?: (rows: any[]) => void;
+  selectionMode?: string;
+  enableSelectedOnlyFilter?: boolean;
+  rowClickMode?: string;
+  rowClickAllowedColumnNames?: string[];
+  rowClickAllowedColumnIds?: Array<string | number>;
+  rowKeyField?: string;
+  ref?: any;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,13 +185,198 @@ function detectDuplicates(records: any[], columns: string[]): Set<number> {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function DataGrid({
-  records, columns, richColumns, colWidths, fieldBehaviors, selectedId, selectedRowIds,
-  sort, pinnedColumn, colorRules, groupByField,
-  onSelectRecord, onToggleRow, onSelectAll, onClearSelection,
-  onSort, onColumnDrop, onResizeStart, onCellEdit,
-  numId, theme: t, fontSize,
-}: DataGridProps) {
+// ---------------------------------------------------------------------------
+// Helpers for legacy column mapping
+// ---------------------------------------------------------------------------
+
+function _getFieldName(col: any, idx: number): string {
+  if (typeof col.id === 'string') return col.id;
+  if (typeof col.id === 'number') return `col_${col.id}`;
+  if (typeof col.name === 'string') return col.name;
+  if (typeof col.sortField === 'string') return col.sortField;
+  return `col_${idx}`;
+}
+
+function _numId(v: unknown): number | null {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : null; }
+  return null;
+}
+
+const DEFAULT_THEME = {
+  bg: '#f8f9fa', surface: '#ffffff', surfaceAlt: '#f1f3f5',
+  border: '#dee2e6', borderLight: '#e9ecef',
+  text: '#212529', textMuted: '#6c757d', textDim: '#adb5bd',
+  accent: '#0d6efd', accentGreen: '#198754', accentGold: '#fd7e14',
+  accentRed: '#dc3545', accentPurple: '#6f42c1',
+  btnBg: '#ffffff', btnPrimary: '#0d6efd', btnSave: '#198754',
+  btnSaveBorder: '#198754', btnDangerBorder: '#dc3545',
+  inputBg: '#ffffff', inputBorder: '#ced4da',
+  rowHover: '#f1f3f5', rowActive: '#cfe2ff', rowChecked: '#fff3cd',
+  resizeHandle: '#0d6efd',
+};
+
+export default function DataGrid(props: DataGridProps) {
+  // --- Resolve convenience vs explicit props ---
+  const inputData = props.records ?? props.data ?? [];
+  const legacyCols = props.legacyColumns ?? (props.columns ? null : null);
+
+  // Map legacy columns if provided (detected by presence of objects with 'name'+'selector' shape)
+  // Also detect if props.columns is actually an array of legacy column objects
+  const isLegacyColumnArray = useMemo(() => {
+    const c = (props as any).columns;
+    if (!Array.isArray(c) || c.length === 0) return false;
+    return typeof c[0] === 'object' && c[0] !== null && ('name' in c[0] || 'selector' in c[0] || 'cell' in c[0]);
+  }, [(props as any).columns]);
+
+  const effectiveLegacyCols = legacyCols ?? (isLegacyColumnArray ? (props as any).columns : null);
+
+  const mappedColumns = useMemo(() => {
+    if (!effectiveLegacyCols) return null;
+    const fieldNames = effectiveLegacyCols.map((c: any, i: number) => _getFieldName(c, i));
+    const rich: RichColumn[] = effectiveLegacyCols.map((col: any, idx: number) => {
+      const field = fieldNames[idx];
+      const rc: RichColumn = {
+        name: typeof col.name === 'string' ? col.name : field,
+        field,
+        width: col.width,
+        sortable: col.sortable ?? false,
+      };
+      if (col.cell) {
+        const cellFn = col.cell;
+        rc.cell = (row: any) => cellFn(row, 0, col, row.id);
+      }
+      if (col.selector && typeof col.selector === 'function') {
+        const sel = col.selector;
+        rc.selector = (row: any) => sel(row);
+      }
+      return rc;
+    });
+    const widths: Record<string, number> = {};
+    effectiveLegacyCols.forEach((col: any, idx: number) => {
+      const field = fieldNames[idx];
+      if (col.width) {
+        const px = parseInt(col.width, 10);
+        if (px > 0 && col.width.endsWith('px')) widths[field] = px;
+      }
+    });
+    return { columns: fieldNames, richColumns: rich, colWidths: widths };
+  }, [effectiveLegacyCols]);
+
+  const columns = mappedColumns?.columns ?? (isLegacyColumnArray ? [] : (props.columns as string[]) ?? []);
+  const richColumns = props.richColumns ?? mappedColumns?.richColumns;
+  const colWidths = props.colWidths ?? mappedColumns?.colWidths ?? {};
+  const fieldBehaviors = props.fieldBehaviors ?? {};
+  const numId = props.numId ?? _numId;
+  const t = props.theme ?? DEFAULT_THEME;
+  const fontSize = props.fontSize ?? 13;
+
+  // --- Self-managed state for convenience mode ---
+  const [selfSort, setSelfSort] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  const [selfSelectedId, setSelfSelectedId] = useState<number | null>(null);
+  const [selfSelectedRowIds, setSelfSelectedRowIds] = useState<Set<number>>(new Set());
+
+  const isConvenience = props.onSelectRecord == null; // no explicit handler = convenience mode
+
+  const sort = isConvenience ? selfSort : (props.sort ?? null);
+  const selectedId = isConvenience ? selfSelectedId : (props.selectedId ?? null);
+  const selectedRowIds = isConvenience
+    ? (props.enableSelection ? selfSelectedRowIds : new Set<number>())
+    : (props.selectedRowIds ?? new Set<number>());
+
+  // --- Search filtering (convenience mode) ---
+  const effectiveSearchTerm = props.externalSearchTerm ?? '';
+  const searchedRecords = useMemo(() => {
+    if (!effectiveSearchTerm.trim()) return inputData;
+    const fragments = parseFragments(effectiveSearchTerm);
+    return inputData.filter((row: any) => {
+      const text = Object.values(row).filter((v: any) => v != null).map(String).join(' ');
+      return matchesFragments(text, fragments);
+    });
+  }, [inputData, effectiveSearchTerm]);
+
+  const records = isConvenience ? searchedRecords : inputData;
+
+  // --- Record map ---
+  const recordMap = useMemo(() => {
+    const m = new Map<number, any>();
+    records.forEach((r: any) => {
+      const id = numId(r.id);
+      if (id !== null) m.set(id, r);
+    });
+    return m;
+  }, [records, numId]);
+
+  // --- Convenience handlers ---
+  const handleSort = useCallback((field: string, multiSort?: boolean) => {
+    if (props.onSort) {
+      props.onSort(field, multiSort);
+    } else {
+      setSelfSort((prev) => {
+        if (prev?.field === field) {
+          return prev.direction === 'asc' ? { field, direction: 'desc' } : null;
+        }
+        return { field, direction: 'asc' };
+      });
+    }
+  }, [props.onSort]);
+
+  const handleSelectRecord = useCallback((id: number) => {
+    if (props.onSelectRecord) {
+      props.onSelectRecord(id);
+    } else {
+      setSelfSelectedId(id);
+      if (props.onRowClicked) {
+        const row = recordMap.get(id);
+        if (row) props.onRowClicked(row);
+      }
+    }
+  }, [props.onSelectRecord, props.onRowClicked, recordMap]);
+
+  const handleToggleRow = useCallback((id: number) => {
+    if (props.onToggleRow) {
+      props.onToggleRow(id);
+    } else {
+      setSelfSelectedRowIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+      });
+    }
+  }, [props.onToggleRow]);
+
+  const handleSelectAll = useCallback(() => {
+    if (props.onSelectAll) {
+      props.onSelectAll();
+    } else {
+      const all = new Set<number>();
+      records.forEach((r: any) => { const id = numId(r.id); if (id !== null) all.add(id); });
+      setSelfSelectedRowIds(all);
+    }
+  }, [props.onSelectAll, records, numId]);
+
+  const handleClearSelection = useCallback(() => {
+    if (props.onClearSelection) {
+      props.onClearSelection();
+    } else {
+      setSelfSelectedRowIds(new Set());
+    }
+  }, [props.onClearSelection]);
+
+  const onColumnDrop = props.onColumnDrop ?? ((_a: string, _b: string) => {});
+  const onResizeStart = props.onResizeStart ?? ((_f: string, _e: React.MouseEvent) => {});
+  const onCellEdit = props.onCellEdit;
+
+  const { pinnedColumn, colorRules, groupByField } = props;
+
+  // Fire onSelectionChange when selectedRowIds changes (convenience mode)
+  useEffect(() => {
+    if (!props.onSelectionChange || !isConvenience) return;
+    const rows: any[] = [];
+    selfSelectedRowIds.forEach((id) => { const r = recordMap.get(id); if (r) rows.push(r); });
+    props.onSelectionChange(rows);
+  }, [selfSelectedRowIds, recordMap, props.onSelectionChange, isConvenience]);
+
   // Build rich column lookup for custom cell renderers
   const richColMap = useMemo(() => {
     if (!richColumns) return new Map<string, RichColumn>();
@@ -303,7 +553,7 @@ export default function DataGrid({
           onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || 'transparent'; }}
         >
           <td style={{ padding: '4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
-            <input type="checkbox" checked={isChecked} onChange={() => rid !== null && onToggleRow(rid)} />
+            <input type="checkbox" checked={isChecked} onChange={() => rid !== null && handleToggleRow(rid)} />
           </td>
           {columns.map((f, ci) => (
             <td key={f}
@@ -312,7 +562,7 @@ export default function DataGrid({
                 ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
-              onClick={() => { if (rid !== null) onSelectRecord(rid); }}
+              onClick={() => { if (rid !== null) handleSelectRecord(rid); }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
               title={String(rec[f] ?? '')}
             >{renderCell(rec, f, rid)}</td>
@@ -342,6 +592,31 @@ export default function DataGrid({
     a.download = `export_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click(); URL.revokeObjectURL(a.href);
   }, [filteredRecords, columns]);
+
+  // --- Early returns (AFTER all hooks) ---
+  if (props.loading) {
+    return (
+      <div className="flex items-center justify-center p-20" data-wc="datagrid-loading">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  if (isConvenience && records.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-12" data-wc="datagrid-empty">
+        <div className="text-center">
+          <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+            {props.noDataMessage || 'No data available'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {effectiveSearchTerm
+              ? 'Try adjusting your search or filters'
+              : 'Start by adding some data'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // --- Toolbar ---
   const toolbar = (
@@ -388,7 +663,7 @@ export default function DataGrid({
               <th style={{ width: 28, padding: '6px 4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: t.surface, zIndex: 3 }}>
                 <input type="checkbox"
                   checked={selectedRowIds.size > 0 && filteredRecords.every((r) => selectedRowIds.has(numId(r.id) ?? -1))}
-                  onChange={(e) => e.target.checked ? onSelectAll() : onClearSelection()} />
+                  onChange={(e) => e.target.checked ? handleSelectAll() : handleClearSelection()} />
               </th>
               {columns.map((f, ci) => {
                 const sortIdx = multiSorts.findIndex((s) => s.field === f);
@@ -406,7 +681,7 @@ export default function DataGrid({
                     onDragStart={(e) => { if (!e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
-                    onClick={(e) => onSort(f, e.ctrlKey || e.metaKey)}
+                    onClick={(e) => handleSort(f, e.ctrlKey || e.metaKey)}
                     title="Click to sort · Ctrl-click for multi-sort · Shift-drag to reorder"
                   >
                     {f}

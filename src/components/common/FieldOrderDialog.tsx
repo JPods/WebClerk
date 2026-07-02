@@ -105,7 +105,7 @@ export default function FieldOrderDialog({
   const [saveName, setSaveName] = useState('');
   const dragOverIdx = useRef<number | null>(null);
 
-  const PROTECTED_LAYOUTS = ['alpha', 'best_guess'];
+  const PROTECTED_LAYOUTS = ['alpha', 'best_guess', 'alice_guess', 'alphabetical'];
 
   const trySave = useCallback((name: string) => {
     if (PROTECTED_LAYOUTS.includes(name.toLowerCase().trim())) {
@@ -290,6 +290,7 @@ export default function FieldOrderDialog({
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Layout:</span>
             <select
+              data-wc="db-layout-selector"
               value={selectedLayout}
               onChange={(e) => { setSelectedLayout(e.target.value); handleLoadLayout(e.target.value); }}
               style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text, cursor: 'pointer' }}

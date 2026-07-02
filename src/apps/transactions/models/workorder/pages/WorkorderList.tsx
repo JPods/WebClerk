@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchWorkorders, fetchWorkorderDetail } from "../services/workorderApi";
@@ -29,7 +28,7 @@ export default function WorkorderList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -205,7 +204,7 @@ export default function WorkorderList() {
     }
   }, [selectedWorkorders, dispatch, getWorkorderData]);
 
-  const columns: TableColumn<any>[] = useMemo(() => [
+  const columns: any[] = useMemo(() => [
     { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
     { id: "workorder_no", name: "Workorder No", selector: (row) => row.workorder_no || "--", sortable: true, width: "30%" },
     { id: "dt_created", name: "Created", selector: (row) => row.dt_created ? new Date(row.dt_created * 1000).toLocaleDateString() : "--", sortable: true, width: "25%" },
@@ -284,7 +283,7 @@ export default function WorkorderList() {
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

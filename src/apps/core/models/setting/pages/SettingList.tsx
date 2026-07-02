@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { fetchSettings, deleteSetting } from "../services/settingApi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
@@ -24,7 +23,7 @@ export default function SettingList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>(routeState.filterValues || {});
   const [filtersOpen, setFiltersOpen] = useState(Boolean(routeState.filtersOpen));
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,7 +119,7 @@ export default function SettingList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Name",
@@ -248,7 +247,7 @@ export default function SettingList() {
                 {filterValues.purpose === "search" ? "Add Search" : "Add Setting"}
               </button>
             </div>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               columns={userColumns}
               data={filteredData}

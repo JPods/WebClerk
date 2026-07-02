@@ -41,14 +41,16 @@ import WorkorderList from "../apps/transactions/models/workorder/pages/Workorder
 import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
 import ReceiptList from "../apps/transactions/models/receipt/pages/ReceiptList";
 import ReceiptDetail from "../apps/transactions/models/receipt/pages/ReceiptDetail";
-import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
-import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
+// DocumentIndex removed (qqq_) — docs route uses Placeholder until Document Dashboard is built
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 import APILogList from "../apps/core/models/api_log/pages/APILogList";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import AliceDashboard from "../pages/admin/AliceDashboard";
 import HelpDashboard from "../pages/admin/HelpDashboard";
+import TestDashboard from "../pages/admin/TestDashboard";
+import ReportDesigner from "../pages/admin/ReportDesigner";
+import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import Placeholder from "../pages/Placeholder";
 
 export const protectedRoutesConfig = [
@@ -70,7 +72,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.actionDetail, element: <ActionDetail /> },
 
   // User-facing: Documents
-  { path: PageRoutes.docs, element: <DocumentIndex /> },
+  { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
 
   // User-facing: Products (Item only)
   { path: PageRoutes.products, element: <ItemList /> },
@@ -93,7 +95,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsWorkOrderDetail, element: <WorkorderDetail /> },
   { path: PageRoutes.transactionsReceiptList, element: <ReceiptList /> },
   { path: PageRoutes.transactionsReceiptDetail, element: <ReceiptDetail /> },
-  { path: PageRoutes.transactionsAdjustmentList, element: <InventoryAdjustmentList /> },
+  { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
   // Tools
   { path: PageRoutes.notionTracker, element: <NotionTrackerPage /> },
@@ -113,6 +115,9 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
   { path: "/help", element: <HelpDashboard /> },
+  { path: "/test-dashboard", element: <TestDashboard /> },
+  { path: "/report-designer", element: <ReportDesigner /> },
+  { path: "/inventory-dashboard", element: <InventoryDashboard /> },
   { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
   { path: PageRoutes.coreApiLogList, element: <APILogList /> },
   { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },

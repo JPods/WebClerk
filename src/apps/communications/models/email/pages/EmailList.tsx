@@ -1,10 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchEmails, deleteEmail } from "../services/emailApi";
@@ -29,7 +26,7 @@ export default function EmailList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -210,7 +207,7 @@ export default function EmailList() {
     });
   }, [data]);
   /* ---------------- Columns ---------------- */
-  const columns: TableColumn<dynamicData>[] = useMemo(
+  const columns: any[] = useMemo(
     () => [
       {
         name: "id",
@@ -376,7 +373,7 @@ export default function EmailList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

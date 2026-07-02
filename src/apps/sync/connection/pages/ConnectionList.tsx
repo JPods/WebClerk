@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { deleteAction } from "../../../../api/userProfile";
 import { fetchConnections } from "../services/connectionApi";
@@ -21,7 +20,7 @@ export default function ConnectionList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,7 +104,7 @@ export default function ConnectionList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Name",
@@ -216,7 +215,7 @@ export default function ConnectionList() {
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <AdvancedDataTable
+              <DataGrid
               ref={tableRef}
                 columns={userColumns.map((col) => ({
                   ...col,

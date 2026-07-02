@@ -161,9 +161,13 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // ---------------------------------------------------------------------------
 
   const fetchingRef = useRef(false);
+  const modelChangeRef = useRef(0); // monotonic counter to cancel stale fetches
 
   const handleSelectModel = useCallback((name: string) => {
     dbLog('handleSelectModel', { from: selectedModel, to: name });
+    // Increment change counter — any in-flight fetch for old model will be discarded
+    modelChangeRef.current += 1;
+    // Clear ALL state from previous model in one batch
     setSelectedModel(name);
     setPage(0);
     setActiveSearch(''); setSearchTerm('');
@@ -174,32 +178,38 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setColWidths({});
     setSelectedId(null);
     setSelectedRecord(null);
-    setAllFields([]); // clear stale fields from previous model
+    setAllFields([]);
     setFieldBehaviors({});
     setWorkbenchSetting(null);
+    setRecords([]);
+    setTotalRecords(0);
     setRecordsLoading(false);
     setRecordsError(null);
-    fetchingRef.current = false; // reset fetch guard so new model can fetch
-  }, []);
+    fetchingRef.current = false;
+    // Update URL directly — no second effect needed
+    const next = new URLSearchParams(searchParams);
+    next.set('model', name);
+    setSearchParams(next, { replace: true });
+    previousModelParam.current = name;
+  }, [searchParams, setSearchParams]);
 
-  // Sync model with URL param
+  // Sync model FROM URL param (browser back/forward, external navigation, initial load)
   useEffect(() => {
     if (!modelNames.length) { setRecords([]); setSelectedId(null); setSelectedRecord(null); previousModelParam.current = modelParam; return; }
-    if (modelParam && modelNames.includes(modelParam) && previousModelParam.current !== modelParam) {
+    // Only react to URL changes we didn't cause ourselves
+    if (modelParam && modelParam !== previousModelParam.current && modelNames.includes(modelParam)) {
       previousModelParam.current = modelParam;
-      if (selectedModel !== modelParam) setSelectedModel(modelParam);
+      if (selectedModel !== modelParam) {
+        handleSelectModel(modelParam);
+      }
       return;
     }
     previousModelParam.current = modelParam;
-    if (!selectedModel || !modelNames.includes(selectedModel)) setSelectedModel(modelNames[0]);
-  }, [modelNames, modelParam, selectedModel]);
-
-  useEffect(() => {
-    if (!selectedModel && !modelParam) return;
-    const next = new URLSearchParams(searchParams);
-    if (selectedModel) { if (modelParam === selectedModel) return; next.set('model', selectedModel); setSearchParams(next, { replace: true }); }
-    else if (modelParam) { next.delete('model'); setSearchParams(next, { replace: true }); }
-  }, [modelParam, searchParams, selectedModel, setSearchParams]);
+    // No model selected yet — pick first
+    if (!selectedModel || !modelNames.includes(selectedModel)) {
+      handleSelectModel(modelNames[0]);
+    }
+  }, [modelNames, modelParam, selectedModel, handleSelectModel]);
 
   // ---------------------------------------------------------------------------
   // Load models
@@ -214,7 +224,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
         setModelNames((Array.isArray(data.model_names) ? data.model_names : []).slice().sort((a, b) => a.localeCompare(b)));
         const settings = await getAllWorkbenchFieldsSettings();
         const map: Record<string, WorkbenchFieldsSetting> = {};
-        settings.forEach((s: any) => { map[s.model_name] = s.data; });
+        settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.data; });
         setWorkbenchSettingsMap(map);
       } catch (e) { setModelsError(errMsg(e, 'Failed to load models')); }
       finally { setLoadingModels(false); }
@@ -229,9 +239,12 @@ export function useDataBrowser(isAuthenticated: boolean) {
     if (!selectedModel || (modelNames.length && !modelNames.includes(selectedModel))) return;
     if (fetchingRef.current) { dbLog.warn('fetchRecords:skip (already fetching)'); return; }
     fetchingRef.current = true;
+    const fetchId = modelChangeRef.current; // snapshot — if model changes mid-fetch, discard results
     try {
       setRecordsLoading(true); setRecordsError(null);
       const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
+      if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
+
       const rf = md?.model?.fields;
       let fields: string[] = [];
       if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
@@ -244,23 +257,44 @@ export function useDataBrowser(isAuthenticated: boolean) {
       if (sort) params.ordering = sort.direction === 'desc' ? `-${sort.field}` : sort.field;
 
       const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
-      setRecords(toRecList(list?.results));
-      setTotalRecords(typeof list?.total === 'number' ? list.total : toRecList(list?.results).length);
-      const ws = workbenchSettingsMap[selectedModel] || null;
+      if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
+
+      const resultList = toRecList(list?.results);
+      const resultTotal = typeof list?.total === 'number' ? list.total : resultList.length;
+      setRecords(resultList);
+      setTotalRecords(resultTotal);
+
+      // Log search to Alice for pattern detection (fire and forget)
+      if (activeSearch.trim()) {
+        import('@/api/wcapi').then(({ manageAction }) => {
+          const uid = typeof window !== 'undefined' && (window as any).__WC_USER_ID;
+          if (uid) manageAction('log_user_search', { contact_id: uid, model: selectedModel, search_term: activeSearch.trim(), result_count: resultTotal }).catch(() => {});
+        }).catch(() => {});
+      }
+
+      // Load workbench setting directly (not from cached map — avoids stale closure)
+      let ws: WorkbenchFieldsSetting | null = null;
+      try {
+        const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'workbench_fields', limit: 1 }) as any;
+        if (modelChangeRef.current !== fetchId) return;
+        const wsRec = (wsRes?.results || [])[0];
+        ws = wsRec?.data || null;
+      } catch { /* use null */ }
       setWorkbenchSetting(ws);
       dbLog('fetchRecords:workbenchSetting', { model: selectedModel, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
 
       // Load field behaviors
       try {
         const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'field_access' }) as any;
+        if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
         setFieldBehaviors(faRec?.data?.field_behaviors || {});
       } catch { setFieldBehaviors({}); }
     } catch (e) {
+      if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
       const msg = errMsg(e, 'Failed to load records');
       setRecordsError(msg);
       dbLog.error('fetchRecords:failed', { model: selectedModel, error: msg });
-      // Do NOT retry on error — the useEffect won't re-fire unless deps change
     }
     finally { setRecordsLoading(false); fetchingRef.current = false; }
   }, [selectedModel, modelNames, page, activeSearch, sort]);

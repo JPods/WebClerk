@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecords } from "@/api/wcapi";
 import { FaEye, FaCheck, FaTimes, FaSync } from "react-icons/fa";
@@ -36,7 +35,7 @@ export default function APILogList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -143,7 +142,7 @@ export default function APILogList() {
     return date.toLocaleString();
   };
 
-  const columns: TableColumn<APILogRecord>[] = useMemo(
+  const columns: any[] = useMemo(
     () => [
       {
         name: "Time",
@@ -285,7 +284,7 @@ export default function APILogList() {
             Refresh
           </button>
         </div>
-        <AdvancedDataTable
+        <DataGrid
               ref={tableRef}
           data={filteredData}
           columns={visibleColumns}

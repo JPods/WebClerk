@@ -1,12 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { TableColumn } from "react-data-table-component";
 import { FaPlus } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  AdvancedDataTableHandle,
-} from "../../../../../components/common/AdvancedDataTable";
 import { fetchContacts } from "../services/contactApi";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -51,7 +48,7 @@ const ContactList = () => {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<ContactData>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const sharedContactIds = useMemo(() => {
@@ -162,7 +159,7 @@ const ContactList = () => {
     handleEdit: (row: ContactData) => void,
     handleView: (row: ContactData) => void,
     handleDeleteRow: (row: ContactData) => void,
-  ): TableColumn<ContactData>[] =>
+  ): any[] =>
     useMemo(
       () => [
         {
@@ -495,7 +492,7 @@ const ContactList = () => {
             </div>
           )}
           <ComponentCard className=" cus-bg-purple-light rounded-md">
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

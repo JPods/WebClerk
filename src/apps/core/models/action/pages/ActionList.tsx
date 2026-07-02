@@ -1,9 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import { useState, useEffect, useMemo, useCallback, useRef} from "react";
-import { TableColumn } from "react-data-table-component";
 import { FaPlus, FaEye, FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
 import { Actions, patchAction } from "../../../../../api/userProfile";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
@@ -50,7 +50,7 @@ const ActionListPage = () => {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -270,7 +270,7 @@ const ActionListPage = () => {
   );
 
   // Define table columns
-  const columns: TableColumn<ActionData>[] = useMemo(
+  const columns: any[] = useMemo(
     () => [
       // {
       //   name: "#",
@@ -656,7 +656,7 @@ const ActionListPage = () => {
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
           data={filteredData}
           columns={visibleColumns}

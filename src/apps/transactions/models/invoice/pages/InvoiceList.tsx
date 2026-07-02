@@ -1,10 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteAction } from "../../../../../api/userProfile";
@@ -47,7 +44,7 @@ export default function InvoiceList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -226,7 +223,7 @@ export default function InvoiceList() {
     }
   }, [selectedInvoices, dispatch, getInvoiceData]);
 
-  const userColumns: TableColumn<InvoiceRow>[] = useMemo(
+  const userColumns: any[] = useMemo(
     () => [
       {
         name: "ID",
@@ -534,7 +531,7 @@ export default function InvoiceList() {
 
       <div>
         <ComponentCard>
-          <AdvancedDataTable
+          <DataGrid
             ref={tableRef}
             data={filteredData}
             columns={userColumns}

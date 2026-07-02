@@ -9,13 +9,10 @@
  *   CustomerID, TypePay, Invoice#, DateReceived, Amount,
  *   AmountAvailable, NameOnAcct, Company, Comment, etc.
  */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from '@/components/common/ComponentCard';
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from '@/components/common/AdvancedDataTable';
 import ButtonToolbar from '@/components/common/ButtonToolbar';
-import { TableColumn } from 'react-data-table-component';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPayments } from '../services/paymentApi';
@@ -64,7 +61,7 @@ export default function PaymentListPage() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,7 +192,7 @@ export default function PaymentListPage() {
   }, [selectedRows, dispatch, getPaymentData]);
 
   // Columns
-  const userColumns: TableColumn<Payment>[] = useMemo(
+  const userColumns: any[] = useMemo(
     () => [
       {
         name: 'ID',
@@ -410,7 +407,7 @@ export default function PaymentListPage() {
       />
       <div>
         <ComponentCard>
-          <AdvancedDataTable
+          <DataGrid
             ref={tableRef}
             data={filteredData}
             columns={userColumns}

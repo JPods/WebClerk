@@ -8,6 +8,7 @@ import { normalizeRefsLinksContact } from "@/apps/common/components/panels/Conta
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
+import ReportViewer from "@/components/common/ReportViewer";
 import useUnsavedChangesGuard from "@/hooks/useUnsavedChangesGuard";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import {
@@ -42,6 +43,7 @@ import {
   FaEllipsisH,
   FaTasks,
   FaQuestionCircle,
+  FaFilePdf,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
 import {
@@ -1198,6 +1200,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   );
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [printCustomer, setPrintCustomer] = useState<any | null>(null);
 
   const buildCoachPayload = useCallback(
@@ -2907,6 +2910,21 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     <div className="max-w-7xl mx-auto">
       {renderPrintPreview()}
 
+      {/* PDF Report Viewer (pdfme) */}
+      {showPdfViewer && data?.id && normalizedPrintType && (
+        <ReportViewer
+          reportName={
+            normalizedPrintType === 'invoice' ? 'Invoice - Standard'
+            : normalizedPrintType === 'order' ? 'Order Confirmation'
+            : normalizedPrintType === 'purchase' ? 'Purchase Order'
+            : `${(typeLabel || normalizedPrintType).replace(/^\w/, (c: string) => c.toUpperCase())} Report`
+          }
+          modelName={normalizedPrintType}
+          recordId={Number(data.id)}
+          onClose={() => setShowPdfViewer(false)}
+        />
+      )}
+
       {/* FormCoach — Data-completeness warnings (shown after print check) */}
       {formCoach.hasChecked && formCoach.hasIssues && (
         <div className="mb-4">
@@ -2941,6 +2959,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                   Print
                 </button>
               )}
+              {data?.id && normalizedPrintType && (
+                <button
+                  onClick={() => setShowPdfViewer(true)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-colors flex items-center gap-2"
+                  title="Generate PDF"
+                >
+                  <FaFilePdf size={14} />
+                  PDF
+                </button>
+              )}
               <button
                 onClick={handleEdit}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
@@ -2959,8 +2987,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           </span>
         )}
       </div>
-      {/* Transaction Panel + Toolbar (when editing) - Sticky */}
-      {isEditing && (
+      {/* Transaction Panel + Toolbar - always visible */}
+      {currentData && (
         <div className="sticky top-0 z-20 -mx-4 px-4 py-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6 flex items-center gap-2">
           <TransactionPanel
             record={{

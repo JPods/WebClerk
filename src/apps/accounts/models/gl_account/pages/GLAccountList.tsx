@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { fetchGLAccounts, deleteGLAccount } from "../services/glAccountApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
@@ -20,7 +19,7 @@ export default function GLAccountList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,7 +131,7 @@ export default function GLAccountList() {
   };
 
   // Columns for GL Account table
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "Account #", selector: (row) => row.account_number || row.code || "--", sortable: true, width: "15%" },
     { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "25%" },
     { name: "Type", selector: (row) => row.type || "--", sortable: true, width: "12%" },
@@ -227,7 +226,7 @@ export default function GLAccountList() {
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <AdvancedDataTable
+              <DataGrid
               ref={tableRef}
                 columns={userColumns.map((col) => ({
                   ...col,

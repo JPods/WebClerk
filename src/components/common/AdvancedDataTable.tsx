@@ -1,11 +1,13 @@
 /**
- * @deprecated Use DataGrid instead.
+ * DEPRECATED — All list pages now import DataGrid directly.
  *
- * This file re-exports from the deprecated AdvancedDataTable for backward
- * compatibility. Pages should migrate to DataGrid + useListFieldConfig + FieldOrderDialog.
+ * If you see a compile error pointing here, change your import to:
+ *   import DataGrid from "@/components/common/DataGrid";
  *
- * Migration: replace <AdvancedDataTable> with <DataGrid> and use useListFieldConfig hook.
- * See CustomerList.tsx for the migration pattern.
+ * For the ColumnFilter type, import from ButtonToolbar:
+ *   import type { ColumnFilter } from "@/components/common/ButtonToolbar";
+ *
+ * DataGrid accepts legacy TableColumn-style columns via auto-detection.
+ * Pass data={...} and columns={[{name, selector, cell, ...}]} — it works.
  */
-export { default, parseSearchTerms } from './AdvancedDataTable_DEPRECATED';
-export type { ColumnFilter, AdvancedDataTableProps, AdvancedDataTableHandle } from './AdvancedDataTable_DEPRECATED';
+export default null;

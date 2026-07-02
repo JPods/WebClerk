@@ -12,6 +12,7 @@ import { AiHelpWidget } from './components/AiHelpWidget';
 import { UserIssueReporter } from './components/UserIssueReporter';
 import { DevIssueReporter } from './components/DevIssueReporter';
 import { useDefaultCompany } from './hooks/useDefaultCompany';
+import { AliceProvider } from './contexts/AliceContext';
 
 function PrimeCompanyBootstrap() {
   useDefaultCompany();
@@ -53,6 +54,7 @@ export default function App() {
   return (
     <>
       <Provider store={store}>
+        <AliceProvider>
         <WindowManagerProvider>
           <StaffBadgePrefsProvider>
             <AuthInitializer />
@@ -71,6 +73,7 @@ export default function App() {
             </div>
           </StaffBadgePrefsProvider>
         </WindowManagerProvider>
+        </AliceProvider>
       </Provider>
     </>
   );

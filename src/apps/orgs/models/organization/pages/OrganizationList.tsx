@@ -2,8 +2,8 @@
 import OrgEntityList from "@/apps/orgs/components/OrgEntityList";
 import { fetchOrganizations, deleteOrganization } from "../services/organizationApi";
 import OrganizationDetail from "./OrganizationDisplay";
-import { TableColumn } from "react-data-table-component";
-import { ColumnFilter } from "@/components/common/AdvancedDataTable";
+
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { useState, useCallback } from "react";
 
@@ -11,7 +11,7 @@ const columns = (actions: {
   onView: (row: any) => void;
   onEdit: (row: any) => void;
   onDelete: (row: any) => void;
-}): TableColumn<any>[] => [
+}): any[] => [
   {
     name: "ID",
     selector: (row: any) => row.id,

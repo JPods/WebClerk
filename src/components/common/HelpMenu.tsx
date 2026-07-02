@@ -6,8 +6,10 @@
  *
  * Detects current context from URL path automatically.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import GetHelpDialog from './GetHelpDialog';
+import { useAlice } from '@/contexts/AliceContext';
 
 interface HelpMenuProps {
   className?: string;
@@ -41,15 +43,44 @@ export function openFieldHelp(model: string, fieldName: string) {
 export default function HelpMenu({ className }: HelpMenuProps) {
   const location = useLocation();
   const ctx = getContextFromPath(location.pathname + location.search);
+  const [showGetHelp, setShowGetHelp] = useState(false);
+  const alice = useAlice();
+  const hintCount = alice.hints.length;
 
   const openHelp = useCallback(() => {
     window.open(`/help?context=${ctx.context}&model=${ctx.model}`, 'wc_help', 'width=800,height=900,scrollbars=yes,resizable=yes');
   }, [ctx]);
 
+  // Cmd+/ or Cmd+? → open Get Help dialog
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === '/' || e.key === '?')) {
+        e.preventDefault();
+        setShowGetHelp(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <button onClick={openHelp} title={`Help: ${ctx.label}`}
-      className={`px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition shadow-sm ${className || ''}`}>
-      ? Help
-    </button>
+    <>
+      <div data-wc="help-menu" className={`flex items-center gap-1 ${className || ''}`}>
+        <button onClick={openHelp} title={`Help: ${ctx.label}`}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition shadow-sm">
+          ? Help
+        </button>
+        <button onClick={() => setShowGetHelp(true)} title="Get Help — paste any element (Cmd+/)"
+          className="px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition shadow-sm">
+          Paste
+        </button>
+        {hintCount > 0 && (
+          <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-amber-500 text-white" title={`${hintCount} Alice hint${hintCount > 1 ? 's' : ''}`}>
+            {hintCount}
+          </span>
+        )}
+      </div>
+      <GetHelpDialog open={showGetHelp} onClose={() => setShowGetHelp(false)} />
+    </>
   );
 }

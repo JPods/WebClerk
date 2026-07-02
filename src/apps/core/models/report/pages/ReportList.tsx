@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { fetchReports, deleteReport } from "../services/reportApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
@@ -20,7 +19,7 @@ export default function ReportList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +112,7 @@ export default function ReportList() {
     setSelectedReport(null);
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Title",
@@ -223,7 +222,7 @@ export default function ReportList() {
                 Add Report
               </button>
             </div>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               columns={userColumns}
               data={filteredData}

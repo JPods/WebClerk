@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaPlus, FaEdit, FaEye, FaTrash, FaSyncAlt, FaSave } from "react-icons/fa";
-import AdvancedDataTable from "../../../components/common/AdvancedDataTable";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import Input from "../../../components/form/input/InputField";
@@ -18,7 +18,6 @@ import {
   saveWorkbenchFieldsSetting,
 } from "../../../api/wcapi";
 import { showToast } from "../../../store/slices/toastSlice";
-import { TableColumn } from "react-data-table-component";
 import { kebabCaseToTitle, safeString } from "./scaffoldUtils";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -251,7 +250,7 @@ function ModelScaffold({
     [fieldPrefs, modelName, dispatch]
   );
 
-  const columns = useMemo<TableColumn<RecordLike>[]>(() => {
+  const columns = useMemo<any[]>(() => {
     const base = visibleListFields.map((field) => ({
       name: kebabCaseToTitle(field),
       selector: (row: RecordLike) => row?.[field],
@@ -380,7 +379,7 @@ function ModelScaffold({
         </div>
       </div>
       {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
-      <AdvancedDataTable
+      <DataGrid
         data={records}
         columns={columns}
         loading={loading}

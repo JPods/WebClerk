@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "../../../../../components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { fetchTemplates, deleteTemplate } from "../services/templateApi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
@@ -21,7 +20,7 @@ export default function TemplateList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,7 +104,7 @@ export default function TemplateList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Purpose",
@@ -216,7 +215,7 @@ export default function TemplateList() {
                 Add Template
               </button>
             </div>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               columns={userColumns}
               data={filteredData}

@@ -1,10 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { manageAction } from "@/api/wcapi";
 import { FaEye, FaSyncAlt } from "react-icons/fa";
@@ -71,7 +68,7 @@ export default function ReceivableList() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
   const [selectedRows, setSelectedRows] = useState<ReceivableRow[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<ReceivableRow>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +106,7 @@ export default function ReceivableList() {
   }, [fetchAging]);
 
   // ── Column definitions ─────────────────────────────────────────────
-  const columns: TableColumn<ReceivableRow>[] = useMemo(
+  const columns: any[] = useMemo(
     () => [
       {
         id: "org_name",
@@ -309,7 +306,7 @@ export default function ReceivableList() {
 
       <div className="grid grid-cols-1 gap-6">
         <ComponentCard>
-          <AdvancedDataTable
+          <DataGrid
             ref={tableRef}
             data={filteredData}
             columns={visibleColumns}

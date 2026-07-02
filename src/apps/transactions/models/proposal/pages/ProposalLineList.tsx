@@ -1,9 +1,8 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import { useEffect, useState } from "react";
-import { TableColumn } from "react-data-table-component";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
 import { ProposalLine } from "../types/proposalLineType";
 
 interface ProposalLineListProps {
@@ -47,7 +46,7 @@ export default function ProposalLineList({
     }, 500);
   }, [proposalId]);
 
-  const columns: TableColumn<ProposalLine>[] = [
+  const columns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
     {
       name: "Item",
@@ -110,7 +109,7 @@ export default function ProposalLineList({
         )}
       </div>
       <div className="overflow-x-auto">
-        <AdvancedDataTable
+        <DataGrid
           columns={columns.map((col) => ({
             ...col,
             name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,

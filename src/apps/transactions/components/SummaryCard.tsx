@@ -50,6 +50,10 @@ interface SummaryCardProps {
   showShipping?: boolean;
   /** Whether to show cost/margin in totals */
   showCostMargin?: boolean;
+  /** Label for the org section — "Customer", "Vendor", etc. Default: "Customer" */
+  orgLabel?: string;
+  /** Field name for the org ID — "customer_id", "vendor_id", etc. Default: "customer_id" */
+  orgIdField?: string;
   /** Whether to show payments section (received/balance) */
   showPayments?: boolean;
   /** Callback when Add Payment button is clicked */
@@ -89,6 +93,8 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   dueDateLabel = "Due Date",
   showShipping = true,
   showCostMargin = true,
+  orgLabel = 'Customer',
+  orgIdField = 'customer_id',
   showPayments = false,
   onAddPayment,
   useCustomerSalesPanel = true,
@@ -407,19 +413,19 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         {/* Center: Customer Info - uses CustomerSalesPanel for enhanced search/display */}
         {useCustomerSalesPanel ? (
           <CustomerSalesPanel
-            value={data.customer_id ?? customerInfo?.id ?? null}
+            value={(data as any)[orgIdField] ?? data.customer_id ?? customerInfo?.id ?? null}
             onSelect={handleCustomerSelect}
             isEditing={isEditing}
             showFinancials={true}
-            title="Customer"
+            title={orgLabel}
             className="h-full"
-            initialData={orgLinks?.customer ?? null}
+            initialData={orgIdField === 'vendor_id' ? (orgLinks?.vendor ?? customerInfo ?? null) : (orgLinks?.customer ?? null)}
           />
         ) : (
           <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <FaUser className="text-blue-500" />
-              Customer
+              {orgLabel}
             </h3>
             {/* Legacy customer display */}
             {customerInfo ? (

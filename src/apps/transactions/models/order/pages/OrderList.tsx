@@ -1,11 +1,8 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from "@/components/common/AdvancedDataTable";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { deleteAction } from "@/api/userProfile";
 import { fetchOrders, fetchOrderDetail } from "../services/orderApi";
@@ -72,7 +69,7 @@ export default function OrderList() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
 
-  const tableRef = useRef<AdvancedDataTableHandle<OrderRow>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -323,7 +320,7 @@ export default function OrderList() {
     [dispatch, getOrderData],
   );
 
-  const userColumns: TableColumn<OrderRow>[] = useMemo(
+  const userColumns: any[] = useMemo(
     () => [
       {
         name: "ID",
@@ -609,7 +606,7 @@ export default function OrderList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={data}
               columns={userColumns}

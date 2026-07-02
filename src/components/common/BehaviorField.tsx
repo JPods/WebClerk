@@ -68,29 +68,31 @@ export default function BehaviorField({
   };
 
   const wrapStyle: React.CSSProperties = span2 ? { gridColumn: '1 / -1' } : {};
+  const wcModel = (record as any)?._model || '';
+  const wcAttrs = { 'data-wc': `field-${name}`, 'data-wc-field': name, ...(wcModel ? { 'data-wc-model': wcModel } : {}) };
 
   // ── Readonly ──
   if (behType === 'readonly') {
     const display = (f_startsDt(name) && typeof v === 'number') ? new Date(v).toLocaleString() : String(v ?? '--');
-    return <div style={wrapStyle}><span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    return <div style={wrapStyle} {...wcAttrs}><span style={labelStyle} onClick={handleLabelClick}>{name}</span>
       <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>{display}</div>
     </div>;
   }
 
   // ── Email ──
-  if (behType === 'email') return <div style={wrapStyle}>
+  if (behType === 'email') return <div style={wrapStyle} {...wcAttrs}>
     <a href={v ? `mailto:${v}` : undefined} style={{ ...labelStyle, cursor: v ? 'pointer' : 'default', textDecoration: 'none' }} title={v ? `Email ${v}` : name}>{name} ✉</a>
     <input type="email" style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
 
   // ── Phone ──
-  if (behType === 'phone') return <div style={wrapStyle}>
+  if (behType === 'phone') return <div style={wrapStyle} {...wcAttrs}>
     <a href={v ? `tel:${v}` : undefined} style={{ ...labelStyle, cursor: v ? 'pointer' : 'default', textDecoration: 'none' }} title={v ? `Call ${v}` : name}>{name} ☎</a>
     <input type="tel" style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
 
   // ── Address ──
-  if (behType === 'address') return <div style={wrapStyle}>
+  if (behType === 'address') return <div style={wrapStyle} {...wcAttrs}>
     <a href={v ? `https://maps.google.com/?q=${encodeURIComponent(String(v))}` : undefined} target="_blank" rel="noopener noreferrer"
       style={{ ...labelStyle, cursor: v ? 'pointer' : 'default', textDecoration: 'none' }}>{name} 📍</a>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
@@ -102,21 +104,21 @@ export default function BehaviorField({
     const lat = name === 'latitude' ? v : record?.[pair];
     const lng = name === 'longitude' ? v : record?.[pair];
     const mapUrl = lat && lng ? `https://maps.google.com/?q=${lat},${lng}` : undefined;
-    return <div style={wrapStyle}>
+    return <div style={wrapStyle} {...wcAttrs}>
       <a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ ...labelStyle, color: mapUrl ? th.accent : th.textMuted, cursor: mapUrl ? 'pointer' : 'default', textDecoration: 'none' }}>{name} 🗺</a>
       <input type="number" step="any" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v ?? ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
     </div>;
   }
 
   // ── URL ──
-  if (behType === 'url') return <div style={wrapStyle}>
+  if (behType === 'url') return <div style={wrapStyle} {...wcAttrs}>
     <a href={v && String(v).startsWith('http') ? String(v) : v ? `https://${v}` : undefined} target="_blank" rel="noopener noreferrer"
       style={{ ...labelStyle, cursor: v ? 'pointer' : 'default', textDecoration: 'none' }}>{name} 🔗</a>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
 
   // ── Select ──
-  if (behType === 'select' && beh.options) return <div style={wrapStyle}>
+  if (behType === 'select' && beh.options) return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <select style={{ ...inputStyle, width: '100%', cursor: 'pointer' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)}>
       <option value="">--</option>
@@ -125,13 +127,13 @@ export default function BehaviorField({
   </div>;
 
   // ── Lookup ──
-  if (behType === 'lookup') return <div style={wrapStyle}>
+  if (behType === 'lookup') return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle}>{name} <span style={{ fontWeight: 400, textTransform: 'none', color: th.textDim }}>→ {beh.model}</span></span>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} placeholder={`${beh.model} ID`} />
   </div>;
 
   // ── Currency ──
-  if (behType === 'currency') return <div style={wrapStyle}>
+  if (behType === 'currency') return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <span style={{ color: th.textMuted, fontSize }}>$</span>
@@ -140,7 +142,7 @@ export default function BehaviorField({
   </div>;
 
   // ── Timestamp ──
-  if (behType === 'timestamp') return <div style={wrapStyle}>
+  if (behType === 'timestamp') return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>
       {v ? new Date(v as number).toLocaleString() : '--'}
@@ -174,13 +176,13 @@ export default function BehaviorField({
   }
 
   // ── Number ──
-  if (behType === 'number' || (typeof v === 'number' && !f_startsDt(name))) return <div style={wrapStyle}>
+  if (behType === 'number' || (typeof v === 'number' && !f_startsDt(name))) return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <input type="number" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v as number} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
   </div>;
 
   // ── Default text ──
-  return <div style={wrapStyle}>
+  return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;

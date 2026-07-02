@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecords } from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
@@ -21,7 +20,7 @@ export default function TagList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -100,7 +99,7 @@ export default function TagList() {
   };
 
   // Hardcoded columns: id and common fields
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
     { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "40%" },
     { name: "Color", selector: (row) => row.color || "--", sortable: true, width: "30%" },
@@ -184,7 +183,7 @@ export default function TagList() {
                 Add Tag
               </button>
             </div>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               columns={userColumns}
               data={filteredData}

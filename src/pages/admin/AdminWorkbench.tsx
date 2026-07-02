@@ -1,5 +1,5 @@
 /* LastChecked: 2026-06-29 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
 import { useDataBrowser, numId } from '../../hooks/useDataBrowser';
@@ -66,7 +66,7 @@ const Btn: React.FC<{
 // ---------------------------------------------------------------------------
 
 const AdminWorkbench: React.FC = () => {
-  const { isAuthenticated } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const db = useDataBrowser(isAuthenticated);
 
   // --- Local UI state ---
@@ -74,19 +74,88 @@ const AdminWorkbench: React.FC = () => {
   const [fontSize, setFontSize] = useState<'S' | 'M' | 'L'>(() => (localStorage.getItem('db-fontsize') as 'S' | 'M' | 'L') || 'S');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [modelFilterText, setModelFilterText] = useState('');
-  const [showFieldConfig, setShowFieldConfig] = useState<'list' | 'detail' | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveLayoutName, setSaveLayoutName] = useState('');
   const [showLayoutDialog, setShowLayoutDialog] = useState<'list' | 'detail' | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
+  const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navLogBuffer = useRef<{ model: string; dt: number }[]>([]);
+  const navLogTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = themes[theme];
   const fontSizes = { S: 12, M: 14, L: 16 };
   const baseFontSize = fontSizes[fontSize];
 
-  const toggleTheme = () => { const n = theme === 'dark' ? 'light' : 'dark'; setTheme(n); localStorage.setItem('db-theme', n); };
-  const cycleFontSize = () => { const n = fontSize === 'S' ? 'M' : fontSize === 'M' ? 'L' : 'S'; setFontSize(n); localStorage.setItem('db-fontsize', n); };
+  // Save DataBrowser preferences to contact.metadata.databrowser (debounced)
+  const savePrefsToContact = useCallback((newTheme: ThemeKey, newFontSize: 'S' | 'M' | 'L') => {
+    if (!user?.id) return;
+    if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
+    prefsSaveTimer.current = setTimeout(async () => {
+      try {
+        const { getRecord, saveRecord } = await import('@/api/wcapi');
+        const contact = await getRecord('contact', Number(user.id)) as any;
+        const metadata = contact?.metadata || {};
+        metadata.databrowser = { theme: newTheme, fontSize: newFontSize, activeLayout: db.activeViewName || '' };
+        await saveRecord('contact', { id: Number(user.id), metadata });
+      } catch { /* silent — localStorage is the fallback */ }
+    }, 2000); // 2s debounce — don't save on every click
+  }, [user?.id, db.activeViewName]);
+
+  // Load preferences from contact on mount
+  useEffect(() => {
+    if (!user?.id || !isAuthenticated) return;
+    (async () => {
+      try {
+        const { getRecord } = await import('@/api/wcapi');
+        const contact = await getRecord('contact', Number(user.id)) as any;
+        const prefs = contact?.metadata?.databrowser;
+        if (prefs) {
+          if (prefs.theme && (prefs.theme === 'dark' || prefs.theme === 'light')) {
+            setTheme(prefs.theme); localStorage.setItem('db-theme', prefs.theme);
+          }
+          if (prefs.fontSize && ['S', 'M', 'L'].includes(prefs.fontSize)) {
+            setFontSize(prefs.fontSize as 'S' | 'M' | 'L'); localStorage.setItem('db-fontsize', prefs.fontSize);
+          }
+        }
+      } catch { /* use localStorage defaults */ }
+    })();
+  }, [user?.id, isAuthenticated]);
+
+  // Expose user ID for hooks that can't access Redux directly
+  useEffect(() => {
+    if (user?.id) (window as any).__WC_USER_ID = Number(user.id);
+  }, [user?.id]);
+
+  // Track navigation patterns — Alice watches for coaching opportunities
+  useEffect(() => {
+    if (!db.selectedModel || !user?.id) return;
+    navLogBuffer.current.push({ model: db.selectedModel, dt: Date.now() });
+    // Flush buffer every 30 seconds (batch, not per-click)
+    if (navLogTimer.current) clearTimeout(navLogTimer.current);
+    navLogTimer.current = setTimeout(async () => {
+      const entries = navLogBuffer.current.splice(0);
+      if (!entries.length) return;
+      try {
+        const { manageAction } = await import('@/api/wcapi');
+        await manageAction('log_user_navigation', {
+          contact_id: Number(user!.id),
+          entries,
+        });
+      } catch { /* silent */ }
+    }, 30000);
+  }, [db.selectedModel, user?.id]);
+
+  const toggleTheme = () => {
+    const n = theme === 'dark' ? 'light' : 'dark';
+    setTheme(n); localStorage.setItem('db-theme', n);
+    savePrefsToContact(n, fontSize);
+  };
+  const cycleFontSize = () => {
+    const n = fontSize === 'S' ? 'M' : fontSize === 'M' ? 'L' : 'S';
+    setFontSize(n); localStorage.setItem('db-fontsize', n);
+    savePrefsToContact(theme, n);
+  };
 
   // Model filter — begins with, not contains
   const filteredModels = modelFilterText.trim()
@@ -117,28 +186,16 @@ const AdminWorkbench: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: t.bg, color: t.text, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontSize: baseFontSize }}>
+    <div data-wc="databrowser" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: t.bg, color: t.text, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontSize: baseFontSize }}>
 
-      {/* ═══ Header ═══ */}
-      <header style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', background: t.surface, borderBottom: `1px solid ${t.border}`, height: 38, flexShrink: 0 }}>
-        <button onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
+      {/* ═══ Header — model picker + search + global controls ═══ */}
+      <header data-wc="db-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', background: t.surface, borderBottom: `1px solid ${t.border}`, height: 36, flexShrink: 0 }}>
+        <button data-wc="db-model-picker" onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
           style={{ background: t.surfaceAlt, border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '4px 12px', color: t.accent, fontSize: baseFontSize, fontWeight: 700, cursor: 'pointer', minWidth: 160, textAlign: 'left' }}
           title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span style={{ fontSize: baseFontSize - 3, color: t.textMuted, marginLeft: 8 }}>({db.modelNames.length})</span></button>
-        <input type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} style={{ ...inputStyle, flex: 1, maxWidth: 280 }} />
-        <Btn t={t} small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
-        <Btn t={t} small variant="ghost" onClick={db.exportCSV}>CSV</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => setShowFieldConfig('list')}>List Cols</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => setShowFieldConfig('detail')}>Detail Fields</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => {
-          dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
-          setShowLayoutDialog('list');
-        }}>List Order</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => {
-          dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
-          setShowLayoutDialog('detail');
-        }}>Form Order</Btn>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3, borderLeft: `1px solid ${t.border}`, paddingLeft: 8 }}>
-          <span style={{ fontSize: baseFontSize - 3, color: t.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Layouts</span>
+        <input data-wc="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} style={{ ...inputStyle, flex: 1, maxWidth: 280 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span data-wc="db-layouts-label" style={{ fontSize: baseFontSize - 3, color: t.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Layouts</span>
           {db.savedViews.map((v) => (
             <button key={v.name} onClick={(e) => { if (e.shiftKey) { db.deleteView(v.name); return; } db.loadView(v); }}
               style={{ border: `1px solid ${db.activeViewName === v.name ? t.accent : t.borderLight}`, borderRadius: 3, padding: '2px 8px', fontSize: baseFontSize - 2, fontWeight: 600, cursor: 'pointer', background: db.activeViewName === v.name ? (theme === 'dark' ? '#094771' : '#cfe2ff') : t.btnBg, color: db.activeViewName === v.name ? t.accent : t.text }}
@@ -148,8 +205,8 @@ const AdminWorkbench: React.FC = () => {
           {db.activeViewName && <Btn t={t} small onClick={() => db.saveView(db.activeViewName!)}>Update</Btn>}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={cycleFontSize} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer', fontWeight: 700 }}>{fontSize}</button>
-          <button onClick={toggleTheme} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer' }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
+          <button data-wc="db-font-size" onClick={cycleFontSize} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer', fontWeight: 700 }}>{fontSize}</button>
+          <button data-wc="db-theme-toggle" onClick={toggleTheme} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer' }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
         </div>
       </header>
 
@@ -199,48 +256,31 @@ const AdminWorkbench: React.FC = () => {
         </div>
       )}
 
-      {/* Field config panel */}
-      {showFieldConfig && (
-        <div style={{ padding: '8px 12px', background: t.surfaceAlt, borderBottom: `1px solid ${t.border}`, maxHeight: 140, overflowY: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: baseFontSize - 1, fontWeight: 700, color: t.accent, textTransform: 'uppercase' }}>{showFieldConfig === 'list' ? 'List Columns' : 'Detail Fields'}</span>
-            <Btn t={t} small variant="ghost" onClick={() => db.bulkSetFields(showFieldConfig, 'all')}>All</Btn>
-            <Btn t={t} small variant="ghost" onClick={() => db.bulkSetFields(showFieldConfig, 'clear')}>None</Btn>
-            <span style={{ fontSize: baseFontSize - 2, color: t.textMuted }}>{(showFieldConfig === 'list' ? db.visibleListFields : db.visibleDetailFields).length}/{db.allFields.length}</span>
-            <span style={{ flex: 1 }} />
-            <Btn t={t} small variant="ghost" onClick={() => setShowFieldConfig(showFieldConfig === 'list' ? 'detail' : 'list')}>{showFieldConfig === 'list' ? 'Detail Fields' : 'List Cols'}</Btn>
-            <Btn t={t} small onClick={() => setShowFieldConfig(null)}>Done</Btn>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            {db.allFields.map((f) => {
-              const active = showFieldConfig === 'list' ? db.visibleListFields.includes(f) : db.visibleDetailFields.includes(f);
-              return <button key={f} onClick={() => db.toggleField(showFieldConfig, f)}
-                style={{ padding: '3px 8px', fontSize: baseFontSize - 2, fontWeight: 500, borderRadius: 3, border: `1px solid ${active ? t.accent : t.borderLight}`, background: active ? (theme === 'dark' ? '#094771' : '#cfe2ff') : t.btnBg, color: active ? t.accent : t.text, cursor: 'pointer' }}>{f}</button>;
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Pagination + subset bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: t.surface, borderBottom: `1px solid ${t.border}`, fontSize: baseFontSize - 2, color: t.textMuted }}>
-        <span>{db.totalRecords} records</span><span style={{ color: t.textDim }}>|</span>
-        <span>Page {db.page + 1}/{db.totalPages}</span>
-        <Btn t={t} small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
-        <Btn t={t} small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
-        <span style={{ flex: 1 }} />
-        <Btn t={t} small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
-        <Btn t={t} small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
-        <span style={{ color: t.textDim }}>|</span>
-        <Btn t={t} small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
-        <Btn t={t} small variant={db.subsetMode === 'omit' ? 'danger' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')}>Omit</Btn>
-        {db.subsetMode !== 'all' && <Btn t={t} small variant="ghost" onClick={() => db.setSubsetMode('all')}>All</Btn>}
-      </div>
+      {/* Field config replaced by List Order / Form Order dialogs */}
 
       {/* ═══ Two-pane body ═══ */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* List pane — DataGrid with all 10 features */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${t.border}`, minWidth: 0 }}>
+        {/* List pane */}
+        <div data-wc="db-list-pane" style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${t.border}`, minWidth: 0 }}>
+          {/* List toolbar */}
+          <div data-wc="db-list-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', background: t.surfaceAlt, borderBottom: `1px solid ${t.border}`, fontSize: baseFontSize - 2, color: t.textMuted }}>
+            <Btn t={t} small variant="ghost" onClick={() => {
+              dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
+              setShowLayoutDialog('list');
+            }}>List Order</Btn>
+            <span style={{ color: t.textDim }}>|</span>
+            <Btn t={t} small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
+            <Btn t={t} small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
+            <Btn t={t} small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
+            <Btn t={t} small variant={db.subsetMode === 'omit' ? 'danger' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')}>Omit</Btn>
+            {db.subsetMode !== 'all' && <Btn t={t} small variant="ghost" onClick={() => db.setSubsetMode('all')}>All</Btn>}
+            <span style={{ flex: 1 }} />
+            <span>{db.totalRecords}</span>
+            <Btn t={t} small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
+            <span>{db.page + 1}/{db.totalPages}</span>
+            <Btn t={t} small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
+          </div>
           {db.recordsLoading && <div style={{ padding: 16, color: t.textMuted }}>Loading...</div>}
           {db.recordsError && <div style={{ padding: 16, color: t.accentRed }}>{db.recordsError}</div>}
           {!db.recordsLoading && (
@@ -275,17 +315,20 @@ const AdminWorkbench: React.FC = () => {
         </div>
 
         {/* Detail pane */}
-        <div style={{ width: '42%', minWidth: 320, maxWidth: 600, display: 'flex', flexDirection: 'column', background: t.surface }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt }}>
-            <div>
-              <div style={{ fontSize: baseFontSize + 1, fontWeight: 700, color: t.accent }}>{db.modelLabel}</div>
-              {db.selectedId && <div style={{ fontSize: baseFontSize - 1, color: t.textMuted }}>#{db.selectedId}</div>}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {db.isDirty && <span style={{ fontSize: 10, fontWeight: 700, color: t.accentGold, padding: '2px 6px', background: theme === 'dark' ? '#3a3a1a' : '#fff3cd', borderRadius: 3 }}>UNSAVED</span>}
-              <Btn t={t} variant="primary" small onClick={db.handleSaveRecord} disabled={!db.selectedRecord}>Save</Btn>
-              <Btn t={t} variant="danger" small disabled={!db.selectedRecord || !db.selectedId} onClick={db.handleDeleteRecord}>Delete</Btn>
-            </div>
+        <div data-wc="db-detail-pane" style={{ width: '42%', minWidth: 320, maxWidth: 600, display: 'flex', flexDirection: 'column', background: t.surface }}>
+          {/* Detail toolbar */}
+          <div data-wc="db-detail-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt, fontSize: baseFontSize - 2 }}>
+            <span style={{ fontWeight: 700, color: t.accent }}>{db.modelLabel}</span>
+            {db.selectedId && <span style={{ color: t.textMuted }}>#{db.selectedId}</span>}
+            {db.isDirty && <span style={{ fontSize: 10, fontWeight: 700, color: t.accentGold, padding: '1px 5px', background: theme === 'dark' ? '#3a3a1a' : '#fff3cd', borderRadius: 3 }}>UNSAVED</span>}
+            <span style={{ flex: 1 }} />
+            <Btn t={t} small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
+            <Btn t={t} small variant="ghost" onClick={() => {
+              dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
+              setShowLayoutDialog('detail');
+            }}>Form Order</Btn>
+            <Btn t={t} variant="primary" small onClick={db.handleSaveRecord} disabled={!db.selectedRecord}>Save</Btn>
+            <Btn t={t} variant="danger" small disabled={!db.selectedRecord || !db.selectedId} onClick={db.handleDeleteRecord}>Delete</Btn>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
             {db.selectedRecord ? (

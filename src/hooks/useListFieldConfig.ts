@@ -2,17 +2,27 @@
  * useListFieldConfig — unified column configuration for any list page.
  *
  * Single hook that manages field selection, ordering, widths, and saved layouts.
- * Works with both DataGrid and legacy AdvancedDataTable columns.
+ * Works with DataGrid columns.
  * Stores everything in workbench_fields Settings (same as DataBrowser).
  *
  * Usage:
  *   const columns = useMemo(() => [...], []);
  *   const fc = useListFieldConfig('customer', columns);
- *   // Pass fc.visibleColumns to DataGrid or AdvancedDataTable
+ *   // Pass fc.visibleColumns to DataGrid
  *   // Use fc.fieldOrderDialogProps with FieldOrderDialog
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { TableColumn } from 'react-data-table-component';
+
+/** Column shape compatible with legacy TableColumn */
+type TableColumn<T = any> = {
+  id?: string | number;
+  name?: string | React.ReactNode;
+  selector?: ((row: T, index?: number) => any) | string;
+  cell?: (row: T, index: number, column: any, id: any) => React.ReactNode;
+  sortable?: boolean;
+  width?: string;
+  [key: string]: any;
+};
 import {
   getWorkbenchFieldsSetting,
   saveWorkbenchFieldsSetting,

@@ -27,6 +27,7 @@ import {
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import AliceDashboard from "../pages/admin/AliceDashboard";
 import HelpDashboard from "../pages/admin/HelpDashboard";
+import TestDashboard from "../pages/admin/TestDashboard";
 import DetailReview from "../pages/admin/DetailReview";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ItemList from "../apps/products/models/item/pages/ItemList";
@@ -61,7 +62,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 import ActionList from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
-import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
+import Placeholder from "../pages/Placeholder";
 
 const Router: React.FC = () => {
   return (
@@ -103,7 +104,7 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.actionDetail} element={<ActionDetail />} />
 
           {/* ── User-facing: Documents ── */}
-          <Route path={PageRoutes.docs} element={<DocumentIndex />} />
+          <Route path={PageRoutes.docs} element={<Placeholder title="Documents" />} />
 
           {/* ── User-facing: Products (Item only — others via DataBrowser) ── */}
           <Route path={PageRoutes.products} element={<Navigate to={PageRoutes.productsItemList} replace />} />
@@ -148,6 +149,7 @@ const Router: React.FC = () => {
           <Route path="/db" element={<Navigate to="/admin-wb" replace />} />
           <Route path="/alice-dashboard" element={<AliceDashboard />} />
           <Route path="/help" element={<HelpDashboard />} />
+          <Route path="/test-dashboard" element={<TestDashboard />} />
           <Route path={PageRoutes.detailReview} element={<DetailReview />} />
           <Route path={PageRoutes.modelWorkbench} element={<AllModelsWorkbench />} />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />

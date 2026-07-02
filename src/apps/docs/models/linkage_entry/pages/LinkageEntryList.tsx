@@ -1,7 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, { type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecords } from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
@@ -21,7 +20,7 @@ export default function LinkageEntryList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +98,7 @@ export default function LinkageEntryList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const userColumns: any[] = [
     { name: "ID", selector: (row: any) => row.id, sortable: true, width: "80px" },
     { name: "Group", selector: (row: any) => row.group_id, sortable: true, width: "100px" },
     { name: "Model", selector: (row: any) => row.model_name || "--", sortable: true, width: "120px" },
@@ -186,7 +185,7 @@ export default function LinkageEntryList() {
                 Add Linkage Entry
               </button>
             </div>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               columns={userColumns}
               data={filteredData}

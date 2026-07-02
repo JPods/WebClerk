@@ -6,10 +6,7 @@
 import React, { useCallback } from 'react';
 import ManageActionPanel from '@/components/common/ManageActionPanel';
 import {
-  FaShoppingBag,
   FaTruck,
-  FaCheck,
-  FaTimes,
   FaTasks,
 } from 'react-icons/fa';
 
@@ -17,13 +14,6 @@ import {
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import SummaryCard from '../../../components/SummaryCard';
 import LinesCard from '../../../components/LinesCard';
-import TransactionItemSearch, {
-  resolveItemCode,
-  resolveItemDescription,
-  resolveUnitPrice,
-  resolveUnitCost,
-} from '../../../components/TransactionItemSearch';
-import type { ItemSearchResult } from '../../../components/TransactionItemSearch';
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
@@ -49,15 +39,6 @@ interface Purchase extends Transaction {
 }
 
 // Utility functions
-const formatCurrency = (value?: number | null): string => {
-  if (value === undefined || value === null) return '--';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(value);
-};
-
 // Custom Purchase Header Component using SummaryCard
 const PurchaseHeader: React.FC<{
   data: Purchase;
@@ -77,115 +58,9 @@ const PurchaseHeader: React.FC<{
       dueDateLabel="Due Date"
       showShipping={true}
       showCostMargin={true}
+      orgLabel="Vendor"
+      orgIdField="vendor_id"
     />
-  );
-};
-
-// Purchase Lines Tab Content
-const PurchaseLinesContent: React.FC<{
-  data: Purchase;
-  lines: TransactionLine[];  // Use lines prop directly from renderLines
-  isEditing: boolean;
-  onLinesChange?: (lines: TransactionLine[]) => void;
-}> = ({ data, lines, isEditing, onLinesChange }) => {
-  // Handler for adding items from search - uses COST for purchase orders
-  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
-    if (!onLinesChange) return;
-    
-    const idaItem = resolveItemCode(item);
-    const description = resolveItemDescription(item);
-    const unitCost = resolveUnitCost(item);
-    const unitPrice = resolveUnitPrice(item);
-    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
-    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
-    
-    const newLine: TransactionLine = {
-      _dirty: true,
-      line_number: getNextLineNumber(lines),
-      item: {
-        item_id: itemId as number | null,
-        ida_item: idaItem,
-        description: description,
-        unit_measure: unitMeasure,
-      },
-      quantity: {
-        active: quantity,
-        staged: quantity,
-        remaining: quantity,
-      },
-      cost: {
-        unit: unitCost,
-        extended: unitCost * quantity,
-      },
-      price: {
-        unit: unitPrice,
-      },
-    } as unknown as TransactionLine;
-    
-    onLinesChange([...lines, newLine]);
-  }, [lines, onLinesChange]);
-
-  return (
-    <div className="space-y-6">
-      {/* Item Search Panel - only in edit mode */}
-      {isEditing && onLinesChange && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Add Items</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Search the catalog and add items to this purchase order.
-          </p>
-          <TransactionItemSearch onAddItem={handleAddItem} useCost={true} defaultQuantity={1} />
-        </div>
-      )}
-
-      {/* Lines Table */}
-      {!lines.length ? (
-        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-          <FaShoppingBag className="mx-auto text-4xl mb-4 opacity-50" />
-          <p>No line items</p>
-          {isEditing && (
-            <p className="mt-2 text-sm">Use the search above to find and add products</p>
-          )}
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Unit Cost</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
-                <th className="text-center p-3 text-slate-600 dark:text-slate-300">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line: any, index: number) => (
-                <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item?.ida_item ?? line.item_no ?? line.sku ?? '--'}</td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.item?.description ?? line.description ?? line.item_description ?? '--'}</td>
-                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.active ?? line.quantity?.staged ?? line.qty_ordered ?? '--'}</td>
-                  <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.cost?.unit ?? line.unit_cost ?? line.price)}</td>
-                  <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.cost?.extended ?? line.amount ?? line.line_total)}</td>
-                  <td className="p-3 text-center">
-                    {line.is_received ? (
-                      <span className="inline-flex items-center gap-1 text-green-600">
-                        <FaCheck size={12} /> Received
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-slate-400">
-                        <FaTimes size={12} /> Pending
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 };
 

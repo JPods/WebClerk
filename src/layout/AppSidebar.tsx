@@ -150,6 +150,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
+    name: "Inventory",
+    path: "/inventory-dashboard",
+  },
+  {
+    icon: <GridIcon />,
     name: "Accounting",
     path: "/accounting",
   },
@@ -177,6 +182,16 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Alice Dashboard",
     path: "/alice-dashboard",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Report Designer",
+    path: "/report-designer",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Test Dashboard",
+    path: "/test-dashboard",
   },
   {
     icon: <GridIcon />,

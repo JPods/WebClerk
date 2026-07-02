@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import ComponentCard from "@/components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter, type AdvancedDataTableHandle } from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo, useRef} from "react";
 import { getRecords, deleteRecord } from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
@@ -22,7 +22,7 @@ export default function LedgerList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,7 +118,7 @@ export default function LedgerList() {
     { key: "type", label: "Type", type: "text" },
   ], []);
 
-  const columns: TableColumn<any>[] = useMemo(() => [
+  const columns: any[] = useMemo(() => [
     { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
     { id: "name", name: "Name", selector: (row) => row.name || "--", sortable: true, width: "30%" },
     { id: "type", name: "Type", selector: (row) => row.type || "--", sortable: true, width: "25%" },
@@ -198,7 +198,7 @@ export default function LedgerList() {
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

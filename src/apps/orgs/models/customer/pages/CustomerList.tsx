@@ -1,11 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import AdvancedDataTable, {
-  ColumnFilter,
-  type AdvancedDataTableHandle,
-} from "../../../../../components/common/AdvancedDataTable";
 import { fetchCustomers } from "../services/customerApi";
 
 import { useDispatch } from "react-redux";
@@ -32,7 +30,7 @@ export default function CustomerList() {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -473,7 +471,7 @@ export default function CustomerList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard className="cus-bg-purple-light rounded-md">
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

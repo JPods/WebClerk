@@ -13,17 +13,11 @@ import {
 // Import base component and shared types
 import TransactionDetailBase from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
-import {
-  TransactionItemSearch,
-  resolveItemCode,
-  resolveItemDescription,
-  resolveUnitCost,
-  ItemSearchResult,
-} from '../../../components';
+// TransactionItemSearch imports removed — LinesCard handles item search internally
 
 // Import types
 import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
-import { getNextLineNumber } from '../../../utils/lineHelpers';
+// lineHelpers imported by LinesCard component below
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Receipt specific fields that extend base Transaction
@@ -73,14 +67,7 @@ const SourceTypeBadge: React.FC<{ sourceType?: string }> = ({ sourceType }) => {
 };
 
 // Utility functions
-const formatCurrency = (value?: number | null): string => {
-  if (value === undefined || value === null) return '--';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(value);
-};
+// formatCurrency removed — LinesCard handles formatting internally
 
 // Custom Receipt Header Component
 const ReceiptHeader: React.FC<{
@@ -198,99 +185,28 @@ const ReceiptHeader: React.FC<{
   );
 };
 
-// Receipt Lines Tab Content
+// Receipt Lines Tab Content — delegates to LinesCard (DataGrid-based)
+import LinesCard from '../../../components/LinesCard';
+import { lineKey } from '../../../utils/lineHelpers';
+
 const ReceiptLinesContent: React.FC<{
   data: Receipt;
   lines: TransactionLine[];
   isEditing: boolean;
   onLinesChange?: (lines: TransactionLine[]) => void;
 }> = ({ lines, isEditing, onLinesChange }) => {
-  // Handler for adding items from search - uses COST for receipts
-  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
-    if (!onLinesChange) return;
-    
-    const idaItem = resolveItemCode(item);
-    const description = resolveItemDescription(item);
-    const unitCost = resolveUnitCost(item);
-    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
-    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
-    
-    const newLine: TransactionLine = {
-      _dirty: true,
-      line_number: getNextLineNumber(lines),
-      item: {
-        item_id: itemId as number | null,
-        ida_item: idaItem,
-        description: description,
-        unit_measure: unitMeasure,
-      },
-      quantity: {
-        active: quantity,
-        staged: quantity,
-        remaining: 0,
-      },
-      cost: {
-        unit: unitCost,
-        extended: unitCost * quantity,
-      },
-    } as unknown as TransactionLine;
-    
-    onLinesChange([...lines, newLine]);
-  }, [lines, onLinesChange]);
-
   return (
-    <div className="space-y-6">
-      {/* Item Search Panel - only in edit mode */}
-      {isEditing && onLinesChange && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Add Items</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Search the catalog and add items to this receipt.
-          </p>
-          <TransactionItemSearch onAddItem={handleAddItem} useCost={true} defaultQuantity={1} />
-        </div>
-      )}
-
-      {/* Lines Table */}
-      {!lines.length ? (
-        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-          <FaBoxes className="mx-auto text-4xl mb-4 opacity-50" />
-          <p>No line items</p>
-          {isEditing && (
-            <p className="mt-2 text-sm">Use the search above to find and add products</p>
-          )}
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty Received</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Unit Cost</th>
-                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Warehouse</th>
-                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Lot/Serial</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line: any, index: number) => (
-                <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item?.ida_item ?? line.item_no ?? line.sku ?? '--'}</td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.item?.description ?? line.description ?? line.item_description ?? '--'}</td>
-                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.staged ?? line.quantity?.received ?? line.qty_received ?? '--'}</td>
-                  <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.cost?.unit ?? line.unit_cost)}</td>
-                  <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.cost?.extended ?? line.amount ?? line.line_total)}</td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.warehouse?.name ?? line.warehouse_id ?? '--'}</td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.lot || line.serial_batch || '--'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <LinesCard
+      lines={lines}
+      isEditing={isEditing}
+      transactionType="receipt"
+      onDeleteLine={(lineId) => {
+        if (onLinesChange) {
+          onLinesChange(lines.filter((l, i) => lineKey(l, i) !== lineId));
+        }
+      }}
+      onLinesChange={onLinesChange}
+    />
   );
 };
 

@@ -1,11 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import DataGrid from "@/components/common/DataGrid";
+import type { ColumnFilter } from "@/components/common/ButtonToolbar";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
-import AdvancedDataTable, {
-  ColumnFilter,
-} from "@/components/common/AdvancedDataTable";
-import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   FaSearch,
@@ -255,7 +253,7 @@ export default function OrgEntityList<T = any>({
         <div className={selectedRow ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <ErrorBoundary>
-              <AdvancedDataTable
+              <DataGrid
                 data={data}
                 columns={resolvedColumns}
                 title={title || modelKey}

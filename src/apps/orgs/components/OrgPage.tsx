@@ -8,12 +8,12 @@
  *   <OrgPage orgType="customer" />
  *   <OrgPage orgType="vendor" />
  */
+import DataGrid from "@/components/common/DataGrid";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getRecords, getRecord, saveRecord, deleteRecord } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
-import AdvancedDataTable, { type AdvancedDataTableHandle } from '@/components/common/AdvancedDataTable';
 import ComponentCard from '@/components/common/ComponentCard';
 import ButtonToolbar from '@/components/common/ButtonToolbar';
 import FieldConfigBar from '@/components/common/FieldConfigBar';
@@ -76,7 +76,7 @@ export default function OrgPage({ orgType }: OrgPageProps) {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>([]);
-  const tableRef = useRef<AdvancedDataTableHandle<any>>(null);
+  const tableRef = useRef<any>(null);
   const columnBtnRef = useRef<HTMLButtonElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -290,7 +290,7 @@ export default function OrgPage({ orgType }: OrgPageProps) {
         {/* List */}
         <div className={formMode ? 'lg:col-span-1' : 'lg:col-span-3'}>
           <ComponentCard>
-            <AdvancedDataTable
+            <DataGrid
               ref={tableRef}
               data={filteredData}
               columns={visibleColumns}

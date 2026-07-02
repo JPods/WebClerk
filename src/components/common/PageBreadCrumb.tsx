@@ -7,7 +7,16 @@ import React, {
   useCallback,
 } from "react";
 import { Link } from "react-router-dom";
-import { TableColumn } from "react-data-table-component";
+/** Column shape compatible with legacy TableColumn (no react-data-table-component dep) */
+type TableColumn<T = any> = {
+  id?: string | number;
+  name?: string | React.ReactNode;
+  selector?: ((row: T, index?: number) => any) | string;
+  cell?: (row: T, index: number, column: any, id: any) => React.ReactNode;
+  sortable?: boolean;
+  width?: string;
+  [key: string]: any;
+};
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {

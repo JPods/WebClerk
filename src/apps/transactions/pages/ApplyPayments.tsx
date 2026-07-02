@@ -1,36 +1,79 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-06-30 | WhereUsed: /transactions/apply-payments | WhoCreated: Claude */
 /**
- * ApplyPayments - Bulk Payment Application Page
- * 
- * Mirrors WC2's ApplyPayments form with:
- * - Customer search/filter
- * - Invoice list (unpaid invoices)
- * - Payment list (available payments)
- * - Apply payment to selected invoice(s)
- * - Auto-apply to oldest invoices
+ * ApplyPayments — Full payment application workflow.
+ *
+ * Two-pane layout:
+ *   Left:  Unapplied payments (balance > 0). Click one to select.
+ *   Right: Open invoices for that payment's customer. Per-invoice apply amount.
+ *
+ * Workflow: Select payment -> see invoices -> enter amounts (or Auto Apply) ->
+ *           review summary -> Submit -> backend creates PendingPaymentApplication
+ *           records via apply_payment_to_invoice.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { FaSearch, FaCheck, FaSync, FaTimes, FaSpinner, FaPlus } from 'react-icons/fa';
+import {
+  FaSearch,
+  FaCheck,
+  FaSync,
+  FaSpinner,
+  FaEraser,
+  FaMagic,
+  FaPlus,
+} from 'react-icons/fa';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
 import ComponentCard from '@/components/common/ComponentCard';
 import { getRecords, GetListPayload } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
-import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
+import usePaymentApplication, {
+  PaymentRecord,
+  InvoiceRecord,
+} from '../hooks/usePaymentApplication';
 import PaymentDialog from '../components/PaymentDialog';
 
-// Org search result type
-interface OrgSearchResult {
-  id: number;
-  display_name: string;
-  ida?: string;
-  email?: string | null;
-  phone?: string | null;
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+/** Per-invoice amount the user wants to apply from the selected payment. */
+interface InvoiceApplication {
+  invoiceId: number;
+  amount: number; // 0 = not applied
 }
 
-type SearchPayload = Pick<GetListPayload, 'results'> & {
-  items?: unknown[];
+type SearchPayload = Pick<GetListPayload, 'results'> & { items?: unknown[] };
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+const formatCurrency = (value: number | undefined | null): string => {
+  if (value == null) return '$0.00';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(value);
 };
+
+const formatDate = (dateStr?: string | null): string => {
+  if (!dateStr) return '--';
+  return new Date(dateStr).toLocaleDateString();
+};
+
+/** Return CSS classes for invoice aging color bands. */
+const agingColor = (days: number): string => {
+  if (days >= 90)
+    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+  if (days >= 60)
+    return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+  if (days >= 30)
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+  return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+};
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 const ApplyPayments: React.FC = () => {
   const dispatch = useDispatch();
@@ -43,602 +86,651 @@ const ApplyPayments: React.FC = () => {
     getPaymentAvailable,
   } = usePaymentApplication();
 
-  // State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOrg, setSelectedOrg] = useState<OrgSearchResult | null>(null);
-  const [orgResults, setOrgResults] = useState<OrgSearchResult[]>([]);
-  const [searchingOrgs, setSearchingOrgs] = useState(false);
-  const [showAllInvoices, setShowAllInvoices] = useState(false);
-
-  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  /* ---------- payments state ---------- */
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [loadingData, setLoadingData] = useState(false);
-
-  const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());
+  const [loadingPayments, setLoadingPayments] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
-  const [applyAmount, setApplyAmount] = useState<string>('');
-  const [applying, setApplying] = useState(false);
+
+  /* ---------- payment filters ---------- */
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
+  /* ---------- invoices state ---------- */
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+
+  /* ---------- application amounts ---------- */
+  const [applications, setApplications] = useState<Map<number, number>>(new Map());
+
+  /* ---------- submit state ---------- */
+  const [submitting, setSubmitting] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
-  // Search for customers/orgs
-  const searchOrgs = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setOrgResults([]);
-      return;
-    }
+  /* ---------------------------------------------------------------- */
+  /*  Load all unapplied payments                                      */
+  /* ---------------------------------------------------------------- */
 
-    setSearchingOrgs(true);
+  const loadPayments = useCallback(async () => {
+    setLoadingPayments(true);
     try {
-      const trimmed = query.trim();
-      const result = (await getRecords('customer', {
-        limit: 20,
-        is_active: true,
-        // Be generous with search params; different deployments may key off different names
-        search: trimmed,
-        q: trimmed,
-        keywords: trimmed,
-        display_name: trimmed,
-      })) as SearchPayload;
+      const params: Record<string, unknown> = {
+        status: 'completed',
+        limit: 200,
+        ordering: '-dt_created',
+      };
+      if (filterDateFrom) params.dt_created__gte = filterDateFrom;
+      if (filterDateTo) params.dt_created__lte = filterDateTo;
 
-      const records = Array.isArray(result?.results)
+      const result = (await getRecords('payment', params)) as SearchPayload;
+      const records: PaymentRecord[] = Array.isArray(result?.results)
         ? result.results
         : Array.isArray(result?.items)
-          ? result.items
+          ? (result.items as PaymentRecord[])
           : [];
-      setOrgResults(
-        records.map((r) => ({
-          id: r.id,
-          display_name: r.display_name || r.company || r.name || `#${r.id}`,
-          ida: r.ida,
-          email: r.email,
-          phone: r.phone,
-        })),
-      );
+
+      // Keep only payments with remaining balance > 0
+      const unapplied = records.filter((p) => {
+        const avail = p.amount_available ?? p.amount;
+        return avail > 0.005; // tolerance for floating point
+      });
+      setPayments(unapplied);
     } catch (err) {
-      console.error('Failed to search orgs:', err);
-      setOrgResults([]);
+      console.error('Failed to load payments:', err);
+      dispatch(showToast({ message: 'Failed to load payments', type: 'error' }));
     } finally {
-      setSearchingOrgs(false);
+      setLoadingPayments(false);
     }
-  }, []);
+  }, [filterDateFrom, filterDateTo, dispatch]);
 
-  // Debounced search
+  // Initial load
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery && !selectedOrg) {
-        searchOrgs(searchQuery);
+    loadPayments();
+  }, [loadPayments]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Filter payments client-side by search text                       */
+  /* ---------------------------------------------------------------- */
+
+  const filteredPayments = useMemo(() => {
+    if (!paymentSearch.trim()) return payments;
+    const q = paymentSearch.toLowerCase();
+    return payments.filter((p) => {
+      const ref = (p.reference_number || p.ida || `PAY-${p.id}`).toLowerCase();
+      const org =
+        p.refs?.links?.org?.[0]?.display_name?.toLowerCase() || '';
+      return ref.includes(q) || org.includes(q) || String(p.id).includes(q);
+    });
+  }, [payments, paymentSearch]);
+
+  /* ---------------------------------------------------------------- */
+  /*  When a payment is selected, load invoices for its customer       */
+  /* ---------------------------------------------------------------- */
+
+  const loadInvoicesForPayment = useCallback(
+    async (payment: PaymentRecord) => {
+      const orgId = payment.org_id || payment.refs?.links?.org?.[0]?.id;
+      if (!orgId) {
+        setInvoices([]);
+        dispatch(
+          showToast({ message: 'Payment has no linked customer', type: 'warning' }),
+        );
+        return;
       }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedOrg, searchOrgs]);
+      setLoadingInvoices(true);
+      try {
+        const inv = await getUnpaidInvoices(String(orgId));
+        setInvoices(inv);
+      } finally {
+        setLoadingInvoices(false);
+      }
+    },
+    [getUnpaidInvoices, dispatch],
+  );
 
-  // Load invoices and payments when org selected
-  useEffect(() => {
-    if (selectedOrg) {
-      loadCustomerData(String(selectedOrg.id));
-    } else {
-      setInvoices([]);
-      setPayments([]);
-      setSelectedInvoices(new Set());
-      setSelectedPayment(null);
-    }
-  }, [selectedOrg]);
+  const handleSelectPayment = useCallback(
+    (payment: PaymentRecord) => {
+      setSelectedPayment(payment);
+      setApplications(new Map());
+      loadInvoicesForPayment(payment);
+    },
+    [loadInvoicesForPayment],
+  );
 
-  const loadCustomerData = useCallback(async (orgId: number | string) => {
-    setLoadingData(true);
-    const orgKey = String(orgId);
-    try {
-      const [invoiceData, paymentData] = await Promise.all([
-        getUnpaidInvoices(orgKey),
-        getAvailablePayments(orgKey)
-      ]);
-      setInvoices(invoiceData);
-      setPayments(paymentData);
-    } finally {
-      setLoadingData(false);
-    }
-  }, [getUnpaidInvoices, getAvailablePayments]);
+  /* ---------------------------------------------------------------- */
+  /*  Application amount helpers                                       */
+  /* ---------------------------------------------------------------- */
 
-  // Handle org selection
-  const handleSelectOrg = (org: OrgSearchResult) => {
-    setSelectedOrg(org);
-    setSearchQuery(org.display_name);
-    setOrgResults([]);
-  };
-
-  // Handle clearing org selection
-  const handleClearOrg = () => {
-    setSelectedOrg(null);
-    setSearchQuery('');
-    setOrgResults([]);
-  };
-
-  // Toggle invoice selection
-  const toggleInvoiceSelection = (invoiceId: number) => {
-    setSelectedInvoices(prev => {
-      const next = new Set(prev);
-      if (next.has(invoiceId)) {
+  const setApplyAmount = useCallback((invoiceId: number, amount: number) => {
+    setApplications((prev) => {
+      const next = new Map(prev);
+      if (amount <= 0) {
         next.delete(invoiceId);
       } else {
-        next.add(invoiceId);
+        next.set(invoiceId, amount);
       }
       return next;
     });
-  };
+  }, []);
 
-  // Select all invoices
-  const selectAllInvoices = () => {
-    setSelectedInvoices(new Set(invoices.map(inv => inv.id)));
-  };
+  const totalApplied = useMemo(() => {
+    let sum = 0;
+    applications.forEach((amt) => {
+      sum += amt;
+    });
+    return sum;
+  }, [applications]);
 
-  // Clear invoice selection
-  const clearInvoiceSelection = () => {
-    setSelectedInvoices(new Set());
-  };
+  const paymentAvailable = selectedPayment
+    ? getPaymentAvailable(selectedPayment)
+    : 0;
 
-  // Calculate totals
-  const selectedInvoiceTotal = useMemo(() => {
-    return invoices
-      .filter(inv => selectedInvoices.has(inv.id))
-      .reduce((sum, inv) => sum + getInvoiceBalance(inv), 0);
-  }, [invoices, selectedInvoices, getInvoiceBalance]);
+  const remaining = paymentAvailable - totalApplied;
 
-  const paymentAvailable = selectedPayment ? getPaymentAvailable(selectedPayment) : 0;
+  /* ---------------------------------------------------------------- */
+  /*  Auto Apply — FIFO oldest first                                   */
+  /* ---------------------------------------------------------------- */
 
-  // Update apply amount when selection changes
-  useEffect(() => {
-    if (selectedPayment && selectedInvoices.size > 0) {
-      const maxApply = Math.min(paymentAvailable, selectedInvoiceTotal);
-      setApplyAmount(maxApply.toFixed(2));
-    } else {
-      setApplyAmount('');
-    }
-  }, [selectedPayment, selectedInvoices, paymentAvailable, selectedInvoiceTotal]);
-
-  // Apply payment to selected invoices
-  const handleApplyToSelected = useCallback(async () => {
-    if (!selectedPayment || selectedInvoices.size === 0) return;
-
-    setApplying(true);
-    try {
-      let remainingAmount = parseFloat(applyAmount) || paymentAvailable;
-      const sortedInvoices = invoices
-        .filter(inv => selectedInvoices.has(inv.id))
-        .sort((a, b) => new Date(a.dt_created || 0).getTime() - new Date(b.dt_created || 0).getTime());
-
-      let appliedCount = 0;
-      for (const invoice of sortedInvoices) {
-        if (remainingAmount <= 0) break;
-
-        const balance = getInvoiceBalance(invoice);
-        const toApply = Math.min(remainingAmount, balance);
-
-        if (toApply > 0) {
-          const result = await applyPaymentToInvoice(invoice.id, selectedPayment.id, toApply);
-          if (result.success) {
-            remainingAmount -= result.amount_applied;
-            appliedCount++;
-          }
-        }
-      }
-
-      if (appliedCount > 0) {
-        dispatch(showToast({
-          message: `Applied payment to ${appliedCount} invoice(s)`,
-          type: 'success'
-        }));
-        // Refresh data
-        if (selectedOrg) {
-          await loadCustomerData(selectedOrg.id);
-        }
-        setSelectedInvoices(new Set());
-        setSelectedPayment(null);
-      }
-    } finally {
-      setApplying(false);
-    }
-  }, [selectedPayment, selectedInvoices, applyAmount, paymentAvailable, invoices, getInvoiceBalance, applyPaymentToInvoice, dispatch, selectedOrg, loadCustomerData]);
-
-  // Auto-apply to oldest invoices
-  const handleAutoApply = useCallback(async () => {
+  const handleAutoApply = useCallback(() => {
     if (!selectedPayment) return;
 
-    setApplying(true);
-    try {
-      let remainingAmount = paymentAvailable;
-      const sortedInvoices = [...invoices].sort(
-        (a, b) => new Date(a.dt_created || 0).getTime() - new Date(b.dt_created || 0).getTime()
-      );
+    const sorted = [...invoices].sort(
+      (a, b) =>
+        new Date(a.dt || a.dt_created || 0).getTime() -
+        new Date(b.dt || b.dt_created || 0).getTime(),
+    );
 
-      let appliedCount = 0;
-      for (const invoice of sortedInvoices) {
-        if (remainingAmount <= 0) break;
+    let budget = paymentAvailable;
+    const next = new Map<number, number>();
 
-        const balance = getInvoiceBalance(invoice);
-        const toApply = Math.min(remainingAmount, balance);
-
-        if (toApply > 0) {
-          const result = await applyPaymentToInvoice(invoice.id, selectedPayment.id, toApply);
-          if (result.success) {
-            remainingAmount -= result.amount_applied;
-            appliedCount++;
-          }
-        }
+    for (const inv of sorted) {
+      if (budget <= 0.005) break;
+      const balance = getInvoiceBalance(inv);
+      const toApply = Math.min(budget, balance);
+      if (toApply > 0.005) {
+        next.set(inv.id, parseFloat(toApply.toFixed(2)));
+        budget -= toApply;
       }
-
-      if (appliedCount > 0) {
-        dispatch(showToast({
-          message: `Auto-applied to ${appliedCount} oldest invoice(s)`,
-          type: 'success'
-        }));
-        // Refresh data
-        if (selectedOrg) {
-          await loadCustomerData(selectedOrg.id);
-        }
-        setSelectedPayment(null);
-      }
-    } finally {
-      setApplying(false);
     }
-  }, [selectedPayment, paymentAvailable, invoices, getInvoiceBalance, applyPaymentToInvoice, dispatch, selectedOrg, loadCustomerData]);
 
-  // Format helpers
-  const formatCurrency = (value: number | undefined | null): string => {
-    if (value == null) return '$0.00';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-  };
+    setApplications(next);
+  }, [selectedPayment, invoices, paymentAvailable, getInvoiceBalance]);
 
-  const formatDate = (dateStr?: string | null): string => {
-    if (!dateStr) return '--';
-    return new Date(dateStr).toLocaleDateString();
-  };
+  const handleClearAmounts = useCallback(() => {
+    setApplications(new Map());
+  }, []);
+
+  /* ---------------------------------------------------------------- */
+  /*  Submit — create PendingPaymentApplication for each line          */
+  /* ---------------------------------------------------------------- */
+
+  const handleSubmit = useCallback(async () => {
+    if (!selectedPayment || applications.size === 0) return;
+
+    // Validate total does not exceed available
+    if (totalApplied > paymentAvailable + 0.005) {
+      dispatch(
+        showToast({
+          message: `Applied total ($${totalApplied.toFixed(2)}) exceeds available ($${paymentAvailable.toFixed(2)})`,
+          type: 'error',
+        }),
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      // Apply each invoice sequentially (backend locks rows)
+      for (const [invoiceId, amount] of applications.entries()) {
+        if (amount <= 0) continue;
+        const result = await applyPaymentToInvoice(invoiceId, selectedPayment.id, amount);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        dispatch(
+          showToast({
+            message: `Applied payment to ${successCount} invoice(s)${failCount > 0 ? ` (${failCount} failed)` : ''}`,
+            type: failCount > 0 ? 'warning' : 'success',
+          }),
+        );
+      } else if (failCount > 0) {
+        dispatch(
+          showToast({ message: `All ${failCount} applications failed`, type: 'error' }),
+        );
+      }
+
+      // Refresh both panes
+      setApplications(new Map());
+      await loadPayments();
+
+      // If payment still exists and still has balance, reload invoices
+      const refreshedPayments = payments; // will be stale; re-select will reload
+      setSelectedPayment(null);
+      setInvoices([]);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    selectedPayment,
+    applications,
+    totalApplied,
+    paymentAvailable,
+    applyPaymentToInvoice,
+    dispatch,
+    loadPayments,
+    payments,
+  ]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Customer name for selected payment                               */
+  /* ---------------------------------------------------------------- */
+
+  const selectedCustomerName = useMemo(() => {
+    if (!selectedPayment) return '';
+    return (
+      selectedPayment.refs?.links?.org?.[0]?.display_name ||
+      `Customer #${selectedPayment.org_id || '?'}`
+    );
+  }, [selectedPayment]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                           */
+  /* ---------------------------------------------------------------- */
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="apply-payments" className="p-4 space-y-4">
       <PageBreadcrumb pageTitle="Apply Payments" />
 
-      {/* Customer Search */}
-      <ComponentCard title="Customer Selection">
-        <div className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search customer by name, ID, or phone..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (selectedOrg) setSelectedOrg(null);
-                }}
-                className="w-full pl-10 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-              />
-              {selectedOrg && (
-                <button
-                  onClick={handleClearOrg}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <FaTimes />
-                </button>
-              )}
+      {/* ---- Summary bar (visible when a payment is selected) ---- */}
+      {selectedPayment && (
+        <div
+          data-wc="apply-payments-summary"
+          className="flex flex-wrap items-center gap-6 px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+        >
+          <div className="text-sm">
+            <span className="text-slate-500 dark:text-slate-400">Payment:</span>{' '}
+            <span className="font-mono font-medium text-slate-900 dark:text-white">
+              {formatCurrency(paymentAvailable)}
+            </span>
+          </div>
+          <div className="text-sm">
+            <span className="text-slate-500 dark:text-slate-400">Applied:</span>{' '}
+            <span className="font-mono font-medium text-green-600 dark:text-green-400">
+              {formatCurrency(totalApplied)}
+            </span>
+          </div>
+          <div className="text-sm">
+            <span className="text-slate-500 dark:text-slate-400">Remaining:</span>{' '}
+            <span
+              className={`font-mono font-medium ${
+                remaining < -0.005
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-slate-900 dark:text-white'
+              }`}
+            >
+              {formatCurrency(remaining)}
+            </span>
+          </div>
+          <div className="text-sm">
+            <span className="text-slate-500 dark:text-slate-400">Customer:</span>{' '}
+            <span className="font-medium text-slate-900 dark:text-white">
+              {selectedCustomerName}
+            </span>
+          </div>
+        </div>
+      )}
 
-              {/* Search Results Dropdown */}
-              {orgResults.length > 0 && !selectedOrg && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {orgResults.map((org) => (
-                    <div
-                      key={org.id}
-                      onClick={() => handleSelectOrg(org)}
-                      className="px-4 py-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-b-0"
-                    >
-                      <div className="font-medium text-slate-900 dark:text-white">
-                        {org.display_name}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {org.ida && <span className="mr-3">ID: {org.ida}</span>}
-                        {org.phone && <span className="mr-3">{org.phone}</span>}
-                        {org.email && <span>{org.email}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      {/* ---- Two-pane layout ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* ============================================================ */}
+        {/*  LEFT PANE — Unapplied Payments                              */}
+        {/* ============================================================ */}
+        <ComponentCard
+          title={`Unapplied Payments (${filteredPayments.length})`}
+        >
+          <div data-wc="apply-payments-left" className="p-2">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div className="relative flex-1 min-w-[140px]">
+                <FaSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
+                <input
+                  data-wc="apply-payments-search"
+                  type="text"
+                  placeholder="Search ref / customer..."
+                  value={paymentSearch}
+                  onChange={(e) => setPaymentSearch(e.target.value)}
+                  className="w-full pl-7 pr-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="text-xs px-1 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                title="From date"
+              />
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="text-xs px-1 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                title="To date"
+              />
+              <button
+                onClick={loadPayments}
+                disabled={loadingPayments}
+                className="text-xs px-2 py-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-1"
+                title="Refresh"
+              >
+                <FaSync className={loadingPayments ? 'animate-spin' : ''} />
+              </button>
+              <button
+                onClick={() => setShowPaymentDialog(true)}
+                className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded flex items-center gap-1"
+                title="Record new payment"
+              >
+                <FaPlus /> New
+              </button>
             </div>
 
-            {searchingOrgs && <FaSpinner className="animate-spin text-slate-400" />}
+            {/* Payment list */}
+            {loadingPayments ? (
+              <div className="flex items-center justify-center py-8 text-slate-400">
+                <FaSpinner className="animate-spin mr-2" /> Loading payments...
+              </div>
+            ) : filteredPayments.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                No unapplied payments found
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10">
+                    <tr>
+                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                        Reference
+                      </th>
+                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                        Customer
+                      </th>
+                      <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                        Available
+                      </th>
+                      <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                        Original
+                      </th>
+                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                        Date
+                      </th>
+                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                        Type
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPayments.map((payment) => {
+                      const isSelected = selectedPayment?.id === payment.id;
+                      const available = getPaymentAvailable(payment);
+                      const custName =
+                        payment.refs?.links?.org?.[0]?.display_name || '--';
 
-            {selectedOrg && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  {selectedOrg.display_name}
-                </span>
-                {selectedOrg.ida && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    ({selectedOrg.ida})
-                  </span>
-                )}
+                      return (
+                        <tr
+                          key={payment.id}
+                          data-wc="apply-payments-row"
+                          onClick={() => handleSelectPayment(payment)}
+                          className={`cursor-pointer border-t border-slate-200 dark:border-slate-700 transition-colors ${
+                            isSelected
+                              ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-300 dark:ring-blue-700'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <td className="p-1.5 font-mono">
+                            {payment.reference_number ||
+                              payment.ida ||
+                              `PAY-${payment.id}`}
+                          </td>
+                          <td className="p-1.5 text-slate-600 dark:text-slate-400 truncate max-w-[120px]">
+                            {custName}
+                          </td>
+                          <td className="p-1.5 text-right font-mono font-medium text-green-600 dark:text-green-400">
+                            {formatCurrency(available)}
+                          </td>
+                          <td className="p-1.5 text-right font-mono text-slate-500 dark:text-slate-500">
+                            {formatCurrency(payment.amount)}
+                          </td>
+                          <td className="p-1.5 text-slate-600 dark:text-slate-400">
+                            {formatDate(
+                              payment.dt_payment || payment.dt_created,
+                            )}
+                          </td>
+                          <td className="p-1.5 text-slate-600 dark:text-slate-400">
+                            {payment.gateway || 'manual'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
-
-            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <input
-                type="checkbox"
-                checked={showAllInvoices}
-                onChange={(e) => setShowAllInvoices(e.target.checked)}
-                className="rounded"
-              />
-              Show All (include paid)
-            </label>
-          </div>
-        </div>
-      </ComponentCard>
-
-      {selectedOrg && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Invoices Panel */}
-          <ComponentCard title={`Unpaid Invoices (${invoices.length})`}>
-            <div className="p-2">
-              {/* Invoice Actions */}
-              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={selectAllInvoices}
-                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
-                >
-                  Select All
-                </button>
-                <button
-                  onClick={clearInvoiceSelection}
-                  className="text-xs px-2 py-1 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-                >
-                  Clear
-                </button>
-                {selectedInvoices.size > 0 && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {selectedInvoices.size} selected = {formatCurrency(selectedInvoiceTotal)}
-                  </span>
-                )}
-              </div>
-
-              {/* Invoice List */}
-              {loadingData ? (
-                <div className="flex items-center justify-center py-8 text-slate-400">
-                  <FaSpinner className="animate-spin mr-2" />
-                  Loading invoices...
-                </div>
-              ) : invoices.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  No unpaid invoices
-                </div>
-              ) : (
-                <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0">
-                      <tr>
-                        <th className="w-8 p-1"></th>
-                        <th className="p-1 text-left font-medium">Invoice</th>
-                        <th className="p-1 text-right font-medium">Balance</th>
-                        <th className="p-1 text-right font-medium">Total</th>
-                        <th className="p-1 text-center font-medium">Days</th>
-                        <th className="p-1 text-left font-medium">Terms</th>
-                        <th className="p-1 text-left font-medium">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoices.map((invoice) => {
-                        const isSelected = selectedInvoices.has(invoice.id);
-                        const balance = getInvoiceBalance(invoice);
-                        const daysPastDue = calculateDaysPastDue(invoice);
-                        
-                        return (
-                          <tr
-                            key={invoice.id}
-                            onClick={() => toggleInvoiceSelection(invoice.id)}
-                            className={`cursor-pointer border-t border-slate-200 dark:border-slate-700 ${
-                              isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
-                          >
-                            <td className="p-1 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => toggleInvoiceSelection(invoice.id)}
-                                className="w-3 h-3"
-                              />
-                            </td>
-                            <td className="p-1 font-mono">
-                              {invoice.ida || invoice.invoice_no || `#${invoice.id}`}
-                            </td>
-                            <td className="p-1 text-right font-mono font-medium text-amber-600 dark:text-amber-400">
-                              {formatCurrency(balance)}
-                            </td>
-                            <td className="p-1 text-right font-mono text-slate-600 dark:text-slate-400">
-                              {formatCurrency(invoice.totals?.total)}
-                            </td>
-                            <td className="p-1 text-center">
-                              <span className={`px-1 rounded ${
-                                daysPastDue > 60 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                daysPastDue > 30 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                daysPastDue > 0 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                'text-slate-600 dark:text-slate-400'
-                              }`}>
-                                {daysPastDue}
-                              </span>
-                            </td>
-                            <td className="p-1 text-slate-600 dark:text-slate-400">
-                              {invoice.terms || '--'}
-                            </td>
-                            <td className="p-1 text-slate-600 dark:text-slate-400">
-                              {formatDate(invoice.dt || invoice.dt_created)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </ComponentCard>
-
-          {/* Payments Panel */}
-          <ComponentCard title={`Available Payments (${payments.length})`}>
-            <div className="p-2">
-              {/* Refresh button */}
-              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => selectedOrg && loadCustomerData(selectedOrg.id)}
-                  disabled={loadingData}
-                  className="text-xs px-2 py-1 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-1"
-                >
-                  <FaSync className={loadingData ? 'animate-spin' : ''} />
-                  Refresh
-                </button>
-                <button
-                  onClick={() => setShowPaymentDialog(true)}
-                  className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded flex items-center gap-1"
-                >
-                  <FaPlus />
-                  Make Payment
-                </button>
-                {selectedPayment && (
-                  <span className="text-xs text-green-600 dark:text-green-400">
-                    Selected: {formatCurrency(paymentAvailable)} available
-                  </span>
-                )}
-              </div>
-
-              {/* Payment List */}
-              {loadingData ? (
-                <div className="flex items-center justify-center py-8 text-slate-400">
-                  <FaSpinner className="animate-spin mr-2" />
-                  Loading payments...
-                </div>
-              ) : payments.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  No available payments
-                </div>
-              ) : (
-                <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0">
-                      <tr>
-                        <th className="w-8 p-1"></th>
-                        <th className="p-1 text-left font-medium">Reference</th>
-                        <th className="p-1 text-right font-medium">Available</th>
-                        <th className="p-1 text-right font-medium">Original</th>
-                        <th className="p-1 text-left font-medium">Date</th>
-                        <th className="p-1 text-left font-medium">Type</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payments.map((payment) => {
-                        const isSelected = selectedPayment?.id === payment.id;
-                        const available = getPaymentAvailable(payment);
-                        
-                        return (
-                          <tr
-                            key={payment.id}
-                            onClick={() => setSelectedPayment(payment)}
-                            className={`cursor-pointer border-t border-slate-200 dark:border-slate-700 ${
-                              isSelected ? 'bg-green-50 dark:bg-green-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                            }`}
-                          >
-                            <td className="p-1 text-center">
-                              <input
-                                type="radio"
-                                checked={isSelected}
-                                onChange={() => setSelectedPayment(payment)}
-                                className="w-3 h-3"
-                              />
-                            </td>
-                            <td className="p-1 font-mono">
-                              {payment.reference_number || payment.ida || `PAY-${payment.id}`}
-                            </td>
-                            <td className="p-1 text-right font-mono font-medium text-green-600 dark:text-green-400">
-                              {formatCurrency(available)}
-                            </td>
-                            <td className="p-1 text-right font-mono text-slate-600 dark:text-slate-400">
-                              {formatCurrency(payment.amount)}
-                            </td>
-                            <td className="p-1 text-slate-600 dark:text-slate-400">
-                              {formatDate(payment.dt_payment || payment.dt_created)}
-                            </td>
-                            <td className="p-1 text-slate-600 dark:text-slate-400">
-                              {payment.gateway || 'manual'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </ComponentCard>
-        </div>
-      )}
-
-      {/* Apply Actions */}
-      {selectedOrg && (
-        <ComponentCard title="Apply Payment">
-          <div className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Amount Input */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600 dark:text-slate-400">Amount:</label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={applyAmount}
-                    onChange={(e) => setApplyAmount(e.target.value)}
-                    disabled={!selectedPayment}
-                    className="w-32 pl-6 pr-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-mono text-sm disabled:bg-slate-100 dark:disabled:bg-slate-800"
-                  />
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Invoice(s): {formatCurrency(selectedInvoiceTotal)} |
-                Payment: {formatCurrency(paymentAvailable)}
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 ml-auto">
-                <button
-                  onClick={handleApplyToSelected}
-                  disabled={!selectedPayment || selectedInvoices.size === 0 || applying}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
-                >
-                  {applying ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-                  Apply to Selected
-                </button>
-
-                <button
-                  onClick={handleAutoApply}
-                  disabled={!selectedPayment || invoices.length === 0 || applying}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
-                >
-                  {applying ? <FaSpinner className="animate-spin" /> : <FaSync />}
-                  Auto-Apply Oldest
-                </button>
-              </div>
-            </div>
           </div>
         </ComponentCard>
-      )}
-      
-      {/* Make Payment Dialog */}
+
+        {/* ============================================================ */}
+        {/*  RIGHT PANE — Open Invoices for selected payment's customer   */}
+        {/* ============================================================ */}
+        <ComponentCard
+          title={
+            selectedPayment
+              ? `Open Invoices — ${selectedCustomerName} (${invoices.length})`
+              : 'Open Invoices'
+          }
+        >
+          <div data-wc="apply-payments-right" className="p-2">
+            {!selectedPayment ? (
+              <div className="text-center py-12 text-slate-400 text-sm">
+                Select a payment on the left to see open invoices
+              </div>
+            ) : (
+              <>
+                {/* Action bar */}
+                <div className="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={handleAutoApply}
+                    disabled={invoices.length === 0}
+                    className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:text-slate-400 disabled:hover:bg-transparent rounded flex items-center gap-1"
+                    title="Apply to oldest invoices first until payment is exhausted"
+                  >
+                    <FaMagic /> Auto Apply (FIFO)
+                  </button>
+                  <button
+                    onClick={handleClearAmounts}
+                    disabled={applications.size === 0}
+                    className="text-xs px-2 py-1 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:text-slate-400 disabled:hover:bg-transparent rounded flex items-center gap-1"
+                  >
+                    <FaEraser /> Clear
+                  </button>
+                  <div className="ml-auto flex items-center gap-3">
+                    {applications.size > 0 && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {applications.size} invoice(s) ={' '}
+                        {formatCurrency(totalApplied)}
+                      </span>
+                    )}
+                    <button
+                      data-wc="apply-payments-submit"
+                      onClick={handleSubmit}
+                      disabled={
+                        submitting ||
+                        applications.size === 0 ||
+                        remaining < -0.005
+                      }
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      {submitting ? (
+                        <FaSpinner className="animate-spin" />
+                      ) : (
+                        <FaCheck />
+                      )}
+                      Submit
+                    </button>
+                  </div>
+                </div>
+
+                {/* Invoice list */}
+                {loadingInvoices ? (
+                  <div className="flex items-center justify-center py-8 text-slate-400">
+                    <FaSpinner className="animate-spin mr-2" /> Loading
+                    invoices...
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    No open invoices for this customer
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10">
+                        <tr>
+                          <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                            Invoice
+                          </th>
+                          <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                            Date
+                          </th>
+                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                            Total
+                          </th>
+                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                            Balance
+                          </th>
+                          <th className="p-1.5 text-center font-medium text-slate-600 dark:text-slate-300">
+                            Age
+                          </th>
+                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
+                            Apply
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.map((invoice) => {
+                          const balance = getInvoiceBalance(invoice);
+                          const days = calculateDaysPastDue(invoice);
+                          const currentAmt = applications.get(invoice.id) ?? 0;
+
+                          return (
+                            <tr
+                              key={invoice.id}
+                              data-wc="apply-payments-invoice-row"
+                              className={`border-t border-slate-200 dark:border-slate-700 ${
+                                currentAmt > 0
+                                  ? 'bg-green-50 dark:bg-green-900/10'
+                                  : ''
+                              }`}
+                            >
+                              <td className="p-1.5 font-mono">
+                                {invoice.ida ||
+                                  invoice.invoice_no ||
+                                  `#${invoice.id}`}
+                              </td>
+                              <td className="p-1.5 text-slate-600 dark:text-slate-400">
+                                {formatDate(invoice.dt || invoice.dt_created)}
+                              </td>
+                              <td className="p-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                                {formatCurrency(invoice.totals?.total)}
+                              </td>
+                              <td className="p-1.5 text-right font-mono font-medium text-amber-600 dark:text-amber-400">
+                                {formatCurrency(balance)}
+                              </td>
+                              <td className="p-1.5 text-center">
+                                <span
+                                  className={`inline-block min-w-[28px] px-1 rounded text-xs font-medium ${agingColor(days)}`}
+                                >
+                                  {days}
+                                </span>
+                              </td>
+                              <td className="p-1.5 text-right">
+                                <div className="relative inline-block">
+                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                                    $
+                                  </span>
+                                  <input
+                                    data-wc="apply-payments-amount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max={balance}
+                                    value={currentAmt > 0 ? currentAmt : ''}
+                                    placeholder="0.00"
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      if (isNaN(val) || val <= 0) {
+                                        setApplyAmount(invoice.id, 0);
+                                      } else {
+                                        // Cap at invoice balance
+                                        setApplyAmount(
+                                          invoice.id,
+                                          parseFloat(
+                                            Math.min(val, balance).toFixed(2),
+                                          ),
+                                        );
+                                      }
+                                    }}
+                                    className="w-20 pl-4 pr-1 py-0.5 text-xs text-right font-mono border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      {/* Totals row */}
+                      <tfoot>
+                        <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
+                          <td
+                            colSpan={3}
+                            className="p-1.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400"
+                          >
+                            Totals
+                          </td>
+                          <td className="p-1.5 text-right font-mono font-medium text-amber-600 dark:text-amber-400 text-xs">
+                            {formatCurrency(
+                              invoices.reduce(
+                                (s, inv) => s + getInvoiceBalance(inv),
+                                0,
+                              ),
+                            )}
+                          </td>
+                          <td />
+                          <td className="p-1.5 text-right font-mono font-medium text-green-600 dark:text-green-400 text-xs">
+                            {formatCurrency(totalApplied)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ComponentCard>
+      </div>
+
+      {/* ---- Make Payment Dialog ---- */}
       <PaymentDialog
         isOpen={showPaymentDialog}
         onClose={() => setShowPaymentDialog(false)}
-        customer_id={selectedOrg?.id}
-        customer_name={selectedOrg?.display_name}
         onPaymentAdded={() => {
-          if (selectedOrg) loadCustomerData(String(selectedOrg.id));
+          loadPayments();
         }}
       />
     </div>
