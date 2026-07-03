@@ -374,8 +374,15 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const persistSetting = useCallback(async (model: string, next: WorkbenchFieldsSetting) => {
     try {
       const existing = await getWorkbenchFieldsSetting(model);
-      await saveWorkbenchFieldsSetting({ id: existing?.id, model_name: model, purpose: 'workbench_fields', data: next });
-    } catch (e) { console.error('Save settings failed:', e); }
+      console.log('[DB] persistSetting', model, 'existing id:', existing?.id, 'views:', next.views?.map(v => v.name));
+      const result = await saveWorkbenchFieldsSetting({
+        id: existing?.id,
+        parent_model: model,
+        purpose: 'workbench_fields',
+        data: next,
+      });
+      console.log('[DB] persistSetting result:', result);
+    } catch (e) { console.error('[DB] Save settings failed:', model, e); }
   }, []);
 
   const toggleField = useCallback(async (kind: 'list' | 'detail', field: string) => {
@@ -428,11 +435,29 @@ export function useDataBrowser(isAuthenticated: boolean) {
     const onMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return;
       const newW = resizingRef.current!.startW + ev.clientX - resizingRef.current!.startX;
-      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: Math.max(50, newW) }));
+      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: Math.max(12, newW) }));
     };
-    const onUp = () => { resizingRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    const onUp = () => {
+      resizingRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      // Auto-save widths to the setting — update FieldSpec widths
+      if (selectedModel) {
+        setColWidths((latestWidths) => {
+          const cur = workbenchSetting ?? { list: [], detail: [] };
+          const updatedList = toFieldSpecs(cur.list || []).map(s => ({
+            ...s,
+            width: latestWidths[s.field] ?? s.width,
+          }));
+          const next = { ...cur, list: updatedList };
+          setWorkbenchSetting(next);
+          persistSetting(selectedModel, next).catch(() => {});
+          return latestWidths;
+        });
+      }
+    };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-  }, [colWidths]);
+  }, [colWidths, selectedModel, workbenchSetting, persistSetting]);
 
   // ---------------------------------------------------------------------------
   // Layouts

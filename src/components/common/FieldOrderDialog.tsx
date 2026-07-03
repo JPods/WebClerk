@@ -115,18 +115,13 @@ export default function FieldOrderDialog({
       alert(`"${name}" is a system layout and cannot be overwritten. Save with a different name.`);
       return;
     }
-    if (!hasChanges) {
-      alert('No changes to save. Make changes to fields or order first.');
-      return;
-    }
-    // Apply current dialog state first, then save with the fields we just applied
+    // Always save current state — user clicked Save, that's sovereign
     const fields = order.filter((f) => visible.has(f));
     onApply(fields, sizes, widths);
-    // Pass fields to save so it doesn't rely on stale state
     onSaveLayout(name.trim(), fields);
     setSaveDialogOpen(false);
     setHasChanges(false);
-  }, [onSaveLayout, onApply, order, visible, sizes, widths, hasChanges]);
+  }, [onSaveLayout, onApply, order, visible, sizes, widths]);
 
   // Sort layouts: user layouts first, then protected at bottom
   const sortedLayouts = useMemo(() => {

@@ -568,8 +568,7 @@ export default function DataGrid(props: DataGridProps) {
       // Ctrl/Cmd-click: toggle this row without affecting others
       handleToggleRow(rid);
     } else {
-      // Plain click: select for detail + toggle checkbox
-      handleSelectRecord(rid);
+      // Plain click: toggle checkbox only (detail opens on double-click)
       handleToggleRow(rid);
     }
     lastClickedIdx.current = rowIdx;
@@ -579,6 +578,7 @@ export default function DataGrid(props: DataGridProps) {
   const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
     // Check field behaviors first
     const beh = fieldBehaviors[field];
+    if (beh?.type === 'text' || beh?.type === 'email' || beh?.type === 'phone' || beh?.type === 'address' || beh?.type === 'select' || beh?.type === 'lookup' || beh?.type === 'textarea' || beh?.type === 'json' || beh?.type === 'readonly' || beh?.type === 'url') return 'left';
     if (beh?.type === 'currency' || beh?.type === 'number') return 'right';
     if (beh?.type === 'timestamp' || beh?.type === 'datetime') return 'center';
     if (beh?.type === 'boolean') return 'center';
@@ -623,6 +623,7 @@ export default function DataGrid(props: DataGridProps) {
             outline: isDupe ? `2px solid ${t.accentGold}` : undefined,
           }}
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
+          onDoubleClick={() => { if (rid !== null) { handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec); } }}
           onMouseEnter={(e) => { if (!isActive && !isChecked && !ruleStyle.background) (e.currentTarget).style.background = t.rowHover; }}
           onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || 'transparent'; }}
         >
@@ -634,7 +635,7 @@ export default function DataGrid(props: DataGridProps) {
               style={{
                 padding: '4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 textAlign: getAlign(f),
-                ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
+                ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
@@ -730,7 +731,7 @@ export default function DataGrid(props: DataGridProps) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {!props.hideToolbar && toolbar}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize, tableLayout: 'fixed' }}>
+        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize }}>
           <thead>
             {/* Header row */}
             <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
@@ -748,7 +749,7 @@ export default function DataGrid(props: DataGridProps) {
                       position: 'relative', padding: '6px 8px', textAlign: getAlign(f), color: t.textMuted,
                       fontWeight: 600, fontSize: fontSize - 1, textTransform: 'uppercase', letterSpacing: '0.04em',
                       cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
+                      ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
                       ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: t.surface, zIndex: 3 } : {}),
                     }}
                     draggable

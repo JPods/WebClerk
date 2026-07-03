@@ -307,7 +307,8 @@ const AdminWorkbench: React.FC = () => {
               hideToolbar
               externalShowFilters={showFilters}
               externalShowDupes={showDupes}
-              onSelectRecord={(id) => { db.setSelectedId(id); db.setIsDirty(false); }}
+              onSelectRecord={() => {}}
+              onRowDoubleClicked={(row) => { const id = typeof row?.id === 'number' ? row.id : Number(row?.id); if (id) { db.setSelectedId(id); db.setIsDirty(false); } }}
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}
               onClearSelection={() => db.setSelectedRowIds(new Set())}
@@ -329,8 +330,9 @@ const AdminWorkbench: React.FC = () => {
           )}
         </div>
 
-        {/* Detail pane */}
-        <div data-wc="db-detail-pane" style={{ width: '42%', minWidth: 320, maxWidth: 600, display: 'flex', flexDirection: 'column', background: t.surface }}>
+        {/* Detail pane — collapsed when no record selected */}
+        {db.selectedRecord && (
+        <div data-wc="db-detail-pane" style={{ width: '42%', minWidth: 320, maxWidth: 600, display: 'flex', flexDirection: 'column', background: t.surface, borderLeft: `1px solid ${t.border}` }}>
           {/* Detail toolbar */}
           <div data-wc="db-detail-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt, fontSize: baseFontSize - 2 }}>
             <span style={{ fontWeight: 700, color: t.accent }}>{db.modelLabel}</span>
@@ -359,13 +361,10 @@ const AdminWorkbench: React.FC = () => {
                       fontSize={baseFontSize} theme={t} rowSize={db.detailRowSizes[f]} />
                   ))}
               </div>
-            ) : (
-              <div style={{ padding: 24, color: t.textDim }}>
-                {db.selectedModel ? <><div>No record selected.</div><div style={{ fontSize: baseFontSize - 2, color: t.textMuted, marginTop: 4 }}>{db.visibleDetailFields.length} detail fields · {db.allFields.length} available</div></> : 'Choose a model.'}
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
+        )}
       </div>
 
       {/* Related dialog */}

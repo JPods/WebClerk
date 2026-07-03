@@ -516,7 +516,7 @@ export async function getWorkbenchFieldsSetting(
       {
         params: {
           model_name: "setting",
-          model_name_filter: model_name,
+          parent_model: model_name,
           purpose: "workbench_fields",
         },
       },
@@ -530,7 +530,7 @@ export async function getWorkbenchFieldsSetting(
         {
           params: {
             model_name: "setting",
-            model_name_filter: model_name,
+            parent_model: model_name,
             purpose: "workbench_fields",
           },
         },
@@ -758,7 +758,7 @@ export async function getDetailFieldSetting(
         {
           params: {
             model_name: "setting",
-            model_name_filter: model_name,
+            parent_model: model_name,
             purpose: "detail_field_access",
           },
         },
@@ -775,7 +775,7 @@ export async function getDetailFieldSetting(
           {
             params: {
               model_name: "setting",
-              model_name_filter: model_name,
+              parent_model: model_name,
               purpose: "detail_field_access",
             },
           },
