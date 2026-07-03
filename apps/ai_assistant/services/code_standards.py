@@ -87,6 +87,13 @@ ANTI_PATTERNS = [
         'message': 'Hardcoded field list — use workbench_fields Setting for field configuration.',
         'fix': 'Load field list from workbench_fields Setting via getAllWorkbenchFieldsSettings().',
     },
+    {
+        'id': 'buttons-at-bottom',
+        'pattern': r'borderTop.*button.*Cancel|borderTop.*button.*Apply|borderTop.*button.*Save',
+        'severity': 'warning',
+        'message': 'Action buttons at bottom of dialog/panel — move to top. Fewer mouse movements = better UI.',
+        'fix': 'Place Cancel/Apply/Save buttons in the header area, aggregated together. Data below, buttons above.',
+    },
 ]
 
 

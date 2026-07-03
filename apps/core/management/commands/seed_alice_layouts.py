@@ -26,16 +26,24 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
-# Fields that should appear first in detail (by priority)
+# Fields that should appear first in detail — WHO, ACTION, WHEN, WHAT, STATUS, WHERE, WHY
 HIGH_PRIORITY_DETAIL = [
-    'ida', 'display_name', 'name', 'email', 'status',
+    # WHO — identify the person/entity first
+    'name_first', 'name_last', 'name_prefix', 'name_suffix',
+    'display_name', 'name', 'company', 'attention',
+    'customer', 'vendor', 'manufacturer', 'contact',
+    'ida',
+    # ACTION — what's happening
+    'item', 'line_number', 'quantity', 'price', 'cost', 'commission',
     'total', 'balance', 'amount',
-    'description', 'company', 'title',
-    'phone', 'address_full', 'attention',
+    'account_number', 'account', 'debit', 'credit',
+    # WHAT — details
+    'description', 'title', 'email', 'phone',
     'price_level', 'terms', 'priority',
-    'account_number', 'account',
-    'line_number', 'quantity', 'price', 'cost',
-    'item', 'customer', 'vendor', 'manufacturer', 'contact',
+    # STATUS
+    'status', 'kanban_column',
+    # WHERE
+    'address_full',
 ]
 
 # Fields that should appear last in detail
@@ -48,17 +56,20 @@ LOW_PRIORITY_DETAIL = [
     'dt_created', 'dt_modified',
 ]
 
-# Fields good for list view (compact, scalar)
+# Fields good for list view (compact, scalar — NO timestamps)
 GOOD_LIST_FIELDS = [
-    'ida', 'display_name', 'name', 'email', 'status',
-    'total', 'balance', 'amount',
-    'company', 'phone', 'title',
+    # WHO
+    'ida', 'display_name', 'name', 'company',
+    # ACTION / WHAT
+    'status', 'total', 'balance', 'amount',
+    'email', 'phone', 'title',
     'account_number', 'account', 'type', 'category',
     'priority', 'price_level', 'terms',
     'line_number', 'org_type',
     'debit', 'credit', 'source', 'source_model',
     'kind', 'uom', 'sku',
-    'is_active', 'dt_created',
+    'is_active',
+    # dt_created/dt_modified deliberately excluded — not important in lists
 ]
 
 # JSON fields to exclude from lists (belong in detail only)
@@ -73,6 +84,7 @@ EXCLUDE_FROM_LIST = {
     'metadata', 'refs', 'prefs', 'actions', 'comments',
     'stats', 'relationship_stats', 'search_vector',
     'password', 'last_login',
+    'dt_created', 'dt_modified',  # timestamps not important in lists
 }
 
 
