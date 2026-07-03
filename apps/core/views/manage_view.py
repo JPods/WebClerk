@@ -670,6 +670,9 @@ _ACTION_DISPATCH = {
     "get_available_templates": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['get_available_templates']).get_available_templates(p.get('model_name')),
     # ── Clone / Duplicate ──
     "clone_record": lambda p: __import__('apps.core.services.clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
+    # ── Field Change Requests ──
+    "request_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['request_field_change']).request_field_change(p.get('model',''), p.get('field',''), p.get('change_type','select'), p.get('values_source','static'), p.get('options'), p.get('query_model',''), p.get('query_field',''), p.get('query_filter',''), p.get('setting_name',''), p.get('reason',''), p.get('field_label',''), p.get('contact_id')),
+    "approve_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['approve_field_change']).approve_field_change(p['action_id'], p['contact_id']),
 }
 
 
