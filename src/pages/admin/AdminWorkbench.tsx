@@ -54,11 +54,11 @@ const Btn: React.FC<{
   onClick?: (e: React.MouseEvent) => void; children: React.ReactNode;
 }> = ({ t, variant = 'default', small, disabled, title, onClick, children }) => (
   <button style={{
-    border: `1px solid ${variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSaveBorder : variant === 'danger' ? t.btnDangerBorder : t.borderLight}`,
-    borderRadius: 4, padding: small ? '2px 8px' : '4px 12px', fontSize: small ? 11 : 12, fontWeight: 600,
+    border: `1px solid ${variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSaveBorder : variant === 'danger' ? t.btnDangerBorder : variant === 'ghost' ? t.accent : t.borderLight}`,
+    borderRadius: 3, padding: small ? '1px 6px' : '4px 12px', fontSize: small ? 11 : 12, fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
-    background: variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSave : variant === 'danger' ? t.btnDanger : variant === 'ghost' ? 'transparent' : t.btnBg,
-    color: variant === 'primary' || variant === 'save' || variant === 'danger' ? '#fff' : t.text,
+    background: variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSave : variant === 'danger' ? t.btnDanger : variant === 'ghost' ? `${t.accent}20` : t.btnBg,
+    color: variant === 'primary' || variant === 'save' || variant === 'danger' ? '#fff' : variant === 'ghost' ? t.accent : t.text,
     opacity: disabled ? 0.4 : 1, transition: 'background 0.15s',
   }} disabled={disabled} title={title} onClick={onClick}>{children}</button>
 );
@@ -81,6 +81,8 @@ const AdminWorkbench: React.FC = () => {
   const [showLayoutDialog, setShowLayoutDialog] = useState<'list' | 'detail' | null>(null);
   const [showRelatedDialog, setShowRelatedDialog] = useState<'list' | 'detail' | null>(null);
   const [showReportsDialog, setShowReportsDialog] = useState<'list' | 'detail' | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDupes, setShowDupes] = useState(false);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -277,6 +279,9 @@ const AdminWorkbench: React.FC = () => {
             <Btn t={t} small variant="ghost" onClick={() => setShowReportsDialog('list')}>Reports</Btn>
             <Btn t={t} small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
             <span style={{ color: t.textDim }}>|</span>
+            <Btn t={t} small variant={showFilters ? 'primary' : 'ghost'} onClick={() => setShowFilters(!showFilters)}>Filter</Btn>
+            <Btn t={t} small variant={showDupes ? 'save' : 'ghost'} onClick={() => setShowDupes(!showDupes)}>Dupes</Btn>
+            <span style={{ color: t.textDim }}>|</span>
             <Btn t={t} small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
             <Btn t={t} small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
             <Btn t={t} small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
@@ -299,6 +304,9 @@ const AdminWorkbench: React.FC = () => {
               selectedId={db.selectedId}
               selectedRowIds={db.selectedRowIds}
               sort={db.sort}
+              hideToolbar
+              externalShowFilters={showFilters}
+              externalShowDupes={showDupes}
               onSelectRecord={(id) => { db.setSelectedId(id); db.setIsDirty(false); }}
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}

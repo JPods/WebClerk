@@ -111,6 +111,16 @@ export interface DataGridProps {
   noDataMessage?: string;
   /** Hide the built-in header/toolbar */
   hideHeader?: boolean;
+  /** Hide the built-in toolbar (Filter/Dupes/CSV/Excel/Print) — use when parent provides its own */
+  hideToolbar?: boolean;
+  /** Expose filter toggle to parent */
+  onToggleFilters?: (show: boolean) => void;
+  /** Expose dupes toggle to parent */
+  onToggleDupes?: (show: boolean) => void;
+  /** External control of filter visibility */
+  externalShowFilters?: boolean;
+  /** External control of dupes visibility */
+  externalShowDupes?: boolean;
 
   // --- Ignored props (accepted but unused, for backward compat during migration) ---
   title?: string;
@@ -384,10 +394,11 @@ export default function DataGrid(props: DataGridProps) {
   }, [richColumns]);
   // --- Column filters ---
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(props.externalShowFilters ?? false);
 
   // --- Inline edit ---
   const [editCell, setEditCell] = useState<{ rid: number; field: string } | null>(null);
+  const lastClickedIdx = useRef<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const editRef = useRef<HTMLInputElement>(null);
 
@@ -401,8 +412,12 @@ export default function DataGrid(props: DataGridProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // --- Duplicate detection ---
-  const [showDupes, setShowDupes] = useState(false);
+  const [showDupes, setShowDupes] = useState(props.externalShowDupes ?? false);
   const dupeIds = useMemo(() => showDupes ? detectDuplicates(records, columns) : new Set<number>(), [showDupes, records, columns]);
+
+  // Sync external filter/dupes toggle from parent
+  useEffect(() => { if (props.externalShowFilters !== undefined) setShowFilters(props.externalShowFilters); }, [props.externalShowFilters]);
+  useEffect(() => { if (props.externalShowDupes !== undefined) setShowDupes(props.externalShowDupes); }, [props.externalShowDupes]);
 
   // --- Filtered records ---
   const filteredRecords = useMemo(() => {
@@ -530,6 +545,36 @@ export default function DataGrid(props: DataGridProps) {
     return display;
   };
 
+  // --- Row click handler: plain=select+check, shift=range, ctrl/cmd=toggle ---
+  const handleRowClick = useCallback((e: React.MouseEvent, rid: number | null, rowIdx: number, rows: any[]) => {
+    if (rid === null) return;
+
+    if (e.shiftKey && lastClickedIdx.current !== null) {
+      // Shift-click: select range between last clicked and current
+      const start = Math.min(lastClickedIdx.current, rowIdx);
+      const end = Math.max(lastClickedIdx.current, rowIdx);
+      const rangeIds = new Set(selectedRowIds);
+      for (let i = start; i <= end; i++) {
+        const id = numId(rows[i]?.id);
+        if (id !== null) rangeIds.add(id);
+      }
+      if (props.onToggleRow) {
+        // External mode — set all at once via parent
+        rangeIds.forEach((id) => { if (!selectedRowIds.has(id)) props.onToggleRow!(id); });
+      } else {
+        setSelfSelectedRowIds(rangeIds);
+      }
+    } else if (e.metaKey || e.ctrlKey) {
+      // Ctrl/Cmd-click: toggle this row without affecting others
+      handleToggleRow(rid);
+    } else {
+      // Plain click: select for detail + toggle checkbox
+      handleSelectRecord(rid);
+      handleToggleRow(rid);
+    }
+    lastClickedIdx.current = rowIdx;
+  }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
+
   // --- Render a block of rows (used by both flat and grouped) ---
   const renderRows = (rows: any[]) =>
     rows.map((rec, idx) => {
@@ -549,11 +594,12 @@ export default function DataGrid(props: DataGridProps) {
             cursor: 'pointer',
             outline: isDupe ? `2px solid ${t.accentGold}` : undefined,
           }}
+          onClick={(e) => handleRowClick(e, rid, idx, rows)}
           onMouseEnter={(e) => { if (!isActive && !isChecked && !ruleStyle.background) (e.currentTarget).style.background = t.rowHover; }}
           onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || 'transparent'; }}
         >
           <td style={{ padding: '4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
-            <input type="checkbox" checked={isChecked} onChange={() => rid !== null && handleToggleRow(rid)} />
+            <input type="checkbox" checked={isChecked} onChange={(e) => { e.stopPropagation(); if (rid !== null) handleToggleRow(rid); }} />
           </td>
           {columns.map((f, ci) => (
             <td key={f}
@@ -562,7 +608,6 @@ export default function DataGrid(props: DataGridProps) {
                 ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
-              onClick={() => { if (rid !== null) handleSelectRecord(rid); }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
               title={String(rec[f] ?? '')}
             >{renderCell(rec, f, rid)}</td>
@@ -654,7 +699,7 @@ export default function DataGrid(props: DataGridProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {toolbar}
+      {!props.hideToolbar && toolbar}
       <div style={{ flex: 1, overflow: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize, tableLayout: 'fixed' }}>
           <thead>

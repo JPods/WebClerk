@@ -249,9 +249,164 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
                 ))}
               </div>
             )}
+
+            {/* Request Change section — users can request field type changes */}
+            <FieldChangeRequest
+              wcField={parseDataWc(pastedHtml).wcField || ''}
+              wcModel={parseDataWc(pastedHtml).wcModel || ''}
+              fieldLabel={helpResult.label}
+            />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Field Change Request — user requests a field become a dropdown, etc.
+// ---------------------------------------------------------------------------
+
+function FieldChangeRequest({ wcField, wcModel, fieldLabel }: { wcField: string; wcModel: string; fieldLabel: string }) {
+  const [showForm, setShowForm] = useState(false);
+  const [changeType, setChangeType] = useState<'select' | 'lookup' | 'readonly' | 'datetime'>('select');
+  const [valuesSource, setValuesSource] = useState<'static' | 'query' | 'setting' | 'distinct'>('static');
+  const [staticValues, setStaticValues] = useState('');
+  const [queryModel, setQueryModel] = useState('');
+  const [queryField, setQueryField] = useState('');
+  const [queryFilter, setQueryFilter] = useState('');
+  const [settingName, setSettingName] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!wcField) return null;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const { manageAction } = await import('@/api/wcapi');
+
+      const request: Record<string, unknown> = {
+        model: wcModel,
+        field: wcField,
+        field_label: fieldLabel,
+        change_type: changeType,
+        values_source: valuesSource,
+        reason,
+      };
+
+      if (valuesSource === 'static') {
+        request.options = staticValues.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (valuesSource === 'query') {
+        request.query_model = queryModel;
+        request.query_field = queryField;
+        request.query_filter = queryFilter;
+      } else if (valuesSource === 'setting') {
+        request.setting_name = settingName;
+      }
+
+      // Create Alice observation + action record
+      await manageAction('request_field_change', request);
+      setSubmitted(true);
+    } catch (e) {
+      alert('Failed to submit request: ' + (e instanceof Error ? e.message : 'unknown error'));
+    }
+    setSubmitting(false);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ marginTop: 12, padding: '8px 12px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, color: '#4ade80' }}>
+        Request submitted for {wcModel}.{wcField} — Alice will review and create an action record. An admin will approve the change.
+      </div>
+    );
+  }
+
+  return (
+    <div data-wc="field-change-request" style={{ marginTop: 16, borderTop: '1px solid #3c3c3c', paddingTop: 12 }}>
+      <button onClick={() => setShowForm(!showForm)}
+        style={{ background: 'none', border: '1px solid #6f42c1', borderRadius: 4, padding: '4px 12px', fontSize: 11, color: '#a78bfa', cursor: 'pointer', fontWeight: 600 }}>
+        {showForm ? 'Cancel Request' : 'Request Change'}
+      </button>
+
+      {showForm && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase' }}>
+            Request Field Change: {wcModel}.{wcField}
+          </div>
+
+          {/* Change type */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: '#888', width: 90 }}>Make this a:</span>
+            <select value={changeType} onChange={(e) => setChangeType(e.target.value as any)}
+              style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '3px 6px', fontSize: 11, color: '#d4d4d4' }}>
+              <option value="select">Dropdown (select list)</option>
+              <option value="lookup">Lookup (search another model)</option>
+              <option value="readonly">Read-only (system driven)</option>
+              <option value="datetime">Date/time picker</option>
+            </select>
+          </div>
+
+          {/* Values source — only for select type */}
+          {changeType === 'select' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: '#888', width: 90 }}>Values from:</span>
+                <select value={valuesSource} onChange={(e) => setValuesSource(e.target.value as any)}
+                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '3px 6px', fontSize: 11, color: '#d4d4d4' }}>
+                  <option value="static">Type values below</option>
+                  <option value="query">Query: model.field</option>
+                  <option value="setting">Setting record</option>
+                  <option value="distinct">Distinct values from data</option>
+                </select>
+              </div>
+
+              {valuesSource === 'static' && (
+                <input type="text" placeholder="retail, wholesale, distributor (comma separated)"
+                  value={staticValues} onChange={(e) => setStaticValues(e.target.value)}
+                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+              )}
+
+              {valuesSource === 'query' && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input type="text" placeholder="model (e.g., gl_account)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
+                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                  <input type="text" placeholder="field (e.g., name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
+                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                  <input type="text" placeholder="filter (e.g., type=revenue)" value={queryFilter} onChange={(e) => setQueryFilter(e.target.value)}
+                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                </div>
+              )}
+
+              {valuesSource === 'setting' && (
+                <input type="text" placeholder="Setting name (e.g., select_lists)" value={settingName} onChange={(e) => setSettingName(e.target.value)}
+                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+              )}
+            </>
+          )}
+
+          {/* Lookup config */}
+          {changeType === 'lookup' && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input type="text" placeholder="Lookup model (e.g., customer)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
+                style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+              <input type="text" placeholder="Display field (e.g., display_name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
+                style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+            </div>
+          )}
+
+          {/* Reason */}
+          <input type="text" placeholder="Why this change? (optional but helpful)"
+            value={reason} onChange={(e) => setReason(e.target.value)}
+            style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+
+          <button onClick={handleSubmit} disabled={submitting}
+            style={{ alignSelf: 'flex-start', padding: '5px 16px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: '#6f42c1', color: '#fff', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
+            {submitting ? 'Submitting...' : 'Submit Request'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
