@@ -427,7 +427,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
     resizingRef.current = { field, startX: e.clientX, startW: colWidths[field] || 120 };
     const onMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return;
-      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: Math.max(40, resizingRef.current!.startW + ev.clientX - resizingRef.current!.startX) }));
+      const newW = resizingRef.current!.startW + ev.clientX - resizingRef.current!.startX;
+      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: Math.max(50, newW) }));
     };
     const onUp = () => { resizingRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);

@@ -106,7 +106,7 @@ export default function BehaviorField({
     const mapUrl = lat && lng ? `https://maps.google.com/?q=${lat},${lng}` : undefined;
     return <div style={wrapStyle} {...wcAttrs}>
       <a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ ...labelStyle, color: mapUrl ? th.accent : th.textMuted, cursor: mapUrl ? 'pointer' : 'default', textDecoration: 'none' }}>{name} 🗺</a>
-      <input type="number" step="any" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v ?? ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
+      <input type="number" step="any" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v != null ? v : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
     </div>;
   }
 
@@ -137,7 +137,7 @@ export default function BehaviorField({
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <span style={{ color: th.textMuted, fontSize }}>$</span>
-      <input type="number" step="0.01" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', textAlign: 'right' }} value={v ?? ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
+      <input type="number" step="0.01" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', textAlign: 'right' }} value={v != null ? v : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
     </div>
   </div>;
 
@@ -178,7 +178,7 @@ export default function BehaviorField({
   // ── Number ──
   if (behType === 'number' || (typeof v === 'number' && !f_startsDt(name))) return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
-    <input type="number" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v as number} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
+    <input type="number" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v != null ? v : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
   </div>;
 
   // ── Default text ──

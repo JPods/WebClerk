@@ -575,6 +575,34 @@ export default function DataGrid(props: DataGridProps) {
     lastClickedIdx.current = rowIdx;
   }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
 
+  // --- Auto-justify: strings left, numbers right, dates center, booleans center ---
+  const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
+    // Check field behaviors first
+    const beh = fieldBehaviors[field];
+    if (beh?.type === 'currency' || beh?.type === 'number') return 'right';
+    if (beh?.type === 'timestamp' || beh?.type === 'datetime') return 'center';
+    if (beh?.type === 'boolean') return 'center';
+
+    // Infer from field name
+    const fl = field.toLowerCase();
+    if (fl.startsWith('dt_') || fl.includes('date') || fl.includes('_dt')) return 'center';
+    if (fl === 'total' || fl === 'balance' || fl === 'amount' || fl === 'debit' || fl === 'credit' || fl === 'price' || fl === 'cost' || fl === 'qty' || fl === 'quantity' || fl === 'version' || fl === 'priority' || fl === 'sequence' || fl === 'difficulty' || fl === 'health_rating' || fl === 'security_level' || fl === 'line_number' || fl === 'count_accessed' || fl === 'percent_complete' || fl === 'burndown' || fl === 'linkage') return 'right';
+    if (fl === 'is_active' || fl === 'is_locked' || fl === 'is_deleted' || fl === 'is_archived' || fl === 'is_commission' || fl === 'is_superuser' || fl === 'is_staff' || fl === 'is_preferred') return 'center';
+
+    // Infer from first non-null value in records
+    if (records.length > 0) {
+      for (const r of records.slice(0, 5)) {
+        const v = r[field];
+        if (v == null) continue;
+        if (typeof v === 'number') return 'right';
+        if (typeof v === 'boolean') return 'center';
+        break;
+      }
+    }
+
+    return 'left';
+  }, [fieldBehaviors, records]);
+
   // --- Render a block of rows (used by both flat and grouped) ---
   const renderRows = (rows: any[]) =>
     rows.map((rec, idx) => {
@@ -605,6 +633,7 @@ export default function DataGrid(props: DataGridProps) {
             <td key={f}
               style={{
                 padding: '4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                textAlign: getAlign(f),
                 ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
@@ -701,7 +730,7 @@ export default function DataGrid(props: DataGridProps) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {!props.hideToolbar && toolbar}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize, tableLayout: 'fixed' }}>
+        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize, tableLayout: 'fixed' }}>
           <thead>
             {/* Header row */}
             <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
@@ -716,9 +745,9 @@ export default function DataGrid(props: DataGridProps) {
                 return (
                   <th key={f}
                     style={{
-                      position: 'relative', padding: '6px 8px', textAlign: 'left', color: t.textMuted,
+                      position: 'relative', padding: '6px 8px', textAlign: getAlign(f), color: t.textMuted,
                       fontWeight: 600, fontSize: fontSize - 1, textTransform: 'uppercase', letterSpacing: '0.04em',
-                      cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                      cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f], maxWidth: colWidths[f] } : {}),
                       ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: t.surface, zIndex: 3 } : {}),
                     }}

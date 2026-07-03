@@ -62,6 +62,11 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.coreContactDetail, element: <CoreContactDetail /> },
 
   // User-facing: Customer
+  { path: "/org/customer", element: <Navigate to="/admin-wb?model=customer" replace /> },
+  { path: "/org/vendor", element: <Navigate to="/admin-wb?model=vendor" replace /> },
+  { path: "/org/employee", element: <Navigate to="/admin-wb?model=employee" replace /> },
+  { path: "/org/rep", element: <Navigate to="/admin-wb?model=rep" replace /> },
+  { path: "/org/manufacturer", element: <Navigate to="/admin-wb?model=manufacturer" replace /> },
   { path: PageRoutes.customerList, element: <CustomerList /> },
   { path: `${PageRoutes.customerDetail}/:id`, element: <CustomerDetailPage /> },
   { path: PageRoutes.customerAdd, element: <CustomerAddPage /> },
@@ -74,26 +79,26 @@ export const protectedRoutesConfig = [
   // User-facing: Documents
   { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
 
-  // User-facing: Products (Item only)
-  { path: PageRoutes.products, element: <ItemList /> },
-  { path: PageRoutes.productsItemList, element: <ItemList /> },
+  // User-facing: Products
+  { path: PageRoutes.products, element: <Navigate to="/admin-wb?model=item" replace /> },
+  { path: PageRoutes.productsItemList, element: <Navigate to="/admin-wb?model=item" replace /> },
   { path: PageRoutes.productsItemDetail, element: <ItemDetail /> },
 
-  // User-facing: Transactions
-  { path: PageRoutes.transactionsOrderList, element: <OrderList /> },
+  // User-facing: Transactions (lists → DataBrowser, details → custom pages)
+  { path: PageRoutes.transactionsOrderList, element: <Navigate to="/admin-wb?model=order" replace /> },
   { path: PageRoutes.transactionsOrderDetail, element: <OrderDetail /> },
-  { path: PageRoutes.transactionsInvoiceList, element: <InvoiceList /> },
+  { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/admin-wb?model=invoice" replace /> },
   { path: PageRoutes.transactionsInvoiceDetail, element: <InvoiceDetail /> },
   { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
-  { path: PageRoutes.transactionsPaymentList, element: <PaymentListPage /> },
+  { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/admin-wb?model=payment" replace /> },
   { path: PageRoutes.transactionsPaymentDetail, element: <PaymentDetailPage /> },
-  { path: PageRoutes.transactionsPurchaseList, element: <PurchaseList /> },
+  { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/admin-wb?model=purchase" replace /> },
   { path: PageRoutes.transactionsPurchaseDetail, element: <PurchaseDetail /> },
-  { path: PageRoutes.transactionsProposalList, element: <ProposalList /> },
+  { path: PageRoutes.transactionsProposalList, element: <Navigate to="/admin-wb?model=proposal" replace /> },
   { path: PageRoutes.transactionsProposalDetail, element: <ProposalDetail /> },
-  { path: PageRoutes.transactionsWorkOrderList, element: <WorkorderList /> },
+  { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/admin-wb?model=work_order" replace /> },
   { path: PageRoutes.transactionsWorkOrderDetail, element: <WorkorderDetail /> },
-  { path: PageRoutes.transactionsReceiptList, element: <ReceiptList /> },
+  { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/admin-wb?model=receipt" replace /> },
   { path: PageRoutes.transactionsReceiptDetail, element: <ReceiptDetail /> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
