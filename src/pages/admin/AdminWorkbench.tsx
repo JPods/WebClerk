@@ -6,6 +6,8 @@ import { useDataBrowser, numId } from '../../hooks/useDataBrowser';
 import { dbLog } from '../../utils/dbLog';
 import BehaviorField from '../../components/common/BehaviorField';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
+import RelatedDialog from '../../components/common/RelatedDialog';
+import ReportsDialog from '../../components/common/ReportsDialog';
 import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
 
@@ -77,6 +79,8 @@ const AdminWorkbench: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveLayoutName, setSaveLayoutName] = useState('');
   const [showLayoutDialog, setShowLayoutDialog] = useState<'list' | 'detail' | null>(null);
+  const [showRelatedDialog, setShowRelatedDialog] = useState<'list' | 'detail' | null>(null);
+  const [showReportsDialog, setShowReportsDialog] = useState<'list' | 'detail' | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -270,6 +274,9 @@ const AdminWorkbench: React.FC = () => {
               setShowLayoutDialog('list');
             }}>List Order</Btn>
             <span style={{ color: t.textDim }}>|</span>
+            <Btn t={t} small variant="ghost" onClick={() => setShowReportsDialog('list')}>Reports</Btn>
+            <Btn t={t} small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
+            <span style={{ color: t.textDim }}>|</span>
             <Btn t={t} small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
             <Btn t={t} small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
             <Btn t={t} small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
@@ -287,7 +294,7 @@ const AdminWorkbench: React.FC = () => {
             <DataGrid
               records={db.displayRecords}
               columns={db.visibleListFields}
-              colWidths={db.colWidths}
+              colWidths={{ ...db.specWidths, ...db.colWidths }}
               fieldBehaviors={db.fieldBehaviors}
               selectedId={db.selectedId}
               selectedRowIds={db.selectedRowIds}
@@ -322,6 +329,9 @@ const AdminWorkbench: React.FC = () => {
             {db.selectedId && <span style={{ color: t.textMuted }}>#{db.selectedId}</span>}
             {db.isDirty && <span style={{ fontSize: 10, fontWeight: 700, color: t.accentGold, padding: '1px 5px', background: theme === 'dark' ? '#3a3a1a' : '#fff3cd', borderRadius: 3 }}>UNSAVED</span>}
             <span style={{ flex: 1 }} />
+            <Btn t={t} small variant="ghost" onClick={() => setShowReportsDialog('detail')}>Reports</Btn>
+            <Btn t={t} small variant="ghost" onClick={() => setShowRelatedDialog('detail')}>Related</Btn>
+            <span style={{ color: t.textDim }}>|</span>
             <Btn t={t} small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
             <Btn t={t} small variant="ghost" onClick={() => {
               dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
@@ -350,6 +360,28 @@ const AdminWorkbench: React.FC = () => {
         </div>
       </div>
 
+      {/* Related dialog */}
+      <RelatedDialog
+        open={showRelatedDialog !== null}
+        model={db.selectedModel}
+        selectedRecord={showRelatedDialog === 'detail' ? db.selectedRecord : null}
+        selectedRowIds={db.selectedRowIds}
+        theme={t}
+        fontSize={baseFontSize}
+        onClose={() => setShowRelatedDialog(null)}
+      />
+
+      {/* Reports dialog */}
+      <ReportsDialog
+        open={showReportsDialog !== null}
+        model={db.selectedModel}
+        context={showReportsDialog || 'list'}
+        selectedId={showReportsDialog === 'detail' ? db.selectedId : null}
+        theme={t}
+        fontSize={baseFontSize}
+        onClose={() => setShowReportsDialog(null)}
+      />
+
       {/* Field order dialog — unified for list and detail, applies separately */}
       <FieldOrderDialog
         open={showLayoutDialog !== null}
@@ -370,7 +402,7 @@ const AdminWorkbench: React.FC = () => {
             db.setColWidths(colWidths);
           }
         }}
-        onSaveLayout={(name) => db.saveView(name)}
+        onSaveLayout={(name, fields) => db.saveView(name, fields, showLayoutDialog || 'list')}
         onLoadLayout={(layout) => db.loadView(layout)}
         onDeleteLayout={(name) => db.deleteView(name)}
         onClose={() => setShowLayoutDialog(null)}

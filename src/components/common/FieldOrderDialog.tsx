@@ -52,7 +52,7 @@ interface Props {
   savedLayouts: SavedLayout[];
   activeLayoutName: string | null;
   onApply: (fields: string[], rowSizes: Record<string, number>, colWidths: Record<string, number>) => void;
-  onSaveLayout: (name: string) => void;
+  onSaveLayout: (name: string, fields?: string[]) => void;
   onLoadLayout: (layout: SavedLayout) => void;
   onDeleteLayout: (name: string) => void;
   onClose: () => void;
@@ -103,18 +103,30 @@ export default function FieldOrderDialog({
   const [selectedLayout, setSelectedLayout] = useState<string>('__current__');
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
   const dragOverIdx = useRef<number | null>(null);
+  const initialOrderRef = useRef<string>('');
 
   const PROTECTED_LAYOUTS = ['alpha', 'best_guess', 'alice_guess', 'alphabetical'];
 
   const trySave = useCallback((name: string) => {
+    if (!name.trim()) { alert('Please enter a layout name.'); return; }
     if (PROTECTED_LAYOUTS.includes(name.toLowerCase().trim())) {
       alert(`"${name}" is a system layout and cannot be overwritten. Save with a different name.`);
       return;
     }
-    onSaveLayout(name.trim());
+    if (!hasChanges) {
+      alert('No changes to save. Make changes to fields or order first.');
+      return;
+    }
+    // Apply current dialog state first, then save with the fields we just applied
+    const fields = order.filter((f) => visible.has(f));
+    onApply(fields, sizes, widths);
+    // Pass fields to save so it doesn't rely on stale state
+    onSaveLayout(name.trim(), fields);
     setSaveDialogOpen(false);
-  }, [onSaveLayout]);
+    setHasChanges(false);
+  }, [onSaveLayout, onApply, order, visible, sizes, widths, hasChanges]);
 
   // Sort layouts: user layouts first, then protected at bottom
   const sortedLayouts = useMemo(() => {
@@ -137,11 +149,15 @@ export default function FieldOrderDialog({
   useEffect(() => {
     if (!open) return;
     const vis = new Set(visibleFields);
-    setOrder([...visibleFields, ...allFields.filter((f) => !vis.has(f))]);
+    const unselected = allFields.filter((f) => !vis.has(f)).sort((a, b) => a.localeCompare(b));
+    const initialOrder = [...visibleFields, ...unselected];
+    setOrder(initialOrder);
     setVisible(new Set(visibleFields));
     setSizes({ ...(initialRowSizes || {}) });
     setWidths({ ...(initialColWidths || {}) });
     setSelectedLayout(activeLayoutName || '__current__');
+    setHasChanges(false);
+    initialOrderRef.current = JSON.stringify([...visibleFields]);
 
     // Fetch Alice's recommended widths (synced from WCHQ via Setting)
     if (!recWidths) {
@@ -159,20 +175,26 @@ export default function FieldOrderDialog({
   // Load a saved layout into the editor
   const handleLoadLayout = useCallback((layoutName: string) => {
     if (layoutName === '__current__') {
-      // Reset to current live state
       const vis = new Set(visibleFields);
-      setOrder([...visibleFields, ...allFields.filter((f) => !vis.has(f))]);
+      const unselected = allFields.filter((f) => !vis.has(f)).sort((a, b) => a.localeCompare(b));
+      setOrder([...visibleFields, ...unselected]);
       setVisible(new Set(visibleFields));
+      setSelectedLayout('__current__');
+      setHasChanges(false);
       return;
     }
     const layout = savedLayouts.find((l) => l.name === layoutName);
     if (!layout) return;
     const fields = mode === 'list' ? layout.list : layout.detail;
     const vis = new Set(fields);
-    setOrder([...fields, ...allFields.filter((f) => !vis.has(f))]);
+    const unselected = allFields.filter((f) => !vis.has(f)).sort((a, b) => a.localeCompare(b));
+    setOrder([...fields, ...unselected]);
     setVisible(vis);
     setSelectedLayout(layoutName);
-  }, [savedLayouts, allFields, visibleFields, mode]);
+    setHasChanges(true);
+    // Also apply immediately so the list/detail updates as soon as layout is selected
+    onApply(fields, sizes, widths);
+  }, [savedLayouts, allFields, visibleFields, mode, onApply, sizes, widths]);
 
   // Toggle field visibility
   const toggleVisible = useCallback((field: string) => {
@@ -199,6 +221,7 @@ export default function FieldOrderDialog({
 
       return next;
     });
+    setHasChanges(true);
   }, []);
 
   // Arrow reorder
@@ -210,16 +233,41 @@ export default function FieldOrderDialog({
       [next[idx], next[target]] = [next[target], next[idx]];
       return next;
     });
+    setHasChanges(true);
   }, []);
 
-  // Drag and drop
-  const handleDragStart = useCallback((idx: number) => setDragIdx(idx), []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
+  // Pointer-based drag (works in modals — HTML5 drag does not)
+  const handlePointerDown = useCallback((idx: number, e: React.PointerEvent) => {
     e.preventDefault();
-    dragOverIdx.current = idx;
+    setDragIdx(idx);
   }, []);
 
+  const handlePointerEnter = useCallback((idx: number) => {
+    if (dragIdx === null || dragIdx === idx) return;
+    // Swap on hover — instant visual feedback
+    setOrder((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIdx, 1);
+      next.splice(idx, 0, moved);
+      return next;
+    });
+    setDragIdx(idx); // update drag index to new position
+    setHasChanges(true);
+  }, [dragIdx]);
+
+  const handlePointerUp = useCallback(() => {
+    setDragIdx(null);
+  }, []);
+
+  // Global pointer up listener to catch release outside the list
+  useEffect(() => {
+    if (dragIdx === null) return;
+    const handleUp = () => setDragIdx(null);
+    window.addEventListener('pointerup', handleUp);
+    return () => window.removeEventListener('pointerup', handleUp);
+  }, [dragIdx]);
+
+  // Legacy drop handler (kept for compatibility)
   const handleDrop = useCallback((dropIdx: number) => {
     if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
     setOrder((prev) => {
@@ -296,10 +344,25 @@ export default function FieldOrderDialog({
               style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text, cursor: 'pointer' }}
             >
               <option value="__current__">Current (unsaved)</option>
-              {sortedLayouts.map((l) => (
-                <option key={l.name} value={l.name}>{l.name}{PROTECTED_LAYOUTS.includes(l.name) ? ' (system)' : ''}</option>
-              ))}
+              {sortedLayouts.map((l, i) => {
+                const isSystem = PROTECTED_LAYOUTS.includes(l.name);
+                const prevIsUser = i > 0 && !PROTECTED_LAYOUTS.includes(sortedLayouts[i - 1].name);
+                return (
+                  <React.Fragment key={l.name}>
+                    {isSystem && prevIsUser && <option disabled>──────────</option>}
+                    <option value={l.name}>{l.name}{isSystem ? ' (system)' : ''}</option>
+                  </React.Fragment>
+                );
+              })}
             </select>
+            <button onClick={onClose}
+              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            <button onClick={handleApply}
+              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: accent, color: '#fff', cursor: 'pointer' }}>
+              Apply
+            </button>
             <button onClick={() => { setSaveDialogOpen(!saveDialogOpen); setSaveName(selectedLayout === '__current__' ? '' : selectedLayout); }}
               style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${isDark ? '#2f8f45' : '#157347'}`, borderRadius: 4, background: isDark ? '#1a6b2e' : '#198754', color: '#fff', cursor: 'pointer' }}>
               Save
@@ -364,33 +427,29 @@ export default function FieldOrderDialog({
             return (
               <div
                 key={field}
-                draggable
-                onDragStart={() => handleDragStart(idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDrop={() => handleDrop(idx)}
-                onDragEnd={() => setDragIdx(null)}
+                onPointerEnter={() => handlePointerEnter(idx)}
                 style={{
-                  display: 'flex', alignItems: 'center', padding: '5px 18px',
+                  display: 'flex', alignItems: 'center', padding: '4px 14px',
                   borderBottom: `1px solid ${isDark ? '#2e2e2e' : '#f0f0f0'}`,
                   background: isDragging ? dragBg : 'transparent',
                   opacity: isVisible ? 1 : 0.4,
-                  cursor: 'grab', fontSize: 12,
-                  transition: 'background 0.1s',
+                  fontSize: 12,
+                  transition: 'background 0.05s',
                 }}
-                onMouseEnter={(e) => { if (!isDragging) (e.currentTarget).style.background = rowHover; }}
-                onMouseLeave={(e) => { if (!isDragging) (e.currentTarget).style.background = 'transparent'; }}
+                onMouseEnter={(e) => { if (dragIdx === null) (e.currentTarget).style.background = rowHover; }}
+                onMouseLeave={(e) => { if (dragIdx === null) (e.currentTarget).style.background = 'transparent'; }}
               >
-                {/* Checkbox */}
-                <span style={{ width: 30 }}>
-                  <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} />
-                </span>
+                {/* Drag handle — pointer based, works in modals */}
+                <span
+                  onPointerDown={(e) => handlePointerDown(idx, e)}
+                  onPointerUp={handlePointerUp}
+                  style={{ width: 24, cursor: 'grab', color: textMuted, fontSize: 14, textAlign: 'center', userSelect: 'none', touchAction: 'none' }}
+                  title="Drag to reorder"
+                >☰</span>
 
-                {/* Arrows */}
-                <span style={{ width: 30, display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  <button disabled={idx === 0} onClick={() => moveField(idx, 'up')}
-                    style={{ background: 'none', border: 'none', color: textMuted, fontSize: 8, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.2 : 1, padding: 0, lineHeight: 1 }}>▲</button>
-                  <button disabled={idx === order.length - 1} onClick={() => moveField(idx, 'down')}
-                    style={{ background: 'none', border: 'none', color: textMuted, fontSize: 8, cursor: idx === order.length - 1 ? 'default' : 'pointer', opacity: idx === order.length - 1 ? 0.2 : 1, padding: 0, lineHeight: 1 }}>▼</button>
+                {/* Checkbox */}
+                <span style={{ width: 26 }}>
+                  <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} />
                 </span>
 
                 {/* Field name */}
@@ -444,16 +503,8 @@ export default function FieldOrderDialog({
         </div>
 
         {/* ═══ Footer ═══ */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: `1px solid ${border}` }}>
-          <span style={{ fontSize: 11, color: textMuted }}>
-            Drag to reorder · check to show/hide
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose}
-              style={{ padding: '6px 16px', fontSize: 12, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleApply}
-              style={{ padding: '6px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 4, background: accent, color: '#fff', cursor: 'pointer' }}>Apply</button>
-          </div>
+        <div style={{ padding: '6px 18px', borderTop: `1px solid ${border}`, fontSize: 10, color: textMuted }}>
+          ☰ drag to reorder · ☑ check to show/hide
         </div>
       </div>
     </div>

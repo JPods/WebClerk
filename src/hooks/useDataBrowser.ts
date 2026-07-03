@@ -27,16 +27,42 @@ import {
 
 export type WorkbenchRecord = { id?: number | string; [key: string]: unknown };
 
+/** Field specification — each field is an object with display properties */
+export type FieldSpec = {
+  field: string;
+  width?: number;
+  color?: string | Record<string, string> | null;  // static, value-based map, or null
+  align?: 'left' | 'center' | 'right';
+  visible?: boolean;
+  format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | null;
+  frozen?: boolean;
+  summary?: 'sum' | 'avg' | 'count' | null;
+  alice_note?: string;
+};
+
+/** Convert between string[] and FieldSpec[] for backward compatibility */
+export const toFieldSpecs = (fields: (string | FieldSpec)[]): FieldSpec[] =>
+  fields.map((f) => typeof f === 'string' ? { field: f, visible: true } : f);
+
+export const toFieldNames = (specs: (string | FieldSpec)[]): string[] =>
+  specs.map((f) => typeof f === 'string' ? f : f.field);
+
+export const toFieldWidths = (specs: FieldSpec[]): Record<string, number> => {
+  const w: Record<string, number> = {};
+  specs.forEach((s) => { if (s.width) w[s.field] = s.width; });
+  return w;
+};
+
 export type NamedView = {
   name: string;
-  list: string[];
-  detail: string[];
-  listWidths?: Record<string, number>;
+  list: (string | FieldSpec)[];
+  detail: (string | FieldSpec)[];
+  listWidths?: Record<string, number>;  // backward compat — prefer FieldSpec.width
 };
 
 export type WorkbenchFieldsSetting = {
-  list: string[];
-  detail: string[];
+  list: (string | FieldSpec)[];
+  detail: (string | FieldSpec)[];
   views?: NamedView[];
 };
 
@@ -135,16 +161,24 @@ export function useDataBrowser(isAuthenticated: boolean) {
     return p[p.length - 1] || selectedModel;
   }, [selectedModel]);
 
-  const visibleListFields = useMemo(() => {
-    if (workbenchSetting?.list?.length) return workbenchSetting.list;
-    // Fallback: ida + first few actual fields from the model (no id, uuid)
+  // Raw field specs (may be strings or FieldSpec objects)
+  const listFieldSpecs = useMemo((): FieldSpec[] => {
+    if (workbenchSetting?.list?.length) return toFieldSpecs(workbenchSetting.list);
     const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_deleted' && f !== 'is_archived' && f !== 'is_locked' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
-    return fallback.length ? fallback : ['ida'];
+    return toFieldSpecs(fallback.length ? fallback : ['ida']);
   }, [workbenchSetting?.list, allFields]);
 
-  const visibleDetailFields = useMemo(() =>
-    workbenchSetting?.detail?.length ? workbenchSetting.detail : allFields,
-  [workbenchSetting?.detail, allFields]);
+  const detailFieldSpecs = useMemo((): FieldSpec[] => {
+    if (workbenchSetting?.detail?.length) return toFieldSpecs(workbenchSetting.detail);
+    return toFieldSpecs(allFields);
+  }, [workbenchSetting?.detail, allFields]);
+
+  // String arrays for components that need just field names (backward compat)
+  const visibleListFields = useMemo(() => toFieldNames(listFieldSpecs.filter(s => s.visible !== false)), [listFieldSpecs]);
+  const visibleDetailFields = useMemo(() => toFieldNames(detailFieldSpecs.filter(s => s.visible !== false)), [detailFieldSpecs]);
+
+  // Column widths derived from field specs
+  const specWidths = useMemo(() => toFieldWidths(listFieldSpecs), [listFieldSpecs]);
 
   const savedViews = useMemo(() => workbenchSetting?.views || [], [workbenchSetting?.views]);
 
@@ -163,53 +197,63 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const fetchingRef = useRef(false);
   const modelChangeRef = useRef(0); // monotonic counter to cancel stale fetches
 
+  const instanceId = useRef(Math.random().toString(36).slice(2, 6));
+
   const handleSelectModel = useCallback((name: string) => {
-    dbLog('handleSelectModel', { from: selectedModel, to: name });
+    console.log('[DB]', instanceId.current, 'handleSelectModel', name);
     // Increment change counter — any in-flight fetch for old model will be discarded
     modelChangeRef.current += 1;
-    // Clear ALL state from previous model in one batch
-    setSelectedModel(name);
+    fetchingRef.current = false;
+    // Clear ALL state from previous model
+    setRecords([]);
+    setTotalRecords(0);
+    setAllFields([]);
+    setFieldBehaviors({});
+    setWorkbenchSetting(null);
+    setSelectedId(null);
+    setSelectedRecord(null);
+    setSelectedRowIds(new Set());
+    setActiveViewName(null);
+    setColWidths({});
     setPage(0);
     setActiveSearch(''); setSearchTerm('');
     setSort(null);
     setSubsetMode('all');
-    setSelectedRowIds(new Set());
-    setActiveViewName(null);
-    setColWidths({});
-    setSelectedId(null);
-    setSelectedRecord(null);
-    setAllFields([]);
-    setFieldBehaviors({});
-    setWorkbenchSetting(null);
-    setRecords([]);
-    setTotalRecords(0);
     setRecordsLoading(false);
     setRecordsError(null);
-    fetchingRef.current = false;
-    // Update URL directly — no second effect needed
+    // Set new model — this triggers the fetchRecords useEffect via dep change
+    setSelectedModel(name);
+    // Update URL
     const next = new URLSearchParams(searchParams);
     next.set('model', name);
     setSearchParams(next, { replace: true });
     previousModelParam.current = name;
   }, [searchParams, setSearchParams]);
 
-  // Sync model FROM URL param (browser back/forward, external navigation, initial load)
+  // Sync model FROM URL param (browser back/forward, external navigation, initial load ONLY)
+  // This effect should NOT run when handleSelectModel changes the URL — previousModelParam guards that
   useEffect(() => {
-    if (!modelNames.length) { setRecords([]); setSelectedId(null); setSelectedRecord(null); previousModelParam.current = modelParam; return; }
-    // Only react to URL changes we didn't cause ourselves
-    if (modelParam && modelParam !== previousModelParam.current && modelNames.includes(modelParam)) {
+    if (!modelNames.length) return;
+    // Initial load — no model selected yet
+    if (!selectedModel && modelParam && modelNames.includes(modelParam)) {
+      console.log('[DB] URL sync: initial load →', modelParam);
+      setSelectedModel(modelParam);
       previousModelParam.current = modelParam;
-      if (selectedModel !== modelParam) {
-        handleSelectModel(modelParam);
-      }
       return;
     }
-    previousModelParam.current = modelParam;
-    // No model selected yet — pick first
-    if (!selectedModel || !modelNames.includes(selectedModel)) {
-      handleSelectModel(modelNames[0]);
+    if (!selectedModel && !modelParam) {
+      console.log('[DB] URL sync: no model, defaulting to', modelNames[0]);
+      setSelectedModel(modelNames[0]);
+      previousModelParam.current = modelNames[0];
+      return;
     }
-  }, [modelNames, modelParam, selectedModel, handleSelectModel]);
+    // External URL change (browser back/forward) — only if we didn't cause it
+    if (modelParam && modelParam !== previousModelParam.current && modelNames.includes(modelParam)) {
+      console.log('[DB] URL sync: external nav →', modelParam);
+      previousModelParam.current = modelParam;
+      setSelectedModel(modelParam);
+    }
+  }, [modelNames, modelParam]); // deliberately exclude selectedModel and handleSelectModel
 
   // ---------------------------------------------------------------------------
   // Load models
@@ -237,9 +281,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
   const fetchRecords = useCallback(async () => {
     if (!selectedModel || (modelNames.length && !modelNames.includes(selectedModel))) return;
-    if (fetchingRef.current) { dbLog.warn('fetchRecords:skip (already fetching)'); return; }
+    const fetchId = modelChangeRef.current;
+    console.log('[DB]', instanceId.current, 'fetchRecords', selectedModel, 'fetchId=', fetchId);
     fetchingRef.current = true;
-    const fetchId = modelChangeRef.current; // snapshot — if model changes mid-fetch, discard results
     try {
       setRecordsLoading(true); setRecordsError(null);
       const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
@@ -261,6 +305,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
       const resultList = toRecList(list?.results);
       const resultTotal = typeof list?.total === 'number' ? list.total : resultList.length;
+      console.log('[DB]', instanceId.current, 'setRecords', selectedModel, resultTotal, 'records, fetchId=', fetchId);
       setRecords(resultList);
       setTotalRecords(resultTotal);
 
@@ -392,14 +437,22 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // Layouts
   // ---------------------------------------------------------------------------
 
-  const saveView = useCallback(async (name: string) => {
+  const saveView = useCallback(async (name: string, fields?: (string | FieldSpec)[], mode?: 'list' | 'detail') => {
     if (!selectedModel || !name.trim()) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
     const views = [...(cur.views || [])];
     const idx = views.findIndex((v) => v.name === name.trim());
-    const view: NamedView = { name: name.trim(), list: cur.list || [], detail: cur.detail || [], listWidths: { ...colWidths } };
+    // Convert fields to FieldSpec objects, merge with current column widths
+    const specs = fields ? toFieldSpecs(fields).map(s => ({
+      ...s,
+      width: s.width || colWidths[s.field] || undefined,
+    })) : undefined;
+    // Only update the side (list or detail) that changed — preserve the other
+    const listSpecs = (mode === 'list' && specs) ? specs : cur.list || [];
+    const detailSpecs = (mode === 'detail' && specs) ? specs : cur.detail || [];
+    const view: NamedView = { name: name.trim(), list: listSpecs, detail: detailSpecs, listWidths: { ...colWidths } };
     if (idx >= 0) views[idx] = view; else views.push(view);
-    const next: WorkbenchFieldsSetting = { ...cur, views };
+    const next: WorkbenchFieldsSetting = { ...cur, list: listSpecs, detail: detailSpecs, views };
     setWorkbenchSetting(next); setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setActiveViewName(name.trim());
     await persistSetting(selectedModel, next);
@@ -453,21 +506,23 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setSelectedRecord(null); setSelectedId(null);
   }, [selectedModel, selectedId, modelLabel]);
 
-  // Update list fields (from field order dialog)
-  const updateListLayout = useCallback(async (fields: string[]) => {
+  // Update list fields (from field order dialog) — accepts string[] or FieldSpec[]
+  const updateListLayout = useCallback(async (fields: (string | FieldSpec)[]) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const next: WorkbenchFieldsSetting = { ...cur, list: fields };
+    const specs = toFieldSpecs(fields);
+    const next: WorkbenchFieldsSetting = { ...cur, list: specs };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     await persistSetting(selectedModel, next);
   }, [selectedModel, workbenchSetting, persistSetting]);
 
-  // Update detail fields (from field order dialog)
-  const updateDetailLayout = useCallback(async (fields: string[], sizes: Record<string, number>) => {
+  // Update detail fields (from field order dialog) — accepts string[] or FieldSpec[]
+  const updateDetailLayout = useCallback(async (fields: (string | FieldSpec)[], sizes: Record<string, number>) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const next: WorkbenchFieldsSetting = { ...cur, detail: fields };
+    const specs = toFieldSpecs(fields);
+    const next: WorkbenchFieldsSetting = { ...cur, detail: specs };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setDetailRowSizes(sizes);
@@ -491,6 +546,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     toggleRow, selectAllRows,
     // Fields
     allFields, visibleListFields, visibleDetailFields,
+    listFieldSpecs, detailFieldSpecs, specWidths,
     workbenchSetting, toggleField, bulkSetFields,
     // Layouts
     savedViews, activeViewName, saveView, loadView, deleteView,
