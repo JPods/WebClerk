@@ -13,7 +13,6 @@ export default function JsonField(props: FieldWidgetProps & { rows?: number; mod
     if (model) params.set('model', model);
     if (recordId) params.set('id', String(recordId));
     params.set('field', name);
-    // For small JSON, pass inline; for large, the viewer will fetch via API
     if (js.length < 2000) {
       params.set('json', js);
     }
@@ -25,14 +24,16 @@ export default function JsonField(props: FieldWidgetProps & { rows?: number; mod
     ? (Array.isArray(value) ? value.length : Object.keys(value).length)
     : 0;
 
+  const labelSuffix = Array.isArray(value) ? `[${keyCount}]` : `{${keyCount}}`;
+
   if (!editing) {
     return (
-      <BaseField props={{ ...props, span2: true }}>
+      <BaseField props={{ ...props, span2: true }} labelColor="actionable"
+        labelOnClick={openViewer} labelSuffix={<span className="db-json-count">{labelSuffix}</span>}>
         <div className="db-json-summary">
           <span className="db-json-preview" onClick={openViewer} title="Click to open JSON viewer">
             {Array.isArray(value) ? `[${keyCount} items]` : `{${keyCount} keys}`}
           </span>
-          <button className="db-json-btn" onClick={openViewer} title="Open in JSON Viewer">↗</button>
           {!disabled && <button className="db-json-btn" onClick={() => setEditing(true)} title="Edit raw JSON">Edit</button>}
         </div>
       </BaseField>
@@ -40,13 +41,13 @@ export default function JsonField(props: FieldWidgetProps & { rows?: number; mod
   }
 
   return (
-    <BaseField props={{ ...props, span2: true }}>
+    <BaseField props={{ ...props, span2: true }} labelColor="actionable"
+      labelOnClick={openViewer} labelSuffix={<span className="db-json-count">{labelSuffix}</span>}>
       <textarea className="db-input db-input--mono db-input--textarea" rows={rowCount} value={js}
         onChange={(e) => { try { onChange(JSON.parse(e.target.value)); } catch { /* typing */ } }}
         disabled={disabled} />
       <div className="db-json-summary">
         <button className="db-json-btn" onClick={() => setEditing(false)}>Done</button>
-        <button className="db-json-btn" onClick={openViewer}>↗ Viewer</button>
       </div>
     </BaseField>
   );

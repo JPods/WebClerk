@@ -10,10 +10,11 @@ interface BaseFieldRenderProps {
   labelColor?: string;      // CSS class suffix: actionable, select, lookup, readonly, default
   labelSuffix?: React.ReactNode;
   labelHref?: string;
+  labelOnClick?: () => void; // for behaviors like JSON → open viewer
   children: React.ReactNode;
 }
 
-export default function BaseField({ props, labelColor = 'default', labelSuffix, labelHref, children }: BaseFieldRenderProps) {
+export default function BaseField({ props, labelColor = 'default', labelSuffix, labelHref, labelOnClick, children }: BaseFieldRenderProps) {
   const { name, label, error, className, span2 } = props;
   const displayLabel = label || name;
 
@@ -22,6 +23,10 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
       className={`db-label db-label--${labelColor}`}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
     </a>
+  ) : labelOnClick ? (
+    <span className={`db-label db-label--${labelColor}`} onClick={labelOnClick} style={{ cursor: 'pointer' }}>
+      {displayLabel}{labelSuffix && <> {labelSuffix}</>}
+    </span>
   ) : (
     <span className={`db-label db-label--${labelColor}`}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
