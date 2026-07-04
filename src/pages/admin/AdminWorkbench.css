@@ -599,3 +599,26 @@
   color: var(--db-accent-green);
   margin-left: auto;
 }
+
+/* ---------------------------------------------------------------------------
+   Spawn links bar
+   --------------------------------------------------------------------------- */
+
+.db-spawn-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.db-spawn-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted);
+  text-transform: uppercase;
+}
