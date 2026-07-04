@@ -165,12 +165,20 @@ def calculate_transaction_tax(
     except HeaderModel.DoesNotExist:
         raise ValueError(f"{model_name} #{transaction_id} not found")
 
-    # Get tax jurisdiction from header finance
+    # Get tax jurisdiction — cascade: header.finance → customer org fields → default
     finance = getattr(header, 'finance', None) or {}
     tax_jurisdiction_id = finance.get('sales_tax_id') or None
     if tax_jurisdiction_id and int(tax_jurisdiction_id) <= 0:
         tax_jurisdiction_id = None
     header_tax_rate = finance.get('sales_tax_rate')
+    customer_exempt_code = ''
+
+    # Pull from customer org if not on the header
+    customer = getattr(header, 'customer', None)
+    if customer:
+        if not tax_jurisdiction_id and getattr(customer, 'tax_jurisdiction_id', None):
+            tax_jurisdiction_id = customer.tax_jurisdiction_id
+        customer_exempt_code = getattr(customer, 'tax_exempt_code', '') or ''
 
     # Get lines
     if not hasattr(header, 'lines'):
@@ -186,11 +194,21 @@ def calculate_transaction_tax(
         price_data = getattr(line, 'price', None) or {}
         extended = price_data.get('extended', 0) or 0
 
+        # Check item taxability
+        item_taxable = True
+        item_data = getattr(line, 'item', None) or {}
+        if isinstance(item_data, dict):
+            tax_code = item_data.get('tax_code') or {}
+            if isinstance(tax_code, dict) and tax_code.get('code', '').lower() in ('notax', 'no tax', 'exempt'):
+                item_taxable = False
+
         # Calculate tax for this line
         result = calculate_line_tax(
             line_price_extended=float(extended),
             tax_jurisdiction_id=int(tax_jurisdiction_id) if tax_jurisdiction_id else None,
             tax_rate=float(header_tax_rate) if header_tax_rate is not None else None,
+            item_taxable=item_taxable,
+            customer_exempt_code=customer_exempt_code,
         )
 
         # Update line tax JSON

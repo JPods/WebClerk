@@ -38,7 +38,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		"financial": 1,    # treated as singleton object; limit means placeholder only
 		"docs": 25,
 		"connections": 1,  # small dict pointer
-		"data": 1,         # misc small dict (not a list, limit semantic only docs)
+		"config": 1,         # misc small dict (not a list, limit semantic only docs)
 		"metrics": 1,
 		"gl_accounts": 1,
 	}
@@ -111,9 +111,20 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	
 	relations = models.JSONField(default=default_relations)
 	financial = models.JSONField(default=default_financial)
-	data = models.JSONField(default=default_data)
+	config = models.JSONField(default=default_data)
 	metrics = models.JSONField(default=default_metrics)
 	gl_accounts = models.JSONField(default=default_gl_accounts)
+
+	# Tax — propagates to proposals, orders, invoices
+	tax_jurisdiction = models.ForeignKey(
+		'accounts.TaxJurisdiction', on_delete=models.SET_NULL,
+		null=True, blank=True, db_column='tax_jurisdiction_id',
+		related_name='orgs',
+		help_text="Default tax jurisdiction for this org — drives tax rate on transactions")
+	tax_exempt_code = models.CharField(
+		max_length=80, blank=True, default='',
+		db_index=True,
+		help_text="Empty=taxable. Certificate number=exempt. 'DoTax'=force taxable override.")
 
 	class Meta:
 		indexes = [
@@ -193,7 +204,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 					"financial": {},
 					"docs": [],
 					"connections": {},
-					"data": {},
+					"config": {},
 					"metrics": {},
 					"gl_accounts": {},
 				}
