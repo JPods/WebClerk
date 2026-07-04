@@ -758,3 +758,97 @@ def export_journals(
         note = str(rec.get('note', '')).replace(',', ';').replace('"', "'")
         lines.append(f'{rec["account"]},{rec["debit"] or ""},{rec["credit"] or ""},{rec["type"] or ""},{rec["division"] or ""},{rec["batch_id"] or ""},"{note}"')
     return '\n'.join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Tax summary by jurisdiction — for quarterly filing
+# ---------------------------------------------------------------------------
+
+def tax_summary_by_period(year: int, month: int, months: int = 1) -> list[dict]:
+    """Summarize tax collected by jurisdiction for a given period.
+
+    Small businesses file sales tax quarterly — they need total by state/jurisdiction.
+    months=3 gives a quarterly view.
+
+    Returns: [{jurisdiction, jurisdiction_name, tax_collected, invoice_count}]
+    """
+    from datetime import date
+    import calendar
+
+    InvoiceLine = dj_apps.get_model('transactions', 'InvoiceLine')
+
+    period_start = date(year, month, 1)
+    end_month = month + months - 1
+    end_year = year
+    while end_month > 12:
+        end_month -= 12
+        end_year += 1
+    period_end = date(end_year, end_month + 1, 1) if end_month < 12 else date(end_year + 1, 1, 1)
+
+    start_ms = int(calendar.timegm(period_start.timetuple()) * 1000)
+    end_ms = int(calendar.timegm(period_end.timetuple()) * 1000)
+
+    lines = InvoiceLine.objects.filter(
+        dt_created__gte=start_ms, dt_created__lt=end_ms,
+    ).values_list('tax', 'invoice_id')
+
+    by_jurisdiction: dict[str, dict] = {}
+    invoice_ids_by_jur: dict[str, set] = {}
+
+    for tax_data, inv_id in lines:
+        if not isinstance(tax_data, dict):
+            continue
+        jur = tax_data.get('jurisdiction', '') or tax_data.get('code', '') or 'unknown'
+        tax_amt = Decimal(str(tax_data.get('amount', 0) or tax_data.get('sales_amount', 0) or 0))
+        if tax_amt == 0:
+            continue
+        if jur not in by_jurisdiction:
+            by_jurisdiction[jur] = {'tax_collected': Decimal('0'), 'jurisdiction_name': jur}
+            invoice_ids_by_jur[jur] = set()
+        by_jurisdiction[jur]['tax_collected'] += tax_amt
+        invoice_ids_by_jur[jur].add(inv_id)
+
+    return [
+        {'jurisdiction': jur, 'jurisdiction_name': data['jurisdiction_name'],
+         'tax_collected': float(data['tax_collected']),
+         'invoice_count': len(invoice_ids_by_jur.get(jur, set()))}
+        for jur, data in sorted(by_jurisdiction.items())
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Reconciliation flag — period-level "I verified this"
+# ---------------------------------------------------------------------------
+
+def mark_period_reconciled(year: int, month: int, reconciled_by: str = '') -> dict:
+    """Mark a period as reconciled — user confirms GL export matches accounting package."""
+    from apps.core.models.setting import Setting
+    import time
+
+    setting, _ = Setting.objects.get_or_create(
+        purpose='accounting_interface',
+        parent_model='setting',
+        defaults={'ida': 'accounting-interface', 'config': {}},
+    )
+    config = setting.config or {}
+    reconciled = config.setdefault('reconciled_periods', {})
+    key = f'{year}-{month:02d}'
+    reconciled[key] = {
+        'reconciled': True,
+        'reconciled_by': reconciled_by,
+        'dt_reconciled': int(time.time() * 1000),
+    }
+    setting.config = config
+    setting.save(update_fields=['config'])
+    return reconciled[key]
+
+
+def get_reconciliation_status(year: int, month: int) -> dict:
+    """Check if a period has been marked as reconciled."""
+    from apps.core.models.setting import Setting
+    try:
+        setting = Setting.objects.get(purpose='accounting_interface', parent_model='setting')
+        key = f'{year}-{month:02d}'
+        return (setting.config or {}).get('reconciled_periods', {}).get(key, {'reconciled': False})
+    except Setting.DoesNotExist:
+        return {'reconciled': False}

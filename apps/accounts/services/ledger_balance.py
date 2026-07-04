@@ -254,9 +254,52 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
             credit['available'] = max(0, credit['limit'] - float(buckets['total']))
             credit['used'] = float(buckets['total'])
             role_financial['credit'] = credit
-        
+
+        # --- Credit decision metrics (from WC2 mining) ---
+
+        # High credit: peak balance ever reached
+        high_credit = role_financial.get('high_credit', 0)
+        if float(buckets['total']) > high_credit:
+            role_financial['high_credit'] = float(buckets['total'])
+
+        # Open orders exposure
+        try:
+            Order = dj_apps.get_model('transactions', 'Order')
+            open_order_total = Order.objects.filter(
+                customer_id=org_id,
+                status__in=['planned', 'released', 'in_progress'],
+            ).aggregate(total=models.Sum('total'))['total'] or Decimal('0')
+            role_financial['open_orders'] = float(open_order_total)
+            role_financial['total_exposure'] = float(buckets['total']) + float(open_order_total)
+        except Exception:
+            role_financial['open_orders'] = 0
+            role_financial['total_exposure'] = float(buckets['total'])
+
+        # Days average paid: mean days from invoice date to payment date on settled ledgers
+        try:
+            Ledger = dj_apps.get_model('accounts', 'Ledger')
+            settled = Ledger.objects.filter(
+                org_id=org_id, model_name='invoice', is_settled=True,
+                dt_due__isnull=False, dt_settled__isnull=False,
+            ).values_list('dt_due', 'dt_settled')
+            if settled:
+                total_days = 0
+                count = 0
+                for dt_due, dt_settled in settled:
+                    if dt_due and dt_settled:
+                        due_d = dt_due.date() if isinstance(dt_due, datetime) else dt_due
+                        settled_d = dt_settled.date() if isinstance(dt_settled, datetime) else dt_settled
+                        total_days += (settled_d - due_d).days
+                        count += 1
+                role_financial['days_avg_paid'] = round(total_days / count) if count > 0 else 0
+                role_financial['invoice_count_settled'] = count
+            else:
+                role_financial['days_avg_paid'] = 0
+        except Exception:
+            role_financial['days_avg_paid'] = 0
+
         financial[role_key] = role_financial
-    
+
     # Update common financial data
     common = financial.get('common', {})
     common['balances'] = {
