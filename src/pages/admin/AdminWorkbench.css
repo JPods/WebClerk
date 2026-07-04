@@ -545,3 +545,57 @@
   font-size: 11px;
   color: var(--db-text-muted);
 }
+
+/* ---------------------------------------------------------------------------
+   BOM Panel
+   --------------------------------------------------------------------------- */
+
+.db-bom-panel {
+  margin-top: 12px;
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.db-bom-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  flex-wrap: wrap;
+}
+
+.db-bom-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--db-accent);
+}
+
+.db-bom-control {
+  font-size: 10px;
+  color: var(--db-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-bom-input {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 2px 4px;
+  width: 60px;
+}
+
+.db-bom-total {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--db-accent-green);
+  margin-left: auto;
+}
