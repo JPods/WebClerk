@@ -11,8 +11,8 @@ class Action(BaseModel):
     # Parent-child relationship
     parent_action = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE, db_column='action_id')
     
-    # Multilingual titles and descriptions
-    action = models.JSONField(default=dict, blank=True, null=True)
+    # Multilingual task title (renamed from 'action' to avoid collision with model name)
+    task = models.JSONField(default=dict, blank=True, null=True, db_column='action')
     description = models.JSONField(default=dict, blank=True, null=True)
 
        # Assigned users (many-to-many like, via JSON)
@@ -73,14 +73,14 @@ class Action(BaseModel):
         verbose_name_plural = "Actions"
 
     def __str__(self):
-        action_dict = self.action or {}
-        action_text = action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
-        return f"{action_text} ({self.kanban_column})"
+        task_dict = self.task or {}
+        task_text = task_dict.get('en') or task_dict.get('bn') or task_dict.get('ar') or 'Untitled'
+        return f"{task_text} ({self.kanban_column})"
 
     def pre_save_hook(self, data, is_update=False, context=None):
         """Normalize common alias fields from clients into canonical columns.
 
-        - action_<lang> / description_<lang> -> action / description JSON
+        - action_<lang> / description_<lang> -> task / description JSON
         - progress -> percent_complete
         - kanban_column_id -> kanban_column (title-cased)
         - merges derived languages into languages list
@@ -114,14 +114,16 @@ class Action(BaseModel):
                     derived_langs.add(lang)
 
         if title_by_lang:
-            current_action: dict = {}
-            raw_action = data.get('action')
-            if isinstance(raw_action, dict) and 'value' in raw_action and isinstance(raw_action.get('value'), dict):
-                current_action = raw_action.get('value') or {}
-            elif isinstance(self.action, dict):
-                current_action = self.action or {}
-            merged_action = {**current_action, **title_by_lang}
-            data['action'] = {'mode': 'update', 'value': merged_action}
+            current_task: dict = {}
+            # Accept both 'task' and legacy 'action' key from clients
+            raw_task = data.get('task') or data.get('action')
+            if isinstance(raw_task, dict) and 'value' in raw_task and isinstance(raw_task.get('value'), dict):
+                current_task = raw_task.get('value') or {}
+            elif isinstance(self.task, dict):
+                current_task = self.task or {}
+            merged_task = {**current_task, **title_by_lang}
+            data['task'] = {'mode': 'update', 'value': merged_task}
+            data.pop('action', None)  # remove legacy key
 
         if desc_by_lang:
             current_desc: dict = {}

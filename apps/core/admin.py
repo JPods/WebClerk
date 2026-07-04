@@ -266,8 +266,8 @@ class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
         return desc or '-'
     
     def get_action_title(self, obj):
-        action_dict = obj.action or {}
-        return action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
+        task_dict = obj.task or {}
+        return task_dict.get('en') or task_dict.get('bn') or task_dict.get('ar') or 'Untitled'
     get_action_title.short_description = '.en'
 
     @admin.action(description='Assign project ID to selected actions')
@@ -321,7 +321,7 @@ class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
     def _data_field(self, obj, key):
-        val = (obj.data or {}).get(key)
+        val = (obj.config or {}).get(key)
         return val if val is not None else '-'
 
     @admin.display(description='.on_hand')
