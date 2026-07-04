@@ -5,8 +5,21 @@ from apps.transactions.services.invoice_totals import compute_invoice_sell_cost_
 
 
 class Invoice(TransactionBaseModel):
+
+    # Invoice type — not boolean flags (WC2 had ProForma + Credit_Note booleans)
+    INVOICE_TYPE_CHOICES = [
+        ('invoice', 'Invoice'),
+        ('proforma', 'Pro Forma'),
+        ('credit_note', 'Credit Note'),
+        ('deposit', 'Deposit'),
+    ]
+
     class Meta:
         db_table = "invoices"
+
+    invoice_type = models.CharField(
+        max_length=20, choices=INVOICE_TYPE_CHOICES, default='invoice',
+        db_index=True, help_text="Invoice / Pro Forma / Credit Note / Deposit")
 
     # JSONB fields for references and metadata
     refs = models.JSONField(default=dict, blank=True, null=True, help_text="References like order_id")

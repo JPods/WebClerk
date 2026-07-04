@@ -187,6 +187,16 @@ class Payment(BaseModel):
         help_text="Additional metadata for reconciliation, gateway data, and audit trail"
     )
 
+    class Meta:
+        constraints = [
+            # Webhook dedup: prevent duplicate payments from the same gateway event
+            models.UniqueConstraint(
+                fields=['id_gateway_payment_intent'],
+                condition=~models.Q(id_gateway_payment_intent=''),
+                name='uniq_payment_gateway_intent',
+            ),
+        ]
+
     def __str__(self):
         return f"Payment #{self.id} - {self.amount} ({self.status}) for Invoice #{self.invoice_id}"
 

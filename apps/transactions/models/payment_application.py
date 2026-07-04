@@ -40,6 +40,11 @@ class PaymentApplication(BaseModel):
     def __str__(self):
         return f"PaymentApplication: {self.payment_id} -> {self.invoice_id} (${self.amount})"
 
+    def save(self, *args, **kwargs):
+        """Enforce clean() on every save — Django doesn't call it by default."""
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def clean(self):
         """Validate that applied amount doesn't exceed payment or invoice balance."""
         from django.core.exceptions import ValidationError

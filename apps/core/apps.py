@@ -20,3 +20,10 @@ class CoreConfig(AppConfig):
         except Exception:
             pass
 
+        # Auto-wire AuditLog to capture field-level changes on save
+        try:
+            from apps.core.signals.audit_signals import register_audit_signals
+            register_audit_signals()
+        except Exception:
+            pass
+

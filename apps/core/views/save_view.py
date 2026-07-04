@@ -307,6 +307,11 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] JSON parse error: {e}")
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
+        # Log all keys for debugging dot-path support
+        dot_keys = [k for k in data.keys() if '.' in k or '[' in k]
+        if dot_keys:
+            console_logger.warning(f"[SAVE_VIEW] DOT-PATH KEYS in payload: {dot_keys}")
+
         # Convert HTML checkbox values: "on" -> True, "off" -> False
         for key, value in list(data.items()):
             if value == 'on':
@@ -315,10 +320,27 @@ class SaveWcapiView(APIView):
                 data[key] = False
 
         # Handle nested 'data' key for compatibility with some clients
+        # Models that previously had a 'data' field now use 'config'.
+        # If 'data' key contains a dict and the model doesn't have a 'data' column, merge it into the payload.
         if 'data' in data and isinstance(data['data'], dict):
-            data.update(data['data'])
-            del data['data']
-            console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
+            model_key = data.get('model_name') or data.get('model') or ''
+            has_data_field = False
+            try:
+                from apps.core.utils.registry import resolve
+                resolved = resolve(model_key)
+                # resolve() may return a ModelMeta or the model class directly
+                if resolved is not None:
+                    cls = resolved.import_model() if hasattr(resolved, 'import_model') else resolved
+                    if hasattr(cls, '_meta'):
+                        has_data_field = any(f.name == 'data' for f in cls._meta.get_fields() if hasattr(f, 'column'))
+            except Exception as e:
+                console_logger.warning(f"[SAVE_VIEW] data-field check failed for {model_key}: {e}")
+            if not has_data_field:
+                data.update(data['data'])
+                del data['data']
+                console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
+            else:
+                console_logger.info(f"[SAVE_VIEW] Preserved 'data' field for model {model_key}")
 
         # Handle nested 'record' key (used by R25 saveTransactionWithLines)
         if 'record' in data and isinstance(data['record'], dict):
@@ -379,6 +401,12 @@ class SaveWcapiView(APIView):
         model_cls = cast(Type[models.Model], model)
         model_key = to_model_name(model_cls) or raw_model_name
         console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
+
+        # Log setting saves for debugging layout persistence
+        if model_key == 'setting' and data.get('purpose') == 'workbench_fields':
+            _data = data.get('data', {})
+            _list_preview = [f.get('field') if isinstance(f, dict) else f for f in (_data.get('list') or [])[:4]] if isinstance(_data, dict) else '?'
+            console_logger.warning(f"[SAVE_VIEW] SETTING SAVE id={data.get('id')} parent_model={data.get('parent_model')} list_preview={_list_preview}")
 
         # Saved searches are global admin-managed settings.
         if model_key == 'setting':
@@ -462,13 +490,14 @@ class SaveWcapiView(APIView):
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
                 console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            # Version checking disabled for now - will re-enable when frontend properly tracks versions
-            # if expected_version is not None:
-            #     current_version = getattr(obj, 'version', None)
-            #     console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
-            #     if current_version != expected_version:
-            #         console_logger.error(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
-            #         return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
+            # Version conflict checking — re-enabled 2026-07-04
+            # Frontend sends expected version; if it doesn't match current, someone else changed the record.
+            # Returns 412 so frontend can show "Record modified by another user" instead of silent overwrite.
+            if expected_version is not None:
+                current_version = getattr(obj, 'version', None)
+                if current_version is not None and current_version != expected_version:
+                    console_logger.warning(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
+                    return api_response(success=False, status_code=412, message='Record was modified by another user. Reload and try again.', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
             console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
@@ -540,6 +569,8 @@ class SaveWcapiView(APIView):
         field_value_errors = []
         raw_password = None
         for field, field_data in data.items():
+            if '.' in field or '[' in field:
+                console_logger.warning(f"[SAVE_VIEW] DOT-PATH FIELD in loop: field={field} type={type(field_data).__name__}")
             # ignore these fields
             if field == 'password':
                 if isinstance(field_data, dict) and 'value' in field_data:
@@ -559,7 +590,7 @@ class SaveWcapiView(APIView):
                 # Already an operation envelope
                 pass
             else:
-                # Plain object payload (e.g. setting.data JSON): use it as the value.
+                # Plain object payload (e.g. setting.config JSON): use it as the value.
                 field_data = {'mode': 'update', 'value': field_data}
 
             # Extract mode from 'mode' or 'task' key
@@ -625,9 +656,12 @@ class SaveWcapiView(APIView):
                 continue
 
             try:
-                if '.' in field:
-                    # Nested field
-                    set_nested_value(obj, field, value)
+                if '.' in field or '[' in field:
+                    # Nested/array field — use json_field_ops for surgical update
+                    from apps.core.services.json_field_ops import apply_json_op
+                    console_logger.warning(f"[SAVE_VIEW] JSON_OP field={field} mode={mode} key={field_data.get('key')} value_type={type(value).__name__}")
+                    result = apply_json_op(obj, field, mode, value, key=field_data.get('key'))
+                    console_logger.warning(f"[SAVE_VIEW] JSON_OP result={result}")
                 else:
                     # Regular field
                     if hasattr(obj, field):
@@ -775,6 +809,11 @@ class SaveWcapiView(APIView):
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+            # Verify setting save
+            if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') == 'workbench_fields':
+                _saved = getattr(obj, 'data', {})
+                _list_saved = [f.get('field') if isinstance(f, dict) else f for f in (_saved.get('list') or [])[:4]] if isinstance(_saved, dict) else '?'
+                console_logger.warning(f"[SAVE_VIEW] SETTING SAVED id={obj.id} parent_model={getattr(obj, 'parent_model', '?')} list={_list_saved}")
 
             # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
             try:
