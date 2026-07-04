@@ -501,3 +501,260 @@ def batch_journalize(ida_prefix: str = 'zzz-') -> dict:
             results['errors'].append(f'Purchase {po.ida}: {result["error"]}')
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# BOM Journal — inventory transfer on assembly build
+# ---------------------------------------------------------------------------
+
+def journalize_bom_build(batch_id: str, parent_item_id: int, qty: Decimal, component_costs: list[dict], ida_prefix: str = '') -> dict:
+    """Journal entry for a BOM assembly build.
+
+    Debits finished-goods inventory (parent), credits component inventory (each child).
+    component_costs: [{item_id, item_ida, cost, qty}] from consume_bom.
+
+    Args:
+        batch_id: from consume_bom batch_id
+        parent_item_id: assembled item
+        qty: build quantity
+        component_costs: list of consumed components with costs
+    """
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+
+    if GlJournal.objects.filter(batch_id=batch_id, source_model='bom_build').exists():
+        return {'created': 0, 'error': 'Already journalized'}
+
+    parent_gls = _get_item_gls(parent_item_id)
+    fg_account = parent_gls.get('inventory') or DEFAULTS['inventory']
+
+    postings = {}
+
+    def _add(account, side, amount, purpose):
+        if account not in postings:
+            postings[account] = {'debit': Decimal('0'), 'credit': Decimal('0'), 'purpose': purpose}
+        postings[account][side] += amount
+
+    # Total component cost becomes finished goods value
+    total_component_cost = Decimal('0')
+    for comp in component_costs:
+        comp_gls = _get_item_gls(comp.get('item_id'))
+        comp_account = comp_gls.get('inventory') or DEFAULTS['inventory']
+        comp_cost = Decimal(str(comp.get('cost', 0))) * Decimal(str(comp.get('qty', 0)))
+        _add(comp_account, 'credit', comp_cost, 'component_consumed')
+        total_component_cost += comp_cost
+
+    # Finished goods debit
+    _add(fg_account, 'debit', total_component_cost, 'finished_goods_produced')
+
+    if not postings:
+        return {'created': 0, 'error': 'No amounts to post'}
+
+    created = 0
+    posting_list = []
+    with transaction.atomic():
+        for account, data in postings.items():
+            for side in ('debit', 'credit'):
+                if data[side] > 0:
+                    GlJournal.objects.create(
+                        ida=f'{ida_prefix}BM-{batch_id[:8]}-{account}',
+                        account=account,
+                        debit=float(data['debit']) if side == 'debit' else None,
+                        credit=float(data['credit']) if side == 'credit' else None,
+                        source='automation',
+                        type='bom',
+                        source_id=parent_item_id,
+                        source_model='bom_build',
+                        batch_id=batch_id,
+                    )
+                    created += 1
+                    posting_list.append({'account': account, side: float(data[side]), 'purpose': data['purpose']})
+
+    return {'created': created, 'postings': posting_list, 'batch_id': batch_id}
+
+
+def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str = '', ida_prefix: str = '') -> dict:
+    """Journal entry for an inventory adjustment (scrap, draw, count variance).
+
+    Debit/credit inventory + offset to adjustment expense account.
+    Positive qty = found extra (debit inventory, credit adjustment).
+    Negative qty = lost/scrapped (credit inventory, debit adjustment).
+    """
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+
+    item_gls = _get_item_gls(item_id)
+    inv_account = item_gls.get('inventory') or DEFAULTS['inventory']
+    adj_account = item_gls.get('cogs') or DEFAULTS['cogs']  # adjustments hit COGS by default
+
+    amount = abs(qty * cost)
+    if amount == 0:
+        return {'created': 0, 'error': 'Zero amount'}
+
+    created = 0
+    posting_list = []
+    batch_id = f'ADJ-{item_id}-{int(time.time())}'
+
+    with transaction.atomic():
+        if qty > 0:
+            # Found extra inventory
+            GlJournal.objects.create(
+                ida=f'{ida_prefix}ADJ-{inv_account}', account=inv_account,
+                debit=float(amount), credit=None, source='automation', type='adjustment',
+                source_id=item_id, source_model='adjustment', batch_id=batch_id,
+                note=reason,
+            )
+            GlJournal.objects.create(
+                ida=f'{ida_prefix}ADJ-{adj_account}', account=adj_account,
+                debit=None, credit=float(amount), source='automation', type='adjustment',
+                source_id=item_id, source_model='adjustment', batch_id=batch_id,
+                note=reason,
+            )
+        else:
+            # Lost/scrapped inventory
+            GlJournal.objects.create(
+                ida=f'{ida_prefix}ADJ-{adj_account}', account=adj_account,
+                debit=float(amount), credit=None, source='automation', type='adjustment',
+                source_id=item_id, source_model='adjustment', batch_id=batch_id,
+                note=reason,
+            )
+            GlJournal.objects.create(
+                ida=f'{ida_prefix}ADJ-{inv_account}', account=inv_account,
+                debit=None, credit=float(amount), source='automation', type='adjustment',
+                source_id=item_id, source_model='adjustment', batch_id=batch_id,
+                note=reason,
+            )
+        created = 2
+        posting_list = [
+            {'account': inv_account, 'amount': float(amount), 'side': 'debit' if qty > 0 else 'credit'},
+            {'account': adj_account, 'amount': float(amount), 'side': 'credit' if qty > 0 else 'debit'},
+        ]
+
+    return {'created': created, 'postings': posting_list, 'batch_id': batch_id}
+
+
+# ---------------------------------------------------------------------------
+# Account summary — $ by account code by period (for Accounting tab)
+# ---------------------------------------------------------------------------
+
+def account_summary_by_period(year: int, month: int) -> list[dict]:
+    """Summarize GL journal entries by account for a given month.
+
+    Returns the data users retype into their accounting program:
+    [{account, account_name, debit, credit, net}] sorted by account.
+    """
+    from django.db.models import Sum, Q
+    from datetime import date
+
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    GlAccount = dj_apps.get_model('accounts', 'GlAccount')
+
+    period_start = date(year, month, 1)
+    if month == 12:
+        period_end = date(year + 1, 1, 1)
+    else:
+        period_end = date(year, month + 1, 1)
+
+    # Convert to epoch ms for dt_created filter
+    import calendar
+    start_ms = int(calendar.timegm(period_start.timetuple()) * 1000)
+    end_ms = int(calendar.timegm(period_end.timetuple()) * 1000)
+
+    entries = (
+        GlJournal.objects
+        .filter(dt_created__gte=start_ms, dt_created__lt=end_ms)
+        .values('account')
+        .annotate(
+            total_debit=Sum('debit'),
+            total_credit=Sum('credit'),
+        )
+        .order_by('account')
+    )
+
+    # Build account name lookup
+    account_names = dict(
+        GlAccount.objects.filter(is_active=True)
+        .values_list('account_number', 'name')
+    )
+
+    result = []
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
+    for row in entries:
+        d = Decimal(str(row['total_debit'] or 0))
+        c = Decimal(str(row['total_credit'] or 0))
+        total_debit += d
+        total_credit += c
+        result.append({
+            'account': row['account'],
+            'account_name': account_names.get(row['account'], ''),
+            'debit': float(d),
+            'credit': float(c),
+            'net': float(d - c),
+        })
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Export formatter — one function, all formats
+# ---------------------------------------------------------------------------
+
+def export_journals(
+    year: int,
+    month: int,
+    format: str = 'csv',
+    division: str = '',
+) -> str:
+    """Export GL journal entries for a period in the specified format.
+
+    Formats: 'csv', 'json', 'quickbooks_iif', 'tab'
+    This is what the user downloads or sends to their bookkeeper.
+    Most users just read the account_summary_by_period screen and retype.
+    """
+    import json as json_lib
+    from datetime import date
+
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+
+    period_start = date(year, month, 1)
+    if month == 12:
+        period_end = date(year + 1, 1, 1)
+    else:
+        period_end = date(year, month + 1, 1)
+
+    import calendar
+    start_ms = int(calendar.timegm(period_start.timetuple()) * 1000)
+    end_ms = int(calendar.timegm(period_end.timetuple()) * 1000)
+
+    qs = GlJournal.objects.filter(dt_created__gte=start_ms, dt_created__lt=end_ms).order_by('account', 'id')
+    if division:
+        qs = qs.filter(division=division)
+
+    records = list(qs.values('account', 'debit', 'credit', 'type', 'source_model',
+                             'source_id', 'division', 'batch_id', 'note', 'ida'))
+
+    if format == 'json':
+        return json_lib.dumps({'period': f'{year}-{month:02d}', 'entries': records}, indent=2, default=str)
+
+    if format == 'quickbooks_iif':
+        lines = ['!TRNS\tTRNSTYPE\tDATE\tACCNT\tAMOUNT\tMEMO']
+        lines.append('!SPL\tTRNSTYPE\tDATE\tACCNT\tAMOUNT\tMEMO')
+        lines.append('!ENDTRNS')
+        for rec in records:
+            amt = (rec['debit'] or 0) - (rec['credit'] or 0)
+            lines.append(f'TRNS\tGENERAL JOURNAL\t{period_start.strftime("%m/%d/%Y")}\t{rec["account"]}\t{amt:.2f}\t{rec.get("note", "")}')
+            lines.append(f'SPL\tGENERAL JOURNAL\t{period_start.strftime("%m/%d/%Y")}\t{rec["account"]}\t{-amt:.2f}\t')
+            lines.append('ENDTRNS')
+        return '\n'.join(lines)
+
+    if format == 'tab':
+        lines = ['Account\tDebit\tCredit\tType\tDivision\tBatch\tNote']
+        for rec in records:
+            lines.append(f'{rec["account"]}\t{rec["debit"] or ""}\t{rec["credit"] or ""}\t{rec["type"] or ""}\t{rec["division"] or ""}\t{rec["batch_id"] or ""}\t{rec.get("note", "")}')
+        return '\n'.join(lines)
+
+    # Default: CSV
+    lines = ['Account,Debit,Credit,Type,Division,Batch,Note']
+    for rec in records:
+        note = str(rec.get('note', '')).replace(',', ';').replace('"', "'")
+        lines.append(f'{rec["account"]},{rec["debit"] or ""},{rec["credit"] or ""},{rec["type"] or ""},{rec["division"] or ""},{rec["batch_id"] or ""},"{note}"')
+    return '\n'.join(lines)
