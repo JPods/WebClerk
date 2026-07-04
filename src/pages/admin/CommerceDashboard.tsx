@@ -350,6 +350,27 @@ function AccountingTab({ data }: { data: any }) {
 
   return (
     <div className="cd-tab-content">
+      {/* AR Aging summary */}
+      {(data?.aging) && (
+        <div className="cd-metrics-row">
+          <MetricCard label="Future" value={`$${(data.aging.future || 0).toLocaleString()}`} sub="Not yet due" />
+          <MetricCard label="Current" value={`$${(data.aging.current || 0).toLocaleString()}`} sub="Due ≤ 30 days" />
+          <MetricCard label="1-30 Past Due" value={`$${(data.aging.period_1 || 0).toLocaleString()}`} />
+          <MetricCard label="31-60 Past Due" value={`$${(data.aging.period_2 || 0).toLocaleString()}`} />
+          <MetricCard label="60+ Past Due" value={`$${(data.aging.period_3 || 0).toLocaleString()}`} />
+          <MetricCard label="Total AR" value={`$${(data.aging.total || 0).toLocaleString()}`} />
+        </div>
+      )}
+
+      {/* Credit metrics */}
+      {(data?.credit_metrics) && (
+        <div className="cd-metrics-row">
+          <MetricCard label="Avg Days to Pay" value={data.credit_metrics.days_avg_paid || '—'} />
+          <MetricCard label="High Credit" value={`$${(data.credit_metrics.high_credit || 0).toLocaleString()}`} sub="Peak balance ever" />
+          <MetricCard label="Total Exposure" value={`$${(data.credit_metrics.total_exposure || 0).toLocaleString()}`} sub="AR + open orders" />
+        </div>
+      )}
+
       {/* Document counts for period + unaccounted older documents */}
       <div className="cd-metrics-row">
         <MetricCard label="Invoices (period)" value={docs.invoices || 0} />
