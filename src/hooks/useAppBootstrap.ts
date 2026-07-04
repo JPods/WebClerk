@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface BootstrapData {
+  dt_changed: number;              // server timestamp — React refreshes when this changes
   company: {
     name: string;
     legal_name: string;
@@ -49,6 +50,7 @@ let cacheTimestamp = 0;
 
 function emptyBootstrap(): BootstrapData {
   return {
+    dt_changed: 0,
     company: {
       name: '', legal_name: '', address: { street1: '', street2: '', city: '', state: '', zip: '', country: 'US' },
       phone: '', email: '', website: '', tax_id: '',
@@ -89,6 +91,7 @@ export function useAppBootstrap(isAuthenticated: boolean) {
 
       const result = resp.data?.data || resp.data || {};
       const bootstrap: BootstrapData = {
+        dt_changed: result.dt_changed || 0,
         company: result.company || emptyBootstrap().company,
         selectLists: result.select_lists || {},
         paymentTerms: result.payment_terms || [],
@@ -132,6 +135,24 @@ export function useAppBootstrap(isAuthenticated: boolean) {
   // Load on auth
   useEffect(() => {
     if (isAuthenticated) refresh();
+  }, [isAuthenticated, refresh]);
+
+  // Lightweight poll: check if admin changed defaults (dt_changed flag)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(async () => {
+      try {
+        const { default: apiClient } = await import('@/api/axios');
+        const resp = await apiClient.post('/wcapi/manage/', {
+          action: 'get_bootstrap_dt', params: {},
+        });
+        const serverDt = resp.data?.data?.dt_changed || 0;
+        if (serverDt > 0 && cachedData && serverDt > cachedData.dt_changed) {
+          refresh(true); // admin changed something — refresh
+        }
+      } catch { /* silent — don't break the app for a poll failure */ }
+    }, 60000); // check every 60 seconds
+    return () => clearInterval(interval);
   }, [isAuthenticated, refresh]);
 
   return { ...data, refresh };
