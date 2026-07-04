@@ -13,6 +13,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serial
 from django.utils import timezone
 
 from apps.core.services import wcapi as services
+from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
 from apps.core.services.role_filter import inject_role_filters
 from apps.core.services.field_projection import filter_response_data
 from apps.core.utils import policy
@@ -423,10 +424,7 @@ class WCAPIGetView(APIView):
             return {}
 
         field_names = {f.name for f in ModelCls._meta.get_fields()}
-        allowed_lookups = {
-            "gte", "lte", "gt", "lt", "in", "startswith", "endswith", "icontains",
-            "exact", "iexact", "contains", "range", "isnull", "ne",
-        }
+        allowed_lookups = ALLOWED_LOOKUPS
         normalized: Dict[str, Dict[str, Any]] = {}
         for param_name, spec in raw_specs.items():
             if not isinstance(param_name, str) or not param_name.strip():
@@ -531,12 +529,7 @@ class WCAPIGetView(APIView):
             lookup_type = 'exact'
             if '__' in key:
                 lookup_type = key.split('__')[1]
-                # Support common lookups: gte, lte, gt, lt, in, startswith, endswith, icontains
-                allowed_lookups = {
-                    'gte', 'lte', 'gt', 'lt', 'in', 'startswith', 'endswith', 'icontains',
-                    'exact', 'iexact', 'contains', 'range', 'isnull', 'ne'
-                }
-                if lookup_type not in allowed_lookups:
+                if lookup_type not in ALLOWED_LOOKUPS:
                     continue
                 
                 # Handle 'ne' (not equal) by converting to Q object later
@@ -594,10 +587,7 @@ class WCAPIGetView(APIView):
             return {}
 
         field_names = {f.name for f in ModelCls._meta.get_fields()}
-        allowed_lookups = {
-            "gte", "lte", "gt", "lt", "in", "startswith", "endswith", "icontains",
-            "exact", "iexact", "contains", "range", "isnull", "ne",
-        }
+        allowed_lookups = ALLOWED_LOOKUPS
 
         normalized: Dict[str, Any] = {}
         for key, value in raw_filters.items():
@@ -645,7 +635,7 @@ class WCAPIGetView(APIView):
         if not role_open and not self._is_admin_user(request) and user_role != required_role:
             raise PermissionError("saved search is not shared with your role")
 
-        data = setting.data if isinstance(setting.data, dict) else {}
+        data = setting.config if isinstance(setting.config, dict) else {}
         return {
             "id": setting.id,
             "name": setting.name,
@@ -1420,7 +1410,7 @@ class ModelNameListView(APIView):
         from django.apps import apps
         from apps.core.utils.registry import resolve
         models = apps.get_models()
-        model_names = [model._meta.model_name for model in models if model._meta.model_name != "setting" and resolve(model._meta.model_name)]
+        model_names = [model._meta.model_name for model in models if resolve(model._meta.model_name)]
         return Response({
             "status": "success",
             "code": 200,
@@ -1508,7 +1498,7 @@ class SearchPresetListView(APIView):
 
         presets = []
         for setting in qs.order_by("name", "-dt_modified"):
-            payload = setting.data if isinstance(setting.data, dict) else {}
+            payload = setting.config if isinstance(setting.config, dict) else {}
             presets.append(
                 {
                     "id": setting.id,

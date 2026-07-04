@@ -105,3 +105,85 @@ class BOMRecalcCostView(APIView):
         get_object_or_404(Item, pk=parent_id)
         bom_services.recalc_parent_cost(parent_id)
         return api_response(message='Recalculation triggered', data={'parent_id': parent_id})
+
+
+class BOMExpandTreeView(APIView):
+    """Multi-level BOM tree expansion — flat list with level tracking and costs."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        operation_id="products_bom_expand_tree",
+        parameters=[
+            OpenApiParameter(name='qty', description='Build quantity (default 1)', required=False, type=float),
+            OpenApiParameter(name='as_of', description='Date (YYYY-MM-DD) for effective window', required=False, type=str),
+            OpenApiParameter(name='revision', description='Revision code', required=False, type=str),
+        ],
+    )
+    def get(self, request, parent_id: int):
+        from decimal import Decimal
+        get_object_or_404(Item, pk=parent_id)
+        qty = Decimal(str(request.query_params.get('qty', '1')))
+        as_of_str = request.query_params.get('as_of')
+        revision = request.query_params.get('revision')
+        as_of_date = None
+        if as_of_str:
+            try:
+                as_of_date = datetime.strptime(as_of_str, '%Y-%m-%d').date()
+            except ValueError:
+                return api_response(success=False, status_code=400, message='Invalid as_of format')
+
+        rows = bom_services.expand_tree(parent_id, qty, as_of=as_of_date, revision=revision)
+        data = [{
+            'item_id': r.item_id,
+            'item_ida': r.item_ida,
+            'description': r.description,
+            'level': r.level,
+            'qty_plan': float(r.qty_plan),
+            'qty_actual': float(r.qty_actual),
+            'cost_avg': float(r.cost_avg),
+            'cost_last': float(r.cost_last),
+            'cost_extended': float(r.cost_extended),
+            'scrap_factor': float(r.scrap_factor),
+            'is_subassembly': r.is_subassembly,
+        } for r in rows]
+        total_cost = sum(r.cost_extended for r in rows)
+        return api_response(data={'rows': data, 'total_cost': float(total_cost), 'total_rows': len(data)})
+
+
+class BOMConsumeView(APIView):
+    """Post inventory movements for a BOM assembly build."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(operation_id="products_bom_consume")
+    def post(self, request, parent_id: int):
+        from decimal import Decimal
+        get_object_or_404(Item, pk=parent_id)
+        qty = Decimal(str(request.data.get('qty', '1')))
+        adjust = bool(request.data.get('adjust_for_on_hand', False))
+        reason = request.data.get('reason', 'BOM assembly')
+        batch_id = bom_services.consume_bom(parent_id, qty, adjust_for_on_hand=adjust, reason=reason)
+        return api_response(data={'batch_id': batch_id, 'parent_id': parent_id, 'qty': float(qty)}, message='Build posted')
+
+
+class BOMWhereUsedView(APIView):
+    """Find all top-level assemblies that contain this item."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(operation_id="products_bom_where_used")
+    def get(self, request, item_id: int):
+        get_object_or_404(Item, pk=item_id)
+        top_levels = bom_services.find_top_level_assemblies(item_id)
+        # Fetch display info for the top-level items
+        items = Item.objects.filter(id__in=top_levels).values('id', 'ida', 'description')
+        return api_response(data={'top_level_assemblies': list(items), 'total': len(top_levels)})
+
+
+class BOMPropagateCostView(APIView):
+    """Propagate cost recalculation up through all ancestor assemblies."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(operation_id="products_bom_propagate_cost")
+    def post(self, request, item_id: int):
+        get_object_or_404(Item, pk=item_id)
+        recalculated = bom_services.propagate_cost_up(item_id)
+        return api_response(data={'recalculated_parents': recalculated, 'count': len(recalculated)}, message='Cost propagated')
