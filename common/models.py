@@ -402,22 +402,33 @@ class CoreModel(models.Model):
 
     _pydantic_cache: Optional[UniversalAPISchema] = None
 
-    def save(self, *args, **kwargs):  # timestamp + version bump (uuid no longer auto-assigned)
+    def save(self, *args, **kwargs):
         now_ms = int(timezone.now().timestamp() * 1000)
         if not self.pk:
+            # New record
             self.dt_created = now_ms
+            # Assign uuid on creation if not set
+            if not self.uuid:
+                self.uuid = uuid.uuid4()
         else:
+            # Existing record — uuid is immutable after creation
+            if self.uuid:
+                try:
+                    orig_uuid = type(self).objects.filter(pk=self.pk).values_list('uuid', flat=True).first()
+                    if orig_uuid and self.uuid != orig_uuid:
+                        raise ValueError(f"uuid is immutable: cannot change {orig_uuid} to {self.uuid}")
+                except type(self).DoesNotExist:
+                    pass
             self.version = (self.version or 0) + 1
         self.dt_modified = now_ms
         super().save(*args, **kwargs)
-        # Ensure ida is populated once a primary key exists. Avoids an extra version bump.
+        # Ensure ida is never null — default to string of id
         try:
             if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
-                # ida format: "{IDA_PREFIX}-{pk}"  — born-on identifier (see common/ida.py)
                 from common.ida import generate_ida
                 ida_value = generate_ida(self.pk)
                 type(self).objects.filter(pk=self.pk, ida="").update(ida=ida_value)
-                self.ida = ida_value  # reflect locally
+                self.ida = ida_value
         except Exception:  # pragma: no cover - never block save
             logger.debug("ida autogeneration failed", exc_info=True)
         self._pydantic_cache = None
