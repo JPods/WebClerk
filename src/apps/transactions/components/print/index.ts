@@ -72,3 +72,15 @@ export type {
   ProjectPrintData,
   ProjectPrintDocumentProps
 } from './ProjectPrintDocument';
+
+export { default as StatementPrintDocument } from './StatementPrintDocument';
+export type {
+  StatementData,
+  StatementLine,
+} from './StatementPrintDocument';
+
+export { default as TaxReportPrintDocument } from './TaxReportPrintDocument';
+export type {
+  TaxReportData,
+  TaxReportLine,
+} from './TaxReportPrintDocument';
