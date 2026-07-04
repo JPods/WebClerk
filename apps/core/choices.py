@@ -61,6 +61,8 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("seed", "seed"),
     ("alice_coaching", "alice_coaching"),
     ("campaign", "campaign"),
+    ("company_profile", "company_profile"),
+    ("accounting_interface", "accounting_interface"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
