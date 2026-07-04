@@ -337,7 +337,10 @@ def _build_result(
 
 
 def _create_margin_approval(item, result: PriceResolution, contact_id: Optional[int]):
-    """Create an Action when price falls below margin floor."""
+    """Create an informational Action when price falls below margin floor.
+
+    Does NOT block shipment — flag and ship, review in the sales dashboard.
+    """
     try:
         from apps.core.models.action import Action
         Action.objects.create(
@@ -346,10 +349,10 @@ def _create_margin_approval(item, result: PriceResolution, contact_id: Optional[
                 f'{item.ida} priced at ${result.price} produces {result.margin_pct}% margin, '
                 f'below floor of {result.margin_floor}%. '
                 f'Catalog: {result.catalog_name} (#{result.catalog_id}). '
-                f'Contact: #{contact_id}. Requires approval before release.'
+                f'Contact: #{contact_id}. Review in sales dashboard.'
             ),
             status='Backlog',
-            priority='high',
+            priority='low',
         )
     except Exception:
         pass
