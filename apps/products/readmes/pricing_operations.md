@@ -117,6 +117,24 @@ When `price_resolver` returns a price below the catalog's `margin_floor`:
 
 ---
 
+## Price Level Propagation
+
+```
+Customer (OrgBase.price_level = "wholesale")
+  → Order.price_level = "wholesale" (inherited on create)
+    → OrderLine.price_level = "wholesale" (inherited from header)
+      → price_resolver uses Item.price.wholesale = $62.99
+```
+
+- Prices are set at line creation — they do NOT auto-update when passing between transactions (proposal→order→invoice) unless the user commands it.
+- Lines can be individually adjusted: discount, price_point change, manual override.
+- We are guides, not policemen. Users know what they are doing to stay in business.
+- We report on margins and margins by salesperson so management has visibility.
+
+No PriceLevel or PriceMatrix models needed — Item.price.tiers[] handles named levels, CatalogLine.min_qty/max_qty handles qty breaks.
+
+---
+
 ## Files
 
 | File | Purpose |
