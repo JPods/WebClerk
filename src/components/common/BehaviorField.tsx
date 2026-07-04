@@ -24,12 +24,15 @@ interface BehaviorFieldProps {
     accent: string; accentGreen: string; accentPurple: string; surfaceAlt: string; border: string;
   };
   rowSize?: number;
+  typeHint?: string;  // layout-level override for widget type
+  error?: string;     // validation error message to display
 }
 
 export default function BehaviorField({
   name, value: v, behavior: beh, onChange, record, fontSize = 12, theme: t, rowSize,
+  typeHint, error,
 }: BehaviorFieldProps) {
-  const behType = beh.type || '';
+  const behType = typeHint || beh.type || '';
   const isJson = typeof v === 'object' && v !== null;
   const isLong = typeof v === 'string' && (v as string).length > 100;
   const span2 = (isJson || isLong || behType === 'textarea' || behType === 'json');

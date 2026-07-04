@@ -1,0 +1,133 @@
+/**
+ * fields.css — styles for the reusable field widget suite.
+ * Uses CSS custom properties from the nearest .db-root ancestor.
+ * Can also be used standalone with its own variable definitions.
+ */
+
+/* ---------------------------------------------------------------------------
+   Field wrapper
+   --------------------------------------------------------------------------- */
+
+.db-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.db-field--span2 {
+  grid-column: 1 / -1;
+}
+
+/* ---------------------------------------------------------------------------
+   Labels
+   --------------------------------------------------------------------------- */
+
+.db-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.db-label--actionable { color: var(--db-accent, #0d6efd); cursor: pointer; }
+.db-label--select { color: var(--db-accent-green, #198754); }
+.db-label--lookup { color: var(--db-accent-purple, #6f42c1); }
+.db-label--readonly { color: var(--db-text-dim, #adb5bd); }
+.db-label--default { color: var(--db-text-muted, #6c757d); }
+
+.db-label-hint {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--db-text-dim, #adb5bd);
+}
+
+/* ---------------------------------------------------------------------------
+   Inputs
+   --------------------------------------------------------------------------- */
+
+.db-input {
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-input-border, #ced4da);
+  border-radius: 4px;
+  color: var(--db-text, #212529);
+  font-size: inherit;
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.db-input:focus {
+  border-color: var(--db-accent, #0d6efd);
+}
+
+.db-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.db-input--mono {
+  font-family: monospace;
+}
+
+.db-input--right {
+  text-align: right;
+}
+
+.db-input--readonly {
+  background: var(--db-surface-alt, #f8f9fa);
+  border-color: var(--db-border, #dee2e6);
+  color: var(--db-text-muted, #6c757d);
+  font-family: monospace;
+}
+
+.db-input--select {
+  cursor: pointer;
+}
+
+.db-input--textarea {
+  resize: vertical;
+  font-family: monospace;
+}
+
+.db-input--error {
+  border-color: var(--db-accent-red, #dc3545);
+}
+
+/* ---------------------------------------------------------------------------
+   Error display
+   --------------------------------------------------------------------------- */
+
+.db-field-error {
+  font-size: 10px;
+  color: var(--db-accent-red, #dc3545);
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Currency wrapper
+   --------------------------------------------------------------------------- */
+
+.db-currency-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-currency-symbol {
+  color: var(--db-text-muted, #6c757d);
+  font-size: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+   Boolean
+   --------------------------------------------------------------------------- */
+
+.db-boolean-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

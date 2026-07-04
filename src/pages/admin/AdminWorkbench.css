@@ -1,0 +1,547 @@
+/**
+ * AdminWorkbench.css — DataBrowser styles
+ *
+ * Theme-aware: uses CSS custom properties set on .db-root.
+ * Two themes: [data-theme="dark"] and [data-theme="light"].
+ * Import this file in AdminWorkbench.tsx.
+ */
+
+/* ---------------------------------------------------------------------------
+   CSS Custom Properties — set per theme on .db-root
+   --------------------------------------------------------------------------- */
+
+.db-root[data-theme="dark"] {
+  --db-bg: #1e1e1e;
+  --db-surface: #252526;
+  --db-surface-alt: #2d2d2d;
+  --db-border: #3c3c3c;
+  --db-border-light: #4d4d4d;
+  --db-text: #d4d4d4;
+  --db-text-muted: #888;
+  --db-text-dim: #666;
+  --db-accent: #9cdcfe;
+  --db-accent-green: #4ec98c;
+  --db-accent-gold: #e8c870;
+  --db-accent-red: #e05252;
+  --db-accent-purple: #c8a8e8;
+  --db-btn-bg: #2d2d2d;
+  --db-btn-primary: #0e639c;
+  --db-btn-save: #1a6b2e;
+  --db-btn-danger: #6b1a1a;
+  --db-btn-danger-border: #964040;
+  --db-btn-save-border: #2f8f45;
+  --db-input-bg: #2a2a2a;
+  --db-input-border: #555;
+  --db-row-hover: #2a2d2e;
+  --db-row-active: #094771;
+  --db-row-checked: #3a3a1a;
+  --db-resize-handle: #4a9eff;
+}
+
+.db-root[data-theme="light"] {
+  --db-bg: #f8f9fa;
+  --db-surface: #ffffff;
+  --db-surface-alt: #f1f3f5;
+  --db-border: #dee2e6;
+  --db-border-light: #e9ecef;
+  --db-text: #212529;
+  --db-text-muted: #6c757d;
+  --db-text-dim: #adb5bd;
+  --db-accent: #0d6efd;
+  --db-accent-green: #198754;
+  --db-accent-gold: #fd7e14;
+  --db-accent-red: #dc3545;
+  --db-accent-purple: #6f42c1;
+  --db-btn-bg: #ffffff;
+  --db-btn-primary: #0d6efd;
+  --db-btn-save: #198754;
+  --db-btn-danger: #dc3545;
+  --db-btn-danger-border: #dc3545;
+  --db-btn-save-border: #157347;
+  --db-input-bg: #ffffff;
+  --db-input-border: #ced4da;
+  --db-row-hover: #f1f3f5;
+  --db-row-active: #cfe2ff;
+  --db-row-checked: #fff3cd;
+  --db-resize-handle: #0d6efd;
+}
+
+/* ---------------------------------------------------------------------------
+   Root layout
+   --------------------------------------------------------------------------- */
+
+.db-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--db-font-size);
+  overflow: hidden;
+}
+
+.db-root[data-fontsize="S"] { --db-font-size: 12px; }
+.db-root[data-fontsize="M"] { --db-font-size: 14px; }
+.db-root[data-fontsize="L"] { --db-font-size: 16px; }
+
+/* ---------------------------------------------------------------------------
+   Header / toolbar
+   --------------------------------------------------------------------------- */
+
+.db-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--db-surface);
+  border-bottom: 1px solid var(--db-border);
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+
+.db-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------------- */
+
+.db-btn {
+  border: 1px solid var(--db-border-light);
+  border-radius: 3px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--db-btn-bg);
+  color: var(--db-text);
+  transition: background 0.15s;
+}
+
+.db-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.db-btn--small {
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+.db-btn--primary {
+  background: var(--db-btn-primary);
+  border-color: var(--db-btn-primary);
+  color: #fff;
+}
+
+.db-btn--save {
+  background: var(--db-btn-save);
+  border-color: var(--db-btn-save-border);
+  color: #fff;
+}
+
+.db-btn--danger {
+  background: var(--db-btn-danger);
+  border-color: var(--db-btn-danger-border);
+  color: #fff;
+}
+
+.db-btn--ghost {
+  background: color-mix(in srgb, var(--db-accent) 12%, transparent);
+  border-color: var(--db-accent);
+  color: var(--db-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Layout bar
+   --------------------------------------------------------------------------- */
+
+.db-layout-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  flex-wrap: wrap;
+}
+
+.db-layout-label {
+  font-size: 10px;
+  color: var(--db-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.db-layout-btn {
+  border: 1px solid var(--db-border-light);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--db-btn-bg);
+  color: var(--db-text);
+}
+
+.db-layout-btn--active {
+  border-color: var(--db-accent);
+  background: var(--db-row-active);
+  color: var(--db-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Search bar
+   --------------------------------------------------------------------------- */
+
+.db-search {
+  flex: 1;
+  min-width: 120px;
+  max-width: 300px;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 4px;
+  color: var(--db-text);
+  padding: 4px 8px;
+  outline: none;
+}
+
+.db-search:focus {
+  border-color: var(--db-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Main content area
+   --------------------------------------------------------------------------- */
+
+.db-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.db-list-pane {
+  flex: 1;
+  overflow: auto;
+  border-right: 1px solid var(--db-border);
+}
+
+.db-detail-pane {
+  width: 42%;
+  min-width: 320px;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  background: var(--db-surface);
+  border-left: 1px solid var(--db-border);
+}
+
+.db-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   List pane
+   --------------------------------------------------------------------------- */
+
+.db-list-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.db-list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Model picker panel
+   --------------------------------------------------------------------------- */
+
+.db-model-picker-panel {
+  padding: 8px 12px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.db-model-picker-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 280px;
+}
+
+.db-model-picker-btn {
+  background: var(--db-surface-alt);
+  border-color: var(--db-border-light);
+  color: var(--db-accent);
+  font-weight: 700;
+  min-width: 160;
+  text-align: left;
+  padding: 4px 12px;
+}
+
+.db-model-picker-list {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 4px;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.db-model-picker-item {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.db-model-picker-item--current {
+  background: var(--db-surface-alt);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------------
+   Save dialog bar
+   --------------------------------------------------------------------------- */
+
+.db-save-dialog-bar {
+  padding: 10px 12px;
+  background: var(--db-row-checked);
+  border-bottom: 1px solid var(--db-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-save-dialog-label {
+  font-weight: 600;
+}
+
+.db-save-dialog-input {
+  flex: 1;
+  max-width: 250px;
+}
+
+/* ---------------------------------------------------------------------------
+   Detail form
+   --------------------------------------------------------------------------- */
+
+.db-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.db-detail-grid > [data-span="2"] {
+  grid-column: 1 / -1;
+}
+
+.db-detail-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--db-border);
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Field inputs
+   --------------------------------------------------------------------------- */
+
+.db-input {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 4px;
+  color: var(--db-text);
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.db-input:focus {
+  border-color: var(--db-accent);
+}
+
+.db-input--readonly {
+  background: var(--db-surface-alt);
+  border-color: var(--db-border);
+  color: var(--db-text-muted);
+  font-family: monospace;
+}
+
+.db-input--error {
+  border-color: var(--db-accent-red);
+}
+
+.db-field-error {
+  font-size: 10px;
+  color: var(--db-accent-red);
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Field labels
+   --------------------------------------------------------------------------- */
+
+.db-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.db-label--actionable { color: var(--db-accent); }
+.db-label--select { color: var(--db-accent-green); }
+.db-label--lookup { color: var(--db-accent-purple); }
+.db-label--readonly { color: var(--db-text-dim); }
+.db-label--default { color: var(--db-text-muted); }
+
+/* ---------------------------------------------------------------------------
+   Table rows
+   --------------------------------------------------------------------------- */
+
+.db-row:hover {
+  background: var(--db-row-hover);
+}
+
+.db-row--active {
+  background: var(--db-row-active);
+}
+
+.db-row--checked {
+  background: var(--db-row-checked);
+}
+
+/* ---------------------------------------------------------------------------
+   Pagination
+   --------------------------------------------------------------------------- */
+
+.db-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--db-surface);
+  border-top: 1px solid var(--db-border);
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Save dialog overlay
+   --------------------------------------------------------------------------- */
+
+.db-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.db-dialog {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 8px;
+  padding: 16px 24px;
+  min-width: 300px;
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities
+   --------------------------------------------------------------------------- */
+
+.db-font-toggle,
+.db-theme-toggle {
+  background: none;
+  border: 1px solid var(--db-border-light);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--db-text-muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.db-model-count {
+  font-size: 10px;
+  color: var(--db-text-dim);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Detail-pane elements
+   --------------------------------------------------------------------------- */
+
+.db-detail-model-label {
+  font-weight: 700;
+  color: var(--db-accent);
+}
+
+.db-detail-id {
+  color: var(--db-text-muted);
+}
+
+.db-unsaved-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--db-accent-gold);
+  padding: 1px 5px;
+  background: var(--db-row-checked);
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Spacers and separators
+   --------------------------------------------------------------------------- */
+
+.db-spacer {
+  flex: 1;
+}
+
+.db-separator {
+  color: var(--db-text-dim);
+}
+
+/* ---------------------------------------------------------------------------
+   Status messages
+   --------------------------------------------------------------------------- */
+
+.db-status-msg {
+  padding: 16px;
+  color: var(--db-text-muted);
+}
+
+.db-status-msg--error {
+  color: var(--db-accent-red);
+}
+
+.db-pagination-info {
+  font-size: 11px;
+  color: var(--db-text-muted);
+}

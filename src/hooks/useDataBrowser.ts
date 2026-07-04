@@ -31,18 +31,117 @@ export type WorkbenchRecord = { id?: number | string; [key: string]: unknown };
 export type FieldSpec = {
   field: string;
   width?: number;
+  minWidth?: number;
+  maxWidth?: number;
   color?: string | Record<string, string> | null;  // static, value-based map, or null
   align?: 'left' | 'center' | 'right';
   visible?: boolean;
-  format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | null;
+  format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | 'phone' | 'masked' | null;
+  wrap?: boolean;  // true = word-wrap, false/undefined = truncate with ellipsis
   frozen?: boolean;
   summary?: 'sum' | 'avg' | 'count' | null;
   alice_note?: string;
+  typeHint?: string;  // overrides auto-detected widget type from field_behaviors
 };
 
-/** Convert between string[] and FieldSpec[] for backward compatibility */
+// ---------------------------------------------------------------------------
+// Smart defaults by field name — ported from wc2 listboxK._setColumnName
+// ---------------------------------------------------------------------------
+export function getDefaultFieldSpec(field: string): Partial<FieldSpec> {
+  const fl = field.toLowerCase();
+
+  // WHO fields — wider for names
+  if (fl === 'display_name' || fl === 'company' || fl === 'name') return { width: 180, align: 'left' };
+  if (fl === 'name_first' || fl === 'name_last') return { width: 120, align: 'left' };
+  if (fl === 'attention') return { width: 140, align: 'left' };
+
+  // Identifiers
+  if (fl === 'ida' || fl === 'sku') return { width: 100, align: 'left' };
+  if (fl === 'id') return { width: 60, align: 'right' };
+
+  // Contact info
+  if (fl.includes('phone')) return { width: 120, align: 'left', format: 'phone' };
+  if (fl.includes('email')) return { width: 180, align: 'left' };
+  if (fl.includes('zip') || fl.includes('postal')) return { width: 70, align: 'left' };
+  if (fl === 'state' || fl === 'province') return { width: 60, align: 'center' };
+  if (fl.includes('address') || fl === 'address_full') return { width: 220, align: 'left' };
+  if (fl === 'city') return { width: 120, align: 'left' };
+  if (fl === 'country') return { width: 80, align: 'center' };
+
+  // Description / text
+  if (fl === 'description' || fl === 'title') return { width: 220, align: 'left' };
+  if (fl === 'notes' || fl === 'comments') return { width: 200, align: 'left', wrap: true };
+
+  // Terms / level (must check before price pattern)
+  if (fl === 'terms' || fl === 'price_level') return { width: 80, align: 'left' };
+
+  // Currency / money
+  if (fl.includes('price') || fl.includes('cost') || fl === 'total' || fl === 'balance'
+    || fl === 'amount' || fl === 'debit' || fl === 'credit' || fl.includes('extended'))
+    return { width: 100, align: 'right', format: 'currency' };
+
+  // Rates / percentages
+  if (fl.includes('rate') || fl === 'discount' || fl.includes('percent') || fl === 'commission')
+    return { width: 80, align: 'right', format: 'percent' };
+
+  // Weight
+  if (fl.includes('weight') || fl.endsWith('_wt')) return { width: 60, align: 'right', format: 'number' };
+
+  // Quantities
+  if (fl === 'qty' || fl === 'quantity' || fl.startsWith('qty_') || fl === 'line_number' || fl === 'sequence')
+    return { width: 60, align: 'right' };
+
+  // Status / type / category
+  if (fl === 'status' || fl === 'type' || fl === 'category' || fl === 'kind' || fl === 'org_type'
+    || fl === 'kanban_column' || fl === 'priority')
+    return { width: 100, align: 'left' };
+
+  // Dates / timestamps
+  if (fl.startsWith('dt_') || fl.includes('date') || fl.includes('_dt') || fl === 'deadline_by'
+    || fl === 'start_by' || fl === 'end_by' || fl === 'expected_by' || fl === 'completed_by')
+    return { width: 100, align: 'center', format: 'date' };
+
+  // Booleans
+  if (fl.startsWith('is_')) return { width: 50, align: 'center' };
+
+  // Numeric scalars
+  if (fl === 'version' || fl === 'security_level' || fl === 'health_rating' || fl === 'difficulty'
+    || fl === 'burndown' || fl === 'linkage' || fl === 'count_accessed')
+    return { width: 60, align: 'right' };
+
+  // UUID
+  if (fl === 'uuid') return { width: 100, align: 'left' };
+
+  // JSON blobs — narrow in list (just show {…})
+  if (fl === 'metadata' || fl === 'refs' || fl === 'prefs' || fl === 'actions' || fl === 'stats')
+    return { width: 60, align: 'left', format: 'json' };
+
+  // UOM
+  if (fl === 'uom' || fl === 'unit_of_measure') return { width: 60, align: 'center' };
+
+  // Source
+  if (fl === 'source' || fl === 'source_model') return { width: 100, align: 'left' };
+
+  // Default
+  return {};
+}
+
+/** Apply smart defaults to a FieldSpec — user-set values always win */
+export function applyFieldDefaults(spec: FieldSpec): FieldSpec {
+  const defaults = getDefaultFieldSpec(spec.field);
+  return {
+    ...defaults,
+    ...spec,
+    // Only apply default width if user hasn't set one
+    width: spec.width ?? defaults.width,
+  };
+}
+
+/** Convert between string[] and FieldSpec[] — applies smart defaults */
 export const toFieldSpecs = (fields: (string | FieldSpec)[]): FieldSpec[] =>
-  fields.map((f) => typeof f === 'string' ? { field: f, visible: true } : f);
+  fields.map((f) => typeof f === 'string'
+    ? applyFieldDefaults({ field: f, visible: true })
+    : applyFieldDefaults(f));
 
 export const toFieldNames = (specs: (string | FieldSpec)[]): string[] =>
   specs.map((f) => typeof f === 'string' ? f : f.field);
@@ -138,6 +237,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const [allFields, setAllFields] = useState<string[]>([]);
   const [workbenchSetting, setWorkbenchSetting] = useState<WorkbenchFieldsSetting | null>(null);
   const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, WorkbenchFieldsSetting>>({});
+  // Track the Setting record id so we don't re-query on every save
+  const [workbenchSettingId, setWorkbenchSettingId] = useState<number | null>(null);
+  const workbenchSettingIdMap = useRef<Record<string, number>>({});
 
   // --- Named layouts ---
   const [activeViewName, setActiveViewName] = useState<string | null>(null);
@@ -268,7 +370,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
         setModelNames((Array.isArray(data.model_names) ? data.model_names : []).slice().sort((a, b) => a.localeCompare(b)));
         const settings = await getAllWorkbenchFieldsSettings();
         const map: Record<string, WorkbenchFieldsSetting> = {};
-        settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.data; });
+        settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.config; });
         setWorkbenchSettingsMap(map);
       } catch (e) { setModelsError(errMsg(e, 'Failed to load models')); }
       finally { setLoadingModels(false); }
@@ -319,21 +421,25 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
       // Load workbench setting directly (not from cached map — avoids stale closure)
       let ws: WorkbenchFieldsSetting | null = null;
+      let wsId: number | null = null;
       try {
         const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'workbench_fields', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const wsRec = (wsRes?.results || [])[0];
-        ws = wsRec?.data || null;
+        ws = wsRec?.config || null;
+        wsId = wsRec?.id ?? null;
       } catch { /* use null */ }
       setWorkbenchSetting(ws);
-      dbLog('fetchRecords:workbenchSetting', { model: selectedModel, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
+      setWorkbenchSettingId(wsId);
+      if (wsId && selectedModel) workbenchSettingIdMap.current[selectedModel] = wsId;
+      dbLog('fetchRecords:workbenchSetting', { model: selectedModel, settingId: wsId, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
 
       // Load field behaviors
       try {
         const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'field_access' }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
-        setFieldBehaviors(faRec?.data?.field_behaviors || {});
+        setFieldBehaviors(faRec?.config?.field_behaviors || {});
       } catch { setFieldBehaviors({}); }
     } catch (e) {
       if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
@@ -372,17 +478,64 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const updateField = useCallback((f: string, v: unknown) => { setSelectedRecord((p) => p ? { ...p, [f]: v } : p); setIsDirty(true); }, []);
 
   const persistSetting = useCallback(async (model: string, next: WorkbenchFieldsSetting) => {
-    try {
-      const existing = await getWorkbenchFieldsSetting(model);
-      console.log('[DB] persistSetting', model, 'existing id:', existing?.id, 'views:', next.views?.map(v => v.name));
-      const result = await saveWorkbenchFieldsSetting({
-        id: existing?.id,
-        parent_model: model,
-        purpose: 'workbench_fields',
-        data: next,
-      });
-      console.log('[DB] persistSetting result:', result);
-    } catch (e) { console.error('[DB] Save settings failed:', model, e); }
+    const settingId = workbenchSettingIdMap.current[model];
+    const listPreview = (next.list || []).slice(0, 4).map(f => typeof f === 'string' ? f : f.field);
+    console.log('[DB] persistSetting', model, 'settingId:', settingId, 'list:', listPreview, 'views:', (next.views || []).map(v => v.name));
+    const { saveRecord } = await import('@/api/wcapi');
+
+    const maxRetries = 5;
+    const retryDelay = 1500; // ms
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (settingId) {
+          // Surgical update: send each piece separately using dot-path ops
+          // config.list and config.detail update in place; views upsert by name
+          const ops: Record<string, any> = {
+            id: settingId,
+            'config.list': { mode: 'update', value: next.list || [] },
+            'config.detail': { mode: 'update', value: next.detail || [] },
+          };
+          // Upsert each named view individually
+          for (const view of (next.views || [])) {
+            if (view.name) {
+              ops[`config.views`] = { mode: 'upsert', key: 'name', value: view };
+            }
+          }
+          await saveRecord('setting', ops);
+        } else {
+          const result = await saveRecord('setting', {
+            name: `workbench_fields:${model}`,
+            parent_model: model,
+            purpose: 'workbench_fields',
+            config: next,
+          });
+          const newId = result?.id || result?.data?.id || result?.data?.record?.id;
+          if (newId) workbenchSettingIdMap.current[model] = newId;
+        }
+        console.log('[DB] persistSetting saved:', settingId || 'new');
+        return; // success
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || e?.message || '';
+        const isLocked = msg.toLowerCase().includes('locked') ||
+          e?.response?.data?.error?.code === 'record_locked' ||
+          e?.response?.status === 423;
+
+        if (isLocked && attempt < maxRetries) {
+          console.warn(`[DB] Setting #${settingId} locked, retry ${attempt}/${maxRetries} in ${retryDelay}ms`);
+          await new Promise(r => setTimeout(r, retryDelay));
+          continue;
+        }
+
+        if (isLocked) {
+          console.error(`[DB] Setting #${settingId} locked after ${maxRetries} retries — changes not saved`);
+          alert(`Layout changes could not be saved — the Setting record (#${settingId}) is locked by another process. Your changes are visible but will not persist on reload. Try again in a moment.`);
+        } else {
+          console.error('[DB] Save layout failed:', model, e);
+        }
+        return;
+      }
+    }
   }, []);
 
   const toggleField = useCallback(async (kind: 'list' | 'detail', field: string) => {
@@ -465,6 +618,10 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
   const saveView = useCallback(async (name: string, fields?: (string | FieldSpec)[], mode?: 'list' | 'detail') => {
     if (!selectedModel || !name.trim()) return;
+    if (PROTECTED_VIEWS.includes(name.trim().toLowerCase())) {
+      alert(`"${name}" is a system layout and cannot be overwritten.`);
+      return;
+    }
     const cur = workbenchSetting ?? { list: [], detail: [] };
     const views = [...(cur.views || [])];
     const idx = views.findIndex((v) => v.name === name.trim());
@@ -484,13 +641,33 @@ export function useDataBrowser(isAuthenticated: boolean) {
     await persistSetting(selectedModel, next);
   }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
 
-  const loadView = useCallback((v: NamedView) => {
+  const loadView = useCallback(async (v: NamedView) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    setWorkbenchSetting({ ...cur, list: v.list, detail: v.detail });
-    setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: { ...cur, list: v.list, detail: v.detail } }));
+    const next: WorkbenchFieldsSetting = { ...cur, list: v.list, detail: v.detail };
+    setWorkbenchSetting(next);
+    setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setColWidths(v.listWidths || {}); setActiveViewName(v.name);
-  }, [selectedModel, workbenchSetting]);
+    // Persist so the active layout survives reload
+    await persistSetting(selectedModel, next);
+  }, [selectedModel, workbenchSetting, persistSetting]);
+
+  // Reset layout — load the 'initial' or 'alice_guess' view as a baseline
+  const resetLayout = useCallback(async () => {
+    if (!selectedModel) return;
+    if (!confirm('Reset to default layout? Your current layout will be replaced.')) return;
+    const cur = workbenchSetting ?? { list: [], detail: [], views: [] };
+    const views = cur.views || [];
+    const initial = views.find((v) => v.name === 'initial') || views.find((v) => v.name === 'alice_guess');
+    if (initial) {
+      const next: WorkbenchFieldsSetting = { ...cur, list: initial.list, detail: initial.detail };
+      setWorkbenchSetting(next);
+      setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
+      setColWidths(initial.listWidths || {});
+      setActiveViewName(initial.name);
+      await persistSetting(selectedModel, next);
+    }
+  }, [selectedModel, workbenchSetting, persistSetting]);
 
   const deleteView = useCallback(async (name: string) => {
     if (!selectedModel || !confirm(`Delete layout "${name}"?`)) return;
@@ -517,33 +694,63 @@ export function useDataBrowser(isAuthenticated: boolean) {
     a.click(); URL.revokeObjectURL(a.href);
   }, [displayRecords, visibleListFields, selectedModel]);
 
-  // Save record
+  // Validation errors — field-keyed dict, empty = valid
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Save record — validate first, accumulate all errors
   const handleSaveRecord = useCallback(async () => {
     if (!selectedModel || !selectedRecord) return;
-    await saveRecord(selectedModel, { ...selectedRecord });
-    setIsDirty(false); fetchRecords();
-  }, [selectedModel, selectedRecord, fetchRecords]);
+    // Client-side validation (accumulates all errors, does not stop at first)
+    const { validateRecord, hasErrors } = await import('@/utils/validateRecord');
+    const errors = validateRecord(selectedRecord, fieldBehaviors, visibleDetailFields);
+    setValidationErrors(errors);
+    if (hasErrors(errors)) return;
+    try {
+      await saveRecord(selectedModel, { ...selectedRecord });
+      setIsDirty(false); setValidationErrors({}); fetchRecords();
+    } catch (e) {
+      // Surface server-side validation errors
+      const msg = errMsg(e, 'Save failed');
+      dbLog.error('handleSaveRecord:failed', { model: selectedModel, error: msg });
+    }
+  }, [selectedModel, selectedRecord, fieldBehaviors, visibleDetailFields, fetchRecords]);
 
-  // Delete record
+  // Delete record — doSafeSelect: auto-select adjacent record after delete
   const handleDeleteRecord = useCallback(async () => {
     if (!selectedModel || !selectedId || !confirm(`Delete ${modelLabel} #${selectedId}?`)) return;
     await deleteRecord(selectedModel, selectedId);
-    setRecords((p) => p.filter((r) => numId(r.id) !== selectedId));
-    setSelectedRecord(null); setSelectedId(null);
-  }, [selectedModel, selectedId, modelLabel]);
+    const idx = records.findIndex((r) => numId(r.id) === selectedId);
+    const filtered = records.filter((r) => numId(r.id) !== selectedId);
+    setRecords(filtered);
+    const nextIdx = Math.min(idx, filtered.length - 1);
+    if (nextIdx >= 0) {
+      const next = filtered[nextIdx];
+      setSelectedId(numId(next.id));
+      setSelectedRecord(next);
+    } else {
+      setSelectedRecord(null);
+      setSelectedId(null);
+    }
+  }, [selectedModel, selectedId, modelLabel, records]);
 
-  // Update list fields (from field order dialog) — accepts string[] or FieldSpec[]
+  // Protected layouts — never overwrite these
+  const PROTECTED_VIEWS = ['alice_guess', 'alphabetical', 'alpha', 'best_guess'];
+
+  // Update list fields — persists to data.list (survives reload) but does NOT touch named views.
+  // User must explicitly Save/Save As to commit to a named view.
   const updateListLayout = useCallback(async (fields: (string | FieldSpec)[]) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const specs = toFieldSpecs(fields);
+    const specs = toFieldSpecs(fields).map(s => ({
+      ...s, width: s.width || colWidths[s.field] || undefined,
+    }));
     const next: WorkbenchFieldsSetting = { ...cur, list: specs };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, persistSetting]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
 
-  // Update detail fields (from field order dialog) — accepts string[] or FieldSpec[]
+  // Update detail fields — persists to data.detail but does NOT touch named views.
   const updateDetailLayout = useCallback(async (fields: (string | FieldSpec)[], sizes: Record<string, number>) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
@@ -553,7 +760,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setDetailRowSizes(sizes);
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, persistSetting]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
 
   return {
     // Model
@@ -575,13 +782,14 @@ export function useDataBrowser(isAuthenticated: boolean) {
     listFieldSpecs, detailFieldSpecs, specWidths,
     workbenchSetting, toggleField, bulkSetFields,
     // Layouts
-    savedViews, activeViewName, saveView, loadView, deleteView,
+    savedViews, activeViewName, saveView, loadView, deleteView, resetLayout,
+    workbenchSettingId,
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart,
     // Field behaviors
     fieldBehaviors, detailRowSizes, setDetailRowSizes,
     // CRUD
-    updateField, handleSaveRecord, handleDeleteRecord,
+    updateField, handleSaveRecord, handleDeleteRecord, validationErrors,
     updateListLayout,
     updateDetailLayout,
     // Export

@@ -1,8 +1,8 @@
-/* LastChecked: 2026-06-29 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+/* LastChecked: 2026-07-03 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
-import { useDataBrowser, numId } from '../../hooks/useDataBrowser';
+import { useDataBrowser, numId, type FieldSpec } from '../../hooks/useDataBrowser';
 import { dbLog } from '../../utils/dbLog';
 import BehaviorField from '../../components/common/BehaviorField';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
@@ -10,9 +10,11 @@ import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
 import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
+import './AdminWorkbench.css';
 
 // ---------------------------------------------------------------------------
-// Theme tokens — JPods Console inspired
+// Theme tokens — kept for passing to child components (DataGrid, BehaviorField)
+// that still use inline styles. AdminWorkbench itself uses CSS custom properties.
 // ---------------------------------------------------------------------------
 
 const themes = {
@@ -45,22 +47,19 @@ const themes = {
 type ThemeKey = keyof typeof themes;
 
 // ---------------------------------------------------------------------------
-// Btn helper
+// Btn helper — uses CSS classes from AdminWorkbench.css
 // ---------------------------------------------------------------------------
 
 const Btn: React.FC<{
-  t: typeof themes.dark; variant?: 'default' | 'primary' | 'save' | 'danger' | 'ghost';
+  variant?: 'default' | 'primary' | 'save' | 'danger' | 'ghost';
   small?: boolean; disabled?: boolean; title?: string;
   onClick?: (e: React.MouseEvent) => void; children: React.ReactNode;
-}> = ({ t, variant = 'default', small, disabled, title, onClick, children }) => (
-  <button style={{
-    border: `1px solid ${variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSaveBorder : variant === 'danger' ? t.btnDangerBorder : variant === 'ghost' ? t.accent : t.borderLight}`,
-    borderRadius: 3, padding: small ? '1px 6px' : '4px 12px', fontSize: small ? 11 : 12, fontWeight: 600,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    background: variant === 'primary' ? t.btnPrimary : variant === 'save' ? t.btnSave : variant === 'danger' ? t.btnDanger : variant === 'ghost' ? `${t.accent}20` : t.btnBg,
-    color: variant === 'primary' || variant === 'save' || variant === 'danger' ? '#fff' : variant === 'ghost' ? t.accent : t.text,
-    opacity: disabled ? 0.4 : 1, transition: 'background 0.15s',
-  }} disabled={disabled} title={title} onClick={onClick}>{children}</button>
+  // Legacy: accept and ignore `t` prop for backward compat during migration
+  t?: any;
+}> = ({ variant = 'default', small, disabled, title, onClick, children }) => (
+  <button
+    className={`db-btn ${small ? 'db-btn--small' : ''} ${variant !== 'default' ? `db-btn--${variant}` : ''}`}
+    disabled={disabled} title={title} onClick={onClick}>{children}</button>
 );
 
 // ---------------------------------------------------------------------------
@@ -174,10 +173,7 @@ const AdminWorkbench: React.FC = () => {
   // Reset highlight when filter changes
   React.useEffect(() => { setModelHighlight(0); }, [modelFilterText]);
 
-  const inputStyle: React.CSSProperties = {
-    background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: 4,
-    color: t.text, fontSize: baseFontSize - 1, padding: '4px 8px', outline: 'none',
-  };
+  // inputStyle removed — use className="db-input" or "db-search" instead
 
   // Keyboard shortcut for model picker
   React.useEffect(() => {
@@ -191,36 +187,83 @@ const AdminWorkbench: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Build fieldSpecs map from listFieldSpecs for DataGrid formatting
+  const fieldSpecsMap = useMemo(() => {
+    const m: Record<string, FieldSpec> = {};
+    db.listFieldSpecs.forEach((s) => { m[s.field] = s; });
+    return m;
+  }, [db.listFieldSpecs]);
+
+  // Context menu: delete column
+  const handleDeleteColumn = useCallback((field: string) => {
+    const updated = db.listFieldSpecs.filter((s) => s.field !== field);
+    db.updateListLayout(updated);
+  }, [db.listFieldSpecs, db.updateListLayout]);
+
+  // Context menu: add column at position
+  const handleAddColumn = useCallback((field: string, atIndex: number) => {
+    const updated = [...db.listFieldSpecs];
+    updated.splice(atIndex, 0, { field, visible: true });
+    db.updateListLayout(updated);
+  }, [db.listFieldSpecs, db.updateListLayout]);
+
+  // Context menu: save current layout
+  const handleSaveLayout = useCallback(() => {
+    const name = db.activeViewName || 'default';
+    db.saveView(name, db.listFieldSpecs, 'list');
+  }, [db.activeViewName, db.listFieldSpecs, db.saveView]);
+
+  // Context menu: save as new layout
+  const handleSaveLayoutAs = useCallback(() => {
+    const name = prompt('Layout name:');
+    if (name?.trim()) db.saveView(name.trim(), db.listFieldSpecs, 'list');
+  }, [db.listFieldSpecs, db.saveView]);
+
+  // Context menu: load named view
+  const handleLoadView = useCallback((viewName: string) => {
+    const v = db.savedViews.find((sv) => sv.name === viewName);
+    if (v) db.loadView(v);
+  }, [db.savedViews, db.loadView]);
+
   return (
-    <div data-wc="databrowser" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: t.bg, color: t.text, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontSize: baseFontSize }}>
+    <div data-wc="databrowser" className="db-root" data-theme={theme} data-fontsize={fontSize}>
 
       {/* ═══ Header — model picker + search + global controls ═══ */}
-      <header data-wc="db-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', background: t.surface, borderBottom: `1px solid ${t.border}`, height: 36, flexShrink: 0 }}>
-        <button data-wc="db-model-picker" onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
-          style={{ background: t.surfaceAlt, border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '4px 12px', color: t.accent, fontSize: baseFontSize, fontWeight: 700, cursor: 'pointer', minWidth: 160, textAlign: 'left' }}
-          title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span style={{ fontSize: baseFontSize - 3, color: t.textMuted, marginLeft: 8 }}>({db.modelNames.length})</span></button>
-        <input data-wc="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} style={{ ...inputStyle, flex: 1, maxWidth: 280 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span data-wc="db-layouts-label" style={{ fontSize: baseFontSize - 3, color: t.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Layouts</span>
+      <header data-wc="db-header" className="db-header">
+        <button data-wc="db-model-picker" className="db-btn db-model-picker-btn"
+          onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
+          title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span className="db-model-count">({db.modelNames.length})</span></button>
+        <input data-wc="db-search" className="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} />
+        <div className="db-layout-bar">
+          <span data-wc="db-layouts-label" className="db-layout-label"
+            onClick={(e) => {
+              if (e.shiftKey && db.workbenchSettingId) {
+                window.open(`/wcapi/get/?model_name=setting&id=${db.workbenchSettingId}&format=json`, '_blank');
+              }
+            }}
+            title={db.workbenchSettingId ? `Setting #${db.workbenchSettingId} · Shift-click to inspect` : 'No setting loaded'}>
+            Layouts {db.workbenchSettingId ? `#${db.workbenchSettingId}` : ''}
+          </span>
           {db.savedViews.map((v) => (
-            <button key={v.name} onClick={(e) => { if (e.shiftKey) { db.deleteView(v.name); return; } db.loadView(v); }}
-              style={{ border: `1px solid ${db.activeViewName === v.name ? t.accent : t.borderLight}`, borderRadius: 3, padding: '2px 8px', fontSize: baseFontSize - 2, fontWeight: 600, cursor: 'pointer', background: db.activeViewName === v.name ? (theme === 'dark' ? '#094771' : '#cfe2ff') : t.btnBg, color: db.activeViewName === v.name ? t.accent : t.text }}
+            <button key={v.name} className={`db-layout-btn ${db.activeViewName === v.name ? 'db-layout-btn--active' : ''}`}
+              onClick={(e) => { if (e.shiftKey) { db.deleteView(v.name); return; } db.loadView(v); }}
               title="Click to load. Shift-click to delete.">{v.name}</button>
           ))}
-          <Btn t={t} small variant="save" onClick={() => { setShowSaveDialog(true); setSaveLayoutName(db.activeViewName || ''); }}>Save</Btn>
-          {db.activeViewName && <Btn t={t} small onClick={() => db.saveView(db.activeViewName!)}>Update</Btn>}
+          <Btn small variant="save" onClick={() => { setShowSaveDialog(true); setSaveLayoutName(db.activeViewName || ''); }}>Save</Btn>
+          {db.activeViewName && <Btn small onClick={() => db.saveView(db.activeViewName!)}>Update</Btn>}
+          <Btn small variant="ghost" onClick={() => db.resetLayout()} title="Reset to default layout">Reset</Btn>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button data-wc="db-font-size" onClick={cycleFontSize} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer', fontWeight: 700 }}>{fontSize}</button>
-          <button data-wc="db-theme-toggle" onClick={toggleTheme} style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: '3px 8px', fontSize: 11, color: t.textMuted, cursor: 'pointer' }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
+        <div className="db-header-right">
+          <button data-wc="db-font-size" className="db-font-toggle" onClick={cycleFontSize}>{fontSize}</button>
+          <button data-wc="db-theme-toggle" className="db-theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
         </div>
       </header>
 
       {/* Model picker */}
       {showModelPicker && (
-        <div style={{ padding: '8px 12px', background: t.surfaceAlt, borderBottom: `1px solid ${t.border}`, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 280 }}>
-            <input ref={modelInputRef} type="text" placeholder="Type to filter (begins with)..." value={modelFilterText}
+        <div className="db-model-picker-panel">
+          <div className="db-model-picker-col">
+            <input ref={modelInputRef} className="db-input" type="text" placeholder="Type to filter (begins with)..." value={modelFilterText}
               onChange={(e) => setModelFilterText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { setShowModelPicker(false); setModelFilterText(''); }
@@ -228,78 +271,74 @@ const AdminWorkbench: React.FC = () => {
                 if (e.key === 'ArrowUp') { e.preventDefault(); setModelHighlight((h) => Math.max(h - 1, 0)); }
                 if (e.key === 'Enter' && filteredModels.length) { db.handleSelectModel(filteredModels[modelHighlight]); setShowModelPicker(false); setModelFilterText(''); }
               }}
-              style={{ ...inputStyle, width: '100%' }} autoFocus />
-            <div ref={modelSelectRef as any} style={{ ...inputStyle, width: '100%', maxHeight: 240, overflowY: 'auto', padding: 0 }}>
+              autoFocus />
+            <div className="db-model-picker-list" ref={modelSelectRef as any}>
               {filteredModels.map((n, i) => (
                 <div key={n}
+                  className={`db-model-picker-item ${i === modelHighlight ? 'db-row--active' : n === db.selectedModel ? 'db-model-picker-item--current' : ''}`}
                   onClick={() => { db.handleSelectModel(n); setShowModelPicker(false); setModelFilterText(''); }}
                   onMouseEnter={() => setModelHighlight(i)}
-                  ref={i === modelHighlight ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
-                  style={{
-                    padding: '5px 10px', cursor: 'pointer', fontSize: baseFontSize - 1,
-                    background: i === modelHighlight ? (theme === 'dark' ? '#094771' : '#cfe2ff') : n === db.selectedModel ? (theme === 'dark' ? '#2d2d2d' : '#f1f3f5') : 'transparent',
-                    color: i === modelHighlight ? (theme === 'dark' ? '#fff' : '#000') : t.text,
-                    fontWeight: n === db.selectedModel ? 700 : 400,
-                  }}>
+                  ref={i === modelHighlight ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}>
                   {n}
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: baseFontSize - 3, color: t.textMuted }}>{filteredModels.length}/{db.modelNames.length} · Cmd/Ctrl+Shift+M</div>
+            <div className="db-model-count">{filteredModels.length}/{db.modelNames.length} · Cmd/Ctrl+Shift+M</div>
           </div>
         </div>
       )}
 
       {/* Save layout */}
       {showSaveDialog && (
-        <div style={{ padding: '10px 12px', background: theme === 'dark' ? '#2a3000' : '#fff8e1', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: baseFontSize, fontWeight: 600 }}>Save Layout:</span>
-          <input type="text" value={saveLayoutName} onChange={(e) => setSaveLayoutName(e.target.value)}
+        <div className="db-save-dialog-bar">
+          <span className="db-save-dialog-label">Save Layout:</span>
+          <input className="db-input db-save-dialog-input" type="text" value={saveLayoutName} onChange={(e) => setSaveLayoutName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && saveLayoutName.trim()) { db.saveView(saveLayoutName); setShowSaveDialog(false); } if (e.key === 'Escape') setShowSaveDialog(false); }}
-            style={{ ...inputStyle, flex: 1, maxWidth: 250 }} autoFocus placeholder="Layout name..." />
-          <Btn t={t} variant="save" small onClick={() => { db.saveView(saveLayoutName); setShowSaveDialog(false); }} disabled={!saveLayoutName.trim()}>Save</Btn>
-          <Btn t={t} small onClick={() => setShowSaveDialog(false)}>Cancel</Btn>
+            autoFocus placeholder="Layout name..." />
+          <Btn variant="save" small onClick={() => { db.saveView(saveLayoutName); setShowSaveDialog(false); }} disabled={!saveLayoutName.trim()}>Save</Btn>
+          <Btn small onClick={() => setShowSaveDialog(false)}>Cancel</Btn>
         </div>
       )}
 
       {/* Field config replaced by List Order / Form Order dialogs */}
 
       {/* ═══ Two-pane body ═══ */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="db-main">
 
         {/* List pane */}
-        <div data-wc="db-list-pane" style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${t.border}`, minWidth: 0 }}>
+        <div data-wc="db-list-pane" className="db-list-pane">
           {/* List toolbar */}
-          <div data-wc="db-list-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', background: t.surfaceAlt, borderBottom: `1px solid ${t.border}`, fontSize: baseFontSize - 2, color: t.textMuted }}>
-            <Btn t={t} small variant="ghost" onClick={() => {
+          <div data-wc="db-list-toolbar" className="db-list-toolbar">
+            <Btn small variant="ghost" onClick={() => {
               dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
               setShowLayoutDialog('list');
             }}>List Order</Btn>
-            <span style={{ color: t.textDim }}>|</span>
-            <Btn t={t} small variant="ghost" onClick={() => setShowReportsDialog('list')}>Reports</Btn>
-            <Btn t={t} small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
-            <span style={{ color: t.textDim }}>|</span>
-            <Btn t={t} small variant={showFilters ? 'primary' : 'ghost'} onClick={() => setShowFilters(!showFilters)}>Filter</Btn>
-            <Btn t={t} small variant={showDupes ? 'save' : 'ghost'} onClick={() => setShowDupes(!showDupes)}>Dupes</Btn>
-            <span style={{ color: t.textDim }}>|</span>
-            <Btn t={t} small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
-            <Btn t={t} small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
-            <Btn t={t} small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
-            <Btn t={t} small variant={db.subsetMode === 'omit' ? 'danger' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')}>Omit</Btn>
-            {db.subsetMode !== 'all' && <Btn t={t} small variant="ghost" onClick={() => db.setSubsetMode('all')}>All</Btn>}
-            <span style={{ flex: 1 }} />
-            <span>{db.totalRecords}</span>
-            <Btn t={t} small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
-            <span>{db.page + 1}/{db.totalPages}</span>
-            <Btn t={t} small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
+            <span className="db-separator">|</span>
+            <Btn small variant="ghost" onClick={() => setShowReportsDialog('list')}>Reports</Btn>
+            <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
+            <span className="db-separator">|</span>
+            <Btn small variant={showFilters ? 'primary' : 'ghost'} onClick={() => setShowFilters(!showFilters)}>Filter</Btn>
+            <Btn small variant={showDupes ? 'save' : 'ghost'} onClick={() => setShowDupes(!showDupes)}>Dupes</Btn>
+            <span className="db-separator">|</span>
+            <Btn small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
+            <Btn small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
+            <Btn small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
+            <Btn small variant={db.subsetMode === 'omit' ? 'danger' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')}>Omit</Btn>
+            {db.subsetMode !== 'all' && <Btn small variant="ghost" onClick={() => db.setSubsetMode('all')}>All</Btn>}
+            <span className="db-spacer" />
+            <span className="db-pagination-info">{db.totalRecords}</span>
+            <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
+            <span className="db-pagination-info">{db.page + 1}/{db.totalPages}</span>
+            <Btn small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
           </div>
-          {db.recordsLoading && <div style={{ padding: 16, color: t.textMuted }}>Loading...</div>}
-          {db.recordsError && <div style={{ padding: 16, color: t.accentRed }}>{db.recordsError}</div>}
+          {db.recordsLoading && <div className="db-status-msg">Loading...</div>}
+          {db.recordsError && <div className="db-status-msg db-status-msg--error">{db.recordsError}</div>}
           {!db.recordsLoading && (
             <DataGrid
               records={db.displayRecords}
               columns={db.visibleListFields}
               colWidths={{ ...db.specWidths, ...db.colWidths }}
+              fieldSpecs={fieldSpecsMap}
               fieldBehaviors={db.fieldBehaviors}
               selectedId={db.selectedId}
               selectedRowIds={db.selectedRowIds}
@@ -316,7 +355,6 @@ const AdminWorkbench: React.FC = () => {
               onColumnDrop={db.handleColumnDrop}
               onResizeStart={db.handleResizeStart}
               onCellEdit={async (rid, field, value) => {
-                // Inline edit → save via wcapi
                 try {
                   const { saveRecord } = await import('@/api/wcapi');
                   await saveRecord(db.selectedModel, { id: rid, [field]: value });
@@ -326,39 +364,49 @@ const AdminWorkbench: React.FC = () => {
               numId={numId}
               theme={t}
               fontSize={baseFontSize}
+              /* Column context menu — wc2 right-click pattern */
+              allFields={db.allFields}
+              namedViews={db.savedViews}
+              onDeleteColumn={handleDeleteColumn}
+              onAddColumn={handleAddColumn}
+              onSaveLayout={handleSaveLayout}
+              onSaveLayoutAs={handleSaveLayoutAs}
+              onLoadView={handleLoadView}
             />
           )}
         </div>
 
         {/* Detail pane — collapsed when no record selected */}
         {db.selectedRecord && (
-        <div data-wc="db-detail-pane" style={{ width: '42%', minWidth: 320, maxWidth: 600, display: 'flex', flexDirection: 'column', background: t.surface, borderLeft: `1px solid ${t.border}` }}>
+        <div data-wc="db-detail-pane" className="db-detail-pane">
           {/* Detail toolbar */}
-          <div data-wc="db-detail-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt, fontSize: baseFontSize - 2 }}>
-            <span style={{ fontWeight: 700, color: t.accent }}>{db.modelLabel}</span>
-            {db.selectedId && <span style={{ color: t.textMuted }}>#{db.selectedId}</span>}
-            {db.isDirty && <span style={{ fontSize: 10, fontWeight: 700, color: t.accentGold, padding: '1px 5px', background: theme === 'dark' ? '#3a3a1a' : '#fff3cd', borderRadius: 3 }}>UNSAVED</span>}
-            <span style={{ flex: 1 }} />
-            <Btn t={t} small variant="ghost" onClick={() => setShowReportsDialog('detail')}>Reports</Btn>
-            <Btn t={t} small variant="ghost" onClick={() => setShowRelatedDialog('detail')}>Related</Btn>
-            <span style={{ color: t.textDim }}>|</span>
-            <Btn t={t} small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
-            <Btn t={t} small variant="ghost" onClick={() => {
+          <div data-wc="db-detail-toolbar" className="db-list-toolbar">
+            <span className="db-detail-model-label">{db.modelLabel}</span>
+            {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
+            {db.isDirty && <span className="db-unsaved-badge">UNSAVED</span>}
+            <span className="db-spacer" />
+            <Btn small variant="ghost" onClick={() => setShowReportsDialog('detail')}>Reports</Btn>
+            <Btn small variant="ghost" onClick={() => setShowRelatedDialog('detail')}>Related</Btn>
+            <span className="db-separator">|</span>
+            <Btn small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
+            <Btn small variant="ghost" onClick={() => {
               dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
               setShowLayoutDialog('detail');
             }}>Form Order</Btn>
-            <Btn t={t} variant="primary" small onClick={db.handleSaveRecord} disabled={!db.selectedRecord}>Save</Btn>
-            <Btn t={t} variant="danger" small disabled={!db.selectedRecord || !db.selectedId} onClick={db.handleDeleteRecord}>Delete</Btn>
+            <Btn variant="primary" small onClick={db.handleSaveRecord} disabled={!db.selectedRecord}>Save</Btn>
+            <Btn variant="danger" small disabled={!db.selectedRecord || !db.selectedId} onClick={db.handleDeleteRecord}>Delete</Btn>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+          <div className="db-detail-body">
             {db.selectedRecord ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="db-detail-grid">
                 {db.visibleDetailFields
                   .filter((f) => Object.prototype.hasOwnProperty.call(db.selectedRecord!, f))
                   .map((f) => (
                     <BehaviorField key={f} name={f} value={db.selectedRecord![f]} behavior={db.fieldBehaviors[f] || {}}
                       onChange={(v) => db.updateField(f, v)} record={db.selectedRecord as Record<string, unknown>}
-                      fontSize={baseFontSize} theme={t} rowSize={db.detailRowSizes[f]} />
+                      fontSize={baseFontSize} theme={t} rowSize={db.detailRowSizes[f]}
+                      typeHint={db.detailFieldSpecs.find(s => s.field === f)?.typeHint}
+                      error={db.validationErrors[f]} />
                   ))}
               </div>
             ) : null}
@@ -397,7 +445,7 @@ const AdminWorkbench: React.FC = () => {
         visibleFields={showLayoutDialog === 'detail' ? db.visibleDetailFields : db.visibleListFields}
         fieldBehaviors={db.fieldBehaviors}
         rowSizes={db.detailRowSizes}
-        colWidths={db.colWidths}
+        colWidths={{ ...db.specWidths, ...db.colWidths }}
         savedLayouts={db.savedViews}
         activeLayoutName={db.activeViewName}
         theme={theme}

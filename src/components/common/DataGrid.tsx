@@ -58,6 +58,7 @@ export interface DataGridProps {
   columns?: string[];                    // field names (simple mode)
   richColumns?: RichColumn[];            // rich column defs (optional, overrides simple)
   colWidths?: Record<string, number>;
+  fieldSpecs?: Record<string, import('@/hooks/useDataBrowser').FieldSpec>;  // per-field formatting
   fieldBehaviors?: Record<string, any>;
   selectedId?: number | null;
   selectedRowIds?: Set<number>;
@@ -76,6 +77,15 @@ export interface DataGridProps {
   numId?: (v: unknown) => number | null;
   theme?: any; // theme tokens
   fontSize?: number;
+
+  // --- Column context menu (wc2 right-click pattern) ---
+  allFields?: string[];                  // all available fields for "Add Column" submenu
+  namedViews?: Array<{ name: string }>;  // named views for quick switching
+  onDeleteColumn?: (field: string) => void;
+  onAddColumn?: (field: string, atIndex: number) => void;
+  onSaveLayout?: () => void;
+  onSaveLayoutAs?: () => void;
+  onLoadView?: (viewName: string) => void;
 
   // --- List-page convenience props (auto-managed state) ---
   /** Alias for records — pass data here for backward compat */
@@ -121,6 +131,12 @@ export interface DataGridProps {
   externalShowFilters?: boolean;
   /** External control of dupes visibility */
   externalShowDupes?: boolean;
+
+  // --- Tree/hierarchy support (BOM, org charts, category trees) ---
+  treeColumn?: string;        // which column gets indent + expand/collapse chevron
+  levelField?: string;        // data field carrying the depth number (e.g., 'level')
+  childFlag?: string;         // data field indicating row has children (e.g., 'is_subassembly')
+  treeIndent?: number;        // px per level (default 20)
 
   // --- Ignored props (accepted but unused, for backward compat during migration) ---
   title?: string;
@@ -277,9 +293,14 @@ export default function DataGrid(props: DataGridProps) {
   const richColumns = props.richColumns ?? mappedColumns?.richColumns;
   const colWidths = props.colWidths ?? mappedColumns?.colWidths ?? {};
   const fieldBehaviors = props.fieldBehaviors ?? {};
+  const fieldSpecs = props.fieldSpecs ?? {};
   const numId = props.numId ?? _numId;
   const t = props.theme ?? DEFAULT_THEME;
   const fontSize = props.fontSize ?? 13;
+
+  // --- Column context menu state ---
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; field: string; colIdx: number } | null>(null);
+  const [contextSubmenu, setContextSubmenu] = useState<'add' | 'views' | null>(null);
 
   // --- Self-managed state for convenience mode ---
   const [selfSort, setSelfSort] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
@@ -411,6 +432,39 @@ export default function DataGrid(props: DataGridProps) {
   // --- Grouping ---
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
+  // --- Tree / hierarchy state ---
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<number>>(new Set());
+  const treeColumn = props.treeColumn || null;
+  const levelField = props.levelField || 'level';
+  const childFlag = props.childFlag || 'is_subassembly';
+  const treeIndent = props.treeIndent || 20;
+
+  const toggleTreeNode = useCallback((rowIdx: number) => {
+    setCollapsedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowIdx)) next.delete(rowIdx); else next.add(rowIdx);
+      return next;
+    });
+  }, []);
+
+  // Filter out rows hidden by collapsed parents
+  const treeFilteredRecords = useMemo(() => {
+    if (!treeColumn) return null; // not in tree mode
+    const result: Array<{ rec: any; originalIdx: number }> = [];
+    let skipBelow = -1; // skip rows deeper than this level
+    for (let i = 0; i < records.length; i++) {
+      const level = Number(records[i][levelField] ?? 0);
+      if (skipBelow >= 0 && level > skipBelow) continue;
+      skipBelow = -1; // reset skip
+      result.push({ rec: records[i], originalIdx: i });
+      // If this node is collapsed and has children, skip its descendants
+      if (collapsedNodes.has(i) && records[i][childFlag]) {
+        skipBelow = level;
+      }
+    }
+    return result;
+  }, [treeColumn, records, levelField, childFlag, collapsedNodes]);
+
   // --- Duplicate detection ---
   const [showDupes, setShowDupes] = useState(props.externalShowDupes ?? false);
   const dupeIds = useMemo(() => showDupes ? detectDuplicates(records, columns) : new Set<number>(), [showDupes, records, columns]);
@@ -541,8 +595,37 @@ export default function DataGrid(props: DataGridProps) {
       );
     }
 
-    const display = typeof v === 'object' && v !== null ? JSON.stringify(v).slice(0, 50) : String(v ?? '');
-    return display;
+    // Format based on FieldSpec
+    const spec = fieldSpecs[field];
+    if (v == null || v === '') return '';
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      // Multilingual or keyed object — show best display value
+      // Priority: user language (en) → first string value → JSON fallback
+      const lang = (navigator.language || 'en').slice(0, 2);
+      if (v[lang]) return String(v[lang]);
+      if (v['en']) return String(v['en']);
+      const firstVal = Object.values(v).find(x => typeof x === 'string');
+      if (firstVal) return String(firstVal);
+      return JSON.stringify(v).slice(0, 50);
+    }
+    if (Array.isArray(v)) return JSON.stringify(v).slice(0, 50);
+    if (spec?.format === 'currency' && typeof v === 'number') {
+      return v.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+    }
+    if (spec?.format === 'percent' && typeof v === 'number') {
+      return (v >= 1 ? v : v * 100).toFixed(1) + '%';
+    }
+    if (spec?.format === 'date' && v) {
+      try { return new Date(v).toLocaleDateString(); } catch { return String(v); }
+    }
+    if (spec?.format === 'number' && typeof v === 'number') {
+      return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+    if (spec?.format === 'phone' && typeof v === 'string' && v.replace(/\D/g, '').length >= 10) {
+      const d = v.replace(/\D/g, '');
+      return `(${d.slice(-10, -7)}) ${d.slice(-7, -4)}-${d.slice(-4)}`;
+    }
+    return String(v);
   };
 
   // --- Row click handler: plain=select+check, shift=range, ctrl/cmd=toggle ---
@@ -574,9 +657,12 @@ export default function DataGrid(props: DataGridProps) {
     lastClickedIdx.current = rowIdx;
   }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
 
-  // --- Auto-justify: strings left, numbers right, dates center, booleans center ---
+  // --- Auto-justify: FieldSpec > fieldBehaviors > name inference > data inference ---
   const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
-    // Check field behaviors first
+    // FieldSpec align wins (user-saved or smart default)
+    const spec = fieldSpecs[field];
+    if (spec?.align) return spec.align;
+    // Check field behaviors next
     const beh = fieldBehaviors[field];
     if (beh?.type === 'text' || beh?.type === 'email' || beh?.type === 'phone' || beh?.type === 'address' || beh?.type === 'select' || beh?.type === 'lookup' || beh?.type === 'textarea' || beh?.type === 'json' || beh?.type === 'readonly' || beh?.type === 'url') return 'left';
     if (beh?.type === 'currency' || beh?.type === 'number') return 'right';
@@ -604,13 +690,19 @@ export default function DataGrid(props: DataGridProps) {
   }, [fieldBehaviors, records]);
 
   // --- Render a block of rows (used by both flat and grouped) ---
-  const renderRows = (rows: any[]) =>
+  const renderRows = (rows: any[], treeOriginalIndices?: number[]) =>
     rows.map((rec, idx) => {
       const rid = numId(rec.id);
       const isActive = rid !== null && selectedId === rid;
       const isChecked = rid !== null && selectedRowIds.has(rid);
       const isDupe = rid !== null && dupeIds.has(rid);
       const ruleStyle = getRowStyle(rec);
+
+      // Tree state for this row
+      const rowLevel = treeColumn ? Number(rec[levelField] ?? 0) : 0;
+      const rowHasChildren = treeColumn ? !!rec[childFlag] : false;
+      const originalIdx = treeOriginalIndices ? treeOriginalIndices[idx] : idx;
+      const isCollapsed = collapsedNodes.has(originalIdx);
 
       return (
         <tr key={rid ?? `r-${idx}`} data-rid={rid}
@@ -630,18 +722,41 @@ export default function DataGrid(props: DataGridProps) {
           <td style={{ padding: '4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
             <input type="checkbox" checked={isChecked} onChange={(e) => { e.stopPropagation(); if (rid !== null) handleToggleRow(rid); }} />
           </td>
-          {columns.map((f, ci) => (
+          {columns.map((f, ci) => {
+            const spec = fieldSpecs[f];
+            const doWrap = spec?.wrap === true;
+            const isTreeCol = treeColumn && f === treeColumn;
+            return (
             <td key={f}
               style={{
-                padding: '4px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                padding: '4px 8px', overflow: 'hidden',
+                textOverflow: doWrap ? undefined : 'ellipsis',
+                whiteSpace: doWrap ? 'normal' : 'nowrap',
+                wordBreak: doWrap ? 'break-word' : undefined,
                 textAlign: getAlign(f),
+                paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
                 ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
               title={String(rec[f] ?? '')}
-            >{renderCell(rec, f, rid)}</td>
-          ))}
+            >
+              {isTreeCol ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {rowHasChildren ? (
+                    <span style={{ cursor: 'pointer', userSelect: 'none', width: 12, display: 'inline-block' }}
+                      onClick={(e) => { e.stopPropagation(); toggleTreeNode(originalIdx); }}>
+                      {isCollapsed ? '▶' : '▼'}
+                    </span>
+                  ) : (
+                    <span style={{ width: 12, display: 'inline-block', textAlign: 'center', color: t.textDim }}>·</span>
+                  )}
+                  {renderCell(rec, f, rid)}
+                </span>
+              ) : renderCell(rec, f, rid)}
+            </td>
+            );
+          })}
         </tr>
       );
     });
@@ -757,16 +872,23 @@ export default function DataGrid(props: DataGridProps) {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
                     onClick={(e) => handleSort(f, e.ctrlKey || e.metaKey)}
-                    title="Click to sort · Ctrl-click for multi-sort · Shift-drag to reorder"
+                    onContextMenu={(e) => {
+                      if (props.onDeleteColumn || props.onSaveLayout) {
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY, field: f, colIdx: ci });
+                        setContextSubmenu(null);
+                      }
+                    }}
+                    title="Click to sort · Ctrl-click for multi-sort · Shift-drag to reorder · Right-click for column menu"
                   >
                     {f}
                     {sortDir && <span style={{ marginLeft: 4, color: t.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     {sortIdx >= 0 && <span style={{ marginLeft: 2, fontSize: 9, color: t.accent }}>({sortIdx + 1})</span>}
                     <span
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, cursor: 'col-resize' }}
+                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, cursor: 'col-resize', background: t.borderLight }}
                       onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
                       onMouseEnter={(e) => { (e.target as HTMLElement).style.background = t.resizeHandle; }}
-                      onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
+                      onMouseLeave={(e) => { (e.target as HTMLElement).style.background = t.borderLight; }}
                     />
                   </th>
                 );
@@ -820,6 +942,11 @@ export default function DataGrid(props: DataGridProps) {
                   </React.Fragment>
                 );
               })
+            ) : treeFilteredRecords ? (
+              renderRows(
+                treeFilteredRecords.map((t) => t.rec),
+                treeFilteredRecords.map((t) => t.originalIdx)
+              )
             ) : (
               renderRows(filteredRecords)
             )}
@@ -854,6 +981,94 @@ export default function DataGrid(props: DataGridProps) {
           </div>
         )}
       </div>
+
+      {/* Column context menu — wc2 right-click pattern */}
+      {contextMenu && (
+        <>
+          {/* Backdrop to close */}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={() => { setContextMenu(null); setContextSubmenu(null); }} />
+          <div style={{
+            position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999,
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 180, padding: '4px 0',
+            fontSize: fontSize - 1, color: t.text,
+          }}>
+            {/* Delete Column */}
+            {props.onDeleteColumn && (
+              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
+                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
+                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                onClick={() => { props.onDeleteColumn!(contextMenu.field); setContextMenu(null); }}>
+                Delete Column
+              </div>
+            )}
+            {/* Add Column submenu */}
+            {props.onAddColumn && props.allFields && (
+              <div style={{ padding: '6px 14px', cursor: 'pointer', position: 'relative' }}
+                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu('add'); }}
+                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}>
+                Add Column ▸
+                {contextSubmenu === 'add' && (
+                  <div style={{
+                    position: 'absolute', left: '100%', top: 0,
+                    background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 160, maxHeight: 300,
+                    overflowY: 'auto', padding: '4px 0',
+                  }}>
+                    {(props.allFields || [])
+                      .filter((af) => !columns.includes(af))
+                      .sort()
+                      .map((af) => (
+                        <div key={af} style={{ padding: '4px 12px', cursor: 'pointer' }}
+                          onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; }}
+                          onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                          onClick={() => { props.onAddColumn!(af, contextMenu.colIdx + 1); setContextMenu(null); }}>
+                          {af}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Separator */}
+            {(props.onDeleteColumn || props.onAddColumn) && (props.onSaveLayout || props.onSaveLayoutAs) && (
+              <div style={{ borderTop: `1px solid ${t.borderLight}`, margin: '4px 0' }} />
+            )}
+            {/* Save / Save As */}
+            {props.onSaveLayout && (
+              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
+                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
+                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                onClick={() => { props.onSaveLayout!(); setContextMenu(null); }}>
+                Save Layout
+              </div>
+            )}
+            {props.onSaveLayoutAs && (
+              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
+                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
+                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                onClick={() => { props.onSaveLayoutAs!(); setContextMenu(null); }}>
+                Save As New…
+              </div>
+            )}
+            {/* Named views */}
+            {props.namedViews && props.namedViews.length > 0 && props.onLoadView && (
+              <>
+                <div style={{ borderTop: `1px solid ${t.borderLight}`, margin: '4px 0' }} />
+                {props.namedViews.map((v) => (
+                  <div key={v.name} style={{ padding: '6px 14px', cursor: 'pointer' }}
+                    onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
+                    onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                    onClick={() => { props.onLoadView!(v.name); setContextMenu(null); }}>
+                    {v.name}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
