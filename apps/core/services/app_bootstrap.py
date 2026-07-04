@@ -10,14 +10,54 @@ from __future__ import annotations
 from django.apps import apps as dj_apps
 
 
+def get_bootstrap_dt() -> int:
+    """Return the timestamp of last admin change to defaults/lists/config.
+
+    React checks this on a lightweight poll. If it's newer than the cached
+    dt, React calls get_app_bootstrap() to refresh.
+
+    Updated by touch_bootstrap() whenever an admin changes defaults,
+    select lists, company profile, terms, jurisdictions, etc.
+    """
+    Setting = dj_apps.get_model('core', 'Setting')
+    try:
+        s = Setting.objects.filter(purpose='db_defaults', parent_model='setting', name='bootstrap_version').first()
+        if s and isinstance(s.config, dict):
+            return s.config.get('dt_changed', 0)
+    except Exception:
+        pass
+    return 0
+
+
+def touch_bootstrap() -> int:
+    """Stamp the bootstrap with current time. Call after any admin change.
+
+    React polls get_bootstrap_dt() and refreshes when dt_changed is newer
+    than what it has cached.
+    """
+    import time
+    Setting = dj_apps.get_model('core', 'Setting')
+    now_ms = int(time.time() * 1000)
+    s, _ = Setting.objects.get_or_create(
+        purpose='db_defaults', parent_model='setting', name='bootstrap_version',
+        defaults={'ida': 'bootstrap-dt', 'config': {'dt_changed': now_ms}},
+    )
+    config = s.config or {}
+    config['dt_changed'] = now_ms
+    s.config = config
+    s.save(update_fields=['config'])
+    return now_ms
+
+
 def get_app_bootstrap() -> dict:
     """Gather all startup data React needs in one call.
 
     Returns:
         {company, select_lists, payment_terms, tax_jurisdictions,
-         warehouses, campaigns, defaults}
+         warehouses, campaigns, defaults, dt_changed}
     """
     return {
+        'dt_changed': get_bootstrap_dt(),
         'company': _get_company_profile(),
         'select_lists': _get_select_lists(),
         'payment_terms': _get_payment_terms(),
