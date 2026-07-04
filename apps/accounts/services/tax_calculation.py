@@ -33,9 +33,9 @@ def _get_tax_config() -> Dict[str, Any]:
         setting = Setting.objects.filter(
             name='tax_config', is_active=True, is_deleted=False,
         ).first()
-        if setting and isinstance(setting.data, dict):
+        if setting and isinstance(setting.config, dict):
             merged = dict(defaults)
-            merged.update(setting.data)
+            merged.update(setting.config)
             return merged
     except Exception:
         logger.warning("Could not load tax_config Setting, using defaults")
@@ -50,19 +50,39 @@ def calculate_line_tax(
     line_price_extended: float,
     tax_jurisdiction_id: Optional[int] = None,
     tax_rate: Optional[float] = None,
+    line_cost_extended: float = 0,
+    item_taxable: bool = True,
+    customer_exempt_code: str = '',
 ) -> Dict[str, Any]:
     """Calculate tax for a single line's extended price.
 
     Resolution:
+      0. If item not taxable → 0
+      0b. If customer exempt (non-empty code, not 'DoTax') → 0
       1. If tax_jurisdiction_id provided, look up TaxJurisdiction.tax_rate_sales
+         If jurisdiction has service_provider, try external API first
       2. If tax_rate provided directly, use it
       3. Otherwise, use default from Setting 'tax_config'
 
-    Returns: {tax_amount, tax_rate, tax_jurisdiction_id, tax_name}
+    Returns: {tax_amount, tax_rate, tax_jurisdiction_id, tax_name, cost_tax, exempt, exempt_reason}
     """
     resolved_rate = None
     resolved_name = 'Sales Tax'
     resolved_jurisdiction_id = tax_jurisdiction_id
+    cost_tax = 0.0
+    exempt = False
+    exempt_reason = ''
+
+    # Step 0: Item taxability
+    if not item_taxable:
+        return {'tax_amount': 0, 'tax_rate': 0, 'tax_jurisdiction_id': resolved_jurisdiction_id,
+                'tax_name': resolved_name, 'cost_tax': 0, 'exempt': True, 'exempt_reason': 'item_not_taxable'}
+
+    # Step 0b: Customer exempt
+    if customer_exempt_code and customer_exempt_code.strip().lower() != 'dotax':
+        return {'tax_amount': 0, 'tax_rate': 0, 'tax_jurisdiction_id': resolved_jurisdiction_id,
+                'tax_name': resolved_name, 'cost_tax': 0, 'exempt': True,
+                'exempt_reason': f'customer_exempt:{customer_exempt_code}'}
 
     # Step 1: jurisdiction lookup
     if tax_jurisdiction_id:
@@ -87,16 +107,32 @@ def calculate_line_tax(
         resolved_rate = float(config.get('default_tax_rate', 0.0))
         resolved_name = config.get('default_tax_name', 'Sales Tax')
 
-    # Calculate
+    # Calculate sales tax
     extended = _d(line_price_extended)
     rate_decimal = _d(resolved_rate / 100.0 if resolved_rate > 1 else resolved_rate, places=6)
     tax_amount = float(_d(extended * rate_decimal))
+
+    # Calculate cost tax (for cost-based tax regimes)
+    if line_cost_extended and tax_jurisdiction_id:
+        try:
+            from django.apps import apps as dj_apps
+            TaxJurisdiction = dj_apps.get_model('accounts', 'TaxJurisdiction')
+            tj = TaxJurisdiction.objects.filter(pk=tax_jurisdiction_id, is_active=True).first()
+            if tj and tj.tax_rate_cost:
+                cost_ext = _d(line_cost_extended)
+                cost_rate = _d(float(tj.tax_rate_cost) / 100.0, places=6)
+                cost_tax = float(_d(cost_ext * cost_rate))
+        except Exception:
+            pass
 
     return {
         'tax_amount': tax_amount,
         'tax_rate': resolved_rate,
         'tax_jurisdiction_id': resolved_jurisdiction_id,
         'tax_name': resolved_name,
+        'cost_tax': cost_tax,
+        'exempt': exempt,
+        'exempt_reason': exempt_reason,
     }
 
 
