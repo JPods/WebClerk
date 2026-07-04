@@ -117,6 +117,7 @@ class BOMExpandTreeView(APIView):
             OpenApiParameter(name='qty', description='Build quantity (default 1)', required=False, type=float),
             OpenApiParameter(name='as_of', description='Date (YYYY-MM-DD) for effective window', required=False, type=str),
             OpenApiParameter(name='revision', description='Revision code', required=False, type=str),
+            OpenApiParameter(name='cost_basis', description='Cost basis: avg, last, min, landed (default avg)', required=False, type=str),
         ],
     )
     def get(self, request, parent_id: int):
@@ -125,6 +126,9 @@ class BOMExpandTreeView(APIView):
         qty = Decimal(str(request.query_params.get('qty', '1')))
         as_of_str = request.query_params.get('as_of')
         revision = request.query_params.get('revision')
+        cost_basis = request.query_params.get('cost_basis', 'avg')
+        if cost_basis not in ('avg', 'last', 'min', 'landed'):
+            cost_basis = 'avg'
         as_of_date = None
         if as_of_str:
             try:
@@ -132,7 +136,7 @@ class BOMExpandTreeView(APIView):
             except ValueError:
                 return api_response(success=False, status_code=400, message='Invalid as_of format')
 
-        rows = bom_services.expand_tree(parent_id, qty, as_of=as_of_date, revision=revision)
+        rows = bom_services.expand_tree(parent_id, qty, as_of=as_of_date, revision=revision, cost_basis=cost_basis)
         data = [{
             'item_id': r.item_id,
             'item_ida': r.item_ida,

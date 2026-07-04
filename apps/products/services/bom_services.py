@@ -89,11 +89,18 @@ def expand_tree(
     as_of: date | None = None,
     revision: str | None = None,
     max_depth: int = 20,
+    cost_basis: str = 'avg',
 ) -> list[BOMTreeRow]:
     """BFS expansion of BOM into a flat list with level tracking.
 
     Each row carries: item info, level depth, qty_plan (per parent unit),
     qty_actual (total needed for the build), and cost fields.
+
+    cost_basis: which cost to use for extended calculation:
+      'avg'  — weighted average (accounting, default)
+      'last' — most recent receipt (market/current)
+      'min'  — minimum of avg and last (conservative quoting)
+      'landed' — landed cost including freight/duty
     """
     rows: list[BOMTreeRow] = []
     queue: deque[tuple[int, int, Decimal]] = deque()  # (parent_id, level, cumulative_qty)
@@ -120,6 +127,18 @@ def expand_tree(
                 cost_avg = Decimal(str(child_cost.get('avg') or 0))
                 cost_last = Decimal(str(child_cost.get('last') or child_cost.get('landed') or 0))
 
+            # Select cost for extended calculation based on cost_basis
+            if cost_basis == 'last' and cost_last > 0:
+                use_cost = cost_last
+            elif cost_basis == 'min':
+                candidates = [c for c in (cost_avg, cost_last) if c > 0]
+                use_cost = min(candidates) if candidates else cost_avg
+            elif cost_basis == 'landed':
+                landed = Decimal(str((child_cost or {}).get('landed') or 0))
+                use_cost = landed if landed > 0 else cost_avg
+            else:
+                use_cost = cost_avg
+
             row = BOMTreeRow(
                 item_id=line.child_item_id,
                 item_ida=line.child_ida or str(line.child_item_id),
@@ -129,7 +148,7 @@ def expand_tree(
                 qty_actual=qty_actual,
                 cost_avg=cost_avg,
                 cost_last=cost_last,
-                cost_extended=qty_plan * cost_avg,
+                cost_extended=qty_plan * use_cost,
                 scrap_factor=line.scrap_factor,
                 is_subassembly=has_children,
             )
