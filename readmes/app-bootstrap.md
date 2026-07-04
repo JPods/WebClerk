@@ -80,6 +80,23 @@ bootstrap.refresh(true);
 
 ---
 
+## Admin Change Detection (dt_changed flag)
+
+When an admin changes any default, select list, company profile, term, or jurisdiction:
+
+```
+Admin saves a Setting record
+  → call touch_bootstrap()              — stamps dt_changed = now (epoch ms)
+  → React polls get_bootstrap_dt every 60s
+  → server dt_changed > cached dt_changed?
+    → yes: auto-refresh all bootstrap data
+    → no:  do nothing
+```
+
+No manual refresh needed. No page reload. Dropdowns update within 60 seconds of any admin change.
+
+`touch_bootstrap()` should be called from any admin save path that modifies defaults or select lists.
+
 ## Offline / Fast Reload
 
 Bootstrap data cached in localStorage. If the server is unreachable, React uses the cached version with a warning. On fast page reload, cached data shows immediately while fresh data loads in background.
