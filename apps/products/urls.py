@@ -1,8 +1,13 @@
-"""Products app URLs for BOM and inventory views."""
+"""Products app URLs for BOM, serial, and inventory views."""
 from django.urls import path
 from apps.products.views.bom_views import (
     BOMListCreateView, BOMDetailView, BOMRecalcCostView,
     BOMExpandTreeView, BOMConsumeView, BOMWhereUsedView, BOMPropagateCostView,
+)
+from apps.products.views.serial_views import (
+    SerialListByItemView, SerialReceiveView, SerialIssueView, SerialReturnView,
+    SerialReferenceView, SerialHistoryView, SerialSearchView, SerialWarrantyView,
+    SerialStatusChangeView,
 )
 
 app_name = 'products'
@@ -16,4 +21,15 @@ urlpatterns = [
     path('items/<int:item_id>/bom/where-used/', BOMWhereUsedView.as_view(), name='bom-where-used'),
     path('items/<int:item_id>/bom/propagate-cost/', BOMPropagateCostView.as_view(), name='bom-propagate-cost'),
     path('bom/<int:pk>/', BOMDetailView.as_view(), name='bom-detail'),
+
+    # Serial endpoints
+    path('items/<int:item_id>/serials/', SerialListByItemView.as_view(), name='serial-list-by-item'),
+    path('items/<int:item_id>/serials/receive/', SerialReceiveView.as_view(), name='serial-receive'),
+    path('items/<int:item_id>/serials/reference/', SerialReferenceView.as_view(), name='serial-reference'),
+    path('serials/search/', SerialSearchView.as_view(), name='serial-search'),
+    path('serials/warranty/', SerialWarrantyView.as_view(), name='serial-warranty'),
+    path('serials/<int:serial_id>/issue/', SerialIssueView.as_view(), name='serial-issue'),
+    path('serials/<int:serial_id>/return/', SerialReturnView.as_view(), name='serial-return'),
+    path('serials/<int:serial_id>/history/', SerialHistoryView.as_view(), name='serial-history'),
+    path('serials/<int:serial_id>/status/', SerialStatusChangeView.as_view(), name='serial-status'),
 ]
