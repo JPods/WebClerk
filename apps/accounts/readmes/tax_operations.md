@@ -25,22 +25,21 @@ Local: ext_price × tax_rate_sales / 100
 
 ---
 
-## Customer Tax Fields (in OrgBase.financial JSON)
+## Customer Tax Fields (real fields on OrgBase)
 
-```json
-{
-  "tax": {
-    "jurisdiction_id": 5,
-    "exempt_code": "",
-    "exempt_expiry": null
-  }
-}
+```
+OrgBase
+  ├── tax_jurisdiction FK  → TaxJurisdiction (drives the rate on all transactions)
+  └── tax_exempt_code      → CharField: empty=taxable, certificate#=exempt, 'DoTax'=force taxable
 ```
 
-- `jurisdiction_id` — FK to TaxJurisdiction (drives the rate)
-- `exempt_code` — empty = taxable, any value = exempt (certificate number)
-- `exempt_expiry` — when the certificate expires (WC3 addition — WC2 didn't have this)
-- Special: `exempt_code = 'DoTax'` forces taxable even though code is non-empty
+- `tax_jurisdiction` — FK to TaxJurisdiction. When a proposal/order/invoice is created for this customer, the tax calc uses this jurisdiction's rate.
+- `tax_exempt_code` — empty = taxable, any value = exempt certificate number. Special: `'DoTax'` forces taxable even when code is non-empty (for resellers buying for own use).
+- Both are real indexed fields, visible in DataBrowser, filterable.
+
+**Propagation:** Customer → Order/Invoice header → each line taxed at that rate. The `calculate_transaction_tax` service pulls `tax_jurisdiction_id` and `tax_exempt_code` from the customer org automatically.
+
+**Line-level override:** Users can override tax on any individual line. The customer jurisdiction is the default, but special circumstances (different delivery location, tax-exempt specific item, negotiated arrangement) require line-level control. The line's `tax` JSON can carry its own `jurisdiction_id`, `rate`, or `exempt` flag that overrides the header. We cannot guess every special circumstance — provide the tool, let the user decide.
 
 ---
 
