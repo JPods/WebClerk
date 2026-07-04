@@ -34,6 +34,7 @@
 
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
+  static readonly jsonViewer: string = "/json-viewer";
   static readonly accountingDashboard: string = "/accounting";
   static readonly aliceTraining: string = "/training";
   static readonly detailReview: string = "/detail-review";

@@ -18,6 +18,7 @@ import {
   CoreContactDetail,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import JsonViewer from "../pages/admin/JsonViewer";
 import AccountingDashboard from "../pages/admin/AccountingDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
 import DetailReview from "../pages/admin/DetailReview";
@@ -113,6 +114,7 @@ export const protectedRoutesConfig = [
 
   // Admin tools
   { path: PageRoutes.adminWorkbench, element: <AdminWorkbench /> },
+  { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.accountingDashboard, element: <AccountingDashboard /> },
   { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
   { path: PageRoutes.detailReview, element: <DetailReview /> },

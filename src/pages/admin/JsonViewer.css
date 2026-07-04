@@ -1,0 +1,222 @@
+/**
+ * JsonViewer.css — standalone JSON viewer window.
+ * Reuses the same CSS custom property names as AdminWorkbench
+ * so theme preference carries across windows.
+ */
+
+.jv-root[data-theme="dark"] {
+  --db-bg: #1e1e1e;
+  --db-surface: #252526;
+  --db-surface-alt: #2d2d2d;
+  --db-border: #3c3c3c;
+  --db-text: #d4d4d4;
+  --db-text-muted: #888;
+  --db-text-dim: #666;
+  --db-accent: #9cdcfe;
+  --db-accent-green: #4ec98c;
+  --db-accent-gold: #e8c870;
+  --db-accent-red: #e05252;
+  --db-accent-purple: #c8a8e8;
+  --db-input-bg: #2a2a2a;
+  --db-input-border: #555;
+  --db-btn-bg: #2d2d2d;
+  --db-border-light: #4d4d4d;
+}
+
+.jv-root[data-theme="light"] {
+  --db-bg: #f8f9fa;
+  --db-surface: #ffffff;
+  --db-surface-alt: #f1f3f5;
+  --db-border: #dee2e6;
+  --db-text: #212529;
+  --db-text-muted: #6c757d;
+  --db-text-dim: #adb5bd;
+  --db-accent: #0d6efd;
+  --db-accent-green: #198754;
+  --db-accent-gold: #fd7e14;
+  --db-accent-red: #dc3545;
+  --db-accent-purple: #6f42c1;
+  --db-input-bg: #ffffff;
+  --db-input-border: #ced4da;
+  --db-btn-bg: #ffffff;
+  --db-border-light: #e9ecef;
+}
+
+/* ---------------------------------------------------------------------------
+   Layout
+   --------------------------------------------------------------------------- */
+
+.jv-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.jv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--db-surface);
+  border-bottom: 1px solid var(--db-border);
+}
+
+.jv-title {
+  font-weight: 700;
+  color: var(--db-accent);
+  font-size: 13px;
+}
+
+.jv-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jv-depth-label {
+  font-size: 11px;
+  color: var(--db-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jv-depth-select {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 1px 4px;
+}
+
+.jv-btn {
+  background: var(--db-btn-bg);
+  border: 1px solid var(--db-border-light);
+  border-radius: 3px;
+  color: var(--db-text-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.jv-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 4px;
+}
+
+.jv-empty {
+  padding: 24px;
+  color: var(--db-text-dim);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Tree nodes
+   --------------------------------------------------------------------------- */
+
+.jv-node-header {
+  cursor: pointer;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.jv-node-header:hover {
+  background: var(--db-surface-alt);
+}
+
+.jv-leaf {
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.jv-chevron {
+  display: inline-block;
+  width: 14px;
+  font-size: 10px;
+  color: var(--db-text-dim);
+  user-select: none;
+}
+
+.jv-key {
+  color: var(--db-accent);
+}
+
+.jv-key--id {
+  color: var(--db-accent-purple);
+}
+
+.jv-colon {
+  color: var(--db-text-dim);
+}
+
+.jv-bracket {
+  color: var(--db-text-dim);
+}
+
+.jv-bracket-close {
+  color: var(--db-text-dim);
+}
+
+.jv-collapsed-hint {
+  color: var(--db-text-dim);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   Value types
+   --------------------------------------------------------------------------- */
+
+.jv-string {
+  color: var(--db-accent-green);
+}
+
+.jv-number {
+  color: var(--db-accent-gold);
+}
+
+.jv-bool--true {
+  color: var(--db-accent-green);
+  font-weight: 600;
+}
+
+.jv-bool--false {
+  color: var(--db-accent-red);
+  font-weight: 600;
+}
+
+.jv-null {
+  color: var(--db-text-dim);
+  font-style: italic;
+}
+
+.jv-date {
+  color: var(--db-accent-purple);
+}
+
+.jv-url {
+  color: var(--db-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.jv-url:hover {
+  color: var(--db-accent-green);
+}
+
+.jv-id-link {
+  color: var(--db-accent-purple);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.jv-id-link:hover {
+  color: var(--db-accent);
+}
