@@ -248,6 +248,18 @@ class Item(StatsMixin, BaseModel):
     )
     row_version = models.IntegerField(default=0, db_index=True, help_text="Optimistic concurrency version (increments on each save)")
 
+    # Margin velocity — too important to bury in JSON. Sortable, filterable, visible as a column.
+    # margin_velocity = (margin_pct / 100) × annual_turns
+    # Updated nightly by Alice via update_item_margin_velocity()
+    margin_velocity = models.DecimalField(max_digits=12, decimal_places=4, default=0, db_index=True,
+        help_text="(margin% × turns/year) — higher = better use of capital. Alice computes nightly.")
+    margin_pct = models.DecimalField(max_digits=8, decimal_places=2, default=0,
+        help_text="(sale_price - cost_avg) / cost_avg × 100")
+    annual_turns = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+        help_text="Units issued / avg on-hand, annualized")
+    velocity_category = models.CharField(max_length=20, blank=True, default='',
+        db_index=True, help_text="dead_capital | volume_driver | star | normal")
+
     # Properties for admin list_display
     @property
     def on_hand(self):

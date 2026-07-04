@@ -649,21 +649,16 @@ def update_item_margin_velocity(
       margin_velocity, margin_pct, annual_turns, category, dt_computed
     """
     velocities = compute_margin_velocity(item_ids, period_days)
-    now_ms = int(timezone.now().timestamp() * 1000)
     updated = 0
 
     for item_id, data in velocities.items():
         try:
-            item = Item.objects.get(id=item_id)
-            meta = item.metadata if isinstance(item.metadata, dict) else {}
-            health = meta.setdefault('health', {})
-            health['margin_velocity'] = data['margin_velocity']
-            health['margin_pct'] = data['margin_pct']
-            health['annual_turns'] = data['annual_turns']
-            health['velocity_category'] = data['category']
-            health['dt_velocity_computed'] = now_ms
-            item.metadata = meta
-            item.save(update_fields=['metadata'])
+            Item.objects.filter(id=item_id).update(
+                margin_velocity=Decimal(str(data['margin_velocity'])),
+                margin_pct=Decimal(str(data['margin_pct'])),
+                annual_turns=Decimal(str(data['annual_turns'])),
+                velocity_category=data['category'],
+            )
             updated += 1
         except Exception:
             continue
