@@ -92,22 +92,29 @@ Why: if someone modifies a page to show wrong prices, hide fields, or inject har
 
 ---
 
-## Port Assignment
+## Port Assignment — Multiple Experiments
+
+Start from zero. Make several attempts. Ask people what they think. Same backend, different faces.
 
 | Port | What | Purpose |
 |---|---|---|
-| 5173 | New React v2 | World-class face — data-driven, dashboard-first |
-| 5174 | Current React (baseline) | Reference, fallback, comparison |
-| 8000 | Django API | Backend — unchanged |
+| 5173 | Experiment A | First attempt — dashboard-first, data-driven |
+| 5174 | Current React (baseline) | Reference, comparison, fallback |
+| 5175 | Experiment B | Different approach (maybe different framework/library) |
+| 5176 | Experiment C | Another approach (maybe mobile-first) |
+| 8000 | Django API | Backend — serves them all, unchanged |
+
+Each experiment is a learning iteration. The best one wins — or the best pieces from each combine. Don't commit to one face. Real user feedback drives the decision. Start small, iterate relentlessly.
 
 ---
 
 ## Migration Strategy
 
-1. Both sites run simultaneously — users can switch
-2. New site starts with dashboards only — links to 5174 for anything not yet built
-3. Features migrate from 5174 → 5173 one at a time
-4. When 5173 covers everything, 5174 becomes archive
+1. All sites run simultaneously — users compare
+2. Each experiment starts with dashboards only — links to 5174 for anything not yet built
+3. User feedback determines which approach moves forward
+4. Best pieces from multiple experiments can combine
+5. When the winner covers everything, others become archive
 
 ---
 
