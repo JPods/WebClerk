@@ -83,6 +83,18 @@ class Catalog(BaseModel):
     )
     metrics = models.JSONField(default=default_catalog_metrics, blank=True, null=True, help_text="Operational & performance metrics (plan vs actual, sync stats, counts)")
 
+    # Pricing control fields (added from WC2 SpecialDiscount mining)
+    priority = models.IntegerField(default=0, db_index=True,
+        help_text="Higher priority wins when multiple catalogs match. 0=default.")
+    applies_to = models.JSONField(default=dict, blank=True,
+        help_text="Targeting scope: {contacts: [id], contact_types: ['wholesale'], categories: [], all: false}")
+    is_universal_pct = models.BooleanField(default=False,
+        help_text="True = blanket % applied to all items; False = per-line rules in CatalogLine")
+    universal_pct = models.DecimalField(max_digits=6, decimal_places=3, default=0, blank=True,
+        help_text="Universal discount % (used only when is_universal_pct=True)")
+    margin_floor = models.DecimalField(max_digits=6, decimal_places=2, default=0, blank=True,
+        help_text="Minimum margin % allowed — below triggers approval Action")
+
     class Meta:
         indexes = [
             models.Index(fields=("is_active", "dt_effective_start"), name="catalog_active_idx"),
@@ -161,6 +173,24 @@ class CatalogLine(ItemLinkedBase):
     price_unit = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     discount_percent = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+
+    # Rule-based scope (what items does this line apply to)
+    ADJUSTMENT_TYPES = [
+        ('percent_off', 'Percent Off'),
+        ('fixed_price', 'Fixed Price'),
+        ('amount_off', 'Amount Off'),
+        ('price_level', 'Price Level'),
+    ]
+    scope = models.JSONField(default=dict, blank=True,
+        help_text="What this line covers: {items: [id], categories: [], vendors: [], all_items: false}")
+    adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPES, default='percent_off', blank=True)
+    adjustment_value = models.DecimalField(max_digits=14, decimal_places=4, default=0, blank=True,
+        help_text="Value depends on type: 15.0 = 15% off, or $15 fixed, or price level code")
+    min_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True,
+        help_text="Minimum qty for this price break (null = any)")
+    max_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True,
+        help_text="Maximum qty for this price break (null = unlimited)")
+
     items = models.JSONField(default=dict, blank=True, null=True)
         # list ids prices, attributes, etc. for denormalized lookup
         # if it exceeds a size, put it in an external doc store
