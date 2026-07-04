@@ -174,6 +174,24 @@ const JsonViewer: React.FC = () => {
   const [collapseDepth, setCollapseDepth] = useState(2);
   const [copyMsg, setCopyMsg] = useState('');
 
+  // Track which model/id/field this viewer is showing (for cross-window reload)
+  const [viewerModel, setViewerModel] = useState('');
+  const [viewerId, setViewerId] = useState('');
+  const [viewerField, setViewerField] = useState('');
+
+  // Fetch a record's field data
+  const fetchData = useCallback((model: string, id: string, field: string) => {
+    if (!model || !id) return;
+    setTitle(`${model} #${id}${field ? ` · ${field}` : ''}`);
+    fetch(`/wcapi/get/?model_name=${model}&id=${id}`)
+      .then(r => r.json())
+      .then(resp => {
+        const record = resp?.data?.record || resp?.record || resp?.data || resp;
+        setData(field ? (record[field] ?? record) : record);
+      })
+      .catch(() => setData({ error: 'Failed to fetch record' }));
+  }, []);
+
   // Load data from URL params or postMessage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -182,19 +200,15 @@ const JsonViewer: React.FC = () => {
     const field = params.get('field') || '';
     const rawJson = params.get('json');
 
+    setViewerModel(model);
+    setViewerId(id);
+    setViewerField(field);
+
     if (rawJson) {
       try { setData(JSON.parse(rawJson)); } catch { setData({ error: 'Invalid JSON in URL' }); }
       setTitle(`${model} #${id} · ${field}`);
     } else if (model && id) {
-      setTitle(`${model} #${id}${field ? ` · ${field}` : ''}`);
-      // Fetch from wcapi
-      fetch(`/wcapi/get/?model_name=${model}&id=${id}`)
-        .then(r => r.json())
-        .then(resp => {
-          const record = resp?.data?.record || resp?.record || resp?.data || resp;
-          setData(field ? (record[field] ?? record) : record);
-        })
-        .catch(() => setData({ error: 'Failed to fetch record' }));
+      fetchData(model, id, field);
     }
 
     // Also accept postMessage for large JSON
@@ -206,7 +220,35 @@ const JsonViewer: React.FC = () => {
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [fetchData]);
+
+  // Listen for cross-window messages from DataBrowser
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    import('@/utils/windowChannel').then(({ windowChannel }) => {
+      // When DataBrowser selects a new record of the same model, reload
+      const unsub1 = windowChannel.on('record-selected', (msg) => {
+        if (msg.model === viewerModel && msg.id) {
+          setViewerId(String(msg.id));
+          fetchData(viewerModel, String(msg.id), viewerField);
+        }
+      });
+      // When a record is saved, reload if it's the one we're showing
+      const unsub2 = windowChannel.on('record-saved', (msg) => {
+        if (msg.model === viewerModel && String(msg.id) === viewerId) {
+          fetchData(viewerModel, viewerId, viewerField);
+        }
+      });
+      // Theme sync across windows
+      const unsub3 = windowChannel.on('theme-changed', (msg) => {
+        if (typeof msg.data === 'string' && (msg.data === 'dark' || msg.data === 'light')) {
+          setTheme(msg.data);
+        }
+      });
+      cleanup = () => { unsub1(); unsub2(); unsub3(); };
+    }).catch(() => {});
+    return () => cleanup?.();
+  }, [viewerModel, viewerId, viewerField, fetchData]);
 
   const handleNavigate = useCallback((model: string, id: number) => {
     window.open(`/admin-wb?model=${model}&id=${id}`, '_blank');

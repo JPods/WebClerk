@@ -461,13 +461,17 @@ export function useDataBrowser(isAuthenticated: boolean) {
     return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
   }, [searchTerm]);
 
-  // Load detail
+  // Load detail + broadcast selection to other windows (JSON Viewer, spawn windows)
   useEffect(() => {
     if (!selectedModel || selectedId == null) return;
     (async () => {
       const d = await getRecord(selectedModel, selectedId) as { record?: unknown };
       setSelectedRecord(toRec(d?.record));
       setIsDirty(false);
+      // Notify other windows
+      import('@/utils/windowChannel').then(({ windowChannel }) => {
+        windowChannel.send({ type: 'record-selected', model: selectedModel, id: selectedId });
+      }).catch(() => {});
     })();
   }, [selectedModel, selectedId]);
 
@@ -708,6 +712,10 @@ export function useDataBrowser(isAuthenticated: boolean) {
     try {
       await saveRecord(selectedModel, { ...selectedRecord });
       setIsDirty(false); setValidationErrors({}); fetchRecords();
+      // Notify other windows
+      import('@/utils/windowChannel').then(({ windowChannel }) => {
+        windowChannel.send({ type: 'record-saved', model: selectedModel, id: selectedId ?? undefined });
+      }).catch(() => {});
     } catch (e) {
       // Surface server-side validation errors
       const msg = errMsg(e, 'Save failed');
