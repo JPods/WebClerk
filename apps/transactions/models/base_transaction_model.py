@@ -184,6 +184,11 @@ class TransactionBaseModel(BaseModel):
     commission = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
+    # Simple source attribution — one dropdown value, low friction for users.
+    # Dropdown options come from bootstrap select list 'source_attribution'.
+    # The .source JSON above carries rich campaign data for sophisticated tracking.
+    source_name = models.CharField(max_length=80, blank=True, default='', db_index=True,
+        help_text="How this transaction originated: Facebook, Referral, Walk-in, Trade Show, etc.")
     # pulled from .refs to track related entities without FK constraints; updated by Celery tasks on save
     actions = models.JSONField(default=dict, blank=True, null=True)
     
