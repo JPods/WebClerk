@@ -113,7 +113,7 @@ class Command(BaseCommand):
                     defaults={
                         'parent_model': mt,
                         'role': setting_meta.get('role', 'all'),
-                        'data': data_payload,
+                        'config': data_payload,
                     }
                 )
                 action = 'Created' if created else 'Updated'
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                     'name': 'counters',
                     'parent_model': 'question_answer',
                     'role': 'all',
-                    'data': counters_data,
+                    'config': counters_data,
                 }
             )
             action = 'Created' if created else 'Updated'

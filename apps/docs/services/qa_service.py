@@ -10,8 +10,8 @@ This service handles two main workflows:
 
 2. **Applying Templates to Records**:
    - Use `apply_questions()` to create QuestionAnswer records for a parent
-   - `question_id` references Setting.data.questions[].id
-   - `answer_id` is set when user responds, referencing Setting.data.questions[].answers[].id
+   - `question_id` references Setting.config.questions[].id
+   - `answer_id` is set when user responds, referencing Setting.config.questions[].answers[].id
 
 Usage:
     from apps.docs.services.qa_service import QAService
@@ -82,7 +82,7 @@ class QAService:
                 'name': 'counters',
                 'parent_model': 'question_answer',
                 'role': 'all',
-                'data': {'question_max': 0, 'answer_max': 0},
+                'config': {'question_max': 0, 'answer_max': 0},
                 'is_active': True,
             }
         )
@@ -101,14 +101,14 @@ class QAService:
             List of unique question IDs
         """
         counters = Setting.objects.select_for_update().get(purpose='qa_counters')
-        data = counters.data or {}
+        data = counters.config or {}
         current_max = data.get('question_max', 0)
-        
+
         new_ids = list(range(current_max + 1, current_max + count + 1))
-        
+
         data['question_max'] = current_max + count
-        counters.data = data
-        counters.save(update_fields=['data'])
+        counters.config = data
+        counters.save(update_fields=['config'])
         
         logger.info(f"Allocated question IDs {new_ids[0]}-{new_ids[-1]}")
         return new_ids
@@ -124,14 +124,14 @@ class QAService:
             List of unique answer IDs
         """
         counters = Setting.objects.select_for_update().get(purpose='qa_counters')
-        data = counters.data or {}
+        data = counters.config or {}
         current_max = data.get('answer_max', 0)
-        
+
         new_ids = list(range(current_max + 1, current_max + count + 1))
-        
+
         data['answer_max'] = current_max + count
-        counters.data = data
-        counters.save(update_fields=['data'])
+        counters.config = data
+        counters.save(update_fields=['config'])
         
         logger.info(f"Allocated answer IDs {new_ids[0]}-{new_ids[-1]}")
         return new_ids
@@ -329,7 +329,7 @@ class QAService:
                 raise ObjectDoesNotExist(f"Question group with setting_id={setting_id} not found or inactive.")
         else:
             template_setting = self.get_question_template(question_group)
-        template_data = template_setting.data or {}
+        template_data = template_setting.config or {}
         questions = template_data.get('questions', [])
         template_defaults = template_data.get('template', {})
         
@@ -370,7 +370,7 @@ class QAService:
                 question=q_def.get('question', ''),
                 answer=None,  # No answer yet - set when user responds
                 setting=template_setting,
-                question_id=question_id,  # ID of question from Setting.data.questions[]
+                question_id=question_id,  # ID of question from Setting.config.questions[]
                 answer_id=None,  # ID of selected answer from Setting - set when user responds
                 parent_model=parent_model,
                 parent_id=parent_id,
@@ -467,11 +467,11 @@ class QAService:
         groups = Setting.objects.filter(
             purpose='qa_questions',
             is_active=True
-        ).values('id', 'name', 'data')
+        ).values('id', 'name', 'config')
         
         result = []
         for g in groups:
-            data = g.get('data', {}) or {}
+            data = g.get('config', {}) or {}
             questions = data.get('questions', [])
             template = data.get('template', {})
             result.append({

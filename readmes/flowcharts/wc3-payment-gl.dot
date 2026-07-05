@@ -1,0 +1,68 @@
+// WC3 Payment and GL Flow — from invoice to general ledger
+// Render: dot -Tpdf wc3-payment-gl.dot -o wc3-payment-gl.pdf
+
+digraph wc3_payment_gl {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Payment, Ledger, and GL Flow"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Invoice
+    invoice [label="Invoice\n(Invoice model)" shape=box fillcolor="#ABEBC6"]
+
+    // Ledger creation
+    ledger [label="Ledger Records\n(AR schedule)\n\nN30 → 1 record\n3PAY90 → 3 records\n2/10N30 → discount terms" shape=box fillcolor="#D5F5E3"]
+
+    // Aging
+    aging [label="Aging Buckets\n\ncurrent\n1-30 days\n31-60 days\n61-90 days\n90+ days" shape=box fillcolor="#FCF3CF"]
+
+    // Payment
+    payment [label="Payment\n(Payment model)\ntype: AR or AP" shape=box fillcolor="#AED6F1"]
+
+    // Application
+    apply [label="Apply Payment\nto Invoice\n\ntotals.received += amt\ntotals.balance -= amt" shape=octagon fillcolor="#F5CBA7"]
+
+    // Status check
+    status [label="Fully\nPaid?" shape=diamond fillcolor="#FADBD8"]
+
+    // Erosion detection
+    erosion [label="Erosion Detection\n\nMargin: Proposal→Order→Invoice\nLate payment: amount×rate×days\nDiscount: subtotal vs total" shape=box fillcolor="#F5B7B1"]
+
+    // Journals
+    sales_jrnl [label="Sales Journal\nDebit AR(1200)\nCredit Revenue(4000)" shape=box fillcolor="#D5F5E3"]
+    cash_jrnl [label="Cash Journal\nDebit Cash(1000)\nCredit AR(1200)" shape=box fillcolor="#D5F5E3"]
+    purch_jrnl [label="Purchase Journal\nDebit Inventory(1300)\nCredit AP(2000)" shape=box fillcolor="#D5F5E3"]
+
+    // GL
+    gl [label="General Ledger\n(JournalEntry)\n\nDebits = Credits\nDouble-post guard" shape=box fillcolor="#82E0AA" fontsize=11]
+
+    // Dashboard
+    dashboard [label="Accounting\nDashboard\n\ngl_balance\naging_summary\ntransaction_volume\npending_inventory" shape=box fillcolor="#D4E6F1"]
+
+    // Alice
+    alice [label="Alice\nPattern\nRecognition" shape=box fillcolor="#AED6F1"]
+
+    // Edges
+    invoice -> ledger [label="on_save\ncreate schedule"]
+    invoice -> sales_jrnl [label="post"]
+    ledger -> aging [label="compute\nbuckets"]
+    payment -> apply
+    apply -> status
+    status -> invoice [label="no\nbalance > 0" style=dashed]
+    status -> cash_jrnl [label="yes or partial\npost payment"]
+    invoice -> erosion [label="detect\nmargin/discount"]
+    payment -> erosion [label="detect\nlate payment"]
+
+    sales_jrnl -> gl
+    cash_jrnl -> gl
+    purch_jrnl -> gl
+
+    gl -> dashboard [label="balanced?"]
+    aging -> dashboard
+    erosion -> alice [label="flag\npatterns" style=dashed]
+}

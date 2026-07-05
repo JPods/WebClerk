@@ -78,7 +78,7 @@ class SerialSerializer(serializers.ModelSerializer):
             "is_active", "security_level", "is_deleted", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "item_id", "item_ida", "description", "serial_ida", "model_ida",
-            "warranty", "status", "site", "inventory_layer_id", "data", "qr_code",
+            "warranty", "status", "site", "inventory_layer_id", "config", "qr_code",
         ]
         read_only_fields = _BASE_RO
 
@@ -129,7 +129,7 @@ class OrgItemSerializer(serializers.ModelSerializer):
             "item_id", "status", "orgbase_id", "catalog_id", "item_ida",
             "description", "availability_state",
             "quantity_minimum", "quantity_maximum", "inventory_frequency",
-            "dt_last_checked", "dt_next_check", "data", "metrics",
+            "dt_last_checked", "dt_next_check", "config", "metrics",
         ]
         read_only_fields = _BASE_RO
 

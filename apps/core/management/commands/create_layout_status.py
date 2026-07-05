@@ -2,7 +2,7 @@
 Create or update the singleton Setting record for layout_status.
 
 Scans React2025 src/apps/ for per-model layout files (Detail.tsx, List.tsx,
-Dialog.tsx, Panel.tsx) and populates the setting's .data with a tracking list.
+Dialog.tsx, Panel.tsx) and populates the setting's .config with a tracking list.
 
 Usage:
     python manage.py create_layout_status
@@ -128,7 +128,7 @@ class Command(BaseCommand):
         setting, created = Setting.objects.get_or_create(
             name='layout_status',
             purpose='admin',
-            defaults={'data': {'layouts': layouts}},
+            defaults={'config': {'layouts': layouts}},
         )
 
         if created:
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                 f'Created layout_status setting (id={setting.id}) with {len(layouts)} models'
             ))
         elif reset:
-            setting.data = {'layouts': layouts}
+            setting.config = {'layouts': layouts}
             setting.save()
             self.stdout.write(self.style.SUCCESS(
                 f'Reset layout_status setting (id={setting.id}) with {len(layouts)} models'

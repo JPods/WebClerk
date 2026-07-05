@@ -122,7 +122,7 @@ class OrgItem(ItemLinkedBase):
     )
     dt_last_checked = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Epoch ms of last verification (duplicate of data.dt_last_check for indexable queries)")
     dt_next_check = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Epoch ms when next inventory verification is due (mirrors data.dt_next_check)")
-    data = models.JSONField(
+    config = models.JSONField(
         default=default_org_item_data,
         blank=True,
         null=True,
@@ -185,19 +185,19 @@ class OrgItem(ItemLinkedBase):
 
     # Optional lightweight normalization; invoked manually or could be integrated in save hooks
     def normalize_data(self):  # pragma: no cover (simple guard)
-        if not isinstance(self.data, dict):
-            self.data = default_org_item_data()
+        if not isinstance(self.config, dict):
+            self.config = default_org_item_data()
             return
         changed = False
         # Remove unknown keys
-        for k in list(self.data.keys()):
+        for k in list(self.config.keys()):
             if k not in ORG_ITEM_DATA_ALLOWED_KEYS:
-                self.data.pop(k, None)
+                self.config.pop(k, None)
                 changed = True
         # Ensure all expected keys exist
         for k, v in default_org_item_data().items():
-            if k not in self.data:
-                self.data[k] = v
+            if k not in self.config:
+                self.config[k] = v
                 changed = True
         if changed:
             # Mark dt_modified via BaseModel touch on next save through normal flow
@@ -205,12 +205,12 @@ class OrgItem(ItemLinkedBase):
 
     def pre_save_hook(self, data):  # pragma: no cover - light validation
         # Sync promoted columns from data if not explicitly set
-        if isinstance(self.data, dict):
-            self.quantity_minimum = self.data.get("quantity_minimum", self.quantity_minimum)
-            self.quantity_maximum = self.data.get("quantity_maximum", self.quantity_maximum)
-            self.inventory_frequency = self.data.get("inventory_frequency", self.inventory_frequency)
-            self.dt_last_checked = self.data.get("dt_last_check", self.dt_last_checked)
-            self.dt_next_check = self.data.get("dt_next_check", self.dt_next_check)
+        if isinstance(self.config, dict):
+            self.quantity_minimum = self.config.get("quantity_minimum", self.quantity_minimum)
+            self.quantity_maximum = self.config.get("quantity_maximum", self.quantity_maximum)
+            self.inventory_frequency = self.config.get("inventory_frequency", self.inventory_frequency)
+            self.dt_last_checked = self.config.get("dt_last_check", self.dt_last_checked)
+            self.dt_next_check = self.config.get("dt_next_check", self.dt_next_check)
         # Auto compute next check if frequency + dt_last_checked available
         if self.inventory_frequency and self.dt_last_checked:
             # Only recalc if dt_next_check missing or dt_last_checked changed (approx by comparing <= dt_last_checked)
@@ -226,8 +226,8 @@ class OrgItem(ItemLinkedBase):
                 if interval_ms:
                     self.dt_next_check = self.dt_last_checked + interval_ms
                     # mirror into data structure
-                    if isinstance(self.data, dict):
-                        self.data["dt_next_check"] = self.dt_next_check
+                    if isinstance(self.config, dict):
+                        self.config["dt_next_check"] = self.dt_next_check
         # Basic semantic checks (duplicates constraint logic for clearer API errors)
         if (
             self.quantity_minimum is not None

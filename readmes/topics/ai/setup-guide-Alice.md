@@ -284,6 +284,41 @@ All settings can be overridden in `.env` or `webclerk3_api/settings.py`:
 
 ---
 
+## Console Capture — Alice Reads Browser Errors
+
+The DataBrowser automatically captures all browser console output (log, warn, error)
+and feeds errors and warnings to Alice every 60 seconds. This requires no user action —
+it starts at app boot and runs silently.
+
+**What gets captured:**
+- `console.log` — stored in a 200-entry ring buffer (not auto-sent)
+- `console.warn` — stored and auto-flushed to Alice
+- `console.error` — stored and auto-flushed to Alice
+- `window.onerror` — unhandled exceptions
+- `unhandledrejection` — failed promises
+
+**Where it goes:**
+- `alice_observation` records with `category: 'console'` and `source: 'console_capture'`
+- Each record includes: error entries, page URL, timestamp, user agent
+- Alice can read these to diagnose user problems, detect patterns, and coach
+
+**For developers (Claude Code / Allie):**
+- `consoleCapture.getReport()` — returns last 50 entries as formatted text for vectorstores
+- `consoleCapture.sendToAlice('context string')` — on-demand flush with context
+- `consoleCapture.getErrors()` — get just errors/warnings from the buffer
+- `consoleCapture.getSummary()` — counts + last 5 entries
+
+**No on/off switch needed.** The capture is always on, has zero performance overhead
+(ring buffer, async flush), and only transmits when errors/warnings exist. Normal
+operation produces no network traffic from this system.
+
+**Files:**
+- `React2025/src/utils/consoleCapture.ts` — the interceptor module
+- `React2025/src/main.tsx` — wired at app init (`consoleCapture.start()`)
+- `React2025/src/hooks/useConsoleCapture.ts` — React hook variant (used by AiHelpWidget)
+
+---
+
 ## Troubleshooting
 
 ### "Cannot connect to Ollama"
@@ -360,6 +395,7 @@ python manage.py index_docs --stats  # verify count > 0
 | `tools/setup_ai.sh` | One-command automated setup |
 | `tools/hooks/post-commit` | Git hook for auto-reindex |
 | `React2025/src/components/AiHelpWidget.tsx` | Frontend chat widget (mode selector + console capture) |
+| `React2025/src/utils/consoleCapture.ts` | Console interceptor — captures log/warn/error, auto-flushes errors to Alice every 60s |
 | `React2025/src/hooks/useConsoleCapture.ts` | Browser error capture hook (console.error, window.onerror, rejections) |
 | `React2025/src/apps/support/services/aiApi.ts` | Frontend API client (all endpoints + types) |
 | `.copilot-context/` | Auto-generated model reference, fixtures, import paths, error patterns, endpoint map |

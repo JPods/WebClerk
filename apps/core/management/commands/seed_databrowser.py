@@ -197,7 +197,7 @@ class Command(BaseCommand):
                 continue
 
             if existing:
-                existing.data = data
+                existing.config = data
                 existing.save()
                 updated += 1
                 self.stdout.write(f'  Updated {model_key} ({len(list_fields)} list, {len(detail_fields)} detail)')
@@ -206,7 +206,7 @@ class Command(BaseCommand):
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
                     purpose='workbench_fields',
-                    data=data,
+                    config=data,
                 )
                 created += 1
                 self.stdout.write(f'  Created {model_key} ({len(list_fields)} list, {len(detail_fields)} detail)')
@@ -323,7 +323,7 @@ class Command(BaseCommand):
             kwargs.setdefault('cost', {'standard': 0})
         elif model_key == 'setting':
             kwargs['purpose'] = 'fake_seed'
-            kwargs['data'] = {'health': 'fake'}
+            kwargs['config'] = {'health': 'fake'}
         elif model_key == 'gl_account':
             kwargs['account_number'] = 'zz-fake-00000'
             kwargs['type'] = 'asset'

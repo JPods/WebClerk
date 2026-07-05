@@ -20,7 +20,7 @@ class Serial(ItemLinkedBase):
     # Current location / warehouse / inventory stack
     site = models.JSONField(default=dict, blank=True, help_text="Lightweight site/location snapshot (geo codes, address refs)")
     inventory_layer = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials", db_column='inventorylayer_id')
-    data = models.JSONField(default=dict, blank=True)
+    config = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)
     # Access the parent item's primary key via `serial.item_id` (Django auto FK _id attribute).
 
@@ -43,7 +43,7 @@ class SerialLog(BaseModel):
     serial = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs", db_column='serial_id')
     action = models.CharField(max_length=60, db_index=True)
     dt = models.BigIntegerField(db_index=True)
-    data = models.JSONField(default=dict, blank=True)
+    config = models.JSONField(default=dict, blank=True)
 
 
     @property

@@ -85,7 +85,7 @@ class Command(BaseCommand):
                     "tasks": tasks_payload,
                     "logistics": logistics_payload,
                     "slug": slug,
-                    "data": {"attention_label": attention_value},
+                    "config": {"attention_label": attention_value},
                 }
             )
 

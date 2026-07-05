@@ -76,7 +76,7 @@ class Command(BaseCommand):
                     purpose="search",
                     role="all",
                     name=name,
-                    defaults={"data": data, "is_active": True},
+                    defaults={"config": data, "is_active": True},
                 )
                 if was_created:
                     created += 1
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 purpose="search",
                 role="all",
                 name=name,
-                defaults={"data": data, "is_active": True},
+                defaults={"config": data, "is_active": True},
             )
             if was_created:
                 created += 1

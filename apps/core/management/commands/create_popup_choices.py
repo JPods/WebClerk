@@ -185,7 +185,7 @@ class Command(BaseCommand):
         setting, created = Setting.objects.get_or_create(
             name='popup_choices',
             purpose='admin',
-            defaults={'data': data},
+            defaults={'config': data},
         )
 
         if created:
@@ -194,7 +194,7 @@ class Command(BaseCommand):
                 f"{meta['total_lists']} lists, {meta['total_choices']} choices"
             ))
         elif reset:
-            setting.data = data
+            setting.config = data
             setting.save()
             self.stdout.write(self.style.SUCCESS(
                 f'Reset popup_choices setting (id={setting.id}) — '

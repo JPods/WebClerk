@@ -440,11 +440,11 @@ class Command(BaseCommand):
                 continue
             try:
                 if existing:
-                    existing.data = data
+                    existing.config = data
                     existing.save()
                     s_updated += 1
                 else:
-                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='alice_coaching', data=data)
+                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='alice_coaching', config=data)
                     s_created += 1
                 self.stdout.write(f'  {model_key}: {len(data["tips"])} tips, {len(data["field_help"])} field helps')
             except Exception as e:

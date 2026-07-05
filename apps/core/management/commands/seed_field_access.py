@@ -467,7 +467,7 @@ class Command(BaseCommand):
                 continue
 
             if existing:
-                existing.data = config
+                existing.config = config
                 existing.save()
                 updated += 1
             else:
@@ -475,7 +475,7 @@ class Command(BaseCommand):
                     name=f'field_access:{model_key}',
                     parent_model=model_key,
                     purpose='field_access',
-                    data=config,
+                    config=config,
                 )
                 created += 1
 

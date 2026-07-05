@@ -80,8 +80,8 @@ def _get_company_info() -> Dict[str, str]:
             Q(name__icontains="primary_organization") | Q(name__icontains="company"),
             is_active=True,
         ).first()
-        if qs and hasattr(qs, "data") and isinstance(qs.data, dict):
-            return qs.data
+        if qs and hasattr(qs, "config") and isinstance(qs.config, dict):
+            return qs.config
     except Exception:
         pass
     return {"name": ""}
@@ -1251,7 +1251,7 @@ def render_report(
         raise ValueError(f"Report '{report_name}' not found for model '{model_name}'")
 
     effective_model = report_def.model_name or model_name
-    report_data = report_def.data or {}
+    report_data = report_def.config or {}
     category = report_def.category or "report"
     company = _get_company_info()
 

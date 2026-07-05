@@ -119,7 +119,7 @@ class Command(BaseCommand):
             self.stdout.write(f'ID: {setting.id}')
             self.stdout.write(f'Active: {setting.is_active}')
             self.stdout.write('Data:')
-            self.stdout.write(json.dumps(setting.data, indent=2))
+            self.stdout.write(json.dumps(setting.config, indent=2))
         except Setting.DoesNotExist:
             self.stderr.write(f'Error: Setting {parent_model}.{purpose} not found')
 
@@ -151,7 +151,7 @@ class Command(BaseCommand):
             setting, created = Setting.objects.update_or_create(
                 parent_model=parent_model,
                 purpose=purpose,
-                defaults={'data': data, 'is_active': True}
+                defaults={'config': data, 'is_active': True}
             )
 
             self.stdout.write(
@@ -215,7 +215,7 @@ class Command(BaseCommand):
                     setting, created = Setting.objects.update_or_create(
                         parent_model=parent_model,
                         purpose=purpose,
-                        defaults={'data': data, 'is_active': True}
+                        defaults={'config': data, 'is_active': True}
                     )
 
                     self.stdout.write(f'  {parent_model}.{purpose}: {"created" if created else "updated"}')

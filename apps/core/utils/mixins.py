@@ -48,7 +48,7 @@ class SettingsDrivenCRUDMixin:
     """
     Centralized CRUD policies driven by Setting(purpose='view_edit') or JSON fallback.
 
-    Behavior toggles in setting.data['__meta__']:
+    Behavior toggles in setting.config['__meta__']:
       - relations: embed related data in GET
       - ordering, search.fields, filters.allow, pagination.page_size/max_page_size
       - hooks: pre_save, post_save, pre_delete, post_delete (dotted callables)
@@ -120,7 +120,7 @@ class SettingsDrivenCRUDMixin:
                     "purpose": row.purpose,
                     "role": getattr(row, "role", "all"),
                     "parent_model": row.parent_model,
-                    "data": getattr(row, "data", {}) or {},
+                    "config": getattr(row, "config", {}) or {},
                     "comment": getattr(row, "comment", "") or "",
                 },
                 "db",

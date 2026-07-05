@@ -22,8 +22,8 @@ def test_add_item_creates_pending_for_order():
     order = Order.objects.create(status="confirmed")
     # Validate pending record created
     from apps.core.models import Pending
-    pending_records = Pending.objects.filter(data__doc_pk=order.pk)
+    pending_records = Pending.objects.filter(config__doc_pk=order.pk)
 
     assert pending_records.count() == 1
-    assert pending_records.first().data.get("on_so") == 3
+    assert pending_records.first().config.get("on_so") == 3
 

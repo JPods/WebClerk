@@ -71,7 +71,7 @@ class Command(BaseCommand):
             # Group by item for efficient updates
             item_deltas = {}
             for delta in batch:
-                item_id = delta.data.get('item_id')
+                item_id = delta.config.get('item_id')
                 if item_id not in item_deltas:
                     item_deltas[item_id] = []
                 item_deltas[item_id].append(delta)
@@ -83,9 +83,9 @@ class Command(BaseCommand):
                         item = Item.objects.select_for_update().get(pk=item_id)
 
                         # Calculate total changes
-                        on_hand_change = sum(Decimal(str(d.data.get('quantity_on_hand_delta', 0))) for d in deltas)
-                        on_order_change = sum(Decimal(str(d.data.get('quantity_on_order_delta', 0))) for d in deltas)
-                        on_po_change = sum(Decimal(str(d.data.get('quantity_on_po_delta', 0))) for d in deltas)
+                        on_hand_change = sum(Decimal(str(d.config.get('quantity_on_hand_delta', 0))) for d in deltas)
+                        on_order_change = sum(Decimal(str(d.config.get('quantity_on_order_delta', 0))) for d in deltas)
+                        on_po_change = sum(Decimal(str(d.config.get('quantity_on_po_delta', 0))) for d in deltas)
 
                         # Update item quantities
                         if hasattr(item, 'quantity'):
@@ -142,7 +142,7 @@ class Command(BaseCommand):
         # Group by item
         item_summary = {}
         for delta in queryset[:1000]:  # Limit for performance
-            item_id = delta.data.get('item_id')
+            item_id = delta.config.get('item_id')
             if item_id not in item_summary:
                 # Get item name
                 try:
@@ -161,9 +161,9 @@ class Command(BaseCommand):
 
             summary = item_summary[item_id]
             summary['deltas'] += 1
-            summary['on_hand_change'] += Decimal(str(delta.data.get('quantity_on_hand_delta', 0)))
-            summary['on_order_change'] += Decimal(str(delta.data.get('quantity_on_order_delta', 0)))
-            summary['on_po_change'] += Decimal(str(delta.data.get('quantity_on_po_delta', 0)))
+            summary['on_hand_change'] += Decimal(str(delta.config.get('quantity_on_hand_delta', 0)))
+            summary['on_order_change'] += Decimal(str(delta.config.get('quantity_on_order_delta', 0)))
+            summary['on_po_change'] += Decimal(str(delta.config.get('quantity_on_po_delta', 0)))
 
         self.stdout.write('\nDelta summary by item:')
         for item_id, summary in item_summary.items():

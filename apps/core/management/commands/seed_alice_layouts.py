@@ -101,71 +101,169 @@ def _get_field_info(model_cls):
             'is_char': isinstance(f, (dj_models.CharField, dj_models.EmailField, dj_models.TextField)),
             'is_number': isinstance(f, (dj_models.IntegerField, dj_models.DecimalField, dj_models.FloatField, dj_models.BigIntegerField)),
             'is_bool': isinstance(f, dj_models.BooleanField),
+            'is_date': isinstance(f, (dj_models.DateField, dj_models.DateTimeField)),
+            'is_decimal': isinstance(f, dj_models.DecimalField),
         })
     return fields
+
+
+def _field_spec(name, field_info=None):
+    """Build a FieldSpec dict with smart defaults — mirrors wc2 listboxK._setColumnName."""
+    spec = {'field': name, 'visible': True}
+    fl = name.lower()
+
+    # WHO — names
+    if fl in ('display_name', 'company', 'name'):
+        spec.update(width=180, align='left')
+    elif fl in ('name_first', 'name_last'):
+        spec.update(width=120, align='left')
+    elif fl in ('attention',):
+        spec.update(width=140, align='left')
+    # Identifiers
+    elif fl in ('ida', 'sku'):
+        spec.update(width=100, align='left')
+    elif fl == 'id':
+        spec.update(width=60, align='right')
+    # Contact info
+    elif 'phone' in fl:
+        spec.update(width=120, align='left', format='phone')
+    elif 'email' in fl:
+        spec.update(width=180, align='left')
+    elif 'zip' in fl or 'postal' in fl:
+        spec.update(width=70, align='left')
+    elif fl in ('state', 'province'):
+        spec.update(width=60, align='center')
+    elif 'address' in fl:
+        spec.update(width=220, align='left')
+    elif fl == 'city':
+        spec.update(width=120, align='left')
+    elif fl == 'country':
+        spec.update(width=80, align='center')
+    # Text
+    elif fl in ('description', 'title'):
+        spec.update(width=220, align='left')
+    elif fl in ('notes', 'comments'):
+        spec.update(width=200, align='left', wrap=True)
+    # Terms / level (must check before price pattern)
+    elif fl in ('terms', 'price_level'):
+        spec.update(width=80, align='left')
+    # Currency
+    elif any(k in fl for k in ('price', 'cost', 'extended')) or fl in ('total', 'balance', 'amount', 'debit', 'credit'):
+        spec.update(width=100, align='right', format='currency')
+    # Rates
+    elif any(k in fl for k in ('rate', 'percent')) or fl in ('discount', 'commission'):
+        spec.update(width=80, align='right', format='percent')
+    # Weight
+    elif 'weight' in fl or fl.endswith('_wt'):
+        spec.update(width=60, align='right', format='number')
+    # Quantities
+    elif fl in ('qty', 'quantity', 'line_number', 'sequence') or fl.startswith('qty_'):
+        spec.update(width=60, align='right')
+    # Status/type
+    elif fl in ('status', 'type', 'category', 'kind', 'org_type', 'kanban_column', 'priority'):
+        spec.update(width=100, align='left')
+    # Dates
+    elif fl.startswith('dt_') or 'date' in fl or '_dt' in fl or fl in ('deadline_by', 'start_by', 'end_by', 'expected_by', 'completed_by'):
+        spec.update(width=100, align='center', format='date')
+    # Booleans
+    elif fl.startswith('is_'):
+        spec.update(width=50, align='center')
+    # Small numbers
+    elif fl in ('version', 'security_level', 'health_rating', 'difficulty', 'burndown', 'linkage', 'count_accessed'):
+        spec.update(width=60, align='right')
+    # JSON
+    elif fl in ('metadata', 'refs', 'prefs', 'actions', 'stats'):
+        spec.update(width=60, align='left', format='json')
+    # UUID
+    elif fl == 'uuid':
+        spec.update(width=100, align='left')
+    elif fl in ('uom', 'unit_of_measure'):
+        spec.update(width=60, align='center')
+    elif fl in ('source', 'source_model'):
+        spec.update(width=100, align='left')
+    # Use field_info for type-based defaults if no name match
+    elif field_info:
+        if field_info.get('is_bool'):
+            spec.update(width=50, align='center')
+        elif field_info.get('is_decimal'):
+            spec.update(width=100, align='right', format='number')
+        elif field_info.get('is_number'):
+            spec.update(width=80, align='right')
+        elif field_info.get('is_date'):
+            spec.update(width=100, align='center', format='date')
+        elif field_info.get('is_json'):
+            spec.update(width=60, align='left', format='json')
+        else:
+            spec.update(width=120, align='left')
+    else:
+        spec.update(width=120, align='left')
+
+    return spec
 
 
 def _build_alice_guess(model_cls):
     """Build Alice's best guess at important field order.
 
-    List: compact scalars only, no JSON objects, max 8 columns.
-    Detail: high-priority fields first, then remaining, low-priority last.
+    List: compact scalars only, no JSON objects, max 8 columns — as FieldSpec objects.
+    Detail: high-priority fields first, then remaining, low-priority last — as FieldSpec objects.
     """
     field_info = _get_field_info(model_cls)
+    info_map = {f['name']: f for f in field_info}
     all_names = [f['name'] for f in field_info]
 
     # --- List ---
-    list_fields = []
-    # First: add known good list fields in priority order
+    list_names = []
     for gf in GOOD_LIST_FIELDS:
-        if gf in all_names and gf not in list_fields:
-            # Check it's not a JSON field
-            info = next((f for f in field_info if f['name'] == gf), None)
+        if gf in all_names and gf not in list_names:
+            info = info_map.get(gf)
             if info and not info['is_json']:
-                list_fields.append(gf)
-    # Fill up to 8 with remaining char/number fields
+                list_names.append(gf)
     for f in field_info:
-        if len(list_fields) >= 8:
+        if len(list_names) >= 8:
             break
-        if f['name'] not in list_fields and f['name'] not in EXCLUDE_FROM_LIST and not f['is_json']:
-            list_fields.append(f['name'])
+        if f['name'] not in list_names and f['name'] not in EXCLUDE_FROM_LIST and not f['is_json']:
+            list_names.append(f['name'])
+
+    list_fields = [_field_spec(n, info_map.get(n)) for n in list_names]
 
     # --- Detail ---
-    detail_fields = []
+    detail_names = []
     remaining = set(all_names)
 
-    # High priority first (in order)
     for hp in HIGH_PRIORITY_DETAIL:
         if hp in remaining:
-            detail_fields.append(hp)
+            detail_names.append(hp)
             remaining.discard(hp)
 
-    # Middle: everything not in high or low priority, alphabetically
     low_set = set(LOW_PRIORITY_DETAIL)
     middle = sorted(remaining - low_set)
-    detail_fields.extend(middle)
+    detail_names.extend(middle)
 
-    # Low priority last (in order)
     for lp in LOW_PRIORITY_DETAIL:
         if lp in remaining:
-            detail_fields.append(lp)
+            detail_names.append(lp)
+
+    detail_fields = [_field_spec(n, info_map.get(n)) for n in detail_names]
 
     return list_fields, detail_fields
 
 
 def _build_alphabetical(model_cls):
-    """All fields sorted alphabetically."""
+    """All fields sorted alphabetically — as FieldSpec objects."""
     field_info = _get_field_info(model_cls)
+    info_map = {f['name']: f for f in field_info}
     all_names = sorted(f['name'] for f in field_info)
 
-    # List: alpha but exclude JSON and internal fields
-    list_fields = [
+    list_names = [
         n for n in all_names
         if n not in EXCLUDE_FROM_LIST
         and not any(f['name'] == n and f['is_json'] for f in field_info)
     ][:10]
 
-    return list_fields, all_names
+    list_fields = [_field_spec(n, info_map.get(n)) for n in list_names]
+    detail_fields = [_field_spec(n, info_map.get(n)) for n in all_names]
+
+    return list_fields, detail_fields
 
 
 class Command(BaseCommand):
@@ -203,7 +301,7 @@ class Command(BaseCommand):
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
                     purpose='workbench_fields',
-                    data={
+                    config={
                         'list': alice_list,
                         'detail': alice_detail,
                         'views': [
@@ -216,7 +314,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'  Created {model_key}: alice_guess ({len(alice_list)}L/{len(alice_detail)}D), alphabetical ({len(alpha_list)}L/{len(alpha_detail)}D)')
             else:
                 # Update: add/replace alice_guess and alphabetical views, preserve user views
-                data = setting.data or {}
+                data = setting.config or {}
                 views = data.get('views', [])
 
                 # Remove old alice_guess/alphabetical if they exist
@@ -233,9 +331,9 @@ class Command(BaseCommand):
                     data['list'] = alice_list
                     data['detail'] = alice_detail
 
-                setting.data = data
+                setting.config = data
                 setting.dt_modified = _now_ms()
-                setting.save(update_fields=['data', 'dt_modified'])
+                setting.save(update_fields=['config', 'dt_modified'])
                 updated += 1
                 self.stdout.write(f'  Updated {model_key}: alice_guess ({len(alice_list)}L/{len(alice_detail)}D), alphabetical ({len(alpha_list)}L/{len(alpha_detail)}D)')
 

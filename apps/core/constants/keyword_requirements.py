@@ -26,7 +26,7 @@ def load_keyword_requirements():
                 
             key = getattr(setting, 'parent_model', None)
             if key:
-                requirements[key] = setting.data
+                requirements[key] = setting.config
         
         logger.info("Loaded keyword requirements for %d models in %.2fs", len(requirements), time.time() - start_time)
         return requirements

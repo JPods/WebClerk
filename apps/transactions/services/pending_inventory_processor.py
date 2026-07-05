@@ -118,7 +118,7 @@ def process_line_item_pending(
     # Group by item_id for efficient processing
     item_pending_map: Dict[int, list] = {}
     for pending in pending_records:
-        pending_item_id = pending.data.get('item_id')
+        pending_item_id = pending.config.get('item_id')
         if pending_item_id:
             if pending_item_id not in item_pending_map:
                 item_pending_map[pending_item_id] = []
@@ -226,7 +226,7 @@ def _process_pending_for_item(
         on_r_delta = Decimal('0')
         
         for pending in pending_records:
-            data = pending.data or {}
+            data = pending.config or {}
             on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
             on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
             on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))

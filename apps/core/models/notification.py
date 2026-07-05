@@ -7,7 +7,7 @@ class Notification(BaseModel):
     purpose = models.CharField(max_length=120, blank=True, null=True)
     model_name = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
-    data = models.JSONField(default=dict)
+    config = models.JSONField(default=dict)
 
     class Meta:
         db_table = 'notifications'

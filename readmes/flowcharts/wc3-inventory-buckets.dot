@@ -1,0 +1,56 @@
+// WC3 Inventory Bucket Flow — how quantities move through the system
+// Render: dot -Tpdf wc3-inventory-buckets.dot -o wc3-inventory-buckets.pdf
+
+digraph wc3_inventory_buckets {
+    rankdir=LR
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=9]
+    label="WC3 — Inventory Bucket Flow\navailable = on_hand - on_so + on_po + on_wo"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Transactions
+    proposal [label="Proposal\n(forecast)" shape=box fillcolor="#E8DAEF"]
+    order [label="Order\n(commitment)" shape=box fillcolor="#FCF3CF"]
+    invoice [label="Invoice\n(shipment)" shape=box fillcolor="#ABEBC6"]
+    purchase [label="Purchase\nOrder" shape=box fillcolor="#D4E6F1"]
+    receipt [label="Receipt\n(inship)" shape=box fillcolor="#AED6F1"]
+    workorder [label="Work Order\n(production)" shape=box fillcolor="#FADBD8"]
+    wo_complete [label="WO\nCompletion" shape=box fillcolor="#F5B7B1"]
+
+    // Buckets
+    on_p [label="on_p\n(forecast)" shape=ellipse fillcolor="#D7BDE2"]
+    on_so [label="on_so\n(committed)" shape=ellipse fillcolor="#F9E79F"]
+    on_hand [label="on_hand\n(physical)" shape=ellipse fillcolor="#82E0AA" fontsize=12]
+    on_po [label="on_po\n(expected)" shape=ellipse fillcolor="#85C1E9"]
+    on_wo [label="on_wo\n(in production)" shape=ellipse fillcolor="#F1948A"]
+    on_in [label="on_in\n(invoiced)" shape=ellipse fillcolor="#ABEBC6"]
+
+    available [label="AVAILABLE\non_hand - on_so\n+ on_po + on_wo" shape=doublecircle fillcolor="#58D68D" fontsize=11]
+
+    // Flows
+    proposal -> on_p [label="+qty×prob" color="#8E44AD"]
+    order -> on_so [label="+qty" color="#F39C12"]
+    order -> on_p [label="-qty (partial)" style=dashed color="#8E44AD"]
+
+    invoice -> on_hand [label="-qty" color="#E74C3C"]
+    invoice -> on_so [label="-qty" color="#E74C3C"]
+    invoice -> on_in [label="+qty" color="#27AE60"]
+
+    purchase -> on_po [label="+qty" color="#2980B9"]
+    receipt -> on_hand [label="+qty" color="#27AE60"]
+    receipt -> on_po [label="-qty" color="#E74C3C"]
+
+    workorder -> on_wo [label="+qty" color="#C0392B"]
+    wo_complete -> on_hand [label="+qty" color="#27AE60"]
+    wo_complete -> on_wo [label="-qty" color="#E74C3C"]
+
+    // Available computation
+    on_hand -> available [style=bold color="#27AE60"]
+    on_so -> available [label="-" style=bold color="#E74C3C"]
+    on_po -> available [label="+" style=bold color="#2980B9"]
+    on_wo -> available [label="+" style=bold color="#C0392B"]
+}

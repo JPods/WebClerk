@@ -76,11 +76,11 @@ def record_campaign_spend(campaign_id: int, amount: Decimal, description: str = 
     Returns: {campaign_id, total_spent}
     """
     setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
-    data = setting.data or {}
+    data = setting.config or {}
     spent = _dec(data.get('spent', 0)) + amount
     data['spent'] = str(spent)
-    setting.data = data
-    setting.save(update_fields=['data'])
+    setting.config = data
+    setting.save(update_fields=['config'])
 
     return {'campaign_id': campaign_id, 'total_spent': str(spent)}
 
@@ -94,7 +94,7 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
     Returns: {campaign_id, name, metrics}
     """
     setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
-    data = setting.data or {}
+    data = setting.config or {}
     campaign_name = data.get('name', '')
 
     # Count transactions linked to this campaign
@@ -140,8 +140,8 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
     }
 
     data['metrics'] = metrics
-    setting.data = data
-    setting.save(update_fields=['data'])
+    setting.config = data
+    setting.save(update_fields=['config'])
 
     return {
         'campaign_id': campaign_id,
@@ -159,11 +159,11 @@ def get_all_campaigns() -> List[Dict]:
 
     return [{
         'campaign_id': s.pk,
-        'name': (s.data or {}).get('name', ''),
-        'channel': (s.data or {}).get('channel', ''),
-        'budget': (s.data or {}).get('budget', '0'),
-        'spent': (s.data or {}).get('spent', '0'),
-        'metrics': (s.data or {}).get('metrics', {}),
+        'name': (s.config or {}).get('name', ''),
+        'channel': (s.config or {}).get('channel', ''),
+        'budget': (s.config or {}).get('budget', '0'),
+        'spent': (s.config or {}).get('spent', '0'),
+        'metrics': (s.config or {}).get('metrics', {}),
     } for s in settings]
 
 
@@ -173,7 +173,7 @@ def link_transaction_to_campaign(model_name: str, record_id: int, campaign_id: i
     Returns: {model_name, record_id, campaign_id}
     """
     setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
-    campaign_name = (setting.data or {}).get('name', '')
+    campaign_name = (setting.config or {}).get('name', '')
 
     MODEL_MAP = {
         'order': Order,
@@ -247,7 +247,7 @@ def get_campaign_cac(campaign_id: int) -> Dict:
     from apps.orgs.models import OrgBase
 
     setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
-    data = setting.data or {}
+    data = setting.config or {}
     spent = _dec(data.get('spent', 0))
 
     # Query customers with this campaign_id in refs.links.campaigns
@@ -281,7 +281,7 @@ def get_campaign_margin_velocity(campaign_id: int) -> Dict:
               turns, margin_velocity}
     """
     setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
-    data = setting.data or {}
+    data = setting.config or {}
 
     # Get orders linked to campaign
     orders = Order.objects.filter(

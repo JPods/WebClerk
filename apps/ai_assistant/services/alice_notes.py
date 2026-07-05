@@ -128,10 +128,10 @@ def resolve_pending(setting_id: int) -> Setting:
     """Mark an ``alice_pending`` record as resolved (``is_active=False``)."""
     setting = Setting.objects.get(pk=setting_id, purpose="alice_pending")
     setting.is_active = False
-    if setting.data is None:
-        setting.data = {}
-    setting.data["resolved_at"] = timezone.now().isoformat()
-    setting.save(update_fields=["is_active", "data", "dt_modified"])
+    if setting.config is None:
+        setting.config = {}
+    setting.config["resolved_at"] = timezone.now().isoformat()
+    setting.save(update_fields=["is_active", "config", "dt_modified"])
     logger.info("Alice pending resolved: pk=%s", setting.pk)
     return setting
 

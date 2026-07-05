@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import F
 from common.models import BaseModel
 from django.utils import timezone
-# heavily uses .refs and .metadata .data
+# heavily uses .refs and .metadata .config
 # used to tag shipments, equipment, locations, etc.
 # isolated from linkages because primarily used for tracking   
 # the metadata is more detailed and specific to each tag
@@ -22,7 +22,7 @@ class Tag(BaseModel):
     # canonical identifier for attached model (replaces legacy table_!name)
     model_name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source model this tag decorates")  #chaned from t_n
     record_id = models.IntegerField(blank=True, null=True, db_index=True, help_text="ID in source table")
-    data = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")
+    config = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")
     count_accessed = models.IntegerField(default=0)
     sequence = models.IntegerField(default=0, db_index=True)
 

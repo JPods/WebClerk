@@ -102,7 +102,7 @@ def process_ledger_sync_pending(
     Invoice = dj_apps.get_model('transactions', 'Invoice')
 
     for pending in pending_records:
-        inv_id = (pending.data or {}).get('invoice_id') or pending.record_id
+        inv_id = (pending.config or {}).get('invoice_id') or pending.record_id
         try:
             inv_id = int(inv_id)
         except (TypeError, ValueError):

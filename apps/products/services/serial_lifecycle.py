@@ -173,7 +173,7 @@ def get_serial_history(serial_id: int) -> Dict:
         'warranty': serial.warranty or {},
         'site': serial.site or {},
         'history': [
-            {'action': log.action, 'dt': log.dt, 'data': log.data or {}}
+            {'action': log.action, 'dt': log.dt, 'data': log.config or {}}
             for log in logs
         ],
     }

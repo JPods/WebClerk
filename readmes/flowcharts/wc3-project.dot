@@ -1,0 +1,104 @@
+// WC3 Project — from wc2 Project diagram
+// Project connects transactions; Linkage connects data
+// Render: dot -Tpdf wc3-project.dot -o wc3-project.pdf
+
+digraph wc3_project {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Project Model\nProject connects transactions; Linkage connects data"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Project hub
+    project [label="Project\n\nCan be bigger or smaller\nSimilar to how Linkage\nconnects data, Projects\nconnect transactions" shape=box fillcolor="#82E0AA" fontsize=11]
+
+    // Display
+    display [label="Display\n(DataBrowser)" shape=box fillcolor="#AED6F1"]
+
+    // Transaction models referenced by Project
+    proposals [label="Proposals" shape=box fillcolor="#FCF3CF"]
+    orders [label="Orders" shape=box fillcolor="#FCF3CF"]
+    invoices [label="Invoices" shape=box fillcolor="#F5B7B1"]
+    payments [label="Payments" shape=box fillcolor="#AED6F1"]
+    purchases [label="POs" shape=box fillcolor="#D6EAF8"]
+    workorders [label="Work Orders\nto Crews" shape=box fillcolor="#ABEBC6"]
+
+    // Support models
+    contact [label="Contact" shape=box fillcolor="#F9E79F"]
+    responsible [label="Responsible\nPerson" shape=box fillcolor="#F9E79F"]
+    qa [label="Q & A Details\nBest Practices\nTaskID/ItemNum" shape=box fillcolor="#FCF3CF" fontsize=8]
+
+    // Related records
+    documents [label="Documents" shape=box fillcolor="#E8DAEF"]
+    items [label="Items" shape=box fillcolor="#E8DAEF"]
+    itemspecs [label="ItemSpecs" shape=box fillcolor="#E8DAEF"]
+    serials [label="Serials" shape=box fillcolor="#E8DAEF"]
+    serial_log [label="SerialLog" shape=box fillcolor="#E8DAEF"]
+
+    // Crew/Vendor view
+    crew_view [label="View for\nCrew & Vendors" shape=box fillcolor="#ABEBC6" fontsize=8]
+
+    // Lower section — data model
+    subgraph cluster_data {
+        label="Data Layer"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        customer [label="Customer" shape=box fillcolor="#F4D03F"]
+        vendor [label="Vendor" shape=box fillcolor="#E59866"]
+        sos [label="SOs" shape=box fillcolor="#ABEBC6"]
+        pos [label="POs" shape=box fillcolor="#D6EAF8"]
+        inv [label="Invoices" shape=box fillcolor="#F5B7B1"]
+        wo [label="WOs" shape=box fillcolor="#ABEBC6"]
+        pay [label="Payments" shape=box fillcolor="#AED6F1"]
+
+        line [label="Line" shape=box fillcolor="#D5F5E3" fontsize=9]
+        item [label="Item\nqtyOnSO\nqtyOnPO\nqtyOnHand" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9]
+        inv_cache [label="InventoryCache" shape=box fillcolor="#E74C3C" fontcolor=white fontsize=9]
+        inv_layer [label="InventoryLayer\nqtyOnHand\nby cost" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9]
+        serial_rec [label="Serial" shape=box fillcolor="#FCF3CF" fontsize=9]
+        serial_act [label="SerialLog" shape=box fillcolor="#FCF3CF" fontsize=9]
+
+        linkage [label="Linkage\n(LinkageEntry)" shape=box fillcolor="#82E0AA"]
+        action [label="Action" shape=box fillcolor="#82E0AA"]
+        qa_ent [label="QA Entity" shape=box fillcolor="#82E0AA" style="filled,dashed"]
+        resource [label="Resource" shape=box fillcolor="#82E0AA"]
+    }
+
+    // Project connections
+    project -> display
+    project -> proposals
+    project -> orders
+    project -> invoices
+    project -> payments
+    project -> purchases
+    project -> workorders
+    project -> qa
+    project -> contact
+    workorders -> responsible
+    responsible -> crew_view
+
+    // Related records (right side)
+    project -> documents [style=dashed]
+    project -> items [style=dashed]
+    project -> serials [style=dashed]
+
+    // Data layer connections
+    customer -> sos
+    customer -> proposals [style=dashed]
+    vendor -> pos
+    sos -> line
+    pos -> line
+    inv -> line
+    sos -> inv [style=dashed]
+    wo -> line [style=dashed]
+    inv -> pay
+    line -> item [color="#E74C3C"]
+    line -> linkage [color="#27AE60"]
+    item -> inv_layer [style=dashed]
+    inv_layer -> serial_rec
+    serial_rec -> serial_act
+}

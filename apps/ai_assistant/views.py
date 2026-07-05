@@ -536,7 +536,7 @@ class NoteView(APIView):
         return api_response(data={
             "id": setting.pk,
             "is_active": setting.is_active,
-            "resolved_at": setting.data.get("resolved_at"),
+            "resolved_at": setting.config.get("resolved_at"),
         })
 
 

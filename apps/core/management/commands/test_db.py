@@ -43,7 +43,7 @@ class Command(BaseCommand):
             for i, setting in enumerate(settings_list[:3]):  # Process first 3
                 purpose = setting.purpose or 'general'
                 model_name = setting.parent_model or 'general'
-                data = setting.data or {}
+                data = setting.config or {}
                 self.stdout.write(f"   Setting {i+1}: {model_name}:{purpose} = {len(str(data))} chars")
                 if i >= 2:  # Only process first 3
                     break

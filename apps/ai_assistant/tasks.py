@@ -294,6 +294,73 @@ def layout_drift_task(use_llm: bool = False) -> dict:
     )
     return report
 
+# ─── Apply Pending Layouts ───────────────────────────────────────────
+
+def apply_pending_layouts_task() -> dict:
+    """Process pending layout changes from Pending → Setting.
+
+    Reads Pending records with purpose='layout_change' and dt_processed=0.
+    Applies each view to the corresponding Setting record, then marks processed.
+    """
+    started = timezone.now()
+
+    from apps.core.models import Setting
+    from apps.core.models.pending import Pending
+
+    pending_qs = Pending.objects.filter(
+        purpose='layout_change',
+        dt_processed=0,
+    ).order_by('dt_created')
+
+    applied = 0
+    errors = 0
+    for p in pending_qs:
+        data = p.config or {}
+        target_model = data.get('target_model')
+        view = data.get('view')  # the layout change {list, detail, views}
+
+        if not target_model or not view:
+            p.config = {**data, 'error': 'missing target_model or view'}
+            p.mark_processed()
+            errors += 1
+            continue
+
+        try:
+            setting = Setting.objects.filter(
+                parent_model=target_model,
+                purpose='workbench_fields',
+            ).first()
+
+            if not setting:
+                setting = Setting.objects.create(
+                    name=f'workbench_fields:{target_model}',
+                    parent_model=target_model,
+                    purpose='workbench_fields',
+                    config=view,
+                )
+                logger.info(f"[apply_pending_layouts] Created Setting #{setting.id} for {target_model}")
+            else:
+                setting.config = view
+                setting.save(update_fields=['config', 'dt_modified'])
+                logger.info(f"[apply_pending_layouts] Updated Setting #{setting.id} for {target_model}")
+
+            p.config = {**data, 'setting_id': setting.id, 'status': 'applied'}
+            p.mark_processed()
+            applied += 1
+
+        except Exception as e:
+            logger.exception(f"[apply_pending_layouts] Failed for {target_model}")
+            p.config = {**data, 'error': str(e)}
+            p.mark_processed()
+            errors += 1
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {'applied': applied, 'errors': errors, 'duration_seconds': duration}
+    if applied > 0:
+        logger.info(f"[apply_pending_layouts] Applied {applied}, errors {errors} in {duration:.1f}s")
+    return result
+
+
 # ─── Combined: Full Intelligence Run ──────────────────────────────────
 
 def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool = True) -> dict:

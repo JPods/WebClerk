@@ -15,7 +15,12 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '85.31.234.194']
 
 CORS_ALLOWED_ORIGINS = (
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5177',
     'http://85.31.234.194',
 )
 CORS_ALLOW_CREDENTIALS = True
@@ -23,7 +28,12 @@ CORS_ALLOW_CREDENTIALS = True
 # Required by Django when making cookie-authenticated requests from the Vite origin.
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5177',
     'http://85.31.234.194',
 ]
 
@@ -883,6 +893,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.products.tasks.process_pending_inventory_adaptive_task',
         'schedule': 30.0,                       # seconds between kicks
         'kwargs': {'limit': 200},
+    },
+
+    # ── Apply pending layout changes ────────────────────────────────
+    # Runs every 10 s; applies DataBrowser layout saves to Settings.
+    'apply-pending-layouts': {
+        'task': 'apps.ai_assistant.tasks.apply_pending_layouts_task',
+        'schedule': 10.0,
     },
 
     # ── Search keywords refresh ─────────────────────────────────────

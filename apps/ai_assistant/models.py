@@ -3,6 +3,9 @@ AI Assistant models — conversation history, feedback tracking, and inventory e
 """
 import uuid
 from django.conf import settings
+
+# Import Alice-specific models so Django discovers them
+from apps.ai_assistant.models_alice import AliceObservation, AlicePreset, AliceCoachingLog  # noqa: F401
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 

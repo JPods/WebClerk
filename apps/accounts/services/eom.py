@@ -403,9 +403,9 @@ def get_eom_status(
             name__icontains=period_key,
         ).order_by("-dt_created").first()
 
-        if eom_doc and eom_doc.data:
+        if eom_doc and eom_doc.config:
             closed = True
-            dt_closed = eom_doc.data.get("dt_closed")
+            dt_closed = eom_doc.config.get("dt_closed")
     except Exception:
         pass
 
@@ -513,14 +513,14 @@ def reopen_period(
         ).order_by("-dt_created").first()
 
         if eom_doc:
-            data = copy.deepcopy(eom_doc.data or {})
+            data = copy.deepcopy(eom_doc.config or {})
             data["reopened"] = True
             data["dt_reopened"] = _now_ms()
             data["reopened_by_contact_id"] = contact_id
             data["reopen_reason"] = reason.strip()
-            eom_doc.data = data
+            eom_doc.config = data
             eom_doc.status = "reopened"
-            eom_doc.save(update_fields=["data", "status", "dt_modified", "version"])
+            eom_doc.save(update_fields=["config", "status", "dt_modified", "version"])
     except Exception as e:
         logger.warning("EOM reopen: document update failed: %s", e)
 

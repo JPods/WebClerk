@@ -199,7 +199,7 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
     if not setting:
         return {'error': f'No field_access Setting found for {model}'}
 
-    data = setting.data or {}
+    data = setting.config or {}
     behaviors = data.get('field_behaviors', {})
     field_def = behaviors.get(field, {})
 

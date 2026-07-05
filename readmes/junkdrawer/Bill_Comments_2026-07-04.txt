@@ -1,0 +1,684 @@
+
+Bill_comment:
+
+Here's the comparison. WC3 has more models than I expected — several WC2
+  features already have model stubs.
+
+  Models WC3 Already Has (that we thought might be missing)
+
+  These were in the harvest plan but WC3 already has the model:
+
+  ┌─────────────────────┬────────────────────────┬─────────────────────────┐
+  │     WC2 Feature     │       WC3 Model        │         Status          │
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ BOM / Kit Assembly  │ BillOfMaterial         │ Model exists — needs    │
+  │                     │ (products)             │ workflow/UI             │
+  
+  Bill_comment:
+
+  review:
+  /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_AddChildren.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_AdjBydInv.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_ALDefineParent.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/Bom_ApplyIvcLn.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_BuildCalcQty.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_BuildExtend.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_BuildMom.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_CheckLoop.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_ChildCost.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_Consume.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/Bom_CostItems.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_CostMatrix.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_DoBOM.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_Export_fdi.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/Bom_Export.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_ExtendCost.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/Bom_FillArray.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_Leaf_ORDA.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_Multi2.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_NeedExpand.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_QtyChange.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_SortbyPar.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_TopLevel.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_TopLevelCurRec.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_TopLevelLoop.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOM_Tree_ORDA.4dm /Volumes/TempFiles/WebClerk_versions/WebClerk20_over_withoutLines/Project_WebClerk/Sources/Methods/BOMReport.4dm
+  
+  Done above
+  
+                                                                                                     
+  ┌────────────┬──────────┬──────────────────────┐                                                    
+  │    Repo    │  Branch  │    Commits Pushed    │                                                    
+  ├────────────┼──────────┼──────────────────────┤                                                    
+  │ webClerk3  │ bill_dev │ 15 commits → a558fff │                
+  ├────────────┼──────────┼──────────────────────┤
+  │ React2025  │ bill_dev │ 8 commits → a58f1f6  │                                                    
+  ├────────────┼──────────┼──────────────────────┤
+  │ allie-core │ main     │ 5 commits → 871f411  │                                                    
+  └────────────┴──────────┴──────────────────────┘    
+  
+  Git Push Log — Session 2026-07-03/04                                                                
+   
+  ┌─────┬───────┬─────────┬─────────────────────────────────────────────────────────────────────┐     
+  │  #  │ Repo  │ Commit  │                             Description                             │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤
+  │ 1   │ WC3   │ 5eecefa │ BOM services, serial services, operator consolidation, harvest plan │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤
+  │ 2   │ React │ 67e49c8 │ DataBrowser: CSS migration, field widgets, tree mode, validation    │     
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 3   │ React │ 6d7305b │ JSON Viewer: standalone window with linked navigation               │     
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 4   │ React │ fd0cc15 │ Cross-window messaging: BroadcastChannel                            │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 5   │ React │ f7b292b │ JSON labels clickable — same pattern as email/phone                 │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 6   │ WC3   │ 9acacc5 │ Margin velocity as real fields on Item                              │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 7   │ WC3   │ 4ff1055 │ Inventory services: costing, layers, counting, margin velocity      │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 8   │ WC3   │ 1d830a6 │ CoreModel: uuid immutable, ida never null                           │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 9   │ WC3   │ 962d7fa │ Inventory reservations: order allocation                            │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 10  │ WC3   │ bab85df │ Price resolver: 6-level cascade with margin floor                   │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 11  │ WC3   │ 0e6d9aa │ Sales dashboard + margin alerts don't block shipment                │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 12  │ WC3   │ 789d313 │ Purchasing dashboard                                                │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 13  │ WC3   │ 6aac984 │ Stage 1 complete: data integrity (5 items)                          │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 14  │ WC3   │ 039f024 │ GL gaps filled: BOM journal, adjustments, export, account summary   │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 15  │ WC3   │ 834a7d8 │ Company profile Setting: logos, print defaults                      │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 16  │ WC3   │ 2a8a6df │ Accounting 100%: credit metrics, tax summary, reconciliation        │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 17  │ React │ 18c4f90 │ Commerce Dashboard: 5-tab view at /commerce                         │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 18  │ React │ aca05bc │ Accounting tab: AR aging + credit metrics                           │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 19  │ React │ 7cfebde │ Statement + Tax Report print documents                              │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 20  │ WC3   │ 3560cb9 │ 28 report templates seeded                                          │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 21  │ WC3   │ 0626cb7 │ BOM: three-cost basis (avg/last/min/landed)                         │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 22  │ React │ a58f1f6 │ BOM panel in DataBrowser detail pane                                │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 23  │ WC3   │ a558fff │ Session readme                                                      │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 24  │ WC3   │ b33bc11 │ Serial API endpoints: 9 routes                                      │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 25  │ React │ 893330f │ Spawn links + serial DataBrowser integration                        │
+  ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
+  │ 26  │ Allie │ 871f411 │ Session handoff + memory saves                                      │
+  └─────┴───────┴─────────┴─────────────────────────────────────────────────────────────────────┘     
+                                                                  
+  What's next?                                                                                    
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Serial Number       │ Serial + SerialLog     │ Models exist — need     │
+  │ Tracking            │ (products)             │ assign/issue/track      │
+  │                     │                        │ workflows               │
+  
+  
+    Bill_comment:
+  
+  
+We need to add services for serialized items and we can similary use the    
+  dbr.  Where we bought it from, who we sold it to, its warrant, all the      
+  specific actions (in config)...    
+  
+We need services similar to these. You can also 
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_CancelReset.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_ChangeAvail.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_ChangeLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_DelPOLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_FillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_IssueDialog.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_IssueSale.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_IssueTBD.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_RcvrPO.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_RecvDialog.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_Reference.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_SalvageSale.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_SaveChanges.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_SrchCustVen.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Srl_Transaction.4dm
+  
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/WCapi_SerialNum.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CCSSerialsToOrder.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/ItemSerialToOrder.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Http_SerialIssue.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/QtyOrd_SerialCh.4dm
+  
+  
+  Some items are in layouts you can search for contains "serial" in for more DataBrowser
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources
+  
+  
+  Serials will also relate to Q&A (inspections and actions), documents.... these are linked in .refs . To manage complex records, we can reduntantly launch additional dbr windows. We probably need a header in dbr for when to spawn them. What do you think?
+  
+  Some of it is junk.
+  
+ Done above
+  
+    Bill_comment:
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Inventory Layers    │ InventoryLayer         │ Model exists — needs    │
+  │ (FIFO)              │ (products)             │ costing workflow        │
+  
+  
+    Bill_comment:
+    
+  Each time a purchase line is received, or workorder line is complete, it creates an InventoryLayer record at a cost. We stack these layers, costing based on:
+  1. Average, uses the weighted average cost of the quantities in the stack
+  2. Last cost is the newest stack
+  3. FIFO ships from the oldest to the newest statck
+  4. LIFO ships from the newest to the oldest 
+  
+ To build services, Look at INVT_dInvtApply and all associated functions in wc2 to see how we did this before. Is there better approaches.
+  
+  Something we want in our reporting is margin velocity. What was the margine and how long did it take to collect it. An item with 5% margine that turn 100 times a day can be better than a 100% margin that turns every 5 years.
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Warehouse /         │ Warehouse +            │ Models exist — need     │
+  │ Multi-site          │ SiteInventory          │ operator UI             │
+  │                     │ (products)             │                         │
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │                     │ InventoryMovement      │ Model exists — needs    │
+  │ Inventory Movements │ (products)             │ receiving/shipping      │
+  │                     │                        │ triggers                │
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Inventory Checks    │ InventoryCheck +       │ Models exist — need     │
+  │ (cycle count)       │ InventoryCheckLine     │ count UI                │
+  
+Bill_comment:  We can use the json browser as our inventory counting tool. Every inventory layer is a count at a price at a location. If inventory layer (and I may say stack from wc2) are split and moved between to 2 more location ids, the record is converted to that many layer records each assigned to a location at a cost and quantity.
+
+To do an inventory check "bins" (might not really be bins) can have qr codes that are scanned and that stacks' json. An entry area, (table area, with maybe flattened data display) compares a quantity field and allow entering actual quantity and explanation.
+
+to build services, look functions associated with and any other ideas you mined or have on your own
+
+/Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/INVT_dInvtApply.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Invt_dRecCreate.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/InvtAdjDiaSave.4dm
+
+/Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/ItemWarehouse_WindowOpen.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/ItemWarehouseCombine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/ItemWarehouseEditor.4dm
+  
+  done
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Inventory           │                        │ Model exists — needs    │
+  │ Reservations        │ InventoryReservation   │ order allocation        │
+  │                     │                        │ workflow                │
+  
+Bill_comment: We did this with non-journalable invoices in wc2. What is a better way? Not a critical feature. Add to a todo
+  
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Requisition (pre-PO │ Requisition +          │ Models exist — need     │
+  │  approval)          │ RequisitionLine        │ approval workflow       │
+  
+Bill_comment: These are really requests for quotes. So there are documents associated with what is needed. There are vendors solicited and their responding documents. There are points of contact and actions required. I think the json window with messaging to the the requistion record in DataBrowser.
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ALDefine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ALDefineOrd.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_AlExit.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_FillArrays.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ItemFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Menu.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Open.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_OrdLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_OutSide.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_PoLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_PpLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Window.4dm
+  
+  
+  
+  
+  
+  2026-07-04
+  
+    Fully Built + Committed + Pushed ✓                                                                  
+                                                                  
+  - DataBrowser (CSS, widgets, tree mode, JSON viewer, cross-window messaging)                        
+  - BOM (services, API, DataBrowser panel, three-cost, BB200 data)
+  - Serial services (12 operations in serial_services.py)                                             
+  - Inventory services (13 operations, margin velocity, layers)   
+  - Inventory reservations (order allocation)                                                         
+  - Price resolver (6-level cascade)                                                                  
+  - GL/Accounting (journals, EOM, export, tax summary, credit metrics)                                
+  - Commerce Dashboard (5 tabs)                                                                       
+  - Stage 1 data integrity (5 items)                                                                  
+  - CoreModel rules (uuid immutable, ida never null)                                                  
+  - Company profile + logos                                                                           
+  - 28 report templates seeded                                                                        
+  - Statement + Tax Report print documents                                                            
+                                                                                                      
+  Built but Not Wired to UI                                                                           
+                                                                                                      
+  - Serial services — 12 Python services exist, no API endpoints or DataBrowser spawn links yet       
+  - Inventory services — 13 Python services exist, no API endpoints yet
+  - Reservations — services exist, not wired to order→invoice chain                                   
+                                                                  
+  Not Built Yet                                                                                       
+                                                                  
+  - Document promotion chain (proposal→order→invoice)                                                 
+  - Returns/voids/credit memos                                    
+  - N+1 query fix                                                                                     
+  - Report runner (server-side PDF via pdfme)
+  - Campaign model (raw SQL → ORM)                                                                    
+  - Voice interface                                                                                   
+  - Customer statement as server-side PDF (React print version exists)                                
+                                                                                                      
+  Want to wire the serial API endpoints and
+  
+  
+  
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Item                │ ItemXRef (products)    │ Model exists — needs    │
+  │ Cross-Reference     │                        │ vendor catalog import   │
+  
+Bill_comment: This is not critical now, but is fairly simple but messy to maintain for users. This is Ingrid's real asset to supply chain members using uuid.
+
+If there are multiple sources for a single item, the ida used by that source is linked to the id/ida of the internal database. If operating on their own, the internal database sets the uuid. If collaborating with Ingrid, Ingrid sets the uuid, updates costs as vendors change costs, updates availabilities, ....
+
+
+Done
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │                     │                        │ Models exist — need     │
+  │ Catalogs            │ Catalog + CatalogLine  │ DynamicCatalogs         │
+  │                     │                        │ integration             │
+  
+Bill_comment: Look at how we did SpecialDiscount in wc2. 
+/Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources
+
+There has to be better ways. Such catalog are for specific customers (1 or more), for specific periods,  change by % or by price.
+
+Ingrid can manage these for manufacturers updating resellers with special pricing for the offered period.
+
+Done
+
+
+ ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Packing / Load  │ PackingList,       │ Scan items into boxes,  │ Stage │
+  │ Tag             │ PackingLine,       │ build pallets, assign   │  5    │
+  │                 │ LoadTag            │ to shipments            │       │
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Delivery/Shipping   │ DeliveryVisit +        │ Models exist — need     │
+  │                     │ DeliveryLine           │ shipping workflow       │
+  
+Bill_comment: Packing is very much like self-checkout at grocery stores (if you have reference to such systems). An order is opened, items are scanned for barcode and put an a scale to confirm weight and count (not precise, but close enough). As items are scanned, count shifts. Scanning has to adapt for scanning a box of 10, converting its BOM or bulk count into 10.
+
+Weight and address are posted to a carrier and the shipping label is printed and applied to the package
+
+/Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/TableForms/1/Packing
+  
+  There is also just converting an order to an invoice and using the approximate weight to calculate freight costs. Then we accumulated actual shipping costs compared to billed shipping costs and add a factor to shipping by than carrier.
+  
+Can you see this is wc2 harvest?
+
+Is there a better way?
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/acceptInvoice.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/acceptOrders.4dm
+  
+
+
+
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ GL / Ledger         │ GlAccount + GlJournal  │ Models exist — need     │
+  │                     │ + Ledger               │ posting triggers        │
+
+Bill_comment: Add an accounting tab to the selling dashboard. 
+
+wc does not really have accounting periods. We support them, by providing data by month, quarter, yearly. The primary focus of wc is sales now, actions now. 
+
+We convert our actions into $ by account code to communicate with accounting packages. We can provide that data via csv, json, excel, or api.
+
+Alice can coach users to convert their activities into $ by account code to meet their accounting requirements. There needs to be a setting record for accounting interface.
+
+
+We do produce usage records to accumulate item data based on period. Individual usage records by item can be overwhelming to small businesses. Alice/wchq can recommend how to cluster product together by to make tracking more simple. The json window can be used to see into specifics by item, invoice lines, order lines etc....
+
+Campaigns need to be accumulated periodically.
+
+What else do we need to do with this. 
+
+/Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_AcctRayInit.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_CreatePrJrnl.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_GetDivsnCust.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_GetDivsnPO.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlBOM.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlCash.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlHdr.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlLineAdd.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlMtl.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlPrch.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlSale.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlsCheck.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_JrnlSummary.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_MapInsightAc.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_MapInsightDv.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_PJrInsightDf.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_Post.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_Post2PeachTr.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_Post2QuickBo.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_PostConnected.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_PostInsight.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_RptRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_Sum2Records.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL_SumRayInit.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_AtOnce.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_Connected.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_ConnectedPJ.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_GreatPlains.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_Insight.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_InsightIsAp.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_InsightPJ.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_MultiLedger.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_MYOB.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_PeachTree.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/GL2_QuickBooks.4dm
+
+
+Done above
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Tax Jurisdiction    │ TaxJurisdiction        │ Model exists — needs    │
+  │                     │                        │ line-level tax calc     │
+  
+  
+Bill_comment: Review how taxes were charged in wc2. Basically as a percent based on product type by zip code. Customers could have tax exempt code. This process was highly manual. We can use this for local business and b2b. Long-term it would be good to add an option for a tax service api interface if there is such a thing (have to believe there is, or Ingrid can create one.)
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/TaxWebService.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/TaxCalcLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/TaxSalesReport.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/TaxSalesReportData.4dm
+  
+  
+Done
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Payment Terms       │ PaymentTerm + Term     │ Both exist — need UI    │
+  
+Bill_comment: This controls invoices creating ledgers
+  
+  
+  Done
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Campaign /          │ Campaign (raw SQL, not │ Schema exists — needs   │
+  │ Ad-Source           │  ORM yet)              │ ORM migration           │
+  
+Bill_comment: Alice coaching. transaction.source..... is intended to be used to store information about source of the connection. Perhaps we should have a simple field to reduce user complexity with .source for sophisticated efforts. Perhaps we change the .source to .campaign?
+
+Done
+
+
+  
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ Scheduled Tasks     │ ScheduledTask +        │ Models exist — need     │
+  │                     │ TaskRun + TaskConfig   │ HTTP API exposure       │
+  
+Bill_comment: Leverage action model and lets create an interface with calendars.
+
+Actions were field in tables in wc2. Very clumsy. Actions should be heavily used by any model to connect the responsible person to the task and data.
+  
+  
+  Done
+  
+  ├─────────────────────┼────────────────────────┼─────────────────────────┤
+  │ QA / Knowledge Base │ QuestionAnswer (docs)  │ Model exists — needs    │
+  │                     │                        │ structured Q&A workflow │
+  
+Bill_comment: This is key tool in Retrospection. In wc2 had QACustomer, QAQuestions, and QAAnswers. In wc3 I think we are missing a QAResult model (equivalent to QACustomer). QACustomer in wc2 really applied to items, customers, vendors, .... It points to a specific relationship with questions about that relationship and answers gathered at the point of value added at a specific time.  QAQuestions where the questions with unique_id. QAAnswers were best guess at 90% of the answers with unique_id. It was messy managing this separate table of likely answers. In wc3, my thought was to use setting records store questions and answers (with unique_id, and uuids for each added into their .config json).
+
+
+Here are some use cases - The Wisdom of the Many and Retrospection
+1. A fireplace installation company uses the QA to inspect a house to identify issues that can affect an installation. unique ids at both the question and answer allow insights to grow and questions to evolve in a company. uuids with each question and separately for each answer reported to wchq allows insights to grow across companies in an industry. 
+
+2. A serialized item is installed. Every inspection of that item has a defined set of QA that the inspector must answer and freeform where they can expand. Again, aggregating QA by id incrementally increased wisdom.
+
+3. In a small number of inspections, non-critical defects are reported. ids allow these to be aggregated so perhaps identifying a batch of serialized item or items from one vendor performing more poorly than another. Before there is a failure, those insights might allow preemption.
+
+Small stings and Retrospection
+
+
+  └─────────────────────┴────────────────────────┴─────────────────────────┘
+
+  Models WC3 Is Actually Missing
+
+  These require new models based on the WC2 mining:
+
+  ┌─────────────────┬────────────────────┬─────────────────────────┬───────┐
+  │   WC2 Feature   │  Missing Model(s)  │      What It Does       │ Stage │
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Price Level /   │ PriceLevel,        │ Customer type → price   │ Stage │
+  │ Price Matrix    │ PriceMatrix        │ tier, item × qty-break  │  2    │
+  │                 │                    │ → price                 │       │
+  
+Bill_comment: This can get much more sophisticated, but for now, we should just pass a customer's price point to proposals, orders, and invoices, and they pass it to their lines. Lines passes it to line. Prices do not update when passing between transaction unless commanded by the user. Lines can be individually adjusted by the user, discounts applied, price_point, changed, what-ever. We are guides, not policemen. They know what they are doing to stay in business. We report for them on their margins and margins by sales person.
+  
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Commission /    │ CommissionRule,    │ Rep × margin band →     │ Stage │
+  │ Rep             │ CommissionEntry    │ rate; per-line          │  4    │
+  │                 │                    │ commission calc         │       │
+  
+Bill_comment: 
+wc2 calculated commission live with every action. That is a waste.  An oversight function can better manage calculations and transaction.commission is an object that can be flexible. it can even contain a script. transaction.is_commission defines if this is a product or commission collection payable transaction.
+
+
+wc2 had a reasonable effective commissions system. Companies selling through reps could assign a rate for a rep. The rate at a % factor in the time depending on the price_point sold at. At a tradeshow a rep could take an order from a customer for multiple manufacturers, then split it into separate orders to each manufacture, post the orders to the manufacturers and invoice the manufacturers for the commission value versus the customer for the product (commission invoice versus product invoice). If some of the items were supplied by manufacturers and some in-house, the in house items would just be identified as belonging to in-house manufacture id. That order would be fulfilled as a normal product order.
+
+  /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMANewCommOrderLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CM_AllLineCalc.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CM_ChangeRateByNameID.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CM_ChangeWho.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CM_FindRate.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CM_LineCalc.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_AbbotExport.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_Comm_SrchOpts.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_CustomerID.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_ImportBefore.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_ImportDuring.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_ImportOrdLines.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_ImportSC.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_ItemCreate.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMA_PaymentOrderInvoice.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAComInvoiceOneLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAComOrderOneLine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAComplexImport.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAComplexPreflight.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAComplexProcess.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAIE_OrdImportOrders.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CMAIE_OrdImportOrdLines.4dm
+  
+Done
+  
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │                 │                    │ Inbound/outbound EDI    │       │
+  │ EDI Transaction │ EDIMessage, EDIMap │ documents               │ Stage │
+  │                 │                    │ (850/810/997), trading  │  5    │
+  │                 │                    │ partner field maps      │       │
+  
+  Bill_comment: Replace with sync. EDI is too complex. Is it done any more? Is it a dead entity. But we are not doing it now. Ingrid will provide a better approach.  We will convert our purchase orders into a json that our vendors can load into their sales orders. We can send these via sync bundles
+
+We will accept json sent via sync bundles
+
+Users setup keys with their trusted trading partners to exchange. They can have keys in connection records with each other, Ingrid, and wchq for items. Athena needs to be ruthless with any data passting through us.
+
+Done
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │                 │ EmailTemplate,     │ Per-org templates,      │       │
+  │ Email Template  │ EmailQueue,        │ queued sends with rate  │ Stage │
+  │ / Queue         │ EmailOptOut        │ limiting, opt-out       │  5    │
+  │                 │                    │ registry                │       │
+  
+  Bill_comment: A type of report spawning an action if there is follow-up required.
+  
+  
+  wc2 had MySalesAndService that listed all transaction where the user was assigned the action. In wc3, action records can relate any model via .refs.  Emails are just an activity that should spawn an action record. there is a benefit in putting the email id from gmail, ... into the .refs and allowing it to be launched from the action record. 
+  
+  There are a number of standard emails. I think these can be stored in the .config of reports. 
+  
+Done
+  
+    
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Statement       │ Statement,         │ AR customer statements  │ Stage │
+  │                 │ StatementLine      │ with aging buckets      │  4    │
+  
+Bill_comment: 
+Done
+
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │                 │                    │ Day/month close records │ Stage │
+  │ Period Close    │ PeriodClose        │  gating backdated       │  4    │
+  │                 │                    │ entries                 │       │
+  
+Bill_comment: 
+  Done
+
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Call Report /   │ CallReport or      │ Structured CRM activity │ Stage │
+  │ Activity        │ extend Action      │  log (ad source,        │  4    │
+  │                 │                    │ contact method, action) │       │
+  
+Bill_comment: taken over by action model
+  Done
+
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Layout          │                    │ User-submitted          │ Stage │
+  │ Submission      │ LayoutSubmission   │ DataBrowser layouts for │  3    │
+  │ (marketplace)   │                    │  credit                 │       │
+  
+Bill_comment: We need a post tool with a fense for users to post forms, idea, .... Ingrid and Athena need to ruthless cull these if there is buried harms. Users need to be credited and score points for contribution.
+
+We need a substack group to share their uses without us in the middle 
+
+Done
+  
+  ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
+  │ Saved Search /  │                    │ User-saved filter/sort  │ Stage │
+  │ Named Query     │ SavedSearch        │ combinations — reusable │  3    │
+  │                 │                    │  queries                │       │
+  
+Bill_comment: I used to save these in tallymaster records. Should we have a separate table for these or should they be a type of report?  Fewer tables is good. We do need a Dashboard for reports, stored searches, stored scripts, ... this becomes a rats nest. Alice can help. 
+
+Alice may wish to store frequently used queries by a user in that user's metadata. So even if it is not in the typical select list, can can be added for this user.
+
+It is also nice if power users can pull up the sql to edit it.   Note that we MUST insert the user's id into searches so no one can query outside their gated allowance. If they are a rep, they only see the customers assigned to them and only the field viewable/editable to them. vendor, manufacture.....
+
+Done
+
+  └─────────────────┴────────────────────┴─────────────────────────┴───────┘
+
+  Models That Could Be Extensions (not new tables)
+
+  ┌────────────────────────────────┬───────────┬────────────────────────────┐
+  │                                │  Extend   │                            │
+  │          WC2 Feature           │  Which    │        What to Add         │
+  │                                │   Model   │                            │
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Invoice type                   │ Invoice   │ invoice_type CharField     │
+  │ (invoice/proforma/credit_note) │           │ with TextChoices           │
+  
+  
+Bill_comment: In wc2 we 
+  
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Backorder qty                  │ OrderLine │ qty_back_ordered @property │
+  │                                │           │  or computed field         │
+  
+Bill_comment: 
+  
+  
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Status ↔ Percent coupling      │ Action    │ Enforce in save()          │
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │                                │ Action +  │ Discount-exceeds-threshold │
+  │ Discount approval              │ existing  │  triggers approval Action  │
+  │                                │ RBAC      │                            │
+  
+Bill_comment: 
+  
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Customer alerts / lock         │ Contact   │ metadata.alerts,           │
+  │                                │ metadata  │ metadata.locked_by         │
+Bill_comment: 
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Favorites / starred            │ BaseModel │ metadata.starred boolean   │
+  │                                │  metadata │                            │
+  
+ Bill_comment: 
+ 
+ 
+ 
+ 
+  ├────────────────────────────────┼───────────┼────────────────────────────┤
+  │ Forecast                                    │
+  
+ Bill_comment: Looks at the line level at proposals & probability, orders to see future demand and purchase lines and wo lines to see future supply to estimate supply flow. Good use of json display. I added a swag on cashflow by taking due dates and adding a net_days delay in payment and inventory cost by estimating carrying days for inventory. 
+ /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_ByOrder.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_CalcUsage.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_CashFlow.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_FillArrays.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_FillQtyDescription.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_FillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_LaunchWin.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_OH.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_RetrvLocal.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_SaveLocal.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/FC_SumYear.4dm
+  
+  Done
+  
+  
+  └────────────────────────────────┴───────────┴────────────────────────────┘
+
+  The Real Gap
+
+  The surprise: WC3 has most of the models already. The gap is not schema — it's
+   workflows and UI. The models for BOM, serial tracking, warehousing, inventory
+   movements, requisitions, catalogs, delivery, GL, and tax jurisdictions are
+  all defined. What's missing is:
+
+  1. Manage actions that wire the models into business workflows (promote, void,
+   apply payment, receive goods, pick/pack)
+   
+Bill_comment: 
+   
+   
+   
+  2. DataBrowser views that expose the models to operators
+  
+Bill_comment: 
+  
+  3. Signals/hooks that connect model saves to downstream effects (line save →
+  invoice rollup is done; order line → inventory reservation is not)
+  
+Bill_comment: 
+  
+  4. Print/PDF output for any document type
+  
+Bill_comment: 
+
+  The 10 genuinely missing models (price matrix, 
+  
+  
+  commission, 
+  
+  packing, 
+  
+  
+  EDI,
+  
+  email, 
+  
+  statements, 
+  
+  period close, 
+  
+  call reports, 
+  
+  layout submissions, 
+  
+  saved searches) are real gaps, but they're Stage 3-5 items. The Stage 1-2 work is
+  mostly about wiring existing models to workflows.
+  
+  
+  
+    
+❯ Let's do these but also add the shift from inline to css. My view is a css is 
+ much more manageable.   1. doSafeSelect — 10 minutes, zero risk, immediate UX  
+improvement                                                                     
+  2. Reset Layout button — 20 minutes, just a UI trigger for existing           
+  loadView('initial')                                                           
+  3. Operator vocabulary file — 1 hour, eliminates a real maintenance trap in   
+  wcapi.py                                                                      
+  4. Widget type schema — 2 hours, makes the BehaviorField contract explicit    
+  5. typeHint override — 30 minutes once widget schema exists                   
+  6. Client-side validation — 3 hours, requires Zod schema generation from      
+  behaviors                                                                     
+  7. Per-user layouts — separate PR, touches Setting model migration 
+  
+  
+    Potential improvements to consider:
+
+  1. Enforce uuid immutability at the model level
+  Right now nothing prevents uuid from being changed after creation. It should
+  be set once and locked. A pre_save check: if self._state.adding is False and
+  uuid changed, reject. The uuid IS the product's identity across all systems —
+  changing it breaks every external reference.
+  
+  Bill-comment: Lock it from change
+
+  2. ida uniqueness scope
+  ida is unique within one WC3 instance but two retailers might both use "BB005"
+   for different products. When syncing between instances, uuid resolves the
+  conflict, but ida collisions need a rule: keep the receiving system's ida?
+  Prefix with source? This is a DynamicCatalogs/Ingrid decision — worth
+  documenting now.
+  
+   Bill-comment:  what we did in wc2 was to append the "-" source ida to the itemNum (ida)
+
+  3. ida as a computed display, not a stored entry
+  Some items have natural human IDs (SKU, UPC). Others don't — they get
+  auto-generated IDs that aren't meaningful. Consider: if ida is empty,
+  auto-generate from uuid[:8] or a sequence. Guarantees every record has a
+  human-readable handle even when nobody assigned one.
+  
+   Bill-comment:  default, use the string of the id. The model setting record might have rules for the ida.
+
+  4. External ID registry in refs.links
+  When a product exists in multiple external systems (Amazon ASIN, UPC, vendor
+  part#, manufacturer part#), those are all "IDs for this product in system X."
+  They live in ItemXRef today. But for non-item models (contacts, invoices),
+  external IDs accumulate in refs.links without structure. Consider a
+  convention:
+
+  refs.links.external_ids: {
+    "amazon_asin": "B00ABC123",
+    "upc": "012345678905",
+    "gtin": "00012345678905"
+  }
+
+  Not a new field — just a convention inside the existing refs JSON that any
+  model can use. Alice can validate UPC check digits, flag duplicate ASINs
+  across items.
+  
+    Bill-comment:  yes
+
+  5. Null ida should be rare, not normal
+  If you query Item.objects.filter(ida='') and get a lot of records, those are
+  items nobody cared enough to name. That's a data quality signal Alice should
+  flag — every item that's been sold or purchased should have a meaningful ida.
+  
+    Bill-comment: never null, sting of id if no other instructions
+
+  The three-ID system itself is the right architecture. These are polish items,
+  not structural changes. The separation of concerns (machine/human/universal)
+  is correct.
+
+
+
+Stage 1 complete. All 5 data integrity items done and migrated:
+
+  ┌─────┬─────────────────────┬─────────────────────────────────────────────┐
+  │  #  │        Item         │                What Changed                 │
+  ├─────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ 1   │ Invoice type enum   │ invoice_type field:                         │
+  │     │                     │ invoice/proforma/credit_note/deposit        │
+  ├─────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ 2   │ Version conflicts   │ Re-enabled in save_view.py — returns 412 on │
+  │     │                     │  conflict                                   │
+  ├─────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ 3   │ Webhook dedup       │ Unique constraint on                        │
+  │     │                     │ id_gateway_payment_intent                   │
+  ├─────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ 4   │ PaymentApplication  │ save() calls full_clean() on every save     │
+  │     │ guard               │                                             │
+  ├─────┼─────────────────────┼─────────────────────────────────────────────┤
+  │ 5   │ AuditLog            │ pre/post_save signals on 10 models —        │
+  │     │ auto-wiring         │ captures field-level diffs                  │
+  └─────┴─────────────────────┴─────────────────────────────────────────────┘
+
+  Ready for Stage 2. The remaining items are:
+  1. Document promotion chain (proposal→order→invoice)
+  2. Returns/voids/credit memos
+  3. N+1 query fix in WCAPIGetView
+
+  Which one first?
+
+  

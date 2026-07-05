@@ -35,7 +35,7 @@ def update_all_settings_cache_working():
         for setting in settings_list:
             purpose = setting.purpose or 'general'
             model_key = setting.parent_model or 'general'
-            data = setting.data or {}
+            data = setting.config or {}
             
             # Group by purpose
             if purpose not in settings_by_purpose:

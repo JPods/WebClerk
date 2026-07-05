@@ -46,7 +46,7 @@ class OrgBaseSerializer(serializers.ModelSerializer):
             "financial",
             "docs",
             "connections",
-            "data",
+            "config",
             "metrics",
             "gl_accounts",
             "refs",

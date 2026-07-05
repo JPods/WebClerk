@@ -1060,8 +1060,8 @@ class LineItemService:
                 record_id=str(item.pk),
                 purpose=PURPOSE_LINE_ADD,
                 dt_processed=0,
-                data__invoice_line_id=_il_id,
-                data__order_line_id=_ol_id,
+                config__invoice_line_id=_il_id,
+                config__order_line_id=_ol_id,
             ).exists()
             if dup:
                 logger.warning(

@@ -126,7 +126,7 @@ JSON_FIELD_PREFIXES: dict[str, list[str]] = {
     "flags": ["flags_taxable", "flags_discountable", "flags_serialized",
               "flags_lotted", "flags_perishable", "flags_hazardous"],
     "connections": ["connections_website", "connections_portal"],
-    "data": ["data_notes", "data_internal_notes"],
+    "config": ["config_notes", "config_internal_notes"],
     "gl_accounts": ["gl_accounts_revenue", "gl_accounts_expense",
                     "gl_accounts_asset", "gl_accounts_cogs"],
     "metrics": ["metrics_ytd_sales", "metrics_ytd_purchases",

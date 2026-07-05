@@ -72,13 +72,13 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
 
         for setting in settings_qs:
             hook_name = setting.name
-                logger.debug(
-                    "[HOOK DEBUG] Processing setting: name='%s', data keys=%s",
-                    hook_name,
-                    list(setting.data.keys()) if setting.data else 'None',
-                )
-            if hook_name and setting.data:
-                hooks[hook_name] = setting.data
+            logger.debug(
+                "[HOOK DEBUG] Processing setting: name='%s', data keys=%s",
+                hook_name,
+                list(setting.config.keys()) if setting.config else 'None',
+            )
+            if hook_name and setting.config:
+                hooks[hook_name] = setting.config
 
         logger.debug("[HOOK DEBUG] Loaded %d hooks: %s", len(hooks), list(hooks.keys()))
 
@@ -239,7 +239,7 @@ def get_all_save_hooks() -> Dict[str, Dict[str, Dict[str, Any]]]:
         if model_name not in all_hooks:
             all_hooks[model_name] = {}
 
-        if hook_name and setting.data:
-            all_hooks[model_name][hook_name] = setting.data
+        if hook_name and setting.config:
+            all_hooks[model_name][hook_name] = setting.config
 
     return all_hooks

@@ -104,7 +104,7 @@ class InventoryCheck(BaseModel):
     dt_performed = models.BigIntegerField(help_text="Epoch ms when the primary count occurred / was finalized")
     status = models.CharField(max_length=20, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     notes = models.TextField(blank=True)
-    data = models.JSONField(default=dict, blank=True, help_text="Optional metadata envelope (device info, geo, method, etc.)")
+    config = models.JSONField(default=dict, blank=True, help_text="Optional metadata envelope (device info, geo, method, etc.)")
 
     class Meta:
         indexes = [
@@ -161,7 +161,7 @@ class InventoryCheckLine(BaseModel):
     prior_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="Optional previously known quantity for variance calc")
     variance_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="counted - prior if both available")
     auto_flag = models.BooleanField(default=False, help_text="Flagged automatically (below min / above max / anomaly)")
-    data = models.JSONField(default=dict, blank=True, help_text="Aux attributes: source_type, adjustments, raw capture details")
+    config = models.JSONField(default=dict, blank=True, help_text="Aux attributes: source_type, adjustments, raw capture details")
 
     class Meta:
         constraints = [

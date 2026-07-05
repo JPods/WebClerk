@@ -67,7 +67,7 @@ def _load_pending_note_overrides() -> list[dict[str, Any]]:
     ).order_by("dt_created")
 
     for note in notes:
-        payload = dict(note.data or {})
+        payload = dict(note.config or {})
         if note.parent_model and "model" not in payload:
             payload["model"] = note.parent_model
         if note.name and "name" not in payload:

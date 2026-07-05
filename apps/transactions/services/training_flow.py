@@ -386,7 +386,7 @@ def cleanup_training_records():
     # Clean training pending records
     try:
         pending_ids = list(
-            Pending.objects.filter(data__contains={'training': True}).values_list('pk', flat=True)
+            Pending.objects.filter(config__contains={'training': True}).values_list('pk', flat=True)
         )
         if pending_ids:
             d, _ = Pending.objects.filter(pk__in=pending_ids).delete()

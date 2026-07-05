@@ -186,9 +186,9 @@ def _get_pricing_config() -> Dict[str, Any]:
         setting = Setting.objects.filter(
             name='pricing_config', is_active=True, is_deleted=False,
         ).first()
-        if setting and isinstance(setting.data, dict):
+        if setting and isinstance(setting.config, dict):
             merged = dict(defaults)
-            merged.update(setting.data)
+            merged.update(setting.config)
             return merged
     except Exception:
         logger.warning("Could not load pricing_config Setting, using defaults")
@@ -245,8 +245,8 @@ def resolve_price(
             org_item = OrgItem.objects.filter(
                 orgbase_id=customer_id, item_id=item_id,
             ).first()
-            if org_item and isinstance(org_item.data, dict):
-                override = org_item.data.get('price_override')
+            if org_item and isinstance(org_item.config, dict):
+                override = org_item.config.get('price_override')
                 if override is not None and override != '':
                     try:
                         resolved_price = Decimal(str(override))

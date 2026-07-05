@@ -101,7 +101,7 @@ def check_stale_inventory_records() -> Dict[str, Any]:
     # We'll filter in Python since data is a JSONField
     stale_records = []
     for record in stale_qs[:100]:  # Limit to prevent huge queries
-        data = record.data or {}
+        data = record.config or {}
         if not data.get('stale_alert_sent'):
             stale_records.append(record)
             if len(stale_records) >= 10:
@@ -115,7 +115,7 @@ def check_stale_inventory_records() -> Dict[str, Any]:
     # Get details for alerting
     details = []
     for record in stale_records:
-        data = record.data or {}
+        data = record.config or {}
         age_seconds = (timezone.now().timestamp() * 1000 - record.dt_created) / 1000
         details.append({
             'pending_id': record.pk,
@@ -141,12 +141,12 @@ def check_stale_inventory_records() -> Dict[str, Any]:
     now_iso = timezone.now().isoformat()
     alerted_count = 0
     for record in stale_qs[:100]:
-        data = record.data or {}
+        data = record.config or {}
         if not data.get('stale_alert_sent'):
             data['stale_alert_sent'] = True
             data['stale_alert_time'] = now_iso
-            record.data = data
-            record.save(update_fields=['data'])
+            record.config = data
+            record.save(update_fields=['config'])
             alerted_count += 1
     
     return {

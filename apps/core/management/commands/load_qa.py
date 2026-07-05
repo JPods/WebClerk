@@ -158,7 +158,7 @@ class Command(BaseCommand):
                             'parent_model': None,  # QA applies to all models
                             'security_level': setting_meta.get('security_level', 1),
                             'is_active': setting_meta.get('is_active', True),
-                            'data': setting_data
+                            'config': setting_data
                         }
                     )
                     action = "Created" if was_created else "Updated"
@@ -185,7 +185,7 @@ class Command(BaseCommand):
                             'parent_model': None,  # Global counter
                             'security_level': 1,
                             'is_active': True,
-                            'data': {
+                            'config': {
                                 'question_max': max_question_id,
                                 'answer_max': max_answer_id
                             }

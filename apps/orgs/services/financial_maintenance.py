@@ -237,8 +237,8 @@ def process_org_financial_pending(*, limit: int = 500, dry_run: bool = False) ->
     }
 
     for pending in qs:
-        org_pk = pending.data.get("org_id")
-        mode = pending.data.get("mode") or "scrub"
+        org_pk = pending.config.get("org_id")
+        mode = pending.config.get("mode") or "scrub"
 
         try:
             with transaction.atomic():

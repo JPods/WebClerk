@@ -25,7 +25,7 @@ class OrgBaseAdminForm(forms.ModelForm):
         
         # Make all JSON aspect fields optional (alphabetical)
         aspect_fields = [
-            'actions', 'addresses', 'comments', 'connections', 'contacts', 'data',
+            'actions', 'addresses', 'comments', 'connections', 'contacts', 'config',
             'docs', 'domains', 'emails', 'financial', 'gl_accounts', 'metadata',
             'metrics', 'phones', 'prefs', 'refs', 'relations', 'relationship_stats', 'stats',
         ]
@@ -73,7 +73,7 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, ImportExportModelAdmin or admin.Model
         ("JSONB fields", {
             "fields": (
                 "actions", "addresses", "comments", "connections", "contacts",
-                "data", "docs", "domains", "emails", "financial",
+                "config", "docs", "domains", "emails", "financial",
                 "gl_accounts", "metadata", "metrics", "phones", "prefs",
                 "refs", "relations", "relationship_stats", "stats",
             ),

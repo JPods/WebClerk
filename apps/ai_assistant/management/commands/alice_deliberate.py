@@ -171,7 +171,7 @@ def save_to_wc3(title: str, path: str, summary: str, token: str,
         "description": summary[:255],
         "path":        {"local": path},
         "status":      "active",
-        "data": {
+        "config": {
             "agent":      "alice",
             "project_id": project_id,
             "dt_created": datetime.datetime.now().isoformat(),

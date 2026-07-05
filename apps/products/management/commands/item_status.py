@@ -61,7 +61,7 @@ class Command(BaseCommand):
             self.stdout.write(f"{'='*70}")
             
             for p in pending_qs:
-                data = p.data or {}
+                data = p.config or {}
                 buckets = {k: data.get(k, 0) for k in ['on_so', 'on_po', 'on_wo', 'invoiced'] if data.get(k, 0) != 0}
                 self.stdout.write(
                     f"  #{p.pk}: item={data.get('item_id')} "
@@ -97,7 +97,7 @@ class Command(BaseCommand):
                     if pending_qs.exists():
                         self.stdout.write(f"  Pending records ({pending_qs.count()}):")
                         for p in pending_qs:
-                            data = p.data or {}
+                            data = p.config or {}
                             status = "✓ processed" if p.dt_processed else "⏳ unprocessed"
                             buckets = {k: data.get(k, 0) for k in ['on_so', 'on_po', 'on_wo', 'invoiced'] if data.get(k, 0) != 0}
                             self.stdout.write(

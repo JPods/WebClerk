@@ -133,8 +133,8 @@ def _create_pending_from_deltas(
                 record_id=str(item_id),
                 purpose='inventory_line_add',
                 dt_processed=0,
-                data__invoice_line_id=invoice_line_id,
-                data__order_line_id=order_line_id,
+                config__invoice_line_id=invoice_line_id,
+                config__order_line_id=order_line_id,
             ).exists()
             if dup:
                 logger.warning(

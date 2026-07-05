@@ -55,20 +55,20 @@ class Setting(BaseModel):
     # Treat "comment" as a virtual field backed by data["comment"]
     @property
     def comment(self) -> str:
-        d = getattr(self, "data", {}) or {}
+        d = getattr(self, "config", {}) or {}
         return str(d.get("comment") or "")
 
     @comment.setter
     def comment(self, value: str) -> None:
-        d = dict(getattr(self, "data", {}) or {})
+        d = dict(getattr(self, "config", {}) or {})
         d["comment"] = "" if value is None else str(value)
-        self.data = d
+        self.config = d
 
 #QQQ look at documents as a model
 # we have settings record for each table that
 # lists the fields that are denormalized into .refs.keywords.
 # settings.parent_model = canonical model name and settings.purpose = keywords
-# settings.data contains an object listing fields 
+# settings.config contains an object listing fields 
 # for the values to be denormalized into keywords.
 
 # Purposes registry (see readmes/settings.md for shapes):
@@ -86,6 +86,6 @@ class Setting(BaseModel):
 # On update: only enqueue if any tracked keyword field actually changed.
 # Debounce: skips creating a new Pending if an unprocessed one already exists for the same table/record.
 # Fallback: if no tracked fields configured but table in get_keyword_requirements(), only enqueue on create.
-# Includes tracked_fields list in Pending.data for transparency.
+# Includes tracked_fields list in Pending.config for transparency.
 # Guarded against errors; won’t break saves.
 

@@ -84,7 +84,7 @@ class DeliveryVisit(BaseModel):
     dt_completed = models.BigIntegerField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     notes = models.TextField(blank=True)
-    data = models.JSONField(default=dict, blank=True, help_text="Flexible metadata: route info, geo, truck id, etc.")
+    config = models.JSONField(default=dict, blank=True, help_text="Flexible metadata: route info, geo, truck id, etc.")
 
     class Meta:
         indexes = [
@@ -151,7 +151,7 @@ class DeliveryLine(BaseModel):
     delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     skipped_reason = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
-    data = models.JSONField(default=dict, blank=True, help_text="Aux data: pricing snapshot, adjustments, device capture")
+    config = models.JSONField(default=dict, blank=True, help_text="Aux data: pricing snapshot, adjustments, device capture")
 
     class Meta:
         constraints = [

@@ -66,7 +66,7 @@ class Report(BaseModel):
         default=0,
         help_text="Display order within the model's report menu",
     )
-    data = models.JSONField(
+    config = models.JSONField(
         default=dict,
         help_text="Extended config: endpoint_url, template, parameters, etc.",
     )

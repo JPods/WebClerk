@@ -305,10 +305,10 @@ def promote_search_preset(model: str, term: str, label: str = '') -> dict:
     if not setting:
         setting = Setting.objects.create(
             name=setting_name,
-            data={'presets': []},
+            config={'presets': []},
         )
 
-    data = setting.data or {}
+    data = setting.config or {}
     presets = data.get('presets', [])
 
     # Don't duplicate
@@ -325,7 +325,7 @@ def promote_search_preset(model: str, term: str, label: str = '') -> dict:
     })
 
     data['presets'] = presets
-    Setting.objects.filter(pk=setting.pk).update(data=data, dt_modified=_now_ms())
+    Setting.objects.filter(pk=setting.pk).update(config=data, dt_modified=_now_ms())
 
     return {'promoted': True, 'preset_count': len(presets)}
 

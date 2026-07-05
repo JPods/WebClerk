@@ -77,7 +77,7 @@ class Project(BaseModel):
     profit = models.DecimalField(default=Decimal('0.00'), max_digits=14, decimal_places=2, help_text="Projected or realized profit (base currency with cents)")
     profit_velocity = models.IntegerField(default=0, help_text="Profit per time unit (arbitrary) for trend")
     # Allow NULL so callers can intentionally distinguish "no payload yet" vs empty structure
-    data = models.JSONField(default=default_data, blank=True, null=True, help_text="Arbitrary project-specific data payload (nullable)")
+    config = models.JSONField(default=default_data, blank=True, null=True, help_text="Arbitrary project-specific data payload (nullable)")
 
     class Meta:
         db_table = "projects"

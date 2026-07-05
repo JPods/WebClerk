@@ -467,13 +467,13 @@ def process_inventory_deltas_immediately(item_ids: List[int]) -> Dict[str, Any]:
                 model_name='inventory_delta',
                 purpose='inventory_delta',
                 dt_processed=0,
-                data__item_id__in=item_ids
+                config__item_id__in=item_ids
             ).select_for_update()
 
             # Group by item
             item_deltas = {}
             for delta in deltas:
-                item_id = delta.data.get('item_id')
+                item_id = delta.config.get('item_id')
                 if item_id not in item_deltas:
                     item_deltas[item_id] = []
                 item_deltas[item_id].append(delta)
@@ -484,9 +484,9 @@ def process_inventory_deltas_immediately(item_ids: List[int]) -> Dict[str, Any]:
                     item = Item.objects.select_for_update().get(pk=item_id)
 
                     # Calculate total changes
-                    on_hand_change = sum(Decimal(str(d.data.get('quantity_on_hand_delta', 0))) for d in item_deltas_list)
-                    on_order_change = sum(Decimal(str(d.data.get('quantity_on_order_delta', 0))) for d in item_deltas_list)
-                    on_po_change = sum(Decimal(str(d.data.get('quantity_on_po_delta', 0))) for d in item_deltas_list)
+                    on_hand_change = sum(Decimal(str(d.config.get('quantity_on_hand_delta', 0))) for d in item_deltas_list)
+                    on_order_change = sum(Decimal(str(d.config.get('quantity_on_order_delta', 0))) for d in item_deltas_list)
+                    on_po_change = sum(Decimal(str(d.config.get('quantity_on_po_delta', 0))) for d in item_deltas_list)
 
                     # Update item quantities
                     if hasattr(item, 'quantity') and item.quantity:
@@ -574,7 +574,7 @@ def validate_inventory_delta(delta: Pending) -> Dict[str, Any]:
     errors = []
     warnings = []
 
-    data = delta.data or {}
+    data = delta.config or {}
 
     # Required fields
     required_fields = ['item_id', 'source_type', 'source_id']
@@ -648,11 +648,11 @@ def audit_inventory_consistency() -> Dict[str, Any]:
         delta_sums = Pending.objects.filter(
             model_name='inventory_delta',
             purpose='inventory_delta',
-            data__item_id=item_id
+            config__item_id=item_id
         ).aggregate(
-            on_hand_sum=Sum('data__quantity_on_hand_delta'),
-            on_order_sum=Sum('data__quantity_on_order_delta'),
-            on_po_sum=Sum('data__quantity_on_po_delta')
+            on_hand_sum=Sum('config__quantity_on_hand_delta'),
+            on_order_sum=Sum('config__quantity_on_order_delta'),
+            on_po_sum=Sum('config__quantity_on_po_delta')
         )
 
         calc_on_hand = Decimal(str(delta_sums['on_hand_sum'] or 0))

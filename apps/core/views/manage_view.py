@@ -584,6 +584,8 @@ _ACTION_DISPATCH = {
     "calculate_campaign_roi": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['calculate_campaign_roi']).calculate_campaign_roi(p['campaign_id']),
     "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['get_all_campaigns']).get_all_campaigns(),
     "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_roi', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
+    # ── Layout Pending (DataBrowser) ──
+    "save_layout_pending": lambda p: __import__('apps.ai_assistant.services.layout_pending', fromlist=['save_layout_pending']).save_layout_pending(p),
     # ── Journalize (GL Posting) ──
     "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
     "journalize_payment": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_payment']).journalize_payment(p['payment_id'], p.get('ida_prefix', '')),
@@ -670,6 +672,9 @@ _ACTION_DISPATCH = {
     "get_available_templates": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['get_available_templates']).get_available_templates(p.get('model_name')),
     # ── Clone / Duplicate ──
     "clone_record": lambda p: __import__('apps.core.services.clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
+    # ── Inventory Pending (ONE PATH) ──
+    "adjust_item_quantity": lambda p: __import__('apps.products.services.inventory_pending', fromlist=['adjust_item_quantity']).adjust_item_quantity(p['item_id'], p['field'], p['delta'], p.get('reason', ''), p.get('source_type', ''), p.get('source_id'), p.get('source_line_id'), p.get('inventory_layer_id')),
+    "get_pending_for_item": lambda p: __import__('apps.products.services.inventory_pending', fromlist=['get_pending_for_item']).get_pending_for_item(p['item_id']),
     # ── Field Change Requests ──
     "request_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['request_field_change']).request_field_change(p.get('model',''), p.get('field',''), p.get('change_type','select'), p.get('values_source','static'), p.get('options'), p.get('query_model',''), p.get('query_field',''), p.get('query_filter',''), p.get('setting_name',''), p.get('reason',''), p.get('field_label',''), p.get('contact_id')),
     "approve_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['approve_field_change']).approve_field_change(p['action_id'], p['contact_id']),

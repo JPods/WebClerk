@@ -90,7 +90,7 @@ def get_item_gl_defaults() -> dict[str, str]:
         from apps.orgs.services.primary_org import get_primary_org_setting
 
         setting = get_primary_org_setting()
-        setting_data = setting.data if setting and isinstance(setting.data, dict) else {}
+        setting_data = setting.config if setting and isinstance(setting.config, dict) else {}
         primary_accounts = setting_data.get('default_gl_accounts') or setting_data.get('gl_accounts') or {}
         if isinstance(primary_accounts, dict):
             revenue = _pick_code(primary_accounts, 'revenue', 'sales')

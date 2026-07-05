@@ -34,17 +34,17 @@ def _get_setting_gl(setting_name: str, *keys: str) -> str:
     """Look up a GL account code from a Setting record's data JSON.
 
     Walks nested keys: _get_setting_gl('commission_config', 'gl_accounts', 'expense')
-    reads Setting(name='commission_config').data['gl_accounts']['expense'].
+    reads Setting(name='commission_config').config['gl_accounts']['expense'].
 
     For flat keys: _get_setting_gl('gl_account_defaults', 'commission_expense')
-    reads Setting(name='gl_account_defaults').data['commission_expense'].
+    reads Setting(name='gl_account_defaults').config['commission_expense'].
     """
     try:
         Setting = dj_apps.get_model('core', 'Setting')
         setting = Setting.objects.filter(name=setting_name, is_active=True).first()
-        if not setting or not setting.data:
+        if not setting or not setting.config:
             return ''
-        val = setting.data
+        val = setting.config
         for key in keys:
             if isinstance(val, dict):
                 val = val.get(key)
@@ -100,7 +100,7 @@ def get_rep_commission_config(rep_id: int) -> dict:
     """Load commission config from rep's OrgBase record.
 
     Looks in org.financial.rep.commissions for rate_pct and
-    org.data or org.prefs for level_factors and script.
+    org.config or org.prefs for level_factors and script.
 
     Returns: {rate_pct, basis, level_factors, script_id}
     """

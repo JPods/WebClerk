@@ -1,0 +1,84 @@
+// WC3 Serial Number Tracking — from wc2 ItemSerials diagram
+// wc2 names → wc3: ItemSerialEntity→Serial, ItemSerialAction→SerialLog,
+//   InventoryStack→InventoryLayer, Linkage→LinkageEntry
+// Render: dot -Tpdf wc3-serial-tracking.dot -o wc3-serial-tracking.pdf
+
+digraph wc3_serial_tracking {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Serial Number Tracking\n(wc2: ItemSerials → wc3: Serial + SerialLog)"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Top level
+    customer [label="Customer\n(Contact + Customer)" shape=box fillcolor="#F4D03F"]
+
+    // Transactions
+    orders [label="Orders\n(SOs)" shape=box fillcolor="#ABEBC6"]
+    invoices [label="Invoices" shape=box fillcolor="#F5B7B1"]
+    purchases [label="Purchase\nOrders" shape=box fillcolor="#AED6F1"]
+
+    // Lines
+    order_line [label="OrderLine\nquantity" shape=box fillcolor="#D5F5E3" fontsize=9]
+    invoice_line [label="InvoiceLine\nquantity" shape=box fillcolor="#FADBD8" fontsize=9]
+    po_line [label="PurchaseLine\nquantity" shape=box fillcolor="#D6EAF8" fontsize=9]
+
+    // Inventory
+    inv_layer [label="InventoryLayer\n(wc2: InventoryStack)\nserial_numbers[]\nserial_batch\nquantity.on_hand\nby cost" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9]
+
+    // Serial records
+    serial [label="Serial\n(wc2: ItemSerialEntity)\n\nserial_ida\nstatus: available|sold|returned\nwarranty: {}\nsite: {}" shape=box fillcolor="#F9E79F" fontsize=9]
+    serial2 [label="Serial\n(one per unit)" shape=box fillcolor="#F9E79F" fontsize=9]
+
+    // Custodian
+    custodian [label="Contact\nCustodian\n(warranty owner)" shape=box fillcolor="#E59866"]
+
+    // Serial log
+    serial_log [label="SerialLog\n(wc2: ItemSerialAction)\n\naction: received|shipped|returned\ndt, data{}" shape=box fillcolor="#FCF3CF" fontsize=9]
+    serial_log2 [label="SerialLog\n(claims, events)" shape=box fillcolor="#FCF3CF" fontsize=9]
+
+    // Linkage
+    linkage [label="LinkageEntry\n(wc2: Linkage)\n\nRelated data across collections\nMany-to-One, One-to-One\nOne-to-Many" shape=box fillcolor="#82E0AA"]
+
+    // QA (not yet in wc3)
+    qa [label="QA Entity\n(NOT YET IN WC3)\n\nQuality inspection records" shape=box fillcolor="#82E0AA" style="filled,dashed"]
+
+    // Edges — Customer to transactions
+    customer -> orders
+    customer -> invoices
+    orders -> invoices [label="order_to_invoice" style=dashed]
+    customer -> purchases [style=dashed]
+
+    // Lines
+    orders -> order_line
+    invoices -> invoice_line
+    purchases -> po_line
+
+    // Order reservation (dashed red = may reserve)
+    order_line -> serial [label="may reserve\nstatus='onSO'" style=dashed color="#E74C3C"]
+    order_line -> linkage [style=dashed color="#E74C3C"]
+
+    // Invoice removes from inventory
+    invoice_line -> serial [label="removes serials\nequal to qty\nstatus='sold'" color="#E74C3C"]
+
+    // PO receiving creates serials
+    po_line -> inv_layer [label="when receiving" color="#2980B9"]
+    inv_layer -> serial [label="creates Serial\nper unit received" color="#2980B9"]
+    inv_layer -> serial2 [label="qty = # of\nSerial records" color="#2980B9"]
+
+    // Custodian
+    serial -> custodian [label="warranty\nownership" color="#E67E22"]
+    inv_layer -> customer [label="may create\nCustomer if\ntransactions" style=dashed]
+
+    // Serial log
+    serial -> serial_log [label="received\nshipped\nreturned"]
+    serial -> serial_log2 [label="claims\nevents"]
+
+    // Linkage
+    serial -> linkage
+    linkage -> qa [style=dashed]
+}

@@ -132,7 +132,7 @@ class ReadmeTopView(APIView):
             # Gracefully read optional title/name from attributes or JSON data
             meta = {}
             try:
-                meta = (getattr(doc, "data", {}) or {})
+                meta = (getattr(doc, "config", {}) or {})
             except Exception:
                 meta = {}
             title = getattr(doc, "title", None) or meta.get("title")

@@ -1,0 +1,102 @@
+// WC3 Master Commerce Flow — based on wc2 WebClerkComExFlowCharts page 1
+// Updated with wc3 model names and architecture
+// Render: dot -Tpdf wc3-master-flow.dot -o wc3-master-flow.pdf
+
+digraph wc3_master_flow {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WebClerk 3 — Master Commerce Flow\n(wc3 model names)"
+    labelloc=t
+    fontsize=16
+    pad=0.5
+
+    // ── Style classes ──
+    node [shape=box fillcolor="#E8E8E8" color="#666666"]
+
+    // ── Entry ──
+    market [label="Market Potential\n→ Customer wants\n→ Your capabilities" shape=parallelogram fillcolor="#D4E6F1"]
+    comms [label="Communications\n(Communication model)" shape=box fillcolor="#AED6F1"]
+
+    // ── Core transaction flow ──
+    contact [label="Contact\nManagement" shape=diamond fillcolor="#FADBD8"]
+    proposal [label="Proposal" fillcolor="#FCF3CF"]
+    order [label="Order\n(Order model)" fillcolor="#FCF3CF"]
+    backorder [label="Maintain\nBackorder" shape=octagon fillcolor="#F5CBA7"]
+    invoice [label="Invoice\n(Invoice model)" fillcolor="#ABEBC6"]
+    payment [label="Payment\n(AR/AP)" fillcolor="#ABEBC6"]
+
+    // ── Objectives & management ──
+    objectives [label="Set Objectives\nPerformance, Commissions\nCustomer Service\n(Project + Action)" fillcolor="#D5D8DC"]
+    forecast [label="Forecast" shape=octagon fillcolor="#F5CBA7"]
+    risk [label="Manage\nFinancial Risk\n(Customer.financial)" fillcolor="#D5D8DC"]
+
+    // ── Production / fulfillment ──
+    requisition [label="Requisition" fillcolor="#FCF3CF"]
+    workflow [label="Work Flow\n(Action)" shape=octagon fillcolor="#F5CBA7"]
+    workorder [label="Work Order\n(WorkOrder)" fillcolor="#FCF3CF"]
+    item [label="Item\n(Inventory)" fillcolor="#FCF3CF"]
+    po [label="Purchase\nOrder" fillcolor="#FCF3CF"]
+
+    // ── Journals ──
+    sales_jrnl [label="Process\nSales Journals" fillcolor="#D5F5E3"]
+    cash_jrnl [label="Process\nCash Journals" fillcolor="#D5F5E3"]
+    purch_jrnl [label="Process\nPurchase Journals" fillcolor="#D5F5E3"]
+    gl [label="Interface to\nGeneral Ledger\n(JournalEntry)" fillcolor="#ABEBC6"]
+
+    // ── Right sidebar: modules ──
+    subgraph cluster_modules {
+        label="Modules"
+        style=filled
+        fillcolor="#F8F9F9"
+        color="#BDC3C7"
+        fontsize=9
+
+        mod_setup [label="Setup\n(Setting)" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_sales [label="Sales" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_orderentry [label="Order Entry" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_mgmt [label="Management" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_acct [label="Accounting" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_reports [label="DataBrowser\nReports" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_docs [label="Documents\n(Document)" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_alice [label="Alice\n(AI Assistant)" shape=box fillcolor="#AED6F1" fontsize=8]
+    }
+
+    // ── Edges: main flow ──
+    market -> comms
+    comms -> objectives
+    comms -> contact
+    contact -> proposal
+    proposal -> order
+    order -> backorder [label="partial"]
+    order -> invoice [label="complete"]
+    backorder -> order [style=dashed]
+    invoice -> payment
+    objectives -> forecast
+    objectives -> risk [dir=both]
+    forecast -> risk [style=dashed]
+
+    // ── Edges: production ──
+    contact -> requisition [style=dashed]
+    requisition -> workflow
+    workflow -> workorder
+    workorder -> order [label="materials\ntimes" style=dashed]
+    item -> order [style=dashed]
+    po -> item [label="inship"]
+    requisition -> po [style=dashed]
+    forecast -> po [style=dashed]
+
+    // ── Edges: journals ──
+    invoice -> sales_jrnl
+    payment -> cash_jrnl
+    po -> purch_jrnl
+    sales_jrnl -> gl
+    cash_jrnl -> gl
+    purch_jrnl -> gl
+
+    // ── Module connections ──
+    mod_setup -> comms [style=invis]
+    mod_alice -> payment [style=dashed label="pattern\nrecognition" fontsize=7]
+}

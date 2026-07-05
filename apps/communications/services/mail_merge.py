@@ -234,7 +234,7 @@ def merge_template(
     body_text = strip_tags(body_html)
 
     # Merge subject (from template name or data.subject)
-    tmpl_data = template.data or {}
+    tmpl_data = template.config or {}
     subject_template = tmpl_data.get("subject", "") or template.name or ""
     subject = _merge_text(subject_template, context)
 
@@ -276,7 +276,7 @@ def get_available_templates(
 
     Args:
         model_name: optional filter by template's target model
-            (stored in template.data.target_model)
+            (stored in template.config.target_model)
 
     Returns:
         [{id, name, model_name, description}]
@@ -290,7 +290,7 @@ def get_available_templates(
     for doc in qs:
         # Optional filter by target model
         if model_name:
-            tmpl_data = doc.data or {}
+            tmpl_data = doc.config or {}
             target = tmpl_data.get("target_model", "")
             if target and target.lower() != model_name.lower():
                 continue

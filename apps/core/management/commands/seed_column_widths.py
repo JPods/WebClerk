@@ -224,7 +224,7 @@ class Command(BaseCommand):
             return
 
         if existing:
-            existing.data = data
+            existing.config = data
             existing.save()
             self.stdout.write(self.style.SUCCESS(f'Updated: {len(BY_NAME)} by-name, {len(BY_TYPE)} by-type'))
         else:
@@ -232,6 +232,6 @@ class Command(BaseCommand):
                 name='column_widths',
                 purpose='alice_coaching',
                 parent_model='',
-                data=data,
+                config=data,
             )
             self.stdout.write(self.style.SUCCESS(f'Created: {len(BY_NAME)} by-name, {len(BY_TYPE)} by-type'))

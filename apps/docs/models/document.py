@@ -44,7 +44,7 @@ class Document(BaseModel):
     description = models.CharField(max_length=255, blank=True, null=True)
     body = models.TextField(blank=True, null=True)
     comment = models.TextField(blank=True, default="", help_text="General notes")
-    data = models.JSONField(blank=True, null=True)
+    config = models.JSONField(blank=True, null=True)
     
     confidential = models.CharField(
         max_length=255,
@@ -132,8 +132,8 @@ class Document(BaseModel):
             model_key = 'Document'  # canonical model identifier for settings
             # Prefer parent_model in Setting going forward
             setting = Setting.objects.filter(parent_model=model_key, purpose='keywords', is_active=True).first()
-            if setting and isinstance(setting.data, dict):
-                fields_spec = setting.data.get('fields') or setting.data.get('field_list') or []
+            if setting and isinstance(setting.config, dict):
+                fields_spec = setting.config.get('fields') or setting.config.get('field_list') or []
                 if isinstance(fields_spec, str):  # allow comma-separated string
                     parts = fields_spec.split(',') if fields_spec else []
                     fields_spec = [f.strip() for f in parts if f and isinstance(f, str)]
@@ -174,7 +174,7 @@ class Document(BaseModel):
                     Pending.objects.create(
                         model_name=model_key,
                         record_id=self.id,
-                        data={'reason': 'keywords', 'model': 'Document', 'tracked_fields': tracked_fields}
+                        config={'reason': 'keywords', 'model': 'Document', 'tracked_fields': tracked_fields}
                     )
         except Exception:
             pass

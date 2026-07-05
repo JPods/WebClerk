@@ -56,7 +56,7 @@ def _encode_inline_content(file_obj) -> Dict[str, Any]:
 
 
 def _decode_inline_content(doc: Document) -> bytes | None:
-    data = doc.data if isinstance(doc.data, dict) else {}
+    data = doc.config if isinstance(doc.config, dict) else {}
     encoded = data.get("inline_content_b64")
     encoding = data.get("inline_encoding")
     if not isinstance(encoded, str) or not encoded:

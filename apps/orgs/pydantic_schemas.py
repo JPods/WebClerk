@@ -100,7 +100,7 @@ class OrgSnapshot(BaseModel):
     financial: FinancialSnapshot = Field(default_factory=FinancialSnapshot)
     docs: List[DocMini] = Field(default_factory=list)
     connections: ConnectionSnapshot = Field(default_factory=ConnectionSnapshot)  # type: ignore[arg-type]
-    data: Dict[str, Any] = Field(default_factory=dict)
+    config: Dict[str, Any] = Field(default_factory=dict)
     metrics: MetricsSnapshot = Field(default_factory=MetricsSnapshot)
     gl_accounts: Dict[str, str] = Field(default_factory=dict)
 
@@ -126,7 +126,7 @@ class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
     financial: Optional[FinancialSnapshot] = None
     docs: Optional[List[DocMini]] = None
     connections: Optional[ConnectionSnapshot] = None
-    data: Optional[Dict[str, Any]] = None
+    config: Optional[Dict[str, Any]] = None
     metrics: Optional[MetricsSnapshot] = None
     gl_accounts: Optional[Dict[str, str]] = None
 
@@ -148,7 +148,7 @@ def build_org_snapshot(org) -> OrgSnapshot:
         financial=org.financial or FinancialSnapshot(),
         docs=org.docs or [],
     connections=ConnectionSnapshot(**(access_payload or {})),
-        data=org.data or {},
+        data=org.config or {},
         metrics=org.metrics or MetricsSnapshot(),
         gl_accounts=org.gl_accounts or {},
     )

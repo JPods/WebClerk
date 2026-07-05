@@ -68,7 +68,7 @@ def get_primary_org_id() -> int | None:
     setting = get_primary_org_setting()
     if not setting:
         return None
-    data = setting.data or {}
+    data = setting.config or {}
     org_id = data.get("org_id")
     return org_id if isinstance(org_id, int) and org_id > 0 else None
 
@@ -107,13 +107,13 @@ def set_primary_org(org: OrgBase, *, actor=None) -> Setting:
         parent_model=PRIMARY_ORG_SETTING_PARENT_MODEL,
         defaults={
             "role": "system",
-            "data": payload,
+            "config": payload,
             "is_active": True,
         },
     )
 
     setting.role = "system"
     setting.is_active = True
-    setting.data = payload
-    setting.save(update_fields=["role", "is_active", "data", "dt_modified"])
+    setting.config = payload
+    setting.save(update_fields=["role", "is_active", "config", "dt_modified"])
     return setting
