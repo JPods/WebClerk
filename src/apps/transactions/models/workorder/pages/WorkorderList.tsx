@@ -14,6 +14,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import WorkorderDetail from "./WorkorderDetail";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function WorkorderList() {
   const dispatch = useDispatch();
@@ -248,6 +249,8 @@ export default function WorkorderList() {
     if (columnVisibility.length === 0) return columns;
     return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("workorder-list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -311,6 +314,13 @@ export default function WorkorderList() {
                       <FaTrash className="w-4 h-4" 
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
                       Delete ({selectedWorkorders.length})
                     </button>

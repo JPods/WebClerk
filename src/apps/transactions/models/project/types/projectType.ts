@@ -54,7 +54,7 @@ export interface CreateProjectRequest {
   burndown?: number;
   profit?: number;
   profit_velocity?: number;
-  data?: Record<string, unknown> | null;
+  config?: Record<string, unknown> | null;
   ida?: string;
   is_active?: boolean;
   refs?: Record<string, unknown>;
@@ -84,7 +84,7 @@ export interface ProjectApiTask {
   burndown?: number;
   profit?: number;
   profit_velocity?: number;
-  data?: Record<string, unknown> | null;
+  config?: Record<string, unknown> | null;
   dt_created?: number;
   dt_modified?: number;
   version?: number;

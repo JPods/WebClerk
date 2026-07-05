@@ -329,11 +329,11 @@ export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Extract id and mode from payload if present (they go at root level, not in data)
   const { id, mode, ...data } = payload;
-  const hasDataField = Object.prototype.hasOwnProperty.call(data, "data");
+  const hasConfigField = Object.prototype.hasOwnProperty.call(data, "config");
   // SaveWcapiView merges and removes top-level `data` wrapper for compatibility.
-  // If the model itself has a `data` field (e.g. setting.data), use `record`
-  // wrapper so the actual field is preserved.
-  const body: any = hasDataField
+  // Models that formerly had a `data` JSONField now use `config` (e.g. setting.config).
+  // If the payload contains a `config` field, use `record` wrapper so it is preserved.
+  const body: any = hasConfigField
     ? { model_name: resolved, record: data }
     : { model_name: resolved, data };
   if (id !== undefined) {
@@ -500,7 +500,7 @@ export interface SettingRecord {
   id?: number;
   model_name: string;
   purpose: string;
-  data: {
+  config: {
     list: string[];
     detail: string[];
     views?: Array<{ name: string; list: string[]; detail: string[]; listWidths?: Record<string, number> }>;
@@ -546,7 +546,7 @@ export interface DetailFieldSettingRecord {
   id?: number;
   model_name: string;
   purpose: string;
-  data: {
+  config: {
     hidden: string[];
     readOnly: string[];
   };

@@ -16,6 +16,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { PageRoutes } from "@/routes/Routes";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 // Invoice row type for the data table
 interface InvoiceRow {
@@ -452,6 +453,8 @@ export default function InvoiceList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("invoice-list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -564,6 +567,13 @@ export default function InvoiceList() {
               </button>
             }
             onRowClicked={handleEdit}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
           />
         </ComponentCard>
       </div>

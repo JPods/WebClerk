@@ -15,6 +15,7 @@ import ButtonToolbar from "@/components/common/ButtonToolbar";
 import { PhoneFormat } from "@/apps/common/components/detail/PhoneFormat";
 import { EmailFormat } from "@/apps/common/components/detail/EmailFormat";
 import { useSearchParams } from "react-router-dom";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 interface ContactData {
   id: string | number;
   email?: string;
@@ -448,6 +449,8 @@ const ContactList = () => {
       setLoading(false);
     }
   }, [selectedContacts, dispatch]);
+
+  const columnCtx = useColumnContextMenu("contact-list", columns);
   return (
     <>
       <ButtonToolbar
@@ -517,6 +520,13 @@ const ContactList = () => {
               customActions={customActions}
               //onRowClicked={handleView}
               onRowDoubleClicked={handleView}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
             {/* )} */}
           </ComponentCard>

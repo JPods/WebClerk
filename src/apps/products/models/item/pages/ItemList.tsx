@@ -18,6 +18,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { fetchItems } from "../services/itemApi";
 import ItemDetail from "./ItemDetail";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 type ItemListMode = "add" | "edit" | "view" | null;
 
@@ -394,6 +395,8 @@ export default function ItemList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("item-list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -461,6 +464,13 @@ export default function ItemList() {
                       onClick={handleBulkDelete}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                     >
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
                       <FaTrash className="w-4 h-4" />
                       Delete ({selectedItems.length})
                     </button>

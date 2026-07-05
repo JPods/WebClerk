@@ -35,7 +35,7 @@ export default function SettingDisplay({
         setFields(Object.keys(record));
       } catch (error) {
         console.error("Failed to fetch fields", error);
-        setFields(['id', 'name', 'purpose', 'role', 'parent_model', 'data', 'is_active']);
+        setFields(['id', 'name', 'purpose', 'role', 'parent_model', 'config', 'is_active']);
       }
     };
     fetchFields();

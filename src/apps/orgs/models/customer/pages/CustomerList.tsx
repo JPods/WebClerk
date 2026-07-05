@@ -14,6 +14,7 @@ import ButtonToolbar from "@/components/common/ButtonToolbar";
 import FieldConfigBar from "@/components/common/FieldConfigBar";
 import { useListFieldConfig } from "@/hooks/useListFieldConfig";
 import { defaultCountries, usePhoneInput } from "react-international-phone";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function CustomerList() {
   const dispatch = useDispatch();
@@ -420,12 +421,14 @@ export default function CustomerList() {
 
   // Filter columns: fieldConfig (persisted) takes priority, then ButtonToolbar toggle
   const visibleColumns = useMemo(() => {
-    const base = fieldConfig.visibleColumns;
+    const base = fieldConfig.visibleColumns?.length ? fieldConfig.visibleColumns : columns;
     if (columnVisibility.length === 0) return base;
     return base.filter(
       (_: any, index: number) => columnVisibility[index] !== false,
     );
-  }, [fieldConfig.visibleColumns, columnVisibility]);
+  }, [fieldConfig.visibleColumns, columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("customer-list", columns);
   return (
     <>
       <ButtonToolbar
@@ -497,6 +500,13 @@ export default function CustomerList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

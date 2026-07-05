@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import { ProposalLine } from "../types/proposalLineType";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 interface ProposalLineListProps {
   proposalId: number;
@@ -94,6 +95,8 @@ export default function ProposalLineList({
     }
   ];
 
+
+  const columnCtx = useColumnContextMenu("proposal_line_list", columns);
   return (
     <ComponentCard>
       <div className="flex justify-between items-center mb-4">
@@ -118,6 +121,13 @@ export default function ProposalLineList({
           storageKey="proposal_line_list"
           onRowActivate={onEdit}
           loading={loading}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
         />
       </div>
     </ComponentCard>

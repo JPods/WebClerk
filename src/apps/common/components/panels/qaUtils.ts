@@ -37,7 +37,7 @@ export interface QAQuestionDef {
   require_image?: boolean;
 }
 
-/** Full Q&A questions data from Setting.data */
+/** Full Q&A questions data from Setting.config */
 export interface QAQuestionsData {
   template: QAQuestionTemplate;
   questions: QAQuestionDef[];
@@ -50,7 +50,7 @@ export interface QAQuestionsSetting {
   name: string;
   parent_model?: string;
   role?: string;
-  data: QAQuestionsData;
+  config: QAQuestionsData;
 }
 
 /** Counters singleton data */

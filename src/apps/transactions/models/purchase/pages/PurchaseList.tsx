@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import PurchaseDetail from "./PurchaseDetail";
 import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 const numericPurchaseKeys = ["dt_created", "id_vendor"]; 
 
@@ -304,6 +305,8 @@ export default function PurchaseList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("purchase-list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -369,6 +372,13 @@ export default function PurchaseList() {
                 </button>
               }
               onRowClicked={handleEdit}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

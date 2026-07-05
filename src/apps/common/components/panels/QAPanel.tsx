@@ -840,11 +840,11 @@ const QAPanel: React.FC<QAPanelProps> = ({
   // Calculate counts
   const displayTitle = title || (isTemplateMode ? questionGroup : 'Q&A');
   
-  const templateCount = setting?.data?.questions?.length || 0;
+  const templateCount = setting?.config?.questions?.length || 0;
   const freeformCount = hasApiPersistence ? freeformAnswers.length : data.length;
   const totalCount = templateCount + freeformCount;
-  
-  const templateAnsweredCount = setting?.data?.questions?.filter(q => 
+
+  const templateAnsweredCount = setting?.config?.questions?.filter(q => 
     templateAnswers.some(a => a.question_id === q.id && a.status === 'answered')
   ).length || 0;
   const freeformAnsweredCount = hasApiPersistence 
@@ -915,10 +915,10 @@ const QAPanel: React.FC<QAPanelProps> = ({
           ) : (
             <>
               {/* Template questions */}
-              {isTemplateMode && setting && setting.data?.questions && setting.data.questions.length > 0 && (
+              {isTemplateMode && setting && setting.config?.questions && setting.config.questions.length > 0 && (
                 <>
-                  {setting.data.questions.map(question => {
-                    const options = getEffectiveOptions(question, setting.data.template);
+                  {setting.config.questions.map(question => {
+                    const options = getEffectiveOptions(question, setting.config.template);
                     const existingAnswer = templateAnswers.find(a => a.question_id === question.id);
                     
                     return (
@@ -940,7 +940,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
               )}
 
               {/* Divider between template and freeform */}
-              {isTemplateMode && setting && setting.data?.questions && setting.data.questions.length > 0 && freeformCount > 0 && (
+              {isTemplateMode && setting && setting.config?.questions && setting.config.questions.length > 0 && freeformCount > 0 && (
                 <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-1.5">
                   <span className="text-[10px] text-slate-400 font-medium">Additional Questions</span>
                 </div>

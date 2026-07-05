@@ -95,7 +95,7 @@ export default function HelpDashboard() {
         const allCoaching = await getRecords('setting', { purpose: 'alice_coaching', limit: 50 }) as any;
         const g: Record<string, string> = {};
         (allCoaching?.results || []).forEach((s: any) => {
-          const fh = s.data?.field_help || {};
+          const fh = s.config?.field_help || {};
           Object.entries(fh).forEach(([k, v]) => { g[k] = v as string; });
         });
         setGlossary(g);
@@ -130,7 +130,7 @@ export default function HelpDashboard() {
       await saveRecord('setting', {
         name: `help_feedback:${itemId}`,
         purpose: 'alice_log',
-        data: { item_id: itemId, vote, context, model, dt: Date.now() },
+        config: { item_id: itemId, vote, context, model, dt: Date.now() },
       });
     } catch { /* silent */ }
   }, [context, model]);
@@ -141,7 +141,7 @@ export default function HelpDashboard() {
       await saveRecord('setting', {
         name: `Help problem: ${description.slice(0, 200)}`,
         purpose: 'alice_pending',
-        data: { description, context, model, field, dt: Date.now(), url: window.location.href },
+        config: { description, context, model, field, dt: Date.now(), url: window.location.href },
       });
       alert('Problem reported. Alice will review.');
     } catch { alert('Failed to report.'); }

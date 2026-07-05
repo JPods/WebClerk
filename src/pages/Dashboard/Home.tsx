@@ -1,672 +1,373 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import apiClient from "../../api/axios";
-import { PostLoginURL, NetworkInfo } from "../../routes/network";
 import { useAppSelector } from "../../store/hooks";
-import {
-  formatNetworkError,
-  logNetworkDiagnostics,
-} from "../../utils/networkDiagnostics";
+import { getRecords } from "../../api/wcapi";
+import DataGrid from "@/components/common/DataGrid";
 
-type StatCard = {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ServiceRecord {
+  id: number;
+  tableName: string;
+  actionBy?: string;
+  action?: string;
+  action_en?: string;
+  actionDate?: string;
+  due_date?: string;
+  company?: string;
+  attention?: string;
+  contact_name?: string;
+  variable?: string;
+  notes?: string;
+  priority?: string;
+  status?: string;
+  project_name?: string;
+  [k: string]: any;
+}
+
+interface RecordCount {
+  model: string;
   label: string;
-  value: string;
-  change?: string;
-  trend?: "up" | "down" | "flat";
-  accent?: string;
-};
+  count: number;
+  link: string;
+}
 
-type TimelineItem = {
-  title: string;
-  meta?: string;
-  detail?: string;
-};
+// ---------------------------------------------------------------------------
+// Quick Add shortcuts
+// ---------------------------------------------------------------------------
 
-type NotificationItem = {
-  title: string;
-  time?: string;
-  badge?: string;
-};
+const QUICK_ADDS = [
+  { label: "+ Order", to: "/admin-wb?model=order&action=new", accent: "bg-blue-600 text-white" },
+  { label: "+ Proposal", to: "/admin-wb?model=proposal&action=new", accent: "bg-indigo-600 text-white" },
+  { label: "+ Purchase", to: "/admin-wb?model=purchase&action=new", accent: "bg-emerald-600 text-white" },
+  { label: "+ Customer", to: "/admin-wb?model=customer&action=new", accent: "bg-amber-600 text-white" },
+  { label: "+ Contact", to: "/admin-wb?model=contact&action=new", accent: "bg-purple-600 text-white" },
+];
 
-type ActionItem = {
-  title: string;
-  owner?: string;
-  due?: string;
-  severity?: "high" | "medium" | "low" | string;
-};
+// Tables to query for the user's action records (mirrors wc2 Cal_SearchMySales)
+const ACTION_TABLES = [
+  { model: "order", label: "Orders" },
+  { model: "invoice", label: "Invoices" },
+  { model: "proposal", label: "Proposals" },
+  { model: "customer", label: "Customers" },
+  { model: "purchase", label: "Purchases" },
+  { model: "contact", label: "Contacts" },
+];
 
-type PulseMetric = { label: string; value: string | number };
+// Models to count for the signed-in user
+const COUNT_MODELS: Omit<RecordCount, "count">[] = [
+  { model: "contact", label: "Contacts", link: "/admin-wb?model=contact" },
+  { model: "customer", label: "Customers", link: "/admin-wb?model=customer" },
+  { model: "proposal", label: "Proposals", link: "/admin-wb?model=proposal" },
+  { model: "order", label: "Orders", link: "/admin-wb?model=order" },
+  { model: "invoice", label: "Invoices", link: "/admin-wb?model=invoice" },
+  { model: "purchase", label: "Purchases", link: "/admin-wb?model=purchase" },
+];
 
-type DashboardPayload = {
-  stats?: StatCard[] | Record<string, any>;
-  notifications?: NotificationItem[];
-  activities?: TimelineItem[];
-  actions?: ActionItem[];
-  shortcuts?: { label: string; to?: string; desc?: string }[];
-  pulse?: PulseMetric[];
-  [key: string]: any;
-};
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const severityColor: Record<string, string> = {
-  high: "bg-rose-100 text-rose-700",
-  medium: "bg-amber-100 text-amber-700",
-  low: "bg-emerald-100 text-emerald-700",
-};
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
-const normalizeStats = (input: DashboardPayload["stats"]): StatCard[] => {
-  if (!input) return [];
-  if (Array.isArray(input)) {
-    return input.map((item, idx) => ({
-      label: String(
-        (item as any).label ?? (item as any).name ?? `Metric ${idx + 1}`,
-      ),
-      value: String((item as any).value ?? (item as any).count ?? "0"),
-      change: (item as any).change ? String((item as any).change) : undefined,
-      trend: (item as any).trend ?? "flat",
-      accent: (item as any).accent,
-    }));
-  }
+function daysAgoISO(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
 
-  return Object.entries(input).map(([key, val]) => ({
-    label: key,
-    value: typeof val === "number" ? val.toLocaleString() : String(val ?? ""),
-    trend: "flat",
-  }));
-};
-
-const normalizeNotifications = (input?: any): NotificationItem[] => {
-  if (!input) return [];
-  if (Array.isArray(input))
-    return input.map((item) => ({
-      title: String(item.title ?? item.message ?? item.text ?? ""),
-      time: item.time ?? item.created_at ?? item.when ?? "",
-      badge: item.badge ?? item.category ?? item.type ?? "",
-    }));
-  return [];
-};
-
-const normalizeActivities = (input?: any): TimelineItem[] => {
-  if (!input) return [];
-  if (Array.isArray(input))
-    return input.map((item) => ({
-      title: String(item.title ?? item.event ?? item.name ?? ""),
-      meta: item.meta ?? item.by ?? item.actor ?? item.time ?? "",
-      detail: item.detail ?? item.description ?? item.note ?? "",
-    }));
-  return [];
-};
-
-const normalizeActions = (input?: any): ActionItem[] => {
-  if (!input) return [];
-  if (Array.isArray(input))
-    return input.map((item) => {
-      // Handle owner - may be string or object {id, name}
-      let ownerStr = "";
-      const rawOwner = item.owner ?? item.assignee ?? item.by;
-      if (rawOwner) {
-        ownerStr =
-          typeof rawOwner === "object"
-            ? rawOwner.name ?? rawOwner.id ?? ""
-            : String(rawOwner);
-      }
-      return {
-        title: String(item.title ?? item.task ?? item.name ?? ""),
-        owner: ownerStr,
-        due: item.due ?? item.due_date ?? item.when ?? "",
-        severity: item.severity ?? item.priority ?? "low",
-      };
-    });
-  return [];
-};
-
-const normalizeShortcuts = (
-  input?: any,
-): { label: string; to?: string; desc?: string }[] => {
-  if (!input) return [];
-  if (Array.isArray(input))
-    return input.map((item, idx) => ({
-      label: String(
-        item.label ?? item.title ?? item.name ?? `Shortcut ${idx + 1}`,
-      ),
-      to: item.to ?? item.href ?? item.url ?? "#",
-      desc: item.desc ?? item.description ?? "",
-    }));
-  return [];
-};
-
-const normalizePulse = (input?: any): PulseMetric[] => {
-  if (!input) return [];
-  if (Array.isArray(input))
-    return input.map((item, idx) => ({
-      label: String(item.label ?? item.name ?? `Metric ${idx + 1}`),
-      value: item.value ?? item.score ?? 0,
-    }));
-  if (typeof input === "object")
-    return Object.entries(input).map(([label, value]) => ({ label, value }));
-  return [];
-};
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function Home() {
   const { user } = useAppSelector((state) => state.auth);
-  const [data, setData] = useState<DashboardPayload>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const cacheKey = "dashboard_cache_v1";
+  const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
+  const [counts, setCounts] = useState<RecordCount[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [dateRange, setDateRange] = useState({ begin: daysAgoISO(7), end: todayISO() });
+
+  // Fetch action records across all tables for the current user
+  const fetchServiceRecords = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingRecords(true);
+    try {
+      const results = await Promise.all(
+        ACTION_TABLES.map(async (table) => {
+          try {
+            const res = await getRecords(table.model, {
+              contact_id: user.id,
+              is_active: true,
+              action_date__gte: dateRange.begin,
+              action_date__lte: dateRange.end,
+              limit: 200,
+            });
+            const records = (res?.results ?? []).map((r: any) => ({
+              ...r,
+              tableName: table.label,
+              actionDate: r.action_date || r.due_date || r.created_at || "",
+              company: r.company || r.contact_name || r.customer_name || "",
+              attention: r.attention || r.contact_name || "",
+              variable: r.notes || r.description || r.comment || "",
+            }));
+            return records;
+          } catch {
+            return [];
+          }
+        })
+      );
+      const merged = results.flat().sort((a, b) => {
+        const da = a.actionDate || "";
+        const db = b.actionDate || "";
+        return db.localeCompare(da); // newest first
+      });
+      setServiceRecords(merged);
+    } catch (err) {
+      console.error("[Dashboard] Failed to fetch service records:", err);
+    } finally {
+      setLoadingRecords(false);
+    }
+  }, [user?.id, dateRange]);
+
+  // Also fetch open actions specifically assigned to user
+  const [myActions, setMyActions] = useState<ServiceRecord[]>([]);
+  const fetchMyActions = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await getRecords("action", {
+        contact_id: user.id,
+        is_active: true,
+        limit: 500,
+      });
+      setMyActions(res?.results ?? []);
+    } catch (err) {
+      console.error("[Dashboard] Failed to fetch actions:", err);
+    }
+  }, [user?.id]);
+
+  // Fetch record counts for models where user appears
+  const fetchCounts = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingCounts(true);
+    try {
+      const results = await Promise.all(
+        COUNT_MODELS.map(async (m) => {
+          try {
+            const res = await getRecords(m.model, {
+              contact_id: user.id,
+              is_active: true,
+              limit: 1,
+            });
+            return { ...m, count: res?.total ?? 0 };
+          } catch {
+            return { ...m, count: 0 };
+          }
+        })
+      );
+      setCounts(results);
+    } catch (err) {
+      console.error("[Dashboard] Failed to fetch counts:", err);
+    } finally {
+      setLoadingCounts(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
-    let mounted = true;
-    let cached: DashboardPayload | null = null;
-    if (typeof sessionStorage !== "undefined") {
-      try {
-        const raw = sessionStorage.getItem(cacheKey);
-        if (raw) {
-          cached = JSON.parse(raw);
-          if (mounted && cached) {
-            setData(cached);
-          }
-        }
-      } catch {
-        // ignore malformed cache
-      }
-    }
-    const fetchDashboard = async () => {
-      setLoading(!cached);
-      setError(null);
-      try {
-        const res = await apiClient.get(
-          PostLoginURL.allTypes + "model_name=dashboard",
-        );
-        const body = (res as any)?.data ?? res;
-        const payload = body?.data ?? body; // handle enveloped or direct
-        if (mounted) {
-          setData(payload ?? {});
-          if (typeof sessionStorage !== "undefined" && payload) {
-            try {
-              sessionStorage.setItem(cacheKey, JSON.stringify(payload));
-            } catch {}
-          }
-        }
-      } catch (err: any) {
-        if (mounted) {
-          const formatted = formatNetworkError(err);
-          const message = `${formatted.message} (${formatted.code})${
-            formatted.status ? ` [${formatted.status}]` : ""
-          }`;
-          setError(message);
+    fetchServiceRecords();
+    fetchMyActions();
+    fetchCounts();
+  }, [fetchServiceRecords, fetchMyActions, fetchCounts]);
 
-          // Log diagnostics for debugging
-          if (formatted.code === "ERR_NETWORK") {
-            console.error("Network error detected. Running diagnostics...");
-            logNetworkDiagnostics(NetworkInfo.API_URL).catch(console.error);
-          }
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+  // Columns for the bottom DataGrid (mirrors wc2 LB_Service listbox)
+  const gridColumns = useMemo(() => [
+    "tableName",
+    "actionBy",
+    "action_en",
+    "actionDate",
+    "company",
+    "attention",
+    "variable",
+    "id",
+  ], []);
 
-    fetchDashboard();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // Combine actions + service records for the grid
+  const gridRecords = useMemo(() => {
+    const actionRows = myActions.map((a: any) => ({
+      ...a,
+      tableName: "Action",
+      actionDate: a.due_date || a.action_date || a.created_at || "",
+      company: a.project_name || "",
+      attention: a.contact_name || "",
+      variable: a.notes || a.action_en || "",
+      actionBy: a.assignee_name || a.contact_name || "",
+    }));
+    return [...actionRows, ...serviceRecords];
+  }, [myActions, serviceRecords]);
 
-  const stats = useMemo(
-    () =>
-      normalizeStats(data.stats ?? data.metrics ?? data.summary ?? data.cards),
-    [data],
-  );
-  const notifications = useMemo(
-    () =>
-      normalizeNotifications(
-        data.notifications ?? data.alerts ?? data.messages,
-      ),
-    [data],
-  );
-  const activities = useMemo(
-    () => normalizeActivities(data.activities ?? data.events ?? data.timeline),
-    [data],
-  );
-  const actions = useMemo(
-    () => normalizeActions(data.actions ?? data.tasks ?? data.assigned),
-    [data],
-  );
-  const shortcuts = useMemo(
-    () =>
-      normalizeShortcuts(
-        data.shortcuts ?? data.quick_links ?? data.quick_actions,
-      ),
-    [data],
-  );
-  const pulse = useMemo(
-    () => normalizePulse(data.pulse ?? data.health ?? data.project_pulse),
-    [data],
-  );
-
-  const accentFallback = [
-    "bg-emerald-100 text-emerald-700",
-    "bg-blue-100 text-blue-700",
-    "bg-amber-100 text-amber-700",
-    "bg-rose-100 text-rose-700",
-  ];
+  const getActionTitle = (a: any): string => {
+    if (a.action_en) return a.action_en;
+    if (typeof a.action === "string") return a.action;
+    if (a.action?.value?.en) return a.action.value.en;
+    return `#${a.id}`;
+  };
 
   return (
-    <div className="space-y-8 p-6 lg:p-8">
-      <header className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-blue-500">
-            Overview
-          </p>
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">
-            Welcome back{user?.name_first ? `, ${user.name_first}` : ""}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Live data from your workspace.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/orders/create"
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:-translate-y-[1px] hover:bg-blue-700"
-          >
-            Create Order
-          </Link>
-          <Link
-            to="/reports"
-            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:-translate-y-[1px] hover:border-blue-300 hover:text-blue-700 dark:border-gray-700 dark:text-gray-200 dark:hover:border-blue-500"
-          >
-            View Reports
-          </Link>
+    <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
+      {/* Header row: greeting + quick adds */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          {user?.name_first ? `${user.name_first}'s Sales & Service` : "Sales & Service"}
+        </h1>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_ADDS.map((qa) => (
+            <Link
+              key={qa.label}
+              to={qa.to}
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm transition hover:-translate-y-[1px] hover:shadow-md ${qa.accent}`}
+            >
+              {qa.label}
+            </Link>
+          ))}
         </div>
       </header>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">
-          <div className="flex items-center justify-between gap-2">
-            <span>{error}</span>
-            <button
-              onClick={() => {
-                console.clear();
-                logNetworkDiagnostics(NetworkInfo.API_URL);
-              }}
-              className="whitespace-nowrap rounded bg-rose-200 px-2 py-1 text-xs font-semibold text-rose-900 hover:bg-rose-300 dark:bg-rose-900 dark:text-rose-100"
-            >
-              Debug
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Record counts row */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {(loadingCounts ? COUNT_MODELS.map((m) => ({ ...m, count: -1 })) : counts).map((item) => (
+          <Link
+            key={item.model}
+            to={item.link}
+            className="group rounded-xl border border-gray-200 bg-white p-3 text-center shadow-sm transition hover:-translate-y-[1px] hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-500"
+          >
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {item.count < 0 ? "…" : item.count}
+            </p>
+            <p className="text-xs font-medium text-gray-500 group-hover:text-blue-600 dark:text-gray-400">
+              {item.label}
+            </p>
+          </Link>
+        ))}
+      </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {loading && stats.length === 0 ? (
-          Array.from({ length: 4 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="h-28 rounded-2xl border border-gray-100 bg-white/60 p-4 shadow-sm ring-1 ring-black/5 animate-pulse dark:border-gray-800 dark:bg-gray-900/60 dark:ring-white/5"
-            />
-          ))
-        ) : stats.length ? (
-          stats.map((item, idx) => (
-            <div
-              key={`${item.label}-${idx}`}
-              className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-[2px] hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {item.label}
-                </p>
-                {item.change && (
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      item.accent ?? accentFallback[idx % accentFallback.length]
+      {/* Filter bar: date range */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">From</label>
+        <input
+          type="date"
+          value={dateRange.begin}
+          onChange={(e) => setDateRange((d) => ({ ...d, begin: e.target.value }))}
+          className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">To</label>
+        <input
+          type="date"
+          value={dateRange.end}
+          onChange={(e) => setDateRange((d) => ({ ...d, end: e.target.value }))}
+          className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+        <button
+          onClick={() => { fetchServiceRecords(); fetchMyActions(); }}
+          className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+        >
+          Refresh
+        </button>
+        <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+          {gridRecords.length} records
+        </span>
+      </div>
+
+      {/* MyActions — compact list (top section) */}
+      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          My Actions
+          <span className="ml-2 text-sm font-normal text-gray-500">
+            ({myActions.length} open)
+          </span>
+        </h2>
+        {loadingRecords && myActions.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+            Loading…
+          </div>
+        ) : myActions.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No open actions assigned to you.</p>
+        ) : (
+          <div className="max-h-44 overflow-y-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-white dark:bg-gray-900">
+                <tr className="border-b border-gray-100 text-xs font-semibold uppercase text-gray-500 dark:border-gray-700">
+                  <th className="py-1.5 pr-3">Action</th>
+                  <th className="py-1.5 pr-3">Project</th>
+                  <th className="py-1.5 pr-3">Due</th>
+                  <th className="py-1.5 pr-3">Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myActions.map((a) => (
+                  <tr
+                    key={a.id}
+                    onClick={() => setSelectedId(a.id)}
+                    className={`cursor-pointer border-b border-gray-50 transition hover:bg-blue-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
+                      selectedId === a.id ? "bg-blue-50 dark:bg-gray-800" : ""
                     }`}
                   >
-                    {item.change}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">
-                {item.value}
-              </p>
-              {item.trend && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {item.trend === "up"
-                    ? "Improving"
-                    : item.trend === "down"
-                    ? "Needs attention"
-                    : "Stable"}
-                </p>
-              )}
-            </div>
-          ))
-        ) : (
-          <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-            No metrics available yet.
+                    <td className="py-1.5 pr-3 font-medium text-gray-900 dark:text-white">
+                      <Link
+                        to={`/admin-wb?model=action&id=${a.id}`}
+                        className="hover:text-blue-600 hover:underline"
+                      >
+                        {getActionTitle(a)}
+                      </Link>
+                    </td>
+                    <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-400">
+                      {(a as any).project_name || "—"}
+                    </td>
+                    <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-400">
+                      {(a as any).due_date || "—"}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          a.priority === "high"
+                            ? "bg-rose-100 text-rose-700"
+                            : a.priority === "medium"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {a.priority || "normal"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent Notifications
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Updates from your data source.
-                </p>
-              </div>
-              <Link
-                to="/notifications"
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                View all
-              </Link>
-            </div>
-            <div className="mt-4 space-y-3">
-              {loading && notifications.length === 0 ? (
-                Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
-                  />
-                ))
-              ) : notifications.length ? (
-                notifications.map((note, idx) => (
-                  <div
-                    key={`${note.title}-${idx}`}
-                    className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3 transition hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/50 dark:hover:border-blue-500/40"
-                  >
-                    <div
-                      className="mt-0.5 h-2 w-2 rounded-full bg-blue-500"
-                      aria-hidden
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {note.title}
-                        </p>
-                        {note.time && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {note.time}
-                          </span>
-                        )}
-                      </div>
-                      {note.badge && (
-                        <span className="mt-1 inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                          {note.badge}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-                  No notifications available.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Activity Timeline
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Latest movements from the backend.
-                </p>
-              </div>
-              <Link
-                to="/activity"
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                See timeline
-              </Link>
-            </div>
-            <div className="mt-4 space-y-4">
-              {loading && activities.length === 0 ? (
-                Array.from({ length: 4 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="h-20 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
-                  />
-                ))
-              ) : activities.length ? (
-                activities.map((item, idx) => (
-                  <div key={`${item.title}-${idx}`} className="relative pl-6">
-                    {idx !== activities.length - 1 && (
-                      <span
-                        className="absolute left-2 top-3 h-full w-px bg-gray-200 dark:bg-gray-700"
-                        aria-hidden
-                      />
-                    )}
-                    <span
-                      className="absolute left-0 top-2 h-3 w-3 rounded-full bg-blue-500"
-                      aria-hidden
-                    />
-                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-800/60">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {item.title}
-                      </p>
-                      {item.meta && (
-                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                          {item.meta}
-                        </p>
-                      )}
-                      {item.detail && (
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          {item.detail}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-                  No recent activities.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Quick Shortcuts
+      {/* DataBrowser (DataGrid) — bottom section, shows all action records across tables */}
+      <section className="min-h-0 flex-1 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-gray-100 px-4 py-2 dark:border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              All Records — Sales & Service
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Rendered from backend links.
-            </p>
-            <div className="mt-4 grid gap-3">
-              {loading && shortcuts.length === 0 ? (
-                Array.from({ length: 4 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="h-14 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
-                  />
-                ))
-              ) : shortcuts.length ? (
-                shortcuts.map((action, idx) => (
-                  <Link
-                    key={`${action.label}-${idx}`}
-                    to={action.to ?? "#"}
-                    className="group rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
-                  >
-                    <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
-                      {action.label}
-                    </p>
-                    {action.desc && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {action.desc}
-                      </p>
-                    )}
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-                  No shortcuts provided.
-                </div>
-              )}
-            </div>
           </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Developer Tools
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              API documentation and testing tools
-            </p>
-            <div className="mt-4 grid gap-3">
-              <a
-                href={`${NetworkInfo.API_URL}/wcapi/swagger/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
-                    📚 API Documentation (Swagger)
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Interactive API documentation and testing
-                  </p>
-                </div>
-                <svg className="h-5 w-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-              <Link
-                to="/whitelist"
-                className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
-                    🧪 Whitelist API Tester
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Test whitelisted API endpoints
-                  </p>
-                </div>
-                <svg className="h-5 w-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Assigned Actions
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Directly from backend payload.
-                </p>
-              </div>
-              <Link
-                to="/tasks"
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Open tasks
-              </Link>
-            </div>
-            <div className="mt-4 space-y-3">
-              {loading && actions.length === 0 ? (
-                Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
-                  />
-                ))
-              ) : actions.length ? (
-                actions.map((item, idx) => (
-                  <div
-                    key={`${item.title}-${idx}`}
-                    className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/40"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {item.title}
-                      </p>
-                      {item.severity && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            severityColor[
-                              String(item.severity).toLowerCase()
-                            ] ?? "bg-gray-200 text-gray-700"
-                          }`}
-                        >
-                          {item.severity}
-                        </span>
-                      )}
-                    </div>
-                    {item.owner && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Owner: {item.owner}
-                      </p>
-                    )}
-                    {item.due && (
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        Due: {item.due}
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-                  No assigned actions.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-5 text-white shadow-lg">
-            <h2 className="text-lg font-semibold">Project Pulse</h2>
-            <p className="text-sm text-white/80">
-              Surfaced from backend metrics.
-            </p>
-            <div className="mt-4 space-y-3">
-              {loading && pulse.length === 0 ? (
-                Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="h-6 rounded-full bg-white/20 animate-pulse"
-                  />
-                ))
-              ) : pulse.length ? (
-                pulse.map((item, idx) => (
-                  <div key={`${item.label}-${idx}`} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>{item.label}</span>
-                      <span>{item.value}</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/20">
-                      <div
-                        className="h-2 rounded-full bg-white shadow-inner"
-                        style={{
-                          width:
-                            typeof item.value === "number"
-                              ? `${Math.min(100, Math.max(0, item.value))}%`
-                              : undefined,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-white/30 bg-white/10 p-4 text-sm text-white/80">
-                  No pulse metrics provided.
-                </div>
-              )}
-            </div>
+          <div className="flex-1 overflow-auto px-2 py-1">
+            <DataGrid
+              records={gridRecords}
+              columns={gridColumns}
+              selectedId={selectedId}
+              onSelectRecord={(id) => setSelectedId(id)}
+              sort={null}
+            />
           </div>
         </div>
       </section>

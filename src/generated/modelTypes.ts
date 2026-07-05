@@ -1068,7 +1068,7 @@ export interface NotificationRecord {
   ida?: string;  // max_length=40
   actions?: Record<string, any>;
   comments: Record<string, any>;
-  data: Record<string, any>;
+  config: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
@@ -1115,7 +1115,7 @@ export interface PendingRecord {
   id?: number;  // read-only
   uuid?: string | null;  // read-only | max_length=32
   ida?: string;  // max_length=40
-  data: Record<string, any>;
+  config: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   dt_processed: number;
@@ -1161,7 +1161,7 @@ export interface ReportRecord {
   ida?: string;  // max_length=40
   actions?: Record<string, any>;
   comments: Record<string, any>;
-  data: Record<string, any>;
+  config: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
@@ -1210,7 +1210,7 @@ export interface SettingRecord {
   ida?: string;  // max_length=40
   actions?: Record<string, any>;
   comments: Record<string, any>;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
@@ -1259,7 +1259,7 @@ export interface TemplateRecord {
   ida?: string;  // max_length=40
   actions?: Record<string, any>;
   comments: Record<string, any>;
-  data: Record<string, any>;
+  config: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   dt_processed: number;
@@ -1315,7 +1315,7 @@ export interface DocumentRecord {
   confidential?: string | null;  // choices: , public, internal, restricted, confidential, secret | max_length=255
   copyright?: Record<string, any>;
   count_accessed: number;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   description?: string | null;  // max_length=255
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
@@ -1522,7 +1522,7 @@ export interface TagRecord {
   actions?: Record<string, any>;
   comments: Record<string, any>;
   count_accessed: number;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
@@ -2956,7 +2956,7 @@ export interface SerialRecord {
   uuid?: string | null;  // read-only | max_length=32
   actions?: Record<string, any>;
   comments: Record<string, any>;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   description?: string;  // max_length=255
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
@@ -3857,7 +3857,7 @@ export interface ProjectRecord {
   burndown: number;
   category?: string;  // max_length=128
   comments: Record<string, any>;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   dt_created: number;  // read-only
   dt_kanban?: string | null;
   dt_modified: number;  // read-only

@@ -63,11 +63,11 @@ export function useAppConfig() {
         });
 
         const record = res?.results?.[0];
-        if (record?.data) {
+        if (record?.config) {
           dispatch(
             configLoaded({
-              modelDefaults: record.data.model_defaults ?? {},
-              selectLists: record.data.select_lists ?? {},
+              modelDefaults: record.config.model_defaults ?? {},
+              selectLists: record.config.select_lists ?? {},
               settingId: record.id ?? null,
             }),
           );
@@ -97,7 +97,7 @@ export function useAppConfig() {
       const payload: Record<string, unknown> = {
         name: CONFIG_SETTING_NAME,
         purpose: CONFIG_SETTING_PURPOSE,
-        data: {
+        config: {
           model_defaults: buildFullModelDefaults(config.modelDefaults),
           select_lists: buildFullSelectLists(config.selectListOverrides),
           synced_at: Date.now(),
@@ -134,15 +134,15 @@ export function useAppConfig() {
       });
 
       const record = res?.results?.[0];
-      if (!record?.data) {
+      if (!record?.config) {
         // No record at all — full sync needed
         drifts.push('no_config_record');
         const syncResult = await syncToBackend();
         return { drifts, fixed: syncResult.ok };
       }
 
-      const backendDefaults = record.data.model_defaults ?? {};
-      const backendLists = record.data.select_lists ?? {};
+      const backendDefaults = record.config.model_defaults ?? {};
+      const backendLists = record.config.select_lists ?? {};
       const expected = buildFullModelDefaults(config.modelDefaults);
       const expectedLists = buildFullSelectLists(config.selectListOverrides);
 

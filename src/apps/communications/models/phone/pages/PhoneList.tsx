@@ -12,6 +12,7 @@ import PhoneDetail from "./PhoneDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
 import { defaultCountries, usePhoneInput } from "react-international-phone";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function PhoneList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -340,6 +341,8 @@ export default function PhoneList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("communications.phone.list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -404,6 +407,13 @@ export default function PhoneList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

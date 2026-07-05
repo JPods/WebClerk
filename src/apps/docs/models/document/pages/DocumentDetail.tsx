@@ -319,7 +319,7 @@ function DocumentDetail({
             ]}
             columns={3}
           />
-          <JsonCard title="Data" fieldName="data" data={data.data as Record<string, unknown>} columns={2} />
+          <JsonCard title="Config" fieldName="config" data={data.config as Record<string, unknown>} columns={2} />
           <JsonCard title="Copyright" fieldName="copyright" data={data.copyright as Record<string, unknown>} columns={2} />
           <JsonCard title="Path" fieldName="path" data={data.path as Record<string, unknown>} columns={2} />
           <BaseModelCards data={data} />

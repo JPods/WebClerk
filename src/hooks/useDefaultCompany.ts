@@ -39,7 +39,7 @@ interface UseDefaultCompanyResult {
 
 interface PrimaryOrganizationSetting {
   id: number;
-  data?: Record<string, any>;
+  config?: Record<string, any>;
   refs?: Record<string, any>;
 }
 
@@ -83,7 +83,7 @@ const pickBestPrimarySetting = (payload: any): PrimaryOrganizationSetting | unde
   }
 
   const withOrgId = rows
-    .filter((row) => toNumber(row?.data?.org_id))
+    .filter((row) => toNumber(row?.config?.org_id))
     .sort((a, b) => (Number(b?.id || 0) - Number(a?.id || 0)));
 
   if (withOrgId.length) return withOrgId[0];
@@ -367,7 +367,7 @@ export function useDefaultCompany(): UseDefaultCompanyResult {
       }, { cacheExempt: 'default-company' });
 
       const setting: PrimaryOrganizationSetting | undefined = pickBestPrimarySetting(settingsData);
-      const primaryData = setting?.data || {};
+      const primaryData = setting?.config || {};
       const orgId =
         toNumber(primaryData?.org_id) ??
         toNumber(primaryData?.id) ??

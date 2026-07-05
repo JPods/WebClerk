@@ -10,6 +10,7 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import VariantDetail from "./VariantDetail";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function VariantList() {
   const { theme } = useTheme();
@@ -162,6 +163,8 @@ export default function VariantList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("variant_list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -220,6 +223,13 @@ export default function VariantList() {
               
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
             </div>
           </ComponentCard>

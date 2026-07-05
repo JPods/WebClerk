@@ -2,14 +2,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import "swiper/swiper-bundle.css";
-import "flatpickr/dist/flatpickr.css";
 import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { SaveQueueProvider } from "./context/SaveQueueContext.tsx";
 import { RequestQueueProvider } from "./context/RequestQueueContext.tsx";
 // AliceProvider moved to App.tsx (inside Redux Provider)
+
+// Console capture — Alice reads errors/warnings, feeds vectorstores
+import { consoleCapture } from './utils/consoleCapture';
+consoleCapture.start();
+consoleCapture.startAutoFlush(60_000); // flush errors to Alice every 60s
 
 // Data Set Identification - startup notice
 const dataSetId = import.meta.env.VITE_DATA_SET_ID || "UNKNOWN";

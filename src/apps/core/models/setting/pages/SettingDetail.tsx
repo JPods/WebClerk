@@ -286,7 +286,7 @@ function SettingDetail({
   const [isSaving, setIsSaving] = useState(false);
   const data = dataProp || routeState.data || null;
   const purposeValue = watch("purpose");
-  const rawDataValue = watch("data");
+  const rawDataValue = watch("config");
   const parentModelValue = watch("parent_model");
 
   const parsedData = useMemo(
@@ -320,7 +320,7 @@ function SettingDetail({
 
   useEffect(() => {
     register("purpose");
-    register("data");
+    register("config");
     register("parent_model");
   }, [register]);
 
@@ -378,7 +378,7 @@ function SettingDetail({
 
   useEffect(() => {
     if (purposeValue === "search" && (rawDataValue == null || rawDataValue === "")) {
-      setValue("data", stringifyData(DEFAULT_SEARCH_DATA));
+      setValue("config", stringifyData(DEFAULT_SEARCH_DATA));
     }
   }, [purposeValue, rawDataValue, setValue]);
 
@@ -435,16 +435,16 @@ function SettingDetail({
   const updateSearchData = (updater: (current: any) => any) => {
     const current = searchData || DEFAULT_SEARCH_DATA;
     const next = updater(current);
-    setValue("data", stringifyData(next), { shouldDirty: true });
+    setValue("config", stringifyData(next), { shouldDirty: true });
   };
 
   const onSubmit = async (formData: z.infer<typeof settingSchema>) => {
     setIsSaving(true);
     try {
       const payload = { ...formData } as any;
-      if (typeof payload.data === "string") {
-        const trimmed = payload.data.trim();
-        payload.data = trimmed ? JSON.parse(trimmed) : {};
+      if (typeof payload.config === "string") {
+        const trimmed = payload.config.trim();
+        payload.config = trimmed ? JSON.parse(trimmed) : {};
       }
       const res =
         currentMode === "add"
@@ -847,7 +847,7 @@ function SettingDetail({
                 </HorizontalField>
               </>
             )}
-            <HorizontalField label="Data" htmlFor="data" error={errors.data?.message} icon={Database}>
+            <HorizontalField label="Config" htmlFor="config" error={errors.config?.message} icon={Database}>
               <div className="space-y-3 w-full">
                 {purposeValue === "search" && searchData ? (
                   <>
@@ -1196,13 +1196,13 @@ function SettingDetail({
                         Raw Data JSON (Advanced)
                       </label>
                       <textarea
-                        id="data"
+                        id="config"
                         value={
                           typeof rawDataValue === "string"
                             ? rawDataValue
                             : stringifyData(rawDataValue || {})
                         }
-                        onChange={(e) => setValue("data", e.target.value, { shouldDirty: true })}
+                        onChange={(e) => setValue("config", e.target.value, { shouldDirty: true })}
                         rows={10}
                         className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         disabled={currentMode === "view"}
@@ -1211,13 +1211,13 @@ function SettingDetail({
                   </>
                 ) : (
                   <textarea
-                    id="data"
+                    id="config"
                     value={
                       typeof rawDataValue === "string"
                         ? rawDataValue
                         : stringifyData(rawDataValue || {})
                     }
-                    onChange={(e) => setValue("data", e.target.value, { shouldDirty: true })}
+                    onChange={(e) => setValue("config", e.target.value, { shouldDirty: true })}
                     rows={currentMode === "view" ? 10 : 12}
                     className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                     disabled={currentMode === "view"}
@@ -1259,7 +1259,7 @@ function SettingDetail({
               { label: "role", value: data.role },
               { label: "model_name", value: data.model_name },
               { label: "is_active", value: data.is_active },
-              { label: "data", value: data.data },
+              { label: "config", value: data.config },
             ]}
             columns={2}
           />

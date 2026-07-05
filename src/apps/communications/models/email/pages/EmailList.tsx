@@ -12,6 +12,7 @@ import EmailDetail from "./EmailDetail";
 import Badge from "@/components/ui/badge/Badge";
 import { dynamicData } from "../../../../../model/dynamicData";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function EmailList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -338,6 +339,8 @@ export default function EmailList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("communications.email.list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -402,6 +405,13 @@ export default function EmailList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

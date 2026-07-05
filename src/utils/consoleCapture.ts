@@ -102,19 +102,53 @@ async function sendToAlice(context?: string) {
   try {
     const { default: apiClient } = await import('@/api/axios');
     await apiClient.post('/wcapi/save/', {
-      model_name: 'setting',
+      model_name: 'alice_observation',
+      source: 'console_capture',
+      category: 'console',
       name: body,
-      purpose: 'alice_log',
       data: {
         entries: errors.slice(-20),
+        all_count: entries.length,
+        error_count: errors.length,
         context,
         dt_captured: Date.now(),
+        url: window.location.href,
         user_agent: navigator.userAgent,
       },
     });
+    // Clear sent errors so we don't re-send
+    entries = entries.filter((e) => e.level === 'log');
   } catch (e) {
-    origError?.call(console, 'Failed to send console to Alice:', e);
+    origError?.call(console, '[consoleCapture] Failed to send to Alice:', e);
   }
 }
 
-export const consoleCapture = { start, stop, getEntries, getErrors, clear, getSummary, sendToAlice };
+// Auto-flush: send errors/warnings to Alice every 60s if any exist
+let flushInterval: ReturnType<typeof setInterval> | null = null;
+
+function startAutoFlush(intervalMs = 60_000) {
+  if (flushInterval) return;
+  flushInterval = setInterval(() => {
+    const errors = getErrors();
+    if (errors.length > 0) {
+      sendToAlice('auto-flush');
+    }
+  }, intervalMs);
+}
+
+function stopAutoFlush() {
+  if (flushInterval) { clearInterval(flushInterval); flushInterval = null; }
+}
+
+// On-demand: get a formatted report for Claude/Allie vectorstores
+function getReport(): string {
+  const lines = entries.slice(-50).map((e) =>
+    `[${new Date(e.dt).toISOString()}] ${e.level.toUpperCase()}: ${e.args.join(' ').slice(0, 300)}`
+  );
+  return lines.join('\n');
+}
+
+export const consoleCapture = {
+  start, stop, getEntries, getErrors, clear, getSummary,
+  sendToAlice, startAutoFlush, stopAutoFlush, getReport,
+};

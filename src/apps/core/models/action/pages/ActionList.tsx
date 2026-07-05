@@ -17,6 +17,7 @@ import {
   type SearchPresetInputValue,
   type SearchPresetRecord,
 } from "@/api/wcapi";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 interface ActionData {
   id: string | number;
@@ -620,6 +621,8 @@ const ActionListPage = () => {
     if (columnVisibility.length === 0) return columns;
     return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("core.actions.list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -684,6 +687,13 @@ const ActionListPage = () => {
                   <FaTrash className="w-4 h-4" 
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
                   Delete ({selectedActions.length})
                 </button>

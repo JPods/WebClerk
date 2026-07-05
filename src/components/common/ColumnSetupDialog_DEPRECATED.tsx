@@ -399,7 +399,7 @@ export const ColumnSetupDialog = ({
           parent_model: "customer",
           name: "list_column_config:customer",
         },
-        data: {
+        config: {
           v: 1,
           current: buildConfig,
           setups: mergedSetups,
@@ -423,13 +423,13 @@ export const ColumnSetupDialog = ({
         name: "list_column_config:customer",
       });
 
-      if (!latest?.data) {
+      if (!latest?.config) {
         throw new Error("No saved column layout found on server");
       }
 
-      const serverData = latest.data as Record<string, unknown>;
+      const serverData = latest.config as Record<string, unknown>;
 
-      // Preferred simple shape: direct ColumnSetupEntry saved in setting.data
+      // Preferred simple shape: direct ColumnSetupEntry saved in setting.config
       let nextConfig: ColumnSetupEntry | null = null;
       if (Array.isArray(serverData.order) && typeof serverData.visibility === "object") {
         nextConfig = {

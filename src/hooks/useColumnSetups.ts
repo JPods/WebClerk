@@ -189,7 +189,7 @@ export function useColumnSetups(
       if (!storageKey || !modelKey) return;
       setSyncing(true);
       try {
-        // One settings row per parent_model + purpose; list variants go in data.lists
+        // One settings row per parent_model + purpose; list variants go in config.lists
         const existing = await getRecords("setting", {
           name: `list_column_config:${modelKey}`,
           purpose: "list_column_config",
@@ -208,7 +208,7 @@ export function useColumnSetups(
               })[0]
             : undefined;
         const settingId = latestRecord?.id;
-        const existingData = latestRecord?.data;
+        const existingConfig = latestRecord?.config;
 
         const activeConfig =
           nextActiveSetupName != null
@@ -216,13 +216,13 @@ export function useColumnSetups(
             : null;
 
         const existingLists =
-          existingData?.lists && typeof existingData.lists === "object"
-            ? ({ ...existingData.lists } as Record<string, PersistedPayload>)
+          existingConfig?.lists && typeof existingConfig.lists === "object"
+            ? ({ ...existingConfig.lists } as Record<string, PersistedPayload>)
             : {};
 
         // Migrate old single-list format into collection format when encountered.
-        if (Object.keys(existingLists).length === 0 && existingData?.setups) {
-          existingLists[storageKey] = normalizePersistedPayload(existingData);
+        if (Object.keys(existingLists).length === 0 && existingConfig?.setups) {
+          existingLists[storageKey] = normalizePersistedPayload(existingConfig);
         }
 
         existingLists[storageKey] = {
@@ -245,7 +245,7 @@ export function useColumnSetups(
           name: `list_column_config:${modelKey}`,
           purpose: "list_column_config",
           parent_model: modelKey,
-          data: collection,
+          config: collection,
         };
         if (settingId) {
           payload.id = settingId;
@@ -339,7 +339,7 @@ export function useColumnSetups(
       });
       const records = pickRecords(result);
       if (Array.isArray(records) && records.length > 0) {
-        const serverData = records[0].data;
+        const serverData = records[0].config;
         const listPayload = readListFromServerData(serverData, storageKey);
         if (listPayload?.setups) {
           setSetups(listPayload.setups);

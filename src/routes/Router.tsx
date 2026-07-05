@@ -30,6 +30,11 @@ import HelpDashboard from "../pages/admin/HelpDashboard";
 import TestDashboard from "../pages/admin/TestDashboard";
 import DetailReview from "../pages/admin/DetailReview";
 import WhitelistTester from "../pages/tools/WhitelistTester";
+
+const PageDesigner = React.lazy(() => import("../pages/tools/PageDesigner"));
+const PdfDesigner = React.lazy(() => import("../pages/tools/PdfDesigner"));
+const AccountingDashboard = React.lazy(() => import("../pages/admin/AccountingDashboard"));
+const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 import ItemList from "../apps/products/models/item/pages/ItemList";
 import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
@@ -153,6 +158,10 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.detailReview} element={<DetailReview />} />
           <Route path={PageRoutes.modelWorkbench} element={<AllModelsWorkbench />} />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
+          <Route path="/page-designer" element={<React.Suspense fallback={<div>Loading...</div>}><PageDesigner /></React.Suspense>} />
+          <Route path="/pdf-designer" element={<React.Suspense fallback={<div>Loading...</div>}><PdfDesigner /></React.Suspense>} />
+          <Route path="/accounting" element={<React.Suspense fallback={<div>Loading...</div>}><AccountingDashboard /></React.Suspense>} />
+          <Route path="/inventory-dashboard" element={<React.Suspense fallback={<div>Loading...</div>}><InventoryDashboard /></React.Suspense>} />
 
           {/* ── Submit for Bonus (stub) ── */}
           <Route path="/submit-bonus" element={

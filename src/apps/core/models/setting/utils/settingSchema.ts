@@ -6,7 +6,7 @@ export const settingSchema = z.object({
   purpose: z.string().optional(),
   role: z.string().optional(),
   parent_model: z.string().optional(),
-  data: z.any().optional(),
+  config: z.any().optional(),
 });
 
 export type SettingFormData = z.infer<typeof settingSchema>;

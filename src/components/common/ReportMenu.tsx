@@ -91,7 +91,7 @@ export default function ReportMenu({ modelName, recordId, parentModel }: ReportM
 
   const handleSelect = useCallback((report: ReportRecord) => {
     setOpen(false);
-    const route = report.data?.route;
+    const route = report.config?.route;
     if (route) {
       // Replace {id}, {parent_model}, {parent_id} placeholders
       const resolved = route
@@ -102,7 +102,7 @@ export default function ReportMenu({ modelName, recordId, parentModel }: ReportM
       return;
     }
     // Fallback — alert with report info (templates not yet built)
-    alert(`Report: ${report.name}\nTemplate: ${report.data?.template || 'not configured'}\nOutput: ${report.output_type}\n\nThis report template is not yet built.`);
+    alert(`Report: ${report.name}\nTemplate: ${report.config?.template || 'not configured'}\nOutput: ${report.output_type}\n\nThis report template is not yet built.`);
   }, [recordId, parentModel, modelName, navigate]);
 
   if (!reports.length) return null;

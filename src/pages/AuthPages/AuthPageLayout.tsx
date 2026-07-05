@@ -1,49 +1,10 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import React, { useEffect } from "react";
-import GridShape from "../../components/common/GridShape";
-import { Link, useNavigate } from "react-router";
-import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
-import { PageRoutes } from "../../routes/Routes";
-import { useAppSelector } from "../../store/hooks";
+import React from "react";
 
-export default function AuthLayout({children}: {children: React.ReactNode;}) 
-{
-  const navigate = useNavigate();
-   const { isAuthenticated } = useAppSelector((state) => state.auth);
- 
-  useEffect(() => {
-    console.log("auth check", isAuthenticated)
-    if (isAuthenticated) {
-      navigate(PageRoutes.dashboard);
-    }
-  }, [isAuthenticated]);
-  
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
-      <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         {children}
-        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
-          <div className="relative flex items-center justify-center z-1">
-            {/* <!-- ===== Common Grid Shape Start ===== --> */}
-            <GridShape />
-            <div className="flex flex-col items-center max-w-xs">
-              <Link to="/" className="block mb-4">
-                {/* <img
-                  width={231}
-                  height={48}
-                  src="/images/logo/auth-logo.svg"
-                  alt="Logo"
-                /> */}
-              </Link>
-              <p className="text-center text-gray-400 dark:text-white/60">
-                Webclerk Admin
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
-          <ThemeTogglerTwo />
-        </div>
       </div>
     </div>
   );

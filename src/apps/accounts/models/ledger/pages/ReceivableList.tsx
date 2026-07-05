@@ -8,6 +8,7 @@ import { FaEye, FaSyncAlt } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 // ── Types ─────────────────────────────────────────────────────────────
 export interface ReceivableRow {
@@ -270,6 +271,8 @@ export default function ReceivableList() {
   ) : null;
 
   // ── Render ─────────────────────────────────────────────────────────
+
+  const columnCtx = useColumnContextMenu("receivable-aging", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -323,6 +326,13 @@ export default function ReceivableList() {
             externalSearchTerm={searchTerm}
             onExternalSearchTermChange={setSearchTerm}
             hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
           />
           {totalsBar}
         </ComponentCard>

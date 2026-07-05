@@ -13,7 +13,7 @@ export interface SettingRecord<T = unknown> {
   purpose?: string | null;
   parent_model?: string | null;
   role?: string | null;
-  data?: T | null;
+  config?: T | null;
   dt_created?: number;
   dt_modified?: number;
   is_active?: boolean;
@@ -53,14 +53,14 @@ export async function fetchLatestSettingRecord<T = unknown>(
 
 export async function upsertSettingRecord<T = unknown>(args: {
   scope: SettingScope;
-  data: T;
+  config: T;
 }): Promise<SettingRecord<T>> {
-  const { scope, data } = args;
+  const { scope, config } = args;
   const existing = await fetchLatestSettingRecord<T>(scope);
 
   const payload: Record<string, unknown> = {
     purpose: scope.purpose,
-    data,
+    config,
   };
 
   if (scope.parent_model) payload.parent_model = scope.parent_model;

@@ -159,7 +159,7 @@ export default function FieldOrderDialog({
       getRecords('setting', { name: 'column_widths', purpose: 'alice_coaching' })
         .then((res: any) => {
           const rec = (res?.results || [])[0];
-          if (rec?.data) setRecWidths(rec.data);
+          if (rec?.config) setRecWidths(rec.config);
         })
         .catch(() => {});
     }
@@ -180,7 +180,9 @@ export default function FieldOrderDialog({
     }
     const layout = savedLayouts.find((l) => l.name === layoutName);
     if (!layout) return;
-    const fields = mode === 'list' ? layout.list : layout.detail;
+    const rawFields = mode === 'list' ? layout.list : layout.detail;
+    // Normalize: fields may be strings or FieldSpec objects
+    const fields = rawFields.map((f: any) => typeof f === 'string' ? f : f.field);
     const vis = new Set(fields);
     const unselected = allFields.filter((f) => !vis.has(f)).sort((a, b) => a.localeCompare(b));
     setOrder([...fields, ...unselected]);

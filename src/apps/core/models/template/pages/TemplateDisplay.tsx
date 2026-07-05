@@ -35,7 +35,7 @@ export default function TemplateDisplay({
         setFields(Object.keys(record));
       } catch (error) {
         console.error("Failed to fetch fields", error);
-        setFields(['id', 'purpose', 'name', 'data', 'dt_processed', 'is_active']);
+        setFields(['id', 'purpose', 'name', 'config', 'dt_processed', 'is_active']);
       }
     };
     fetchFields();

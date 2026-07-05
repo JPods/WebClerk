@@ -485,10 +485,10 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
   if (!canView) return null;
 
   // Count answered questions
-  const answeredCount = setting?.data?.questions?.filter(q => 
+  const answeredCount = setting?.config?.questions?.filter(q => 
     answers.some(a => a.question_id === q.id && a.status === 'answered')
   ).length || 0;
-  const totalCount = setting?.data?.questions?.length || 0;
+  const totalCount = setting?.config?.questions?.length || 0;
 
   const displayTitle = title || questionGroup;
 
@@ -527,14 +527,14 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
             <div className="text-center py-4 text-red-500 text-sm">
               {error}
             </div>
-          ) : !setting?.data?.questions?.length ? (
+          ) : !setting?.config?.questions?.length ? (
             <div className="text-center py-4 text-slate-400 text-sm">
               <FaQuestionCircle size={24} className="mx-auto mb-2 opacity-50" />
               <p>No questions in this group</p>
             </div>
           ) : (
-            setting.data.questions.map(question => {
-              const options = getEffectiveOptions(question, setting.data.template);
+            setting.config.questions.map(question => {
+              const options = getEffectiveOptions(question, setting.config.template);
               const existingAnswer = answers.find(a => a.question_id === question.id);
               
               return (

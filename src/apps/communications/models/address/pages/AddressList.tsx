@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux";
 import AddressDetail from "./AddressDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function AddressList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -303,6 +304,8 @@ export default function AddressList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("communications.address.list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -367,6 +370,13 @@ export default function AddressList() {
               rowClickAllowedColumnNames={["id", "action", "actions"]}
               rowKeyField="id"
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

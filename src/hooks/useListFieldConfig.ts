@@ -79,7 +79,7 @@ export function useListFieldConfig<T>(
         const setting = await getWorkbenchFieldsSetting(modelName);
         if (setting) {
           setSettingId(setting.id);
-          const data = setting.data as WorkbenchData;
+          const data = setting.config as WorkbenchData;
           if (data?.list?.length) setVisibleKeys(data.list);
           if (data?.views) setSavedLayouts(data.views);
           if ((setting as any).listWidths) setColWidths((setting as any).listWidths);
@@ -90,7 +90,7 @@ export function useListFieldConfig<T>(
       try {
         const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'field_access' }) as any;
         const faRec = (faRes?.results || [])[0];
-        if (faRec?.data?.field_behaviors) setFieldBehaviors(faRec.data.field_behaviors);
+        if (faRec?.config?.field_behaviors) setFieldBehaviors(faRec.config.field_behaviors);
       } catch { /* no behaviors */ }
 
       setLoaded(true);
@@ -126,7 +126,7 @@ export function useListFieldConfig<T>(
         id: existing?.id,
         model_name: modelName,
         purpose: 'workbench_fields',
-        data: { ...data },
+        config: { ...data },
       });
     } catch (e) {
       console.error('Failed to save field config:', e);

@@ -9,6 +9,7 @@ import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import LedgerDisplay from "./LedgerDisplay";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function LedgerList() {
   const dispatch = useDispatch();
@@ -163,6 +164,8 @@ export default function LedgerList() {
     if (columnVisibility.length === 0) return columns;
     return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("ledger-list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -227,6 +230,13 @@ export default function LedgerList() {
                       <FaTrash className="w-4 h-4" 
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
                       Delete ({selectedLedgers.length})
                     </button>

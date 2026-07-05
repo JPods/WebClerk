@@ -122,10 +122,10 @@ function ModelScaffold({
       setAllFields(fields);
 
       const prefs = await getWorkbenchFieldsSetting(modelName);
-      if (prefs?.data) {
+      if (prefs?.config) {
         setFieldPrefs({
-          list: prefs.data.list || defaultFields.list,
-          detail: prefs.data.detail || defaultFields.detail,
+          list: prefs.config.list || defaultFields.list,
+          detail: prefs.config.detail || defaultFields.detail,
         });
       } else {
         setFieldPrefs(defaultFields);
@@ -236,7 +236,7 @@ function ModelScaffold({
         await saveWorkbenchFieldsSetting({
           model_name: modelName,
           purpose: "workbench_fields",
-          data: next,
+          config: next,
         } as any);
       } catch (err) {
         dispatch(

@@ -11,6 +11,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import VendorDetail from "./VendorDetail";
 import { deleteRecord } from "../../../../../api/wcapi";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function VendorList() {
   const dispatch = useDispatch();
@@ -374,6 +375,8 @@ export default function VendorList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("vendor-list", columns);
   return (
     <>
       <ButtonToolbar
@@ -434,6 +437,13 @@ export default function VendorList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

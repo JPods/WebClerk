@@ -7,7 +7,6 @@ import TextArea from "./form/input/TextArea";
 import CustTextArea from "./form/input/CustTextArea";
 import Select from "./form/Select";
 import DropDown from "./form/input/DropDown";
-import DatePicker from "./form/date-picker";
 import PhoneInput from "./form/group-input/PhoneInput";
 import InternationalPhoneInput from "./form/input/InternationalPhoneInput";
 
@@ -17,7 +16,6 @@ export {
   ModalForm,
   Input,
   Select,
-  DatePicker,
   PhoneInput,
   InternationalPhoneInput,
   TextArea,

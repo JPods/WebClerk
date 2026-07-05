@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function DomainList() {
   const [data, setData] = useState<dynamicData[]>([]);
@@ -296,6 +297,8 @@ export default function DomainList() {
       (_: any, index: number) => columnVisibility[index] !== false,
     );
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("communications.domain.list", visibleColumns);
   return (
     <>
       <ButtonToolbar
@@ -360,6 +363,13 @@ export default function DomainList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

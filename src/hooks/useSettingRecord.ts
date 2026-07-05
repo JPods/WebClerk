@@ -32,7 +32,7 @@ export function useSettingRecord<T = unknown>(scope: SettingScope) {
       setSaving(true);
       setError(null);
       try {
-        const next = await upsertSettingRecord<T>({ scope, data });
+        const next = await upsertSettingRecord<T>({ scope, config: data });
         setRecord(next);
         return next;
       } catch (err) {
@@ -51,7 +51,7 @@ export function useSettingRecord<T = unknown>(scope: SettingScope) {
 
   return {
     record,
-    data: (record?.data as T | null | undefined) ?? null,
+    data: (record?.config as T | null | undefined) ?? null,
     loading,
     saving,
     error,

@@ -46,7 +46,7 @@ interface SelectListSetting {
   id: number;
   name: string;
   purpose: string;
-  data: {
+  config: {
     options: SelectOption[];
     label: string;
   };
@@ -78,10 +78,10 @@ export async function fetchSelectListsFromWc3(): Promise<
 
   const map: Record<string, { options: SelectOption[]; label: string; settingId: number }> = {};
   for (const item of items) {
-    if (item.name && item.data?.options) {
+    if (item.name && item.config?.options) {
       map[item.name] = {
-        options: item.data.options,
-        label: item.data.label || item.name,
+        options: item.config.options,
+        label: item.config.label || item.name,
         settingId: item.id,
       };
     }
@@ -99,10 +99,10 @@ export async function fetchSelectListFromWc3(
   const res = await getRecords('setting', { purpose: SETTING_PURPOSE, name: key });
   const items: SelectListSetting[] = res.results || [];
   const match = items.find((s) => s.name === key);
-  if (!match?.data?.options) return null;
+  if (!match?.config?.options) return null;
   return {
-    options: match.data.options,
-    label: match.data.label || key,
+    options: match.config.options,
+    label: match.config.label || key,
     settingId: match.id,
   };
 }
@@ -131,14 +131,14 @@ export async function pushSelectListToWc3(key: string): Promise<SyncResult> {
     const payload: Record<string, any> = {
       name: key,
       purpose: SETTING_PURPOSE,
-      data: {
+      config: {
         options: listDef.options,
         label: listDef.label,
       },
     };
 
     if (existing) {
-      // Check if data is unchanged
+      // Check if config is unchanged
       const oldOpts = JSON.stringify(existing.options);
       const newOpts = JSON.stringify(listDef.options);
       if (oldOpts === newOpts && existing.label === listDef.label) {

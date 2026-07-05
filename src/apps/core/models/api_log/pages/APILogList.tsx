@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 import APILogDetail from "./APILogDetail";
 import Badge from "@/components/ui/badge/Badge";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 interface APILogRecord {
   id: number;
@@ -247,6 +248,8 @@ export default function APILogList() {
     if (columnVisibility.length === 0) return columns;
     return columns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [columns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("api_logs-list", columns);
   return (
     <>
       <ButtonToolbar
@@ -298,7 +301,15 @@ export default function APILogList() {
         
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
-              hideHeader={true}/>
+              hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
+              />
       </ComponentCard>
 
       {/* Detail Modal */}

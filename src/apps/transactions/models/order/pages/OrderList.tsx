@@ -16,6 +16,7 @@ import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import OrderDetail from "./OrderDetail";
 import type { QuickFilterItem } from "@/components/common/PrintReportDropdown";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 // Quick-filter presets
 type QuickFilter = "all" | "open" | "last30" | "last60";
@@ -561,6 +562,8 @@ export default function OrderList() {
     return acc;
   }, {} as Record<string, number>);
 
+
+  const columnCtx = useColumnContextMenu("order-list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -631,6 +634,13 @@ export default function OrderList() {
               filtersOpen={filtersOpen}
               onFiltersOpenChange={setFiltersOpen}
               hideHeader={true}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

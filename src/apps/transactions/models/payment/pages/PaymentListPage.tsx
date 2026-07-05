@@ -22,6 +22,7 @@ import { useDispatch } from 'react-redux';
 import { deleteRecord } from '@/api/wcapi';
 import { PageRoutes } from '@/routes/Routes';
 import type { Payment } from '../types/Payment';
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 const STATUS_STYLES: Record<string, string> = {
   completed:
@@ -373,6 +374,8 @@ export default function PaymentListPage() {
     );
   }, [data, filterValues]);
 
+
+  const columnCtx = useColumnContextMenu("payment-list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -440,6 +443,13 @@ export default function PaymentListPage() {
               </button>
             }
             onRowClicked={handleEdit}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
           />
         </ComponentCard>
       </div>

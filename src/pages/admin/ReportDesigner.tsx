@@ -8,7 +8,7 @@
  *   1. Load report records from wcapi
  *   2. Select a report to edit (or create new)
  *   3. pdfme Designer for visual template editing
- *   4. Save template JSON to report.data.template
+ *   4. Save template JSON to report.config.template
  *   5. Preview — generate PDF from template + sample data
  *   6. Download the generated PDF
  */
@@ -106,7 +106,7 @@ export default function ReportDesigner() {
 
     // Resolve template: saved > default > empty
     let template: Template =
-      selectedReport.data?.template ||
+      selectedReport.config?.template ||
       getDefaultTemplate(selectedReport.name) ||
       EMPTY_TEMPLATE;
 
@@ -144,11 +144,11 @@ export default function ReportDesigner() {
       const template = designerRef.current.getTemplate();
 
       // Merge template into existing data
-      const newData = { ...(selectedReport.data || {}), template };
+      const newConfig = { ...(selectedReport.config || {}), template };
 
       await saveRecord('report', {
         id: selectedReport.id,
-        data: newData,
+        config: newConfig,
       });
 
       setStatusMsg('Template saved');
@@ -261,7 +261,7 @@ export default function ReportDesigner() {
                     <div className="text-[10px] text-gray-400 mt-0.5 truncate">
                       {r.model_name} &middot; {r.output_type} &middot; {r.category}
                     </div>
-                    {r.data?.template && (
+                    {r.config?.template && (
                       <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
                         has template
                       </span>

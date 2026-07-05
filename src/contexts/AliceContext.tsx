@@ -120,7 +120,7 @@ export const AliceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const presetRes = await getRecords('setting', { name: 'search_presets', limit: 1 }) as any;
         const presetRec = (presetRes?.results || [])[0];
-        const presets = presetRec?.data?.presets || [];
+        const presets = presetRec?.config?.presets || [];
         setSearchPresets(presets.map((p: any) => ({
           model: p.model,
           term: p.term,

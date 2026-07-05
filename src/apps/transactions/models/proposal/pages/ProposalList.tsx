@@ -15,6 +15,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import ProposalDetail from "./ProposalDetail";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function ProposalList() {
   const [data, setData] = useState<any[]>([]);
@@ -372,6 +373,8 @@ export default function ProposalList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("proposal-list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -465,6 +468,13 @@ export default function ProposalList() {
                 </button>
               }
               onRowClicked={handleEdit}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
             />
           </ComponentCard>
         </div>

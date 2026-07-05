@@ -136,7 +136,7 @@ export function useDetailFieldAccess(
         setError(null);
         const existing = await getDetailFieldSetting(modelName);
         if (cancelled) return;
-        const normalized = normalizeConfig(existing?.data, fieldNames);
+        const normalized = normalizeConfig(existing?.config, fieldNames);
         setState({
           config: normalized,
           settingId: existing?.id,
@@ -227,7 +227,7 @@ export function useDetailFieldAccess(
         id: state.settingId,
         model_name: modelName,
         purpose: DETAIL_PURPOSE,
-        data: {
+        config: {
           hidden: state.config.hidden,
           readOnly: state.config.readOnly,
         },

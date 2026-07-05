@@ -8,6 +8,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import TermDisplay from "./TermDisplay";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function TermList() {
   const [data, setData] = useState<any[]>([]);
@@ -135,6 +136,8 @@ export default function TermList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("term_list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -191,6 +194,13 @@ export default function TermList() {
             
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
           </ComponentCard>
         </div>

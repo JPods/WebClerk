@@ -10,6 +10,7 @@ import { useLocation } from "react-router";
 import SettingDetail from "./SettingDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function SettingList() {
   const location = useLocation();
@@ -206,6 +207,8 @@ export default function SettingList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("setting_list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -262,6 +265,13 @@ export default function SettingList() {
             
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
           </ComponentCard>
         </div>

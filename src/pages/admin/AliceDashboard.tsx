@@ -6,10 +6,15 @@
  *
  * Route: /alice-dashboard
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { getRecords } from '@/api/wcapi';
 import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
+
+const DetailReview = React.lazy(() => import('./DetailReview'));
+const AliceQuiz = React.lazy(() => import('./AliceQuiz'));
+const PageDesigner = React.lazy(() => import('../tools/PageDesigner'));
+const PdfDesigner = React.lazy(() => import('../tools/PdfDesigner'));
 
 export default function AliceDashboard() {
   const { user } = useAppSelector((s) => s.auth);
@@ -20,7 +25,7 @@ export default function AliceDashboard() {
   const [consoleSummary, setConsoleSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [askText, setAskText] = useState('');
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm'>('coaching');
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'cycle' | 'page-designer' | 'pdf-designer'>('coaching');
   const [llmConfig, setLlmConfig] = useState<any>(null);
   const [llmSaving, setLlmSaving] = useState(false);
 
@@ -44,7 +49,7 @@ export default function AliceDashboard() {
         // LLM config
         const lRes = await getRecords('setting', { name: 'alice_llm_config', purpose: 'alice_coaching' }) as any;
         const llmRec = (lRes?.results || [])[0];
-        setLlmConfig(llmRec?.data || {
+        setLlmConfig(llmRec?.config || {
           provider: 'ollama',
           model: 'allie:latest',
           endpoint: 'http://localhost:11434',
@@ -130,6 +135,10 @@ export default function AliceDashboard() {
         {tabBtn('training', 'Training', trainingDocs.length)}
         {tabBtn('health', 'System Health')}
         {tabBtn('llm', 'LLM Config')}
+        {tabBtn('quiz', 'Quiz')}
+        {tabBtn('cycle', 'Cycle Details')}
+        {tabBtn('page-designer', 'Page Designer')}
+        {tabBtn('pdf-designer', 'PDF Designer')}
       </div>
 
       {/* Tab content */}
@@ -138,7 +147,7 @@ export default function AliceDashboard() {
       {activeTab === 'coaching' && (
         <div className="space-y-4">
           {coaching?.map((setting: any) => {
-            const tips = setting.data?.tips || [];
+            const tips = setting.config?.tips || [];
             const modelName = setting.parent_model || 'system';
             return (
               <div key={setting.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -150,11 +159,11 @@ export default function AliceDashboard() {
                   </div>
                 ))}
                 {/* Field help */}
-                {setting.data?.field_help && (
+                {setting.config?.field_help && (
                   <details className="mt-2">
-                    <summary className="text-xs text-gray-500 cursor-pointer">Field help ({Object.keys(setting.data.field_help).length} fields)</summary>
+                    <summary className="text-xs text-gray-500 cursor-pointer">Field help ({Object.keys(setting.config.field_help).length} fields)</summary>
                     <div className="mt-1 grid grid-cols-2 gap-1">
-                      {Object.entries(setting.data.field_help).map(([field, help]: [string, any]) => (
+                      {Object.entries(setting.config.field_help).map(([field, help]: [string, any]) => (
                         <div key={field} className="text-[10px]">
                           <span className="font-semibold text-gray-700 dark:text-gray-300">{field}:</span>{' '}
                           <span className="text-gray-500">{help}</span>
@@ -613,6 +622,38 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
         </div>
         <p className="text-[10px] text-gray-400 mt-1">Questions are saved as pending items. Alice reviews and responds during her next coaching cycle.</p>
       </div>
+
+      {/* ═══ Quiz ═══ */}
+      {activeTab === 'quiz' && (
+        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading Quiz...</div>}>
+          <AliceQuiz />
+        </Suspense>
+      )}
+
+      {/* ═══ Cycle Details ═══ */}
+      {activeTab === 'cycle' && (
+        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading Cycle Details...</div>}>
+          <DetailReview />
+        </Suspense>
+      )}
+
+      {/* ═══ Page Designer ═══ */}
+      {activeTab === 'page-designer' && (
+        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading Page Designer...</div>}>
+          <div className="h-[70vh]">
+            <PageDesigner />
+          </div>
+        </Suspense>
+      )}
+
+      {/* ═══ PDF Designer ═══ */}
+      {activeTab === 'pdf-designer' && (
+        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading PDF Designer...</div>}>
+          <div className="h-[70vh]">
+            <PdfDesigner />
+          </div>
+        </Suspense>
+      )}
     </div>
   );
 }

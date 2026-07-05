@@ -235,14 +235,14 @@ function TemplateDetail({
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-            <HorizontalField label="Data" htmlFor="data" error={errors.data?.message} icon={Database}>
+            <HorizontalField label="Config" htmlFor="config" error={errors.config?.message} icon={Database}>
               <Input
                 type="text"
-                id="data"
-                placeholder="Data"
-                {...register("data")}
-                error={errors.data && errors.data.message ? true : false}
-                hint={errors.data && typeof errors.data.message === 'string' ? errors.data.message : undefined}
+                id="config"
+                placeholder="Config"
+                {...register("config")}
+                error={errors.config && errors.config.message ? true : false}
+                hint={errors.config && typeof errors.config.message === 'string' ? errors.config.message : undefined}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>

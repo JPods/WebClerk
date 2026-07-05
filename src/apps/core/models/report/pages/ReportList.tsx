@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 import ReportDetail from "./ReportDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function ReportList() {
   const [data, setData] = useState<any[]>([]);
@@ -183,6 +184,8 @@ export default function ReportList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("report_list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -235,6 +238,13 @@ export default function ReportList() {
             
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
           </ComponentCard>
         </div>

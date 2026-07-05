@@ -89,8 +89,8 @@ export default function ReportViewer({
           limit: 1,
         })) as any;
         const reportRecord = reportRes?.results?.[0];
-        if (reportRecord?.data?.template) {
-          template = reportRecord.data.template as Template;
+        if (reportRecord?.config?.template) {
+          template = reportRecord.config.template as Template;
         }
       } catch {
         // Fall through to default template

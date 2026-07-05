@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 import { deleteRecord } from "@/api/wcapi";
 import TagDisplay from "./TagDisplay";
 import ButtonToolbar from "@/components/common/ButtonToolbar";
+import { useColumnContextMenu } from "@/hooks/useColumnContextMenu";
 
 export default function TagList() {
   const [data, setData] = useState<any[]>([]);
@@ -143,6 +144,8 @@ export default function TagList() {
     if (columnVisibility.length === 0) return userColumns;
     return userColumns.filter((_: any, index: number) => columnVisibility[index] !== false);
   }, [userColumns, columnVisibility]);
+
+  const columnCtx = useColumnContextMenu("tag_list", userColumns);
   return (
     <>
       <ButtonToolbar
@@ -197,6 +200,13 @@ export default function TagList() {
             
               externalSearchTerm={searchTerm}
               onExternalSearchTermChange={setSearchTerm}
+              allFields={columnCtx.allFields}
+              namedViews={columnCtx.namedViews}
+              onDeleteColumn={columnCtx.onDeleteColumn}
+              onAddColumn={columnCtx.onAddColumn}
+              onSaveLayout={columnCtx.onSaveLayout}
+              onSaveLayoutAs={columnCtx.onSaveLayoutAs}
+              onLoadView={columnCtx.onLoadView}
               hideHeader={true}/>
           </ComponentCard>
         </div>
