@@ -1,13 +1,12 @@
-/* LastChecked: 2026-06-28 | WhereUsed: Router.tsx | WhoCreated: Unknown */
-/* Admin-managed models removed — they use the DataBrowser (/admin-wb) now. */
+/* LastChecked: 2026-07-10 | WhereUsed: Router.tsx, protectedRoutesConfig.tsx | WhoCreated: Unknown */
+/* All list views use DataBrowser (/db/:model). Only detail pages and tools here. */
 import NotFound from "./OtherPage/NotFound";
 import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 
-// Orgs — user-facing only
-import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
+// Orgs — detail pages only (lists via DataBrowser)
 import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDetail";
 
 // Alias CustomerDetail for route compatibility
@@ -15,8 +14,7 @@ const CustomerDetailPage = CustomerDetail;
 const CustomerAddPage = CustomerDetail;
 const CustomerEditPage = CustomerDetail;
 
-// Core — user-facing only
-import CoreContactList from "../apps/core/models/contact/pages/ContactList";
+// Core — detail page only (list via DataBrowser)
 import CoreContactDetail from "../apps/core/models/contact/pages/ContactDetail";
 
 import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
@@ -30,11 +28,9 @@ export {
   NotFound,
   Home,
   UserProfiles,
-  CustomerList,
   CustomerDetailPage,
   CustomerAddPage,
   CustomerEditPage,
-  CoreContactList,
   CoreContactDetail,
   NotionTrackerPage,
   KanbanBoardPage,

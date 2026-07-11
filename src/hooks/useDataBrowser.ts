@@ -7,7 +7,7 @@
  * Reusable — any page that needs a model browser can call this hook.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { dbLog } from '@/utils/dbLog';
 import {
   getModelNames,
@@ -205,6 +205,7 @@ export const PAGE_SIZE = 50;
 
 export function useDataBrowser(isAuthenticated: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const routeParams = useParams<{ model?: string }>();
   const previousModelParam = useRef<string | null>(null);
 
   // --- Model list ---
@@ -255,7 +256,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // Derived
   // ---------------------------------------------------------------------------
 
-  const modelParam = searchParams.get('model');
+  // Route param (/db/:model) takes priority, then search param (?model=X)
+  const modelParam = routeParams.model || searchParams.get('model');
 
   const modelLabel = useMemo(() => {
     if (!selectedModel) return 'Select model';
@@ -336,26 +338,23 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // This effect should NOT run when handleSelectModel changes the URL — previousModelParam guards that
   useEffect(() => {
     if (!modelNames.length) return;
-    // Initial load — no model selected yet
-    if (!selectedModel && modelParam && modelNames.includes(modelParam)) {
-      console.log('[DB] URL sync: initial load →', modelParam);
-      setSelectedModel(modelParam);
-      previousModelParam.current = modelParam;
-      return;
+    // URL param present and different from what we currently show — always switch
+    if (modelParam && modelNames.includes(modelParam) && modelParam !== selectedModel) {
+      // Only switch if this wasn't caused by handleSelectModel (which already set previousModelParam)
+      if (modelParam !== previousModelParam.current) {
+        console.log('[DB] URL sync: switching to', modelParam);
+        previousModelParam.current = modelParam;
+        setSelectedModel(modelParam);
+        return;
+      }
     }
+    // No model selected yet and no URL param — default to first model
     if (!selectedModel && !modelParam) {
       console.log('[DB] URL sync: no model, defaulting to', modelNames[0]);
       setSelectedModel(modelNames[0]);
       previousModelParam.current = modelNames[0];
-      return;
     }
-    // External URL change (browser back/forward) — only if we didn't cause it
-    if (modelParam && modelParam !== previousModelParam.current && modelNames.includes(modelParam)) {
-      console.log('[DB] URL sync: external nav →', modelParam);
-      previousModelParam.current = modelParam;
-      setSelectedModel(modelParam);
-    }
-  }, [modelNames, modelParam]); // deliberately exclude selectedModel and handleSelectModel
+  }, [modelNames, modelParam, selectedModel]); // include selectedModel to detect stale state
 
   // ---------------------------------------------------------------------------
   // Load models

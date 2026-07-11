@@ -2,13 +2,14 @@
  * Inventory Dashboard — consolidated inventory management.
  *
  * Replaces 4 separate wc2 forms (InShipGoods, InventoryAdjustment,
- * ItemWarehouse, InshipAdj) with one page, four tabs.
+ * ItemWarehouse, InshipAdj) with one page, five tabs.
  *
  * Tabs:
  *   1. Receive   — PO receiving into inventory layers
  *   2. Adjust    — manual quantity adjustments with reason codes
  *   3. Warehouse — inventory by warehouse with reorder alerts
  *   4. Reconcile — physical count vs system, variance adjustments
+ *   5. Training  — Alice's guided Proposal→Order→Invoice→Payment→PO→Receive cycle
  *
  * All mutations go through manageAction → backend services:
  *   - receive_inventory (inventory_stacks.py)
@@ -29,13 +30,18 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaSearch,
+  FaGraduationCap,
+  FaFileInvoice,
+  FaShoppingCart,
+  FaTruck,
+  FaClipboardList,
 } from "react-icons/fa";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabKey = "receive" | "adjust" | "warehouse" | "reconcile";
+type TabKey = "receive" | "adjust" | "warehouse" | "reconcile" | "training";
 
 interface POLine {
   id: number;
@@ -1290,6 +1296,271 @@ function ReconcileTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Tab 5: Training — observation panel for manual transaction walkthrough
+// ---------------------------------------------------------------------------
+
+// The guided steps: user does each in the real UI, comes back here to see results
+const TRAINING_INSTRUCTIONS = [
+  {
+    step: 1,
+    action: "Create a Proposal for 15 zz-fake-item",
+    effect: "+15 on_p",
+    detail: "Products > New Proposal. Add 15 × zz-fake-item for zzCustomer. Save. Print it.",
+    icon: <FaClipboardList />,
+    color: "text-blue-600",
+  },
+  {
+    step: 2,
+    action: "Transfer 11 from Proposal to Order",
+    effect: "-11 on_p, +11 on_so",
+    detail: "Go to Open Proposals. Open your proposal. Transfer 11 of the 15 to Order. Come back here — see the quantities change.",
+    icon: <FaShoppingCart />,
+    color: "text-indigo-600",
+  },
+  {
+    step: 3,
+    action: "Order → Purchase 10",
+    effect: "+10 on_po",
+    detail: "Open the Order. Create a Purchase Order for 10 units. This tells the vendor to ship.",
+    icon: <FaTruck />,
+    color: "text-orange-600",
+  },
+  {
+    step: 4,
+    action: "Purchase → Receive 8",
+    effect: "+8 on_hand, -8 on_po (2 still on_po)",
+    detail: "Open the Purchase. Receive 8 of the 10. Partial receipt — 2 remain on PO.",
+    icon: <FaBoxOpen />,
+    color: "text-teal-600",
+  },
+  {
+    step: 5,
+    action: "Order → Invoice 6",
+    effect: "-6 on_hand, -6 on_so (5 still on_so)",
+    detail: "Open the Order. Invoice 6 of the 11. Goods shipped, customer owes money.",
+    icon: <FaFileInvoice />,
+    color: "text-green-600",
+  },
+];
+
+type ActivityRow = {
+  dt: number;
+  type: string;
+  record_type: string;
+  parent_ida: string;
+  parent_status: string;
+  qty_staged?: number;
+  qty_remaining?: number;
+  unit_price?: number;
+  unit_cost?: number;
+  extended?: number;
+  line_id?: number;
+  line_status?: string;
+  detail?: string;
+  delta?: number;
+  reason?: string;
+  pending_id?: number;
+};
+
+type TrainingData = {
+  item: { id: number; ida: string; description: string };
+  inventory: { on_hand: number; on_so: number; on_po: number; on_p: number; available: number };
+  activity: ActivityRow[];
+  count: number;
+  error?: string;
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  proposal: "bg-blue-100 text-blue-800",
+  order: "bg-indigo-100 text-indigo-800",
+  invoice: "bg-green-100 text-green-800",
+  purchase: "bg-orange-100 text-orange-800",
+  pending: "bg-yellow-100 text-yellow-800",
+};
+
+function TrainingTab() {
+  const [data, setData] = useState<TrainingData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchActivity = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await manageAction("get_training_activity", { item_ida: "zz-fake-item" });
+      if (res.error) {
+        setError(res.error);
+      } else {
+        setData(res);
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to load training activity");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivity();
+  }, [fetchActivity]);
+
+  const inv = data?.inventory;
+  const activity = data?.activity || [];
+
+  return (
+    <div data-wc="inv-training" className="space-y-4">
+      {/* Instructions */}
+      <Card title="Transaction Training — zz-fake-item" icon={<FaGraduationCap />}>
+        <p className="text-sm text-gray-600 mb-4">
+          Follow these steps in the real WC3 UI, then come back here and hit{" "}
+          <strong>Refresh</strong> to see your changes in the activity table below.
+          The objective: see how item data, transaction lines, and pending records
+          record and manage each change.
+        </p>
+        <div className="space-y-2">
+          {TRAINING_INSTRUCTIONS.map((inst) => (
+            <div key={inst.step} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+              <span className={`mt-0.5 ${inst.color}`}>{inst.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-800">
+                    {inst.step}. {inst.action}
+                  </span>
+                  <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                    {inst.effect}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">{inst.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Inventory buckets + refresh */}
+      <div className="flex items-center gap-4">
+        <Card title="Current Inventory — zz-fake-item" icon={<FaBoxOpen />}>
+          {inv ? (
+            <div className="flex gap-4">
+              {[
+                { label: "On Hand", value: inv.on_hand, color: "text-green-700 bg-green-50" },
+                { label: "On SO", value: inv.on_so, color: "text-blue-700 bg-blue-50" },
+                { label: "On PO", value: inv.on_po, color: "text-orange-700 bg-orange-50" },
+                { label: "On Proposal", value: inv.on_p, color: "text-purple-700 bg-purple-50" },
+                { label: "Available", value: inv.available, color: "text-emerald-700 bg-emerald-50" },
+              ].map((b) => (
+                <div key={b.label} className={`px-4 py-2 rounded text-center ${b.color}`}>
+                  <div className="text-xs font-medium">{b.label}</div>
+                  <div className="text-2xl font-mono font-bold">{b.value}</div>
+                </div>
+              ))}
+              <div className="flex items-center ml-auto">
+                <button
+                  onClick={fetchActivity}
+                  disabled={loading}
+                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                >
+                  <FaSync className={loading ? "animate-spin" : ""} size={12} />
+                  {loading ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">
+              {loading ? "Loading..." : "No inventory data — run seed_training_data"}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Activity table — transaction lines + pending records in dt sequence */}
+      <Card title={`Today's Activity (${activity.length} records)`} icon={<FaClipboardCheck />}>
+        {activity.length > 0 ? (
+          <div className="max-h-[500px] overflow-y-auto border rounded">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-1.5 font-medium text-gray-600">Time</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-gray-600">Type</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-gray-600">Document</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-gray-600">Status</th>
+                  <th className="text-right px-3 py-1.5 font-medium text-gray-600">Qty</th>
+                  <th className="text-right px-3 py-1.5 font-medium text-gray-600">Price</th>
+                  <th className="text-right px-3 py-1.5 font-medium text-gray-600">Extended</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-gray-600">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.map((row, idx) => {
+                  const time = row.dt
+                    ? new Date(row.dt).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })
+                    : "--";
+                  const isPending = row.record_type === "pending";
+                  return (
+                    <tr key={idx} className="border-t hover:bg-gray-50">
+                      <td className="px-3 py-1.5 text-xs font-mono text-gray-500">{time}</td>
+                      <td className="px-3 py-1.5">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            TYPE_COLORS[row.type] || "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {row.type}
+                        </span>
+                      </td>
+                      <td className="px-3 py-1.5 font-mono text-xs">{row.parent_ida}</td>
+                      <td className="px-3 py-1.5">
+                        <StatusBadge status={isPending ? row.parent_status : (row.line_status || row.parent_status)} />
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono">
+                        {isPending
+                          ? row.delta !== undefined
+                            ? `${row.delta > 0 ? "+" : ""}${row.delta}`
+                            : "--"
+                          : fmtInt(row.qty_staged || 0)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono">
+                        {isPending ? "--" : fmtDec(row.unit_price || 0)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono">
+                        {isPending ? "--" : fmtDec(row.extended || 0)}
+                      </td>
+                      <td className="px-3 py-1.5 text-xs text-gray-500">
+                        {isPending
+                          ? `${row.detail || ""} ${row.reason || ""}`.trim()
+                          : row.qty_remaining
+                          ? `${row.qty_remaining} remaining`
+                          : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-gray-400 text-sm">
+            {loading
+              ? "Loading activity..."
+              : "No activity yet today. Follow the steps above, then Refresh."}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Dashboard
 // ---------------------------------------------------------------------------
 
@@ -1301,6 +1572,7 @@ export default function InventoryDashboard() {
     { key: "adjust", label: "Adjust", icon: <FaExchangeAlt size={14} /> },
     { key: "warehouse", label: "Warehouse", icon: <FaWarehouse size={14} /> },
     { key: "reconcile", label: "Reconcile", icon: <FaClipboardCheck size={14} /> },
+    { key: "training", label: "Training", icon: <FaGraduationCap size={14} /> },
   ];
 
   return (
@@ -1329,6 +1601,7 @@ export default function InventoryDashboard() {
       {activeTab === "adjust" && <AdjustTab />}
       {activeTab === "warehouse" && <WarehouseTab />}
       {activeTab === "reconcile" && <ReconcileTab />}
+      {activeTab === "training" && <TrainingTab />}
     </div>
   );
 }

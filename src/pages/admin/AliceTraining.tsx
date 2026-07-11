@@ -53,23 +53,23 @@ const STEP_CONFIG = [
     coaching: "A proposal is a quote — no commitment, no inventory impact. The customer can review pricing before deciding. Watch: inventory doesn't change.",
     color: "bg-blue-500",
     param: "proposal_qty",
-    defaultQty: 5,
+    defaultQty: 10,
   },
   {
     label: "Convert to Order",
     icon: <FaShoppingCart />,
-    coaching: "Now it's a commitment. On Sales Order (on_so) increases — these units are spoken for. But on_hand doesn't change yet. The goods are still on the shelf, just promised.",
+    coaching: "Now it's a commitment. On Sales Order (on_so) increases by 10 — these units are spoken for. But on_hand doesn't change yet. The goods are still on the shelf, just promised.",
     color: "bg-indigo-500",
     param: "order_qty",
-    defaultQty: 4,
+    defaultQty: 10,
   },
   {
     label: "Invoice (Ship)",
     icon: <FaFileInvoice />,
-    coaching: "Invoicing means the goods shipped. On_hand DECREASES (goods left the warehouse). On_so DECREASES (the promise is fulfilled). The customer now owes money.",
+    coaching: "Invoicing means the goods shipped. On_hand DECREASES by 10 (goods left the warehouse). On_so DECREASES by 10 (the promise is fulfilled). The customer now owes money.",
     color: "bg-green-600",
     param: "invoice_qty",
-    defaultQty: 3,
+    defaultQty: 10,
   },
   {
     label: "Record Payment",
@@ -93,7 +93,7 @@ const STEP_CONFIG = [
     coaching: "Goods arrived! On_hand INCREASES (physically received). On_po DECREASES (the PO is fulfilled). Available inventory is now higher.",
     color: "bg-teal-600",
     param: "receive_qty",
-    defaultQty: 8,
+    defaultQty: 10,
   },
 ];
 
@@ -134,7 +134,7 @@ export default function AliceTraining() {
   const [trainingItem, setTrainingItem] = useState<{ id: number; ida: string } | null>(null);
   const [trainingCustomer, setTrainingCustomer] = useState<{ id: number } | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({
-    proposal_qty: 5, order_qty: 4, invoice_qty: 3, po_qty: 10, receive_qty: 8,
+    proposal_qty: 10, order_qty: 10, invoice_qty: 10, po_qty: 10, receive_qty: 10,
   });
   const [currentStep, setCurrentStep] = useState(-1);
   const [steps, setSteps] = useState<StepResult[]>([]);
