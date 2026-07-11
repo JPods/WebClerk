@@ -80,7 +80,7 @@ class TrainingFlow:
         from apps.products.services.inventory_availability import get_item_availability
         return get_item_availability(self.item.pk)
 
-    def step_1_create_proposal(self, quantity: int = 5) -> Dict[str, Any]:
+    def step_1_create_proposal(self, quantity: int = 10) -> Dict[str, Any]:
         """Create a proposal. No inventory effect expected."""
         from apps.transactions.models import Proposal, ProposalLine
 
@@ -117,7 +117,7 @@ class TrainingFlow:
         self.steps.append(step)
         return step
 
-    def step_2_convert_to_order(self, quantity: int = 4) -> Dict[str, Any]:
+    def step_2_convert_to_order(self, quantity: int = 10) -> Dict[str, Any]:
         """Convert proposal to order (or create order directly). on_so should increase."""
         from apps.transactions.models import Order, OrderLine
 
@@ -157,7 +157,7 @@ class TrainingFlow:
         self.steps.append(step)
         return step
 
-    def step_3_invoice(self, quantity: int = 3) -> Dict[str, Any]:
+    def step_3_invoice(self, quantity: int = 10) -> Dict[str, Any]:
         """Create invoice from order. on_hand decreases, on_so decreases."""
         from apps.transactions.models import Invoice, InvoiceLine
 
@@ -293,7 +293,7 @@ class TrainingFlow:
         self.steps.append(step)
         return step
 
-    def step_6_receive(self, quantity: int = 8) -> Dict[str, Any]:
+    def step_6_receive(self, quantity: int = 10) -> Dict[str, Any]:
         """Receive against PO. on_hand increases, on_po decreases."""
         from apps.products.models import InventoryLayer
 
@@ -325,11 +325,11 @@ class TrainingFlow:
 
     def run_full_cycle(
         self,
-        proposal_qty: int = 5,
-        order_qty: int = 4,
-        invoice_qty: int = 3,
+        proposal_qty: int = 10,
+        order_qty: int = 10,
+        invoice_qty: int = 10,
         po_qty: int = 10,
-        receive_qty: int = 8,
+        receive_qty: int = 10,
     ) -> Dict[str, Any]:
         """Run the complete training cycle and return a full report."""
         self.step_1_create_proposal(proposal_qty)

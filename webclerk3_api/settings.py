@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Provide fallback secret for local/dev or test runs if not supplied via env
 SECRET_KEY = config('SECRET_KEY', default='insecure-dev-test-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '85.31.234.194']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '85.31.234.194', 'wcb.webclerk.com', '.webclerk.com']
 
 
 CORS_ALLOWED_ORIGINS = (
@@ -22,6 +22,7 @@ CORS_ALLOWED_ORIGINS = (
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5177',
     'http://85.31.234.194',
+    'https://wcb.webclerk.com',
 )
 CORS_ALLOW_CREDENTIALS = True
 
@@ -35,6 +36,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5177',
     'http://85.31.234.194',
+    'https://wcb.webclerk.com',
+    'https://*.webclerk.com',
 ]
 
 INSTALLED_APPS = [
@@ -257,8 +260,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "120/minute",
-        "anon": "30/minute",
+        "user": "600/minute",
+        "anon": "60/minute",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

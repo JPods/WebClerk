@@ -63,6 +63,9 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("campaign", "campaign"),
     ("company_profile", "company_profile"),
     ("accounting_interface", "accounting_interface"),
+    ("wchq_connection", "wchq_connection"),
+    ("ai_prompt_history", "ai_prompt_history"),
+    ("calculated_function", "calculated_function"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

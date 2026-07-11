@@ -493,6 +493,110 @@ def _cleanup_training(params: dict) -> dict:
     return cleanup_training_records()
 
 
+def _get_training_activity(params: dict) -> dict:
+    """Return transaction lines + pending records for a training item.
+
+    Shows the user exactly what happened: every line record and every
+    pending record for the given item ida, from today, in dt sequence.
+
+    Params:
+        item_ida: item ida to track (default 'zzitem')
+    """
+    from datetime import datetime, timezone as tz
+    from apps.products.models import Item
+    from apps.transactions.models import (
+        ProposalLine, OrderLine, InvoiceLine, PurchaseLine,
+    )
+    from apps.core.models import Pending
+    from apps.products.models.inventory_layer import InventoryLayer
+
+    item_ida = params.get('item_ida', 'zz-fake-item')
+    item = Item.objects.filter(ida=item_ida).first()
+    if not item:
+        return {'error': f'Item {item_ida} not found. Run: manage.py seed_training_data'}
+
+    # Today's start (UTC)
+    today_start = datetime.now(tz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_ms = int(today_start.timestamp() * 1000)
+
+    # Collect transaction lines for this item
+    rows = []
+    line_models = [
+        ('proposal', ProposalLine, 'proposal'),
+        ('order', OrderLine, 'order'),
+        ('invoice', InvoiceLine, 'invoice'),
+        ('purchase', PurchaseLine, 'purchase'),
+    ]
+    for kind, Model, parent_field in line_models:
+        qs = Model.objects.filter(
+            item_fk=item,
+            dt_created__gte=today_ms,
+        ).select_related(parent_field).order_by('dt_created')
+        for ln in qs:
+            parent_obj = getattr(ln, parent_field, None)
+            qty = ln.quantity or {}
+            price = getattr(ln, 'price', None) or {}
+            cost = ln.cost or {}
+            rows.append({
+                'dt': ln.dt_created,
+                'type': kind,
+                'record_type': 'line',
+                'parent_ida': getattr(parent_obj, 'ida', '') if parent_obj else '',
+                'parent_status': getattr(parent_obj, 'status', '') if parent_obj else '',
+                'qty_staged': qty.get('staged') or qty.get('active', 0),
+                'qty_remaining': qty.get('remaining', 0),
+                'unit_price': price.get('unit', 0) if isinstance(price, dict) else 0,
+                'unit_cost': cost.get('unit', 0),
+                'extended': price.get('extended', 0) if isinstance(price, dict) else 0,
+                'line_id': ln.pk,
+                'line_status': getattr(ln, 'status', ''),
+            })
+
+    # Collect pending records for this item
+    pending_qs = Pending.objects.filter(
+        record_id=str(item.pk),
+        dt_created__gte=today_ms,
+    ).order_by('dt_created')
+    for p in pending_qs:
+        cfg = p.config or {}
+        rows.append({
+            'dt': p.dt_created,
+            'type': 'pending',
+            'record_type': 'pending',
+            'parent_ida': p.purpose or p.name or '',
+            'parent_status': 'processed' if p.is_processed() else 'pending',
+            'detail': cfg.get('field', ''),
+            'delta': cfg.get('delta', 0),
+            'reason': cfg.get('reason', ''),
+            'pending_id': p.pk,
+        })
+
+    # Sort everything by dt
+    rows.sort(key=lambda r: r['dt'])
+
+    # Item inventory summary
+    inv = {'on_hand': 0, 'on_so': 0, 'on_po': 0, 'on_p': 0, 'available': 0}
+    qty_field = getattr(item, 'quantity', None) or {}
+    if isinstance(qty_field, dict):
+        inv.update({k: qty_field.get(k, 0) for k in inv})
+
+    # Also check inventory layers
+    layers = InventoryLayer.objects.filter(item=item, is_active=True, is_deleted=False)
+    if layers.exists():
+        layer = layers.first()
+        lq = layer.quantity if isinstance(layer.quantity, dict) else {}
+        inv['on_hand'] = lq.get('on_hand', inv['on_hand'])
+        inv['on_so'] = lq.get('on_so', inv['on_so'])
+        inv['on_po'] = lq.get('on_po', inv['on_po'])
+
+    return {
+        'item': {'id': item.pk, 'ida': item.ida, 'description': item.description or ''},
+        'inventory': inv,
+        'activity': rows,
+        'count': len(rows),
+    }
+
+
 def _get_orphan_counts(params: dict) -> dict:
     """Admin dashboard: orphan record counts by table.
 
@@ -537,11 +641,90 @@ def _get_orphan_detail(params: dict) -> dict:
     )
 
 
+def _file_small_sting(params: dict) -> dict:
+    """File a Small-Sting complaint. Alice logs it and reports to WCHQ.
+
+    A Small-Sting is a customer-assessed fine for an unresolved problem.
+    Creates an Action record (the complaint), logs to alice_log, and
+    marks for WCHQ reporting so patterns of complaints improve the
+    system for all installations.
+
+    Params:
+        complaint: text description of the problem
+        severity: 1-5 (1=minor annoyance, 5=business-stopping)
+        model_name: which model/area the complaint is about (optional)
+        record_id: specific record ID if applicable (optional)
+        contact_id: who is filing the complaint (optional, defaults to current user)
+    """
+    from django.utils import timezone
+    from apps.core.models import Action, Setting, Pending
+
+    complaint = params.get('complaint', '').strip()
+    if not complaint:
+        raise ValueError("complaint text is required")
+
+    severity = int(params.get('severity', 3))
+    model_name = params.get('model_name', '')
+    record_id = params.get('record_id', '')
+    contact_id = params.get('contact_id')
+
+    ts = timezone.now()
+    ts_str = ts.strftime('%Y%m%dT%H%M%S')
+
+    # 1. Create Action record — the formal complaint
+    action = Action.objects.create(
+        ida=f'STING-{ts_str}',
+        status='open',
+        priority=min(severity, 5),
+        task={'en': f'Small-Sting: {complaint[:100]}'},
+        description={'en': complaint},
+        metadata={
+            'type': 'small_sting',
+            'severity': severity,
+            'model_name': model_name,
+            'record_id': str(record_id) if record_id else '',
+            'dt_filed': ts.isoformat(),
+            'source': 'user_complaint',
+        },
+    )
+    if contact_id:
+        action.contact_id = int(contact_id)
+        action.save(update_fields=['contact_id'])
+
+    # 2. Log to alice_log via Pending (Alice's observation pipeline)
+    Pending.objects.create(
+        model_name='alice_log',
+        record_id=str(action.pk),
+        purpose='small_sting',
+        name=f'STING: {complaint[:80]}',
+        config={
+            'event': 'small_sting',
+            'severity': severity,
+            'complaint': complaint,
+            'model_name': model_name,
+            'record_id': str(record_id) if record_id else '',
+            'action_id': action.pk,
+            'action_ida': action.ida,
+            'dt_filed': ts.isoformat(),
+            'wchq_report': True,  # flag for WCHQ sync
+        },
+    )
+
+    return {
+        'success': True,
+        'action_id': action.pk,
+        'action_ida': action.ida,
+        'message': f'Small-Sting filed: {action.ida}. Alice is tracking this.',
+    }
+
+
 _ACTION_DISPATCH = {
     "post_gl_entries": _post_gl_entries,
     "reverse_gl_entries": _reverse_gl_entries,
     "run_training_flow": _run_training_flow,
     "cleanup_training": _cleanup_training,
+    "get_training_activity": _get_training_activity,
+    "file_small_sting": _file_small_sting,
     "get_orphan_counts": _get_orphan_counts,
     "get_orphan_detail": _get_orphan_detail,
     "get_accounting_dashboard": lambda params: __import__(
