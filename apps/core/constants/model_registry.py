@@ -139,6 +139,12 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
     'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
+    'payment': ModelMeta('payment', 'apps.transactions.models.Payment', 'Payment', 'Payments', 'payments', kind='header', aliases=['payments']),
+    'payment_application': ModelMeta('payment_application', 'apps.transactions.models.PaymentApplication', 'Payment Application', 'Payment Applications', 'payment-applications', kind='support', aliases=['payment_applications']),
+    'payment_method': ModelMeta('payment_method', 'apps.transactions.models.PaymentMethod', 'Payment Method', 'Payment Methods', 'payment-methods', kind='support', aliases=['payment_methods']),
+    'payment_term': ModelMeta('payment_term', 'apps.transactions.models.PaymentTerm', 'Payment Term', 'Payment Terms', 'payment-terms', kind='support', aliases=['payment_terms']),
+    'receipt': ModelMeta('receipt', 'apps.transactions.models.Receipt', 'Receipt', 'Receipts', 'receipts', kind='header', aliases=['receipts']),
+    'receipt_line': ModelMeta('receipt_line', 'apps.transactions.models.ReceiptLine', 'Receipt Line', 'Receipt Lines', 'receipt-lines', kind='line', aliases=['receipt_lines']),
 }
 
 
