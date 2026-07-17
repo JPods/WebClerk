@@ -9,7 +9,6 @@ from apps.core.constants.keyword_requirements import get_keyword_requirements
 from apps.core.models.setting import Setting
 from apps.docs.choices import (
     DOCUMENT_CONFIDENTIALITY_CHOICES,
-    DOCUMENT_MODEL_CHOICES,
     DOCUMENT_STATUS_CHOICES,
 )
 # this table provides a path to documents
@@ -54,14 +53,6 @@ class Document(BaseModel):
     )
     copyright = models.JSONField(blank=True, null=True, help_text="{level:int,path:str,holder:str,notes:[]} structure")
     count_accessed = models.IntegerField(default=0)
-    # Canonical model identifier
-    model_name = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        choices=DOCUMENT_MODEL_CHOICES,
-        db_index=True,
-    )
     retention_period = models.IntegerField(blank=True, null=True)
     sequence = models.IntegerField(blank=True, null=True)
     size_bytes = models.IntegerField(blank=True, null=True)
@@ -76,7 +67,6 @@ class Document(BaseModel):
             GinIndex(fields=["search_vector"], name="doc_search_gin"),
             models.Index(fields=["status"], name="doc_status_idx"),
             models.Index(fields=["name"], name="doc_name_idx"),
-            models.Index(fields=["model_name"], name="doc_model_name_idx"),
         ]
 
     def __str__(self):

@@ -23,19 +23,9 @@ DOCUMENT_CONFIDENTIALITY_CHOICES: Final[ChoiceList] = (
     ("secret", "Secret"),
 )
 
-DOCUMENT_MODEL_CHOICES: Final[ChoiceList] = (
-    ("", "Unspecified"),
-    ("readme", "Readme"),
-    ("policy", "Policy"),
-    ("spec", "Specification"),
-    ("contract", "Contract"),
-    ("template", "Template"),
-)
-
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Document": {
         "status": DOCUMENT_STATUS_CHOICES,
         "confidential": DOCUMENT_CONFIDENTIALITY_CHOICES,
-        "model_name": DOCUMENT_MODEL_CHOICES,
     },
 }

@@ -20,7 +20,6 @@ class DocumentAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'is_archived',
         'is_deleted',
         'mime_type',
-        'model_name',
         'name',
         'retention_period',
         'security_level',
@@ -44,16 +43,16 @@ class DocumentAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    # Scalar fields: body, checksum, comment, confidential, count_accessed, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, mime_type, model_name, name, retention_period, search_vector, security_level, sequence, size_bytes, slug, status, uuid, version
+    # Scalar fields: body, checksum, comment, confidential, count_accessed, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, mime_type, name, retention_period, search_vector, security_level, sequence, size_bytes, slug, status, uuid, version
     list_display = ("ida", "name", "description", "status", "body", "checksum", "is_active", "dt_created")
-    list_filter = ('status', 'model_name', 'confidential', 'is_active')
+    list_filter = ('status', 'confidential', 'is_active')
     search_fields = ('name', 'slug', 'description')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
     ordering = ('-dt_created',)
     
     fieldsets = (
         ('Identification', {'fields': ('id', 'ida', 'uuid', 'name', 'slug')}),
-        ('Status & Classification', {'fields': ('status', 'model_name', 'confidential', 'security_level')}),
+        ('Status & Classification', {'fields': ('status', 'confidential', 'security_level')}),
         ('File Info', {'fields': ('mime_type', 'size_bytes', 'checksum', 'path')}),
         ('Content', {'fields': ('description', 'body', 'comment', 'config', 'copyright')}),
         ('Counters & Sequence', {'fields': ('count_accessed', 'sequence', 'retention_period')}),
