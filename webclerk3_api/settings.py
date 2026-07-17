@@ -93,6 +93,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',  # keep this before any auth-dependent logic
+    'common.middleware.CloudflareAccessMiddleware',             # CF email header → auto-login
     'django.contrib.messages.middleware.MessageMiddleware',
     'common.middleware.WriteGateMiddleware',
     'common.middleware.RequestLogMiddleware',

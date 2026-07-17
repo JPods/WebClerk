@@ -20,6 +20,7 @@ from common.middleware.exceptions import ExceptionAsJsonMiddleware
 from common.middleware.rendering import EnsureRenderedMiddleware
 from common.middleware.security import WriteGateMiddleware
 from common.middleware.rest_redirect import RestToWcapiMiddleware
+from common.middleware.cloudflare_auth import CloudflareAccessMiddleware
 from common.middleware.helpers import ENVELOPE_SKIPS  # noqa: F401 – used by tests
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "EnsureRenderedMiddleware",
     "WriteGateMiddleware",
     "RestToWcapiMiddleware",
+    "CloudflareAccessMiddleware",
     "ENVELOPE_SKIPS",
 ]
