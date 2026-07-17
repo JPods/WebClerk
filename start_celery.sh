@@ -8,7 +8,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
-source bin/activate
+source venv/bin/activate
 export DB_MODE="${DB_MODE:-remote}"
 export DJANGO_SETTINGS_MODULE=webclerk3_api.settings
 

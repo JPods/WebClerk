@@ -8,9 +8,13 @@ DEV_CONFIG_FILE="$WC3_DIR/tools/dev-config.json"
 
 cd "$WC3_DIR"
 
-PY_BIN="$WC3_DIR/bin/python"
+PY_BIN="$WC3_DIR/venv/bin/python"
 if [ ! -x "$PY_BIN" ]; then
-  PY_BIN="python"
+  PY_BIN="$WC3_DIR/bin/python"  # legacy fallback
+fi
+if [ ! -x "$PY_BIN" ]; then
+  echo "ERROR: No Python found. Run: /opt/homebrew/bin/python3 -m venv venv"
+  exit 1
 fi
 
 echo "Starting Django with same-terminal auto-restart loop"

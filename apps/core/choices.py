@@ -66,6 +66,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("wchq_connection", "wchq_connection"),
     ("ai_prompt_history", "ai_prompt_history"),
     ("calculated_function", "calculated_function"),
+    ("print_defaults", "print_defaults"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
