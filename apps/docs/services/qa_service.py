@@ -1,40 +1,40 @@
 """
 QA Service - Manage question templates and apply them to parent records.
 
-This service handles two main workflows:
+Question templates live in Document records where refs.keywords contains
+'qa_template'. Document provides body (WHY narrative), description (summary),
+and refs (cross-references to specs, standards, regulatory requirements).
+Questions are stored in Document.config.questions[].
 
-1. **Creating Question Templates** (qa_questions Settings):
-   - Use `create_question_group()` to create a new template with auto-assigned IDs
-   - The qa_counters singleton tracks unique question/answer IDs across all templates
-   - IDs are globally unique for data analysis across question groups
-
-2. **Applying Templates to Records**:
-   - Use `apply_questions()` to create QuestionAnswer records for a parent
-   - `question_id` references Setting.config.questions[].id
-   - `answer_id` is set when user responds, referencing Setting.config.questions[].answers[].id
+The qa_counters singleton (Setting record) tracks globally unique question
+and answer IDs across all templates.
 
 Usage:
     from apps.docs.services.qa_service import QAService
-    
+
     service = QAService()
-    
-    # Create a new question template
-    setting = service.create_question_group(
-        name='Inspection Checklist',
+
+    # Create a template
+    doc = service.create_question_group(
+        name='JPods Daily Pre-Op Inspection',
+        description='Daily vehicle safety check — ASTM F770',
+        body='Required by ASTM F770. Prevents undetected mechanical wear...',
         questions=[
-            {'question': 'Is wiring intact?', 'answers': ['Yes', 'No', 'N/A']},
-            {'question': 'Voltage reading?', 'allow_freeform': True},
+            {'question': 'Guideway clear?', 'answers': ['Yes', 'No']},
+            {'question': 'Notes', 'allow_freeform': True},
         ],
-        parent_model='project'
+        refs={'standards': ['ASTM F770', 'FTA 49 CFR 673']},
     )
-    
-    # Apply template to a record
+
+    # Apply template to a parent record
     qa_records = service.apply_questions(
-        question_group='Inspection Checklist',
-        parent_model='project',
+        document_name='JPods Daily Pre-Op Inspection',
+        parent_model='item',
         parent_id=123,
-        user=request.user
     )
+
+    # Save an answer
+    service.save_answer(qa_id=456, answer='Yes', contact_data={'id': 1, 'attention': 'Inspector'})
 """
 
 from typing import List, Dict, Any, Optional
@@ -46,36 +46,23 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from apps.core.models import Setting
 from apps.docs.models import QuestionAnswer
+from apps.docs.models import Document
 
 logger = logging.getLogger(__name__)
 
 
 class QAService:
-    """Service for applying question templates to parent records."""
-    
+    """Service for managing Document-based question templates and applying them to parent records."""
+
     def __init__(self):
         pass
-    
-    def get_counters_singleton(self) -> Setting:
-        """Fetch the qa_counters singleton Setting record.
-        
-        Returns:
-            Setting: The qa_counters singleton
-            
-        Raises:
-            ObjectDoesNotExist: If no qa_counters record exists
-        """
-        try:
-            return Setting.objects.get(purpose='qa_counters')
-        except Setting.DoesNotExist:
-            raise ObjectDoesNotExist("qa_counters singleton not found. Run load_qa_settings command.")
-    
+
+    # -----------------------------------------------------------------
+    # ID allocation (qa_counters singleton)
+    # -----------------------------------------------------------------
+
     def get_or_create_counters(self) -> Setting:
-        """Get or create the qa_counters singleton.
-        
-        Returns:
-            Setting: The qa_counters singleton (created if missing)
-        """
+        """Get or create the qa_counters singleton."""
         counters, created = Setting.objects.get_or_create(
             purpose='qa_counters',
             defaults={
@@ -89,142 +76,109 @@ class QAService:
         if created:
             logger.info("Created qa_counters singleton")
         return counters
-    
+
     @db_transaction.atomic
     def allocate_question_ids(self, count: int) -> List[int]:
-        """Allocate the next N unique question IDs.
-        
-        Args:
-            count: Number of IDs to allocate
-            
-        Returns:
-            List of unique question IDs
-        """
+        """Allocate the next N unique question IDs."""
         counters = Setting.objects.select_for_update().get(purpose='qa_counters')
         data = counters.config or {}
         current_max = data.get('question_max', 0)
-
         new_ids = list(range(current_max + 1, current_max + count + 1))
-
         data['question_max'] = current_max + count
         counters.config = data
         counters.save(update_fields=['config'])
-        
         logger.info(f"Allocated question IDs {new_ids[0]}-{new_ids[-1]}")
         return new_ids
-    
+
     @db_transaction.atomic
     def allocate_answer_ids(self, count: int) -> List[int]:
-        """Allocate the next N unique answer choice IDs.
-        
-        Args:
-            count: Number of IDs to allocate
-            
-        Returns:
-            List of unique answer IDs
-        """
+        """Allocate the next N unique answer choice IDs."""
         counters = Setting.objects.select_for_update().get(purpose='qa_counters')
         data = counters.config or {}
         current_max = data.get('answer_max', 0)
-
         new_ids = list(range(current_max + 1, current_max + count + 1))
-
         data['answer_max'] = current_max + count
         counters.config = data
         counters.save(update_fields=['config'])
-        
         logger.info(f"Allocated answer IDs {new_ids[0]}-{new_ids[-1]}")
         return new_ids
+
+    # -----------------------------------------------------------------
+    # Template management
+    # -----------------------------------------------------------------
 
     @db_transaction.atomic
     def create_question_group(
         self,
         name: str,
+        description: str,
+        body: str,
         questions: List[Dict[str, Any]],
-        parent_model: Optional[str] = None,
-        role: str = 'all',
-        template_defaults: Optional[Dict[str, Any]] = None
-    ) -> Setting:
-        """Create a new question group (qa_questions Setting) with auto-assigned IDs.
-        
-        Questions and their answer choices are assigned globally unique IDs
-        from the qa_counters singleton.
-        
+        refs: Optional[Dict[str, Any]] = None,
+        template_defaults: Optional[Dict[str, Any]] = None,
+    ) -> Document:
+        """Create a Document-based question template with auto-assigned IDs.
+
         Args:
-            name: Name of the question group (e.g., 'Inspection Checklist')
+            name: Template name (e.g., 'JPods Daily Pre-Op Inspection')
+            description: One-line summary
+            body: WHY this template exists (regulatory basis, what it prevents)
             questions: List of question definitions, each with:
-                - question: str (required) - The question text
-                - answers: List[str] (optional) - Answer choice texts
+                - question: str (required)
+                - answers: List[str] (optional)
                 - allow_freeform: bool (optional)
                 - allow_multiple: bool (optional)
                 - require_image: bool (optional)
-            parent_model: Target model (e.g., 'order', 'project') or None for all
-            role: User role restriction (default 'all')
+                - category: str (optional)
+            refs: Optional refs dict. 'qa_template' keyword added automatically.
+                  Example: {"standards": ["ASTM F770"], "spec_refs": ["SPEC-01"]}
             template_defaults: Default options for all questions
-            
+
         Returns:
-            Setting: The created qa_questions Setting
-            
-        Example:
-            setting = service.create_question_group(
-                name='Installation QA',
-                questions=[
-                    {'question': 'Wiring OK?', 'answers': ['Yes', 'No', 'N/A']},
-                    {'question': 'Notes', 'allow_freeform': True},
-                ],
-                parent_model='project'
-            )
+            Document: The created template Document
         """
-        # Ensure counters exist
         self.get_or_create_counters()
-        
-        # Count total answer choices needed
+
         total_answers = sum(
             len(q.get('answers', [])) if isinstance(q.get('answers', []), list) else 0
             for q in questions
         )
-        
-        # Allocate IDs
+
         question_ids = self.allocate_question_ids(len(questions))
         answer_ids = self.allocate_answer_ids(total_answers) if total_answers > 0 else []
-        
-        # Build question definitions with assigned IDs
+
         answer_id_iter = iter(answer_ids)
         processed_questions = []
-        
+
         for q_def, q_id in zip(questions, question_ids):
-            processed_q = {
+            processed_q: Dict[str, Any] = {
                 'id': q_id,
                 'question': q_def['question'],
             }
-            
-            # Process answer choices
+
             raw_answers = q_def.get('answers', [])
             if raw_answers:
                 processed_answers = []
                 for ans in raw_answers:
                     if isinstance(ans, str):
-                        # Simple string answer - assign ID
                         processed_answers.append({
                             'id': next(answer_id_iter),
                             'answer': ans,
                         })
                     elif isinstance(ans, dict):
-                        # Already a dict - assign ID if missing
                         ans_copy = dict(ans)
                         if 'id' not in ans_copy:
                             ans_copy['id'] = next(answer_id_iter)
                         processed_answers.append(ans_copy)
                 processed_q['answers'] = processed_answers
-            
-            # Copy optional overrides
-            for key in ['allow_freeform', 'allow_multiple', 'require_image', 'image_max', 'image_types']:
+
+            for key in ['allow_freeform', 'allow_multiple', 'require_image',
+                        'image_max', 'image_types', 'category']:
                 if key in q_def:
                     processed_q[key] = q_def[key]
-            
+
             processed_questions.append(processed_q)
-        
-        # Build template defaults
+
         defaults = template_defaults or {}
         template = {
             'allow_freeform': defaults.get('allow_freeform', False),
@@ -233,125 +187,122 @@ class QAService:
             'image_max': defaults.get('image_max', 5),
             'image_types': defaults.get('image_types', ['jpg', 'png', 'webp', 'pdf']),
         }
-        
-        # Create Setting record
-        setting = Setting.objects.create(
-            purpose='qa_questions',
+
+        doc_refs = refs or {}
+        keywords = doc_refs.get('keywords', [])
+        if 'qa_template' not in keywords:
+            keywords.append('qa_template')
+        doc_refs['keywords'] = keywords
+
+        doc = Document.objects.create(
             name=name,
-            parent_model=parent_model,
-            role=role,
-            data={
+            description=description,
+            body=body,
+            status='published',
+            config={
                 'template': template,
                 'questions': processed_questions,
             },
-            is_active=True,
+            refs=doc_refs,
         )
-        
-        logger.info(f"Created question group '{name}' with {len(questions)} questions")
-        return setting
-    
-    def get_question_template(self, group_name: str) -> Setting:
-        """Fetch the qa_questions Setting for a given group.
-        
+
+        logger.info(f"Created question group '{name}' (doc id={doc.id}) with {len(questions)} questions")
+        return doc
+
+    def get_question_template(self, name: str) -> Document:
+        """Fetch a QA template Document by name.
+
         Args:
-            group_name: The name of the question group (e.g., 'Planning')
-            
+            name: The document name
+
         Returns:
-            Setting: The qa_questions Setting record
-            
+            Document: The matching template
+
         Raises:
-            ObjectDoesNotExist: If no matching qa_questions record exists
+            ObjectDoesNotExist: If no matching Document exists
         """
         try:
-            return Setting.objects.get(
-                purpose='qa_questions',
-                name=group_name,
-                is_active=True
+            return Document.objects.get(
+                name=name,
+                status='published',
+                refs__keywords__contains=['qa_template'],
             )
-        except Setting.DoesNotExist:
-            raise ObjectDoesNotExist(f"Question group '{group_name}' not found or inactive.")
-    
-    def get_existing_answers(self, parent_model: str, parent_id: int, setting_id: int) -> Dict[int, QuestionAnswer]:
-        """Fetch existing QA records for a parent+group combo.
-        
-        Returns:
-            Dict mapping question_id to QuestionAnswer record
-        """
-        qs = QuestionAnswer.objects.filter(
-            parent_model=parent_model,
-            parent_id=parent_id,
-            setting_id=setting_id
-        )
-        return {qa.question_id: qa for qa in qs}
-    
+        except Document.DoesNotExist:
+            raise ObjectDoesNotExist(f"QA template '{name}' not found or not published.")
+
+    # -----------------------------------------------------------------
+    # Apply templates to parent records
+    # -----------------------------------------------------------------
+
     @db_transaction.atomic
     def apply_questions(
         self,
-        question_group: Optional[str],
-        parent_model: str,
-        parent_id: int,
+        document_name: Optional[str] = None,
+        parent_model: str = '',
+        parent_id: int = 0,
         user=None,
         contact_data: Optional[Dict[str, Any]] = None,
-        setting_id: Optional[int] = None
+        document_id: Optional[int] = None,
     ) -> List[QuestionAnswer]:
         """Apply a question template to a parent record.
-        
+
         Creates QuestionAnswer records for each question in the template.
         Skips questions that already have answers for this parent.
-        
+
         Args:
-            question_group: Name of the question group (e.g., 'Planning')
-            parent_model: Model name of the parent (e.g., 'order', 'customer')
+            document_name: Name of the template Document
+            parent_model: Model name of the parent (e.g., 'item', 'project')
             parent_id: ID of the parent record
             user: Optional Django user for audit
             contact_data: Optional dict with 'id' and 'attention' for answered_by
-            setting_id: Optional Setting ID for direct lookup (preferred over name)
-            
+            document_id: Optional Document ID for direct lookup
+
         Returns:
             List of QuestionAnswer records (both new and existing)
-            
-        Raises:
-            ObjectDoesNotExist: If question group or counters not found
-            ValidationError: If required parameters missing
         """
-        if not question_group and not setting_id:
-            raise ValidationError("question_group or setting_id is required")
+        if not document_name and not document_id:
+            raise ValidationError("document_name or document_id is required")
         if not parent_model:
             raise ValidationError("parent_model is required")
         if not parent_id:
             raise ValidationError("parent_id is required")
-        
-        # 1. Fetch question template (prefer setting_id if provided)
-        if setting_id:
+
+        if document_id:
             try:
-                template_setting = Setting.objects.get(pk=setting_id, purpose='qa_questions', is_active=True)
-            except Setting.DoesNotExist:
-                raise ObjectDoesNotExist(f"Question group with setting_id={setting_id} not found or inactive.")
+                template_doc = Document.objects.get(
+                    pk=document_id,
+                    status='published',
+                    refs__keywords__contains=['qa_template'],
+                )
+            except Document.DoesNotExist:
+                raise ObjectDoesNotExist(f"QA template document id={document_id} not found or not published.")
         else:
-            template_setting = self.get_question_template(question_group)
-        template_data = template_setting.config or {}
+            template_doc = self.get_question_template(document_name)
+
+        template_data = template_doc.config or {}
         questions = template_data.get('questions', [])
         template_defaults = template_data.get('template', {})
-        
+
         if not questions:
-            logger.warning(f"Question group '{template_setting.name}' has no questions")
+            logger.warning(f"Template '{template_doc.name}' has no questions")
             return []
-        
-        # 2. Check for existing answers
-        existing = self.get_existing_answers(parent_model, parent_id, template_setting.id)
-        
-        # 3. Create new QA records for questions not yet applied
-        created_records = []
-        
+
+        existing_qs = QuestionAnswer.objects.filter(
+            parent_model=parent_model,
+            parent_id=parent_id,
+            document_id=template_doc.id,
+        )
+        existing = {qa.question_id: qa for qa in existing_qs}
+
+        created_records: List[QuestionAnswer] = []
+
         for idx, q_def in enumerate(questions):
             question_id = q_def.get('id')
-            
-            # Skip if already exists
+
             if question_id in existing:
                 created_records.append(existing[question_id])
                 continue
-            
-            # Merge template defaults with question overrides
+
             effective_options = {
                 'allow_freeform': q_def.get('allow_freeform', template_defaults.get('allow_freeform', False)),
                 'allow_multiple': q_def.get('allow_multiple', template_defaults.get('allow_multiple', False)),
@@ -359,50 +310,52 @@ class QAService:
                 'image_max': q_def.get('image_max', template_defaults.get('image_max', 5)),
                 'image_types': q_def.get('image_types', template_defaults.get('image_types', ['jpg', 'png', 'webp'])),
             }
-            
-            # Build metadata - copy available answer choices from Setting for data analysis
+
             metadata = {
                 'options': effective_options,
-                'answers': q_def.get('answers', []),  # Store available choices from Setting
+                'answers': q_def.get('answers', []),
             }
-            
+
             qa_record = QuestionAnswer(
                 question=q_def.get('question', ''),
-                answer=None,  # No answer yet - set when user responds
-                setting=template_setting,
-                question_id=question_id,  # ID of question from Setting.config.questions[]
-                answer_id=None,  # ID of selected answer from Setting - set when user responds
+                answer=None,
+                document=template_doc,
+                question_id=question_id,
+                answer_id=None,
                 parent_model=parent_model,
                 parent_id=parent_id,
                 status='open',
                 sequence=idx + 1,
                 metadata=metadata,
             )
-            
-            # Set answered_by if contact provided
+
             if contact_data:
                 qa_record.set_answered_by(contact_data)
-            
+
             qa_record.save()
             created_records.append(qa_record)
             logger.debug(f"Created QA record {qa_record.id} for question_id={question_id}")
-        
-        logger.info(f"Applied {len(created_records)} questions from '{template_setting.name}' to {parent_model}:{parent_id}")
+
+        logger.info(f"Applied {len(created_records)} questions from '{template_doc.name}' to {parent_model}:{parent_id}")
         return created_records
-    
+
+    # -----------------------------------------------------------------
+    # Answer management
+    # -----------------------------------------------------------------
+
     def get_questions_for_parent(
         self,
         parent_model: str,
         parent_id: int,
-        question_group: Optional[str] = None
+        template_name: Optional[str] = None
     ) -> List[QuestionAnswer]:
-        """Fetch all QA records for a parent, optionally filtered by group.
-        
+        """Fetch all QA records for a parent, optionally filtered by template.
+
         Args:
             parent_model: Model name of the parent
             parent_id: ID of the parent record
-            question_group: Optional group name to filter by
-            
+            template_name: Optional template Document name to filter by
+
         Returns:
             List of QuestionAnswer records ordered by sequence
         """
@@ -410,18 +363,18 @@ class QAService:
             parent_model=parent_model,
             parent_id=parent_id
         ).order_by('sequence')
-        
-        if question_group:
-            template = Setting.objects.filter(
-                purpose='qa_questions',
-                name=question_group,
-                is_active=True
+
+        if template_name:
+            template = Document.objects.filter(
+                name=template_name,
+                status='published',
+                refs__keywords__contains=['qa_template'],
             ).first()
             if template:
-                qs = qs.filter(setting_id=template.id)
-        
+                qs = qs.filter(document_id=template.id)
+
         return list(qs)
-    
+
     def save_answer(
         self,
         qa_id: int,
@@ -430,55 +383,57 @@ class QAService:
         contact_data: Optional[Dict[str, Any]] = None
     ) -> QuestionAnswer:
         """Save an answer for a QA record.
-        
+
         Args:
             qa_id: ID of the QuestionAnswer record
             answer: Text answer (for freeform or single select)
             answer_ids: List of selected answer IDs (for multiple select)
             contact_data: Optional dict with 'id' and 'attention' for answered_by
-            
+
         Returns:
             Updated QuestionAnswer record
         """
         qa = QuestionAnswer.objects.get(pk=qa_id)
-        
+
         if answer is not None:
             qa.answer = answer
-        
+
         if answer_ids:
-            # Store multiple selections in metadata
             qa.metadata = qa.metadata or {}
             qa.metadata['selected_answer_ids'] = answer_ids
-        
+
         if contact_data:
             qa.set_answered_by(contact_data)
-        
+
         qa.status = 'answered'
         qa.save()
-        
+
         return qa
-    
+
     def list_available_groups(self) -> List[Dict[str, Any]]:
-        """List all available question groups.
-        
+        """List all available question templates.
+
         Returns:
-            List of dicts with group info: name, question_count, template options
+            List of dicts with template info: id, name, description,
+            question_count, standards, spec_refs
         """
-        groups = Setting.objects.filter(
-            purpose='qa_questions',
-            is_active=True
-        ).values('id', 'name', 'config')
-        
+        docs = Document.objects.filter(
+            status='published',
+            refs__keywords__contains=['qa_template'],
+        ).values('id', 'name', 'description', 'config', 'refs')
+
         result = []
-        for g in groups:
-            data = g.get('config', {}) or {}
-            questions = data.get('questions', [])
-            template = data.get('template', {})
+        for d in docs:
+            config = d.get('config', {}) or {}
+            refs = d.get('refs', {}) or {}
+            questions = config.get('questions', [])
             result.append({
-                'id': g['id'],
-                'name': g['name'],
+                'id': d['id'],
+                'name': d['name'],
+                'description': d.get('description', ''),
                 'question_count': len(questions),
-                'template': template,
+                'standards': refs.get('standards', []),
+                'spec_refs': refs.get('spec_refs', []),
             })
-        
+
         return result

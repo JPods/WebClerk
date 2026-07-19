@@ -95,7 +95,7 @@ class QuestionAnswerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'question',
         'refs',
-        'setting',
+        'document',
     )
     # Scalar fields: answer, answer_id, count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, parent_id, parent_model, question, question_id, search_vector, security_level, sequence, status, uuid, version
     list_display = ("ida", "status", "answer", "answer_id", "count_accessed", "health_rating", "is_active", "dt_created")
@@ -103,12 +103,12 @@ class QuestionAnswerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     search_fields = ('question', 'answer', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
     ordering = ('-dt_created',)
-    raw_id_fields = ('setting',)
-    
+    raw_id_fields = ('document',)
+
     fieldsets = (
         ('Identification', {'fields': ('id', 'ida', 'uuid')}),
         ('Question & Answer', {'fields': ('question', 'answer', 'status')}),
-        ('Template Link', {'fields': ('setting', 'question_id', 'answer_id')}),
+        ('Template Link', {'fields': ('document', 'question_id', 'answer_id')}),
         ('Parent Link', {'fields': ('parent_model', 'parent_id')}),
         ('Attribution', {'fields': ('answered_by', 'security_level')}),
         ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),

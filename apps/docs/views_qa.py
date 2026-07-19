@@ -1,9 +1,11 @@
 """
 QA Views - API endpoints for question/answer operations.
 
+Templates are Document records with refs.keywords containing 'qa_template'.
+
 Endpoints:
 - POST /api/docs/qa/apply/ - Apply a question template to a parent record
-- GET  /api/docs/qa/groups/ - List available question groups
+- GET  /api/docs/qa/groups/ - List available question templates
 - GET  /api/docs/qa/{parent_model}/{parent_id}/ - Get QA records for a parent
 """
 
@@ -21,38 +23,37 @@ logger = logging.getLogger(__name__)
 
 
 class ApplyQuestionsView(APIView):
-    """Apply a question group template to a parent record.
-    
+    """Apply a question template (Document) to a parent record.
+
     POST /api/docs/qa/apply/
-    
+
     Request body:
     {
-        "question_group": "Planning",
-        "parent_model": "order",
+        "document_name": "JPods Daily Pre-Op Vehicle Inspection",
+        "parent_model": "item",
         "parent_id": 123,
         "contact_data": {"id": 456, "attention": "John Doe"}  // optional
     }
-    
-    Response:
+
+    Or use document_id for direct lookup:
     {
-        "success": true,
-        "created_count": 5,
-        "existing_count": 0,
-        "records": [ ... QuestionAnswer records ... ]
+        "document_id": 789,
+        "parent_model": "item",
+        "parent_id": 123
     }
     """
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
-        question_group = request.data.get('question_group')
-        setting_id = request.data.get('setting_id')  # Optional: direct lookup by ID
+        document_name = request.data.get('document_name')
+        document_id = request.data.get('document_id')
         parent_model = request.data.get('parent_model')
         parent_id = request.data.get('parent_id')
         contact_data = request.data.get('contact_data')
-        
-        if not question_group and not setting_id:
+
+        if not document_name and not document_id:
             return Response(
-                {'error': 'question_group or setting_id is required'},
+                {'error': 'document_name or document_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         if not parent_model:
@@ -65,32 +66,30 @@ class ApplyQuestionsView(APIView):
                 {'error': 'parent_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             service = QAService()
             records = service.apply_questions(
-                question_group=question_group,
-                setting_id=int(setting_id) if setting_id else None,
+                document_name=document_name,
+                document_id=int(document_id) if document_id else None,
                 parent_model=parent_model,
                 parent_id=int(parent_id),
                 user=request.user,
                 contact_data=contact_data
             )
-            
-            # Serialize results
+
             serializer = QuestionAnswerSerializer(records, many=True)
-            
-            # Count new vs existing
+
             existing_count = sum(1 for r in records if r.status != 'open')
             created_count = len(records) - existing_count
-            
+
             return Response({
                 'success': True,
                 'created_count': created_count,
                 'existing_count': existing_count,
                 'records': serializer.data
             }, status=status.HTTP_200_OK)
-            
+
         except ObjectDoesNotExist as e:
             return Response(
                 {'error': str(e)},
@@ -110,29 +109,26 @@ class ApplyQuestionsView(APIView):
 
 
 class ListQuestionGroupsView(APIView):
-    """List available question groups.
-    
+    """List available question templates (Documents with qa_template keyword).
+
     GET /api/docs/qa/groups/
-    
+
     Response:
     {
         "groups": [
             {
                 "id": 113,
-                "name": "Planning",
-                "question_count": 8,
-                "template": {
-                    "allow_freeform": false,
-                    "allow_multiple": false,
-                    ...
-                }
-            },
-            ...
+                "name": "JPods Daily Pre-Op Vehicle Inspection",
+                "description": "Daily vehicle inspection — ASTM F770",
+                "question_count": 19,
+                "standards": ["ASTM F770"],
+                "spec_refs": ["SPEC-01", "SPEC-02"]
+            }
         ]
     }
     """
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         try:
             service = QAService()
@@ -148,31 +144,31 @@ class ListQuestionGroupsView(APIView):
 
 class ParentQAView(APIView):
     """Get QA records for a parent record.
-    
+
     GET /api/docs/qa/{parent_model}/{parent_id}/
-    GET /api/docs/qa/{parent_model}/{parent_id}/?question_group=Planning
-    
+    GET /api/docs/qa/{parent_model}/{parent_id}/?template_name=JPods+Daily+Pre-Op
+
     Response:
     {
         "records": [ ... QuestionAnswer records ... ]
     }
     """
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request, parent_model, parent_id):
-        question_group = request.query_params.get('question_group')
-        
+        template_name = request.query_params.get('template_name')
+
         try:
             service = QAService()
             records = service.get_questions_for_parent(
                 parent_model=parent_model,
                 parent_id=int(parent_id),
-                question_group=question_group
+                template_name=template_name
             )
-            
+
             serializer = QuestionAnswerSerializer(records, many=True)
             return Response({'records': serializer.data}, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             logger.exception(f"Error fetching QA records: {e}")
             return Response(

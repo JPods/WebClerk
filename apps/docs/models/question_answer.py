@@ -5,19 +5,23 @@ from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 
-# The purpose of question_answer record is to store a question 
-# and the user's answer for inspections, checklists, 
-# howto, etc... The question are stored in setting 
-# records where purpose = questions and name = the name 
-# for the inspection
-# Its health is stored in .metadata.health, 
+# The purpose of question_answer record is to store a question
+# and the user's answer for inspections, checklists,
+# howto, etc... Question templates are stored in Document records
+# (refs.keywords contains 'qa_template'). Document provides body
+# (the WHY), description, and refs for standards cross-references.
+# Its health is stored in .metadata.health,
 # its history is in .metadata.history
 
 
 class QuestionAnswer(BaseModel):
     """Question/Answer instance captured for inspections, checklists, how-to flows.
 
-    Questions are defined in Setting records (purpose='qa_questions', name=<group name>).
+    Question templates live in Document records where refs.keywords contains
+    'qa_template'. Questions are stored in Document.config.questions[].
+    Document provides body (the WHY narrative), description (summary),
+    and refs (cross-references to specs and standards).
+
     This model stores the resolved question text and the user's answer along with
     sequencing and access / security metadata.
     Health stored in metadata.health; history in metadata.history.
@@ -25,12 +29,12 @@ class QuestionAnswer(BaseModel):
 
     question = models.CharField(max_length=500, blank=True, null=True, db_index=True)
     answer = models.CharField(max_length=500, blank=True, null=True)
-    # Link to configured question definition (Setting) if available
-    setting = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions', db_column='setting_id')
-    question_id = models.IntegerField(blank=True, null=True, 
-                                      help_text="ID of the question from Setting.config.questions[].id")
-    answer_id = models.IntegerField(blank=True, null=True, 
-                                    help_text="ID of selected answer from Setting.config.questions[].answers[].id - set when user responds")
+    # Link to Document-based question template
+    document = models.ForeignKey('docs.Document', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions', db_column='document_id')
+    question_id = models.IntegerField(blank=True, null=True,
+                                      help_text="ID of the question from Document.config.questions[].id")
+    answer_id = models.IntegerField(blank=True, null=True,
+                                    help_text="ID of selected answer from Document.config.questions[].answers[].id - set when user responds")
     
     # Parent record linkage (e.g., order, project, etc.)
     parent_model = models.CharField(max_length=100, blank=True, null=True, db_index=True,
