@@ -222,14 +222,14 @@ const Btn: React.FC<{
 // ---------------------------------------------------------------------------
 const GBS = 56;
 const GlassBtn: React.FC<{
-  icon: string; title: string; onClick?: () => void; disabled?: boolean; active?: boolean;
+  icon: string; title: string; onClick?: (e?: React.MouseEvent) => void; disabled?: boolean; active?: boolean;
 }> = ({ icon, title, onClick, disabled, active }) => {
   const [st, setSt] = React.useState<0|1|2>(0);
   return (
     <button style={{ width: GBS, height: GBS, padding: 0, border: 'none', background: 'transparent',
       cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : active ? 1 : 0.8,
       outline: active ? '2px solid var(--db-accent, #9cdcfe)' : 'none', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}
-      title={title} disabled={disabled} onClick={onClick}
+      title={title} disabled={disabled} onClick={(e) => onClick?.(e)}
       onMouseEnter={() => !disabled && setSt(1)} onMouseLeave={() => setSt(0)}
       onMouseDown={() => !disabled && setSt(2)} onMouseUp={() => !disabled && setSt(1)}>
       <div style={{ width: GBS, height: GBS * 3,
@@ -489,7 +489,10 @@ const AdminWorkbench: React.FC = () => {
           {/* List toolbar — glass buttons: Print, Sort, Filter, ShowAll, ShowSubset, Omit; then text */}
           <div data-wc="db-list-toolbar" className="db-list-toolbar" style={{ gap: 4 }}>
             <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
-            <GlassBtn icon="ShowAll" title="Show All" onClick={() => { db.setSubsetMode('all'); db.setSearchTerm(''); }} />
+            <GlassBtn icon="ShowAll" title="Show All (Shift+click clears selection)" onClick={(e) => {
+              if (e?.shiftKey) { db.setSelectedRowIds(new Set()); }
+              db.setSubsetMode('all'); db.setSearchTerm('');
+            }} />
             <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
             <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
             <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
