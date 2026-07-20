@@ -14,13 +14,19 @@ import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
 import './AdminWorkbench.css';
 
+/** Maps DataBrowser model name → .tsx detail route. Uses actual PageRoutes paths. */
 const APP_DETAIL_ROUTES: Record<string, string> = {
-  order: '/transactions/order', invoice: '/transactions/invoice',
-  proposal: '/transactions/proposal', purchase: '/transactions/purchase',
-  workorder: '/transactions/workorder', receipt: '/transactions/receipt',
-  payment: '/transactions/payment', customer: '/org/customer',
-  vendor: '/org/vendor', item: '/products/item',
-  contact: '/core/contact', action: '/core/action',
+  order: '/transactions/order/detail',
+  invoice: '/transactions/invoice/detail',
+  proposal: '/transactions/proposal/detail',
+  purchase: '/transactions/purchase/detail',
+  workorder: '/transactions/work-order/detail',
+  receipt: '/transactions/receipt/detail',
+  payment: '/transactions/payment/detail',
+  customer: '/org/customer/detail',
+  item: '/products/item/detail',
+  contact: '/core/contact/detail',
+  action: '/core/actions/detail',
 };
 
 // ---------------------------------------------------------------------------
