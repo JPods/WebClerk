@@ -574,8 +574,8 @@ const AdminWorkbench: React.FC = () => {
           )}
         </div>
 
-        {/* Detail pane — collapsed when no record selected */}
-        {db.selectedRecord && (
+        {/* Detail pane — show when record selected OR when list is empty (so Add button is accessible) */}
+        {(db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (
         <div data-wc="db-detail-pane" className="db-detail-pane">
           {/* Detail toolbar — record-focused glass buttons */}
           <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 6 }}>
