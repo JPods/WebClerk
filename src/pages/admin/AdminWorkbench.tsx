@@ -591,6 +591,7 @@ const AdminWorkbench: React.FC = () => {
             <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
             <GlassBtn icon="Cancel" title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
             <GlassBtn icon="Delete Record" title="Delete Record" disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
+            <GlassBtn icon="Print" title="Print / Reports for this record" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
             <span className="db-separator">|</span>
             <span className="db-detail-model-label">{db.modelLabel}</span>
             {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
