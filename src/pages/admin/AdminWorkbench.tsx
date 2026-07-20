@@ -583,7 +583,7 @@ const AdminWorkbench: React.FC = () => {
           {/* Detail toolbar — record-focused glass buttons */}
           <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 6 }}>
             <GlassBtn icon="AddRecord" title="Add New Record" onClick={async () => {
-              const blank = createBlankRecord(db.allFields, db.fieldBehaviors);
+              const blank = createBlankRecord(db.selectedModel, db.allFields);
               const { saveRecord: sr } = await import('@/api/wcapi');
               const result = await sr(db.selectedModel, blank) as any;
               if (result?.id) { db.setSelectedId(result.id); }
