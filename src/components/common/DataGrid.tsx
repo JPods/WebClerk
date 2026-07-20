@@ -651,7 +651,9 @@ export default function DataGrid(props: DataGridProps) {
       // Ctrl/Cmd-click: toggle this row without affecting others
       handleToggleRow(rid);
     } else {
-      // Plain click: open the record detail
+      // Plain click: open the record detail and clear multi-selection
+      if (props.onClearSelection) props.onClearSelection();
+      else setSelfSelectedRowIds(new Set());
       if (rid !== null) handleSelectRecord(rid);
       if (props.onRowClicked) props.onRowClicked(rec);
     }
