@@ -495,7 +495,10 @@ const AdminWorkbench: React.FC = () => {
             <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
             <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
             <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
-              if (db.selectedRowIds.size > 0 && confirm(`Delete ${db.selectedRowIds.size} records?`)) {
+              const n = db.selectedRowIds.size;
+              if (n > 0
+                && confirm(`Delete ${n} selected ${db.modelLabel} records?`)
+                && confirm(`CONFIRM: Permanently delete ${n} records. This cannot be undone.`)) {
                 const { deleteRecord: dr } = await import('@/api/wcapi');
                 for (const rid of db.selectedRowIds) { await dr(db.selectedModel, rid); }
                 db.setSelectedRowIds(new Set());
