@@ -488,12 +488,12 @@ const AdminWorkbench: React.FC = () => {
         <div data-wc="db-list-pane" className="db-list-pane">
           {/* List toolbar — glass buttons: Print, Sort, Filter, ShowAll, ShowSubset, Omit; then text */}
           <div data-wc="db-list-toolbar" className="db-list-toolbar" style={{ gap: 4 }}>
-            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
-            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
             <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
             <GlassBtn icon="ShowAll" title="Show All" onClick={() => { db.setSubsetMode('all'); db.setSearchTerm(''); }} />
             <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
             <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
+            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
+            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
             <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
               if (db.selectedRowIds.size > 0 && confirm(`Delete ${db.selectedRowIds.size} records?`)) {
                 const { deleteRecord: dr } = await import('@/api/wcapi');
