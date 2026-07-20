@@ -220,7 +220,7 @@ const Btn: React.FC<{
 // ---------------------------------------------------------------------------
 // GlassBtn — WC glass button (3-state sprite: normal/hover/pressed)
 // ---------------------------------------------------------------------------
-const GBS = 28;
+const GBS = 56;
 const GlassBtn: React.FC<{
   icon: string; title: string; onClick?: () => void; disabled?: boolean; active?: boolean;
 }> = ({ icon, title, onClick, disabled, active }) => {
@@ -486,17 +486,14 @@ const AdminWorkbench: React.FC = () => {
 
         {/* List pane */}
         <div data-wc="db-list-pane" className="db-list-pane">
-          {/* List toolbar — WC glass buttons + text actions */}
-          <div data-wc="db-list-toolbar" className="db-list-toolbar">
-            <GlassBtn icon="AddRecord" title="Add New Record" onClick={async () => {
-              const blank = createBlankRecord(db.allFields, db.fieldBehaviors);
-              const { saveRecord: sr } = await import('@/api/wcapi');
-              const result = await sr(db.selectedModel, blank) as any;
-              if (result?.id) { db.setSelectedId(result.id); }
-            }} />
-            <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
-            <GlassBtn icon="Cancel" title="Discard" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
-            <GlassBtn icon="Delete Record" title="Delete Record" disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
+          {/* List toolbar — glass buttons: Print, Sort, Filter, ShowAll, ShowSubset, Omit; then text */}
+          <div data-wc="db-list-toolbar" className="db-list-toolbar" style={{ gap: 4 }}>
+            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
+            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
+            <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
+            <GlassBtn icon="ShowAll" title="Show All" onClick={() => { db.setSubsetMode('all'); db.setSearchTerm(''); }} />
+            <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
+            <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
             <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
               if (db.selectedRowIds.size > 0 && confirm(`Delete ${db.selectedRowIds.size} records?`)) {
                 const { deleteRecord: dr } = await import('@/api/wcapi');
@@ -504,14 +501,6 @@ const AdminWorkbench: React.FC = () => {
                 db.setSelectedRowIds(new Set());
               }
             }} />
-            <span className="db-separator">|</span>
-            <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
-            <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
-            <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
-            <GlassBtn icon="ShowAll" title="Show All" onClick={() => { db.setSubsetMode('all'); db.setSearchTerm(''); }} />
-            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
-            <span className="db-separator">|</span>
-            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
             <span className="db-separator">|</span>
             <Btn small variant="ghost" onClick={() => {
               dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
@@ -585,22 +574,26 @@ const AdminWorkbench: React.FC = () => {
         {/* Detail pane — collapsed when no record selected */}
         {db.selectedRecord && (
         <div data-wc="db-detail-pane" className="db-detail-pane">
-          {/* Detail toolbar */}
-          <div data-wc="db-detail-toolbar" className="db-list-toolbar">
+          {/* Detail toolbar — record-focused glass buttons */}
+          <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 6 }}>
+            <GlassBtn icon="AddRecord" title="Add New Record" onClick={async () => {
+              const blank = createBlankRecord(db.allFields, db.fieldBehaviors);
+              const { saveRecord: sr } = await import('@/api/wcapi');
+              const result = await sr(db.selectedModel, blank) as any;
+              if (result?.id) { db.setSelectedId(result.id); }
+            }} />
+            <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
+            <GlassBtn icon="Cancel" title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
+            <GlassBtn icon="Delete Record" title="Delete Record" disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
+            <span className="db-separator">|</span>
             <span className="db-detail-model-label">{db.modelLabel}</span>
             {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
             {db.isDirty && <span className="db-unsaved-badge">UNSAVED</span>}
             <span className="db-spacer" />
-            <Btn small variant="ghost" onClick={() => setShowReportsDialog('detail')}>Reports</Btn>
-            <Btn small variant="ghost" onClick={() => setShowRelatedDialog('detail')}>Related</Btn>
-            <span className="db-separator">|</span>
-            <Btn small onClick={() => { if (db.selectedModel && db.allFields.length) { const b = createBlankRecord(db.selectedModel, db.allFields); db.setSelectedRecord(b); db.setSelectedId(null); } }}>+ New</Btn>
             <Btn small variant="ghost" onClick={() => {
               dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
               setShowLayoutDialog('detail');
             }}>Form Order</Btn>
-            <Btn variant="primary" small onClick={db.handleSaveRecord} disabled={!db.selectedRecord}>Save</Btn>
-            <Btn variant="danger" small disabled={!db.selectedRecord || !db.selectedId} onClick={db.handleDeleteRecord}>Delete</Btn>
           </div>
           <div className="db-detail-body">
             {db.selectedRecord ? (
