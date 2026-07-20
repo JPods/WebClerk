@@ -552,15 +552,16 @@ const AdminWorkbench: React.FC = () => {
               onSelectRecord={(id) => {
                 const pref = getDetailViewPref();
                 const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (pref === 'app' && route) { navigate(`${route}/${id}`); }
+                if (pref === 'app' && route) { window.open(`${route}/${id}`, '_blank'); }
                 else { db.setSelectedId(id); db.setIsDirty(false); }
               }}
               onRowDoubleClicked={(row) => {
                 const id = typeof row?.id === 'number' ? row.id : Number(row?.id);
                 if (!id) return;
+                // Double-click always opens the OTHER view
                 const pref = getDetailViewPref();
                 const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (pref === 'admin' && route) { navigate(`${route}/${id}`); }
+                if (pref === 'admin' && route) { window.open(`${route}/${id}`, '_blank'); }
                 else { db.setSelectedId(id); db.setIsDirty(false); }
               }}
               onToggleRow={db.toggleRow}
