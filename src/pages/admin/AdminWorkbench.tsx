@@ -498,13 +498,21 @@ const AdminWorkbench: React.FC = () => {
             <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
             <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
             <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
-              const n = db.selectedRowIds.size;
+              const ids = Array.from(db.selectedRowIds);
+              const n = ids.length;
               if (n > 0
                 && confirm(`Delete ${n} selected ${db.modelLabel} records?`)
                 && confirm(`CONFIRM: Permanently delete ${n} records. This cannot be undone.`)) {
                 const { deleteRecord: dr } = await import('@/api/wcapi');
-                for (const rid of db.selectedRowIds) { await dr(db.selectedModel, rid); }
+                let deleted = 0;
+                for (const rid of ids) {
+                  try { await dr(db.selectedModel, rid); deleted++; } catch (e) { console.error(`Failed to delete ${rid}:`, e); }
+                }
                 db.setSelectedRowIds(new Set());
+                db.setSelectedId(null);
+                db.setSelectedRecord(null);
+                db.fetchRecords();
+                console.log(`Deleted ${deleted}/${n} records`);
               }
             }} />
             <span className="db-separator">|</span>
@@ -586,7 +594,7 @@ const AdminWorkbench: React.FC = () => {
               const blank = createBlankRecord(db.selectedModel, db.allFields);
               const { saveRecord: sr } = await import('@/api/wcapi');
               const result = await sr(db.selectedModel, blank) as any;
-              if (result?.id) { db.setSelectedId(result.id); }
+              if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
             }} />
             <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
             <GlassBtn icon="Cancel" title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />

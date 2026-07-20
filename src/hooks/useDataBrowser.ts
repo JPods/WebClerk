@@ -796,7 +796,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
     // Field behaviors
     fieldBehaviors, detailRowSizes, setDetailRowSizes,
     // CRUD
-    updateField, handleSaveRecord, handleDeleteRecord, validationErrors,
+    updateField, handleSaveRecord, handleDeleteRecord, validationErrors, fetchRecords,
+    setSelectedRecord,
     updateListLayout,
     updateDetailLayout,
     // Export
