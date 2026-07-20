@@ -651,8 +651,9 @@ export default function DataGrid(props: DataGridProps) {
       // Ctrl/Cmd-click: toggle this row without affecting others
       handleToggleRow(rid);
     } else {
-      // Plain click: toggle checkbox only (detail opens on double-click)
-      handleToggleRow(rid);
+      // Plain click: open the record detail
+      if (rid !== null) handleSelectRecord(rid);
+      if (props.onRowClicked) props.onRowClicked(rec);
     }
     lastClickedIdx.current = rowIdx;
   }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
@@ -719,8 +720,8 @@ export default function DataGrid(props: DataGridProps) {
           onMouseEnter={(e) => { if (!isActive && !isChecked && !ruleStyle.background) (e.currentTarget).style.background = t.rowHover; }}
           onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || 'transparent'; }}
         >
-          <td style={{ padding: '4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
-            <input type="checkbox" checked={isChecked} onChange={(e) => { e.stopPropagation(); if (rid !== null) handleToggleRow(rid); }} />
+          <td style={{ width: 8, padding: '4px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : isChecked ? t.rowChecked : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
+            {isChecked && <div style={{ width: 4, height: '100%', minHeight: 16, background: t.accent, borderRadius: 2, margin: '0 2px' }} />}
           </td>
           {columns.map((f, ci) => {
             const spec = fieldSpecs[f];
@@ -850,11 +851,7 @@ export default function DataGrid(props: DataGridProps) {
           <thead>
             {/* Header row */}
             <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
-              <th style={{ width: 28, padding: '6px 4px', textAlign: 'center', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: t.surface, zIndex: 3 }}>
-                <input type="checkbox"
-                  checked={selectedRowIds.size > 0 && filteredRecords.every((r) => selectedRowIds.has(numId(r.id) ?? -1))}
-                  onChange={(e) => e.target.checked ? handleSelectAll() : handleClearSelection()} />
-              </th>
+              <th style={{ width: 8, padding: '6px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: t.surface, zIndex: 3 }} />
               {columns.map((f, ci) => {
                 const sortIdx = multiSorts.findIndex((s) => s.field === f);
                 const sortDir = sort?.field === f ? sort.direction : null;

@@ -1,9 +1,11 @@
-/* LastChecked: 2026-07-03 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
+/* LastChecked: 2026-07-19 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
 import { useDataBrowser, numId, type FieldSpec } from '../../hooks/useDataBrowser';
 import { dbLog } from '../../utils/dbLog';
+import { getDetailViewPref } from '../../layout/MacTopBar';
 import BehaviorField from '../../components/common/BehaviorField';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
 import RelatedDialog from '../../components/common/RelatedDialog';
@@ -11,6 +13,15 @@ import ReportsDialog from '../../components/common/ReportsDialog';
 import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
 import './AdminWorkbench.css';
+
+const APP_DETAIL_ROUTES: Record<string, string> = {
+  order: '/transactions/order', invoice: '/transactions/invoice',
+  proposal: '/transactions/proposal', purchase: '/transactions/purchase',
+  workorder: '/transactions/workorder', receipt: '/transactions/receipt',
+  payment: '/transactions/payment', customer: '/org/customer',
+  vendor: '/org/vendor', item: '/products/item',
+  contact: '/core/contact', action: '/core/action',
+};
 
 // ---------------------------------------------------------------------------
 // SpawnLinks — related-window buttons for complex records
@@ -207,11 +218,35 @@ const Btn: React.FC<{
 );
 
 // ---------------------------------------------------------------------------
+// GlassBtn — WC glass button (3-state sprite: normal/hover/pressed)
+// ---------------------------------------------------------------------------
+const GBS = 28;
+const GlassBtn: React.FC<{
+  icon: string; title: string; onClick?: () => void; disabled?: boolean; active?: boolean;
+}> = ({ icon, title, onClick, disabled, active }) => {
+  const [st, setSt] = React.useState<0|1|2>(0);
+  return (
+    <button style={{ width: GBS, height: GBS, padding: 0, border: 'none', background: 'transparent',
+      cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : active ? 1 : 0.8,
+      outline: active ? '2px solid var(--db-accent, #9cdcfe)' : 'none', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}
+      title={title} disabled={disabled} onClick={onClick}
+      onMouseEnter={() => !disabled && setSt(1)} onMouseLeave={() => setSt(0)}
+      onMouseDown={() => !disabled && setSt(2)} onMouseUp={() => !disabled && setSt(1)}>
+      <div style={{ width: GBS, height: GBS * 3,
+        backgroundImage: `url(/src/components/ui/button/button_glass/${encodeURIComponent(icon)}.png)`,
+        backgroundSize: `${GBS}px auto`, backgroundRepeat: 'no-repeat',
+        transform: `translateY(${-st * GBS}px)` }} />
+    </button>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 const AdminWorkbench: React.FC = () => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
+  const navigate = useNavigate();
   const db = useDataBrowser(isAuthenticated);
 
   // --- Local UI state ---
@@ -451,24 +486,39 @@ const AdminWorkbench: React.FC = () => {
 
         {/* List pane */}
         <div data-wc="db-list-pane" className="db-list-pane">
-          {/* List toolbar */}
+          {/* List toolbar — WC glass buttons + text actions */}
           <div data-wc="db-list-toolbar" className="db-list-toolbar">
+            <GlassBtn icon="AddRecord" title="Add New Record" onClick={async () => {
+              const blank = createBlankRecord(db.allFields, db.fieldBehaviors);
+              const { saveRecord: sr } = await import('@/api/wcapi');
+              const result = await sr(db.selectedModel, blank) as any;
+              if (result?.id) { db.setSelectedId(result.id); }
+            }} />
+            <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
+            <GlassBtn icon="Cancel" title="Discard" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
+            <GlassBtn icon="Delete Record" title="Delete Record" disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
+            <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
+              if (db.selectedRowIds.size > 0 && confirm(`Delete ${db.selectedRowIds.size} records?`)) {
+                const { deleteRecord: dr } = await import('@/api/wcapi');
+                for (const rid of db.selectedRowIds) { await dr(db.selectedModel, rid); }
+                db.setSelectedRowIds(new Set());
+              }
+            }} />
+            <span className="db-separator">|</span>
+            <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
+            <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
+            <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
+            <GlassBtn icon="ShowAll" title="Show All" onClick={() => { db.setSubsetMode('all'); db.setSearchTerm(''); }} />
+            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
+            <span className="db-separator">|</span>
+            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
+            <span className="db-separator">|</span>
             <Btn small variant="ghost" onClick={() => {
               dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
               setShowLayoutDialog('list');
             }}>List Order</Btn>
-            <span className="db-separator">|</span>
-            <Btn small variant="ghost" onClick={() => setShowReportsDialog('list')}>Reports</Btn>
             <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
-            <span className="db-separator">|</span>
-            <Btn small variant={showFilters ? 'primary' : 'ghost'} onClick={() => setShowFilters(!showFilters)}>Filter</Btn>
             <Btn small variant={showDupes ? 'save' : 'ghost'} onClick={() => setShowDupes(!showDupes)}>Dupes</Btn>
-            <span className="db-separator">|</span>
-            <Btn small variant="ghost" onClick={db.selectAllRows}>Sel All</Btn>
-            <Btn small variant="ghost" onClick={() => db.setSelectedRowIds(new Set())}>Clear</Btn>
-            <Btn small variant={db.subsetMode === 'show' ? 'save' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')}>Show</Btn>
-            <Btn small variant={db.subsetMode === 'omit' ? 'danger' : 'ghost'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')}>Omit</Btn>
-            {db.subsetMode !== 'all' && <Btn small variant="ghost" onClick={() => db.setSubsetMode('all')}>All</Btn>}
             <span className="db-spacer" />
             <span className="db-pagination-info">{db.totalRecords}</span>
             <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
@@ -490,8 +540,20 @@ const AdminWorkbench: React.FC = () => {
               hideToolbar
               externalShowFilters={showFilters}
               externalShowDupes={showDupes}
-              onSelectRecord={() => {}}
-              onRowDoubleClicked={(row) => { const id = typeof row?.id === 'number' ? row.id : Number(row?.id); if (id) { db.setSelectedId(id); db.setIsDirty(false); } }}
+              onSelectRecord={(id) => {
+                const pref = getDetailViewPref();
+                const route = APP_DETAIL_ROUTES[db.selectedModel];
+                if (pref === 'app' && route) { navigate(`${route}/${id}`); }
+                else { db.setSelectedId(id); db.setIsDirty(false); }
+              }}
+              onRowDoubleClicked={(row) => {
+                const id = typeof row?.id === 'number' ? row.id : Number(row?.id);
+                if (!id) return;
+                const pref = getDetailViewPref();
+                const route = APP_DETAIL_ROUTES[db.selectedModel];
+                if (pref === 'admin' && route) { navigate(`${route}/${id}`); }
+                else { db.setSelectedId(id); db.setIsDirty(false); }
+              }}
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}
               onClearSelection={() => db.setSelectedRowIds(new Set())}

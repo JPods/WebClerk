@@ -1,5 +1,10 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-07-19 | WhereUsed: Main layout top bar | WhoCreated: Unknown */
 import { useMemo, useState } from "react";
+
+/** Detail view preference — "app" = .tsx pages, "admin" = DataBrowser detail */
+export function getDetailViewPref(): 'app' | 'admin' {
+  return (localStorage.getItem('wc3_detail_view_pref') as 'app' | 'admin') || 'app';
+}
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
@@ -26,6 +31,7 @@ export default function MacTopBar({ activePath }: Props) {
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showInventoryMonitor, setShowInventoryMonitor] = useState(false);
+  const [detailView, setDetailView] = useState<'app' | 'admin'>(() => getDetailViewPref());
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
 
@@ -100,6 +106,17 @@ export default function MacTopBar({ activePath }: Props) {
         {showInventoryMonitor && (
           <InventoryMonitor onClose={() => setShowInventoryMonitor(false)} />
         )}
+        <button
+          onClick={() => { const v = detailView === 'app' ? 'admin' : 'app'; localStorage.setItem('wc3_detail_view_pref', v); setDetailView(v); }}
+          className={`flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
+            detailView === 'admin'
+              ? "border-purple-300 bg-purple-50 text-purple-700"
+              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+          }`}
+          title={detailView === 'app' ? "App pages — click for Admin/DataBrowser" : "Admin/DataBrowser — click for App pages"}
+        >
+          {detailView === 'app' ? 'App' : 'Admin'}
+        </button>
         <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
             src="/images/user/owner.jpg"
