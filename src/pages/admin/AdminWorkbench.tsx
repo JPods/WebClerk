@@ -12,13 +12,30 @@ import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
 import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
-import ToolbarButton from '../../components/common/ToolbarButton';
-import {
-  FilePlus, FloppyDisk, ArrowCounterClockwise, Trash,
-  TrashSimple, Funnel, ListBullets, Prohibit,
-  SortAscending, Printer,
-} from '@phosphor-icons/react';
 import './AdminWorkbench.css';
+
+// ---------------------------------------------------------------------------
+// GlassBtn — WC glass button (3-state sprite: normal/hover/pressed)
+// ---------------------------------------------------------------------------
+const GBS = 56;
+const GlassBtn: React.FC<{
+  icon: string; title: string; onClick?: (e?: React.MouseEvent) => void; disabled?: boolean; active?: boolean;
+}> = ({ icon, title, onClick, disabled, active }) => {
+  const [st, setSt] = React.useState<0|1|2>(0);
+  return (
+    <button style={{ width: GBS, height: GBS, padding: 0, border: 'none', background: 'transparent',
+      cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : active ? 1 : 0.8,
+      outline: active ? '2px solid var(--db-accent, #9cdcfe)' : 'none', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}
+      title={title} disabled={disabled} onClick={(e) => onClick?.(e)}
+      onMouseEnter={() => !disabled && setSt(1)} onMouseLeave={() => setSt(0)}
+      onMouseDown={() => !disabled && setSt(2)} onMouseUp={() => !disabled && setSt(1)}>
+      <div style={{ width: GBS, height: GBS * 3,
+        backgroundImage: `url(/src/components/ui/button/button_glass/${encodeURIComponent(icon)}.png)`,
+        backgroundSize: `${GBS}px auto`, backgroundRepeat: 'no-repeat',
+        transform: `translateY(${-st * GBS}px)` }} />
+    </button>
+  );
+};
 
 /** Maps DataBrowser model name → .tsx detail route. Uses actual PageRoutes paths. */
 const APP_DETAIL_ROUTES: Record<string, string> = {
@@ -475,18 +492,18 @@ const AdminWorkbench: React.FC = () => {
 
         {/* List pane */}
         <div data-wc="db-list-pane" className="db-list-pane">
-          {/* List toolbar — Phosphor duotone icons */}
-          <div data-wc="db-list-toolbar" className="db-list-toolbar" style={{ gap: 2 }}>
-            <ToolbarButton icon={Funnel} title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
-            <ToolbarButton icon={ListBullets} title="Show All (Shift+click clears selection)" onClick={(e) => {
+          {/* List toolbar — glass buttons */}
+          <div data-wc="db-list-toolbar" className="db-list-toolbar" style={{ gap: 4 }}>
+            <GlassBtn icon="Query" title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
+            <GlassBtn icon="ShowAll" title="Show All (Shift+click clears selection)" onClick={(e) => {
               if (e?.shiftKey) { db.setSelectedRowIds(new Set()); }
               db.setSubsetMode('all'); db.setSearchTerm('');
             }} />
-            <ToolbarButton icon={Funnel} title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
-            <ToolbarButton icon={Prohibit} title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
-            <ToolbarButton icon={SortAscending} title="Sort" onClick={() => {}} />
-            <ToolbarButton icon={Printer} title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
-            <ToolbarButton icon={TrashSimple} title="Delete Selected" danger disabled={db.selectedRowIds.size === 0} onClick={async () => {
+            <GlassBtn icon="ShowSubset" title="Show Selected" active={db.subsetMode === 'show'} onClick={() => db.setSubsetMode(db.subsetMode === 'show' ? 'all' : 'show')} />
+            <GlassBtn icon="OmitSelection" title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
+            <GlassBtn icon="OrderBy" title="Sort" onClick={() => {}} />
+            <GlassBtn icon="Print" title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
+            <GlassBtn icon="Delete Selection" title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
               const ids = Array.from(db.selectedRowIds);
               const n = ids.length;
               if (n > 0
@@ -578,18 +595,18 @@ const AdminWorkbench: React.FC = () => {
         {/* Detail pane — show when record selected OR when list is empty (so Add button is accessible) */}
         {(db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (
         <div data-wc="db-detail-pane" className="db-detail-pane">
-          {/* Detail toolbar — record-focused Phosphor icons */}
-          <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 2 }}>
-            <ToolbarButton icon={FilePlus} title="Add New Record" onClick={async () => {
+          {/* Detail toolbar — record-focused glass buttons */}
+          <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 6 }}>
+            <GlassBtn icon="AddRecord" title="Add New Record" onClick={async () => {
               const blank = createBlankRecord(db.selectedModel, db.allFields);
               const { saveRecord: sr } = await import('@/api/wcapi');
               const result = await sr(db.selectedModel, blank) as any;
               if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
             }} />
-            <ToolbarButton icon={FloppyDisk} title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
-            <ToolbarButton icon={ArrowCounterClockwise} title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
-            <ToolbarButton icon={Trash} title="Delete Record" danger disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
-            <ToolbarButton icon={Printer} title="Print / Reports for this record" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
+            <GlassBtn icon="OK" title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
+            <GlassBtn icon="Cancel" title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
+            <GlassBtn icon="Delete Record" title="Delete Record" disabled={!db.selectedId} onClick={() => { if (db.selectedId) db.handleDeleteRecord(); }} />
+            <GlassBtn icon="Print" title="Print / Reports for this record" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
             <span className="db-separator">|</span>
             <span className="db-detail-model-label">{db.modelLabel}</span>
             {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
