@@ -1,46 +1,39 @@
 /**
- * ToolbarIcon — renders a toolbar button using the user's preferred style.
+ * ToolbarIcon — renders a toolbar button using the selected style.
  *
- * Styles: 'glass' (WC2 PNGs), 'phosphor' (duotone SVG), 'minimal' (text)
+ * Styles discovered from src/components/ui/button/{folder}/ — each folder
+ * is a button set with its own README.md. PNG sets use 3-state sprites.
+ * Phosphor uses duotone SVG. Minimal uses text + emoji.
+ *
  * Preference stored in localStorage: wc3_button_style
- * Picker in MacTopBar next to theme toggle.
+ * Company sets once at deployment. User can override.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { ToolbarAction, ButtonStyleName } from './toolbarActions';
+import { AVAILABLE_PNG_STYLES } from './toolbarActions';
 
 // ---------------------------------------------------------------------------
 // Style preference
 // ---------------------------------------------------------------------------
-export type ButtonStyle = 'glass' | 'phosphor' | 'minimal';
-
-export function getButtonStyle(): ButtonStyle {
-  return (localStorage.getItem('wc3_button_style') as ButtonStyle) || 'glass';
+export function getButtonStyle(): ButtonStyleName {
+  return (localStorage.getItem('wc3_button_style') as ButtonStyleName) || 'button_glass';
 }
 
-export function setButtonStyle(style: ButtonStyle) {
+export function setButtonStyle(style: ButtonStyleName) {
   localStorage.setItem('wc3_button_style', style);
   window.dispatchEvent(new Event('wc3-button-style-changed'));
 }
 
 // ---------------------------------------------------------------------------
-// Icon mapping — each action has a glass PNG name, Phosphor component, and emoji/text
-// ---------------------------------------------------------------------------
-export interface ToolbarAction {
-  glass: string;           // PNG filename in button_glass/ (without .png)
-  phosphor: PhosphorIcon;  // Phosphor duotone icon component
-  minimal: string;         // Text label for minimal style
-  emoji?: string;          // Optional emoji for minimal style
-}
-
-// ---------------------------------------------------------------------------
-// Glass button renderer (3-state sprite)
+// PNG sprite renderer (works for any folder: button_glass, OSX, etc.)
 // ---------------------------------------------------------------------------
 const GBS = 56;
 
-const GlassRenderer: React.FC<{
-  icon: string; title: string; onClick?: (e?: React.MouseEvent) => void;
-  disabled?: boolean; active?: boolean;
-}> = ({ icon, title, onClick, disabled, active }) => {
+const PngRenderer: React.FC<{
+  folder: string; file: string; title: string;
+  onClick?: (e?: React.MouseEvent) => void; disabled?: boolean; active?: boolean;
+}> = ({ folder, file, title, onClick, disabled, active }) => {
   const [st, setSt] = useState<0 | 1 | 2>(0);
   return (
     <button
@@ -56,7 +49,7 @@ const GlassRenderer: React.FC<{
     >
       <div style={{
         width: GBS, height: GBS * 3,
-        backgroundImage: `url(/src/components/ui/button/button_glass/${encodeURIComponent(icon)}.png)`,
+        backgroundImage: `url(/src/components/ui/button/${folder}/${encodeURIComponent(file)}.png)`,
         backgroundSize: `${GBS}px auto`, backgroundRepeat: 'no-repeat',
         transform: `translateY(${-st * GBS}px)`,
       }} />
@@ -87,8 +80,7 @@ const PhosphorRenderer: React.FC<{
         border: active ? `2px solid ${baseColor}` : '2px solid transparent',
         borderRadius: 8,
         background: pressed ? bgPressed : hover ? bgHover : 'transparent',
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.3 : 1,
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.3 : 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.15s ease',
         transform: pressed ? 'scale(0.92)' : hover && !disabled ? 'scale(1.08)' : 'scale(1)',
@@ -141,22 +133,38 @@ export interface ToolbarIconProps {
   disabled?: boolean;
   active?: boolean;
   danger?: boolean;
-  style?: ButtonStyle;  // override user preference for testing
 }
 
 export default function ToolbarIcon({
-  action, title, onClick, disabled, active, danger, style: styleOverride,
+  action, title, onClick, disabled, active, danger,
 }: ToolbarIconProps) {
-  const btnStyle = styleOverride || getButtonStyle();
+  const [style, setStyle] = useState<ButtonStyleName>(getButtonStyle);
 
-  switch (btnStyle) {
-    case 'glass':
-      return <GlassRenderer icon={action.glass} title={title} onClick={onClick} disabled={disabled} active={active} />;
-    case 'phosphor':
-      return <PhosphorRenderer icon={action.phosphor} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
-    case 'minimal':
-      return <MinimalRenderer label={action.minimal} emoji={action.emoji} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
-    default:
-      return <GlassRenderer icon={action.glass} title={title} onClick={onClick} disabled={disabled} active={active} />;
+  // Listen for style changes from the picker
+  useEffect(() => {
+    const handler = () => setStyle(getButtonStyle());
+    window.addEventListener('wc3-button-style-changed', handler);
+    return () => window.removeEventListener('wc3-button-style-changed', handler);
+  }, []);
+
+  // PNG-based styles (any folder)
+  if ((AVAILABLE_PNG_STYLES as readonly string[]).includes(style)) {
+    const file = action.png[style];
+    if (file) {
+      return <PngRenderer folder={style} file={file} title={title} onClick={onClick} disabled={disabled} active={active} />;
+    }
+    // Fallback to button_glass if this set doesn't have the icon
+    const fallback = action.png['button_glass'];
+    if (fallback) {
+      return <PngRenderer folder="button_glass" file={fallback} title={title} onClick={onClick} disabled={disabled} active={active} />;
+    }
   }
+
+  // Phosphor duotone
+  if (style === 'phosphor') {
+    return <PhosphorRenderer icon={action.phosphor} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
+  }
+
+  // Minimal text
+  return <MinimalRenderer label={action.minimal} emoji={action.emoji} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
 }

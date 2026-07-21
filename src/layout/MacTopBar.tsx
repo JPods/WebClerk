@@ -32,9 +32,9 @@ export default function MacTopBar({ activePath }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [showInventoryMonitor, setShowInventoryMonitor] = useState(false);
   const [detailView, setDetailView] = useState<'app' | 'admin'>(() => getDetailViewPref());
-  const [btnStyle, setBtnStyle] = useState(() => localStorage.getItem('wc3_button_style') || 'glass');
+  const [btnStyle, setBtnStyle] = useState(() => localStorage.getItem('wc3_button_style') || 'button_glass');
   const cycleBtnStyle = () => {
-    const styles = ['glass', 'phosphor', 'minimal'];
+    const styles = ['button_glass', 'OSX', 'phosphor', 'minimal'];
     const next = styles[(styles.indexOf(btnStyle) + 1) % styles.length];
     localStorage.setItem('wc3_button_style', next);
     setBtnStyle(next);
@@ -128,13 +128,14 @@ export default function MacTopBar({ activePath }: Props) {
         <button
           onClick={cycleBtnStyle}
           className={`flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
-            btnStyle === 'glass' ? "border-amber-300 bg-amber-50 text-amber-700"
+            btnStyle === 'button_glass' ? "border-amber-300 bg-amber-50 text-amber-700"
+              : btnStyle === 'OSX' ? "border-slate-400 bg-slate-100 text-slate-700"
               : btnStyle === 'phosphor' ? "border-blue-300 bg-blue-50 text-blue-700"
               : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
           }`}
-          title={`Button style: ${btnStyle} — click to cycle (glass → phosphor → minimal)`}
+          title={`Button style: ${btnStyle} — click to cycle`}
         >
-          {btnStyle === 'glass' ? '🔘 Glass' : btnStyle === 'phosphor' ? '◆ Duo' : '— Min'}
+          {btnStyle === 'button_glass' ? '🔘 Glass' : btnStyle === 'OSX' ? '🍎 OSX' : btnStyle === 'phosphor' ? '◆ Duo' : '— Min'}
         </button>
         <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
