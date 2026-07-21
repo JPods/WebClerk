@@ -32,6 +32,14 @@ export default function MacTopBar({ activePath }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [showInventoryMonitor, setShowInventoryMonitor] = useState(false);
   const [detailView, setDetailView] = useState<'app' | 'admin'>(() => getDetailViewPref());
+  const [btnStyle, setBtnStyle] = useState(() => localStorage.getItem('wc3_button_style') || 'glass');
+  const cycleBtnStyle = () => {
+    const styles = ['glass', 'phosphor', 'minimal'];
+    const next = styles[(styles.indexOf(btnStyle) + 1) % styles.length];
+    localStorage.setItem('wc3_button_style', next);
+    setBtnStyle(next);
+    window.dispatchEvent(new Event('wc3-button-style-changed'));
+  };
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
 
@@ -116,6 +124,17 @@ export default function MacTopBar({ activePath }: Props) {
           title={detailView === 'app' ? "App pages — click for Admin/DataBrowser" : "Admin/DataBrowser — click for App pages"}
         >
           {detailView === 'app' ? 'App' : 'Admin'}
+        </button>
+        <button
+          onClick={cycleBtnStyle}
+          className={`flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
+            btnStyle === 'glass' ? "border-amber-300 bg-amber-50 text-amber-700"
+              : btnStyle === 'phosphor' ? "border-blue-300 bg-blue-50 text-blue-700"
+              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+          }`}
+          title={`Button style: ${btnStyle} — click to cycle (glass → phosphor → minimal)`}
+        >
+          {btnStyle === 'glass' ? '🔘 Glass' : btnStyle === 'phosphor' ? '◆ Duo' : '— Min'}
         </button>
         <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
