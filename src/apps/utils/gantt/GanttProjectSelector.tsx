@@ -3,7 +3,7 @@
  * GanttProjectSelector - Multi-select project listbox for Gantt chart
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface ProjectPrefs {
@@ -20,6 +20,7 @@ export interface ProjectOption {
   ida?: string;
   actionCount?: number;
   prefs?: ProjectPrefs;
+  id_parent?: string | number | null;
 }
 
 interface GanttProjectSelectorProps {
@@ -81,39 +82,88 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   disabled = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAllLevels, setShowAllLevels] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (typeof prefs.gantt_show_all_levels === 'boolean') return prefs.gantt_show_all_levels;
+      }
+    } catch {}
+    return false;
+  });
 
   const filteredProjects = useMemo(() => {
-    if (!searchTerm.trim()) return projects;
+    let list = projects;
+    // When collapsed, show only top-level projects (no parent)
+    if (!showAllLevels) {
+      list = list.filter((p) => p.id_parent == null);
+    }
+    if (!searchTerm.trim()) return list;
     const lower = searchTerm.toLowerCase();
-    return projects.filter(
+    return list.filter(
       (p) =>
         p.name?.toLowerCase().includes(lower) ||
         p.slug?.toLowerCase().includes(lower) ||
         p.intent?.toLowerCase().includes(lower) ||
         p.id.includes(lower)
     );
-  }, [projects, searchTerm]);
+  }, [projects, searchTerm, showAllLevels]);
+
+  // Get all descendant project ids (children, grandchildren, etc.)
+  const getDescendantIds = useCallback((parentId: string): string[] => {
+    const descendants: string[] = [];
+    const queue = [parentId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const p of projects) {
+        if (String(p.id_parent) === current && !descendants.includes(p.id)) {
+          descendants.push(p.id);
+          queue.push(p.id);
+        }
+      }
+    }
+    return descendants;
+  }, [projects]);
 
   const handleToggle = (id: string) => {
     if (disabled) return;
+    const childIds = getDescendantIds(id);
+    const idsToToggle = [id, ...childIds];
+
     if (selectedIds.includes(id)) {
-      onSelectionChange(selectedIds.filter((sid) => sid !== id));
+      // Deselect parent and all children
+      onSelectionChange(selectedIds.filter((sid) => !idsToToggle.includes(sid)));
     } else {
-      onSelectionChange([...selectedIds, id]);
+      // Select parent and all children
+      const newIds = new Set([...selectedIds, ...idsToToggle]);
+      onSelectionChange(Array.from(newIds));
     }
   };
 
+  // Select all visible projects (+ descendants when in top-level mode)
   const handleSelectAll = () => {
     if (disabled) return;
-    const filteredIds = filteredProjects.map((p) => p.id);
-    const allSelected = filteredIds.every((id) => selectedIds.includes(id));
+    const visibleIds = filteredProjects.map((p) => p.id);
+    const allSelected = visibleIds.every((id) => selectedIds.includes(id));
     if (allSelected) {
-      // Deselect all filtered
-      onSelectionChange(selectedIds.filter((id) => !filteredIds.includes(id)));
+      // Deselect visible + their descendants
+      const toRemove = new Set(visibleIds);
+      if (!showAllLevels) {
+        for (const id of visibleIds) {
+          for (const d of getDescendantIds(id)) toRemove.add(d);
+        }
+      }
+      onSelectionChange(selectedIds.filter((sid) => !toRemove.has(sid)));
     } else {
-      // Select all filtered
-      const newIds = new Set([...selectedIds, ...filteredIds]);
-      onSelectionChange(Array.from(newIds));
+      // Select visible + their descendants
+      const toAdd = new Set([...selectedIds, ...visibleIds]);
+      if (!showAllLevels) {
+        for (const id of visibleIds) {
+          for (const d of getDescendantIds(id)) toAdd.add(d);
+        }
+      }
+      onSelectionChange(Array.from(toAdd));
     }
   };
 
@@ -125,6 +175,8 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   const allFilteredSelected =
     filteredProjects.length > 0 &&
     filteredProjects.every((p) => selectedIds.includes(p.id));
+
+  const hasHierarchy = projects.some((p) => p.id_parent != null);
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -151,23 +203,44 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
-        <button
-          type="button"
-          onClick={handleSelectAll}
-          disabled={disabled || isLoading || filteredProjects.length === 0}
-          className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          {allFilteredSelected ? "Deselect All" : "Select All"}
-        </button>
-        <button
-          type="button"
-          onClick={handleClear}
-          disabled={disabled || isLoading || selectedIds.length === 0}
-          className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          Clear
-        </button>
+      <div className="flex flex-col gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            disabled={disabled || isLoading || filteredProjects.length === 0}
+            className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            {allFilteredSelected ? "Deselect All" : "Select All"}
+          </button>
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={disabled || isLoading || selectedIds.length === 0}
+            className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            Clear
+          </button>
+        </div>
+        {hasHierarchy && (
+          <button
+            type="button"
+            onClick={() => {
+              const next = !showAllLevels;
+              setShowAllLevels(next);
+              try {
+                const stored = localStorage.getItem('wc3_wcui_prefs');
+                const prefs = stored ? JSON.parse(stored) : {};
+                prefs.gantt_show_all_levels = next;
+                localStorage.setItem('wc3_wcui_prefs', JSON.stringify(prefs));
+              } catch {}
+            }}
+            disabled={disabled || isLoading}
+            className="w-full rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
+          >
+            {showAllLevels ? "▴ Top Level Only" : "▾ Show Sub-Projects"}
+          </button>
+        )}
       </div>
 
       {/* Project list */}
@@ -189,13 +262,17 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
                 ? getProjectColor(project.id, selectedIds, project.prefs?.action?.color)
                 : undefined;
 
+              const isChild = project.id_parent != null;
+              const hasChildren = projects.some(p => String(p.id_parent) === project.id);
+
               return (
                 <li key={project.id}>
                   <button
                     type="button"
                     onClick={() => handleToggle(project.id)}
                     disabled={disabled}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-800"
+                    className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-800"
+                    style={{ paddingLeft: isChild ? '28px' : '16px', paddingRight: '16px' }}
                   >
                     {/* Checkbox */}
                     <div
@@ -226,6 +303,8 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
                     {/* Project info */}
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                        {hasChildren && <span className="mr-1 text-xs text-gray-400">▸</span>}
+                        {isChild && <span className="mr-1 text-xs text-gray-400">└</span>}
                         {project.name || project.intent || `Project ${project.id}`}
                       </div>
                       {project.slug && (

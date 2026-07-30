@@ -47,7 +47,7 @@ import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
 import type { GanttMappedTask } from "./ganttDataMapper";
 import { getGanttDateRange } from "./ganttDataMapper";
-import { GanttTaskTemplate } from "./GanttTaskTemplate";
+import { GanttTaskTemplate, setGanttCriticalPathHighlight, setGanttAssigneeFilter } from "./GanttTaskTemplate";
 import { DualScrollbar } from "../../../components/common/DualScrollbar";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -133,21 +133,21 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
   columns.push(
   {
     id: "taskIda",
-    header: "IDA",
+    header: "ida",
     width: 60,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => task?.taskIda || "-",
   },
   {
     id: "projectIda",
-    header: "Proj",
-    width: 60,
+    header: "project_ida",
+    width: 75,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => task?.projectIda || "-",
   },
   {
     id: "start",
-    header: "Start",
+    header: "dt_start",
     width: 85,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => {
@@ -163,7 +163,7 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
   },
   {
     id: "duration",
-    header: "Dur",
+    header: "duration",
     width: 50,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => {
@@ -176,8 +176,8 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
   },
   {
     id: "progress",
-    header: "%",
-    width: 50,
+    header: "percent_complete",
+    width: 95,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => {
       const pct = task?.percentComplete ?? task?.progress ?? 0;
@@ -186,7 +186,7 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
   },
   {
     id: "slack",
-    header: "Slack",
+    header: "slack",
     width: 55,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => {
@@ -198,8 +198,8 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
   },
   {
     id: "baseline",
-    header: "Δ Base",
-    width: 60,
+    header: "dt_start_original",
+    width: 100,
     align: "center",
     template: (_value: unknown, task: GanttMappedTask) => {
       // Show variance from original (positive = delayed, negative = ahead)
@@ -340,7 +340,17 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [selectorCollapsed, setSelectorCollapsed] = useState(true);
   
   // Task list (grid) collapsed state - shows only minimal columns when collapsed
-  const [taskListCollapsed, setTaskListCollapsed] = useState(false);
+  // Default collapsed: the bars carry the value; grid expands on demand
+  const [taskListCollapsed, setTaskListCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (typeof prefs.gantt_list_collapsed === 'boolean') return prefs.gantt_list_collapsed;
+      }
+    } catch {}
+    return true;
+  });
   
   // Sorting state - auto-sort by start date toggle
   const [autoSortByDate, setAutoSortByDate] = useState(true);
@@ -536,9 +546,55 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   
   // Gantt display state
   const [scalePreset, setScalePreset] = useState<ScalePresetKey>("week");
+  const [colorMode, setColorMode] = useState<'project' | 'priority' | 'status' | 'assigned' | 'difficulty'>('priority');
   const [ganttKey, setGanttKey] = useState(0);
+  const [ganttFontScale, setGanttFontScale] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (typeof prefs.gantt_font_scale === 'number') return prefs.gantt_font_scale;
+      }
+    } catch {}
+    return 0;
+  });
+  const [textOverflow, setTextOverflow] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (typeof prefs.gantt_show_full_text === 'boolean') return prefs.gantt_show_full_text;
+      }
+    } catch {}
+    return false;
+  });
+  const [criticalPathHighlight, setCriticalPathHighlight] = useState(false);
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+
+  // Unique assignees from current tasks for filter dropdown
+  const uniqueAssignees = useMemo(() => {
+    const seen = new Map<string, string>(); // id -> name
+    ganttData.tasks.forEach(task => {
+      const mapped = task as GanttMappedTask;
+      (mapped.assignedTo || []).forEach(a => {
+        const id = String(a.id);
+        if (!seen.has(id)) seen.set(id, a.name || `User ${id}`);
+      });
+    });
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [ganttData.tasks]);
+
+  // Sync module-level flags for task template and force SVAR re-render
+  useEffect(() => {
+    setGanttCriticalPathHighlight(criticalPathHighlight);
+    setGanttAssigneeFilter(assigneeFilter);
+    setGanttKey(k => k + 1);
+  }, [criticalPathHighlight, assigneeFilter]);
+
   const activeScales = scalePresets[scalePreset];
-  
+
   // Calculate date range
   const dateRange = useMemo(() => {
     return getGanttDateRange(ganttData.tasks);
@@ -665,10 +721,44 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       const task = ganttData.tasks.find((t) => String(t.id) === taskId);
       if (!task) return;
 
-      // Get project prefs color if available (use String() for safe comparison)
-      const project = projects.find((p) => String(p.id) === String(task.projectId));
-      const prefsColor = project?.prefs?.action?.color;
-      const color = getProjectColor(String(task.projectId), selectedProjectIds, prefsColor);
+      // Color based on selected mode
+      let color: string;
+      const priorityColors: Record<string, string> = {
+        low: '#e2e8f0', medium: '#93c5fd', high: '#f97316', critical: '#ef4444',
+      };
+      const statusColors: Record<string, string> = {
+        open: '#94a3b8', in_progress: '#3b82f6', active: '#3b82f6',
+        complete: '#22c55e', done: '#22c55e', on_hold: '#9ca3af',
+        blocked: '#ef4444', cancelled: '#6b7280', draft: '#d1d5db',
+      };
+      const difficultyColors: Record<number, string> = {
+        1: '#10b981', 2: '#a3e635', 3: '#f59e0b', 4: '#f97316', 5: '#ef4444',
+      };
+      const assignedColors = ['#3b82f6','#8b5cf6','#06b6d4','#d946ef','#84cc16','#eab308','#ec4899','#6366f1'];
+
+      if (colorMode === 'priority') {
+        const p = (task as GanttMappedTask).priority || 'medium';
+        color = priorityColors[p] || priorityColors.medium;
+      } else if (colorMode === 'status') {
+        const s = ((task as GanttMappedTask).columnId || 'open').toLowerCase().replace(/\s+/g, '_');
+        color = statusColors[s] || statusColors.open;
+      } else if (colorMode === 'assigned') {
+        const assigned = (task as GanttMappedTask).assignedTo?.[0];
+        if (assigned) {
+          const key = typeof assigned.id === 'string' ? parseInt(assigned.id, 10) : assigned.id;
+          color = assignedColors[key % assignedColors.length];
+        } else {
+          color = '#94a3b8';
+        }
+      } else if (colorMode === 'difficulty') {
+        const d = (task as any).difficulty || 3;
+        color = difficultyColors[Math.min(5, Math.max(1, d))] || difficultyColors[3];
+      } else {
+        // project mode (original behavior)
+        const project = projects.find((p) => String(p.id) === String(task.projectId));
+        const prefsColor = project?.prefs?.action?.color;
+        color = getProjectColor(String(task.projectId), selectedProjectIds, prefsColor);
+      }
       const textColor = pickReadableTextColor(color);
 
       newMap.set(taskId, { color, textColor, type: task.type });
@@ -708,7 +798,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     });
 
     taskColorMapRef.current = newMap;
-  }, [ganttData.tasks, selectedProjectIds, projects]);
+  }, [ganttData.tasks, selectedProjectIds, projects, colorMode]);
 
   const scheduleColorRefresh = useCallback(() => {
     // Multiple refresh attempts to catch SVAR's async rendering
@@ -1291,7 +1381,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   useEffect(() => {
     refreshTaskColorCache();
     scheduleColorRefresh();
-  }, [ganttData.tasks, projects, refreshTaskColorCache, scheduleColorRefresh]);
+  }, [ganttData.tasks, projects, refreshTaskColorCache, scheduleColorRefresh, colorMode]);
   
   // MutationObserver to apply colors when SVAR adds new bar elements
   useEffect(() => {
@@ -1413,6 +1503,96 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
   };
   
+  // Project legend for print — colored dots with project names
+  const renderPrintProjectLegend = (selectedIds: string[], allProjects: typeof projects) => {
+    const items = selectedIds.map(id => {
+      const proj = allProjects.find(p => String(p.id) === String(id));
+      if (!proj) return '';
+      const color = getProjectColor(id, selectedIds, proj.prefs?.action?.color);
+      const name = proj.name || proj.intent || `Project ${id}`;
+      const isChild = proj.id_parent != null;
+      const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
+      return `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;${isChild ? 'margin-left:12px;' : ''}">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};${pca};"></span>
+        <span style="font-size:9px;color:${isChild ? '#6b7280' : '#374151'};font-weight:${isChild ? '400' : '600'};">${name}</span>
+      </span>`;
+    }).filter(Boolean).join('');
+    return `<div style="display:flex;flex-wrap:wrap;gap:2px 0;margin-top:6px;">${items}</div>`;
+  };
+
+  // Today line for print — returns HTML string for a red vertical line at today's position
+  const renderPrintTodayLine = (minDate: Date, totalDays: number) => {
+    const now = new Date();
+    const todayOffset = (now.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+    const todayLeft = (todayOffset / totalDays) * 100;
+    if (todayLeft < 0 || todayLeft > 100) return '';
+    const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
+    return `<div style="position:absolute;left:${todayLeft}%;top:0;bottom:0;width:2px;background:rgb(239,68,68);z-index:5;${pca};"></div>
+      <div style="position:absolute;left:${todayLeft}%;top:-14px;transform:translateX(-50%);font-size:7px;color:rgb(239,68,68);font-weight:600;white-space:nowrap;">Today</div>`;
+  };
+
+  // Shared print bar renderer — matches on-screen GanttTaskTemplate encoding
+  const printBarColors = {
+    priority: { low: '#e2e8f0', medium: '#93c5fd', high: '#f97316', critical: '#ef4444' } as Record<string, string>,
+    status: { open: '#94a3b8', in_progress: '#3b82f6', active: '#3b82f6', complete: '#22c55e', done: '#22c55e', on_hold: '#9ca3af', onhold: '#9ca3af', blocked: '#ef4444', cancelled: '#6b7280', canceled: '#6b7280', draft: '#d1d5db' } as Record<string, string>,
+    priorityLabel: { low: 'L', medium: 'M', high: 'H', critical: '!' } as Record<string, string>,
+  };
+
+  const renderPrintBar = (task: GanttMappedTask, barLeft: number, barWidth: number, height: number) => {
+    const priority = task.priority || 'medium';
+    const status = (task.columnId || 'open').toLowerCase().replace(/\s+/g, '_');
+    const progress = typeof task.progress === 'number' ? Math.round(task.progress * 100) : (task.percentComplete || 0);
+    const priorityColor = printBarColors.priority[priority] || printBarColors.priority.medium;
+    const statusColor = printBarColors.status[status] || printBarColors.status.open;
+    const pLabel = printBarColors.priorityLabel[priority] || 'M';
+    const assignee = task.assignedTo?.[0];
+    const initials = assignee?.name ? (assignee.name.trim().split(/\s+/).length > 1
+      ? assignee.name.trim().split(/\s+/).map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
+      : assignee.name.slice(0, 2).toUpperCase()) : '';
+    const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
+
+    // Slippage from baseline
+    const slippageDays = (() => {
+      if (!task.dtStartOriginal || !(task.dtStartOriginal instanceof Date)) return 0;
+      if (!task.start || !(task.start instanceof Date)) return 0;
+      return Math.round((task.start.getTime() - task.dtStartOriginal.getTime()) / 86400000);
+    })();
+    const slippageHtml = slippageDays !== 0
+      ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:6px;font-weight:600;background:${slippageDays > 0 ? '#fef2f2' : '#f0fdf4'};color:${slippageDays > 0 ? '#dc2626' : '#16a34a'};flex-shrink:0;${pca};">${slippageDays > 0 ? '+' : ''}${slippageDays}d</span>`
+      : '';
+
+    // Milestone: diamond marker
+    const isMilestone = task.start instanceof Date && task.end instanceof Date &&
+      (task.end.getTime() - task.start.getTime()) <= 86400000;
+    if (isMilestone) {
+      return `<div style="position:absolute;left:${barLeft}%;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;overflow:visible;">
+        <div style="width:12px;height:12px;background:${priorityColor};transform:rotate(45deg);flex-shrink:0;border:${task.isCritical ? '2px solid #dc2626' : '1px solid rgba(0,0,0,0.2)'};${pca};"></div>
+        <span style="white-space:nowrap;font-size:8px;color:#111827;">${task.text || '—'}</span>
+        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:7px;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
+      </div>`;
+    }
+
+    return `<div style="position:absolute;left:${barLeft}%;width:${barWidth}%;height:${height}px;border-radius:3px;overflow:visible;min-width:6px;background:#f1f5f9;${pca};">
+      <!-- Top stripe: priority -->
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${priorityColor};border-radius:3px 3px 0 0;${pca};"></div>
+      <!-- Left stripe: status -->
+      <div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:${statusColor};border-radius:3px 0 0 3px;${pca};"></div>
+      <!-- Bottom bar: % complete -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(0,0,0,0.12);${pca};">
+        <div style="height:100%;width:${Math.min(100, progress)}%;background:${progress >= 100 ? '#22c55e' : '#3b82f6'};border-radius:0 0 0 3px;${pca};"></div>
+      </div>
+      <!-- Content -->
+      <div style="display:flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;height:100%;overflow:visible;">
+        ${task.isCritical ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:7px;font-weight:700;background:#dc2626;color:#fff;${pca};">CP</span>` : ''}
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:7px;font-weight:700;background:${priorityColor};color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.3);${pca};">${pLabel}</span>
+        <span style="white-space:nowrap;font-size:8px;color:#111827;overflow:visible;">${task.text || '—'}</span>
+        ${progress > 0 && progress < 100 ? `<span style="font-size:7px;color:#374151;flex-shrink:0;">${progress}%</span>` : ''}
+        ${slippageHtml}
+        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:7px;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
+      </div>
+    </div>`;
+  };
+
   // Print handler - opens a new window with task list table + timeline visualization
   const handlePrint = useCallback(async () => {
     const container = ganttContainerRef.current;
@@ -1421,12 +1601,16 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       return;
     }
     
-    // Build project names header
-    const projectNames = selectedProjectIds.map(id => {
+    // Build project names header — top-level projects only
+    const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return proj?.title || proj?.project_name || `Project ${id}`;
+      return !proj?.id_parent;
+    });
+    const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.name || proj?.intent || `Project ${id}`;
     }).join(', ');
-    
+
     // Calculate date range for the timeline
     let minDate = new Date();
     let maxDate = new Date();
@@ -1446,6 +1630,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     maxDate.setDate(maxDate.getDate() + 2);
     const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
     
+    // Today line for timeline cells
+    const todayLineHtml = renderPrintTodayLine(minDate, totalDays);
+
     // Build task list table rows with visual timeline bars (using inline styles for print compatibility)
     const taskRows = ganttData.tasks.map(task => {
       const mapped = task as GanttMappedTask;
@@ -1465,9 +1652,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         barWidth = Math.max((duration / totalDays) * 100, 1);
       }
       
-      const barColor = mapped.critical ? '#dc2626' : '#3b82f6';
-      const progressWidth = Math.min(progress, 100);
-      
       // Use fully inline styles for maximum print compatibility
       return `<tr>
         <td>${task.text || '—'}</td>
@@ -1477,35 +1661,33 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         <td style="text-align:center">${slack}</td>
         <td style="text-align:center;color:${mapped.critical ? '#dc2626' : '#9ca3af'}">${critical}</td>
         <td style="padding:2px 4px;min-width:300px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
-          <div style="position:relative;height:14px;background:#e5e7eb;border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
-            <div style="position:absolute;left:${barLeft}%;width:${barWidth}%;height:100%;background:${barColor};border-radius:2px;min-width:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
-              <div style="width:${progressWidth}%;height:100%;background:rgba(0,0,0,0.25);border-radius:2px 0 0 2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;"></div>
-            </div>
+          <div style="position:relative;height:22px;background:#e5e7eb;border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
+            ${todayLineHtml}
+            ${renderPrintBar(mapped, barLeft, barWidth, 22)}
           </div>
         </td>
       </tr>`;
     }).join('');
     
-    // Generate month labels for timeline header
-    const monthLabels: string[] = [];
-    const monthPositions: { label: string; left: number }[] = [];
+    // Generate week labels for timeline header
+    const weekPositions: { label: string; left: number; isMonth: boolean }[] = [];
     const tempDate = new Date(minDate);
     while (tempDate <= maxDate) {
       const dayOffset = (tempDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
       const leftPos = (dayOffset / totalDays) * 100;
-      if (tempDate.getDate() === 1 || monthLabels.length === 0) {
-        monthPositions.push({
-          label: tempDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-          left: leftPos
-        });
-      }
-      tempDate.setDate(tempDate.getDate() + 7); // Move week by week
+      const isMonthStart = tempDate.getDate() <= 7 && weekPositions.length > 0;
+      weekPositions.push({
+        label: tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        left: leftPos,
+        isMonth: isMonthStart,
+      });
+      tempDate.setDate(tempDate.getDate() + 7);
     }
-    
-    const timelineHeader = monthPositions.map(m => 
-      `<span style="position:absolute;left:${m.left}%;font-size:8px;color:#6b7280;">${m.label}</span>`
+
+    const timelineHeader = weekPositions.map(m =>
+      `<span style="position:absolute;left:${m.left}%;font-size:7px;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
     ).join('');
-    
+
     // Create a new window for printing
     const printWindow = window.open('', '_blank', 'width=1200,height=800');
     if (!printWindow) {
@@ -1648,19 +1830,20 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           <div class="print-header">
             <h1>Project Gantt Chart</h1>
             <p>${projectNames} | Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | ${ganttData.tasks.length} tasks</p>
+            ${renderPrintProjectLegend(selectedProjectIds, projects)}
           </div>
-          
+
           <!-- Task List with Timeline -->
           <div class="task-list-section">
             <table class="task-table">
               <thead>
                 <tr>
-                  <th style="width:22%">Task Name</th>
-                  <th style="width:8%;text-align:center">Start</th>
-                  <th style="width:8%;text-align:center">End</th>
-                  <th style="width:6%;text-align:center">Progress</th>
-                  <th style="width:6%;text-align:center">Slack</th>
-                  <th style="width:5%;text-align:center">Crit</th>
+                  <th style="width:22%">action.en</th>
+                  <th style="width:8%;text-align:center">dt_start</th>
+                  <th style="width:8%;text-align:center">dt_deadline</th>
+                  <th style="width:6%;text-align:center">percent_complete</th>
+                  <th style="width:6%;text-align:center">slack</th>
+                  <th style="width:5%;text-align:center">isCritical</th>
                   <th style="width:45%">
                     <div style="position:relative;height:16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">${timelineHeader}</div>
                   </th>
@@ -1685,7 +1868,199 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     
     printWindow.document.close();
   }, [projects, selectedProjectIds, ganttData.tasks]);
-  
+
+  // Print handler - bars only, task text overruns the bar (no table columns)
+  const handlePrintBars = useCallback(async () => {
+    const container = ganttContainerRef.current;
+    if (!container) {
+      alert("Unable to print: Gantt container not found");
+      return;
+    }
+
+    const topLevelIds = selectedProjectIds.filter(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return !proj?.id_parent;
+    });
+    const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.name || proj?.intent || `Project ${id}`;
+    }).join(', ');
+
+    // Calculate date range
+    let minDate = new Date();
+    let maxDate = new Date();
+    ganttData.tasks.forEach(task => {
+      if (task.start instanceof Date) {
+        if (task.start < minDate) minDate = new Date(task.start);
+        if (task.start > maxDate) maxDate = new Date(task.start);
+      }
+      if (task.end instanceof Date) {
+        if (task.end < minDate) minDate = new Date(task.end);
+        if (task.end > maxDate) maxDate = new Date(task.end);
+      }
+    });
+    minDate.setDate(minDate.getDate() - 2);
+    maxDate.setDate(maxDate.getDate() + 2);
+    const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Build bar rows grouped by week
+    const getWeekKey = (d: Date) => {
+      const mon = new Date(d);
+      mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7)); // Monday
+      return mon.toISOString().slice(0, 10);
+    };
+    const getWeekLabel = (d: Date) => {
+      const mon = new Date(d);
+      mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+      const sun = new Date(mon);
+      sun.setDate(sun.getDate() + 6);
+      return `${mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    };
+
+    // Group tasks by start week
+    const weekGroups = new Map<string, { label: string; rows: string[] }>();
+    ganttData.tasks.forEach(task => {
+      const mapped = task as GanttMappedTask;
+      let barLeft = 0;
+      let barWidth = 0;
+      if (task.start instanceof Date && task.end instanceof Date) {
+        const startOffset = (task.start.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+        const duration = Math.max(1, (task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24));
+        barLeft = (startOffset / totalDays) * 100;
+        barWidth = Math.max((duration / totalDays) * 100, 1);
+      }
+      const weekKey = task.start instanceof Date ? getWeekKey(task.start) : '9999';
+      const weekLabel = task.start instanceof Date ? getWeekLabel(task.start) : 'Unscheduled';
+      if (!weekGroups.has(weekKey)) {
+        weekGroups.set(weekKey, { label: weekLabel, rows: [] });
+      }
+      weekGroups.get(weekKey)!.rows.push(
+        `<div style="position:relative;height:24px;margin-bottom:2px;">${renderPrintBar(mapped, barLeft, barWidth, 24)}</div>`
+      );
+    });
+
+    // Render grouped with week dividers
+    const barRows = Array.from(weekGroups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, group]) =>
+        `<div style="margin-top:8px;margin-bottom:4px;border-top:1px solid #d1d5db;padding-top:4px;">
+          <div style="font-size:8px;font-weight:600;color:#6b7280;margin-bottom:2px;">${group.label}</div>
+          ${group.rows.join('')}
+        </div>`
+      ).join('');
+
+    // Week labels for timeline header
+    const weekPositions: { label: string; left: number; isMonth: boolean }[] = [];
+    const tempDate = new Date(minDate);
+    while (tempDate <= maxDate) {
+      const dayOffset = (tempDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+      const leftPos = (dayOffset / totalDays) * 100;
+      const isMonthStart = tempDate.getDate() <= 7 && weekPositions.length > 0;
+      weekPositions.push({
+        label: tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        left: leftPos,
+        isMonth: isMonthStart,
+      });
+      tempDate.setDate(tempDate.getDate() + 7);
+    }
+    const timelineHeader = weekPositions.map(m =>
+      `<span style="position:absolute;left:${m.left}%;font-size:8px;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
+    ).join('');
+
+    // Week grid lines
+    const gridLines: string[] = [];
+    const gridDate = new Date(minDate);
+    while (gridDate <= maxDate) {
+      const dayOffset = (gridDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+      const leftPos = (dayOffset / totalDays) * 100;
+      gridLines.push(`<div style="position:absolute;left:${leftPos}%;top:0;bottom:0;width:1px;background:#e5e7eb;-webkit-print-color-adjust:exact;print-color-adjust:exact;"></div>`);
+      gridDate.setDate(gridDate.getDate() + 7);
+    }
+
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) {
+      alert("Please allow popups to print the Gantt chart");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gantt Chart - ${projectNames}</title>
+          <style>
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            body {
+              margin: 0;
+              padding: 20px;
+              background: white;
+              font-family: system-ui, -apple-system, sans-serif;
+              font-size: 11px;
+            }
+            .print-header {
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .print-header h1 {
+              margin: 0 0 4px 0;
+              font-size: 16px;
+              font-weight: 600;
+              color: #111827;
+            }
+            .print-header p {
+              margin: 0;
+              font-size: 10px;
+              color: #6b7280;
+            }
+            @media print {
+              @page { size: landscape; margin: 0.3in; }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              body { padding: 0; }
+              .print-header { margin-bottom: 8px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1>Project Gantt Chart</h1>
+            <p>${projectNames} | Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | ${ganttData.tasks.length} tasks</p>
+            ${renderPrintProjectLegend(selectedProjectIds, projects)}
+          </div>
+
+          <!-- Timeline header -->
+          <div style="position:relative;height:20px;border-bottom:2px solid #d1d5db;margin-bottom:4px;">
+            ${timelineHeader}
+          </div>
+
+          <!-- Bar chart -->
+          <div style="position:relative;">
+            ${renderPrintTodayLine(minDate, totalDays)}
+            ${gridLines.join('')}
+            ${barRows}
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+  }, [projects, selectedProjectIds, ganttData.tasks]);
+
   // Export to SVG handler - creates a true vector graphic
   const handleExportSVG = useCallback(() => {
     if (ganttData.tasks.length === 0) {
@@ -1730,9 +2105,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     // Build project names
-    const projectNames = selectedProjectIds.map(id => {
+    const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return proj?.title || proj?.project_name || `Project ${id}`;
+      return !proj?.id_parent;
+    });
+    const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.name || proj?.intent || `Project ${id}`;
     }).join(', ');
     
     // Generate month/week markers
@@ -1842,7 +2221,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     
     const fileProjectNames = selectedProjectIds.map(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return proj?.title || proj?.project_name || id;
+      return proj?.name || proj?.intent || id;
     }).join('-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 50);
     
     link.download = `gantt-${fileProjectNames || 'chart'}-${new Date().toISOString().split("T")[0]}.svg`;
@@ -2150,6 +2529,99 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 <span className="whitespace-nowrap">Auto-sort</span>
               </label>
               
+              {/* Color mode selector */}
+              <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+                <span className="px-1 text-xs text-gray-500 dark:text-gray-400">Color:</span>
+                {([
+                  { id: 'priority', label: 'Priority' },
+                  { id: 'status', label: 'Status' },
+                  { id: 'assigned', label: 'Who' },
+                  { id: 'project', label: 'Project' },
+                ] as const).map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setColorMode(mode.id)}
+                    className={combineClassNames(
+                      "rounded-md px-2 py-1 text-xs font-medium transition",
+                      colorMode === mode.id
+                        ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                    )}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* A+/A- font controls */}
+              <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setGanttFontScale(s => {
+                    const n = s - 2;
+                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n));
+                    return n;
+                  })}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+                  title="Decrease font size"
+                >A-</button>
+                <button
+                  type="button"
+                  onClick={() => setGanttFontScale(s => {
+                    const n = s + 2;
+                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n));
+                    return n;
+                  })}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+                  title="Increase font size"
+                >A+</button>
+              </div>
+
+              {/* Text overflow toggle */}
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={textOverflow}
+                  onChange={(e) => {
+                    setTextOverflow(e.target.checked);
+                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_show_full_text', e.target.checked));
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                />
+                <span className="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">Show full text</span>
+              </label>
+
+              {/* Critical Path toggle */}
+              <button
+                type="button"
+                onClick={() => setCriticalPathHighlight(!criticalPathHighlight)}
+                className={combineClassNames(
+                  "rounded-md px-2 py-1 text-xs font-medium transition",
+                  criticalPathHighlight
+                    ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30 dark:text-red-300"
+                    : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-white"
+                )}
+                title="Highlight critical path — dims non-critical tasks"
+              >
+                CP
+              </button>
+
+              {/* Assignee filter */}
+              {uniqueAssignees.length > 0 && (
+                <select
+                  value={assigneeFilter || ''}
+                  onChange={(e) => setAssigneeFilter(e.target.value || null)}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  title="Filter by assignee — dims tasks not assigned to selected person"
+                >
+                  <option value="">All</option>
+                  {uniqueAssignees.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              )}
+
               {/* Scale buttons */}
               <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
                 {scaleButtons.map((button) => (
@@ -2172,7 +2644,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               {/* Task list collapse toggle */}
               <button
                 type="button"
-                onClick={() => setTaskListCollapsed(!taskListCollapsed)}
+                onClick={() => {
+                  const next = !taskListCollapsed;
+                  setTaskListCollapsed(next);
+                  import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_list_collapsed', next));
+                }}
                 className={combineClassNames(
                   "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition",
                   taskListCollapsed
@@ -2183,14 +2659,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   {taskListCollapsed ? (
-                    // Expand icon (columns expanding right)
                     <path d="M9 4h11M9 8h7M9 12h4M9 16h7M9 20h11M4 12l3-3v6l-3-3z" strokeLinecap="round" strokeLinejoin="round"/>
                   ) : (
-                    // Collapse icon (columns collapsing left)
                     <path d="M4 4h11M4 8h7M4 12h4M4 16h7M4 20h11M21 12l-3-3v6l3-3z" strokeLinecap="round" strokeLinejoin="round"/>
                   )}
                 </svg>
-                {taskListCollapsed ? "Show List" : "Hide List"}
+                List
               </button>
               
               {/* Refresh button */}
@@ -2218,30 +2692,35 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 {isRefreshing ? "Refreshing..." : "Refresh"}
               </button>
               
-              {/* Print button */}
-              <button
-                type="button"
-                onClick={handlePrint}
-                disabled={ganttData.tasks.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                title="Print Gantt chart"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+              {/* Print split button */}
+              <div className="relative inline-flex rounded-lg shadow-sm">
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  disabled={ganttData.tasks.length === 0}
+                  className="inline-flex items-center gap-2 rounded-l-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                  title="Print with table"
                 >
-                  <path
-                    d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Print
-              </button>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"
+                      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+                    />
+                  </svg>
+                  Print
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintBars}
+                  disabled={ganttData.tasks.length === 0}
+                  className="inline-flex items-center rounded-r-lg border border-l-0 border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                  title="Print bars only (no table)"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M4 6h10M4 12h16M4 18h13" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
               
               {/* Export SVG button */}
               <button
@@ -2376,23 +2855,36 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </p>
               </div>
             ) : (
-              <div ref={ganttContainerRef} className="h-full w-full [&_.wx-gantt]:!h-full [&_.wx-gantt]:!w-full [&_.wx-scale]:!sticky [&_.wx-scale]:!top-0 [&_.wx-scale]:!z-10 [&_.wx-scale]:!bg-white [&_.wx-scale]:dark:!bg-gray-900">
+              <div ref={ganttContainerRef} className="h-full w-full [&_.wx-gantt]:!h-full [&_.wx-gantt]:!w-full [&_.wx-scale]:!sticky [&_.wx-scale]:!top-0 [&_.wx-scale]:!z-10 [&_.wx-scale]:!bg-white [&_.wx-scale]:dark:!bg-gray-900" style={{ fontSize: `${12 + ganttFontScale}px`, '--gantt-font-scale': ganttFontScale, '--gantt-text-overflow': textOverflow ? 'visible' : 'hidden', '--gantt-cp-highlight': criticalPathHighlight ? '1' : '0' } as React.CSSProperties}>
+                {/* Frozen top 2 rows — project header rows stay pinned while scrolling */}
+                <style>{`
+                  .wx-content .wx-row:nth-child(1),
+                  .wx-content .wx-row:nth-child(2) {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 5 !important;
+                    background: var(--wx-background, #fff) !important;
+                    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+                  }
+                  .wx-content .wx-row:nth-child(2) {
+                    top: ${38 + ganttFontScale}px !important;
+                  }
+                `}</style>
                 <Willow>
                   <Gantt
-                    key={ganttKey}
+                    key={`${ganttKey}-fs${ganttFontScale}`}
                     tasks={ganttData.tasks}
                     links={ganttData.links}
                     columns={activeColumns}
                     scales={activeScales}
                     start={dateRange.start}
                     end={dateRange.end}
-                    onShowEditor={handleShowEditor}
                     onItemDoubleClick={handleShowEditor}
                     onUpdateTask={handleSvarUpdateTask}
                     onAddLink={handleAddLink}
                     onDeleteLink={handleDeleteLink}
                     onUpdateLink={handleUpdateLink}
-                    cellHeight={38}
+                    cellHeight={38 + ganttFontScale}
                     taskTemplate={GanttTaskTemplate}
                     highlightTime={(date: Date, unit: 'day' | 'hour') => {
                       // Highlight today's column
