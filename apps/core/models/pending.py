@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from common.models import CoreModel, default_data
+from common.models import CoreModel
 
 
 class Pending(CoreModel):
@@ -12,10 +12,12 @@ class Pending(CoreModel):
     # Canonical model identifier
     model_name = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
-    purpose = models.CharField(max_length=120, blank=True, null=True)
+    purpose = models.CharField(max_length=120, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=120, blank=True, null=True)
-    config = models.JSONField(default=default_data)
     dt_processed = models.BigIntegerField(default=0, db_index=True)
+    sequence = models.PositiveIntegerField(default=0, help_text="Order within a connection. 0 = unordered.")
+    attempts = models.PositiveIntegerField(default=0)
+    changes = models.JSONField(default=list, blank=True)
 
     class Meta:
         db_table = 'pending'

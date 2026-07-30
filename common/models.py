@@ -52,6 +52,7 @@ MAX_METADATA_SIZE = 128000  # bytes
 # larger data items should be driven into documents and linked
 MAX_REFS_SIZE = 64000
 MAX_PREFS_SIZE = 96000 # max prefs
+MAX_CONFIG_SIZE = 64000  # config — application data; larger content → Document record
 MAX_ACTIONS_SIZE = 32000  # actions JSON should remain small and query-friendly
 SIZE_WARN_FRACTION = 0.75  # warn once JSON envelope passes 75% of limit
 SIZE_ACTIVITY_FRACTIONS: tuple[float, ...] = (0.30, 0.60, 0.75)  # progressive telemetry thresholds
@@ -123,6 +124,7 @@ def _telemetry_offload_candidates(instance: "BaseModel"):
             'metadata': MAX_METADATA_SIZE,
             'refs': MAX_REFS_SIZE,
             'prefs': MAX_PREFS_SIZE,
+            'config': MAX_CONFIG_SIZE,
             'comments': MAX_METADATA_SIZE,  # comments shares metadata cap unless changed
         }.get(field_name, MAX_METADATA_SIZE)
         min_bytes = int(cap * OFFLOAD_MIN_FRACTION)
@@ -395,6 +397,12 @@ class CoreModel(models.Model):
     # defines is_active, its field overrides this definition (no duplicate schema field in migration).
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
     security_level = models.IntegerField(default=0, blank=True, db_index=True, help_text="Security level or classification")
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Application data container — form fields, type-specific content, user-managed data. "
+                  "Separate from metadata (system behavior) by design."
+    )
     # Legacy suffix style (dt_created / dt_modified) fully removed; ALWAYS use dt_created / dt_modified.
 
     class Meta:
@@ -492,6 +500,47 @@ class LifecycleMixin(models.Model):
         """Unlock the record to allow edits (admin action)."""
         self.is_locked = False
         self.save()
+
+
+class ConfigMixin(models.Model):
+    """Application data container — separate from metadata by design.
+
+    metadata = how the record BEHAVES (workflow state, flags, history, schema)
+    config   = what the record CONTAINS (form data, type-specific fields, user content)
+
+    Why two fields:
+    - metadata has system scaffolding (_init_metadata_if_needed) that auto-populates
+      history, flags, versioning, flow, source, resources, small_stings, erosions.
+      Mixing application data into metadata risks collisions and makes it hard to
+      know what's system-managed vs user-managed.
+    - config is a clean JSON dict with no auto-scaffolding. The application owns it
+      entirely. Alice reads it to understand the record. The .tsx page writes it
+      from form fields. No system code touches it unless the application asks.
+
+    Examples:
+    - Action (quality_type=ncr): config holds item_name, actual_condition, disposition
+    - Action (quality_type=car): config holds root_cause, proposed_action, verification
+    - Item: config holds vendor-specific specs, certifications, handling instructions
+    - Contact: config holds role-specific fields per business type
+    - Document: config holds template variables, print options, audience tags
+
+    This field lives on BaseModel so every model has it from day one.
+    No per-model migrations. No "does this model have config?" questions.
+
+    Gordy Israelson's nuclear quality discipline digitized: the form data for every
+    NCR, CAR, deviation, and document change request lives here. The workflow state
+    stays in metadata. Clean separation. No collisions.
+    """
+
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Application data container — form fields, type-specific content, user-managed data. "
+                  "Separate from metadata (system behavior) by design."
+    )
+
+    class Meta:
+        abstract = True
 
 
 class MetadataMixin(models.Model):
@@ -1482,6 +1531,8 @@ class BaseModel(
             check_size(self.refs, MAX_REFS_SIZE, "refs")  # type: ignore[attr-defined]
         if hasattr(self, "prefs"):
             check_size(self.prefs, MAX_PREFS_SIZE, "prefs")  # type: ignore[attr-defined]
+        if hasattr(self, "config"):
+            check_size(self.config, MAX_CONFIG_SIZE, "config")  # type: ignore[attr-defined]
         if hasattr(self, "actions"):
             check_size(self.actions, MAX_ACTIONS_SIZE, "actions")  # type: ignore[attr-defined]
 

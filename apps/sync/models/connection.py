@@ -37,7 +37,7 @@ from apps.sync.choices import (
 class Connection(BaseModel):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=255, choices=CONNECTION_TYPE_CHOICES)
-    config = models.JSONField()
+    # config inherited from CoreModel
     comment = models.TextField(blank=True, default="", help_text="General notes")
         #endpoints = models.JSONField(blank=True, null=True)
         #schedule = models.JSONField(blank=True, null=True)

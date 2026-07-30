@@ -31,6 +31,8 @@ CONNECTION_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("bi", "Business Intelligence"),
     ("sync", "Bidirectional Sync"),
     ("monitor", "Monitoring"),
+    ("deploy", "Software Deploy"),
+    ("training", "Knowledge & Training"),
 )
 
 BUNDLE_DIRECTION_CHOICES: Final[ChoiceList] = (

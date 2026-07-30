@@ -13,7 +13,7 @@ These are commerce_expert records — they ship with the product, sync via
 Connection+Bundle, and appear in the DataBrowser.
 """
 from django.db import models
-from common.models import CoreModel
+from common.models import CoreModel, BaseModel
 
 
 class AliceObservation(CoreModel):
@@ -107,13 +107,13 @@ class AlicePreset(CoreModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
 
-    # The preset data — structure depends on preset_type
+    # The preset data lives in config (inherited from CoreModel)
+    # Structure depends on preset_type:
     # search: {model, term, filters}
     # layout: {model, list, detail, widths}
     # dashboard: {panels: [{model, type, filters}]}
     # workflow: {steps: [{action, params}]}
     # report: {report_name, model, filters, format}
-    config = models.JSONField(default=dict)
 
     # Context
     model_name = models.CharField(max_length=50, blank=True, db_index=True)
@@ -175,3 +175,119 @@ class AliceCoachingLog(CoreModel):
     def __str__(self):
         status = 'passed' if self.passed else 'completed' if self.completed else 'started'
         return f'{self.drill_name} ({status})'
+
+
+class AliceInsight(BaseModel):
+    """Agent insight record — one per agent per contact per subject.
+
+    Multiple agents build insight records at multiple granularities.
+    The same schema serves Alice.everywhere (every installation),
+    Alice.wchq (headquarters aggregation), and Athena (security).
+
+    agent   | subject_type | subject_key        | What the agent learns
+    ------- | ------------ | ------------------ | ------------------------------------
+    alice   | user         | (empty)            | How this person works overall
+    alice   | model        | "contact"          | How this person uses contacts
+    alice   | model        | "invoice"          | How this person handles invoices
+    alice   | flow         | "order_to_invoice" | Order→invoice→payment patterns
+    alice   | flow         | "dedup"            | How this person handles dedup
+    alice   | sync         | "wchq"             | Sync patterns with WC_HQ
+    alice   | sync         | "peer_store_42"    | Sync with a specific peer
+    alice   | coaching     | "gl_basics"        | Progress on a coaching track
+    athena  | security     | "login"            | Login patterns, anomalies
+    athena  | risk         | "bulk_delete"       | Risk behavior: mass record deletion
+    athena  | user         | (empty)            | Overall security posture for user
+
+    Common frame of reference:
+    - Alice.everywhere and Alice.wchq share this schema
+    - WC_HQ aggregates anonymized insight patterns across installations
+    - Athena writes security/risk insights using the same structure
+    - subject_type + subject_key is the common vocabulary
+
+    This is NOT the user's preferences (that's contact.metadata.wcui).
+    These are agent-written records. Agents observe, agents write.
+    Users can read them. The config JSONField schema varies by
+    subject_type — each agent/subject combination evolves its own
+    structure as the agent learns what matters.
+
+    config JSONField by subject_type:
+
+    user:     skill_levels, navigation_patterns, communication_style,
+              pain_points, strengths, coaching_notes[]
+    model:    fields_used, fields_ignored, common_filters, avg_time_on_page,
+              error_patterns, preferred_layout
+    flow:     steps_completed, steps_skipped, avg_duration, common_errors,
+              last_successful_dt
+    sync:     frequency, last_result, conflict_count, resolution_patterns
+    coaching: drills_completed, scores, time_spent, next_recommended
+    security: last_review_dt, flags[], cleared_flags[], risk_score
+    risk:     occurrences, severity, last_occurrence_dt, action_taken
+    """
+    # No choices constraint — users may add their own agents.
+    # Built-in: alice (bookkeeper/coach), athena (security/risk).
+    # Custom agents register themselves by writing insight records.
+
+    agent = models.CharField(
+        max_length=50, default='alice', db_index=True,
+        help_text='Agent that wrote this insight (alice, athena, or user-defined)',
+    )
+    SUBJECT_CHOICES = [
+        ('user', 'User Profile'),
+        ('model', 'Model Usage'),
+        ('flow', 'Transaction Flow'),
+        ('sync', 'Sync Pattern'),
+        ('coaching', 'Coaching Track'),
+        ('security', 'Security Review'),
+        ('risk', 'Risk Assessment'),
+        ('system', 'System Health'),
+    ]
+    contact = models.ForeignKey(
+        'core.Contact', on_delete=models.CASCADE,
+        related_name='alice_insights',
+        help_text='The user Alice is learning about',
+    )
+    subject_type = models.CharField(
+        max_length=20, choices=SUBJECT_CHOICES, db_index=True,
+        help_text='Category of insight',
+    )
+    subject_key = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Specific subject within the type (model name, flow name, etc.)',
+    )
+
+    # Summary — Alice's one-line assessment, updated periodically
+    summary = models.TextField(
+        blank=True,
+        help_text='Alice one-line summary for this subject',
+    )
+
+    # config is inherited from BaseModel (ConfigMixin).
+    # Agent writes structured understanding here; schema varies by subject_type.
+
+    # Engagement metrics
+    observation_count = models.IntegerField(
+        default=0,
+        help_text='Observations Alice has made on this subject',
+    )
+    dt_last_interaction = models.BigIntegerField(
+        default=0,
+        help_text='Last time Alice observed activity on this subject (epoch ms)',
+    )
+    dt_last_updated = models.BigIntegerField(
+        default=0,
+        help_text='Last time Alice updated this insight (epoch ms)',
+    )
+
+    class Meta:
+        db_table = 'alice_insights'
+        unique_together = [('agent', 'contact', 'subject_type', 'subject_key')]
+        indexes = [
+            models.Index(fields=['agent', 'contact', 'subject_type'], name='aliceins_agent_ct_type_idx'),
+            models.Index(fields=['agent', 'subject_type', 'subject_key'], name='aliceins_agent_type_key_idx'),
+            models.Index(fields=['dt_last_updated'], name='aliceins_last_updated_idx'),
+        ]
+
+    def __str__(self):
+        name = getattr(self.contact, 'attention', None) or f'Contact {self.contact_id}'
+        key = f':{self.subject_key}' if self.subject_key else ''
+        return f'{self.agent} {self.subject_type}{key} — {name}'

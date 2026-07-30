@@ -14,13 +14,14 @@ from .connection import Connection  # Relative import
 class Bundle(BaseModel):
     connection = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='bundles', db_column='connection_id')
     direction = models.CharField(max_length=255, choices=BUNDLE_DIRECTION_CHOICES)
-    config = models.JSONField()
+    # config inherited from CoreModel
     status = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         choices=BUNDLE_STATUS_CHOICES,
     )
+    dt_processed = models.BigIntegerField(default=0, db_index=True)
     alert = models.CharField(
         max_length=255,
         blank=True,
