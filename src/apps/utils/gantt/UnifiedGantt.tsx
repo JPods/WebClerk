@@ -12,6 +12,7 @@
 // @ts-nocheck - Temporary: types need alignment with current definitions
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format as dateFnsFormat } from "date-fns";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IApi, IColumnConfig, ITask } from "@svar-ui/react-gantt";
@@ -47,7 +48,8 @@ import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
 import type { GanttMappedTask } from "./ganttDataMapper";
 import { getGanttDateRange } from "./ganttDataMapper";
-import { GanttTaskTemplate, setGanttCriticalPathHighlight, setGanttAssigneeFilter } from "./GanttTaskTemplate";
+import { GanttTaskTemplate, setGanttCriticalPathHighlight, setGanttAssigneeFilter, setGanttOnOpenDetail } from "./GanttTaskTemplate";
+import ActionDetail from "../../core/models/action/pages/ActionDetail";
 import { DualScrollbar } from "../../../components/common/DualScrollbar";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -91,6 +93,89 @@ const formatDate = (value?: Date) => (value ? ganttDateFormatter.format(value) :
 
 // SVAR template signature: (value: string, task: ITask, column: IColumnConfig)
 // The task with all custom properties is in the 2nd argument
+
+// =============================================================================
+// Project-level Gantt settings — stored in project.metadata.kanban.settings[]
+// =============================================================================
+
+interface GanttSettingsSnapshot {
+  color: string;
+  font_scale: number;
+  cp_highlight: boolean;
+  period: string;
+  text_overflow: boolean;
+  list_collapsed: boolean;
+  assignee_filter: string | null;
+  use_count: number;
+  dt_last_used: number;
+}
+
+/** Load settings: admin default_view first, then most-used from settings[], then system defaults */
+function loadProjectGanttSettings(projectMetadata: any): GanttSettingsSnapshot | null {
+  try {
+    // Admin-pinned default view takes priority
+    const defaultView = projectMetadata?.kanban?.default_view;
+    if (defaultView && typeof defaultView === 'object') {
+      return { ...defaultView, use_count: 0, dt_last_used: 0 } as GanttSettingsSnapshot;
+    }
+    // Fall back to most frequently used
+    const settings = projectMetadata?.kanban?.settings;
+    if (Array.isArray(settings) && settings.length > 0) {
+      return [...settings].sort((a, b) => (b.use_count || 0) - (a.use_count || 0))[0];
+    }
+  } catch {}
+  return null;
+}
+
+/** Save current settings to project metadata. Dedup, cap at 5, track frequency. */
+async function saveProjectGanttSettings(
+  projectId: string,
+  current: Omit<GanttSettingsSnapshot, 'use_count' | 'dt_last_used'>,
+  existingMetadata: any,
+): Promise<void> {
+  const meta = { ...(existingMetadata || {}) };
+  if (!meta.kanban) meta.kanban = {};
+  if (!Array.isArray(meta.kanban.settings)) meta.kanban.settings = [];
+
+  const settings: GanttSettingsSnapshot[] = meta.kanban.settings;
+  const now = Date.now();
+
+  // Check if this exact config already exists
+  const match = settings.findIndex(s =>
+    s.color === current.color &&
+    s.font_scale === current.font_scale &&
+    s.cp_highlight === current.cp_highlight &&
+    s.period === current.period &&
+    s.text_overflow === current.text_overflow &&
+    s.list_collapsed === current.list_collapsed &&
+    s.assignee_filter === current.assignee_filter
+  );
+
+  if (match >= 0) {
+    settings[match].use_count = (settings[match].use_count || 0) + 1;
+    settings[match].dt_last_used = now;
+  } else {
+    settings.push({ ...current, use_count: 1, dt_last_used: now });
+    // Cap at 5 — drop least used
+    if (settings.length > 5) {
+      settings.sort((a, b) => (b.use_count || 0) - (a.use_count || 0));
+      settings.length = 5;
+    }
+  }
+
+  meta.kanban.settings = settings;
+
+  try {
+    const { saveRecord } = await import("../../../api/wcapi");
+    await saveRecord("project", {
+      model_name: "project",
+      id: projectId,
+      metadata: { mode: "update", value: meta },
+    });
+  } catch (e) {
+    console.warn("[Gantt] Failed to save project settings:", e);
+  }
+}
 
 // Reorder column for manual task ordering (shown when auto-sort is disabled)
 // Uses a global event emitter pattern since SVAR templates can't directly call React state setters
@@ -332,10 +417,26 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   autoRefresh = true,
   onTaskClick,
 }) => {
+  const navigate = useNavigate();
+
   // Determine if we should show selector
   const isSingleProjectMode = Boolean(projectId);
   const showSelector = showSelectorProp ?? !isSingleProjectMode;
-  
+
+  // Project metadata — loaded once for project-level settings
+  const [projectMetadata, setProjectMetadata] = useState<any>(null);
+  const projectSettingsApplied = useRef(false);
+
+  // Load project metadata for settings
+  useEffect(() => {
+    if (!projectId) return;
+    projectSettingsApplied.current = false;
+    getRecord("project", projectId).then((resp: any) => {
+      const meta = resp?.data?.metadata || resp?.metadata || null;
+      setProjectMetadata(meta);
+    }).catch(() => {});
+  }, [projectId]);
+
   // Sidebar collapsed state (collapsed by default)
   const [selectorCollapsed, setSelectorCollapsed] = useState(true);
   
@@ -570,6 +671,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   });
   const [criticalPathHighlight, setCriticalPathHighlight] = useState(false);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const [showAdminTools, setShowAdminTools] = useState(false);
+  const [detailActionId, setDetailActionId] = useState<string | null>(null);
 
   // Unique assignees from current tasks for filter dropdown
   const uniqueAssignees = useMemo(() => {
@@ -586,11 +689,47 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [ganttData.tasks]);
 
+  // Apply project-level settings once metadata loads
+  useEffect(() => {
+    if (!projectMetadata || projectSettingsApplied.current) return;
+    const ps = loadProjectGanttSettings(projectMetadata);
+    if (!ps) return;
+    projectSettingsApplied.current = true;
+    if (ps.color) setColorMode(ps.color as any);
+    if (typeof ps.font_scale === 'number') setGanttFontScale(ps.font_scale);
+    if (typeof ps.cp_highlight === 'boolean') setCriticalPathHighlight(ps.cp_highlight);
+    if (ps.period) setScalePreset(ps.period as ScalePresetKey);
+    if (typeof ps.text_overflow === 'boolean') setTextOverflow(ps.text_overflow);
+    if (typeof ps.list_collapsed === 'boolean') setTaskListCollapsed(ps.list_collapsed);
+    if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
+  }, [projectMetadata]);
+
+  // Auto-save settings to project when they change (debounced)
+  const saveSettingsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!projectId || !projectSettingsApplied.current) return;
+    if (saveSettingsTimeoutRef.current) clearTimeout(saveSettingsTimeoutRef.current);
+    saveSettingsTimeoutRef.current = setTimeout(() => {
+      saveProjectGanttSettings(projectId, {
+        color: colorMode,
+        font_scale: ganttFontScale,
+        cp_highlight: criticalPathHighlight,
+        period: scalePreset,
+        text_overflow: textOverflow,
+        list_collapsed: taskListCollapsed,
+        assignee_filter: assigneeFilter,
+      }, projectMetadata);
+    }, 2000);
+    return () => { if (saveSettingsTimeoutRef.current) clearTimeout(saveSettingsTimeoutRef.current); };
+  }, [projectId, colorMode, ganttFontScale, criticalPathHighlight, scalePreset, textOverflow, taskListCollapsed, assigneeFilter, projectMetadata]);
+
   // Sync module-level flags for task template and force SVAR re-render
   useEffect(() => {
     setGanttCriticalPathHighlight(criticalPathHighlight);
     setGanttAssigneeFilter(assigneeFilter);
+    setGanttOnOpenDetail((id: string) => setDetailActionId(id));
     setGanttKey(k => k + 1);
+    return () => { setGanttOnOpenDetail(null); };
   }, [criticalPathHighlight, assigneeFilter]);
 
   const activeScales = scalePresets[scalePreset];
@@ -887,6 +1026,14 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       setIsEditModalOpen(true);
     },
     [ganttData.tasks, deriveFormStateFromTask, onTaskClick]
+  );
+
+  // Double-click on grid row → open in side panel
+  const handleOpenDetailPanel = useCallback(
+    ({ id }: { id: string | number }) => {
+      if (id) setDetailActionId(String(id));
+    },
+    []
   );
 
   const handleCloseEditModal = useCallback(() => {
@@ -2132,6 +2279,17 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       tempDate.setDate(tempDate.getDate() + 7);
     }
     
+    // Color maps matching GanttTaskTemplate
+    const svgPriorityColors: Record<string, string> = {
+      low: '#e2e8f0', medium: '#93c5fd', high: '#f97316', critical: '#ef4444',
+    };
+    const svgStatusColors: Record<string, string> = {
+      open: '#94a3b8', in_progress: '#3b82f6', active: '#3b82f6',
+      complete: '#22c55e', done: '#22c55e', on_hold: '#9ca3af', onhold: '#9ca3af',
+      blocked: '#ef4444', cancelled: '#6b7280', canceled: '#6b7280', draft: '#d1d5db',
+    };
+    const svgPriorityLabel: Record<string, string> = { low: 'L', medium: 'M', high: 'H', critical: '!' };
+
     // Generate SVG content
     let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}">
@@ -2139,75 +2297,116 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     <style>
       .title { font: bold 14px system-ui, -apple-system, sans-serif; fill: #111827; }
       .subtitle { font: 9px system-ui, sans-serif; fill: #6b7280; }
-      .task-name { font: 10px system-ui, sans-serif; fill: #374151; }
       .date-label { font: 8px system-ui, sans-serif; fill: #9ca3af; }
+      .date-label-bold { font: bold 8px system-ui, sans-serif; fill: #111827; }
       .header-bg { fill: #f9fafb; }
       .grid-line { stroke: #e5e7eb; stroke-width: 0.5; }
-      .task-bar { rx: 3; ry: 3; }
-      .task-bar-normal { fill: #3b82f6; }
-      .task-bar-critical { fill: #dc2626; }
-      .progress-overlay { fill: rgba(0,0,0,0.2); }
+      .task-text { font: 9px system-ui, sans-serif; fill: #111827; }
+      .badge-text { font: bold 7px system-ui, sans-serif; fill: white; }
+      .percent-text { font: 7px system-ui, sans-serif; fill: #374151; }
+      .slip-text-pos { font: bold 6px system-ui, sans-serif; fill: #dc2626; }
+      .slip-text-neg { font: bold 6px system-ui, sans-serif; fill: #16a34a; }
     </style>
   </defs>
-  
+
   <!-- Background -->
   <rect width="${totalWidth}" height="${totalHeight}" fill="white"/>
-  
+
   <!-- Header -->
   <rect x="0" y="0" width="${totalWidth}" height="${headerHeight}" class="header-bg"/>
   <text x="${padding}" y="20" class="title">Project Gantt Chart</text>
   <text x="${padding}" y="35" class="subtitle">${escapeXml(projectNames)} | ${ganttData.tasks.length} tasks | ${new Date().toLocaleDateString()}</text>
-  
+
   <!-- Date markers -->
   ${dateMarkers.map(m => `<text x="${m.x}" y="45" class="date-label">${m.label}</text>`).join('\n  ')}
-  
+
   <!-- Separator line -->
   <line x1="0" y1="${headerHeight}" x2="${totalWidth}" y2="${headerHeight}" class="grid-line"/>
-  <line x1="${leftPanelWidth}" y1="${headerHeight}" x2="${leftPanelWidth}" y2="${totalHeight}" class="grid-line"/>
 `;
-    
-    // Add task rows
+
+    // Today line
+    const todayOffset = (new Date().getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+    const todayX = padding + (todayOffset / totalDays) * chartWidth;
+    if (todayX >= 0 && todayX <= chartWidth) {
+      svgContent += `  <line x1="${todayX}" y1="${headerHeight}" x2="${todayX}" y2="${totalHeight}" stroke="#ef4444" stroke-width="2"/>\n`;
+      svgContent += `  <text x="${todayX}" y="${headerHeight - 2}" class="slip-text-pos" text-anchor="middle">Today</text>\n`;
+    }
+
+    // Add task rows with rich bars
     ganttData.tasks.forEach((task, index) => {
       const mapped = task as GanttMappedTask;
       const y = headerHeight + index * rowHeight;
-      const rawTaskName = (task.text || '—').slice(0, 30) + ((task.text || '').length > 30 ? '...' : '');
-      const taskName = escapeXml(rawTaskName);
+      const priority = mapped.priority || 'medium';
+      const status = (mapped.columnId || 'open').toLowerCase().replace(/\s+/g, '_');
       const progress = typeof task.progress === 'number' ? Math.round(task.progress * 100) : 0;
-      const isCritical = mapped.critical;
-      
+      const priorityColor = svgPriorityColors[priority] || svgPriorityColors.medium;
+      const statusColor = svgStatusColors[status] || svgStatusColors.open;
+      const pLabel = svgPriorityLabel[priority] || 'M';
+      const isMilestone = task.start instanceof Date && task.end instanceof Date &&
+        (task.end.getTime() - task.start.getTime()) <= 86400000;
+
+      // Slippage
+      const slippageDays = (mapped.dtStartOriginal instanceof Date && task.start instanceof Date)
+        ? Math.round((task.start.getTime() - mapped.dtStartOriginal.getTime()) / 86400000) : 0;
+
       // Calculate bar position
-      let barX = leftPanelWidth + padding;
+      let barX = padding;
       let barWidth = 0;
       if (task.start instanceof Date && task.end instanceof Date) {
         const startOffset = (task.start.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
         const duration = Math.max(1, (task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24));
-        barX = leftPanelWidth + padding + (startOffset / totalDays) * chartWidth;
-        barWidth = Math.max((duration / totalDays) * chartWidth, 4);
+        barX = padding + (startOffset / totalDays) * chartWidth;
+        barWidth = Math.max((duration / totalDays) * chartWidth, 6);
       }
-      
+
       // Row background (alternating)
       if (index % 2 === 0) {
         svgContent += `  <rect x="0" y="${y}" width="${totalWidth}" height="${rowHeight}" fill="#fafafa"/>\n`;
       }
-      
-      // Grid line
       svgContent += `  <line x1="0" y1="${y + rowHeight}" x2="${totalWidth}" y2="${y + rowHeight}" class="grid-line"/>\n`;
-      
-      // Task name
-      svgContent += `  <text x="${padding}" y="${y + rowHeight / 2 + 4}" class="task-name">${taskName}</text>\n`;
-      
-      // Task bar
-      if (barWidth > 0) {
-        const barY = y + 6;
-        const barHeight = rowHeight - 12;
-        const barClass = isCritical ? 'task-bar-critical' : 'task-bar-normal';
-        
-        svgContent += `  <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" class="task-bar ${barClass}"/>\n`;
-        
-        // Progress overlay
+
+      const barY = y + 4;
+      const barHeight = rowHeight - 8;
+
+      if (isMilestone) {
+        // Diamond
+        const cx = barX;
+        const cy = barY + barHeight / 2;
+        svgContent += `  <rect x="${cx - 7}" y="${cy - 7}" width="14" height="14" fill="${priorityColor}" transform="rotate(45 ${cx} ${cy})"/>\n`;
+        svgContent += `  <text x="${cx + 12}" y="${cy + 4}" class="task-text">${escapeXml(task.text || '—')}</text>\n`;
+      } else if (barWidth > 0) {
+        // Bar background
+        svgContent += `  <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="3" fill="#f1f5f9"/>\n`;
+        // Top stripe (priority)
+        svgContent += `  <rect x="${barX}" y="${barY}" width="${barWidth}" height="3" rx="3" fill="${priorityColor}"/>\n`;
+        // Left stripe (status)
+        svgContent += `  <rect x="${barX}" y="${barY}" width="4" height="${barHeight}" rx="2" fill="${statusColor}"/>\n`;
+        // Bottom bar (% complete)
         if (progress > 0) {
-          const progressWidth = (progress / 100) * barWidth;
-          svgContent += `  <rect x="${barX}" y="${barY}" width="${progressWidth}" height="${barHeight}" class="progress-overlay" rx="3" ry="3"/>\n`;
+          const progW = (progress / 100) * barWidth;
+          const progColor = progress >= 100 ? '#22c55e' : '#3b82f6';
+          svgContent += `  <rect x="${barX}" y="${barY + barHeight - 3}" width="${progW}" height="3" fill="${progColor}"/>\n`;
+        }
+        // Priority badge
+        svgContent += `  <rect x="${barX + 8}" y="${barY + barHeight / 2 - 7}" width="14" height="14" rx="2" fill="${priorityColor}"/>\n`;
+        svgContent += `  <text x="${barX + 15}" y="${barY + barHeight / 2 + 3}" class="badge-text" text-anchor="middle">${pLabel}</text>\n`;
+        // CP badge
+        if (mapped.isCritical) {
+          svgContent += `  <rect x="${barX + 24}" y="${barY + barHeight / 2 - 7}" width="16" height="14" rx="2" fill="#dc2626"/>\n`;
+          svgContent += `  <text x="${barX + 32}" y="${barY + barHeight / 2 + 3}" class="badge-text" text-anchor="middle">CP</text>\n`;
+        }
+        // Task text (overruns bar)
+        const textX = barX + (mapped.isCritical ? 44 : 26);
+        svgContent += `  <text x="${textX}" y="${barY + barHeight / 2 + 3}" class="task-text">${escapeXml(task.text || '—')}</text>\n`;
+        // Percent text
+        if (progress > 0 && progress < 100) {
+          svgContent += `  <text x="${barX + barWidth + 4}" y="${barY + barHeight / 2 + 3}" class="percent-text">${progress}%</text>\n`;
+        }
+        // Slippage
+        if (slippageDays !== 0) {
+          const slipClass = slippageDays > 0 ? 'slip-text-pos' : 'slip-text-neg';
+          const slipLabel = `${slippageDays > 0 ? '+' : ''}${slippageDays}d`;
+          svgContent += `  <text x="${barX + barWidth + (progress > 0 && progress < 100 ? 30 : 4)}" y="${barY + barHeight / 2 + 3}" class="${slipClass}">${slipLabel}</text>\n`;
         }
       }
     });
@@ -2231,6 +2430,58 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     URL.revokeObjectURL(url);
   }, [projects, selectedProjectIds, ganttData.tasks]);
   
+  // Export JSON — full task data for import, analysis, or archival
+  const handleExportJSON = useCallback(() => {
+    if (ganttData.tasks.length === 0) return;
+
+    const topLevelIds = selectedProjectIds.filter(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return !proj?.id_parent;
+    });
+    const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.name || proj?.intent || `Project ${id}`;
+    });
+
+    const exported = {
+      exported_at: new Date().toISOString(),
+      projects: projectNames,
+      task_count: ganttData.tasks.length,
+      link_count: ganttData.links.length,
+      tasks: ganttData.tasks.map(task => {
+        const mapped = task as GanttMappedTask;
+        return {
+          id: task.id,
+          ida: mapped.taskIda,
+          text: task.text,
+          project: mapped.projectName,
+          project_ida: mapped.projectIda,
+          status: mapped.columnId,
+          priority: mapped.priority,
+          percent_complete: typeof task.progress === 'number' ? Math.round(task.progress * 100) : 0,
+          dt_start: task.start instanceof Date ? task.start.toISOString() : null,
+          dt_deadline: task.end instanceof Date ? task.end.toISOString() : null,
+          dt_start_original: mapped.dtStartOriginal instanceof Date ? mapped.dtStartOriginal.toISOString() : null,
+          dt_end_original: mapped.dtEndOriginal instanceof Date ? mapped.dtEndOriginal.toISOString() : null,
+          is_critical: mapped.isCritical || false,
+          slack_days: mapped.slack ?? null,
+          assigned_to: (mapped.assignedTo || []).map(a => ({ id: a.id, name: a.name })),
+          dependencies: mapped.refParents || [],
+        };
+      }),
+      links: ganttData.links,
+    };
+
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const fileLabel = projectNames.join('-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 50);
+    link.download = `gantt-${fileLabel || 'chart'}-${new Date().toISOString().split('T')[0]}.json`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [projects, selectedProjectIds, ganttData]);
+
   // Set baseline handler - saves current dates as original planned dates
   const handleSetBaseline = useCallback(async () => {
     if (ganttData.tasks.length === 0) return;
@@ -2404,6 +2655,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         .dark .today-highlight {
           background-color: rgba(239, 68, 68, 0.15) !important;
         }
+        .sprint-boundary {
+          border-left: 2px dashed rgba(99, 102, 241, 0.5) !important;
+          position: relative;
+        }
+        .dark .sprint-boundary {
+          border-left-color: rgba(129, 140, 248, 0.5) !important;
+        }
         /* Add resize cursor zones on task bar edges */
         .wx-bar:not(.wx-milestone) {
           cursor: move;
@@ -2492,43 +2750,48 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
             compact ? "px-4 py-3" : "px-6 py-4"
           )}>
             <div>
-              <h2 className={combineClassNames(
-                "font-semibold text-gray-900 dark:text-white",
-                compact ? "text-base" : "text-lg"
-              )}>
-                {isSingleProjectMode ? singleProjectName : "Project Timeline"}
-              </h2>
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                {selectedProjectIds.length === 0
-                  ? "Select projects to view tasks"
-                  : `${ganttData.tasks.length} task${ganttData.tasks.length !== 1 ? "s" : ""}${
-                      !isSingleProjectMode ? ` across ${selectedProjectIds.length} project${selectedProjectIds.length > 1 ? "s" : ""}` : ""
-                    }`}
-              </p>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {ganttData.tasks.length > 0
+                  ? `${ganttData.tasks.length} task${ganttData.tasks.length !== 1 ? "s" : ""}${
+                      !isSingleProjectMode && selectedProjectIds.length > 1 ? ` · ${selectedProjectIds.length} projects` : ""
+                    }`
+                  : ""}
+              </span>
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Auto-sort checkbox */}
-              <label
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                title="When enabled, tasks are automatically sorted by start date. Disable to manually reorder by dragging rows."
-              >
-                <input
-                  type="checkbox"
-                  checked={autoSortByDate}
+              {/* Project settings presets */}
+              {isSingleProjectMode && projectMetadata?.kanban?.settings?.length > 1 && (
+                <select
+                  value=""
                   onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setAutoSortByDate(newValue);
-                    // When disabling auto-sort, capture current order
-                    if (!newValue) {
-                      setCustomTaskOrder(getTaskOrder());
-                    }
+                    const idx = parseInt(e.target.value, 10);
+                    const settings = projectMetadata?.kanban?.settings;
+                    if (!settings?.[idx]) return;
+                    const ps = settings[idx];
+                    if (ps.color) setColorMode(ps.color);
+                    if (typeof ps.font_scale === 'number') setGanttFontScale(ps.font_scale);
+                    if (typeof ps.cp_highlight === 'boolean') setCriticalPathHighlight(ps.cp_highlight);
+                    if (ps.period) setScalePreset(ps.period as ScalePresetKey);
+                    if (typeof ps.text_overflow === 'boolean') setTextOverflow(ps.text_overflow);
+                    if (typeof ps.list_collapsed === 'boolean') setTaskListCollapsed(ps.list_collapsed);
+                    if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
-                />
-                <span className="whitespace-nowrap">Auto-sort</span>
-              </label>
-              
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  title="Load a saved view configuration"
+                >
+                  <option value="">Views</option>
+                  {(projectMetadata?.kanban?.settings || [])
+                    .sort((a: GanttSettingsSnapshot, b: GanttSettingsSnapshot) => (b.use_count || 0) - (a.use_count || 0))
+                    .map((s: GanttSettingsSnapshot, i: number) => (
+                      <option key={i} value={i}>
+                        {s.color} · {s.period}{s.cp_highlight ? ' · CP' : ''}{s.assignee_filter ? ' · filtered' : ''} ({s.use_count}×)
+                      </option>
+                    ))
+                  }
+                </select>
+              )}
+
               {/* Color mode selector */}
               <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
                 <span className="px-1 text-xs text-gray-500 dark:text-gray-400">Color:</span>
@@ -2692,64 +2955,27 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 {isRefreshing ? "Refreshing..." : "Refresh"}
               </button>
               
-              {/* Print split button */}
-              <div className="relative inline-flex rounded-lg shadow-sm">
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  disabled={ganttData.tasks.length === 0}
-                  className="inline-flex items-center gap-2 rounded-l-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                  title="Print with table"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"
-                      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-                    />
-                  </svg>
-                  Print
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrintBars}
-                  disabled={ganttData.tasks.length === 0}
-                  className="inline-flex items-center rounded-r-lg border border-l-0 border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                  title="Print bars only (no table)"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M4 6h10M4 12h16M4 18h13" strokeLinecap="round"/>
-                  </svg>
-                </button>
-              </div>
-              
-              {/* Export SVG button */}
-              <button
-                type="button"
-                onClick={handleExportSVG}
+              {/* Export dropdown */}
+              <select
+                value=""
+                onChange={(e) => {
+                  const action = e.target.value;
+                  if (action === 'print-table') handlePrint();
+                  else if (action === 'print-bars') handlePrintBars();
+                  else if (action === 'svg') handleExportSVG();
+                  else if (action === 'json') handleExportJSON();
+                  e.target.value = '';
+                }}
                 disabled={ganttData.tasks.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                title="Export as scalable vector graphic (SVG)"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                title="Print or export"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                SVG
-              </button>              
-              {/* Set Baseline button */}
-              <button
-                type="button"
-                onClick={handleSetBaseline}
-                disabled={ganttData.tasks.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                title="Save current dates as baseline"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="17 21 17 13 7 13 7 21" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="7 3 7 8 15 8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Baseline
-              </button>
+                <option value="">Export</option>
+                <option value="print-table">Print — Table + Bars</option>
+                <option value="print-bars">Print — Bars Only</option>
+                <option value="svg">Download SVG</option>
+                <option value="json">Download JSON</option>
+              </select>
               
               {/* Undo/Redo buttons */}
               <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
@@ -2777,10 +3003,112 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </button>
               </div>
               
+              {/* Admin toolbox — Shift-click to toggle */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (e.shiftKey) setShowAdminTools(!showAdminTools);
+                }}
+                className={combineClassNames(
+                  "rounded-md p-1.5 transition",
+                  showAdminTools
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                    : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                )}
+                title="Shift-click for admin tools"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 {formatLastRefresh(lastRefreshTime)}
               </span>
             </div>
+
+            {/* Admin toolbox — visible only when toggled via Shift-click */}
+            {showAdminTools && (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Admin:</span>
+                <button
+                  type="button"
+                  onClick={handleSetBaseline}
+                  disabled={ganttData.tasks.length === 0}
+                  className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
+                  title="Save current start dates as baseline for slippage comparison"
+                >
+                  Set Baseline
+                </button>
+                {isSingleProjectMode && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!projectId) return;
+                        const current = {
+                          color: colorMode,
+                          font_scale: ganttFontScale,
+                          cp_highlight: criticalPathHighlight,
+                          period: scalePreset,
+                          text_overflow: textOverflow,
+                          list_collapsed: taskListCollapsed,
+                          assignee_filter: assigneeFilter,
+                        };
+                        const meta = { ...(projectMetadata || {}) };
+                        if (!meta.kanban) meta.kanban = {};
+                        meta.kanban.default_view = current;
+                        saveRecord("project", {
+                          model_name: "project",
+                          id: projectId,
+                          metadata: { mode: "update", value: meta },
+                        }).then(() => {
+                          setProjectMetadata(meta);
+                        }).catch((e: any) => console.warn("[Gantt] Failed to save default view:", e));
+                      }}
+                      className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
+                      title="Pin current settings as this project's default view"
+                    >
+                      Set Default View
+                    </button>
+                    {/* Sprint boundary config */}
+                    <select
+                      value={projectMetadata?.kanban?.sprint?.day ?? ''}
+                      onChange={(e) => {
+                        if (!projectId) return;
+                        const day = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                        const meta = { ...(projectMetadata || {}) };
+                        if (!meta.kanban) meta.kanban = {};
+                        if (day === null) {
+                          delete meta.kanban.sprint;
+                        } else {
+                          meta.kanban.sprint = { day, hour: 15, minute: 1 };
+                        }
+                        saveRecord("project", {
+                          model_name: "project",
+                          id: projectId,
+                          metadata: { mode: "update", value: meta },
+                        }).then(() => {
+                          setProjectMetadata({ ...meta });
+                        }).catch((e: any) => console.warn("[Gantt] Failed to save sprint config:", e));
+                      }}
+                      className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200"
+                      title="Set sprint boundary day — shows dashed vertical lines"
+                    >
+                      <option value="">No Sprints</option>
+                      <option value="0">Sprint: Sun</option>
+                      <option value="1">Sprint: Mon</option>
+                      <option value="2">Sprint: Tue</option>
+                      <option value="3">Sprint: Wed</option>
+                      <option value="4">Sprint: Thu</option>
+                      <option value="5">Sprint: Fri</option>
+                      <option value="6">Sprint: Sat</option>
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           
           {/* Error display */}
@@ -2879,7 +3207,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     scales={activeScales}
                     start={dateRange.start}
                     end={dateRange.end}
-                    onItemDoubleClick={handleShowEditor}
+                    onItemDoubleClick={handleOpenDetailPanel}
                     onUpdateTask={handleSvarUpdateTask}
                     onAddLink={handleAddLink}
                     onDeleteLink={handleDeleteLink}
@@ -2887,15 +3215,21 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     cellHeight={38 + ganttFontScale}
                     taskTemplate={GanttTaskTemplate}
                     highlightTime={(date: Date, unit: 'day' | 'hour') => {
+                      const classes: string[] = [];
                       // Highlight today's column
                       const today = new Date();
-                      if (unit === 'day' && 
+                      if (unit === 'day' &&
                           date.getFullYear() === today.getFullYear() &&
                           date.getMonth() === today.getMonth() &&
                           date.getDate() === today.getDate()) {
-                        return 'today-highlight';
+                        classes.push('today-highlight');
                       }
-                      return '';
+                      // Sprint boundary lines
+                      const sprint = projectMetadata?.kanban?.sprint;
+                      if (sprint && unit === 'day' && date.getDay() === (sprint.day ?? 3)) {
+                        classes.push('sprint-boundary');
+                      }
+                      return classes.join(' ');
                     }}
                     init={(api) => {
                       console.log("[Gantt] init callback called, api:", api);
@@ -2945,10 +3279,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           inProgress: ev.inProgress
                         });
                       }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Intercept move-task to prevent vertical row reordering
+                      // Allow vertical row reordering (drag up/down)
                       api.intercept("move-task", (ev: unknown) => {
-                        console.log("[Gantt API INTERCEPT] move-task event blocked (vertical reorder disabled)", ev);
-                        return false; // Return false to prevent vertical reordering
+                        return ev;
                       }, { tag: GANTT_COLOR_EVENT_TAG });
                       // Listen for move-task events (for logging only)
                       api.on("move-task", (ev: unknown) => {
@@ -3063,6 +3396,48 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         </div>
       )}
     </div>
+
+    {/* Action Detail slide-over panel — opens on double-click */}
+    {detailActionId && (
+      <div className="fixed inset-0 z-50 flex justify-end">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/20"
+          onClick={() => setDetailActionId(null)}
+        />
+        {/* Panel */}
+        <div className="relative w-full max-w-2xl overflow-y-auto bg-white shadow-2xl dark:bg-gray-900">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+              Action #{detailActionId}
+            </span>
+            <button
+              type="button"
+              onClick={() => setDetailActionId(null)}
+              className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="p-4">
+            <ActionDetail
+              key={detailActionId}
+              actionId={detailActionId}
+              modeProp="view"
+              hideBreadcrumb
+              inline
+              onCancelInline={() => setDetailActionId(null)}
+              onSaved={() => {
+                setDetailActionId(null);
+                refetchActions();
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 };

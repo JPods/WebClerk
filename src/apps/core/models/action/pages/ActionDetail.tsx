@@ -10,8 +10,9 @@ import { Input } from "../../../../../components/wrapper";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { createAction, updateAction } from "../services/actionApi";
+import { getRecord } from "../../../../../api/wcapi";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
 import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
@@ -20,7 +21,7 @@ import CommentsPanel from "../../../../common/components/panels/CommentsPanel";
 import DocumentsPanel from "../../../../common/components/panels/DocumentsPanel";
 import QAPanel from "../../../../common/components/panels/QAPanel";
 import ContactLinksPanel from "../../../../common/components/panels/ContactPanel";
-import { ScalarCard, BaseModelCards } from "@/apps/common/components/detail";
+import { BaseModelCards } from "@/apps/common/components/detail";
 import { FileText, Calendar, BarChart3, Target, Folder, Columns as ColumnsIcon, Clock, MessageSquare, FileIcon, HelpCircle, Users } from "lucide-react";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -48,6 +49,8 @@ const actionSchema = z.object({
 interface ActionDetailProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
+  /** Action ID — used when inline (no URL param available) */
+  actionId?: string;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -57,6 +60,7 @@ interface ActionDetailProps {
 function ActionDetail({
   modeProp,
   dataProp,
+  actionId: actionIdProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
@@ -64,7 +68,10 @@ function ActionDetail({
 }: ActionDetailProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { id: urlId } = useParams<{ id: string }>();
+  const resolvedId = actionIdProp || urlId;
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 2);
+  const [fetchedData, setFetchedData] = useState<any>(null);
   
   // Tab navigation
   const { activeTab, setActiveTab } = useDetailTabs("action", "comments", [
@@ -110,10 +117,19 @@ function ActionDetail({
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const initialMode: "add" | "edit" | "view" = modeProp || routeState.mode || (resolvedId ? "view" : "add");
   const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
   const [isSaving, setIsSaving] = useState(false);
-  const data = dataProp || routeState.data || null;
+  const data = dataProp || routeState.data || fetchedData || null;
+
+  // Fetch by ID if no data passed via props or route state
+  useEffect(() => {
+    if (dataProp || routeState.data || !resolvedId) return;
+    getRecord("action", Number(resolvedId)).then((resp: any) => {
+      const record = resp?.data || resp;
+      if (record) setFetchedData(record);
+    }).catch(() => {});
+  }, [urlId, dataProp, routeState.data]);
 
   useEffect(() => {
     if (initialMode === "add") {
@@ -575,26 +591,6 @@ function ActionDetail({
 
       {currentMode === "view" && data && (
         <div className="mt-4 space-y-0">
-          <ScalarCard
-            title="Action Fields"
-            icon={<Target size={14} />}
-            fields={[
-              { label: "action", value: data.action },
-              { label: "action_by", value: data.action_by },
-              { label: "priority", value: data.priority },
-              { label: "difficulty", value: data.difficulty },
-              { label: "hours", value: data.hours },
-              { label: "percent", value: data.percent },
-              { label: "status", value: data.status },
-              { label: "quality", value: data.quality },
-              { label: "description", value: data.description },
-              { label: "dt_action", value: data.dt_action },
-              { label: "dt_completed", value: data.dt_completed },
-              { label: "dt_deadline", value: data.dt_deadline },
-              { label: "dt_updated", value: data.dt_updated },
-            ]}
-            columns={columnCount as 1 | 2 | 3}
-          />
           <BaseModelCards data={data as Record<string, unknown>} />
         </div>
       )}

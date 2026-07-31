@@ -111,9 +111,11 @@ const priorityShortLabel: Record<string, string> = {
 // Module-level flags readable by template instances (avoids prop drilling through SVAR)
 let _criticalPathHighlight = false;
 let _assigneeFilter: string | null = null;
+let _onOpenDetail: ((id: string) => void) | null = null;
 
 export const setGanttCriticalPathHighlight = (v: boolean) => { _criticalPathHighlight = v; };
 export const setGanttAssigneeFilter = (v: string | null) => { _assigneeFilter = v; };
+export const setGanttOnOpenDetail = (fn: ((id: string) => void) | null) => { _onOpenDetail = fn; };
 
 interface GanttTaskTemplateProps {
   data: ITask;
@@ -158,11 +160,18 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   })();
 
   // Single click = 5s emphasis border (pointing gesture in meetings)
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleClick = useCallback(() => {
     setEmphasized(true);
     setTimeout(() => setEmphasized(false), 5000);
   }, []);
+
+  // Double click = open ActionDetail in side panel
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (task.id && _onOpenDetail) {
+      _onOpenDetail(String(task.id));
+    }
+  }, [task.id]);
 
   // Build hover tooltip text
   const tooltipLines = [
@@ -180,6 +189,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
     return (
       <div
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         title={tooltipLines}
         style={{
           position: "relative",
@@ -247,8 +257,6 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   return (
     <div
       onClick={handleClick}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
       title={tooltipLines}
       style={{
         position: "relative",
@@ -256,7 +264,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
         flexDirection: "column",
         height: "100%",
         overflow: "var(--gantt-text-overflow, hidden)",
-        pointerEvents: "auto",
+        pointerEvents: "none",
         opacity: isDimmed ? 0.25 : 1,
         outline: emphasized ? "2px solid #3b82f6" : "none",
         outlineOffset: "-1px",
@@ -312,8 +320,10 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
         />
       </div>
 
-      {/* ── Main content row ── */}
+      {/* ── Main content row — captures clicks, edges pass through to SVAR ── */}
       <div
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         style={{
           display: "flex",
           alignItems: "center",
@@ -323,6 +333,8 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
           paddingRight: "8px",
           paddingTop: "3px",
           paddingBottom: "3px",
+          pointerEvents: "auto",
+          cursor: "pointer",
         }}
       >
         {/* Critical Path Badge */}
