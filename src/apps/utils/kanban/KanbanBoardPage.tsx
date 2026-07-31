@@ -15,7 +15,7 @@ import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPrior
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords, manageAction, uploadDocument } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
 import RippleLoader from "@/components/common/RippleLoader";
 import { NetworkInfo } from "@/routes/network";
@@ -1069,8 +1069,11 @@ const KanbanBoardPage: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
 
+  const [searchParams] = useSearchParams();
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    () => searchParams.get("project") || ""
+  );
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
   const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
   const selectedProject = useMemo(
