@@ -166,8 +166,8 @@ async function saveProjectGanttSettings(
   meta.kanban.settings = settings;
 
   try {
-    const { saveRecord } = await import("../../../api/wcapi");
-    await saveRecord("project", {
+    const wcapi = await import("../../../api/wcapi");
+    await wcapi.saveRecord("project", {
       model_name: "project",
       id: projectId,
       metadata: { mode: "update", value: meta },
@@ -2792,91 +2792,62 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </select>
               )}
 
-              {/* Color mode selector */}
-              <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-                <span className="px-1 text-xs text-gray-500 dark:text-gray-400">Color:</span>
-                {([
-                  { id: 'priority', label: 'Priority' },
-                  { id: 'status', label: 'Status' },
-                  { id: 'assigned', label: 'Who' },
-                  { id: 'project', label: 'Project' },
-                ] as const).map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setColorMode(mode.id)}
-                    className={combineClassNames(
-                      "rounded-md px-2 py-1 text-xs font-medium transition",
-                      colorMode === mode.id
-                        ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                    )}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* A+/A- font controls */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setGanttFontScale(s => {
-                    const n = s - 2;
-                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n));
-                    return n;
-                  })}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
-                  title="Decrease font size"
-                >A-</button>
-                <button
-                  type="button"
-                  onClick={() => setGanttFontScale(s => {
-                    const n = s + 2;
-                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n));
-                    return n;
-                  })}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
-                  title="Increase font size"
-                >A+</button>
-              </div>
-
-              {/* Text overflow toggle */}
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={textOverflow}
-                  onChange={(e) => {
-                    setTextOverflow(e.target.checked);
-                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_show_full_text', e.target.checked));
-                  }}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
-                />
-                <span className="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">Show full text</span>
-              </label>
-
-              {/* Critical Path toggle */}
-              <button
-                type="button"
-                onClick={() => setCriticalPathHighlight(!criticalPathHighlight)}
-                className={combineClassNames(
-                  "rounded-md px-2 py-1 text-xs font-medium transition",
-                  criticalPathHighlight
-                    ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30 dark:text-red-300"
-                    : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-white"
-                )}
-                title="Highlight critical path — dims non-critical tasks"
+              {/* Color mode */}
+              <select
+                value={colorMode}
+                onChange={(e) => setColorMode(e.target.value as any)}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
-                CP
-              </button>
+                <option value="priority">Color: Priority</option>
+                <option value="status">Color: Status</option>
+                <option value="assigned">Color: Who</option>
+                <option value="project">Color: Project</option>
+              </select>
+
+              {/* Scale */}
+              <select
+                value={scalePreset}
+                onChange={(e) => setScalePreset(e.target.value as ScalePresetKey)}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              >
+                {scaleButtons.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
+
+              {/* View options */}
+              <select
+                value=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === 'text') {
+                    const next = !textOverflow;
+                    setTextOverflow(next);
+                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_show_full_text', next));
+                  } else if (v === 'cp') {
+                    setCriticalPathHighlight(!criticalPathHighlight);
+                  } else if (v === 'font+') {
+                    setGanttFontScale(s => { const n = s + 2; import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n)); return n; });
+                  } else if (v === 'font-') {
+                    setGanttFontScale(s => { const n = s - 2; import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n)); return n; });
+                  }
+                  e.target.value = '';
+                }}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              >
+                <option value="">View</option>
+                <option value="text">{textOverflow ? '✓' : '○'} Full Text</option>
+                <option value="cp">{criticalPathHighlight ? '✓' : '○'} Critical Path</option>
+                <option value="font+">A+ Larger</option>
+                <option value="font-">A- Smaller</option>
+              </select>
 
               {/* Assignee filter */}
               {uniqueAssignees.length > 0 && (
                 <select
                   value={assigneeFilter || ''}
                   onChange={(e) => setAssigneeFilter(e.target.value || null)}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                  title="Filter by assignee — dims tasks not assigned to selected person"
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                 >
                   <option value="">All</option>
                   {uniqueAssignees.map(a => (
@@ -2884,25 +2855,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   ))}
                 </select>
               )}
-
-              {/* Scale buttons */}
-              <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-                {scaleButtons.map((button) => (
-                  <button
-                    key={button.id}
-                    type="button"
-                    onClick={() => setScalePreset(button.id)}
-                    className={combineClassNames(
-                      "rounded-md px-3 py-1.5 text-xs font-medium transition",
-                      scalePreset === button.id
-                        ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                    )}
-                  >
-                    {button.label}
-                  </button>
-                ))}
-              </div>
               
               {/* Task list collapse toggle */}
               <button
@@ -2913,14 +2865,14 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_list_collapsed', next));
                 }}
                 className={combineClassNames(
-                  "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition",
+                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition",
                   taskListCollapsed
                     ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:bg-indigo-900/50"
                     : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 )}
                 title={taskListCollapsed ? "Expand task list columns" : "Collapse task list columns"}
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   {taskListCollapsed ? (
                     <path d="M9 4h11M9 8h7M9 12h4M9 16h7M9 20h11M4 12l3-3v6l-3-3z" strokeLinecap="round" strokeLinejoin="round"/>
                   ) : (
@@ -2935,11 +2887,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 type="button"
                 onClick={handleManualRefresh}
                 disabled={isRefreshing || isLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 title={`Auto-refresh every ${AUTO_REFRESH_INTERVAL_MS / 60000} minutes${isEditModalOpen ? " (paused while editing)" : ""}`}
               >
                 <svg
-                  className={combineClassNames("h-4 w-4", isRefreshing && "animate-spin")}
+                  className={combineClassNames("h-3.5 w-3.5", isRefreshing && "animate-spin")}
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -2967,7 +2919,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   e.target.value = '';
                 }}
                 disabled={ganttData.tasks.length === 0}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 title="Print or export"
               >
                 <option value="">Export</option>
@@ -3064,8 +3016,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           id: projectId,
                           metadata: { mode: "update", value: meta },
                         }).then(() => {
-                          setProjectMetadata(meta);
-                        }).catch((e: any) => console.warn("[Gantt] Failed to save default view:", e));
+                          setProjectMetadata({ ...meta });
+                          alert("Default view saved for this project");
+                        }).catch((e: any) => {
+                          console.warn("[Gantt] Failed to save default view:", e);
+                          alert("Failed to save: " + (e?.message || e));
+                        });
                       }}
                       className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
                       title="Pin current settings as this project's default view"
