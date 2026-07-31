@@ -13,7 +13,7 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
-import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import { Link } from "react-router-dom";
 import { UnifiedGantt } from "./UnifiedGantt";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -44,8 +44,12 @@ const UnifiedGanttPage: React.FC = () => {
     : "Multi-Project Gantt";
 
   return (
-    <div className="space-y-4 px-4 py-3 md:px-5 lg:px-6">
-      <PageBreadcrumb pageTitle={pageTitle} />
+    <div className="space-y-2 px-4 py-2 md:px-5 lg:px-6">
+      <nav className="text-sm text-gray-500 dark:text-gray-400">
+        <Link to="/" className="hover:text-gray-700 dark:hover:text-gray-200">Home</Link>
+        <span className="mx-1">›</span>
+        <span className="text-gray-900 dark:text-white font-medium">{pageTitle}</span>
+      </nav>
       
       <UnifiedGantt
         projectId={projectId}
