@@ -250,6 +250,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
   // --- Field behaviors ---
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
+  const [fieldDefaults, setFieldDefaults] = useState<Record<string, any>>({});
   const [detailRowSizes, setDetailRowSizes] = useState<Record<string, number>>({});
 
   // ---------------------------------------------------------------------------
@@ -439,7 +440,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
         if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
         setFieldBehaviors(faRec?.config?.field_behaviors || {});
-      } catch { setFieldBehaviors({}); }
+        setFieldDefaults(faRec?.prefs?.defaults || {});
+      } catch { setFieldBehaviors({}); setFieldDefaults({}); }
     } catch (e) {
       if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
       const msg = errMsg(e, 'Failed to load records');
@@ -774,7 +776,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     modelNames, loadingModels, modelsError, selectedModel, modelLabel, modelParam,
     handleSelectModel,
     // Records
-    records, recordsLoading, recordsError, totalRecords, page, setPage, totalPages,
+    records, setRecords, recordsLoading, recordsError, totalRecords, setTotalRecords, page, setPage, totalPages,
     displayRecords, fetchRecords,
     // Search
     searchTerm, setSearchTerm,
@@ -794,10 +796,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart,
     // Field behaviors
-    fieldBehaviors, detailRowSizes, setDetailRowSizes,
+    fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes,
     // CRUD
-    updateField, handleSaveRecord, handleDeleteRecord, validationErrors, fetchRecords,
-    setSelectedRecord,
+    updateField, handleSaveRecord, handleDeleteRecord, validationErrors,
     updateListLayout,
     updateDetailLayout,
     // Export

@@ -1679,11 +1679,10 @@ const KanbanBoardPage: React.FC = () => {
     if (isLoadingProjects) return;
     if (selectedProjectId && selectedProject) {
       updateContactsFromProject(selectedProject);
-    } else if (!selectedProjectId) {
-      // "All projects" selected - fetch all active contacts
+    } else {
+      // "All projects" selected or project not yet resolved — fetch all contacts
       void fetchAllContacts();
     }
-    // If selectedProjectId is set but selectedProject not found yet, wait
   }, [isLoadingProjects, selectedProjectId, selectedProject, updateContactsFromProject, fetchAllContacts]);
 
   useEffect(() => {
