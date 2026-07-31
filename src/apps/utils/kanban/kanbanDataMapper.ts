@@ -490,11 +490,15 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
     });
     const languageCodes = translationLanguages.size ? Array.from(translationLanguages) : undefined;
 
-    const assignedToRecords =
-      item.assigned_to?.map((person, index) => ({
-        id: person?.id !== undefined ? String(person.id) : `${item.id}-assignee-${index}`,
-        name: person?.name ?? `Assignee ${index + 1}`,
-      })) ?? [];
+    const rawAssigned = item.assigned_to;
+    const assignedToRecords = Array.isArray(rawAssigned)
+      ? rawAssigned.map((person, index) => ({
+          id: person?.id !== undefined ? String(person.id) : `${item.id}-assignee-${index}`,
+          name: person?.name ?? `Assignee ${index + 1}`,
+        }))
+      : typeof rawAssigned === 'string' && rawAssigned
+        ? [{ id: `${item.id}-assignee-0`, name: rawAssigned }]
+        : [];
 
     const tags = item.refs?.tags ?? [];
     const progressValue =
