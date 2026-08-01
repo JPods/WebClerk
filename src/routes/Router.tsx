@@ -49,6 +49,7 @@ import ManufacturerPage from "../apps/orgs/pages/ManufacturerPage";
 import InvoicePrint from "../apps/transactions/print/InvoicePrint";
 import OrderPrint from "../apps/transactions/print/OrderPrint";
 import ProposalPrint from "../apps/transactions/print/ProposalPrint";
+import PurchasePrint from "../apps/transactions/print/PurchasePrint";
 import QAPrint from "../apps/transactions/print/QAPrint";
 import Test from "../pages/test/Test";
 import QATestPage from "../pages/test/QATestPage";
@@ -60,7 +61,7 @@ import Placeholder from "../pages/Placeholder";
 
 const Router: React.FC = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.VITE_BASE_PATH || '/'}>
       <WindowManagerNavigationSync />
       <ScrollToTop />
       <Toster />
@@ -132,6 +133,7 @@ const Router: React.FC = () => {
           <Route path="/transactions/invoice/print/:id" element={<InvoicePrint />} />
           <Route path="/transactions/order/print/:id" element={<OrderPrint />} />
           <Route path="/transactions/proposal/print/:id" element={<ProposalPrint />} />
+          <Route path="/transactions/purchase/print/:id" element={<PurchasePrint />} />
           <Route path="/transactions/qa/print/:model/:id" element={<QAPrint />} />
 
           {/* ── Admin tools ── */}

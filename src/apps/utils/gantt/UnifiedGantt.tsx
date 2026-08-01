@@ -49,7 +49,7 @@ import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
 import type { GanttMappedTask } from "./ganttDataMapper";
 import { getGanttDateRange } from "./ganttDataMapper";
 import { GanttTaskTemplate, setGanttCriticalPathHighlight, setGanttAssigneeFilter, setGanttOnOpenDetail } from "./GanttTaskTemplate";
-import ActionDetail from "../../core/models/action/pages/ActionDetail";
+import { ActionFloatingWindow } from "../../core/models/action/pages/ActionFloatingWindow";
 import { DualScrollbar } from "../../../components/common/DualScrollbar";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -646,7 +646,16 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   }, [projectId, selectedProjectIds]);
   
   // Gantt display state
-  const [scalePreset, setScalePreset] = useState<ScalePresetKey>("week");
+  const [scalePreset, setScalePreset] = useState<ScalePresetKey>(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (prefs.gantt_scale) return prefs.gantt_scale as ScalePresetKey;
+      }
+    } catch {}
+    return "month";
+  });
   const [colorMode, setColorMode] = useState<'project' | 'priority' | 'status' | 'assigned' | 'difficulty'>('priority');
   const [ganttKey, setGanttKey] = useState(0);
   const [ganttFontScale, setGanttFontScale] = useState(() => {
@@ -688,6 +697,25 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [ganttData.tasks]);
+
+  // Precompute sprint end dates for vertical boundary lines
+  const sprintEndDates = useMemo(() => {
+    const dates = new Set<string>();
+    // Child projects (id_parent set) are sprints — use their deadlines
+    const childProjectIds = new Set(
+      projects.filter(p => p.id_parent != null).map(p => p.id)
+    );
+    // Also match any task with "sprint" in the name
+    for (const task of ganttData.tasks) {
+      const mapped = task as GanttMappedTask;
+      const isSprint = childProjectIds.has(mapped.projectId) ||
+        (mapped.text?.toLowerCase().includes('sprint') && task.end instanceof Date);
+      if (isSprint && task.end instanceof Date) {
+        dates.add(`${task.end.getFullYear()}-${String(task.end.getMonth()+1).padStart(2,'0')}-${String(task.end.getDate()).padStart(2,'0')}`);
+      }
+    }
+    return dates;
+  }, [ganttData.tasks, projects]);
 
   // Apply project-level settings once metadata loads
   useEffect(() => {
@@ -2638,29 +2666,42 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       {/* Gantt today indicator styles */}
       <style>{`
         .today-highlight {
-          background-color: rgba(239, 68, 68, 0.12) !important;
+          background-color: rgba(239, 68, 68, 0.15) !important;
           position: relative;
         }
         .today-highlight::after {
           content: '';
           position: absolute;
           top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 2px;
+          left: 0;
+          width: 100%;
           height: 100%;
-          background-color: rgb(239, 68, 68);
+          border-left: 3px solid rgb(239, 68, 68);
+          pointer-events: none;
           z-index: 5;
         }
         .dark .today-highlight {
-          background-color: rgba(239, 68, 68, 0.15) !important;
+          background-color: rgba(239, 68, 68, 0.18) !important;
         }
         .sprint-boundary {
-          border-left: 2px dashed rgba(99, 102, 241, 0.5) !important;
-          position: relative;
+          border-right: 3px dashed rgba(156, 163, 175, 0.5) !important;
         }
         .dark .sprint-boundary {
-          border-left-color: rgba(129, 140, 248, 0.5) !important;
+          border-right-color: rgba(156, 163, 175, 0.4) !important;
+        }
+        /* Fix scale header — sticky on vertical scroll */
+        .wx-gantt .wx-scale {
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
+          background: white !important;
+        }
+        .dark .wx-gantt .wx-scale {
+          background: rgb(17, 24, 39) !important;
+        }
+        /* Ensure the chart area scrolls independently */
+        .wx-gantt .wx-chart {
+          overflow-y: auto !important;
         }
         /* Add resize cursor zones on task bar edges */
         .wx-bar:not(.wx-milestone) {
@@ -2807,7 +2848,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               {/* Scale */}
               <select
                 value={scalePreset}
-                onChange={(e) => setScalePreset(e.target.value as ScalePresetKey)}
+                onChange={(e) => {
+                  const v = e.target.value as ScalePresetKey;
+                  setScalePreset(v);
+                  import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_scale', v));
+                }}
                 className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               >
                 {scaleButtons.map((b) => (
@@ -3170,19 +3215,17 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     onUpdateLink={handleUpdateLink}
                     cellHeight={38 + ganttFontScale}
                     taskTemplate={GanttTaskTemplate}
-                    highlightTime={(date: Date, unit: 'day' | 'hour') => {
+                    highlightTime={(date: Date, unit: string) => {
                       const classes: string[] = [];
-                      // Highlight today's column
-                      const today = new Date();
-                      if (unit === 'day' &&
-                          date.getFullYear() === today.getFullYear() &&
-                          date.getMonth() === today.getMonth() &&
-                          date.getDate() === today.getDate()) {
+                      const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+                      const todayStr = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
+
+                      // Highlight today
+                      if (dateStr === todayStr) {
                         classes.push('today-highlight');
                       }
-                      // Sprint boundary lines
-                      const sprint = projectMetadata?.kanban?.sprint;
-                      if (sprint && unit === 'day' && date.getDay() === (sprint.day ?? 3)) {
+                      // Sprint end lines
+                      if (sprintEndDates.has(dateStr)) {
                         classes.push('sprint-boundary');
                       }
                       return classes.join(' ');
@@ -3353,46 +3396,14 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       )}
     </div>
 
-    {/* Action Detail slide-over panel — opens on double-click */}
+    {/* Action Detail floating window — opens on double-click, draggable + resizable */}
     {detailActionId && (
-      <div className="fixed inset-0 z-50 flex justify-end">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/20"
-          onClick={() => setDetailActionId(null)}
-        />
-        {/* Panel */}
-        <div className="relative w-full max-w-2xl overflow-y-auto bg-white shadow-2xl dark:bg-gray-900">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              Action #{detailActionId}
-            </span>
-            <button
-              type="button"
-              onClick={() => setDetailActionId(null)}
-              className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-          <div className="p-4">
-            <ActionDetail
-              key={detailActionId}
-              actionId={detailActionId}
-              modeProp="view"
-              hideBreadcrumb
-              inline
-              onCancelInline={() => setDetailActionId(null)}
-              onSaved={() => {
-                setDetailActionId(null);
-                refetchActions();
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <ActionFloatingWindow
+        key={detailActionId}
+        actionId={detailActionId}
+        onClose={() => setDetailActionId(null)}
+        onSaved={() => refetchActions()}
+      />
     )}
     </>
   );

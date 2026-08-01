@@ -18,6 +18,7 @@ export { default as EmailField } from './EmailField';
 export { default as PhoneField } from './PhoneField';
 export { default as UrlField } from './UrlField';
 export { default as AddressField } from './AddressField';
+export { default as ZipField } from './ZipField';
 export { default as SelectField } from './SelectField';
 export { default as LookupField } from './LookupField';
 export { default as BooleanField } from './BooleanField';
@@ -52,6 +53,7 @@ import JsonField from './JsonField';
 import TextareaField from './TextareaField';
 import ReadonlyField from './ReadonlyField';
 import GeoField from './GeoField';
+import ZipField from './ZipField';
 
 const WIDGET_REGISTRY: Record<string, React.ComponentType<any>> = {
   text: TextField,
@@ -70,6 +72,7 @@ const WIDGET_REGISTRY: Record<string, React.ComponentType<any>> = {
   textarea: TextareaField,
   readonly: ReadonlyField,
   geo: GeoField,
+  zip: ZipField,
   masked: ReadonlyField,  // masked fields display as readonly
 };
 

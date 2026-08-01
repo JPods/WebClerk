@@ -168,6 +168,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   // Double click = open ActionDetail in side panel
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log("[GanttBar] double-click", task.id, "_onOpenDetail:", !!_onOpenDetail);
     if (task.id && _onOpenDetail) {
       _onOpenDetail(String(task.id));
     }

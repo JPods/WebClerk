@@ -21,35 +21,20 @@ function PrimeCompanyBootstrap() {
 }
 
 export default function App() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return false;
-    }
+  const [smallScreenDismissed, setSmallScreenDismissed] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
     return window.matchMedia("(max-width: 767px)").matches;
   });
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const media = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsMobile(media.matches);
+    const update = () => setIsSmallScreen(media.matches);
     media.addEventListener("change", update);
     update();
     return () => media.removeEventListener("change", update);
   }, []);
-
-  if (isMobile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-        <div className="max-w-sm space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900/70">
-          <p className="text-sm font-semibold tracking-wide text-indigo-600 dark:text-indigo-300">Desktop Only</p>
-          <p className="text-lg font-semibold">Open on a larger screen</p>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            This workspace is optimized for tablets and desktops. Please continue on a device with a wider screen.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -60,6 +45,17 @@ export default function App() {
             <AuthInitializer />
             <PrimeCompanyBootstrap />
             <div className="min-h-screen bg-slate-50 text-slate-900">
+              {isSmallScreen && !smallScreenDismissed && (
+                <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between bg-amber-50 px-4 py-2 text-sm text-amber-800 shadow-sm">
+                  <span>Your screen is small — some features may be hard to use.</span>
+                  <button
+                    onClick={() => setSmallScreenDismissed(true)}
+                    className="ml-4 rounded bg-amber-200 px-2 py-0.5 text-xs font-medium hover:bg-amber-300"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
               <Router />
               {/* Fixed position badge with expandable details */}
               <DataSetBadge position="bottom-right" showDetails />

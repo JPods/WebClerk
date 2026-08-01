@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => {
   console.log("\n");
 
   return {
+    base: env.VITE_BASE_PATH || '/',
     plugins: [
       react(),
       svgr({
