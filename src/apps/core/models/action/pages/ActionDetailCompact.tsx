@@ -9,6 +9,7 @@ import { getRecord } from "../../../../../api/wcapi";
 import { patchAction } from "../../../../../api/userProfile";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import ContactCard from "../../contact/pages/ContactCard";
+import SprintBurndown from "./SprintBurndown";
 
 interface ActionDetailCompactProps {
   actionId: string;
@@ -35,6 +36,8 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
   const [assignedTo, setAssignedTo] = useState("");
   const [dtStart, setDtStart] = useState("");
   const [dtDeadline, setDtDeadline] = useState("");
+  const [fontScale, setFontScale] = useState(0);
+  const [contactCard, setContactCard] = useState<{ id: string | number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!actionId) return;
@@ -90,16 +93,14 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
     }
   }, [actionId, action, description, status, priority, difficulty, percentComplete, dtStart, dtDeadline, dispatch, onSaved]);
 
+  const fontSize = 12 + fontScale;
+
   if (!data) return <div className="py-4 text-center text-xs text-gray-400">Loading...</div>;
 
   const disabled = !editing;
   const duration = dtStart && dtDeadline
     ? Math.max(1, Math.round((new Date(dtDeadline).getTime() - new Date(dtStart).getTime()) / 86400000))
     : null;
-
-  const [fontScale, setFontScale] = useState(0);
-  const [contactCard, setContactCard] = useState<{ id: string | number; x: number; y: number } | null>(null);
-  const fontSize = 12 + fontScale;
 
   return (
     <div className="space-y-1.5" style={{ fontSize: `${fontSize}px` }}>
@@ -158,37 +159,46 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
         <span className={lClass}>status</span>
         <select value={status} onChange={e => setStatus(e.target.value)} disabled={disabled} className={sClass + " flex-1"}>
           <option value="">—</option>
-          <option value="open">open</option>
-          <option value="active">active</option>
-          <option value="completed">completed</option>
-          <option value="on hold">on hold</option>
-          <option value="cancelled">cancelled</option>
+          <option value="open">Open</option>
+          <option value="In progress">In Progress</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="on hold">On Hold</option>
+          <option value="blocked">Blocked</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
-      <div className="flex items-center gap-1.5">
-        <span className={lClass}>priority</span>
-        <select value={priority} onChange={e => setPriority(Number(e.target.value))} disabled={disabled} className={sClass + " flex-1"}>
-          <option value={1}>Low</option>
-          <option value={2}>Medium</option>
-          <option value={3}>High</option>
-          <option value={4}>Critical</option>
-        </select>
-        <span className={lClass}>difficulty</span>
-        <select value={difficulty} onChange={e => setDifficulty(Number(e.target.value))} disabled={disabled} className={sClass + " flex-1"}>
-          <option value={1}>Easy</option>
-          <option value={2}>Average</option>
-          <option value={3}>Hard</option>
-          <option value={4}>Complex</option>
-          <option value={5}>Expert</option>
-        </select>
-        <span className={lClass}>%</span>
-        <select value={percentComplete} onChange={e => setPercentComplete(Number(e.target.value))} disabled={disabled} className={sClass + " w-14"}>
-          <option value={0}>0</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-          <option value={70}>70</option>
-          <option value={100}>100</option>
-        </select>
+      {/* priority · difficulty · percent_complete — 3 columns */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <div>
+          <div className={lClass}>priority</div>
+          <select value={priority} onChange={e => setPriority(Number(e.target.value))} disabled={disabled} className={sClass + " w-full"}>
+            <option value={1}>Low</option>
+            <option value={2}>Medium</option>
+            <option value={3}>High</option>
+            <option value={4}>Critical</option>
+          </select>
+        </div>
+        <div>
+          <div className={lClass}>difficulty</div>
+          <select value={difficulty} onChange={e => setDifficulty(Number(e.target.value))} disabled={disabled} className={sClass + " w-full"}>
+            <option value={1}>Easy</option>
+            <option value={2}>Average</option>
+            <option value={3}>Hard</option>
+            <option value={4}>Complex</option>
+            <option value={5}>Expert</option>
+          </select>
+        </div>
+        <div>
+          <div className={lClass}>% complete</div>
+          <select value={percentComplete} onChange={e => setPercentComplete(Number(e.target.value))} disabled={disabled} className={sClass + " w-full"}>
+            <option value={0}>0%</option>
+            <option value={20}>20%</option>
+            <option value={50}>50%</option>
+            <option value={70}>70%</option>
+            <option value={100}>100%</option>
+          </select>
+        </div>
       </div>
 
       {/* dt_start · dt_deadline */}
@@ -215,6 +225,11 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
           position={{ x: contactCard.x, y: contactCard.y }}
           onClose={() => setContactCard(null)}
         />
+      )}
+
+      {/* Sprint burndown — shown when this is a sprint action */}
+      {data.project_id && (
+        <SprintBurndown projectId={data.project_id} compact />
       )}
 
       {/* Expand to full detail */}
