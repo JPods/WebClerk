@@ -29,12 +29,11 @@ ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
 
 ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
     (None, ""),
-    (100, "100"),
-    (50, "50"),
-    (15, "15"),
-    (10, "10"),
-    (4, "4"),
-    (1, "1"),
+    (1, "Easy (1)"),
+    (4, "Average (4)"),
+    (8, "Hard (8)"),
+    (13, "Complex (13)"),
+    (21, "Expert (21)"),
 )
 
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
@@ -67,6 +66,10 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("ai_prompt_history", "ai_prompt_history"),
     ("calculated_function", "calculated_function"),
     ("print_defaults", "print_defaults"),
+    ("collaborate_webclerk", "collaborate_webclerk"),
+    ("schema_map", "schema_map"),
+    ("system", "system"),
+    ("feature", "feature"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

@@ -11,8 +11,10 @@ class Action(BaseModel):
     # Parent-child relationship
     parent_action = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE, db_column='action_id')
     
-    # Multilingual task title (renamed from 'action' to avoid collision with model name)
-    task = models.JSONField(default=dict, blank=True, null=True, db_column='action')
+    # Multilingual action title — field name matches db column name exactly
+    # Previously named 'task' to avoid collision with model name, but that created
+    # a translation cost. The schema should be transparent: action.action.en
+    action = models.JSONField(default=dict, blank=True, null=True, db_column='action')
     description = models.JSONField(default=dict, blank=True, null=True)
 
        # Assigned users (many-to-many like, via JSON)
@@ -31,7 +33,7 @@ class Action(BaseModel):
     sequence = models.PositiveIntegerField(default=0)
     kanban_column = models.CharField(max_length=50, choices=ACTION_KANBAN_COLUMNS, default='Backlog')
     priority = models.PositiveIntegerField(default=1)
-    difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=10)
+    difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=4)
     status = models.CharField(max_length=100, blank=True, null=True)
     percent_complete = models.PositiveIntegerField(default=0)
     #set value between 0-100 based on difficulty and percent_complete
@@ -67,15 +69,24 @@ class Action(BaseModel):
     # Additional project data (can store child names, meta, or history)
     project_metadata = models.JSONField(blank=True, null=True)
 
+    # Structured retrospection — the learning record for this action
+    # Fields: intent, points_for, points_against, harms, benefits, risk,
+    #         help_procedure, alternatives, who_affected, confidence (1-10),
+    #         applies_to, expires_when, known_unknowns, unknown_unknowns,
+    #         grade (A-F), grade_note, tfts
+    # Intent and tfts are always required. Everything else enriches when available.
+    retrospection = models.JSONField(default=dict, blank=True, null=True,
+        help_text="Structured learning: intent, points for/against, harms, benefits, risk, unknowns, tfts")
+
     class Meta:
         db_table = 'actions'
         verbose_name = "Action"
         verbose_name_plural = "Actions"
 
     def __str__(self):
-        task_dict = self.task or {}
-        task_text = task_dict.get('en') or task_dict.get('bn') or task_dict.get('ar') or 'Untitled'
-        return f"{task_text} ({self.kanban_column})"
+        action_dict = self.action or {}
+        action_text = action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
+        return f"{action_text} ({self.kanban_column})"
 
     def pre_save_hook(self, data, is_update=False, context=None):
         """Normalize common alias fields from clients into canonical columns.
@@ -114,16 +125,16 @@ class Action(BaseModel):
                     derived_langs.add(lang)
 
         if title_by_lang:
-            current_task: dict = {}
-            # Accept both 'task' and legacy 'action' key from clients
-            raw_task = data.get('task') or data.get('action')
-            if isinstance(raw_task, dict) and 'value' in raw_task and isinstance(raw_task.get('value'), dict):
-                current_task = raw_task.get('value') or {}
-            elif isinstance(self.task, dict):
-                current_task = self.task or {}
-            merged_task = {**current_task, **title_by_lang}
-            data['task'] = {'mode': 'update', 'value': merged_task}
-            data.pop('action', None)  # remove legacy key
+            current_action: dict = {}
+            # Accept both 'action' and legacy 'task' key from clients
+            raw_action = data.get('action') or data.get('task')
+            if isinstance(raw_action, dict) and 'value' in raw_action and isinstance(raw_action.get('value'), dict):
+                current_action = raw_action.get('value') or {}
+            elif isinstance(self.action, dict):
+                current_action = self.action or {}
+            merged_action = {**current_action, **title_by_lang}
+            data['action'] = {'mode': 'update', 'value': merged_action}
+            data.pop('task', None)  # remove legacy key
 
         if desc_by_lang:
             current_desc: dict = {}
