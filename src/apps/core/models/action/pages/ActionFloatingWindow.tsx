@@ -3,7 +3,8 @@
  * Used in Gantt and Kanban to view/edit actions without covering the workspace.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import ActionDetailCompact from "./ActionDetailCompact";
+import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
+import SprintBurndown from "./SprintBurndown";
 
 interface Props {
   actionId: string;
@@ -12,8 +13,8 @@ interface Props {
 }
 
 export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSaved }) => {
-  const [pos, setPos] = useState({ x: Math.max(20, Math.min(200, window.innerWidth / 2 - 190)), y: 60 });
-  const [size, setSize] = useState({ w: 380, h: 340 });
+  const [pos, setPos] = useState({ x: Math.max(20, Math.min(200, window.innerWidth / 2 - 300)), y: 60 });
+  const [size, setSize] = useState({ w: 600, h: 320 });
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
@@ -91,8 +92,9 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
 
       {/* Content — scrollable */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        <ActionDetailCompact
-          actionId={actionId}
+        <DynamicDetail
+          modelName="action"
+          recordId={actionId}
           onClose={onClose}
           onSaved={onSaved}
         />

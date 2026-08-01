@@ -59,11 +59,16 @@ function SprintBurndown({ projectId, compact = false }: SprintBurndownProps) {
   if (error) return <div className="text-xs text-red-500 py-2">{error}</div>;
   if (!data) return <div className="text-xs text-gray-400 py-2">Loading burndown...</div>;
 
-  const { total_points, remaining_points, percent_complete, ideal, actions, sprint } = data;
+  const total_points = data.total_points || 0;
+  const remaining_points = data.remaining_points || 0;
+  const percent_complete = data.percent_complete || 0;
+  const ideal = data.ideal || [];
+  const actions = data.actions || [];
+  const sprint = data.sprint || "";
 
   // Calculate where "today" falls on the ideal line
   const today = new Date().toISOString().split('T')[0];
-  const todayIdeal = ideal.find(p => p.dt === today);
+  const todayIdeal = ideal.length > 0 ? ideal.find((p: any) => p.dt === today) : null;
   const idealToday = todayIdeal?.points ?? null;
 
   // Status: ahead, on track, behind

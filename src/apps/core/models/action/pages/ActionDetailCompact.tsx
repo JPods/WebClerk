@@ -36,6 +36,7 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
   const [assignedTo, setAssignedTo] = useState("");
   const [dtStart, setDtStart] = useState("");
   const [dtDeadline, setDtDeadline] = useState("");
+  const [dtCompleted, setDtCompleted] = useState("");
   const [fontScale, setFontScale] = useState(0);
   const [contactCard, setContactCard] = useState<{ id: string | number; x: number; y: number } | null>(null);
 
@@ -64,6 +65,7 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
       };
       setDtStart(fmt(r.dt_start));
       setDtDeadline(fmt(r.dt_deadline));
+      setDtCompleted(fmt(r.dt_completed));
     }).catch(() => {});
   }, [actionId]);
 
@@ -82,6 +84,7 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
       };
       if (dtStart) payload.dt_start = { mode: "update", value: new Date(dtStart).getTime() };
       if (dtDeadline) payload.dt_deadline = { mode: "update", value: new Date(dtDeadline).getTime() };
+      if (dtCompleted) payload.dt_completed = { mode: "update", value: new Date(dtCompleted).getTime() };
       await patchAction(payload);
       dispatch(showToast({ message: "Saved", type: "success" }));
       setEditing(false);
@@ -91,7 +94,7 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
     } finally {
       setSaving(false);
     }
-  }, [actionId, action, description, status, priority, difficulty, percentComplete, dtStart, dtDeadline, dispatch, onSaved]);
+  }, [actionId, action, description, status, priority, difficulty, percentComplete, dtStart, dtDeadline, dtCompleted, dispatch, onSaved]);
 
   const fontSize = 12 + fontScale;
 
@@ -182,11 +185,11 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
         <div>
           <div className={lClass}>difficulty</div>
           <select value={difficulty} onChange={e => setDifficulty(Number(e.target.value))} disabled={disabled} className={sClass + " w-full"}>
-            <option value={1}>Easy</option>
-            <option value={2}>Average</option>
-            <option value={3}>Hard</option>
-            <option value={4}>Complex</option>
-            <option value={5}>Expert</option>
+            <option value={1}>Easy (1)</option>
+            <option value={4}>Average (4)</option>
+            <option value={8}>Hard (8)</option>
+            <option value={13}>Complex (13)</option>
+            <option value={21}>Expert (21)</option>
           </select>
         </div>
         <div>
@@ -201,14 +204,22 @@ function ActionDetailCompact({ actionId, onClose, onSaved }: ActionDetailCompact
         </div>
       </div>
 
-      {/* dt_start · dt_deadline */}
-      <div className="flex items-center gap-1.5">
-        <span className={lClass}>dt_start</span>
-        <input type="date" value={dtStart} onChange={e => setDtStart(e.target.value)} disabled={disabled} className={iClass + " flex-1"} />
-        <span className={lClass}>dt_deadline</span>
-        <input type="date" value={dtDeadline} onChange={e => setDtDeadline(e.target.value)} disabled={disabled} className={iClass + " flex-1"} />
-        {duration && <span className="text-[10px] text-gray-400 whitespace-nowrap">{duration}d</span>}
+      {/* dates — 3 columns */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <div>
+          <div className={lClass}>dt_start</div>
+          <input type="date" value={dtStart} onChange={e => setDtStart(e.target.value)} disabled={disabled} className={iClass + " w-full"} />
+        </div>
+        <div>
+          <div className={lClass}>dt_deadline</div>
+          <input type="date" value={dtDeadline} onChange={e => setDtDeadline(e.target.value)} disabled={disabled} className={iClass + " w-full"} />
+        </div>
+        <div>
+          <div className={lClass}>dt_completed</div>
+          <input type="date" value={dtCompleted} onChange={e => setDtCompleted(e.target.value)} disabled={disabled} className={iClass + " w-full"} />
+        </div>
       </div>
+      {duration && <div className="text-[10px] text-gray-400 text-right">{duration}d duration</div>}
 
       {/* project_name (read-only) */}
       {data.project_name && (
