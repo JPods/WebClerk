@@ -2,9 +2,10 @@ from django.db import models
 from common.models import BaseModel
 
 
-# Output type choices — what the report produces
+# Output type choices — what the report/form produces
 REPORT_OUTPUT_CHOICES = (
     ("print", "Print / PDF"),
+    ("screen", "Screen form"),
     ("email", "Email (SMTP)"),
     ("api", "POST to external endpoint"),
     ("json", "Return structured JSON"),
@@ -13,8 +14,9 @@ REPORT_OUTPUT_CHOICES = (
     ("merge", "Word / spreadsheet merge"),
 )
 
-# Category choices — grouping for the report menu
+# Category choices — grouping for the report/form menu
 REPORT_CATEGORY_CHOICES = (
+    ("form", "Form"),
     ("report", "Report"),
     ("statement", "Statement"),
     ("list", "List"),
