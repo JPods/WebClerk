@@ -15,9 +15,10 @@
  *   ]
  * }
  */
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
 import { patchAction } from "../../api/userProfile";
+import { getWidget } from "../widgets";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
@@ -276,35 +277,24 @@ function DynamicDetail({
   };
 
   // Field renderer
+  // Render a field using the widget registry
   const renderField = (fieldName: string, disabled: boolean) => {
     const cfg = fieldRegistry[fieldName];
     if (!cfg) return <span className="text-xs text-red-400">{fieldName}?</span>;
 
-    const val = values[fieldName] ?? "";
-
-    if (cfg.type === "readonly") {
-      return <span className="text-xs text-gray-600 dark:text-gray-300">{String(val || "—")}</span>;
-    }
-    if (cfg.type === "select" && cfg.options) {
-      return (
-        <select value={val} onChange={e => setValues(v => ({ ...v, [fieldName]: e.target.value }))}
-          disabled={disabled} className={iClass}>
-          {cfg.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      );
-    }
-    if (cfg.type === "date") {
-      return <input type="date" value={val} onChange={e => setValues(v => ({ ...v, [fieldName]: e.target.value }))}
-        disabled={disabled} className={iClass} />;
-    }
-    if (cfg.type === "number") {
-      return <input type="number" value={val} min={cfg.min} max={cfg.max}
-        onChange={e => setValues(v => ({ ...v, [fieldName]: Number(e.target.value) }))}
-        disabled={disabled} className={iClass} />;
-    }
-    // text / json-text
-    return <input type="text" value={val} onChange={e => setValues(v => ({ ...v, [fieldName]: e.target.value }))}
-      disabled={disabled} className={iClass} />;
+    const Widget = getWidget(cfg.type);
+    return (
+      <Widget
+        name={fieldName}
+        value={values[fieldName] ?? ""}
+        onChange={(v) => setValues(prev => ({ ...prev, [fieldName]: v }))}
+        disabled={disabled}
+        options={cfg.options}
+        min={cfg.min}
+        max={cfg.max}
+        record={data || undefined}
+      />
+    );
   };
 
   if (!data) return <div className="py-4 text-center text-xs text-gray-400">Loading...</div>;
