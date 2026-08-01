@@ -142,10 +142,48 @@ function DynamicDetail({
   const [arranging, setArranging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [layout, setLayout] = useState(layoutProp || defaultLayout);
+  const [layoutReportId, setLayoutReportId] = useState<number | null>(null);
   const [fontScale, setFontScale] = useState(0);
   const [dragRow, setDragRow] = useState<number | null>(null);
 
   const fontSize = 12 + fontScale;
+
+  // Load form layout from Report record (output_type=screen, category=form)
+  useEffect(() => {
+    if (layoutProp) return; // prop overrides server layout
+    const cacheKey = `form_layout_${modelName}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setLayout(parsed.config);
+        setLayoutReportId(parsed.id);
+        return;
+      } catch {}
+    }
+    // Fetch from server
+    import("../../api/wcapi").then(({ getRecords }) => {
+      getRecords("report", {
+        model_name: modelName,
+        output_type: "screen",
+        category: "form",
+        is_active: true,
+        limit: 1,
+      }).then((resp: any) => {
+        const records = resp?.data || resp?.records || [];
+        const arr = Array.isArray(records) ? records : [];
+        if (arr.length > 0 && arr[0].config?.rows) {
+          setLayout(arr[0].config);
+          setLayoutReportId(arr[0].id);
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            id: arr[0].id,
+            version: arr[0].version,
+            config: arr[0].config,
+          }));
+        }
+      }).catch(() => {});
+    });
+  }, [modelName, layoutProp]);
 
   // Load record
   useEffect(() => {
@@ -287,11 +325,26 @@ function DynamicDetail({
             className="rounded border border-gray-300 px-1 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:border-gray-600">A-</button>
           <button onClick={() => setFontScale(s => s + 1)}
             className="rounded border border-gray-300 px-1 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:border-gray-600">A+</button>
-          <button onClick={() => setArranging(!arranging)}
+          <button onClick={() => {
+              if (arranging) {
+                // Save layout back to Report record
+                if (layoutReportId) {
+                  saveRecord("report", {
+                    model_name: "report",
+                    id: String(layoutReportId),
+                    config: { mode: "update", value: layout },
+                  }).then(() => {
+                    sessionStorage.removeItem(`form_layout_${modelName}`);
+                    dispatch(showToast({ message: "Layout saved", type: "success" }));
+                  }).catch(() => {});
+                }
+              }
+              setArranging(!arranging);
+            }}
             className={`rounded border px-1.5 py-0.5 text-[10px] ${
               arranging ? "border-amber-400 bg-amber-50 text-amber-700" : "border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600"
             }`}
-            title="Toggle layout arrange mode"
+            title={arranging ? "Save layout and exit arrange mode" : "Arrange form layout"}
           >{arranging ? "Done" : "⚙"}</button>
           {editing ? (
             <>
