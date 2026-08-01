@@ -36,40 +36,63 @@ ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
     (21, "Expert (21)"),
 )
 
+SETTING_SCOPE_CHOICES: Final[ChoiceList] = (
+    ("system", "System — all orgs, all users"),
+    ("org", "Organization — one business"),
+    ("role", "Role — one role within an org"),
+    ("user", "User — one person"),
+)
+
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("", ""),
+    # Layout & display
+    ("detail_layout", "detail_layout"),
+    ("compact_layout", "compact_layout"),
+    ("list_column_config", "list_column_config"),
+    ("field_registry", "field_registry"),
     ("view_edit", "view_edit"),
-    ("constants", "constants"),
+    ("field_access", "field_access"),
+    ("detail_field_access", "detail_field_access"),
+    ("workbench_fields", "workbench_fields"),
+    # Defaults
     ("db_defaults", "db_defaults"),
+    ("constants", "constants"),
     ("sales_defaults", "sales_defaults"),
     ("purchase_defaults", "purchase_defaults"),
     ("accounting_defaults", "accounting_defaults"),
+    ("accounting_interface", "accounting_interface"),
+    ("print_defaults", "print_defaults"),
+    # Search & keywords
     ("keywords", "keywords"),
     ("search", "search"),
-    ("workbench_fields", "workbench_fields"),
-    ("detail_field_access", "detail_field_access"),
+    # QA
     ("qa_counters", "qa_counters"),
     ("qa_questions", "qa_questions"),
+    # Alice & AI
+    ("alice_pending", "alice_pending"),
+    ("alice_log", "alice_log"),
+    ("alice_coaching", "alice_coaching"),
+    ("ai_prompt_history", "ai_prompt_history"),
+    # Admin & system
     ("admin", "admin"),
     ("admin_selectlist", "admin_selectlist"),
     ("React_settings", "React_settings"),
-    ("list_column_config", "list_column_config"),
-    ("alice_pending", "alice_pending"),
-    ("alice_log", "alice_log"),
-    ("field_access", "field_access"),
     ("seed", "seed"),
-    ("alice_coaching", "alice_coaching"),
-    ("campaign", "campaign"),
-    ("company_profile", "company_profile"),
-    ("accounting_interface", "accounting_interface"),
-    ("wchq_connection", "wchq_connection"),
-    ("ai_prompt_history", "ai_prompt_history"),
-    ("calculated_function", "calculated_function"),
-    ("print_defaults", "print_defaults"),
-    ("collaborate_webclerk", "collaborate_webclerk"),
-    ("schema_map", "schema_map"),
     ("system", "system"),
     ("feature", "feature"),
+    ("schema_map", "schema_map"),
+    ("calculated_function", "calculated_function"),
+    # Commerce & collaboration
+    ("campaign", "campaign"),
+    ("company_profile", "company_profile"),
+    ("collaborate_webclerk", "collaborate_webclerk"),
+    ("wchq_connection", "wchq_connection"),
+    # Sync & storage
+    ("sync_config", "sync_config"),
+    ("file_storage", "file_storage"),
+    # Gantt & sprint
+    ("gantt_defaults", "gantt_defaults"),
+    ("burndown_config", "burndown_config"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

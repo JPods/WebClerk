@@ -2,12 +2,18 @@ from django.db import models
 from django.db.models import Q
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.choices import SETTING_PURPOSE_CHOICES
+from apps.core.choices import SETTING_PURPOSE_CHOICES, SETTING_SCOPE_CHOICES
 from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta, get_model_meta_by_endpoint
-# company, defaults, view_edit, user-levels,
-# poppups, question, constants, integrations, notifications,
-# 
+
+
 class Setting(BaseModel):
+    """Configuration record — stores layouts, defaults, field access, and behavior rules.
+
+    Hierarchy (most specific wins):
+      user (contact_id) → role → org (org_id) → system (scope='system')
+
+    Use resolve_setting() to walk the chain and get the effective value.
+    """
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(
         max_length=255,
@@ -15,10 +21,19 @@ class Setting(BaseModel):
         null=True,
         choices=SETTING_PURPOSE_CHOICES,
     )
+    # Scope: who does this setting apply to?
+    scope = models.CharField(
+        max_length=20,
+        choices=SETTING_SCOPE_CHOICES,
+        default="system",
+        db_index=True,
+        help_text="system=everyone, org=one business, role=one role, user=one person",
+    )
     role = models.CharField(max_length=255, blank=True, null=True)
-    # Canonical model identifier (parent_model-only)
+    org_id = models.BigIntegerField(default=0, db_index=True, help_text="Organization ID — 0 = all orgs")
+    contact_id = models.BigIntegerField(default=0, db_index=True, help_text="User contact ID — 0 = all users")
+    # Canonical model identifier
     parent_model = models.CharField(max_length=255, blank=True, null=True)
-    config = models.JSONField(blank=True, null=True)
     
 
     class Meta:

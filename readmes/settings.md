@@ -1,147 +1,203 @@
 # Settings
 
-> Core model for storing configuration data as JSON.
+> Configuration records with scope hierarchy. One model drives all
+> layouts, defaults, field access, and behavior rules.
 
 ---
 
 ## Model: `Setting`
 
-**File:** `apps/core/models/setting.py`  
-**Table:** `settings`  
-**Inherits:** `BaseModel` (provides `id`, `is_active`, `created_at`, `updated_at`)
+**File:** `apps/core/models/setting.py`
+**Table:** `settings`
+**Inherits:** `BaseModel`
 
 ### Fields
 
 | Field          | Type          | Description |
 |----------------|---------------|-------------|
-| `name`         | CharField     | Unique identifier within a purpose (e.g. `"transaction_defaults"`) |
-| `purpose`      | CharField     | Category tag — constrained by `SETTING_PURPOSE_CHOICES` |
-| `role`         | CharField     | Optional role scope (e.g. `"admin"`, `"user"`) |
-| `parent_model` | CharField     | Optional canonical model key (validated against MODEL_REGISTRY) |
-| `data`         | JSONField     | Arbitrary JSON payload — this is where all config lives |
+| `name`         | CharField     | Identifier within a purpose (e.g. `"transaction_defaults"`) |
+| `purpose`      | CharField     | Category — constrained by `SETTING_PURPOSE_CHOICES` |
+| `scope`        | CharField     | Hierarchy level: `system`, `org`, `role`, `user` |
+| `role`         | CharField     | Role name (when scope=role) |
+| `org_id`       | BigIntegerField | Organization ID (when scope=org or role). 0 = all orgs |
+| `contact_id`   | BigIntegerField | User contact ID (when scope=user). 0 = all users |
+| `parent_model` | CharField     | Canonical model key (validated against MODEL_REGISTRY) |
+| `config`       | JSONField     | The configuration payload — structure depends on purpose |
 
-### Validation
+### Scope Hierarchy
 
-- `parent_model` is normalized to the canonical registry key on save (e.g. `"Orders"` → `"order"`).
-- `full_clean()` runs automatically in `save()`, so ORM-created records are validated too.
+Settings resolve from most specific to least specific.
+First match wins:
 
-### Virtual property
+```
+user (contact_id=8)     ← Bill's personal layout
+  ↓ not found
+role (role="admin")     ← all admins see this
+  ↓ not found
+org (org_id=1)          ← this business's default
+  ↓ not found
+system                  ← global default for all
+```
 
-- `setting.comment` reads/writes `data["comment"]` transparently.
+### Resolver
+
+```python
+from apps.core.services.setting_resolver import resolve_setting
+
+# Get the effective detail layout for action, for this user
+config = resolve_setting(
+    purpose="detail_layout",
+    parent_model="action",
+    contact_id=8,        # Bill
+    org_id=1,            # JPods
+    role="admin",
+)
+
+# Returns config from the most specific match, or None
+```
+
+**API endpoint:**
+```
+GET /wcapi/setting/resolve/?purpose=detail_layout&parent_model=action
+```
+Returns `{config, scope}` — the effective config and which scope matched.
 
 ---
 
-## Purpose choices
+## Purpose Categories
 
-Defined in `apps/core/choices.py` → `SETTING_PURPOSE_CHOICES`:
-
-| Purpose               | Usage |
-|-----------------------|-------|
-| `view_edit`           | Per-table field visibility/edit matrix by role |
-| `constants`           | Global user-defined constants map |
-| `db_defaults`         | Global database/platform defaults |
-| `sales_defaults`      | Sales module defaults (global or per table) |
-| `purchase_defaults`   | Purchasing module defaults (global or per table) |
-| `accounting_defaults` | Accounting/GL/tax defaults |
-| `keywords`            | Per-table keyword/denorm field config |
-| `workbench_fields`    | Workbench column config |
+### Layout & Display
+| Purpose | What it stores |
+|---------|---------------|
+| `detail_layout` | DynamicDetail form layout — row order, fields per row, column count |
+| `compact_layout` | Compact/floating window layout |
+| `list_column_config` | DataBrowser list column order, widths, visibility |
+| `field_registry` | Field types, labels, options, widgets per model |
+| `view_edit` | Per-table field visibility/edit matrix by role |
+| `field_access` | Field-level access control |
 | `detail_field_access` | Detail page field access rules |
-| `list_column_config`  | Named list-column layout payloads keyed by parent model |
-| `qa_counters`         | QA counter configuration |
-| `qa_questions`        | QA question configuration |
-| `admin`               | Admin-level settings |
-| `React_settings`      | Settings consumed by the React front-end |
+| `workbench_fields` | Workbench column config |
+
+### Defaults
+| Purpose | What it stores |
+|---------|---------------|
+| `db_defaults` | Global database/platform defaults |
+| `constants` | Global user-defined constants |
+| `sales_defaults` | Sales module defaults |
+| `purchase_defaults` | Purchasing module defaults |
+| `accounting_defaults` | Accounting/GL/tax defaults |
+| `accounting_interface` | GL account mapping rules |
+| `print_defaults` | Print/PDF defaults |
+
+### Search & Keywords
+| Purpose | What it stores |
+|---------|---------------|
+| `keywords` | Per-table keyword/denorm field config |
+| `search` | Saved search presets |
+
+### QA
+| Purpose | What it stores |
+|---------|---------------|
+| `qa_counters` | QA counter configuration |
+| `qa_questions` | QA question sets |
+
+### Alice & AI
+| Purpose | What it stores |
+|---------|---------------|
+| `alice_pending` | Alice's pending observation queue |
+| `alice_log` | Alice's observation log |
+| `alice_coaching` | Alice coaching rules and thresholds |
+| `ai_prompt_history` | AI prompt/response history |
+
+### Admin & System
+| Purpose | What it stores |
+|---------|---------------|
+| `admin` | Admin-level settings |
+| `admin_selectlist` | Admin select list overrides |
+| `React_settings` | Settings consumed by the React frontend |
+| `seed` | Seed data records |
+| `system` | System-level configuration |
+| `feature` | Feature flags |
+| `schema_map` | Pydantic schema mappings |
+| `calculated_function` | Custom calculated field definitions |
+
+### Commerce & Collaboration
+| Purpose | What it stores |
+|---------|---------------|
+| `campaign` | Campaign/marketing config |
+| `company_profile` | Company/organization profile |
+| `collaborate_webclerk` | WC_HQ collaboration settings |
+| `wchq_connection` | WC_HQ connection config |
+
+### Sync & Storage
+| Purpose | What it stores |
+|---------|---------------|
+| `sync_config` | Sync connection defaults |
+| `file_storage` | Image sizes, upload limits, storage paths |
+
+### Gantt & Sprint
+| Purpose | What it stores |
+|---------|---------------|
+| `gantt_defaults` | Default Gantt view settings per model |
+| `burndown_config` | Burndown chart configuration |
 
 ---
 
-## React_settings records
+## How DynamicDetail Uses Settings
 
-Settings with `purpose="React_settings"` are fetched by the React app on
-startup via wcapi and cached for the session.
+When a DynamicDetail form opens for model "action":
 
-### transaction_defaults
-
-**Lookup:** `name="transaction_defaults"`, `purpose="React_settings"`  
-**Seeded by:** migration `core/0005_seed_transaction_defaults.py`
-
-```json
-{
-  "terms": "On Order",
-  "due_date_period": 1,
-  "price_level": "retail",
-  "priority": "standard"
-}
-```
-
-| Key              | Type   | Description |
-|------------------|--------|-------------|
-| `terms`          | string | Default payment terms for new transactions |
-| `due_date_period`| number | Days to add to transaction date for due_date |
-| `price_level`    | string | Default price level (`"retail"`, `"wholesale"`, etc.) |
-| `priority`       | string | Default priority (`"standard"`, `"rush"`, etc.) |
-
-**To change defaults:** edit the `data` JSON on the Setting record directly
-(admin or Django shell). No migration needed.
+1. Frontend calls `/wcapi/setting/resolve/?purpose=detail_layout&parent_model=action`
+2. Resolver checks: user → role → org → system
+3. Returns the layout config:
+   ```json
+   {
+     "rows": [
+       { "fields": ["action"], "cols": 1 },
+       { "fields": ["assigned_to", "status"], "cols": 2 },
+       { "fields": ["priority", "difficulty", "percent_complete"], "cols": 3 },
+       { "fields": ["dt_start", "dt_deadline", "dt_completed"], "cols": 3 }
+     ]
+   }
+   ```
+4. DynamicDetail renders the form from this layout
+5. In arrange mode, user reorders → saves back as a user-scoped Setting
 
 ---
 
-## wcapi access
+## Creating Settings
 
-```http
-GET /wcapi/get/?model_name=setting&name=transaction_defaults&purpose=React_settings&is_active=true&limit=1
+### System default (everyone sees this)
+```python
+Setting.objects.create(
+    name="action_detail_layout",
+    purpose="detail_layout",
+    scope="system",
+    parent_model="action",
+    config={"rows": [...]},
+)
 ```
 
-Common scoped lookup pattern:
-
-```http
-GET /wcapi/get/?model_name=setting&purpose=<purpose>&parent_model=<canonical_model>&name=<optional_name>&is_active=true&limit=50
+### User override (only Bill sees this)
+```python
+Setting.objects.create(
+    name="action_detail_layout",
+    purpose="detail_layout",
+    scope="user",
+    contact_id=8,
+    parent_model="action",
+    config={"rows": [...]},  # Bill's custom layout
+)
 ```
 
-For `list_column_config`, prefer:
-
-```text
-purpose=list_column_config
-parent_model=<canonical model key>
-name=list_column_config:<canonical model key>
+### Org default (all users in org 1)
+```python
+Setting.objects.create(
+    name="action_detail_layout",
+    purpose="detail_layout",
+    scope="org",
+    org_id=1,
+    parent_model="action",
+    config={"rows": [...]},
+)
 ```
-
-The model has a uniqueness constraint for active list-column configs by `parent_model + purpose`.
-
-Save pattern:
-
-```http
-POST /wcapi/save/
-```
-
-```json
-{
-   "model_name": "setting",
-   "purpose": "list_column_config",
-   "parent_model": "customer",
-   "name": "list_column_config:customer",
-   "data": { ... column layout object ... }
-}
-```
-
-Important save contract:
-
-- `setting.data` accepts object-valued JSON payloads directly.
-- Save parsing treats plain dict/list field payloads as field values, so nested layout objects persist without wrapping each field in `{"mode":...,"value":...}`.
-
-All CRUD on settings goes through the standard wcapi gateway — no
-per-model REST endpoints.
-
----
-
-## Adding new React_settings
-
-1. Define the `data` shape and document it in this file.
-2. Create a data migration in `apps/core/migrations/` to seed the record
-   (use `0005_seed_transaction_defaults.py` as a template).
-3. Build or extend a React hook in `src/hooks/` to fetch and cache it.
-4. No model or choice changes are needed — `React_settings` purpose
-   already exists.
-
-Alternatively, nest new sections inside an existing record's `data` JSON
-to avoid extra records/fetches. A single record per purpose is preferred
-when the data is always consumed together.
