@@ -129,6 +129,8 @@ class TransactionBaseModel(BaseModel):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
+    dt_needed = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Date needed (UTC epoch ms) — when customer needs the order")
+    ship_via = models.CharField(max_length=50, blank=True, null=True, help_text="Carrier/shipping method (US Postal, UPS, FedEx, etc.)")
     # Commission orders routed by manufacturer (refs.links.manufacturer[].commission_based=True)
     is_commission = models.BooleanField(default=False, db_index=True, help_text="Order placed by manufacturer for commission")
     # FK-first: proper ForeignKey references to OrgBase and Contact.
@@ -158,6 +160,7 @@ class TransactionBaseModel(BaseModel):
         blank=True, null=True,
         db_column='contact_id', related_name='%(class)s_as_contact',
     )
+    company = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
     attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
     address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
     email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)

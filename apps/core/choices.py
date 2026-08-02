@@ -82,6 +82,9 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("feature", "feature"),
     ("schema_map", "schema_map"),
     ("calculated_function", "calculated_function"),
+    # Conditions — document terms/conditions templates
+    ("conditions_sales", "conditions_sales"),
+    ("conditions_purchase", "conditions_purchase"),
     # Commerce & collaboration
     ("campaign", "campaign"),
     ("company_profile", "company_profile"),
@@ -93,6 +96,8 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     # Gantt & sprint
     ("gantt_defaults", "gantt_defaults"),
     ("burndown_config", "burndown_config"),
+    # Line card
+    ("line_card_fields", "line_card_fields"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

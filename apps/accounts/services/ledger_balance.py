@@ -423,28 +423,35 @@ def _stage_payment_gl_accounts(payment) -> None:
         payment_method_metadata=method_metadata if isinstance(method_metadata, dict) else None,
     )
     amount = _as_decimal_amount(getattr(payment, 'amount', 0))
+    abs_amount = abs(amount)
+    is_received = amount > 0  # positive = money in, negative = money out (refunds, disbursements)
 
     metadata = getattr(payment, 'metadata', None) or {}
     if not isinstance(metadata, dict):
         metadata = {}
 
-    metadata['gl_accounts'] = {
-        'event': 'payment_received',
-        'postings': [
-            {
-                'side': 'debit',
-                'purpose': 'cash_receipt',
-                'account': defaults.get('cash_receipt', ''),
-                'amount': float(amount),
-            },
-            {
-                'side': 'credit',
-                'purpose': 'accounts_receivable',
-                'account': defaults.get('accounts_receivable', ''),
-                'amount': float(amount),
-            },
-        ],
-    }
+    if is_received:
+        metadata['gl_accounts'] = {
+            'event': 'payment_received',
+            'postings': [
+                {'side': 'debit', 'purpose': 'cash_receipt',
+                 'account': defaults.get('cash_receipt', ''), 'amount': float(abs_amount)},
+                {'side': 'credit', 'purpose': 'accounts_receivable',
+                 'account': defaults.get('accounts_receivable', ''), 'amount': float(abs_amount)},
+            ],
+        }
+    else:
+        metadata['gl_accounts'] = {
+            'event': 'payment_disbursed',
+            'postings': [
+                {'side': 'debit', 'purpose': 'accounts_payable',
+                 'account': defaults.get('accounts_payable', defaults.get('accounts_receivable', '')),
+                 'amount': float(abs_amount)},
+                {'side': 'credit', 'purpose': 'cash_disbursement',
+                 'account': defaults.get('cash_receipt', ''), 'amount': float(abs_amount)},
+            ],
+        }
+
     payment.metadata = metadata
     try:
         now_ms = int(datetime.now().timestamp() * 1000)

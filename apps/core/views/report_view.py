@@ -77,6 +77,9 @@ class ReportDownloadView(APIView):
                     error={"code": "invalid_filters"},
                 )
 
+        # Track usage — increment count on the Report record
+        self._track_usage(report_name, model_name, request.user)
+
         try:
             from apps.core.services.report_renderer import render_report
             result = render_report(report_name, model_name, record_id, filters, fmt)
@@ -106,3 +109,57 @@ class ReportDownloadView(APIView):
         response["Content-Disposition"] = f'inline; filename="{result["filename"]}"'
         response["X-Report-Pages"] = str(result.get("pages", 0))
         return response
+
+    @staticmethod
+    def _track_usage(report_name: str, model_name: str, user) -> None:
+        """Increment usage count on the Report record.
+
+        Stored in metadata.flow:
+            use_count:      total times this report has been generated
+            last_used_utc:  ISO timestamp of last use
+            used_by:        list of recent user IDs (last 20, deduplicated)
+            first_used_utc: ISO timestamp of first use
+
+        Alice uses this data to coach:
+            - Reports never used → candidates for deactivation
+            - Reports used heavily → protect from accidental deletion
+            - Reports used by one person only → may be too specialized
+            - Two reports with identical use patterns → may be duplicates
+        """
+        from datetime import datetime, timezone
+        try:
+            from apps.core.models import Report
+            report = Report.objects.filter(
+                name=report_name,
+                model_name=model_name,
+                is_active=True,
+                is_deleted=False,
+            ).first()
+            if not report:
+                return
+
+            meta = report.metadata or {}
+            flow = meta.get('flow', {}) or {}
+
+            now = datetime.now(timezone.utc).isoformat()
+            use_count = (flow.get('use_count') or 0) + 1
+            first_used = flow.get('first_used_utc') or now
+
+            # Track last 20 unique users
+            used_by = flow.get('used_by') or []
+            user_id = getattr(user, 'id', None)
+            if user_id and user_id not in used_by:
+                used_by.append(user_id)
+            used_by = used_by[-20:]  # keep last 20
+
+            flow['use_count'] = use_count
+            flow['last_used_utc'] = now
+            flow['first_used_utc'] = first_used
+            flow['used_by'] = used_by
+
+            meta['flow'] = flow
+            report.metadata = meta
+            report.save(update_fields=['metadata', 'dt_modified'])
+        except Exception:
+            # Never break report generation for a tracking failure
+            pass

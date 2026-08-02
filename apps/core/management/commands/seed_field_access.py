@@ -301,7 +301,7 @@ def _build_config(model_key, fields, overrides=None, field_map=None):
             'sales': {
                 'view': all_view,
                 'edit': [f for f in business_fields if f not in (
-                    'account_number', 'type', 'category', 'division',
+                    'type', 'category', 'division',
                     'debit', 'credit', 'reconciled', 'fee_amount',
                 )],
                 'create': True,

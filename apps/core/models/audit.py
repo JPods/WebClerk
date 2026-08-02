@@ -103,9 +103,9 @@ class AuditLog(BaseModel):
             record_id=record_id,
             action=action,
             changes=changes or {},
-            ip_address=ip_address,
-            user_agent=user_agent,
-            id_session=id_session,
+            ip_address=ip_address or '',
+            user_agent=user_agent or '',
+            id_session=id_session or '',
             metadata=metadata or {}
         )
 

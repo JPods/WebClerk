@@ -1,5 +1,8 @@
 # Inventory Flow Testing Plan
 
+> **Pending Policy:** All inventory quantity changes create a Pending record — always,
+> even if the item is unlocked. See `readmes/pending-policy.md` Rule 1.
+
 ## Overview
 
 This document captures our testing efforts and outlines the plan for testing inventory quantity flow across transaction types.

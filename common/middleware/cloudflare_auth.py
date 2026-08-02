@@ -62,6 +62,18 @@ class CloudflareAccessMiddleware:
             # Log in without password — Cloudflare already verified the email
             login(request, contact, backend="django.contrib.auth.backends.ModelBackend")
 
+            # Alice observation — track CF login for behavior analysis
+            try:
+                import importlib.util
+                _alice_script = "/opt/andi/scripts/alice-observe.py"
+                if os.path.exists(_alice_script):
+                    spec = importlib.util.spec_from_file_location("alice_observe", _alice_script)
+                    alice = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(alice)
+                    alice.on_cf_login(email, request.path)
+            except Exception:
+                pass  # never break auth for observation
+
         except Exception:
             logger.exception("Cloudflare auth failed for %s", email)
 

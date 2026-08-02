@@ -16,7 +16,7 @@ def load_keyword_requirements():
         
         requirements = {}
         # Use basic query without .only() to avoid hanging
-        qs = Setting.objects.filter(purpose__in=["refs_setup", "ref_seup"], is_active=True)
+        qs = Setting.objects.filter(purpose="keywords", is_active=True)
         
         for setting in qs:
             # Check timeout

@@ -70,6 +70,10 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'notification': ModelMeta('notification', 'apps.core.models.notification.Notification', 'Notification', 'Notifications', 'notifications', kind='support', aliases=['notifications']),
     'report': ModelMeta('report', 'apps.core.models.report.Report', 'Report', 'Reports', 'reports', kind='support', aliases=['reports']),
     'setting': ModelMeta('setting', 'apps.core.models.setting.Setting', 'Setting', 'Settings', 'settings', kind='support', aliases=['settings']),
+    # Virtual namespaces — no model class, used as parent_model for system-level Settings
+    'wc': ModelMeta('wc', 'apps.core.models.setting.Setting', 'WebClerk System', 'WebClerk System', 'wc', kind='support', aliases=['webclerk', 'system']),
+    'gantt': ModelMeta('gantt', 'apps.core.models.setting.Setting', 'Gantt', 'Gantt', 'gantt', kind='support', aliases=[]),
+    'databrowser': ModelMeta('databrowser', 'apps.core.models.setting.Setting', 'DataBrowser', 'DataBrowser', 'databrowser', kind='support', aliases=['db']),
     'template': ModelMeta('template', 'apps.core.models.template.Template', 'Template', 'Templates', 'templates', kind='support', aliases=['templates']),
 
     # --- docs --- (A->Z by key)
@@ -140,6 +144,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
     'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
     'payment': ModelMeta('payment', 'apps.transactions.models.Payment', 'Payment', 'Payments', 'payments', kind='header', aliases=['payments']),
+    'statement_line': ModelMeta('statement_line', 'apps.transactions.models.StatementLine', 'Statement Line', 'Statement Lines', 'statement-lines', kind='header', aliases=['statement_lines', 'statements']),
     'payment_application': ModelMeta('payment_application', 'apps.transactions.models.PaymentApplication', 'Payment Application', 'Payment Applications', 'payment-applications', kind='support', aliases=['payment_applications']),
     'payment_method': ModelMeta('payment_method', 'apps.transactions.models.PaymentMethod', 'Payment Method', 'Payment Methods', 'payment-methods', kind='support', aliases=['payment_methods']),
     'payment_term': ModelMeta('payment_term', 'apps.transactions.models.PaymentTerm', 'Payment Term', 'Payment Terms', 'payment-terms', kind='support', aliases=['payment_terms']),

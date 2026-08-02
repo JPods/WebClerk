@@ -1,5 +1,8 @@
 # Ledger System & Financial Data Management
 
+> **Pending Policy:** All cash/payment balance changes and GL postings create a
+> Pending record — always, even if the record is unlocked. See `readmes/pending-policy.md` Rule 1.
+
 ## Overview
 
 The ledger system provides real-time tracking of customer, vendor, manufacturer, rep, and employee financial data. It uses a **hybrid approach** combining real-time pending records for operational data with batch processing for aggregate metrics.

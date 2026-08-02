@@ -977,6 +977,12 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=4, minute=0, day_of_week='sunday'),
         'kwargs': {'limit': 50000, 'batch_size': 500},
     },
+
+    # ── Athena integrity verification (every 4 hours) ─────────────
+    'athena-verify-integrity': {
+        'task': 'apps.support.scheduler.tasks.task_athena_verify',
+        'schedule': crontab(minute=0, hour='*/4'),
+    },
 }
 
 # --- Inventory Pending Processing ---

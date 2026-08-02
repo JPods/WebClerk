@@ -49,6 +49,30 @@ def _get_org_gl_override(org_id: int, key: str) -> Optional[str]:
         return None
 
 
+def _get_category_gl(category: str) -> str:
+    """Look up GL account for an expense category bucket.
+
+    Reads the gl_map from the payment field_access Setting.
+    Freehand entries that aren't in the map get default_gl.
+    """
+    if not category:
+        return 'EXP-MISC-000'
+    try:
+        Setting = dj_apps.get_model('core', 'Setting')
+        setting = Setting.objects.filter(
+            purpose='field_access', parent_model='payment',
+        ).first()
+        if setting:
+            sl = (setting.config or {}).get('select_lists', {}).get('category', {})
+            gl = sl.get('gl_map', {}).get(category)
+            if gl:
+                return gl
+            return sl.get('default_gl', 'EXP-MISC-000')
+    except Exception:
+        pass
+    return 'EXP-MISC-000'
+
+
 # Default fallback accounts
 DEFAULTS = {
     'ar': 'ASSET-AR-000',
@@ -238,7 +262,10 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
 
 
 def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
-    """Journalize a payment — Cash debit, AR credit.
+    """Journalize a payment — checkbook convention (signed amounts).
+
+    Positive amount (received): Cash debit, AR credit — money in.
+    Negative amount (disbursed): AP debit, Cash credit — money out.
 
     Args:
         payment_id: Payment PK
@@ -262,35 +289,58 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
     if amount == 0:
         return {'created': 0, 'error': 'Zero amount'}
 
+    abs_amount = abs(amount)
+    is_received = amount > 0  # positive = money in, negative = money out
+
     # Determine accounts — check org overrides
     cash_account = DEFAULTS['cash']
-    ar_account = DEFAULTS['ar']
 
-    # Payment may link to an invoice which has a customer
-    invoice_id = getattr(payment, 'invoice_id', None)
-    if invoice_id:
-        try:
-            Invoice = dj_apps.get_model('transactions', 'Invoice')
-            inv = Invoice.objects.get(pk=invoice_id)
-            if inv.customer_id:
-                cash_override = _get_org_gl_override(inv.customer_id, 'cash')
-                ar_override = _get_org_gl_override(inv.customer_id, 'ar')
-                if cash_override:
-                    cash_account = cash_override
-                if ar_override:
-                    ar_account = ar_override
-        except Exception:
-            pass
+    if is_received:
+        # AR receipt: Cash debit, AR credit
+        offset_account = DEFAULTS['ar']
+        invoice_id = getattr(payment, 'invoice_id', None)
+        if invoice_id:
+            try:
+                Invoice = dj_apps.get_model('transactions', 'Invoice')
+                inv = Invoice.objects.get(pk=invoice_id)
+                if inv.customer_id:
+                    cash_override = _get_org_gl_override(inv.customer_id, 'cash')
+                    ar_override = _get_org_gl_override(inv.customer_id, 'ar')
+                    if cash_override:
+                        cash_account = cash_override
+                    if ar_override:
+                        offset_account = ar_override
+            except Exception:
+                pass
+        debit_account, debit_purpose = cash_account, 'cash_receipt'
+        credit_account, credit_purpose = offset_account, 'accounts_receivable'
+    else:
+        # Disbursement: Expense debit (from category bucket), Cash credit
+        # Category → GL mapping lives in Setting select_lists
+        offset_account = _get_category_gl(getattr(payment, 'category', ''))
+        purchase_id = getattr(payment, 'purchase_id', None)
+        if purchase_id:
+            try:
+                Purchase = dj_apps.get_model('transactions', 'Purchase')
+                po = Purchase.objects.get(pk=purchase_id)
+                if po.vendor_id:
+                    cash_override = _get_org_gl_override(po.vendor_id, 'cash')
+                    if cash_override:
+                        cash_account = cash_override
+            except Exception:
+                pass
+        debit_account, debit_purpose = offset_account, 'expense'
+        credit_account, credit_purpose = cash_account, 'cash_disbursement'
 
     created = 0
     posting_list = []
     with transaction.atomic():
         ida_base = f'{ida_prefix}CJ-{payment.ida}' if ida_prefix else f'CJ-{payment.ida}'
-        # Cash debit
+
         GlJournal.objects.create(
-            ida=f'{ida_base}-{cash_account}',
-            account=cash_account,
-            debit=float(amount),
+            ida=f'{ida_base}-{debit_account}',
+            account=debit_account,
+            debit=float(abs_amount),
             credit=None,
             source='automation',
             type='general',
@@ -298,21 +348,20 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
             source_model='payment',
         )
         created += 1
-        posting_list.append({'account': cash_account, 'debit': float(amount), 'credit': 0, 'purpose': 'cash_receipt'})
+        posting_list.append({'account': debit_account, 'debit': float(abs_amount), 'credit': 0, 'purpose': debit_purpose})
 
-        # AR credit
         GlJournal.objects.create(
-            ida=f'{ida_base}-{ar_account}',
-            account=ar_account,
+            ida=f'{ida_base}-{credit_account}',
+            account=credit_account,
             debit=None,
-            credit=float(amount),
+            credit=float(abs_amount),
             source='automation',
             type='general',
             source_id=payment_id,
             source_model='payment',
         )
         created += 1
-        posting_list.append({'account': ar_account, 'debit': 0, 'credit': float(amount), 'purpose': 'accounts_receivable'})
+        posting_list.append({'account': credit_account, 'debit': 0, 'credit': float(abs_amount), 'purpose': credit_purpose})
 
         # Mark payment as journalized
         meta = payment.metadata or {}
@@ -672,7 +721,7 @@ def account_summary_by_period(year: int, month: int) -> list[dict]:
     # Build account name lookup
     account_names = dict(
         GlAccount.objects.filter(is_active=True)
-        .values_list('account_number', 'name')
+        .values_list('ida', 'name')
     )
 
     result = []

@@ -309,9 +309,11 @@ class WCAPITransactionSaveView(APIView):
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.exception("Transaction save failed")
+            import traceback
             return Response({
                 "detail": "Save failed",
-                "error": str(e)
+                "error": str(e),
+                "traceback": traceback.format_exc()[-500:],
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

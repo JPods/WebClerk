@@ -69,7 +69,7 @@ LAYOUTS = {
     'notification': {'list': ['id', 'name', 'purpose', 'model_name', 'record_id', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'model_name', 'record_id', 'data', 'dt_created', 'dt_modified']},
 
     # --- Accounts ---
-    'gl_account':       {'list': ['id', 'account_number', 'name', 'type', 'category', 'division', 'used_for'], 'detail': ['id', 'account_number', 'name', 'type', 'category', 'division', 'used_for', 'type_id', 'account_credit', 'account_debit', 'comment', 'is_active', 'dt_created', 'dt_modified']},
+    'gl_account':       {'list': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for'], 'detail': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for', 'type_id', 'account_credit', 'account_debit', 'comment', 'is_active', 'dt_created', 'dt_modified']},
     'gl_journal':       {'list': ['id', 'account', 'debit', 'credit', 'source', 'source_model', 'dt_created'], 'detail': ['id', 'account', 'debit', 'credit', 'source', 'type', 'source_id', 'source_model', 'dt_created', 'dt_modified']},
     'ledger':           {'list': ['id', 'value_original', 'value_available', 'dt_due', 'is_settled', 'source', 'model_name'], 'detail': ['id', 'value_original', 'value_available', 'source', 'model_name', 'parent_id', 'dt_due', 'dt_discount_due', 'dt_posted', 'dt_settled', 'is_settled', 'is_cleared', 'is_void', 'discount_potential', 'dt_created']},
     'audit':            {'list': ['id', 'name', 'purpose', 'priority', 'rating', 'is_completed', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'priority', 'rating', 'is_completed', 'conflicts', 'changes', 'actions', 'recommendations', 'dt_created', 'dt_modified']},
@@ -325,7 +325,7 @@ class Command(BaseCommand):
             kwargs['purpose'] = 'fake_seed'
             kwargs['config'] = {'health': 'fake'}
         elif model_key == 'gl_account':
-            kwargs['account_number'] = 'zz-fake-00000'
+            kwargs['ida'] = 'zz-fake-00000'
             kwargs['type'] = 'asset'
             kwargs['category'] = 'cash'
         elif model_key == 'currency':

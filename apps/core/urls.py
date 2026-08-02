@@ -19,6 +19,7 @@ from apps.core.views.burndown_view import BurndownView
 from apps.core.views.setting_resolve_view import SettingResolveView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
+from apps.core.views.bootstrap_view import BootstrapView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
 from apps.core.views.refs_mismatch_view import RefsMismatchView
 from apps.core.views.permissions import UserPermissionsView, ModelPermissionsView
@@ -53,6 +54,7 @@ urlpatterns = [
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/search-presets/", SearchPresetListView.as_view(), name="search-preset-list"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
+    path("wcapi/bootstrap/", BootstrapView.as_view(), name="wcapi-bootstrap"),
     path("wcapi/system-info/", SystemInfoView.as_view(), name="system-info"),
     # QA endpoints
     path("wcapi/qa/apply/", ApplyQuestionsView.as_view(), name="wcapi-qa-apply"),

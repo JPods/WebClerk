@@ -342,11 +342,14 @@ class PaymentSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            'id', 'uuid', 'amount', 'dt_payment', 'payment_method_id', 'payment_term_id',
+            'id', 'uuid', 'type', 'category', 'amount', 'dt_payment',
+            'method', 'payment_term_id',
             'reference_number', 'notes', 'gateway', 'id_gateway_transaction',
             'id_gateway_payment_intent', 'status', 'gateway_response',
             'dt_processed', 'reconciled', 'dt_reconciliation', 'fee_amount',
-            'contact_id', 'invoice_id', 'dt_created', 'dt_modified', 'version'
+            'contact_id', 'customer_id', 'vendor_id', 'invoice_id', 'purchase_id',
+            'dt_created', 'dt_modified', 'version',
+            'refs', 'metadata', 'comments', 'is_active',
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version']
 
@@ -363,6 +366,25 @@ class PaymentApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
 
+class StatementLineSerializer(RoleAwareModelSerializer):
+    """Serializer for StatementLine — bank/card statement import staging."""
+
+    class Meta:
+        from apps.transactions.models.statement_line import StatementLine as SLModel
+        model = SLModel
+        fields = [
+            'id', 'uuid', 'ida',
+            'dt_transaction', 'description', 'amount', 'raw_text',
+            'source', 'statement_date', 'batch_id',
+            'classification', 'category', 'merchant', 'ledger',
+            'contact_id', 'vendor_id',
+            'promoted', 'payment_id',
+            'dt_created', 'dt_modified', 'version',
+            'is_active', 'refs', 'metadata', 'prefs', 'comments',
+        ]
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version']
+
+
 __all__ = [
     'ProposalSerializer',
     'ProposalLineSerializer',
@@ -373,4 +395,5 @@ __all__ = [
     'InvoiceSerializer',
     'PaymentSerializer',
     'PaymentApplicationSerializer',
+    'StatementLineSerializer',
 ]

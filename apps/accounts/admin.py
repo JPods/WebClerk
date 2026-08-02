@@ -13,10 +13,10 @@ from .models.audit import Audit
 
 @admin.register(GlAccount)
 class GLAccountAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, ImportExportModelAdmin):
-	# Scalar fields: account_credit, account_debit, account_number, category, comment, division, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, type, type_id, used_for, uuid, version
-	list_display = ("ida", "name", "type", "account_credit", "account_debit", "account_number", "is_active", "dt_created")
+	# Scalar fields: account_credit, account_debit, category, comment, division, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, type, type_id, used_for, uuid, version
+	list_display = ("ida", "name", "type", "account_credit", "account_debit", "is_active", "dt_created")
 	list_filter = ("is_active",)
-	search_fields = ("account_number", "name")
+	search_fields = ("ida", "name")
 
 	def get_readonly_fields(self, request, obj=None):
 		readonly = list(super().get_readonly_fields(request, obj))

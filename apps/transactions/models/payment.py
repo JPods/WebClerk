@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import now as django_now
 
 from common.models import BaseModel
 from apps.transactions.choices import PAYMENT_GATEWAY_CHOICES, PAYMENT_STATUS_CHOICES
@@ -63,16 +64,16 @@ class Payment(BaseModel):
         db_table = "payments"
 
     PAYMENT_TYPE_CHOICES = [
-        ('received', 'Received'),      # AR — money in (customer pays us)
-        ('disbursed', 'Disbursed'),     # AP — money out (we pay vendor/employee)
+        ('received', 'Received'),      # money in (+)
+        ('expense', 'Expense'),        # money out (-)
     ]
 
     type = models.CharField(
         max_length=20,
         choices=PAYMENT_TYPE_CHOICES,
-        default='received',
+        default='expense',
         db_index=True,
-        help_text="Direction: received (AR, money in) or disbursed (AP, money out)"
+        help_text="Required. Received=money in, Expense=money out. Category tells the rest."
     )
 
     # Parent transaction references
@@ -97,20 +98,36 @@ class Payment(BaseModel):
     contact = models.ForeignKey(
         'core.Contact',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='payments',
         db_column='contact_id',
         help_text="Contact who made or received the payment"
     )
-    amount = models.DecimalField(max_digits=15, decimal_places=2, help_text="Payment amount")
-    dt_payment = models.DateTimeField(help_text="Date the payment was made")
-    payment_method = models.ForeignKey(
-        PaymentMethod,
+    customer = models.ForeignKey(
+        'orgs.OrgBase',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='payments',
-        db_column='paymentmethod_id',
-        help_text="Method of payment"
+        related_name='payments_as_customer',
+        db_column='customer_id',
+        help_text="Customer org — received payments"
+    )
+    vendor = models.ForeignKey(
+        'orgs.OrgBase',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments_as_vendor',
+        db_column='vendor_id',
+        help_text="Vendor org — expense payments"
+    )
+    amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Positive=money in (received), negative=money out (disbursed). SUM(amount) = net cash position.")
+    dt_payment = models.DateTimeField(null=True, blank=True, default=django_now, help_text="Date the payment was made")
+    method = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="How they paid: visa_3425, check-WellsFargo, cash, etc. Freehand or select list."
     )
     payment_term = models.ForeignKey(
         PaymentTerm,
@@ -120,6 +137,12 @@ class Payment(BaseModel):
         related_name='payments',
         db_column='paymentterm_id',
         help_text="Payment term applied"
+    )
+    category = models.CharField(
+        max_length=100,
+        blank=True,
+        db_index=True,
+        help_text="Expense bucket (e.g. Office Supplies, Travel). Maps to GL via select_list in Setting."
     )
     reference_number = models.CharField(max_length=100, blank=True, help_text="Check number, transaction ID, etc.")
     notes = models.TextField(blank=True, help_text="Additional notes about the payment")
@@ -198,7 +221,8 @@ class Payment(BaseModel):
         ]
 
     def __str__(self):
-        return f"Payment #{self.id} - {self.amount} ({self.status}) for Invoice #{self.invoice_id}"
+        parent = f"Invoice #{self.invoice_id}" if self.invoice_id else f"Purchase #{self.purchase_id}" if self.purchase_id else "unlinked"
+        return f"Payment #{self.id} - {self.amount:+.2f} ({self.status}) for {parent}"
 
     def mark_as_completed(self):
         """Mark payment as completed"""

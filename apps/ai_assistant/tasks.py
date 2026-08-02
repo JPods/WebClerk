@@ -30,6 +30,10 @@ Beat schedule example (settings.py):
             'task': 'ai_assistant.tasks.velocity_task',
             'schedule': crontab(hour=5, minute=0, day_of_week=1),
         },
+        'ai-relationship-scan-nightly': {
+            'task': 'ai_assistant.tasks.relationship_scan_task',
+            'schedule': crontab(hour=3, minute=30),
+        },
     }
 """
 from __future__ import annotations
@@ -361,6 +365,37 @@ def apply_pending_layouts_task() -> dict:
     return result
 
 
+# ─── 5I: Relationship Intelligence ───────────────────────────────────
+
+def relationship_scan_task(customer_limit: int = 500, vendor_limit: int = 200) -> dict:
+    """Nightly task: scan all relationships for health, lifecycle, and triggers.
+
+    Alice hunts for ways to enhance the value of every relationship —
+    customers, vendors, employees, reps. Creates AliceObservation records
+    for actionable findings and updates metadata.health with relationship signals.
+    """
+    logger.info("Starting relationship intelligence scan")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.relationship_intelligence import RelationshipIntelligence
+
+    ri = RelationshipIntelligence()
+    result = ri.scan_all(customer_limit=customer_limit, vendor_limit=vendor_limit)
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+
+    cust = result.get('customers', {})
+    vend = result.get('vendors', {})
+    logger.info(
+        "Relationship scan complete: %d customers (%d obs), %d vendors (%d obs) in %.1fs",
+        cust.get('scanned', 0), cust.get('observations_created', 0),
+        vend.get('scanned', 0), vend.get('observations_created', 0),
+        duration,
+    )
+    return result
+
+
 # ─── Combined: Full Intelligence Run ──────────────────────────────────
 
 def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool = True) -> dict:
@@ -380,6 +415,7 @@ def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool
     results["margins"] = margin_tracking_task(limit=limit, use_llm=use_llm)
     results["velocity"] = velocity_task(limit=limit, use_llm=use_llm)
     results["layout_drift"] = layout_drift_task(use_llm=use_llm)
+    results["relationships"] = relationship_scan_task()
 
     total_duration = (timezone.now() - started).total_seconds()
     results["total_duration_seconds"] = total_duration

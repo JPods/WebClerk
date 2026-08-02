@@ -53,8 +53,8 @@ class Command(BaseCommand):
         defaults = dict(FALLBACK_DEFAULTS)
 
         # Add additional convenience keys used for payment method receipt mapping.
-        defaults.setdefault("cash", "ASSET-CASH-000")
-        defaults.setdefault("receivables", "ASSET-AR-000")
+        defaults.setdefault("cash", "1000-Cash")
+        defaults.setdefault("receivables", "1100-AR")
 
         purpose_to_used_for = {
             "revenue": ["sales", "revenue"],
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                 is_active=True,
                 is_deleted=False,
                 is_archived=False,
-            ).exclude(account_number__isnull=True)
+            ).exclude(ida__isnull=True).exclude(ida='')
         )
 
         for purpose, aliases in purpose_to_used_for.items():
@@ -80,11 +80,11 @@ class Command(BaseCommand):
                 continue
             matched = None
             for alias in aliases:
-                matched = next((acc for acc in accounts if (acc.used_for or "").lower() == alias and acc.account_number), None)
+                matched = next((acc for acc in accounts if (acc.used_for or "").lower() == alias and acc.ida), None)
                 if matched:
                     break
-            if matched and matched.account_number:
-                defaults[purpose] = matched.account_number
+            if matched and matched.ida:
+                defaults[purpose] = matched.ida
 
         return defaults
 

@@ -810,4 +810,134 @@ def task_reconcile_aging(self, batch_size=100):
 #   from apps.scheduler.tasks import CELERY_BEAT_SCHEDULE
 #
 
+
+# ─── Athena integrity verification ──────────────────────────────────────────
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_athena_verify(self):
+    """Athena security rounds — verify integrity of all signed assets.
+
+    Reads the Athena manifest (Document ida='athena-manifest'), hashes each
+    checkpoint file, compares to signed hash. Mismatches generate immediate
+    FAULT files. Clean rounds are batch-logged for nightly synthesis.
+
+    Runs every 4 hours via Celery beat.
+    """
+    import hashlib
+    import json
+    import logging
+    from pathlib import Path
+    from datetime import datetime, timezone as tz
+
+    logger = logging.getLogger('athena')
+
+    try:
+        from apps.docs.models import Document
+        manifest_doc = Document.objects.filter(
+            ida='athena-manifest', is_active=True, is_deleted=False
+        ).first()
+
+        if not manifest_doc:
+            logger.warning('Athena: no manifest document found (ida=athena-manifest)')
+            return {'status': 'skipped', 'reason': 'no manifest'}
+
+        manifest = manifest_doc.config or {}
+        checkpoints = manifest.get('checkpoints', [])
+
+        if not checkpoints:
+            return {'status': 'skipped', 'reason': 'empty manifest'}
+
+        results = []
+        failures = []
+
+        for cp in checkpoints:
+            path = cp.get('path')
+            expected = cp.get('hash')
+            cp_type = cp.get('type', 'unknown')
+
+            if not path or not expected:
+                results.append({'path': path, 'status': 'invalid', 'reason': 'missing path or hash'})
+                continue
+
+            filepath = Path(path)
+            if not filepath.exists():
+                entry = {'path': path, 'status': 'MISSING', 'type': cp_type}
+                results.append(entry)
+                failures.append(entry)
+                continue
+
+            actual = hashlib.sha256(filepath.read_bytes()).hexdigest()
+            if actual == expected:
+                results.append({'path': path, 'status': 'ok', 'type': cp_type})
+            else:
+                entry = {
+                    'path': path,
+                    'status': 'TAMPERED',
+                    'type': cp_type,
+                    'expected': expected[:16] + '...',
+                    'actual': actual[:16] + '...',
+                }
+                results.append(entry)
+                failures.append(entry)
+
+        # Update manifest with last check timestamp
+        manifest['last_check'] = datetime.now(tz.utc).isoformat()
+        manifest['last_result'] = 'FAIL' if failures else 'PASS'
+        manifest['check_count'] = manifest.get('check_count', 0) + 1
+        manifest_doc.config = manifest
+        manifest_doc.save(update_fields=['config'])
+
+        if failures:
+            # Immediate FAULT — capacity to defend is uncertain
+            _athena_fault(failures)
+            logger.error(f'Athena: INTEGRITY FAILURE — {len(failures)} checkpoint(s) failed')
+        else:
+            logger.info(f'Athena: all {len(checkpoints)} checkpoints verified')
+
+        return {
+            'status': 'FAIL' if failures else 'PASS',
+            'checked': len(checkpoints),
+            'passed': len(checkpoints) - len(failures),
+            'failed': len(failures),
+            'failures': failures,
+        }
+
+    except Exception as e:
+        logger.error(f'Athena: verification error — {e}')
+        return {'status': 'error', 'reason': str(e)}
+
+
+def _athena_fault(failures):
+    """Write immediate FAULT file for integrity failures."""
+    from pathlib import Path
+    from datetime import datetime, timezone as tz
+
+    ts = datetime.now(tz.utc)
+    ts_str = ts.strftime('%Y-%m-%dT%H:%M:%SZ')
+    ts_file = ts.strftime('%Y%m%dT%H%M%S')
+
+    # Try Allie inbox first, fall back to local
+    allie_inbox = Path.home() / 'Allie' / 'process' / 'inbox'
+    local_inbox = Path('/var/log/athena/faults')
+    inbox = allie_inbox if allie_inbox.exists() else local_inbox
+    inbox.mkdir(parents=True, exist_ok=True)
+
+    details = '\n'.join(
+        f"  - {f['path']}: {f['status']}" + (f" (expected {f.get('expected')}, got {f.get('actual')})" if f.get('actual') else '')
+        for f in failures
+    )
+
+    fault_text = (
+        f"# FAULT — {ts_str}\n\n"
+        f"system:      SYS\n"
+        f"detected_by: Athena\n"
+        f"fault:       Integrity check failed — {len(failures)} file(s) tampered or missing\n"
+        f"context:     Athena periodic verification\n"
+        f"details:\n{details}\n"
+        f"resolved_at: \n"
+    )
+
+    path = inbox / f'{ts_file}-fault.md'
+    path.write_text(fault_text)
+
+
 CELERY_BEAT_SCHEDULE = build_celery_beat_schedule()

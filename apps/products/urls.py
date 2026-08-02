@@ -9,10 +9,14 @@ from apps.products.views.serial_views import (
     SerialReferenceView, SerialHistoryView, SerialSearchView, SerialWarrantyView,
     SerialStatusChangeView,
 )
+from apps.products.views.item_inventory_views import BulkItemInventoryView
 
 app_name = 'products'
 
 urlpatterns = [
+    # Bulk inventory lookup (line card L button, QuickQuote)
+    path('items/inventory/', BulkItemInventoryView.as_view(), name='item-bulk-inventory'),
+
     # BOM endpoints - nested under items
     path('items/<int:parent_id>/bom/', BOMListCreateView.as_view(), name='bom-list-create'),
     path('items/<int:parent_id>/bom/recalc-cost/', BOMRecalcCostView.as_view(), name='bom-recalc-cost'),

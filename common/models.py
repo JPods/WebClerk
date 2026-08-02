@@ -434,7 +434,12 @@ class CoreModel(models.Model):
         try:
             if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
                 from common.ida import generate_ida
-                ida_value = generate_ida(self.pk)
+                # Training mode: use qq prefix if marker set by save_view
+                training_prefix = getattr(self, '_training_prefix', None)
+                if training_prefix:
+                    ida_value = f"qq{generate_ida(self.pk)}"
+                else:
+                    ida_value = generate_ida(self.pk)
                 type(self).objects.filter(pk=self.pk, ida="").update(ida=ida_value)
                 self.ida = ida_value
         except Exception:  # pragma: no cover - never block save

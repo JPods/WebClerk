@@ -92,3 +92,20 @@ Libraries should be configured to push to the local server as the primary target
 Allie's offline behavior follows the same pattern at the personal scale: writes queue as pending items in the carryon when WebClerk is unreachable, and sync when connectivity restores. The dual-hosting model means Allie is more likely to reach *some* version of WebClerk even during partial outages — she can fall back to the cloud mirror if the local server is down.
 
 See [allie-webclerk-integration.md](allie-webclerk-integration.md) for Allie's offline queue behavior.
+
+---
+
+## WC_HQ — The Hub Instance
+
+When many Andi boxes are deployed, one WC3 instance operates as WC_HQ — the hub. WC_HQ is not a separate application. It is a WC3 instance configured with Connections to every deployed Andi.
+
+WC_HQ uses the same Connection/Bundle models for both commerce operations (catalog data, complication reports) and infrastructure operations (software deploys, knowledge sync, vector store rebuilds). One system, one audit trail, one DataBrowser interface.
+
+The three-data-type rule governs what flows:
+- **Common** data (catalogs, code, training) pushes from HQ to all instances
+- **Transactional** data (distribution agreements, complications) flows between HQ and specific instances
+- **Proprietary** data (customers, transactions, margins) never leaves the instance
+
+Each Connection carries a scoped wcapi token that enforces these boundaries. The token allows writes to catalog models and reads of health metrics. It blocks access to contacts, invoices, orders, and all proprietary data. Alice on each instance validates incoming Bundles against these rules.
+
+See `readmes/21-sync-integration.md` for the full WC_HQ sync pattern, including deploy and knowledge Bundle examples.

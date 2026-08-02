@@ -97,7 +97,7 @@ DENORM_REGISTRY: Dict[str, List[str]] = {
     "pendinginventoryadjustment":  ["ida", "adjustment_type"],
     "auditlog":                    ["ida", "action"],
     "term":                        ["ida", "name"],
-    "billofmaterial":              ["ida", "parent_item_id"],
+    "billofmaterial":              ["ida", "parent_item_id", "child_item_id", "child_ida", "child_description", "quantity", "sequence"],
     "service":                     ["ida", "name"],
     "campaign":                    ["ida", "name"],
     "support":                     ["id", "name"],

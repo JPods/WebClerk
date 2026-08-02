@@ -1407,10 +1407,9 @@ class ModelNameListView(APIView):
         },
     )
     def get(self, request, **kwargs):
-        from django.apps import apps
-        from apps.core.utils.registry import resolve
-        models = apps.get_models()
-        model_names = [model._meta.model_name for model in models if resolve(model._meta.model_name)]
+        from apps.core.constants.model_registry import MODEL_REGISTRY
+        # Use registry keys — these are the canonical names used in URLs and wcapi
+        model_names = sorted(MODEL_REGISTRY.keys())
         return Response({
             "status": "success",
             "code": 200,

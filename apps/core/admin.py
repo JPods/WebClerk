@@ -266,7 +266,7 @@ class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
         return desc or '-'
     
     def get_action_title(self, obj):
-        task_dict = obj.task or {}
+        task_dict = obj.action or {}
         return task_dict.get('en') or task_dict.get('bn') or task_dict.get('ar') or 'Untitled'
     get_action_title.short_description = '.en'
 

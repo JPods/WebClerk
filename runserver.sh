@@ -176,7 +176,7 @@ trap stop_celery EXIT
 
 while true; do
   free_port_8000
-  print_prime_startup_info
+  # print_prime_startup_info
   set +e
   "$PY_BIN" manage.py runserver
   EXIT_CODE=$?

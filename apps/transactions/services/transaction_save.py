@@ -220,7 +220,7 @@ def _create_pending_from_deltas(
             record_id=str(item_id),
             purpose=pending_purpose,
             name=pending_name,
-            data=pending_data,
+            config=pending_data,
         )
         created_count += 1
         logger.debug(
@@ -1158,7 +1158,7 @@ def save_transaction_with_lines(
                     record_id=str(header_id),
                     purpose=PURPOSE_LEDGER_SYNC,
                     name=f'Ledger Sync Retry: Invoice {getattr(header_obj, "ida", header_id)}',
-                    data={
+                    config={
                         'invoice_id': header_id,
                         'invoice_ida': getattr(header_obj, 'ida', '') or str(header_id),
                         'org_id': getattr(header_obj, 'customer_id', None),

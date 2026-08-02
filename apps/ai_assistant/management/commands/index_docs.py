@@ -155,6 +155,14 @@ SOURCE_CONFIGS = {
         "extensions": {".md", ".json"},
         "type": "copilot_context",
     },
+    "alice_knowledge": {
+        "label": "Alice Knowledge Base — Best Practices & Intelligence",
+        "paths": [
+            BASE / "apps" / "ai_assistant" / "data",
+        ],
+        "extensions": {".md", ".json"},
+        "type": "alice_knowledge",
+    },
 }
 
 

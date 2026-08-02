@@ -32,6 +32,18 @@ def _default_scalar_keyword_fields(model):
     return fields
 
 
+def _normalize_phone(value):
+    """Extract searchable phone tokens: with and without country code."""
+    digits = ''.join(c for c in value if c.isdigit())
+    if len(digits) < 7:
+        return []
+    tokens = [digits]
+    # Add local number without country code
+    if len(digits) > 10:
+        tokens.append(digits[-10:])
+    return tokens
+
+
 def _extract_keywords_from_value(value):
     """
     Extract keywords from a value, handling various data types including JSON structures.
@@ -43,6 +55,13 @@ def _extract_keywords_from_value(value):
         return keywords
 
     if isinstance(value, str):
+        # Phone number detection — normalize before tokenizing
+        stripped = value.strip()
+        if stripped and (stripped.startswith('+') or stripped.replace('-', '').replace('(', '').replace(')', '').replace(' ', '').isdigit()):
+            phone_digits = ''.join(c for c in stripped if c.isdigit())
+            if len(phone_digits) >= 7:
+                return _normalize_phone(stripped)
+
         # Split by space and comma, strip, lowercase, filter empty and apply word filtering
         for word in value.replace(',', ' ').split():
             word = word.strip().lower()
@@ -188,16 +207,39 @@ def build_keywords_for_record(model_name, record_id):
                 # Get related record IDs from refs.links
                 # Try both singular and plural forms
                 link_keys = [related_model_name, related_model_name + 's']
-                related_ids = []
+                raw_ids = []
                 for link_key in link_keys:
                     if link_key in links:
                         ids = links[link_key]
                         if isinstance(ids, list):
-                            related_ids.extend(ids)
+                            raw_ids.extend(ids)
                         break
+
+                # Normalize: extract int IDs from dicts or plain ints
+                related_ids = []
+                for item in raw_ids:
+                    if isinstance(item, int):
+                        related_ids.append(item)
+                    elif isinstance(item, dict) and 'id' in item:
+                        related_ids.append(int(item['id']))
+
+                # Also include FK field on the record (e.g., customer.contact_id)
+                fk_id = getattr(record, f'{related_model_name}_id', None)
+                if fk_id and fk_id not in related_ids:
+                    related_ids.append(fk_id)
 
                 if not related_ids:
                     continue
+
+                # Cap related records: use keyword_contacts if admin tagged them,
+                # otherwise first N by id. max_related defaults to 5.
+                max_related = model_config.get('max_related', 5)
+                keyword_contact_ids = links.get('keyword_contacts', [])
+                if keyword_contact_ids and isinstance(keyword_contact_ids, list):
+                    # Admin-curated list — use these instead
+                    related_ids = [c if isinstance(c, int) else c.get('id', c) for c in keyword_contact_ids]
+                if len(related_ids) > max_related:
+                    related_ids = related_ids[:max_related]
 
                 # Try to find the related model in any app
                 related_model = None
@@ -211,9 +253,9 @@ def build_keywords_for_record(model_name, record_id):
                 if not related_model:
                     continue
 
-                # Query related records with limit to prevent performance issues
+                # Query related records with limit
                 try:
-                    related_records = related_model.objects.filter(id__in=related_ids)[:100]  # Limit query size
+                    related_records = related_model.objects.filter(id__in=related_ids)[:max_related]
 
                     # Extract keywords from each related record's specified fields
                     for related_record in related_records:
@@ -247,6 +289,6 @@ def create_pending_keyword_update(model_name, record_id, data):
     cache = Pending.objects.create(
         ida=f"{model_name}:{record_id}",
         model_name=model_name,
-        data=data
+        config=data
     )
     return cache

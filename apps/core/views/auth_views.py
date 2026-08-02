@@ -182,6 +182,7 @@ class AuthMeView(APIView):
             "role": getattr(user, "role", None),
             "is_active": getattr(user, "is_active", False),
             "date_joined": getattr(user, "date_joined", None),
+            "prefs": getattr(user, "prefs", None) or {},
         }
         return api_response(data={"user": data}, message="authenticated")
 

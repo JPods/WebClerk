@@ -3,19 +3,19 @@ from django.apps import apps
 from django.db.models import Count
 
 class Command(BaseCommand):
-    help = 'De-duplicate GL accounts by account_number, keeping the most complete record.'
+    help = 'De-duplicate GL accounts by ida, keeping the most complete record.'
 
     def handle(self, *args, **options):
         GlAccount = apps.get_model('accounts', 'GlAccount')
         duplicates = (
-            GlAccount.objects.values('account_number')
+            GlAccount.objects.values('ida')
             .annotate(count=Count('id'))
             .filter(count__gt=1)
         )
         total_removed = 0
         for dup in duplicates:
-            acc_num = dup['account_number']
-            records = list(GlAccount.objects.filter(account_number=acc_num))
+            acc_num = dup['ida']
+            records = list(GlAccount.objects.filter(ida=acc_num))
             # Sort by number of non-null, non-empty fields (most complete first)
             def completeness(obj):
                 return sum(

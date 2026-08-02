@@ -67,4 +67,24 @@ urlpatterns = [
     # Inventory operations
     path('inventory/reserve/', reserve_inventory, name='reserve_inventory'),
     path('inventory/release/<int:invoice_id>/', release_inventory, name='release_inventory'),
+
+    # Statement harvester — JSON-based
+    path('statements/harvest/',
+         __import__('apps.transactions.views.statement_views', fromlist=['harvest_statements']).harvest_statements,
+         name='harvest_statements'),
+    path('statements/files/',
+         __import__('apps.transactions.views.statement_views', fromlist=['list_statement_files']).list_statement_files,
+         name='list_statement_files'),
+    path('statements/lines/',
+         __import__('apps.transactions.views.statement_views', fromlist=['get_statement_lines']).get_statement_lines,
+         name='get_statement_lines'),
+    path('statements/save/',
+         __import__('apps.transactions.views.statement_views', fromlist=['save_statement_changes']).save_statement_changes,
+         name='save_statement_changes'),
+    path('statements/promote/',
+         __import__('apps.transactions.views.statement_views', fromlist=['promote_statements']).promote_statements,
+         name='promote_statements'),
+    path('statements/export/',
+         __import__('apps.transactions.views.statement_views', fromlist=['export_personal']).export_personal,
+         name='export_personal_statements'),
 ]

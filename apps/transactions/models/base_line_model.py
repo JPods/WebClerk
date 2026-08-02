@@ -100,6 +100,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "active": 0,
             "remaining": 0,
             "is_fixed": False,
+            "is_complete": False,
             "precision": 2,
             "is_blanket": False,
             "increment": 0,
@@ -162,6 +163,8 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
             out["precision"] = int(q["precision"])
         except (TypeError, ValueError):
             pass
+    if "is_complete" in q:
+        out["is_complete"] = bool(q["is_complete"])
     if "is_blanket" in q:
         out["is_blanket"] = bool(q["is_blanket"])
     if "increment" in q:
@@ -199,6 +202,11 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
     else:
         # No children yet: full active qty available for downstream
         out["remaining"] = float(_to_decimal(active, places=precision))
+
+    # ── is_complete: cancel backlog ─────────────────────────────────
+    # When marked complete, remaining is forced to 0 — backlog cancelled.
+    if out.get("is_complete"):
+        out["remaining"] = 0
 
     return out
 

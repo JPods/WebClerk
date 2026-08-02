@@ -6,13 +6,13 @@ from django.apps import apps as dj_apps
 
 
 FALLBACK_DEFAULTS = {
-    # Generic fallback GL account numbers (can be overridden by org.gl_accounts)
-    'revenue': '4000',
-    'inventory': '1200',
-    'cogs': '5000',
-    'purchase': '1100',
-    'commission': '5200',
-    'tax_payable': '2100',
+    # Generic fallback GL ida values (can be overridden by org.gl_accounts)
+    'revenue': '4000-Sales',
+    'inventory': '1200-Inventory',
+    'cogs': '5000-COGS',
+    'purchase': '2000-AP',
+    'commission': '6100-Commission',
+    'tax_payable': '2100-SalesTax',
 }
 
 
@@ -46,8 +46,8 @@ def _resolve_default(purpose: str, org_defaults: dict) -> Optional[str]:
     return FALLBACK_DEFAULTS.get(purpose)
 
 
-def get_default_account_number_for_usage(*used_for_aliases: str) -> Optional[str]:
-    """Return an active GL account_number by used_for alias, if configured."""
+def get_default_ida_for_usage(*used_for_aliases: str) -> Optional[str]:
+    """Return an active GL ida by used_for alias, if configured."""
     try:
         GlAccount = dj_apps.get_model('accounts', 'GlAccount')
     except Exception:
@@ -63,12 +63,12 @@ def get_default_account_number_for_usage(*used_for_aliases: str) -> Optional[str
                 is_deleted=False,
                 is_archived=False,
             )
-            .exclude(account_number__isnull=True)
-            .exclude(account_number='')
+            .exclude(ida__isnull=True)
+            .exclude(ida='')
             .first()
         )
-        if account and account.account_number:
-            return account.account_number
+        if account and account.ida:
+            return account.ida
     return None
 
 
@@ -127,7 +127,7 @@ def get_org_role_gl_defaults(org_type: str | None) -> dict[str, str]:
 
     defaults = dict(FALLBACK_DEFAULTS)
     activity_aliases = ROLE_ACTIVITY_DEFAULTS[normalized]
-    activity = get_default_account_number_for_usage(*activity_aliases)
+    activity = get_default_ida_for_usage(*activity_aliases)
     if not activity:
         for alias in activity_aliases:
             activity = defaults.get(alias)
@@ -140,21 +140,21 @@ def get_org_role_gl_defaults(org_type: str | None) -> dict[str, str]:
 
     if normalized == 'rep':
         result['commission'] = (
-            get_default_account_number_for_usage('commission', 'expense')
+            get_default_ida_for_usage('commission', 'expense')
             or defaults.get('commission')
             or activity
             or ''
         )
     elif normalized in {'vendor', 'manufacturer'}:
         result['purchase'] = (
-            get_default_account_number_for_usage('payables', 'expense')
+            get_default_ida_for_usage('payables', 'expense')
             or defaults.get('purchase')
             or activity
             or ''
         )
     elif normalized == 'employee':
         result['expense'] = (
-            get_default_account_number_for_usage('expense', 'cogs')
+            get_default_ida_for_usage('expense', 'cogs')
             or defaults.get('cogs')
             or activity
             or ''
@@ -166,8 +166,8 @@ def get_org_role_gl_defaults(org_type: str | None) -> dict[str, str]:
 def get_invoice_payment_staging_defaults(payment_method_name: str | None = None, payment_method_metadata: dict | None = None) -> dict[str, str]:
     """Resolve GL account numbers used for invoice/payment staging metadata."""
     item_defaults = get_item_gl_defaults()
-    revenue = item_defaults.get('revenue') or get_default_account_number_for_usage('sales', 'revenue') or FALLBACK_DEFAULTS.get('revenue') or ''
-    ar = get_default_account_number_for_usage('receivables') or FALLBACK_DEFAULTS.get('receivables') or 'ASSET-AR-000'
+    revenue = item_defaults.get('revenue') or get_default_ida_for_usage('sales', 'revenue') or FALLBACK_DEFAULTS.get('revenue') or ''
+    ar = get_default_ida_for_usage('receivables') or FALLBACK_DEFAULTS.get('receivables') or '1100-AR'
 
     method_gls = {}
     if isinstance(payment_method_metadata, dict):
@@ -177,12 +177,12 @@ def get_invoice_payment_staging_defaults(payment_method_name: str | None = None,
 
     cash_receipt = method_gls.get('receipt') if isinstance(method_gls.get('receipt'), str) else None
     if not cash_receipt:
-        cash_receipt = get_default_account_number_for_usage('cash')
+        cash_receipt = get_default_ida_for_usage('cash')
     if not cash_receipt:
         lowered_name = (payment_method_name or '').lower()
         cash_receipt = FALLBACK_DEFAULTS.get('cash' if 'cash' in lowered_name else 'receivables')
     if not cash_receipt:
-        cash_receipt = 'ASSET-CASH-000'
+        cash_receipt = '1000-Cash'
 
     return {
         'accounts_receivable': ar,

@@ -78,6 +78,15 @@ class Project(BaseModel):
     profit_velocity = models.IntegerField(default=0, help_text="Profit per time unit (arbitrary) for trend")
     # Allow NULL so callers can intentionally distinguish "no payload yet" vs empty structure
     config = models.JSONField(default=default_data, blank=True, null=True, help_text="Arbitrary project-specific data payload (nullable)")
+    # Timeline and hierarchy (added 2026-07-29)
+    dt_start = models.BigIntegerField(default=0, help_text="Project start date (epoch ms)")
+    dt_end = models.BigIntegerField(default=0, help_text="Project end date (epoch ms)")
+    id_parent = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='id_parent', related_name='children',
+        help_text="Parent project for hierarchy",
+    )
+    percent_complete = models.IntegerField(default=0, help_text="0-100 completion percentage")
 
     class Meta:
         db_table = "projects"

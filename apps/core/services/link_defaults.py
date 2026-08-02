@@ -274,11 +274,10 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     
     "glaccount": {
-        "keyword_fields": ["name", "account_number", "ida"],
+        "keyword_fields": ["name", "ida"],
         "link_template": {
             "id": "id",
             "name": "name",
-            "account_number": "account_number",
             "ida": "ida",
         },
     },

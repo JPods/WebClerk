@@ -7,6 +7,9 @@ class Proposal(TransactionBaseModel):
     class Meta:
         db_table = "proposals"
 
+    dt_due = models.BigIntegerField(null=True, blank=True,
+        help_text="Proposal expiry date (epoch ms) — quote valid until this date")
+
     def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, float]]:
         """Compute sell/cost/totals from lines. If persist=True and fields exist, save them."""
         computed = compute_proposal_sell_cost_totals(self)

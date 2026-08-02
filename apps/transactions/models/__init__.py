@@ -31,6 +31,7 @@ _MAPPING = {
     'Payment': ('payment', 'Payment'),
     'PaymentMethod': ('payment', 'PaymentMethod'),
     'PaymentTerm': ('payment', 'PaymentTerm'),
+    'StatementLine': ('statement_line', 'StatementLine'),
     'PaymentApplication': ('payment_application', 'PaymentApplication'),
     'PendingPaymentApplication': ('pending_payment', 'PendingPaymentApplication'),
     'Project': ('project', 'Project'),

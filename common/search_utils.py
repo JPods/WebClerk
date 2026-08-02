@@ -52,6 +52,28 @@ def parse_fragments(raw: str) -> list[Fragment]:
     return fragments
 
 
+def _build_and_chain(
+    fragments: list[Fragment],
+    search_fields: Sequence[str],
+    has_refs: bool,
+) -> models.Q:
+    """Build an AND chain of fragment queries. Each fragment ORs across fields."""
+    combined = models.Q()
+    for frag in fragments:
+        or_q = models.Q()
+        for field in search_fields:
+            if frag.mode == "startswith":
+                or_q |= models.Q(**{f"{field}__istartswith": frag.value})
+            else:
+                or_q |= models.Q(**{f"{field}__icontains": frag.value})
+        # Keywords: icontains on JSON array — PostgreSQL searches serialized text.
+        # Each keyword is an individual token so icontains is safe for fragments.
+        if has_refs:
+            or_q |= models.Q(**{"refs__keywords__icontains": frag.value})
+        combined &= or_q
+    return combined
+
+
 def build_fragment_query(
     qs,
     raw_search: str,
@@ -64,22 +86,21 @@ def build_fragment_query(
 
     Args:
         qs: The base queryset to filter.
-        raw_search: Raw comma-separated search string from the user.
+        raw_search: Raw search string from the user.
         search_fields: Field names to search (OR within each fragment).
         model_cls: The Django model class (used to detect ``refs`` field).
         include_refs_keywords: Whether to also search ``refs.keywords``.
 
     Returns:
-        Filtered queryset. All fragments are ANDed; fields within each
-        fragment are ORed.
+        Filtered queryset.
 
-    Fragment modes:
-        - ``startswith`` (default) → ``field__istartswith``
-        - ``contains`` (``@`` prefix) → ``field__icontains``
-        - Keywords always use ``icontains`` regardless of mode.
+    Syntax:
+        - Comma = AND: ``bil,jame`` → starts with "bil" AND starts with "jame"
+        - Pipe = OR:   ``612,bil|405,bil`` → (612 AND bil) OR (405 AND bil)
+        - ``@`` prefix = contains: ``@smith`` → field contains "smith"
+        - Keywords use ``icontains`` (JSON array elements are individual tokens).
     """
-    fragments = parse_fragments(raw_search)
-    if not fragments:
+    if not raw_search or not raw_search.strip():
         return qs
 
     # Detect refs JSON field
@@ -91,20 +112,17 @@ def build_fragment_query(
         except Exception:
             pass
 
-    for frag in fragments:
-        or_q = models.Q()
+    # Split on pipe for OR groups, each group is comma-separated AND
+    or_groups = raw_search.split("|")
+    combined_or = models.Q()
 
-        # Scalar field matching
-        for field in search_fields:
-            if frag.mode == "startswith":
-                or_q |= models.Q(**{f"{field}__istartswith": frag.value})
-            else:
-                or_q |= models.Q(**{f"{field}__icontains": frag.value})
+    for group in or_groups:
+        fragments = parse_fragments(group)
+        if not fragments:
+            continue
+        combined_or |= _build_and_chain(fragments, search_fields, has_refs)
 
-        # Keyword matching (always icontains — keywords are individual tokens)
-        if has_refs:
-            or_q |= models.Q(**{"refs__keywords__icontains": frag.value})
-
-        qs = qs.filter(or_q)
+    if combined_or:
+        qs = qs.filter(combined_or)
 
     return qs

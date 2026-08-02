@@ -36,7 +36,7 @@ HIGH_PRIORITY_DETAIL = [
     # ACTION — what's happening
     'item', 'line_number', 'quantity', 'price', 'cost', 'commission',
     'total', 'balance', 'amount',
-    'account_number', 'account', 'debit', 'credit',
+    'account', 'debit', 'credit',
     # WHAT — details
     'description', 'title', 'email', 'phone',
     'price_level', 'terms', 'priority',
@@ -63,7 +63,7 @@ GOOD_LIST_FIELDS = [
     # ACTION / WHAT
     'status', 'total', 'balance', 'amount',
     'email', 'phone', 'title',
-    'account_number', 'account', 'type', 'category',
+    'account', 'type', 'category',
     'priority', 'price_level', 'terms',
     'line_number', 'org_type',
     'debit', 'credit', 'source', 'source_model',

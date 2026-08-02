@@ -47,7 +47,6 @@ BY_NAME = {
     'role': 80,
     'sequence': 60,
     'line_number': 70,
-    'account_number': 120,
     'division': 70,
     'used_for': 100,
     'debit': 100,
