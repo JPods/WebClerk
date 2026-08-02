@@ -29,14 +29,21 @@ export function createBlankRecord(modelName: string, fields: string[]): BaseMode
     if (["metadata", "refs", "prefs", "comments"].includes(field)) return {};
     // Common numeric fields
     if (["version", "health_rating", "price"].includes(field)) return 0;
-    // Common boolean fields
-    if (["is_active"].includes(field)) return true;
+    // Common boolean fields — any is_ field
+    if (field === "is_active") return true;
+    if (field.startsWith("is_")) return false;
     // Common date fields
     if (["dt_created", "dt_modified", "dt_start", "dt_deadline", "dt_completed", "dt_expected"].includes(field)) return Date.now();
     // Common id fields
     if (["id", "actor_id", "projectId"].includes(field)) return null;
     // UUID
     if (field === "uuid") return null;
+    // FK fields — must be null not empty string
+    if (field.endsWith("_id") || field.endsWith("_fk")) return null;
+    // FK relation fields (customer, vendor, manufacturer, contact, invoice, purchase, etc.)
+    if (["customer", "vendor", "manufacturer", "contact", "invoice", "purchase",
+         "payment_method", "payment_term", "terms_fk", "parent_action",
+         "rep", "employee", "warehouse", "project"].includes(field)) return null;
     // Default string
     return '';
   }

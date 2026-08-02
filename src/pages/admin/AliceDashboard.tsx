@@ -25,7 +25,7 @@ export default function AliceDashboard() {
   const [consoleSummary, setConsoleSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [askText, setAskText] = useState('');
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'cycle' | 'page-designer' | 'pdf-designer'>('coaching');
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'cycle' | 'page-designer' | 'pdf-designer' | 'data-quality'>('coaching');
   const [llmConfig, setLlmConfig] = useState<any>(null);
   const [llmSaving, setLlmSaving] = useState(false);
 
@@ -137,6 +137,7 @@ export default function AliceDashboard() {
         {tabBtn('llm', 'LLM Config')}
         {tabBtn('quiz', 'Quiz')}
         {tabBtn('cycle', 'Cycle Details')}
+        {tabBtn('data-quality', 'Data Quality')}
         {tabBtn('page-designer', 'Page Designer')}
         {tabBtn('pdf-designer', 'PDF Designer')}
       </div>
@@ -653,6 +654,55 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
             <PdfDesigner />
           </div>
         </Suspense>
+      )}
+
+      {/* ═══ Data Quality ═══ */}
+      {activeTab === 'data-quality' && (
+        <div className="p-4 space-y-4 text-sm">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Data Quality — Automated Tasks</h3>
+          <p className="text-gray-500 text-xs">Three-tier processing: algorithms → Alice LLM → general LLM. Full readme: <code>readmes/topics/ai/alice-data-quality.md</code></p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { name: 'Phone Normalization', desc: 'Strip to digits + country code. Display formatted per nation.', schedule: 'On import + weekly', tier: 1 },
+              { name: 'Email Scrubbing', desc: 'Detect garbled emails, OCR errors, concatenated phone+email. Move invalid to config.scrubbed.', schedule: 'On import + weekly', tier: 1 },
+              { name: 'Zip/Postal Formatting', desc: 'Normalize to digits (US) or standard format per country.', schedule: 'On import + weekly', tier: 1 },
+              { name: 'Dedup Scan', desc: 'Find duplicate records by name, email, phone, or company. Score and group for review.', schedule: 'On import + monthly', tier: 1 },
+              { name: 'Email Validation', desc: 'ZeroBounce or other provider — validate deliverability, set health_rating.', schedule: 'On demand + quarterly', tier: 1 },
+              { name: 'Address Verification', desc: 'SmartyStreets/USPS — standardize and verify mailing addresses.', schedule: 'On demand', tier: 1 },
+              { name: 'OCR Pattern Learning', desc: 'Learn card reader garble patterns from this installation\'s data.', schedule: 'After dedup merges', tier: 2 },
+              { name: 'Company → Email Mapping', desc: 'Learn which email domain each company uses for smart dedup suggestions.', schedule: 'Nightly', tier: 2 },
+              { name: 'Name Fuzzy Matching', desc: 'Bill/William, Bob/Robert, nicknames. Suggest merges Alice\'s LLM recognizes.', schedule: 'Monthly', tier: 2 },
+              { name: 'Unknown Format Resolution', desc: 'New country formats, unknown domains. Calls general LLM when Alice is unsure.', schedule: 'On flag only', tier: 3 },
+            ].map((task, i) => (
+              <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{task.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    task.tier === 1 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                    task.tier === 2 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                    'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                  }`}>Tier {task.tier}</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{task.desc}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-gray-400">{task.schedule}</span>
+                  <div className="flex gap-1">
+                    <button className="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">Run Now</button>
+                    <button className="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">History</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              <strong>The rule:</strong> Tier 1 always runs silently. Tier 2 runs on what Tier 1 can't resolve. Tier 3 never runs without asking.
+              Every transformation preserves the original in <code>config</code>. Nothing is lost. Every action is reversible.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -17,11 +17,11 @@ const LINE_INCREMENT = 10;
 /**
  * Return the stable identity key for a line.
  *
- * Priority: line_number  →  id  →  array index.
- * All three are numbers so the handler comparisons stay type-safe.
+ * Priority: id  →  line_number  →  array index.
+ * Database id is unique; line_number can duplicate (e.g., two lines with line_number=10).
  */
 export function lineKey(line: TransactionLine, idx: number): number {
-  return line.line_number ?? line.id ?? idx;
+  return line.id ?? line.line_number ?? idx;
 }
 
 /**

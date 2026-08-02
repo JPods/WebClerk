@@ -15,6 +15,7 @@ export interface User {
   date_joined?: string | null;
   salutation?: string | null;
   attention?: string | null;
+  prefs?: Record<string, any> | null;
 }
 
 interface AuthState {

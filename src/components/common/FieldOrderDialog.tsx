@@ -366,9 +366,9 @@ export default function FieldOrderDialog({
             </button>
             {selectedLayout !== '__current__' && !PROTECTED_LAYOUTS.includes(selectedLayout) && (
               <button onClick={() => { onDeleteLayout(selectedLayout); setSelectedLayout('__current__'); }}
-                style={{ padding: '4px 8px', fontSize: 11, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: isDark ? '#e05252' : '#dc3545', cursor: 'pointer' }}
-                title="Delete this layout">
-                Del
+                style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${isDark ? '#c04040' : '#dc3545'}`, borderRadius: 4, background: isDark ? '#6b1a1a' : '#f8d7da', color: isDark ? '#ff6b6b' : '#dc3545', cursor: 'pointer' }}
+                title={`Delete layout "${selectedLayout}"`}>
+                Delete
               </button>
             )}
           </div>

@@ -125,6 +125,7 @@ export const mapApiProfileToUser = (input: any): User => {
     date_joined: raw.date_joined ?? raw.joined_at ?? null,
     salutation: raw.salutation ?? null,
     attention: raw.attention ?? null,
+    prefs: raw.prefs ?? null,
   };
 };
 

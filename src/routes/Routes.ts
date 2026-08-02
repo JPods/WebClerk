@@ -43,7 +43,7 @@
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
-  static readonly kanbanBoard: string = "/kanban-board";
+  static readonly kanbanBoard: string = "/kanban";
   static readonly kanbanBoardData: string = "/kanban-board-data";
   static readonly gantt: string = "/gantt";
   // Deprecated gantt routes - redirect to /gantt

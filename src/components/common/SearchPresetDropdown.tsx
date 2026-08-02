@@ -29,9 +29,8 @@ type InputDescriptor = {
 };
 
 function labelize(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  // Field names are labels — show exact name, no prettifying
+  return value;
 }
 
 function buildInputDescriptors(preset: SearchPresetRecord): InputDescriptor[] {

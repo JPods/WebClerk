@@ -9,8 +9,9 @@
  * Label color: blue=actionable, green=select, purple=lookup, gray=readonly.
  * Cmd+Option+Shift+click any label → opens field-level help in Help Dashboard.
  */
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { openFieldHelp } from './HelpMenu';
+import { getRecords } from '@/api/wcapi';
 
 interface BehaviorFieldProps {
   name: string;
@@ -56,28 +57,36 @@ export default function BehaviorField({
 
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: fontSize - 2, fontWeight: 600, color: labelColor,
-    marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em',
+    marginBottom: 3, letterSpacing: '0.02em', cursor: beh.action ? 'pointer' : 'default',
   };
 
-  // Cmd+Option+Shift+click on label → open field help
+  const wcModel = (record as any)?._model || '';
+  const labelTitle = wcModel ? `${wcModel}.${name}` : name;
+
+  // Click on label: if field has an action defined, execute it.
+  // Shift+click → open field help (Shift-for-Help standard).
   const handleLabelClick = (e: React.MouseEvent) => {
-    if (e.metaKey && e.altKey && e.shiftKey) {
+    if (e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
-      // Try to get model from parent context — fallback to 'system'
-      const model = (record as any)?._model || 'system';
+      const model = wcModel || 'system';
       openFieldHelp(model, name);
+      return;
+    }
+    if (beh.action === 'lookup' && behType === 'lookup') {
+      // Click label on lookup → focus the input
+      const input = (e.currentTarget as HTMLElement)?.parentElement?.querySelector('input');
+      if (input) input.focus();
     }
   };
 
   const wrapStyle: React.CSSProperties = span2 ? { gridColumn: '1 / -1' } : {};
-  const wcModel = (record as any)?._model || '';
   const wcAttrs = { 'data-wc': `field-${name}`, 'data-wc-field': name, ...(wcModel ? { 'data-wc-model': wcModel } : {}) };
 
   // ── Readonly ──
   if (behType === 'readonly') {
     const display = (f_startsDt(name) && typeof v === 'number') ? new Date(v).toLocaleString() : String(v ?? '--');
-    return <div style={wrapStyle} {...wcAttrs}><span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    return <div style={wrapStyle} {...wcAttrs}><span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
       <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>{display}</div>
     </div>;
   }
@@ -120,24 +129,50 @@ export default function BehaviorField({
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
 
-  // ── Select ──
-  if (behType === 'select' && beh.options) return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
-    <select style={{ ...inputStyle, width: '100%', cursor: 'pointer' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)}>
-      <option value="">--</option>
-      {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  </div>;
+  // ── Select (with optional freehand via allow_custom) ──
+  if (behType === 'select' && beh.options) {
+    const currentVal = String(v ?? '');
+    const inList = beh.options.some((o: any) => o.value === currentVal);
+    // If allow_custom and value is not in the list, show it as an option
+    return <div style={wrapStyle} {...wcAttrs}>
+      <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
+      {beh.allow_custom ? (
+        <div style={{ display: 'flex', gap: 4 }}>
+          <select style={{ ...inputStyle, flex: 1, cursor: 'pointer' }}
+            value={inList ? currentVal : '__custom__'}
+            onChange={(e) => { if (e.target.value !== '__custom__') onChange(e.target.value); }}>
+            <option value="">--</option>
+            {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {!inList && currentVal && <option value="__custom__">{currentVal}</option>}
+            <option value="__custom__">other...</option>
+          </select>
+          {(!inList || currentVal === '') && (
+            <input style={{ ...inputStyle, flex: 1 }} value={currentVal} onChange={(e) => onChange(e.target.value)}
+              placeholder="type here" />
+          )}
+        </div>
+      ) : (
+        <select style={{ ...inputStyle, width: '100%', cursor: 'pointer' }} value={currentVal} onChange={(e) => onChange(e.target.value)}>
+          <option value="">--</option>
+          {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      )}
+    </div>;
+  }
 
-  // ── Lookup ──
-  if (behType === 'lookup') return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle}>{name} <span style={{ fontWeight: 400, textTransform: 'none', color: th.textDim }}>→ {beh.model}</span></span>
-    <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} placeholder={`${beh.model} ID`} />
-  </div>;
+  // ── Hidden ──
+  if (behType === 'hidden') return null;
+
+  // ── Lookup (search by name, store ID) ──
+  if (behType === 'lookup') return <LookupSearch
+    name={name} value={v} model={beh.model} onChange={onChange}
+    labelStyle={labelStyle} inputStyle={inputStyle} wrapStyle={wrapStyle}
+    wcAttrs={wcAttrs} theme={th} fontSize={fontSize} handleLabelClick={handleLabelClick}
+  />;
 
   // ── Currency ──
   if (behType === 'currency') return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <span style={{ color: th.textMuted, fontSize }}>$</span>
       <input type="number" step="0.01" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', textAlign: 'right' }} value={v != null ? v : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
@@ -146,7 +181,7 @@ export default function BehaviorField({
 
   // ── Timestamp ──
   if (behType === 'timestamp') return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
     <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>
       {v ? new Date(v as number).toLocaleString() : '--'}
     </div>
@@ -173,22 +208,163 @@ export default function BehaviorField({
   if (behType === 'textarea' || isLong) {
     const rows = rowSize || 4;
     return <div style={{ gridColumn: '1 / -1' }}>
-      <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+      <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
       <textarea style={{ ...inputStyle, width: '100%', resize: 'vertical' }} rows={rows} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
     </div>;
   }
 
   // ── Number ──
   if (behType === 'number' || (typeof v === 'number' && !f_startsDt(name))) return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
     <input type="number" style={{ ...inputStyle, width: '100%', fontFamily: 'monospace' }} value={v != null ? v : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} />
   </div>;
 
   // ── Default text ──
   return <div style={wrapStyle} {...wcAttrs}>
-    <span style={labelStyle} onClick={handleLabelClick}>{name}</span>
+    <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
     <input style={{ ...inputStyle, width: '100%' }} value={String(v ?? '')} onChange={(e) => onChange(e.target.value)} />
   </div>;
+}
+
+// ── LookupSearch — search by name, display name, store FK ID ──
+function LookupSearch({ name, value: v, model, onChange, labelStyle, inputStyle, wrapStyle, wcAttrs, theme: th, fontSize, handleLabelClick }: {
+  name: string; value: unknown; model: string; onChange: (v: unknown) => void;
+  labelStyle: React.CSSProperties; inputStyle: React.CSSProperties; wrapStyle: React.CSSProperties;
+  wcAttrs: Record<string, string>; theme: any; fontSize: number; handleLabelClick: (e: React.MouseEvent) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Resolve display name from ID on mount or value change
+  useEffect(() => {
+    if (!v) { setDisplayName(''); return; }
+    getRecords(model, { id: v, limit: 1 }).then((res: any) => {
+      const rec = (res?.results || [])[0];
+      if (rec) {
+        setDisplayName(rec.display_name || rec.name || rec.company || rec.ida || `#${rec.id}`);
+      }
+    }).catch(() => {});
+  }, [v, model]);
+
+  // Search on typing
+  const doSearch = useCallback((q: string) => {
+    if (q.length < 2) { setResults([]); return; }
+    setLoading(true);
+    getRecords(model, { keyword: q, limit: 10 }).then((res: any) => {
+      setResults(res?.results || []);
+      setOpen(true);
+    }).catch(() => setResults([]))
+      .finally(() => setLoading(false));
+  }, [model]);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value;
+    setQuery(q);
+    setDisplayName('');
+    onChange(null); // clear FK until they pick
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSearch(q), 250);
+  };
+
+  const handleSelect = (rec: any) => {
+    onChange(rec.id);
+    setDisplayName(rec.display_name || rec.name || rec.company || rec.ida || `#${rec.id}`);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const handleAddNew = async () => {
+    try {
+      const { saveRecord } = await import('@/api/wcapi');
+      const blank: any = { ida: query };
+      // For contact, set name fields
+      if (model === 'contact') {
+        const parts = query.trim().split(/\s+/);
+        blank.name_first = parts[0] || query;
+        blank.name_last = parts.slice(1).join(' ') || '';
+      } else {
+        blank.name = query;
+      }
+      const result = await saveRecord(model, blank) as any;
+      if (result?.id) handleSelect(result);
+    } catch (err) {
+      console.error('[LookupSearch] add new failed:', err);
+    }
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div style={{ ...wrapStyle, position: 'relative' }} ref={wrapRef} {...wcAttrs}>
+      <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
+      <input
+        style={{ ...inputStyle, width: '100%' }}
+        value={displayName || query}
+        onChange={handleInput}
+        onFocus={() => { if (displayName) { setQuery(displayName); setDisplayName(''); } }}
+        placeholder={`search ${model}...`}
+      />
+      {open && results.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+          background: th.inputBg, border: `1px solid ${th.inputBorder}`, borderRadius: 4,
+          maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,.2)',
+        }}>
+          {results.map((r) => (
+            <div key={r.id} onClick={() => handleSelect(r)} style={{
+              padding: '6px 10px', cursor: 'pointer', fontSize: fontSize - 1,
+              color: th.text, borderBottom: `1px solid ${th.border}`,
+            }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = th.surfaceAlt)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span style={{ fontWeight: 600 }}>{r.display_name || r.name || r.company || r.ida}</span>
+              {r.email && <span style={{ marginLeft: 8, color: th.textMuted, fontSize: fontSize - 2 }}>{r.email}</span>}
+            </div>
+          ))}
+          <div onClick={handleAddNew} style={{
+            padding: '6px 10px', cursor: 'pointer', fontSize: fontSize - 1,
+            color: th.accentGreen, fontWeight: 600, borderTop: `1px solid ${th.border}`,
+          }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = th.surfaceAlt)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            + Add "{query}"
+          </div>
+        </div>
+      )}
+      {open && results.length === 0 && query.length >= 2 && !loading && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+          background: th.inputBg, border: `1px solid ${th.inputBorder}`, borderRadius: 4,
+          boxShadow: '0 4px 12px rgba(0,0,0,.2)',
+        }}>
+          <div style={{ padding: '6px 10px', color: th.textMuted, fontSize: fontSize - 1 }}>No matches</div>
+          <div onClick={handleAddNew} style={{
+            padding: '6px 10px', cursor: 'pointer', fontSize: fontSize - 1,
+            color: th.accentGreen, fontWeight: 600,
+          }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = th.surfaceAlt)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            + Add "{query}"
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function f_startsDt(name: string) { return name.startsWith('dt_'); }

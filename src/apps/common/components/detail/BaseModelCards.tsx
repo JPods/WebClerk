@@ -17,7 +17,7 @@ import { Fingerprint, Layers } from "lucide-react";
 import ScalarCard from "./ScalarCard";
 import JsonCard from "./JsonCard";
 import { FaCode } from "react-icons/fa";
-import RawJsonCard from "./rawJsonCard";
+import RawJsonCard from "./RawJsonCard";
 
 export interface BaseModelCardsProps {
   /** The full record object */

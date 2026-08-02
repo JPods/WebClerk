@@ -14,21 +14,36 @@ import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
 import { TB } from '../../components/common/toolbarActions';
+import DedupPanel from '../../components/common/DedupPanel';
 import './AdminWorkbench.css';
 
-/** Maps DataBrowser model name → .tsx detail route. Uses actual PageRoutes paths. */
+/** Maps DataBrowser model name → .tsx detail route (used for double-click new-tab). */
 const APP_DETAIL_ROUTES: Record<string, string> = {
-  order: '/transactions/order/detail',
-  invoice: '/transactions/invoice/detail',
-  proposal: '/transactions/proposal/detail',
-  purchase: '/transactions/purchase/detail',
-  workorder: '/transactions/work-order/detail',
-  receipt: '/transactions/receipt/detail',
-  payment: '/transactions/payment/detail',
-  customer: '/org/customer/detail',
-  item: '/products/item/detail',
-  contact: '/core/contact/detail',
-  action: '/core/actions/detail',
+  order: '/order',
+  invoice: '/invoice',
+  proposal: '/proposal',
+  purchase: '/purchase',
+  workorder: '/work_order',
+  work_order: '/work_order',
+  receipt: '/receipt',
+  requisition: '/requisition',
+  payment: '/payment',
+  customer: '/customer',
+  item: '/item',
+  contact: '/contact',
+  action: '/action',
+};
+
+/** Lazy-loaded detail components for App mode inline rendering in the right panel. */
+const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetail')),
+  customer: React.lazy(() => import('@/apps/orgs/models/customer/pages/CustomerDetail')),
+  order: React.lazy(() => import('@/apps/transactions/models/order/pages/OrderDetail')),
+  invoice: React.lazy(() => import('@/apps/transactions/models/invoice/pages/InvoiceDetail')),
+  proposal: React.lazy(() => import('@/apps/transactions/models/proposal/pages/ProposalDetail')),
+  purchase: React.lazy(() => import('@/apps/transactions/models/purchase/pages/PurchaseDetail')),
+  item: React.lazy(() => import('@/apps/products/models/item/pages/ItemDetail')),
+  action: React.lazy(() => import('@/apps/core/models/action/pages/ActionDetail')),
 };
 
 // ---------------------------------------------------------------------------
@@ -69,6 +84,82 @@ const SPAWN_CONFIG: Record<string, Array<{ label: string; target: string; filter
     { label: 'Actions', target: 'action', filterKey: 'refs__links__contact_id' },
     { label: 'Documents', target: 'document', filterKey: 'refs__links__contact_id' },
   ],
+};
+
+// ── HarvestBar — folder input + harvest button for StatementLine ──
+const HarvestBar: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+  const [folder, setFolder] = React.useState(() => localStorage.getItem('db-harvest-folder') || '');
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<any>(null);
+
+  const handleHarvest = async () => {
+    if (!folder.trim()) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/transactions/statements/harvest/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ path: folder.trim() }),
+      });
+      const data = await res.json();
+      setResult(data);
+      localStorage.setItem('db-harvest-folder', folder.trim());
+      if (data.lines_loaded > 0) onComplete();
+    } catch (err: any) {
+      setResult({ error: err.message || 'Harvest failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
+      background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)',
+      fontSize: 12,
+    }}>
+      <span style={{ fontWeight: 600, color: 'var(--db-text-muted)', whiteSpace: 'nowrap' }}>Harvest:</span>
+      <input
+        type="text"
+        value={folder}
+        onChange={(e) => setFolder(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleHarvest(); }}
+        placeholder="~/Taxes/2025 or drop folder path here"
+        style={{
+          flex: 1, padding: '3px 8px', fontSize: 12,
+          background: 'var(--db-input-bg)', color: 'var(--db-text)',
+          border: '1px solid var(--db-border)', borderRadius: 4,
+        }}
+      />
+      <button
+        onClick={handleHarvest}
+        disabled={loading || !folder.trim()}
+        style={{
+          padding: '3px 12px', fontSize: 12, fontWeight: 600,
+          background: loading ? 'var(--db-border)' : '#ea580c',
+          color: '#fff', border: 'none', borderRadius: 4, cursor: loading ? 'wait' : 'pointer',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {loading ? 'Harvesting...' : 'Harvest'}
+      </button>
+      {result && !result.error && (
+        <span style={{ color: 'var(--db-text-muted)', whiteSpace: 'nowrap' }}>
+          {result.lines_loaded} loaded, {result.lines_skipped} skipped
+          {result.missing?.length > 0 && (
+            <span style={{ color: '#ef4444', marginLeft: 8 }}>
+              ⚠ Missing: {result.missing.join(', ')}
+            </span>
+          )}
+        </span>
+      )}
+      {result?.error && (
+        <span style={{ color: '#ef4444' }}>{result.error}</span>
+      )}
+    </div>
+  );
 };
 
 const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = ({ model, record, recordId }) => {
@@ -226,6 +317,174 @@ const Btn: React.FC<{
 );
 
 // ---------------------------------------------------------------------------
+// MatchCandidatesPanel — full detail cards for dedup/merge review
+// ---------------------------------------------------------------------------
+
+type MatchPanelProps = {
+  selectedRecord: any; selectedId: number | null; selectedModel: string;
+  visibleFields: string[]; fieldBehaviors: Record<string, any>;
+  detailFieldSpecs: any[]; detailRowSizes: Record<string, any>;
+  theme: any; fontSize: number;
+  onMerged: () => void; onDeleted: () => void;
+};
+
+function MatchCandidatesPanel({
+  selectedRecord, selectedId, selectedModel, visibleFields, fieldBehaviors,
+  detailFieldSpecs, detailRowSizes, theme, fontSize, onMerged, onDeleted,
+}: MatchPanelProps) {
+  const [candidateRecords, setCandidateRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const refs = selectedRecord?.refs as any;
+  const candidates = refs?.contact;
+  const isRisk = refs?.import === 'risk';
+
+  // Fetch full records for each candidate
+  useEffect(() => {
+    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
+      setCandidateRecords([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const { getRecords } = await import('@/api/wcapi');
+        const ids = candidates.map((c: any) => c.contact_id).filter(Boolean);
+        if (ids.length === 0) { setCandidateRecords([]); return; }
+        const res = await getRecords(selectedModel, { filters: { id__in: ids } });
+        if (!cancelled) setCandidateRecords(res.results || []);
+      } catch { if (!cancelled) setCandidateRecords([]); }
+      finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedId, candidates?.length]);
+
+  if ((!candidates || candidates.length === 0) && !isRisk) return null;
+
+  const isDark = theme === (theme?.bg ? theme : null) || true; // fallback
+  const cardBg = '#1e293b';
+  const cardBorder = '#334155';
+  const headerColor = '#94a3b8';
+
+  // Pick display fields — shorter list for cards (skip large JSON fields)
+  const cardFields = visibleFields.filter(f =>
+    !['metadata', 'refs', 'prefs', 'actions', 'comments', 'config', 'password'].includes(f)
+  ).slice(0, 12);
+
+  const doMerge = async (candidateRecord: any, matchMeta: any) => {
+    if (!confirm(`Merge into "${matchMeta?.name || candidateRecord.ida}"?\nThis updates the matched contact and deletes the risk record.`)) return;
+    try {
+      const { saveRecord: sr, deleteRecord: dr } = await import('@/api/wcapi');
+      const rec = selectedRecord!;
+      const config = rec.config || {};
+      const orig = config.original_mac || {};
+      const update: any = { id: candidateRecord.id };
+      // Fill empty fields on the target from the risk record
+      if (orig.first && !candidateRecord.name_first) update.name_first = orig.first;
+      if (orig.last && !candidateRecord.name_last) update.name_last = orig.last;
+      if (orig.org && !candidateRecord.company) update.company = orig.org;
+      if (orig.title && !candidateRecord.title) update.title = orig.title;
+      if (orig.dept && !candidateRecord.department) update.department = orig.dept;
+      if (orig.addresses?.length && !candidateRecord.address_full) {
+        const a = orig.addresses[0];
+        update.address_full = [a.street, a.city, a.state, a.zip].filter(Boolean).join(', ');
+      }
+      if (orig.phones?.length && !candidateRecord.phone) {
+        update.phone = orig.phones[0].number;
+      }
+      update.config = { ...(candidateRecord.config || {}), merged_from_risk: rec.ida, original_mac: orig };
+      await sr(selectedModel, update);
+      await dr(selectedModel, selectedId!);
+      onMerged();
+    } catch (e) { alert('Merge failed: ' + (e as Error).message); }
+  };
+
+  const doDelete = async () => {
+    if (!confirm('Delete this risk record?')) return;
+    try {
+      const { deleteRecord: dr } = await import('@/api/wcapi');
+      await dr(selectedModel, selectedId!);
+      onDeleted();
+    } catch (e) { alert('Delete failed: ' + (e as Error).message); }
+  };
+
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${cardBorder}`, paddingTop: 12 }}>
+      {/* Header with delete button for risk records */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: headerColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          {candidateRecords.length > 0 ? `Possible Matches (${candidateRecords.length})` : 'No Matches Found'}
+        </span>
+        {isRisk && (
+          <button onClick={doDelete}
+            style={{ padding: '4px 12px', fontSize: 11, fontWeight: 600, background: '#991b1b', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+            title="Delete this risk record — garbage">
+            Delete
+          </button>
+        )}
+      </div>
+
+      {loading && <div style={{ fontSize: 11, color: '#6b7280', padding: 8 }}>Loading candidates...</div>}
+
+      {/* Candidate detail cards */}
+      {candidateRecords.map((rec, idx) => {
+        const matchMeta = candidates?.find((c: any) => c.contact_id === rec.id) || {};
+        return (
+          <div key={rec.id} style={{
+            background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6,
+            padding: 10, marginBottom: 10,
+          }}>
+            {/* Card header with merge/view buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${cardBorder}` }}>
+              <div>
+                <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }}>
+                  {rec.attention || rec.name_first && rec.name_last ? `${rec.name_first || ''} ${rec.name_last || ''}`.trim() : rec.ida}
+                </span>
+                <span style={{ fontSize: 10, color: '#6b7280', marginLeft: 8 }}>#{rec.id}</span>
+                {matchMeta.reason && (
+                  <span style={{ fontSize: 10, color: '#f59e0b', marginLeft: 8 }}>
+                    {matchMeta.reason} (score: {matchMeta.score})
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => doMerge(rec, matchMeta)}
+                  style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#166534', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                  Merge
+                </button>
+                <button onClick={() => {
+                  const route = APP_DETAIL_ROUTES[selectedModel];
+                  if (route) window.open(`${route}/${rec.id}`, '_blank');
+                }}
+                  style={{ padding: '3px 8px', fontSize: 11, background: 'transparent', color: '#6b7280', border: `1px solid ${cardBorder}`, borderRadius: 4, cursor: 'pointer' }}>
+                  Open
+                </button>
+              </div>
+            </div>
+
+            {/* Card body — detail fields in 2-column grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', fontSize: 11 }}>
+              {cardFields.map(f => {
+                const val = rec[f];
+                if (val === null || val === undefined || val === '' || val === false) return null;
+                const display = typeof val === 'object' ? JSON.stringify(val).slice(0, 60) : String(val).slice(0, 60);
+                return (
+                  <React.Fragment key={f}>
+                    <span style={{ color: '#6b7280', fontWeight: 500 }}>{f}</span>
+                    <span style={{ color: '#e2e8f0', wordBreak: 'break-all' }}>{display}</span>
+                  </React.Fragment>
+                );
+              }).filter(Boolean)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -234,9 +493,34 @@ const AdminWorkbench: React.FC = () => {
   const navigate = useNavigate();
   const db = useDataBrowser(isAuthenticated);
 
+  // --- Sprint projects for Apply-to-Selection dropdown ---
+  const [sprintProjects, setSprintProjects] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getRecords } = await import('@/api/wcapi');
+        const res = await getRecords('action', {
+          filters: { 'metadata__quality_type': 'sprint', status__in: ['open', 'in_progress'] },
+          fields: ['project_name'],
+          limit: 100,
+          order_by: 'project_name',
+        });
+        const names = (res.results || []).map((r: any) => r.project_name).filter(Boolean);
+        setSprintProjects([...new Set(names)] as string[]);
+      } catch { /* sprints not available — dropdown will show empty */ }
+    })();
+  }, []);
+
   // --- Local UI state ---
   const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem('db-theme') as ThemeKey) || 'dark');
-  const [fontSize, setFontSize] = useState<'S' | 'M' | 'L'>(() => (localStorage.getItem('db-fontsize') as 'S' | 'M' | 'L') || 'S');
+  const [baseFontSizeNum, setBaseFontSizeNum] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) { const p = JSON.parse(stored); if (p.font_size) return p.font_size; }
+    } catch {}
+    const legacy = localStorage.getItem('db-fontsize');
+    return legacy === 'L' ? 16 : legacy === 'M' ? 14 : 12;
+  });
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [modelFilterText, setModelFilterText] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -246,50 +530,60 @@ const AdminWorkbench: React.FC = () => {
   const [showReportsDialog, setShowReportsDialog] = useState<'list' | 'detail' | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showDupes, setShowDupes] = useState(false);
+  const [showDedup, setShowDedup] = useState(false);
+  const [dedupAllIds, setDedupAllIds] = useState<number[]>([]);
+  const [dedupCurrentIds, setDedupCurrentIds] = useState<number[]>([]);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const modelSelectRef = useRef<HTMLSelectElement>(null);
+
+  // ── Draggable splitter between list and detail panes ──
+  const [detailWidth, setDetailWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('db-detail-width');
+    return saved ? parseInt(saved, 10) : 420;
+  });
+  const [splitterActive, setSplitterActive] = useState(false);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  const handleSplitterDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setSplitterActive(true);
+    const startX = e.clientX;
+    const startWidth = detailWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(280, Math.min(startWidth + delta, (mainRef.current?.clientWidth || 1200) - 200));
+      setDetailWidth(newWidth);
+    };
+    const onUp = () => {
+      setSplitterActive(false);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setDetailWidth((w) => { localStorage.setItem('db-detail-width', String(w)); return w; });
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [detailWidth]);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navLogBuffer = useRef<{ model: string; dt: number }[]>([]);
   const navLogTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = themes[theme];
-  const fontSizes = { S: 12, M: 14, L: 16 };
-  const baseFontSize = fontSizes[fontSize];
+  const baseFontSize = baseFontSizeNum;
 
-  // Save DataBrowser preferences to contact.metadata.databrowser (debounced)
-  const savePrefsToContact = useCallback((newTheme: ThemeKey, newFontSize: 'S' | 'M' | 'L') => {
-    if (!user?.id) return;
-    if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
-    prefsSaveTimer.current = setTimeout(async () => {
-      try {
-        const { getRecord, saveRecord } = await import('@/api/wcapi');
-        const contact = await getRecord('contact', Number(user.id)) as any;
-        const metadata = contact?.metadata || {};
-        metadata.databrowser = { theme: newTheme, fontSize: newFontSize, activeLayout: db.activeViewName || '' };
-        await saveRecord('contact', { id: Number(user.id), metadata });
-      } catch { /* silent — localStorage is the fallback */ }
-    }, 2000); // 2s debounce — don't save on every click
-  }, [user?.id, db.activeViewName]);
-
-  // Load preferences from contact on mount
+  // Load UI preferences from wcuiPrefs on mount
   useEffect(() => {
-    if (!user?.id || !isAuthenticated) return;
-    (async () => {
-      try {
-        const { getRecord } = await import('@/api/wcapi');
-        const contact = await getRecord('contact', Number(user.id)) as any;
-        const prefs = contact?.metadata?.databrowser;
-        if (prefs) {
-          if (prefs.theme && (prefs.theme === 'dark' || prefs.theme === 'light')) {
-            setTheme(prefs.theme); localStorage.setItem('db-theme', prefs.theme);
-          }
-          if (prefs.fontSize && ['S', 'M', 'L'].includes(prefs.fontSize)) {
-            setFontSize(prefs.fontSize as 'S' | 'M' | 'L'); localStorage.setItem('db-fontsize', prefs.fontSize);
-          }
-        }
-      } catch { /* use localStorage defaults */ }
-    })();
-  }, [user?.id, isAuthenticated]);
+    if (!isAuthenticated) return;
+    import('@/utils/wcuiPrefs').then(({ loadWcuiFromServer, migrateLegacyPrefs, getWcuiPref }) => {
+      migrateLegacyPrefs();
+      loadWcuiFromServer().then(() => {
+        const t = getWcuiPref('theme', 'dark');
+        if (t === 'dark' || t === 'light') setTheme(t as ThemeKey);
+        const fs = getWcuiPref('font_size', 12);
+        if (typeof fs === 'number') setBaseFontSizeNum(fs);
+      });
+    });
+  }, [isAuthenticated]);
 
   // Expose user ID for hooks that can't access Redux directly
   useEffect(() => {
@@ -318,12 +612,13 @@ const AdminWorkbench: React.FC = () => {
   const toggleTheme = () => {
     const n = theme === 'dark' ? 'light' : 'dark';
     setTheme(n); localStorage.setItem('db-theme', n);
-    savePrefsToContact(n, fontSize);
+    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('theme', n));
   };
-  const cycleFontSize = () => {
-    const n = fontSize === 'S' ? 'M' : fontSize === 'M' ? 'L' : 'S';
-    setFontSize(n); localStorage.setItem('db-fontsize', n);
-    savePrefsToContact(theme, n);
+  const increaseFontSize = () => {
+    setBaseFontSizeNum(s => { const n = Math.min(22, s + 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('font_size', n)); return n; });
+  };
+  const decreaseFontSize = () => {
+    setBaseFontSizeNum(s => { const n = Math.max(8, s - 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('font_size', n)); return n; });
   };
 
   // Model filter — begins with, not contains
@@ -339,17 +634,24 @@ const AdminWorkbench: React.FC = () => {
 
   // inputStyle removed — use className="db-input" or "db-search" instead
 
-  // Keyboard shortcut for model picker
+  // Keyboard shortcuts: Cmd+Shift+M = model picker, Cmd+P / Cmd+Opt+P = reports
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.shiftKey && e.key.toLowerCase() === 'm') {
         e.preventDefault();
         setShowModelPicker((p) => { const next = !p; if (next) setTimeout(() => modelInputRef.current?.focus(), 50); return next; });
       }
+      if (mod && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Both Cmd+P and Cmd+Opt+P open the report selector in DataBrowser context
+        setShowReportsDialog(db.selectedId ? 'detail' : 'list');
+      }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [db.selectedId]);
 
   // Build fieldSpecs map from listFieldSpecs for DataGrid formatting
   const fieldSpecsMap = useMemo(() => {
@@ -390,7 +692,7 @@ const AdminWorkbench: React.FC = () => {
   }, [db.savedViews, db.loadView]);
 
   return (
-    <div data-wc="databrowser" className="db-root" data-theme={theme} data-fontsize={fontSize}>
+    <div data-wc="databrowser" className="db-root" data-theme={theme} style={{ fontSize: baseFontSize }}>
 
       {/* ═══ Header — model picker + search + global controls ═══ */}
       <header data-wc="db-header" className="db-header">
@@ -418,7 +720,8 @@ const AdminWorkbench: React.FC = () => {
           <Btn small variant="ghost" onClick={() => db.resetLayout()} title="Reset to default layout">Reset</Btn>
         </div>
         <div className="db-header-right">
-          <button data-wc="db-font-size" className="db-font-toggle" onClick={cycleFontSize}>{fontSize}</button>
+          <button data-wc="db-font-size" className="db-font-toggle" onClick={decreaseFontSize} title="Decrease font size">A-</button>
+          <button data-wc="db-font-size" className="db-font-toggle" onClick={increaseFontSize} title="Increase font size">A+</button>
           <button data-wc="db-theme-toggle" className="db-theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
         </div>
       </header>
@@ -467,7 +770,7 @@ const AdminWorkbench: React.FC = () => {
       {/* Field config replaced by List Order / Form Order dialogs */}
 
       {/* ═══ Two-pane body ═══ */}
-      <div className="db-main">
+      <div className="db-main" ref={mainRef}>
 
         {/* List pane */}
         <div data-wc="db-list-pane" className="db-list-pane">
@@ -482,6 +785,82 @@ const AdminWorkbench: React.FC = () => {
             <ToolbarIcon action={TB.omit} title="Omit Selected" active={db.subsetMode === 'omit'} onClick={() => db.setSubsetMode(db.subsetMode === 'omit' ? 'all' : 'omit')} />
             <ToolbarIcon action={TB.sort} title="Sort" onClick={() => {}} />
             <ToolbarIcon action={TB.print} title="Reports" onClick={() => setShowReportsDialog(db.selectedId ? 'detail' : 'list')} />
+            {/* Apply to Selection — bulk set field values on selected rows */}
+            {db.selectedRowIds.size > 0 && (
+              <select
+                style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
+                value=""
+                title={`Apply to ${db.selectedRowIds.size} selected records`}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  e.target.value = '';
+                  if (!val) return;
+                  const [field, ...rest] = val.split(':');
+                  const newValue = rest.join(':');
+
+                  if (field === '__set_field__') {
+                    // Prompt for field name and value
+                    const fieldName = prompt('Field name:');
+                    if (!fieldName) return;
+                    const fieldValue = prompt(`New value for "${fieldName}" on ${db.selectedRowIds.size} records:`);
+                    if (fieldValue === null) return;
+                    const ids = Array.from(db.selectedRowIds);
+                    const { saveRecord: sr } = await import('@/api/wcapi');
+                    let updated = 0;
+                    for (const rid of ids) {
+                      try { await sr(db.selectedModel, { id: rid, [fieldName]: fieldValue }); updated++; } catch (e) { console.error(e); }
+                    }
+                    db.fetchRecords();
+                    console.log(`Updated ${updated}/${ids.length}: ${fieldName} = ${fieldValue}`);
+                    return;
+                  }
+
+                  // Apply field:value to all selected
+                  const ids = Array.from(db.selectedRowIds);
+                  if (!confirm(`Set ${field} = "${newValue}" on ${ids.length} selected records?`)) return;
+                  const { saveRecord: sr } = await import('@/api/wcapi');
+                  let updated = 0;
+                  for (const rid of ids) {
+                    try { await sr(db.selectedModel, { id: rid, [field]: newValue }); updated++; } catch (e) { console.error(e); }
+                  }
+                  db.fetchRecords();
+                  console.log(`Updated ${updated}/${ids.length}: ${field} = ${newValue}`);
+                }}
+              >
+                <option value="">Apply to {db.selectedRowIds.size}...</option>
+                {/* Dynamic select lists from field_access Setting */}
+                {Object.entries(db.fieldBehaviors)
+                  .filter(([, beh]) => beh.type === 'select' && beh.options?.length)
+                  .map(([field, beh]) => (
+                    <optgroup key={field} label={field}>
+                      {beh.options.map((o: any) => (
+                        <option key={o.value} value={`${field}:${o.value}`}>{o.label}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                }
+                {/* Fallback status options if no select behaviors loaded */}
+                {!Object.values(db.fieldBehaviors).some((b: any) => b.type === 'select' && b.options?.length) && (
+                  <optgroup label="status">
+                    <option value="status:open">open</option>
+                    <option value="status:in_progress">in_progress</option>
+                    <option value="status:complete">complete</option>
+                    <option value="status:on_hold">on_hold</option>
+                    <option value="status:cancelled">cancelled</option>
+                  </optgroup>
+                )}
+                {sprintProjects.length > 0 && (
+                  <optgroup label="project_name">
+                    {sprintProjects.map(p => (
+                      <option key={p} value={`project_name:${p}`}>{p}</option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Custom">
+                  <option value="__set_field__">Set any field...</option>
+                </optgroup>
+              </select>
+            )}
             <ToolbarIcon action={TB.deleteSelection} danger title="Delete Selected" disabled={db.selectedRowIds.size === 0} onClick={async () => {
               const ids = Array.from(db.selectedRowIds);
               const n = ids.length;
@@ -506,13 +885,16 @@ const AdminWorkbench: React.FC = () => {
               setShowLayoutDialog('list');
             }}>List Order</Btn>
             <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
-            <Btn small variant={showDupes ? 'save' : 'ghost'} onClick={() => setShowDupes(!showDupes)}>Dupes</Btn>
             <span className="db-spacer" />
             <span className="db-pagination-info">{db.totalRecords}</span>
             <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
             <span className="db-pagination-info">{db.page + 1}/{db.totalPages}</span>
             <Btn small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
           </div>
+          {/* Harvest bar — statement_line only */}
+          {db.selectedModel === 'statement_line' && (
+            <HarvestBar onComplete={() => db.fetchRecords()} />
+          )}
           {db.recordsLoading && <div className="db-status-msg">Loading...</div>}
           {db.recordsError && <div className="db-status-msg db-status-msg--error">{db.recordsError}</div>}
           {!db.recordsLoading && (
@@ -528,20 +910,32 @@ const AdminWorkbench: React.FC = () => {
               hideToolbar
               externalShowFilters={showFilters}
               externalShowDupes={showDupes}
+              onFilterChange={async (filters) => {
+                // Server-side column filtering — re-fetch with filters as query params
+                if (Object.keys(filters).length === 0) {
+                  db.fetchRecords();
+                  return;
+                }
+                try {
+                  const { getRecords } = await import('@/api/wcapi');
+                  const params: Record<string, any> = { limit: 500, filters };
+                  const res = await getRecords(db.selectedModel, params) as any;
+                  const results = Array.isArray(res.results) ? res.results : [];
+                  db.setRecords(results);
+                  db.setTotalRecords(res.total ?? results.length);
+                } catch (e) { console.error('Server filter failed:', e); }
+              }}
               onSelectRecord={(id) => {
-                const pref = getDetailViewPref();
-                const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (pref === 'app' && route) { window.open(`${route}/${id}`, '_blank'); }
-                else { db.setSelectedId(id); db.setIsDirty(false); }
+                // Both Admin and App mode: select the record in the right panel
+                db.setSelectedId(id); db.setIsDirty(false);
               }}
               onRowDoubleClicked={(row) => {
+                // Statement lines have no detail view — users look at their statement
+                if (db.selectedModel === 'statement_line') return;
                 const id = typeof row?.id === 'number' ? row.id : Number(row?.id);
                 if (!id) return;
-                // Double-click always opens the OTHER view
-                const pref = getDetailViewPref();
                 const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (pref === 'admin' && route) { window.open(`${route}/${id}`, '_blank'); }
-                else { db.setSelectedId(id); db.setIsDirty(false); }
+                if (route) { window.open(`${route}/${id}`, '_blank'); }
               }}
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}
@@ -571,16 +965,67 @@ const AdminWorkbench: React.FC = () => {
           )}
         </div>
 
+        {/* Draggable splitter */}
+        {(showDedup || (!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)))) && (
+          <div className={`db-splitter${splitterActive ? ' db-splitter--active' : ''}`} onMouseDown={handleSplitterDown} />
+        )}
+
+        {/* Dedup panel — replaces detail pane when active */}
+        {showDedup && db.selectedModel && (
+          <div className="db-detail-pane db-detail-pane--app" style={{ width: detailWidth }}>
+            <DedupPanel
+              model={db.selectedModel}
+              onMergeComplete={async () => {
+                // Refresh the list from fresh dedup scan
+                try {
+                  const { manageAction } = await import('@/api/wcapi');
+                  const res = await manageAction('find_duplicates', { model: db.selectedModel, match_fields: ['name_first+name_last'], limit: 500 }) as any;
+                  const groups = res?.groups || [];
+                  const records = groups.flatMap((g: any) =>
+                    g.records.map((r: any) => ({ id: r.id, ida: r.ida, ...r.fields }))
+                  );
+                  db.setRecords(records);
+                  db.setTotalRecords(records.length);
+                } catch { db.fetchRecords(); }
+              }}
+              onClose={() => { setShowDedup(false); db.fetchRecords(); }}
+            />
+          </div>
+        )}
+
         {/* Detail pane — show when record selected OR when list is empty (so Add button is accessible) */}
-        {(db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (
-        <div data-wc="db-detail-pane" className="db-detail-pane">
+        {!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (() => {
+          const viewPref = getDetailViewPref();
+          const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[db.selectedModel] : null;
+          return (
+        <div data-wc="db-detail-pane" className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth }}>
           {/* Detail toolbar — record-focused glass buttons */}
           <div data-wc="db-detail-toolbar" className="db-list-toolbar" style={{ gap: 6 }}>
             <ToolbarIcon action={TB.addRecord} title="Add New Record" onClick={async () => {
-              const blank = createBlankRecord(db.selectedModel, db.allFields);
-              const { saveRecord: sr } = await import('@/api/wcapi');
-              const result = await sr(db.selectedModel, blank) as any;
-              if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
+              try {
+                const blank = createBlankRecord(db.selectedModel, db.allFields);
+                // Apply installation defaults from Setting.prefs.defaults
+                if (db.fieldDefaults) {
+                  Object.entries(db.fieldDefaults).forEach(([k, v]) => {
+                    if (v !== '' && v != null) {
+                      // Handle offset patterns: dt_due_offset_days → compute dt_due
+                      if (k.endsWith('_offset_days')) {
+                        const targetField = k.replace('_offset_days', '');
+                        blank[targetField] = Date.now() + (Number(v) * 86400000);
+                      } else {
+                        blank[k] = v;
+                      }
+                    }
+                  });
+                }
+                const { saveRecord: sr } = await import('@/api/wcapi');
+                const result = await sr(db.selectedModel, blank) as any;
+                if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
+                else { alert('Add failed — no ID returned. Check console.'); }
+              } catch (err: any) {
+                console.error('[AddRecord] error:', err);
+                alert('Add failed: ' + (err?.message || JSON.stringify(err)));
+              }
             }} />
             <ToolbarIcon action={TB.save} title="Save" disabled={!db.isDirty} onClick={() => db.handleSaveRecord()} />
             <ToolbarIcon action={TB.discard} title="Discard Changes" disabled={!db.isDirty} onClick={() => { db.setIsDirty(false); db.setSelectedId(db.selectedId); }} />
@@ -591,13 +1036,30 @@ const AdminWorkbench: React.FC = () => {
             {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
             {db.isDirty && <span className="db-unsaved-badge">UNSAVED</span>}
             <span className="db-spacer" />
-            <Btn small variant="ghost" onClick={() => {
-              dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
-              setShowLayoutDialog('detail');
-            }}>Form Order</Btn>
+            {viewPref !== 'app' && (
+              <Btn small variant="ghost" onClick={() => {
+                dbLog('openDialog:detail', { model: db.selectedModel, allFields: db.allFields.length, visibleDetail: db.visibleDetailFields, behaviors: Object.keys(db.fieldBehaviors).length });
+                setShowLayoutDialog('detail');
+              }}>Form Order</Btn>
+            )}
           </div>
           <div className="db-detail-body">
-            {db.selectedRecord ? (
+            {/* App mode: render the model's Detail.tsx component inline */}
+            {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
+              <React.Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Loading...</div>}>
+                <AppDetailComponent
+                  modeProp="edit"
+                  recordId={db.selectedId}
+                  id={db.selectedId}
+                  dataProp={db.selectedRecord}
+                  hideBreadcrumb
+                  inline
+                  onSaved={() => db.fetchRecords()}
+                  onCancelInline={() => { db.setSelectedId(null); }}
+                />
+              </React.Suspense>
+            ) : db.selectedRecord ? (
+              /* Admin mode: DataBrowser field grid */
               <div className="db-detail-grid">
                 {db.visibleDetailFields
                   .filter((f) => Object.prototype.hasOwnProperty.call(db.selectedRecord!, f))
@@ -611,10 +1073,36 @@ const AdminWorkbench: React.FC = () => {
               </div>
             ) : null}
 
-            {/* BOM panel — show when viewing an Item */}
-            {db.selectedRecord && db.selectedModel === 'item' && db.selectedId && (
+            {/* BOM panel — show when viewing an Item (Admin mode only) */}
+            {viewPref !== 'app' && db.selectedRecord && db.selectedModel === 'item' && db.selectedId && (
               <BOMPanel itemId={db.selectedId} theme={t} fontSize={baseFontSize} />
             )}
+
+            {/* Match candidates panel — full detail cards for each candidate */}
+            <MatchCandidatesPanel
+              selectedRecord={db.selectedRecord}
+              selectedId={db.selectedId}
+              selectedModel={db.selectedModel}
+              visibleFields={db.visibleDetailFields}
+              fieldBehaviors={db.fieldBehaviors}
+              detailFieldSpecs={db.detailFieldSpecs}
+              detailRowSizes={db.detailRowSizes}
+              theme={t}
+              fontSize={baseFontSize}
+              onMerged={() => {
+                db.fetchRecords();
+                // Auto-advance
+                const curIdx = (db as any).records?.findIndex?.((r: any) => numId(r.id) === db.selectedId) ?? -1;
+                const next = (db as any).records?.[curIdx + 1] || (db as any).records?.[curIdx - 1];
+                if (next) db.setSelectedId(numId(next.id));
+              }}
+              onDeleted={() => {
+                db.fetchRecords();
+                const curIdx = (db as any).records?.findIndex?.((r: any) => numId(r.id) === db.selectedId) ?? -1;
+                const next = (db as any).records?.[curIdx + 1] || (db as any).records?.[curIdx - 1];
+                if (next) db.setSelectedId(numId(next.id));
+              }}
+            />
 
             {/* Spawn links — show related windows for complex records */}
             {db.selectedRecord && db.selectedId && (
@@ -622,7 +1110,8 @@ const AdminWorkbench: React.FC = () => {
             )}
           </div>
         </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Related dialog */}
@@ -645,6 +1134,40 @@ const AdminWorkbench: React.FC = () => {
         theme={t}
         fontSize={baseFontSize}
         onClose={() => setShowReportsDialog(null)}
+        onExecuteReport={async (report) => {
+          const config = report.config as any || {};
+          if (config.action === 'open_dedup_panel') {
+            setShowReportsDialog(null);
+            setShowDedup(true);
+            // Load dedup records into the list
+            try {
+              const { manageAction } = await import('@/api/wcapi');
+              const res = await manageAction('find_duplicates', {
+                model: db.selectedModel,
+                match_fields: config.match_fields || ['name_first+name_last'],
+                limit: 500,
+              }) as any;
+              const groups = res?.groups || [];
+              const records = groups.flatMap((g: any) =>
+                g.records.map((r: any) => ({ id: r.id, ida: r.ida, ...r.fields }))
+              );
+              db.setRecords(records);
+              db.setTotalRecords(records.length);
+            } catch {}
+          } else if (config.action === 'normalize_phones') {
+            setShowReportsDialog(null);
+            const { manageAction } = await import('@/api/wcapi');
+            const res = await manageAction('normalize_phones', { default_country: 'US' });
+            alert(JSON.stringify(res, null, 2));
+            db.fetchRecords();
+          } else if (config.action === 'email_quality_scan') {
+            setShowReportsDialog(null);
+            const { manageAction } = await import('@/api/wcapi');
+            const res = await manageAction('email_quality_scan', {});
+            alert(JSON.stringify(res, null, 2));
+            db.fetchRecords();
+          }
+        }}
       />
 
       {/* Field order dialog — unified for list and detail, applies separately */}

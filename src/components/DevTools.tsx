@@ -59,31 +59,9 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     }
   }, []);
 
-  const waitForServerAndReload = useCallback((initialDelayMs = 3000) => {
-    let attempts = 0;
-    const maxAttempts = 45;
-
-    const checkServer = async () => {
-      const isLive = await checkBackendHealth();
-      if (isLive) {
-        setBackendStatus('live');
-        window.location.reload();
-        return;
-      }
-
-      attempts += 1;
-      if (attempts < maxAttempts) {
-        setBackendStatus('restarting');
-        setTimeout(checkServer, 1000);
-      } else {
-        setBackendStatus('offline');
-        setMessage({ type: 'error', text: 'Restart timeout. Please refresh manually.' });
-      }
-    };
-
-    setBackendStatus('restarting');
-    setTimeout(checkServer, initialDelayMs);
-  }, [checkBackendHealth]);
+  // Removed: waitForServerAndReload was causing page reload loops.
+  // After server restart, the user can refresh manually or the 10s poll
+  // will pick up the new config automatically.
 
   // Only show in dev mode
   const isDev = import.meta.env.VITE_ENV === 'DEV' || import.meta.env.DEV;

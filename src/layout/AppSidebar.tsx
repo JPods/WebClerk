@@ -31,23 +31,23 @@ type NavItem = {
 // ─── Work ───────────────────────────────────────────────
 const workItems: NavItem[] = [
   { icon: <LayoutDashboard size={18} />, name: "Dashboard", path: "/dashboard" },
-  { icon: <Columns3 size={18} />, name: "Kanban", path: "/kanban-board" },
+  { icon: <Columns3 size={18} />, name: "Kanban", path: "/kanban" },
   { icon: <CalendarRange size={18} />, name: "Gantt", path: PageRoutes.gantt },
 ];
 
 // ─── Forms ──────────────────────────────────────────────
 const formItems: NavItem[] = [
-  { icon: <UserCircle size={18} />, name: "Contact", path: "/db/contact" },
-  { icon: <Users size={18} />, name: "Customer", path: "/db/customer" },
-  { icon: <ClipboardList size={18} />, name: "Proposal", path: "/db/proposal" },
-  { icon: <ShoppingCart size={18} />, name: "Order", path: "/db/order" },
-  { icon: <FileText size={18} />, name: "Invoice", path: "/db/invoice" },
-  { icon: <CreditCard size={18} />, name: "Purchase", path: "/db/purchase" },
+  { icon: <UserCircle size={18} />, name: "Contact", path: "/contact" },
+  { icon: <Users size={18} />, name: "Customer", path: "/customer" },
+  { icon: <ClipboardList size={18} />, name: "Proposal", path: "/proposal" },
+  { icon: <ShoppingCart size={18} />, name: "Order", path: "/order" },
+  { icon: <FileText size={18} />, name: "Invoice", path: "/invoice" },
+  { icon: <CreditCard size={18} />, name: "Purchase", path: "/purchase" },
 ];
 
 // ─── Dashboards ─────────────────────────────────────────
 const dashboardItems: NavItem[] = [
-  { icon: <Package size={18} />, name: "Item", path: "/db/item" },
+  { icon: <Package size={18} />, name: "Item", path: "/item" },
   { icon: <BarChart3 size={18} />, name: "Accounting", path: "/accounting" },
   { icon: <Bot size={18} />, name: "Alice", path: "/alice-dashboard" },
   { icon: <Database size={18} />, name: "DataBrowser", path: "/admin-wb" },

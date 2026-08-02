@@ -143,6 +143,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="ida"
                 mandatory
                 locked
@@ -154,6 +155,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="id"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -164,7 +166,8 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
-                label="dt"
+                model={transactionLabel.toLowerCase()}
+                label="dt_created"
                 mandatory
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -185,6 +188,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="due_date"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -209,6 +213,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="terms"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -227,6 +232,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="po_number"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -245,6 +251,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="priority"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -263,6 +270,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="price_level"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -364,6 +372,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             )}
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="status"
                 mandatory
                 className="text-slate-500 dark:text-slate-400"
@@ -386,6 +395,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="customer_ida"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -564,6 +574,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {/* --- sell envelope --- */}
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="sell.line_sum_goods"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -574,6 +585,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="sell.discount"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -585,6 +597,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="sell.total"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -597,6 +610,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             {/* --- totals envelope --- */}
             <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="totals.taxable"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -607,6 +621,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="totals.tax"
                 locked
                 className="text-slate-500 dark:text-slate-400"
@@ -628,6 +643,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             )}
             <div className="flex justify-between items-center">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="totals.other"
                 className="text-slate-500 dark:text-slate-400"
               />
@@ -637,6 +653,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
             </div>
             <div className="flex justify-between items-center pt-2 border-t-2 border-slate-300 dark:border-slate-600">
               <FieldLabel
+                model={transactionLabel.toLowerCase()}
                 label="totals.total"
                 mandatory
                 locked

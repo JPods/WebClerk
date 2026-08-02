@@ -88,6 +88,8 @@ function getBackendErrorMessage(err: any, fallback: string): string {
     }
   }
 
+  if (typeof detail === 'object') return JSON.stringify(detail);
+  if (typeof error === 'object') return JSON.stringify(error);
   return detail || error || message || err?.message || fallback;
 }
 
@@ -380,11 +382,34 @@ export async function saveTransactionWithLines(
   options?: { verifyCalculations?: boolean; saveOnlyDirty?: boolean },
 ) {
   const resolved = resolveModelName(model_name);
+  // Strip read-only and calculated fields — only send what the server needs
+  const {
+    uuid: _u, customer_config: _cc, customer_company: _cco,
+    totals: _t, actions: _a, refs: _r, metadata: _m,
+    sell: _s, cost: _co, finance: _f, flow: _fl,
+    prefs: _p, commission: _cm, health_rating: _hr,
+    dt_created: _dc, dt_modified: _dm,
+    is_archived: _ia, is_deleted: _id2, is_locked: _il,
+    security_level: _sl, version: _v,
+    ...cleanPayload
+  } = payload;
+  // Strip read-only/calculated fields from lines too
+  if (cleanPayload.lines) {
+    cleanPayload.lines = cleanPayload.lines.map((line: any) => {
+      const { uuid: _lu, metadata: _lm, refs: _lr, prefs: _lp,
+        physical: _lph, commission: _lcm, actions: _la, tax: _lt,
+        dt_created: _ldc, dt_modified: _ldm, health_rating: _lhr,
+        is_archived: _lia, is_deleted: _lid, is_locked: _lil,
+        security_level: _lsl, version: _lv,
+        ...cleanLine } = line;
+      return cleanLine;
+    });
+  }
   // Build the request body in the format expected by WCAPITransactionSaveView
   const body = {
     model_name: resolved,
-    record: payload,
-    id: payload.id, // record should include lines array
+    record: cleanPayload,
+    id: cleanPayload.id, // record should include lines array
     options: {
       verify_calculations: options?.verifyCalculations ?? false, // Disable verification for now
       save_only_dirty: options?.saveOnlyDirty ?? false, // Save all lines, not just dirty ones

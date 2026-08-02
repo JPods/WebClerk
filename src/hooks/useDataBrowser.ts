@@ -257,8 +257,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // Derived
   // ---------------------------------------------------------------------------
 
-  // Route param (/db/:model) takes priority, then search param (?model=X)
-  const modelParam = routeParams.model || searchParams.get('model');
+  // Route param (/db/:model) takes priority, then search param (?model=X), then pathname
+  const pathnameModel = window.location.pathname.split('/').filter(Boolean)[0] || '';
+  const modelParam = routeParams.model || searchParams.get('model') || pathnameModel;
 
   const modelLabel = useMemo(() => {
     if (!selectedModel) return 'Select model';

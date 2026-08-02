@@ -9,6 +9,8 @@ import { normalizeRefsLinksContact } from "@/apps/common/components/panels/Conta
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PrintPreviewModal from "./PrintPreviewModal";
 import ReportViewer from "@/components/common/ReportViewer";
+import ReportsDialog from "@/components/common/ReportsDialog";
+import { useReportShortcuts } from "@/hooks/useReportShortcuts";
 import useUnsavedChangesGuard from "@/hooks/useUnsavedChangesGuard";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import {
@@ -44,6 +46,7 @@ import {
   FaTasks,
   FaQuestionCircle,
   FaFilePdf,
+  FaList,
 } from "react-icons/fa";
 import { showToast } from "../../../store/slices/toastSlice";
 import {
@@ -1201,6 +1204,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [showReportSelector, setShowReportSelector] = useState(false);
   const [printCustomer, setPrintCustomer] = useState<any | null>(null);
 
   const buildCoachPayload = useCallback(
@@ -1391,6 +1395,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     () => guardAction(executePrint, "printing"),
     [guardAction, executePrint],
   );
+
+  // WC2-heritage keyboard shortcuts: Cmd+P = primary report, Cmd+Opt+P = selector
+  const onPrintPrimary = useCallback(() => {
+    if (supportsPrintPreview) handlePrint();
+  }, [supportsPrintPreview, handlePrint]);
+
+  const onOpenSelector = useCallback(() => {
+    setShowReportSelector(true);
+  }, []);
+
+  useReportShortcuts({
+    model: normalizedPrintType || transactionType || '',
+    enabled: !!data?.id && !showPrintPreview && !showReportSelector,
+    onPrintPrimary: onPrintPrimary,
+    onOpenSelector: onOpenSelector,
+  });
 
   const toSafeNumber = (value: unknown, fallback = 0): number => {
     if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -2910,6 +2930,30 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     <div className="max-w-7xl mx-auto">
       {renderPrintPreview()}
 
+      {/* WC2-heritage Report Selector (Cmd+Opt+P or Reports button) */}
+      <ReportsDialog
+        open={showReportSelector}
+        model={normalizedPrintType || transactionType || ''}
+        context="detail"
+        selectedId={data?.id ? Number(data.id) : null}
+        theme={{
+          bg: '#1e1e1e', surface: '#252526', surfaceAlt: '#2a2d2e',
+          border: '#3e3e42', borderLight: '#333338',
+          text: '#cccccc', textMuted: '#999999', textDim: '#666666',
+          accent: '#0e639c', accentGreen: '#1a6b2e', accentGold: '#fd7e14',
+          accentRed: '#f14c4c', accentPurple: '#6f42c1',
+        }}
+        fontSize={14}
+        onClose={() => setShowReportSelector(false)}
+        onExecuteReport={(report) => {
+          const reportName = encodeURIComponent(report.name);
+          const modelName = encodeURIComponent(normalizedPrintType || transactionType || '');
+          let url = `/wcapi/report/?report=${reportName}&model=${modelName}`;
+          if (data?.id) url += `&id=${data.id}`;
+          window.open(url, '_blank');
+        }}
+      />
+
       {/* PDF Report Viewer (pdfme) */}
       {showPdfViewer && data?.id && normalizedPrintType && (
         <ReportViewer
@@ -2953,10 +2997,20 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 <button
                   onClick={handlePrint}
                   className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-colors flex items-center gap-2"
-                  title="Print Preview"
+                  title={`Print Primary (${navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'})`}
                 >
                   <FaPrint size={14} />
                   Print
+                </button>
+              )}
+              {data?.id && (
+                <button
+                  onClick={() => setShowReportSelector(true)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-colors flex items-center gap-2"
+                  title={`Defined Reports (${navigator.platform.includes('Mac') ? '⌘⌥P' : 'Ctrl+Alt+P'})`}
+                >
+                  <FaList size={14} />
+                  Reports
                 </button>
               )}
               {data?.id && normalizedPrintType && (

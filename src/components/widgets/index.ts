@@ -23,6 +23,12 @@ export { JsonTextWidget } from "./JsonTextWidget";
 export { ContactLookup } from "./ContactLookup";
 export { CheckboxWidget } from "./CheckboxWidget";
 
+// Action widgets — buttons, toolbars, badges
+export { WcButton } from "./WcButton";
+export { WcBadge } from "./WcBadge";
+export { WcToolbar } from "./WcToolbar";
+export { WcIconButton } from "./WcIconButton";
+
 import type { WidgetProps } from "./types";
 import { TextWidget } from "./TextWidget";
 import { TextAreaWidget } from "./TextAreaWidget";

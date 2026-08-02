@@ -74,6 +74,12 @@ export interface DataGridProps {
   onColumnDrop?: (dragField: string, targetField: string) => void;
   onResizeStart?: (field: string, e: React.MouseEvent) => void;
   onCellEdit?: (recordId: number, field: string, value: unknown) => void;
+  onHeaderClick?: (field: string) => void;
+  headerEditField?: string | null;
+  headerEditValue?: string;
+  onHeaderEditChange?: (value: string) => void;
+  onHeaderEditApply?: () => void;
+  onHeaderEditCancel?: () => void;
   numId?: (v: unknown) => number | null;
   theme?: any; // theme tokens
   fontSize?: number;
@@ -138,6 +144,18 @@ export interface DataGridProps {
   childFlag?: string;         // data field indicating row has children (e.g., 'is_subassembly')
   treeIndent?: number;        // px per level (default 20)
 
+  // --- Line card / operational features (db.list with config) ---
+  /** Custom footer bar content — rendered below the Σ row, above panels */
+  footerBar?: React.ReactNode;
+  /** Panel content — rendered below footer bar, show/hide controlled by parent */
+  panelContent?: React.ReactNode;
+  /** Locked columns — cannot be reordered or removed */
+  lockedColumns?: Set<string>;
+  /** Disable column reorder via drag */
+  disableReorder?: boolean;
+  /** Disable right-click "Add Column" */
+  disableAddColumn?: boolean;
+
   // --- Ignored props (accepted but unused, for backward compat during migration) ---
   title?: string;
   storageKey?: string;
@@ -158,6 +176,8 @@ export interface DataGridProps {
   filters?: any;
   filtersOpen?: boolean;
   onFiltersOpenChange?: (open: boolean) => void;
+  /** Called when column filters change — parent can use for server-side filtering */
+  onFilterChange?: (filters: Record<string, string>) => void;
   onVisibleRowsChange?: (rows: any[]) => void;
   selectionMode?: string;
   enableSelectedOnlyFilter?: boolean;
@@ -238,7 +258,7 @@ const DEFAULT_THEME = {
   btnBg: '#ffffff', btnPrimary: '#0d6efd', btnSave: '#198754',
   btnSaveBorder: '#198754', btnDangerBorder: '#dc3545',
   inputBg: '#ffffff', inputBorder: '#ced4da',
-  rowHover: '#f1f3f5', rowActive: '#cfe2ff', rowChecked: '#fff3cd',
+  rowHover: '#f1f3f5', rowActive: '#cfe2ff', rowChecked: '#dbeafe',
   resizeHandle: '#0d6efd',
 };
 
@@ -416,6 +436,21 @@ export default function DataGrid(props: DataGridProps) {
   // --- Column filters ---
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(props.externalShowFilters ?? false);
+  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setFiltersAndNotify = useCallback((updater: (prev: Record<string, string>) => Record<string, string>) => {
+    setFilters((prev) => {
+      const next = updater(prev);
+      // Debounce server-side filter callback (500ms after last keystroke)
+      if (props.onFilterChange) {
+        if (filterDebounce.current) clearTimeout(filterDebounce.current);
+        filterDebounce.current = setTimeout(() => {
+          const active = Object.fromEntries(Object.entries(next).filter(([, v]) => v.trim()));
+          props.onFilterChange!(active);
+        }, 500);
+      }
+      return next;
+    });
+  }, [props.onFilterChange]);
 
   // --- Inline edit ---
   const [editCell, setEditCell] = useState<{ rid: number; field: string } | null>(null);
@@ -525,15 +560,52 @@ export default function DataGrid(props: DataGridProps) {
     setTimeout(() => editRef.current?.focus(), 50);
   }, [onCellEdit, fieldBehaviors]);
 
-  const commitEdit = useCallback(() => {
+  const commitEdit = useCallback((moveDirection?: 'right' | 'down') => {
     if (!editCell || !onCellEdit) return;
     let val: unknown = editValue;
     const beh = fieldBehaviors[editCell.field];
     if (beh?.type === 'number' || beh?.type === 'currency') val = parseFloat(editValue) || 0;
     else if (beh?.type === 'boolean') val = editValue === 'true' || editValue === '1';
     onCellEdit(editCell.rid, editCell.field, val);
+
+    if (moveDirection && filteredRecords.length > 0) {
+      const editableColumns = columns.filter(f => {
+        const b = fieldBehaviors[f];
+        return b && b.type !== 'readonly' && b.type !== 'timestamp' && !b.calculated;
+      });
+      const colIdx = editableColumns.indexOf(editCell.field);
+      const rowIdx = filteredRecords.findIndex(r => numId(r.id) === editCell.rid);
+
+      if (moveDirection === 'right' && colIdx >= 0) {
+        // Tab → next editable column in same row, or first column of next row
+        if (colIdx < editableColumns.length - 1) {
+          const nextField = editableColumns[colIdx + 1];
+          const val2 = filteredRecords[rowIdx]?.[nextField];
+          startEdit(editCell.rid, nextField, val2);
+          return;
+        } else if (rowIdx < filteredRecords.length - 1) {
+          const nextRid = numId(filteredRecords[rowIdx + 1]?.id);
+          if (nextRid !== null) {
+            const nextField = editableColumns[0];
+            const val2 = filteredRecords[rowIdx + 1]?.[nextField];
+            startEdit(nextRid, nextField, val2);
+            return;
+          }
+        }
+      } else if (moveDirection === 'down' && rowIdx >= 0) {
+        // Enter → same column, next row
+        if (rowIdx < filteredRecords.length - 1) {
+          const nextRid = numId(filteredRecords[rowIdx + 1]?.id);
+          if (nextRid !== null) {
+            const val2 = filteredRecords[rowIdx + 1]?.[editCell.field];
+            startEdit(nextRid, editCell.field, val2);
+            return;
+          }
+        }
+      }
+    }
     setEditCell(null);
-  }, [editCell, editValue, onCellEdit, fieldBehaviors]);
+  }, [editCell, editValue, onCellEdit, fieldBehaviors, columns, filteredRecords, numId]);
 
   const cancelEdit = useCallback(() => setEditCell(null), []);
 
@@ -586,9 +658,9 @@ export default function DataGrid(props: DataGridProps) {
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commitEdit();
+            if (e.key === 'Enter') { e.preventDefault(); commitEdit('down'); }
             if (e.key === 'Escape') cancelEdit();
-            if (e.key === 'Tab') { e.preventDefault(); commitEdit(); /* TODO: move to next cell */ }
+            if (e.key === 'Tab') { e.preventDefault(); commitEdit('right'); }
           }}
           style={{ width: '100%', fontSize: fontSize - 1, padding: '1px 2px', background: t.inputBg, color: t.text, border: `1px solid ${t.accent}`, borderRadius: 2 }}
         />
@@ -609,8 +681,10 @@ export default function DataGrid(props: DataGridProps) {
       return JSON.stringify(v).slice(0, 50);
     }
     if (Array.isArray(v)) return JSON.stringify(v).slice(0, 50);
-    if (spec?.format === 'currency' && typeof v === 'number') {
-      return v.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+    const beh = fieldBehaviors[field];
+    if ((spec?.format === 'currency' || beh?.type === 'currency') && typeof v === 'number') {
+      const dp = beh?.precision ?? 2;
+      return v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
     if (spec?.format === 'percent' && typeof v === 'number') {
       return (v >= 1 ? v : v * 100).toFixed(1) + '%';
@@ -618,8 +692,9 @@ export default function DataGrid(props: DataGridProps) {
     if (spec?.format === 'date' && v) {
       try { return new Date(v).toLocaleDateString(); } catch { return String(v); }
     }
-    if (spec?.format === 'number' && typeof v === 'number') {
-      return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if ((spec?.format === 'number' || beh?.type === 'number') && typeof v === 'number') {
+      const ndp = beh?.precision ?? 0;
+      return v.toLocaleString('en-US', { minimumFractionDigits: ndp, maximumFractionDigits: ndp });
     }
     if (spec?.format === 'phone' && typeof v === 'string' && v.replace(/\D/g, '').length >= 10) {
       const d = v.replace(/\D/g, '');
@@ -651,11 +726,8 @@ export default function DataGrid(props: DataGridProps) {
       // Ctrl/Cmd-click: toggle this row without affecting others
       handleToggleRow(rid);
     } else {
-      // Plain click: open the record detail and clear multi-selection
-      if (props.onClearSelection) props.onClearSelection();
-      else setSelfSelectedRowIds(new Set());
+      // Plain click: select only this row (clears others). WC standard.
       if (rid !== null) handleSelectRecord(rid);
-      if (props.onRowClicked) props.onRowClicked(rec);
     }
     lastClickedIdx.current = rowIdx;
   }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
@@ -711,8 +783,8 @@ export default function DataGrid(props: DataGridProps) {
         <tr key={rid ?? `r-${idx}`} data-rid={rid}
           style={{
             borderBottom: `1px solid ${t.border}`,
-            background: isActive ? t.rowActive : isChecked ? t.rowChecked : ruleStyle.background || 'transparent',
-            color: isActive ? '#fff' : ruleStyle.color || t.text,
+            background: (isActive || isChecked) ? t.rowChecked : ruleStyle.background || (idx % 2 === 1 ? t.surfaceAlt : 'transparent'),
+            color: ruleStyle.color || t.text,
             fontWeight: ruleStyle.fontWeight,
             cursor: 'pointer',
             outline: isDupe ? `2px solid ${t.accentGold}` : undefined,
@@ -720,9 +792,9 @@ export default function DataGrid(props: DataGridProps) {
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
           onDoubleClick={() => { if (rid !== null) { handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec); } }}
           onMouseEnter={(e) => { if (!isActive && !isChecked && !ruleStyle.background) (e.currentTarget).style.background = t.rowHover; }}
-          onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || 'transparent'; }}
+          onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || (idx % 2 === 1 ? t.surfaceAlt : 'transparent'); }}
         >
-          <td style={{ width: 8, padding: '4px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: isActive ? t.rowActive : isChecked ? t.rowChecked : t.surface, zIndex: pinnedColumn ? 1 : undefined }}>
+          <td style={{ width: 8, padding: '4px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, zIndex: pinnedColumn ? 1 : undefined }}>
             {isChecked && <div style={{ width: 4, height: '100%', minHeight: 16, background: t.accent, borderRadius: 2, margin: '0 2px' }} />}
           </td>
           {columns.map((f, ci) => {
@@ -737,6 +809,7 @@ export default function DataGrid(props: DataGridProps) {
                 whiteSpace: doWrap ? 'normal' : 'nowrap',
                 wordBreak: doWrap ? 'break-word' : undefined,
                 textAlign: getAlign(f),
+                fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
                 paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
                 ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
@@ -849,7 +922,7 @@ export default function DataGrid(props: DataGridProps) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {!props.hideToolbar && toolbar}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize }}>
           <thead>
             {/* Header row */}
             <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
@@ -861,16 +934,24 @@ export default function DataGrid(props: DataGridProps) {
                   <th key={f}
                     style={{
                       position: 'relative', padding: '6px 8px', textAlign: getAlign(f), color: t.textMuted,
-                      fontWeight: 600, fontSize: fontSize - 1, textTransform: 'uppercase', letterSpacing: '0.04em',
+                      fontWeight: 600, fontSize: fontSize - 1, letterSpacing: '0.02em',
+                      fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
                       cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
                       ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: t.surface, zIndex: 3 } : {}),
                     }}
                     draggable
-                    onDragStart={(e) => { if (!e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
+                    onDragStart={(e) => { if (props.disableReorder || !e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
-                    onClick={(e) => handleSort(f, e.ctrlKey || e.metaKey)}
+                    onClick={(e) => {
+                      if (e.shiftKey && props.onHeaderClick && fieldBehaviors[f]?.bulkEditable) {
+                        e.preventDefault();
+                        props.onHeaderClick(f);
+                      } else {
+                        handleSort(f, e.ctrlKey || e.metaKey);
+                      }
+                    }}
                     onContextMenu={(e) => {
                       if (props.onDeleteColumn || props.onSaveLayout) {
                         e.preventDefault();
@@ -878,11 +959,33 @@ export default function DataGrid(props: DataGridProps) {
                         setContextSubmenu(null);
                       }
                     }}
-                    title="Click to sort · Ctrl-click for multi-sort · Shift-drag to reorder · Right-click for column menu"
+                    title={fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort · Ctrl-click for multi-sort`}
                   >
-                    {f}
-                    {sortDir && <span style={{ marginLeft: 4, color: t.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                    {sortIdx >= 0 && <span style={{ marginLeft: 2, fontSize: 9, color: t.accent }}>({sortIdx + 1})</span>}
+                    {props.headerEditField === f ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={props.headerEditValue || ''}
+                          onChange={(e) => props.onHeaderEditChange?.(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') props.onHeaderEditApply?.(); if (e.key === 'Escape') props.onHeaderEditCancel?.(); }}
+                          style={{ width: 60, fontSize: fontSize - 2, padding: '1px 3px', border: `1px solid ${t.accent}`, borderRadius: 2, background: t.inputBg, color: t.text }}
+                        />
+                        <span style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2, fontWeight: 700 }} onClick={() => props.onHeaderEditApply?.()}>✓</span>
+                        <span style={{ cursor: 'pointer', color: t.textMuted, fontSize: fontSize - 2 }} onClick={() => props.onHeaderEditCancel?.()}>✕</span>
+                      </span>
+                    ) : (
+                      <>
+                        <span style={{
+                          cursor: fieldBehaviors[f]?.bulkEditable ? 'pointer' : undefined,
+                          color: fieldBehaviors[f]?.bulkEditable ? '#1e40af' : undefined,
+                          textDecoration: fieldBehaviors[f]?.bulkEditable ? 'underline' : undefined,
+                          textDecorationStyle: fieldBehaviors[f]?.bulkEditable ? 'dotted' as const : undefined,
+                        }}>{f}</span>
+                        {sortDir && <span style={{ marginLeft: 4, color: t.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                        {sortIdx >= 0 && <span style={{ marginLeft: 2, fontSize: 9, color: t.accent }}>({sortIdx + 1})</span>}
+                      </>
+                    )}
                     <span
                       style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, cursor: 'col-resize', background: t.borderLight }}
                       onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
@@ -903,7 +1006,7 @@ export default function DataGrid(props: DataGridProps) {
                   if (beh?.type === 'select' && beh.options) {
                     return (
                       <th key={f} style={{ padding: 2 }}>
-                        <select value={filters[f] || ''} onChange={(e) => setFilters((p) => ({ ...p, [f]: e.target.value }))}
+                        <select value={filters[f] || ''} onChange={(e) => setFiltersAndNotify((p) => ({ ...p, [f]: e.target.value }))}
                           style={{ width: '100%', fontSize: fontSize - 2, padding: '2px 3px', background: t.inputBg, color: t.text, border: `1px solid ${t.inputBorder}`, borderRadius: 2 }}>
                           <option value="">All</option>
                           {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -914,7 +1017,7 @@ export default function DataGrid(props: DataGridProps) {
                   return (
                     <th key={f} style={{ padding: 2 }}>
                       <input type="text" value={filters[f] || ''} placeholder="..."
-                        onChange={(e) => setFilters((p) => ({ ...p, [f]: e.target.value }))}
+                        onChange={(e) => setFiltersAndNotify((p) => ({ ...p, [f]: e.target.value }))}
                         style={{ width: '100%', fontSize: fontSize - 2, padding: '2px 4px', background: t.inputBg, color: t.text, border: `1px solid ${t.inputBorder}`, borderRadius: 2 }}
                       />
                     </th>
@@ -960,8 +1063,9 @@ export default function DataGrid(props: DataGridProps) {
                   const t_data = totals[f];
                   if (!t_data) return <td key={f} style={{ padding: '4px 8px' }} />;
                   const beh = fieldBehaviors[f];
-                  const display = beh?.type === 'currency'
-                    ? t_data.sum.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+                  const dp = beh?.precision ?? 2;
+                  const display = (beh?.type === 'currency')
+                    ? t_data.sum.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })
                     : t_data.sum.toLocaleString();
                   return (
                     <td key={f} style={{ padding: '4px 8px', textAlign: 'right', fontSize: fontSize - 1, color: t.accent }}>
@@ -980,6 +1084,12 @@ export default function DataGrid(props: DataGridProps) {
           </div>
         )}
       </div>
+
+      {/* Custom footer bar (line card: Lns/Items/Deposit/Backlog/Total + buttons) */}
+      {props.footerBar}
+
+      {/* Panel content (line card: Inventory/Spec/XRef/Margin panels) */}
+      {props.panelContent}
 
       {/* Column context menu — wc2 right-click pattern */}
       {contextMenu && (

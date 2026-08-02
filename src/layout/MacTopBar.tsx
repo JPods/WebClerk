@@ -48,6 +48,11 @@ export default function MacTopBar({ activePath }: Props) {
       <div className="flex items-center gap-3 text-base font-semibold text-slate-900">
         <GridIcon className="h-5 w-5 text-emerald-500" />
         <span>WebClerk 3.0</span>
+        {user?.prefs?.training && (
+          <span className="rounded-md bg-red-600 px-3 py-1 text-sm font-bold text-white tracking-wide animate-pulse">
+            TRAINING MODE
+          </span>
+        )}
         {apiBusy && (
           <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
             <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />

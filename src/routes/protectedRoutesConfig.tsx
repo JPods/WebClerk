@@ -42,6 +42,7 @@ import TestDashboard from "../pages/admin/TestDashboard";
 import ReportDesigner from "../pages/admin/ReportDesigner";
 import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import Placeholder from "../pages/Placeholder";
+import TransactionDetail from "../apps/transactions/components/TransactionDetail";
 
 export const protectedRoutesConfig = [
   { path: PageRoutes.dashboard, element: <Home /> },
@@ -100,6 +101,31 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.kanbanGantt, element: <Navigate to="/gantt" replace /> },
   { path: PageRoutes.svarGantt, element: <Navigate to="/gantt" replace /> },
   { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
+
+  // Clean URLs: /:model = list, /:model/:id = record
+  { path: "/order", element: <AdminWorkbench /> },
+  { path: "/order/:id", element: <TransactionDetail /> },
+  { path: "/invoice", element: <AdminWorkbench /> },
+  { path: "/invoice/:id", element: <TransactionDetail /> },
+  { path: "/proposal", element: <AdminWorkbench /> },
+  { path: "/proposal/:id", element: <TransactionDetail /> },
+  { path: "/purchase", element: <AdminWorkbench /> },
+  { path: "/purchase/:id", element: <TransactionDetail /> },
+  { path: "/work_order", element: <AdminWorkbench /> },
+  { path: "/work_order/:id", element: <TransactionDetail /> },
+  { path: "/receipt", element: <AdminWorkbench /> },
+  { path: "/receipt/:id", element: <TransactionDetail /> },
+  { path: "/requisition", element: <AdminWorkbench /> },
+  { path: "/requisition/:id", element: <TransactionDetail /> },
+  { path: "/payment", element: <AdminWorkbench /> },
+  { path: "/payment/:id", element: <TransactionDetail /> },
+  { path: "/contact", element: <AdminWorkbench /> },
+  { path: "/customer", element: <AdminWorkbench /> },
+  { path: "/vendor", element: <AdminWorkbench /> },
+  { path: "/item", element: <AdminWorkbench /> },
+  { path: "/action", element: <AdminWorkbench /> },
+  { path: "/document", element: <AdminWorkbench /> },
+  { path: "/setting", element: <AdminWorkbench /> },
 
   // Admin tools
   { path: "/db/:model", element: <AdminWorkbench /> },

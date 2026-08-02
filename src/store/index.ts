@@ -5,6 +5,7 @@ import authReducer from "./slices/authSlice";
 import configReducer from "./slices/configSlice";
 import loadingReducer from "./slices/loadingSlice";
 import toastReducer from "./slices/toastSlice";
+import companyReducer from "./slices/companySlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     config: configReducer,
     loading: loadingReducer,
     toast: toastReducer,
+    company: companyReducer,
   },
 });
 

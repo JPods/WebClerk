@@ -145,7 +145,11 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     record.active === false;
   
   if (isExplicitlyInactive) return null;
-  
+
+  // Parse id_parent for parent-child project hierarchy
+  const rawParent = record.id_parent ?? record.parent_id ?? record.parent;
+  const id_parent = rawParent != null ? rawParent : null;
+
   return {
     id: idStr,
     name: name || intent || `Project ${idStr}`,
@@ -153,6 +157,7 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     intent,
     ida,
     prefs,
+    id_parent: id_parent as string | number | null,
   };
 };
 

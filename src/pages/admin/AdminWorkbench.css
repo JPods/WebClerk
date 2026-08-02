@@ -230,17 +230,32 @@
 .db-list-pane {
   flex: 1;
   overflow: auto;
-  border-right: 1px solid var(--db-border);
+  min-width: 200px;
+}
+
+.db-splitter {
+  width: 5px;
+  cursor: col-resize;
+  background: var(--db-border);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.db-splitter:hover,
+.db-splitter.db-splitter--active {
+  background: var(--db-accent, #0d6efd);
 }
 
 .db-detail-pane {
-  width: 42%;
-  min-width: 320px;
-  max-width: 600px;
   display: flex;
   flex-direction: column;
   background: var(--db-surface);
-  border-left: 1px solid var(--db-border);
+  overflow: hidden;
+  min-width: 280px;
+}
+
+/* App mode: detail pane shows full modelDetail.tsx — needs more room */
+.db-detail-pane--app {
+  max-width: none;
 }
 
 .db-detail-body {

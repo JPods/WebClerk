@@ -44,6 +44,9 @@ const QUICK_ADDS = [
   { label: "+ Purchase", to: "/admin-wb?model=purchase&action=new", accent: "bg-emerald-600 text-white" },
   { label: "+ Customer", to: "/admin-wb?model=customer&action=new", accent: "bg-amber-600 text-white" },
   { label: "+ Contact", to: "/admin-wb?model=contact&action=new", accent: "bg-purple-600 text-white" },
+  { label: "Payments", to: "/db/payment", accent: "bg-teal-600 text-white" },
+  { label: "Expenses", to: "/db/payment?filter=type:expense", accent: "bg-rose-600 text-white" },
+  { label: "Statements", to: "/db/statement_line", accent: "bg-orange-600 text-white" },
 ];
 
 // Tables to query for the user's action records (mirrors wc2 Cal_SearchMySales)
@@ -282,75 +285,19 @@ export default function Home() {
         </span>
       </div>
 
-      {/* MyActions — compact list (top section) */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-          My Actions
-          <span className="ml-2 text-sm font-normal text-gray-500">
-            ({myActions.length} open)
+      {/* My Actions — link to standard DataBrowser */}
+      <Link
+        to="/db/action"
+        className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-[1px] hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-500"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-semibold text-gray-900 dark:text-white">My Actions</span>
+          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            {myActions.length} open
           </span>
-        </h2>
-        {loadingRecords && myActions.length === 0 ? (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-            Loading…
-          </div>
-        ) : myActions.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No open actions assigned to you.</p>
-        ) : (
-          <div className="max-h-44 overflow-y-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-white dark:bg-gray-900">
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase text-gray-500 dark:border-gray-700">
-                  <th className="py-1.5 pr-3">Action</th>
-                  <th className="py-1.5 pr-3">Project</th>
-                  <th className="py-1.5 pr-3">Due</th>
-                  <th className="py-1.5 pr-3">Priority</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myActions.map((a) => (
-                  <tr
-                    key={a.id}
-                    onClick={() => setSelectedId(a.id)}
-                    className={`cursor-pointer border-b border-gray-50 transition hover:bg-blue-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
-                      selectedId === a.id ? "bg-blue-50 dark:bg-gray-800" : ""
-                    }`}
-                  >
-                    <td className="py-1.5 pr-3 font-medium text-gray-900 dark:text-white">
-                      <Link
-                        to={`/admin-wb?model=action&id=${a.id}`}
-                        className="hover:text-blue-600 hover:underline"
-                      >
-                        {getActionTitle(a)}
-                      </Link>
-                    </td>
-                    <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-400">
-                      {(a as any).project_name || "—"}
-                    </td>
-                    <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-400">
-                      {(a as any).due_date || "—"}
-                    </td>
-                    <td className="py-1.5 pr-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          a.priority === "high"
-                            ? "bg-rose-100 text-rose-700"
-                            : a.priority === "medium"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {a.priority || "normal"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+        </div>
+        <span className="text-sm text-gray-400">Open in DataBrowser →</span>
+      </Link>
 
       {/* DataBrowser (DataGrid) — bottom section, shows all action records across tables */}
       <section className="min-h-0 flex-1 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">

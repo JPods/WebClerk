@@ -29,6 +29,8 @@ interface AddPaymentModalProps {
   customer_name?: string;
   orderTotal?: number;
   onPaymentAdded?: () => void;
+  /** Default type — 'received' from invoice/order, 'expense' from dashboard */
+  defaultType?: 'received' | 'expense';
 }
 
 const AddPaymentModal: React.FC<AddPaymentModalProps> = ({

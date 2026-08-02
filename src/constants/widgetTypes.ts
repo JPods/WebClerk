@@ -54,13 +54,20 @@ export const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
     labelColor: 'accent',
   },
   phone: {
-    defaultWidth: 120,
+    defaultWidth: 140,
     sizing: 'fixed',
     sortable: true,
     editable: true,
     filterType: 'text',
     actionable: true,
     labelColor: 'accent',
+  },
+  zip: {
+    defaultWidth: 80,
+    sizing: 'fixed',
+    sortable: true,
+    editable: true,
+    filterType: 'text',
   },
   url: {
     defaultWidth: 180,

@@ -171,10 +171,8 @@ const getTableDisplayName = (
   if (customNames?.[tableName]) return customNames[tableName];
   const normalized = tableName.toLowerCase();
   if (DEFAULT_TABLE_NAMES[normalized]) return DEFAULT_TABLE_NAMES[normalized];
-  // Convert snake_case to Title Case
-  return tableName
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  // Use exact name — no prettifying
+  return tableName;
 };
 
 /** Format timestamp */

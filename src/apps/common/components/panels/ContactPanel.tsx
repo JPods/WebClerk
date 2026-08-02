@@ -281,6 +281,17 @@ const ContactRow: React.FC<{
         </span>
       )}
 
+      {/* Address */}
+      {(!visibleColumns || visibleColumns.has("address")) && (
+        <span className="text-slate-500 dark:text-slate-400 truncate min-w-0 flex-1 flex items-center gap-1">
+          {(() => {
+            const addr = contact.address;
+            const addrStr = Array.isArray(addr) ? addr[0]?.full : (typeof addr === 'string' ? addr : addr?.full);
+            return addrStr ? <span className="truncate">{addrStr}</span> : null;
+          })()}
+        </span>
+      )}
+
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         {onSetPrimary && (

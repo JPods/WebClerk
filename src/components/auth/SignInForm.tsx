@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -23,8 +23,8 @@ import Spinner from "../ui/Spinner";
 export default function SignInForm() {
 
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  // const navigate = useNavigate();
 
   const { user } = useAppSelector((state) => state.auth);
   
@@ -78,6 +78,7 @@ export default function SignInForm() {
         localStorage.setItem("userProfile", JSON.stringify(mappedUser));
         dispatch(setUser(mappedUser));
         dispatch(showToast({ message: "Login successful!", type: "success" }));
+        navigate(PageRoutes.dashboard);
      } catch (error : any) {
        dispatch(showToast({ message: error, type: "error" }));
      } finally {

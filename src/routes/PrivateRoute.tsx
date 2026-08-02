@@ -12,10 +12,13 @@ import { PageRoutes } from "./Routes";
 import { resolveWindowElement } from "./protectedRoutesConfig";
 import NotFoundPage from "../pages/NotFoundPage";
 import RippleLoader from "@/components/common/RippleLoader";
+import { fetchBootstrap } from "@/store/slices/companySlice";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "@/store";
 
 const titleMap: Array<{ prefix: string; title: string }> = [
   { prefix: PageRoutes.dashboard, title: 'Dashboard' },
-  { prefix: '/kanban-board', title: 'Kanban Board' },
+  { prefix: '/kanban', title: 'Kanban Board' },
   { prefix: '/svar-gantt', title: 'SVAR Gantt' },
   { prefix: '/core/contact', title: 'Contacts' },
   { prefix: '/core/report', title: 'Reports' },
@@ -43,6 +46,12 @@ const AppLayout: React.FC = () => {
   const { ensureWindow, windows, activePath, skipAutoCreateForPathRef } = useWindowManager();
   const { isExpanded, isHovered, isMobileOpen, isVisible, toggleVisibility } = useSidebar();
   const location = useLocation();
+  const appDispatch = useDispatch<AppDispatch>();
+
+  // Load company bootstrap on auth
+  useEffect(() => {
+    if (isAuthenticated) appDispatch(fetchBootstrap());
+  }, [isAuthenticated, appDispatch]);
 
   useEffect(() => {
     // If ensureWindow was just called explicitly (e.g. from a panel Add button),
