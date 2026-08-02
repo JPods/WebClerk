@@ -604,7 +604,7 @@ def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'P
         record_id=str(inv_id),
         purpose=PURPOSE_LEDGER_SYNC,
         name=f'Ledger Sync: Invoice {inv_ida}',
-        data=pending_data,
+        config=pending_data,
     )
     return pending
 

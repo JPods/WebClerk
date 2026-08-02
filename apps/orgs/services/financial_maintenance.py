@@ -54,7 +54,7 @@ def queue_financial_maintenance_pending(org: OrgBase, mode: str, reason: str | N
         record_id=str(org.pk),
         purpose=PENDING_PURPOSE_ORG_FINANCIAL,
         name=f"org:{org.pk}:{mode}",
-        data=_pending_payload(org=org, mode=mode, reason=reason),
+        config=_pending_payload(org=org, mode=mode, reason=reason),
     )
 
 

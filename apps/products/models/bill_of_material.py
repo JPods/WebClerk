@@ -181,7 +181,7 @@ class BillOfMaterial(BaseModel):
                 record_id=str(parent.pk),
                 purpose='denorm_refs',
                 name=f'Denorm BOM: Item {parent.ida}',
-                data={
+                config={
                     'field': 'refs.bom',
                     'bom': bom_list,
                     'reason': 'parent_locked',
