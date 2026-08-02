@@ -61,7 +61,7 @@ const Router: React.FC = () => {
           <Route path="db/:model" element={<AdminWorkbench />} />
 
           {/* /:model = list, /:model/:id = record — explicit per model */}
-          {MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail /></S>} />)}
+          {MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail modelName={m} /></S>} />)}
           {MODELS.map(m => <Route key={m} path={m} element={<AdminWorkbench />} />)}
 
           {/* /td/:model/:id — alternate record route */}
