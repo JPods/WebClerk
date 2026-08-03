@@ -57,7 +57,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
   const loggedInUserName = authUser?.name || authUser?.email || 'User';
 
   // ── Layout ───────────────────────────────────────────────────────
-  const { layout, loading: layoutLoading } = useDetailLayout(modelName);
+  const { layout, loading: layoutLoading, invalidate: invalidateLayout } = useDetailLayout(modelName);
 
   // ── Record state ─────────────────────────────────────────────────
   const [data, setData] = useState<any>(null);
@@ -265,7 +265,18 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         onCancel={handleCancel}
         designMode={designMode}
         userRole={authUser?.role}
-        onToggleDesign={() => { setDesignMode(!designMode); if (!designMode && layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }}
+        onToggleDesign={() => {
+          if (designMode) {
+            // Exiting design mode — invalidate cache so layout reloads from server
+            setDesignMode(false);
+            setDesignLayout(null);
+            invalidateLayout();
+          } else {
+            // Entering design mode — copy current layout for editing
+            setDesignMode(true);
+            if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout)));
+          }
+        }}
       />
 
       {/* Design mode panel */}

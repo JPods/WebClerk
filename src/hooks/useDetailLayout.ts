@@ -3,7 +3,7 @@
  * useDetailLayout — fetch and cache the detail_layout Setting for a model.
  * Returns the layout JSON that drives TransactionDetail rendering.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
 
 export interface HeaderRow {
@@ -138,5 +138,11 @@ export function useDetailLayout(modelName: string) {
     return () => { cancelled = true; };
   }, [modelName]);
 
-  return { layout, loading };
+  const invalidate = useCallback(() => {
+    layoutCache.delete(modelName);
+    setLayout(null);
+    setLoading(true);
+  }, [modelName]);
+
+  return { layout, loading, invalidate };
 }

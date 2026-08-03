@@ -102,7 +102,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
       {/* Model-specific menu */}
       <WcModelMenu
         modelName={modelName}
-        actions={[...modelActions, ...(isAdmin ? ['design_layout'] : [])]}
+        actions={[...modelActions, 'design_layout']}
         onAction={(actionId) => {
           if (actionId === 'design_layout' && onToggleDesign) {
             onToggleDesign();
