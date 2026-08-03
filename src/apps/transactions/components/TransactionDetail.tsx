@@ -223,9 +223,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
     <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`}>
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
-        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize cursor-pointer"
-          onClick={(e) => { if (e.shiftKey) { setDesignMode(!designMode); if (!designMode && layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); } }}
-          title="Shift+click to toggle design mode">{modelName}</span>
+        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>
         <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
         {data.status && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
@@ -265,6 +263,9 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         onAddNew={handleAddNew}
         onSave={handleSave}
         onCancel={handleCancel}
+        designMode={designMode}
+        userRole={authUser?.role}
+        onToggleDesign={() => { setDesignMode(!designMode); if (!designMode && layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }}
       />
 
       {/* Design mode panel */}

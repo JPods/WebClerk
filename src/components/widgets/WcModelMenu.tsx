@@ -43,6 +43,7 @@ const ACTION_LABELS: Record<string, string> = {
   add_document: 'Attach Document',
   print_packing_slip: 'Print Packing Slip',
   print_pick_list: 'Print Pick List',
+  design_layout: 'Design Layout',
 };
 
 export interface WcModelMenuProps {

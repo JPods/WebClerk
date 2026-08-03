@@ -20,10 +20,13 @@ export interface TransactionToolbarProps {
   companyInfo: any;
   logos: any;
   documentText: any;
+  designMode?: boolean;
+  userRole?: string;
   onEdit: () => void;
   onAddNew: () => void;
   onSave: () => void;
   onCancel: () => void;
+  onToggleDesign?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -45,7 +48,11 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   onAddNew,
   onSave,
   onCancel,
+  designMode,
+  userRole,
+  onToggleDesign,
 }) => {
+  const isAdmin = ['admin', 'owner', 'manager'].includes(userRole || '');
   const dispatch = useDispatch();
 
   // Get model-specific actions from layout JSON
@@ -95,8 +102,14 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
       {/* Model-specific menu */}
       <WcModelMenu
         modelName={modelName}
-        actions={modelActions}
-        onAction={(actionId) => dispatch(showToast({ message: `${actionId}: coming soon`, type: 'info' }))}
+        actions={[...modelActions, ...(isAdmin ? ['design_layout'] : [])]}
+        onAction={(actionId) => {
+          if (actionId === 'design_layout' && onToggleDesign) {
+            onToggleDesign();
+          } else {
+            dispatch(showToast({ message: `${actionId}: coming soon`, type: 'info' }));
+          }
+        }}
       />
 
       <span className="flex-1" />
