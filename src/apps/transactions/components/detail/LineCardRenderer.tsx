@@ -1,5 +1,5 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
-import React from 'react';
+/* LastChecked: 2026-08-03 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+import React, { useState, useCallback } from 'react';
 import DataGrid from '@/components/common/DataGrid';
 import { useLineCard } from '@/hooks/useLineCard';
 import { useWindowManager } from '@/context/WindowManagerContext';
@@ -7,6 +7,9 @@ import InventoryPanel from '../panels/InventoryPanel';
 import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
 import XRefPanel from '../panels/XRefPanel';
+import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveUnitPrice, resolveUnitCost } from '../TransactionItemSearch';
+import type { ItemSearchResult } from '../TransactionItemSearch';
+import { getNextLineNumber } from '../../utils/lineHelpers';
 import type { LineCardSection } from '@/hooks/useDetailLayout';
 import type { TransactionLine } from '../../types/transactionTypes';
 
@@ -30,6 +33,35 @@ export interface LineCardRendererProps {
 const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange }) => {
   const lines = data?.lines || [];
   const windowManager = useWindowManager();
+  const [showItemSearch, setShowItemSearch] = useState(false);
+  const isSellSide = section.family === 'sell';
+
+  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
+    const itemId = item.id || item.item_id || item.itemId || 0;
+    const itemCode = resolveItemCode(item);
+    const description = resolveItemDescription(item);
+    const unitPrice = resolveUnitPrice(item, data?.price_level);
+    const unitCost = resolveUnitCost(item);
+
+    const newLine: any = {
+      id: -Date.now(), // temp negative id for new lines
+      line_number: getNextLineNumber(lines),
+      item_fk: itemId,
+      item_fk_id: itemId,
+      price_level: data?.price_level || '',
+      status: '',
+      is_active: true,
+      item: { item_id: itemId, ida_item: itemCode, description, unit_measure: item.unit_of_measure || item.unitOfMeasure || item.unit_measure || 'EA' },
+      quantity: { active: quantity, remaining: quantity, staged: quantity },
+      price: { unit: unitPrice, extended: unitPrice * quantity, discount_percent: 0 },
+      cost: { unit: unitCost, extended: unitCost * quantity },
+      comments: {},
+      config: {},
+      _dirty: true,
+    };
+
+    onLinesChange([...lines, newLine]);
+  }, [lines, data?.price_level, onLinesChange]);
 
   const lc = useLineCard({
     lines,
@@ -56,10 +88,10 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const footerBacklog = activeRecords.reduce((s, r) => s + (r._hasBacklog ? r.remaining * (lc.isSellSide ? r.discounted_unit : r.unit_cost) : 0), 0);
   const selectionLabel = lc.selectedLineIds.size > 0 ? ` (${lc.selectedLineIds.size} selected)` : '';
 
-  if (!lines.length) {
+  if (!lines.length && !isEditing) {
     return (
       <div className="text-center py-12 text-slate-400">
-        <p>No line items on this order</p>
+        <p>No line items</p>
       </div>
     );
   }
@@ -81,6 +113,11 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           </span>
         )}
         <span className="flex-1" />
+        {lc.canEdit && (
+          <button type="button" onClick={() => setShowItemSearch(prev => !prev)}
+            className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${showItemSearch ? 'bg-green-600 text-white' : 'text-green-600 hover:bg-green-50 border border-green-300'}`}
+            title="Search and add items">+ Item</button>
+        )}
         <span className="flex items-center gap-1 text-[9px] font-bold">
           <button type="button" onClick={() => lc.togglePanel('inventory')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'inventory' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
@@ -120,6 +157,15 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
 
   const panelContent = (
     <>
+      {showItemSearch && lc.canEdit && (
+        <div className="border-t-2 border-green-300 bg-white dark:bg-slate-900 p-3">
+          <TransactionItemSearch
+            onAddItem={handleAddItem}
+            useCost={!isSellSide}
+            defaultQuantity={1}
+          />
+        </div>
+      )}
       {lc.activePanel === 'margin' && (
         <MarginPanel lines={lines} selectedIds={lc.selectedLineIds} isSellSide={lc.isSellSide} />
       )}
