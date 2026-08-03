@@ -23,6 +23,7 @@ import HeaderRenderer from './detail/HeaderRenderer';
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
 import TransactionToolbar from './detail/TransactionToolbar';
+import DesignMode from './detail/DesignMode';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,6 +66,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
+  const [designMode, setDesignMode] = useState(false);
+  const [designLayout, setDesignLayout] = useState<any>(null);
+
+  // Active layout — design mode uses local copy, normal mode uses cached
+  const activeLayout = designMode && designLayout ? designLayout : layout;
 
   // ── Fetch record ─────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -217,7 +223,9 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
     <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`}>
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
-        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>
+        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize cursor-pointer"
+          onClick={(e) => { if (e.shiftKey) { setDesignMode(!designMode); if (!designMode && layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); } }}
+          title="Shift+click to toggle design mode">{modelName}</span>
         <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
         {data.status && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
@@ -234,6 +242,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
             closed
           </span>
         )}
+        {designMode && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+            DESIGN
+          </span>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -241,7 +254,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         data={data}
         currentData={currentData}
         modelName={modelName}
-        layout={layout}
+        layout={activeLayout}
         isEditing={isEditing}
         canEdit={canEdit}
         saving={saving}
@@ -254,9 +267,20 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         onCancel={handleCancel}
       />
 
+      {/* Design mode panel */}
+      {designMode && activeLayout && (
+        <div className="px-4 pt-3">
+          <DesignMode
+            layout={activeLayout}
+            modelName={modelName}
+            onLayoutChange={(newLayout) => setDesignLayout(newLayout)}
+          />
+        </div>
+      )}
+
       {/* Content — scrollable */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {layout.sections.map((section, idx) => {
+        {activeLayout.sections.map((section, idx) => {
           switch (section.type) {
             case 'header':
               return (

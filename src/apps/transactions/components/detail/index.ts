@@ -18,3 +18,6 @@ export { default as TransactionToolbar } from './TransactionToolbar';
 export type { TransactionToolbarProps } from './TransactionToolbar';
 
 export { openPrintWindow } from './TransactionPrint';
+
+export { default as DesignMode } from './DesignMode';
+export type { DesignModeProps } from './DesignMode';
