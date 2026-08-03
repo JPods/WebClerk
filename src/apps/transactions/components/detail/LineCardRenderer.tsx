@@ -1,13 +1,15 @@
 /* LastChecked: 2026-08-03 | WhereUsed: TransactionDetail | WhoCreated: Claude */
 import React, { useState, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import DataGrid from '@/components/common/DataGrid';
 import { useLineCard } from '@/hooks/useLineCard';
 import { useWindowManager } from '@/context/WindowManagerContext';
+import { showToast } from '@/store/slices/toastSlice';
 import InventoryPanel from '../panels/InventoryPanel';
 import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
 import XRefPanel from '../panels/XRefPanel';
-import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveUnitPrice, resolveUnitCost } from '../TransactionItemSearch';
+import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveUnitPrice, resolveUnitCost, resolveQtyOnHand } from '../TransactionItemSearch';
 import type { ItemSearchResult } from '../TransactionItemSearch';
 import { getNextLineNumber } from '../../utils/lineHelpers';
 import type { LineCardSection } from '@/hooks/useDetailLayout';
@@ -33,35 +35,98 @@ export interface LineCardRendererProps {
 const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange }) => {
   const lines = data?.lines || [];
   const windowManager = useWindowManager();
+  const dispatch = useDispatch();
   const [showItemSearch, setShowItemSearch] = useState(false);
   const isSellSide = section.family === 'sell';
+  const companyInventory = useSelector((s: any) => s.company?.inventory) || {};
 
   const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
     const itemId = item.id || item.item_id || item.itemId || 0;
     const itemCode = resolveItemCode(item);
     const description = resolveItemDescription(item);
-    const unitPrice = resolveUnitPrice(item, data?.price_level);
+
+    // 1. Price level resolution — use order's price level, resolve from item's price matrix
+    const priceLevel = data?.price_level || '';
+    const unitPrice = resolveUnitPrice(item, priceLevel);
     const unitCost = resolveUnitCost(item);
 
+    // 2. Minimum qty — enforce item's minimum order quantity
+    const minQty = Number((item as any).qty_sale_default || (item as any).qtySaleDefault || (item as any).min_order_qty || 0);
+    let effectiveQty = quantity;
+    if (minQty > 0 && quantity < minQty) {
+      effectiveQty = minQty;
+      dispatch(showToast({ message: `Minimum quantity for ${itemCode} is ${minQty}. Adjusted.`, type: 'info' }));
+    }
+
+    // 3. Available qty alert — warn if ordering more than available
+    const onHand = resolveQtyOnHand(item);
+    const onOrder = Number((item as any).qty_on_sales_order || (item as any).qtyOnSalesOrder || 0);
+    const available = onHand - onOrder;
+    if (available >= 0 && effectiveQty > available) {
+      dispatch(showToast({ message: `${itemCode}: ordering ${effectiveQty} but only ${available} available`, type: 'info' }));
+    }
+
+    // 4. Serial tracking — flag line if item is serialized and system tracks serials
+    const isSerialized = Boolean((item as any).serialized || (item as any).is_serialized);
+    const trackSerials = companyInventory.do_serial_nums === true;
+
+    // Item alert message
+    const alertMsg = (item as any).alert_message || (item as any).alertMessage || '';
+    if (alertMsg) {
+      dispatch(showToast({ message: `${itemCode}: ${alertMsg}`, type: 'info', duration: 5000 }));
+    }
+
+    // 5. Ship-on date — calculate from need date minus lead time
+    const leadTimeDays = Number((item as any).lead_time_sales || (item as any).leadTimeSales || (item as any).time_lead || 0);
+    const needDate = data?.dt_needed;
+    let shipOnDate: string | null = null;
+    if (needDate && leadTimeDays > 0) {
+      const nd = new Date(typeof needDate === 'number' ? needDate : needDate);
+      if (!isNaN(nd.getTime())) {
+        nd.setDate(nd.getDate() - leadTimeDays);
+        shipOnDate = nd.toISOString().split('T')[0];
+      }
+    }
+
+    // 6. Linked items — prompt if item has cross-references
+    const hasLinks = Boolean((item as any).linked || (item as any).has_xrefs);
+    if (hasLinks) {
+      dispatch(showToast({ message: `${itemCode} has linked items — check XR panel`, type: 'info' }));
+    }
+
+    // 7. Commission — from item commission rate
+    const commRate = Number((item as any).commission_rate || (item as any).commissionRate || 0);
+
+    const lineConfig: any = {};
+    if (isSerialized && trackSerials) lineConfig.serial_tracking = true;
+    if (shipOnDate) lineConfig.ship_on_date = shipOnDate;
+
     const newLine: any = {
-      id: -Date.now(), // temp negative id for new lines
+      id: -Date.now(),
       line_number: getNextLineNumber(lines),
       item_fk: itemId,
       item_fk_id: itemId,
-      price_level: data?.price_level || '',
+      price_level: priceLevel,
       status: '',
       is_active: true,
-      item: { item_id: itemId, ida_item: itemCode, description, unit_measure: item.unit_of_measure || item.unitOfMeasure || item.unit_measure || 'EA' },
-      quantity: { active: quantity, remaining: quantity, staged: quantity },
-      price: { unit: unitPrice, extended: unitPrice * quantity, discount_percent: 0 },
-      cost: { unit: unitCost, extended: unitCost * quantity },
-      comments: {},
-      config: {},
+      item: {
+        item_id: itemId,
+        ida_item: itemCode,
+        description,
+        unit_measure: item.unit_of_measure || item.unitOfMeasure || item.unit_measure || 'EA',
+        is_serialized: isSerialized,
+      },
+      quantity: { active: effectiveQty, remaining: effectiveQty, staged: effectiveQty },
+      price: { unit: unitPrice, extended: unitPrice * effectiveQty, discount_percent: 0 },
+      cost: { unit: unitCost, extended: unitCost * effectiveQty },
+      commission: commRate > 0 ? { rate: commRate, amount: unitPrice * effectiveQty * commRate / 100 } : {},
+      comments: { process: (item as any).li_comment || (item as any).liComment || '' },
+      config: lineConfig,
       _dirty: true,
     };
 
     onLinesChange([...lines, newLine]);
-  }, [lines, data?.price_level, onLinesChange]);
+  }, [lines, data?.price_level, onLinesChange, dispatch, companyInventory]);
 
   const lc = useLineCard({
     lines,
