@@ -1,9 +1,11 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-03 | WhereUsed: TransactionToolbar | WhoCreated: Claude */
 import { getRecord } from '@/api/wcapi';
+import type { DetailLayout } from '@/hooks/useDetailLayout';
 
 /**
- * Open a print-ready window rendering the transaction as clean HTML.
- * Standalone function -- can be called from the toolbar or anywhere else.
+ * Open a print-ready window rendering any transaction as clean HTML.
+ * Reads column titles, field labels, and sell/exec family from the layout JSON.
+ * Same data, same layout, purpose-built for output.
  */
 export async function openPrintWindow(
   data: any,
@@ -11,6 +13,7 @@ export async function openPrintWindow(
   _logos: any,
   documentText: any,
   modelName: string,
+  layout?: DetailLayout | null,
 ): Promise<void> {
   const w = window.open('', '_blank', 'width=800,height=1000');
   if (!w) return;
@@ -21,12 +24,22 @@ export async function openPrintWindow(
   const lines = d?.lines || [];
   const totals = d?.totals || {};
 
+  // Determine sell vs exec from layout
+  const lineCardSection = layout?.sections?.find((s: any) => s.type === 'line_card') as any;
+  const isSellSide = (lineCardSection?.family || 'sell') === 'sell';
+
+  // Read column definitions from layout
+  const headerSection = layout?.sections?.find((s: any) => s.type === 'header') as any;
+  const columns = headerSection?.columns || [
+    { title: 'Customer', fields: [] },
+    { title: 'Ship To', fields: [] },
+    { title: modelName.charAt(0).toUpperCase() + modelName.slice(1), fields: [] },
+  ];
+
   // Resolve conditions text from Setting by id
   let conditionsText = '';
-  let conditionsRev = '';
   if (d.conditions_description) {
     const parts = d.conditions_description.split('|');
-    conditionsRev = parts.length >= 3 ? `${parts[0]} (rev ${parts[2]})` : parts[0];
     if (parts.length >= 2) {
       try {
         const res = await getRecord('setting', Number(parts[1]));
@@ -38,24 +51,60 @@ export async function openPrintWindow(
     }
   }
 
+  // Build header columns from layout
+  const getFieldValue = (field: string): string => {
+    if (field.includes('.')) {
+      const val = field.split('.').reduce((obj: any, key: string) => obj?.[key], d);
+      return val != null ? String(val) : '';
+    }
+    const val = d?.[field];
+    if (val == null) return '';
+    if (typeof val === 'number' && (field.startsWith('dt_') || field.includes('date'))) {
+      return new Date(val > 1e12 ? val : val * 1000).toLocaleDateString();
+    }
+    // Strip pipe-delimited pointers (conditions)
+    const s = String(val);
+    return s.includes('|') ? s.split('|')[0] : s;
+  };
+
+  const renderColumn = (col: any): string => {
+    const fields = (col.fields || []).map((f: any) => {
+      const val = getFieldValue(f.field);
+      if (!val && !f.label) return '';
+      return `<div class="row"><span class="lbl">${f.label || f.field}</span><span>${val || ''}</span></div>`;
+    }).join('');
+    return `<div><h3>${col.title}</h3>${fields}</div>`;
+  };
+
+  const headerHtml = columns.map(renderColumn).join('');
+
+  // Build line rows — sell side shows price, exec side shows cost
+  const priceLabel = isSellSide ? 'Unit Price' : 'Unit Cost';
   const lineRows = lines.map((l: any) => {
     const item = l.item || {};
     const price = l.price || {};
+    const cost = l.cost || {};
     const qty = l.quantity || {};
+    const unitVal = isSellSide ? (price.unit ?? 0) : (cost.unit ?? 0);
+    const extVal = isSellSide ? (price.extended ?? 0) : (cost.extended ?? 0);
     return `<tr>
       <td>${item.ida_item || ''}</td>
       <td style="text-align:right">${qty.active ?? ''}</td>
       <td style="text-align:right;font-style:italic">${qty.remaining ?? ''}</td>
       <td>${item.description || ''}</td>
-      <td style="text-align:right">${price.unit != null ? price.unit.toFixed(2) : ''}</td>
-      <td style="text-align:right;font-style:italic">${price.extended != null ? price.extended.toLocaleString('en-US', {minimumFractionDigits:2}) : ''}</td>
+      <td style="text-align:right">${unitVal ? unitVal.toFixed(2) : ''}</td>
+      <td style="text-align:right;font-style:italic">${extVal ? extVal.toLocaleString('en-US', {minimumFractionDigits:2}) : ''}</td>
     </tr>`;
   }).join('');
 
-  const totalExt = lines.reduce((s: number, l: any) => s + (l.price?.extended ?? 0), 0);
+  const totalQty = lines.reduce((s: number, l: any) => s + (l.quantity?.active ?? 0), 0);
+  const totalExt = lines.reduce((s: number, l: any) => {
+    return s + (isSellSide ? (l.price?.extended ?? 0) : (l.cost?.extended ?? 0));
+  }, 0);
+
+  const printName = `${modelName.toUpperCase()}_${d.ida}_${(d.company || '').replace(/\s+/g, '_')}`;
 
   w.document.open();
-  const printName = `${modelName.toUpperCase()}_${d.ida}_${(d.company || '').replace(/\s+/g, '_')}`;
   w.document.write(`<!DOCTYPE html><html><head><title>${printName}</title>
     <style>body{font-family:-apple-system,system-ui,sans-serif;font-size:12px;color:#1a1a1a;margin:0.5in;line-height:1.4}
     table{width:100%;border-collapse:collapse}th,td{padding:4px 8px;border-bottom:1px solid #e2e8f0}
@@ -77,28 +126,10 @@ export async function openPrintWindow(
     <div class="co-addr">${[co?.address?.city, co?.address?.state, co?.address?.zip].filter(Boolean).join(', ')}</div>
     <div class="co-addr">${[co?.phone, co?.email, co?.website].filter(Boolean).join(' · ')}</div></div>
     <div><div class="doc-type">${modelName.toUpperCase()}</div><div class="doc-id">${d.ida}</div><div style="font-size:11px;color:#64748b">${d.status}</div></div></div>
-    <div class="hdr"><div><h3>Customer</h3>
-    <div class="row"><span class="lbl">Company</span><span>${d.company || ''}</span></div>
-    <div class="row"><span class="lbl">Phone</span><span>${d.phone || ''}</span></div>
-    <div class="row"><span class="lbl">Attn</span><span>${d.attention || ''}</span></div>
-    <div class="row"><span class="lbl">Address</span><span>${d.address_full || ''}</span></div>
-    <div class="row"><span class="lbl">Email</span><span>${d.email || ''}</span></div></div>
-    <div><h3>Ship To</h3>
-    <div class="row"><span class="lbl">Ship To</span><span>${d.config?.ship_to?.company || d.company || ''}</span></div>
-    <div class="row"><span class="lbl">Phone</span><span>${d.config?.ship_to?.phone || d.phone || ''}</span></div>
-    <div class="row"><span class="lbl">Attn</span><span>${d.config?.ship_to?.attention || d.attention || ''}</span></div>
-    <div class="row"><span class="lbl">Address</span><span>${d.config?.ship_to?.address1 || d.address_full || ''}</span></div>
-    <div class="row"><span class="lbl">Ship Via</span><span>${d.ship_via || ''}</span></div></div>
-    <div><h3>Order</h3>
-    <div class="row"><span class="lbl">Type Sale</span><span>${d.price_level || ''}</span></div>
-    <div class="row"><span class="lbl">Terms</span><span>${d.terms || ''}</span></div>
-    <div class="row"><span class="lbl">Status</span><span>${d.status || ''}</span></div>
-    <div class="row"><span class="lbl">Date</span><span>${d.dt_created ? new Date(d.dt_created).toLocaleDateString() : ''}</span></div>
-    <div class="row"><span class="lbl">Need By</span><span>${d.dt_needed ? new Date(d.dt_needed).toLocaleDateString() : ''}</span></div>
-    <div class="row"><span class="lbl">Priority</span><span>${d.priority || ''}</span></div></div></div>
-    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right;font-style:italic">Remain</th><th>Description</th><th style="text-align:right">Unit Price</th><th style="text-align:right;font-style:italic">Extended</th></tr></thead>
+    <div class="hdr">${headerHtml}</div>
+    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right;font-style:italic">Remain</th><th>Description</th><th style="text-align:right">${priceLabel}</th><th style="text-align:right;font-style:italic">Extended</th></tr></thead>
     <tbody>${lineRows}</tbody>
-    <tfoot><tr style="border-top:2px solid #cbd5e1;font-weight:700"><td></td><td style="text-align:right">${lines.reduce((s: number, l: any) => s + (l.quantity?.active ?? 0), 0)}</td><td></td><td></td><td></td><td style="text-align:right">${totalExt.toLocaleString('en-US', {minimumFractionDigits:2})}</td></tr></tfoot></table>
+    <tfoot><tr style="border-top:2px solid #cbd5e1;font-weight:700"><td></td><td style="text-align:right">${totalQty}</td><td></td><td></td><td></td><td style="text-align:right">${totalExt.toLocaleString('en-US', {minimumFractionDigits:2})}</td></tr></tfoot></table>
     <div class="footer"><span>Tax: $${(totals.tax ?? 0).toFixed(2)}</span><span>Ship: $${(totals.shipping ?? 0).toFixed(2)}</span><span>|</span><span class="total">Total: $${totalExt.toLocaleString('en-US', {minimumFractionDigits:2})}</span></div>
     ${d.comments?.public ? `<div class="terms"><strong>Notes:</strong> ${d.comments.public}</div>` : ''}
     ${d.conditions_description ? `<div class="terms"><strong>Conditions:</strong> <em>${d.conditions_description}</em><br>${conditionsText}</div>` : ''}

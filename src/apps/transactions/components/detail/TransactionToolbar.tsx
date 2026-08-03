@@ -84,7 +84,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
         </button>
         <div className="hidden group-hover/report:block absolute top-full left-0 pt-1 z-50">
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded shadow-lg min-w-36">
-            <button onClick={() => openPrintWindow(currentData, companyInfo, logos, documentText, modelName)} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 rounded-t">Print</button>
+            <button onClick={() => openPrintWindow(currentData, companyInfo, logos, documentText, modelName, layout)} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 rounded-t">Print</button>
             <button onClick={() => dispatch(showToast({ message: 'Email: coming soon', type: 'info' }))} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">Email</button>
             <button onClick={() => dispatch(showToast({ message: 'Labels: coming soon', type: 'info' }))} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">Labels</button>
             <button onClick={() => dispatch(showToast({ message: 'Clone: coming soon', type: 'info' }))} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 border-t border-slate-100 dark:border-slate-700 rounded-b">Clone</button>
