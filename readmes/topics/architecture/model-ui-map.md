@@ -118,14 +118,14 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 ### Products — ui.json
 | Model | Layout | Status |
 |-------|--------|--------|
-| item | 3-col: Item \| Pricing \| Inventory + 8 tabs | Seeded |
-| bill_of_material | 2-col: Component \| Details (record view; tree is ui.tsx) | Seeded |
+| item | 3-col: Item \| Pricing \| Inventory + 8 tabs (BOM tab = embedded db.list) | Seeded |
 | serial | 2-col: Serial \| Assignment | Seeded |
 | specification | single-col | Seeded |
 
 ### Products — db.json
 | Model | Why DataBrowser |
 |-------|----------------|
+| bill_of_material | BOM records — db.json standalone, embedded as card in Item BOM tab |
 | catalog | Catalog config — admin |
 | item_xref | Cross-references — admin |
 | org_item | Org-item links — admin |
