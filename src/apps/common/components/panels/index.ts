@@ -74,8 +74,7 @@ export {
 } from "./ContactPanel";
 export type { RefContact } from "./ContactPanel";
 
-// Legacy grouped-by-purpose version (renamed from original ContactPanel)
-export { default as ContactPanelx2 } from "./ContactPanelx2";
+// ContactPanelx2 archived — replaced by CommPanel
 export { default as FinancialsPanel } from "./FinancialsPanel";
 export { default as ItemsPanel } from "./ItemsPanel";
 export type { ItemsPanelProps, LineItemRecord } from "./ItemsPanel";
@@ -88,11 +87,9 @@ export { default as TransactionPanel } from "./TransactionPanel";
 export type { TransactionPanelProps, TransactionHeaderData } from "./TransactionPanel";
 export { default as PaymentPanel } from "./PaymentPanel";
 // Removed FinancialSummaryPanel and CustomerFinancialPanel (consolidated to FinancialsPanel)
-export { default as CommunicationsPanel } from "./CommunicationsPanel";
+// CommunicationsPanel and CommLinkPanel archived — replaced by CommPanel/CommCard
 export { default as EmailGatePanel } from "./EmailGatePanel";
 export type { EmailGateResult, EmailGatePanelProps } from "./EmailGatePanel";
-export { default as CommLinkPanel } from "./CommLinkPanel";
-export type { CommType, CommLinkPanelProps } from "./CommLinkPanel";
 export { default as OrgLinkPanel } from "./OrgLinkPanel";
 export type { OrgField, OrgScalarField, OrgLinkPanelProps } from "./OrgLinkPanel";
 export { default as LinkagesPanel } from "./LinkagesPanel";

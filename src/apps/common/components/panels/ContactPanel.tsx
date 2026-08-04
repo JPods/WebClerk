@@ -31,13 +31,35 @@ import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
 import { useColumnSetups } from "@/hooks/useColumnSetups";
 
-// Re-export RefContact and normalizeRefsLinksContact from the original file
-// so existing imports keep working.
-export type { RefContact } from "./ContactPanelx2";
-export { normalizeRefsLinksContact } from "./ContactPanelx2";
+// RefContact type — moved from archived ContactPanelx2
+export interface RefContact {
+  contact_id: number;
+  purpose: string;
+  attention?: string;
+  email?: string | { id: any; name: any; value: any }[];
+  phone?: string | { id: any; name: any; value: any }[];
+  full?: string | string[];
+  domain?: string | { id: any; name: any; value: any }[];
+  address?: any;
+}
 
-// Import the type locally for use in this file
-import type { RefContact } from "./ContactPanelx2";
+export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
+  if (!Array.isArray(apiContacts)) return [];
+  return apiContacts.map((c, idx) => {
+    let base = c;
+    let purpose = c.purpose || '';
+    let contact_id: any;
+    if (c.contact && typeof c.contact === 'object') {
+      base = c.contact;
+      purpose = c.purpose || base.purpose || '';
+      contact_id = c.contact.id;
+    } else {
+      contact_id = c.id;
+    }
+    if (contact_id == null || contact_id === '') contact_id = idx + 1;
+    return { contact_id, purpose, attention: base.attention, email: base.email, phone: base.phone, full: base.full || base.address, domain: base.domain, address: base.address };
+  });
+}
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
