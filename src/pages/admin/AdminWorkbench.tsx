@@ -35,16 +35,9 @@ const APP_DETAIL_ROUTES: Record<string, string> = {
 };
 
 /** Lazy-loaded detail components for App mode inline rendering in the right panel. */
-const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetailJson')),
-  customer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  proposal: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  item: React.lazy(() => import('@/apps/products/pages/ItemDetailJson')),
-  action: React.lazy(() => import('@/apps/core/models/action/pages/ActionDetail')),
-};
+// Detail components open in their own windows via /:model/:id routes.
+// Inline detail panel disabled during JSON-driven migration.
+const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {};
 
 // ---------------------------------------------------------------------------
 // SpawnLinks — related-window buttons for complex records
