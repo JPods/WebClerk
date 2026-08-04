@@ -39,9 +39,15 @@ const APP_DETAIL_ROUTES: Record<string, string> = {
 };
 
 /** Lazy-loaded detail components for App mode inline rendering in the right panel. */
-// Detail components open in their own windows via /:model/:id routes.
-// Inline detail panel disabled during JSON-driven migration.
-const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {};
+const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetailJson')),
+  customer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  vendor: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  manufacturer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  employee: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  rep: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  item: React.lazy(() => import('@/apps/products/pages/ItemDetailJson')),
+};
 
 // ---------------------------------------------------------------------------
 // SpawnLinks — related-window buttons for complex records
@@ -923,15 +929,8 @@ const AdminWorkbench: React.FC = () => {
                 } catch (e) { console.error('Server filter failed:', e); }
               }}
               onSelectRecord={(id) => {
-                const viewPref = getDetailViewPref();
-                const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (viewPref === 'app' && route && id) {
-                  // App mode: navigate to /:model/:id route
-                  navigate(`${route}/${id}`);
-                } else {
-                  // Admin mode: select in right panel (db.detail)
-                  db.setSelectedId(id); db.setIsDirty(false);
-                }
+                // Both modes: select record — right panel renders db.detail (Admin) or ui.json (App)
+                db.setSelectedId(id); db.setIsDirty(false);
               }}
               onRowDoubleClicked={(row) => {
                 // Statement lines have no detail view — users look at their statement
@@ -1055,6 +1054,7 @@ const AdminWorkbench: React.FC = () => {
                   modeProp="edit"
                   recordId={db.selectedId}
                   id={db.selectedId}
+                  modelName={db.selectedModel}
                   dataProp={db.selectedRecord}
                   hideBreadcrumb
                   inline

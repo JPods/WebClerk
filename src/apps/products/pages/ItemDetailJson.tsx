@@ -30,11 +30,13 @@ import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
 
 interface ItemDetailJsonProps {
   itemId?: number;
+  recordId?: number;
 }
 
-const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId: propId }) => {
+const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propId }) => {
+  const resolvedPropId = propId || itemId;
   const params = useParams<{ id?: string }>();
-  const recordId = propId || (params.id ? Number(params.id) : 0);
+  const recordId = resolvedPropId || (params.id ? Number(params.id) : 0);
   const dispatch = useDispatch();
   const windowManager = useWindowManager();
   const authUser = useSelector((s: RootState) => s.auth?.user);

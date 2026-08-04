@@ -38,15 +38,17 @@ import DataGrid from '@/components/common/DataGrid';
 
 interface ContactDetailJsonProps {
   contactId?: number;
+  recordId?: number;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId }) => {
+const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, recordId: propId }) => {
+  const resolvedPropId = propId || contactId;
   const params = useParams<{ id?: string }>();
-  const recordId = propId || (params.id ? Number(params.id) : 0);
+  const recordId = resolvedPropId || (params.id ? Number(params.id) : 0);
   const dispatch = useDispatch();
   const windowManager = useWindowManager();
   const authUser = useSelector((s: RootState) => s.auth?.user);
