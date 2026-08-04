@@ -24,7 +24,7 @@ import DetailReview from "../pages/admin/DetailReview";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
-import ItemDetail from "../apps/products/models/item/pages/ItemDetail";
+import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
 // OrderDetail replaced by TransactionDetail — import kept for compatibility
 // import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
@@ -76,7 +76,8 @@ export const protectedRoutesConfig = [
   // User-facing: Products — list via DataBrowser, detail via custom page
   { path: PageRoutes.products, element: <Navigate to="/db/item" replace /> },
   { path: PageRoutes.productsItemList, element: <Navigate to="/db/item" replace /> },
-  { path: PageRoutes.productsItemDetail, element: <ItemDetail /> },
+  { path: PageRoutes.productsItemDetail, element: <ItemDetailJson /> },
+  { path: "/item/:id", element: <ItemDetailJson /> },
 
   // User-facing: Transactions — all lists via DataBrowser, details via custom pages
   { path: PageRoutes.transactionsProposalList, element: <Navigate to="/db/proposal" replace /> },

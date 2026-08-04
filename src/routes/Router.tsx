@@ -17,6 +17,7 @@ const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDash
 const PageDesigner = React.lazy(() => import("../pages/tools/PageDesigner"));
 const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
 const OrgDetailJson = React.lazy(() => import("../apps/orgs/components/OrgDetail.json"));
+const ItemDetailJson = React.lazy(() => import("../apps/products/pages/ItemDetailJson"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
 
@@ -70,6 +71,7 @@ const Router: React.FC = () => {
           {/* /:model = list, /:model/:id = record */}
           {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail modelName={m} /></S>} />)}
           <Route path="contact/:id" element={<S><ContactDetailJson /></S>} />
+          <Route path="item/:id" element={<S><ItemDetailJson /></S>} />
           {['customer', 'vendor', 'manufacturer', 'employee', 'rep'].map(m =>
             <Route key={`${m}-id`} path={`${m}/:id`} element={<S><OrgDetailJson modelName={m} /></S>} />
           )}
