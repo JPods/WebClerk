@@ -3,3 +3,8 @@ export { default as BomCard } from './BomCard';
 export { default as BomPanel } from './BomPanel';
 export { default as SerialCard } from './SerialCard';
 export { default as SerialPanel } from './SerialPanel';
+export { default as WarehouseCard } from './WarehouseCard';
+export { default as VariantCard } from './VariantCard';
+export { default as XRefCard } from './XRefCard';
+export { default as SpecCard } from './SpecCard';
+export { default as ProductListPanel } from './ProductListPanel';
