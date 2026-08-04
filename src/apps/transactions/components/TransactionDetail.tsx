@@ -149,7 +149,17 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
   const handleFieldChange = useCallback((field: string, value: unknown) => {
     setEditData((prev: any) => {
       if (!prev) return prev;
-      return { ...prev, [field]: value };
+      if (!field.includes('.')) return { ...prev, [field]: value };
+      // Nested write: config.ship_to.company → prev.config.ship_to.company
+      const parts = field.split('.');
+      const clone = JSON.parse(JSON.stringify(prev));
+      let obj = clone;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (obj[parts[i]] == null || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return clone;
     });
 
     if ((field === 'customer' || field === 'customer_id') && value) {

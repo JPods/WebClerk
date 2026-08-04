@@ -108,7 +108,20 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId
   };
 
   const handleFieldChange = useCallback((field: string, value: unknown) => {
-    setEditData((prev: any) => prev ? { ...prev, [field]: value } : prev);
+    setEditData((prev: any) => {
+      if (!prev) return prev;
+      if (!field.includes('.')) return { ...prev, [field]: value };
+      // Nested write: config.prospect_status → prev.config.prospect_status
+      const parts = field.split('.');
+      const clone = JSON.parse(JSON.stringify(prev));
+      let obj = clone;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (obj[parts[i]] == null || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return clone;
+    });
   }, []);
 
   const handleSave = async () => {
