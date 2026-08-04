@@ -308,7 +308,7 @@ function LookupSearch({ name, value: v, model, onChange, labelStyle, inputStyle,
 
   return (
     <div style={{ ...wrapStyle, position: 'relative' }} ref={wrapRef} {...wcAttrs}>
-      <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
+      <span style={labelStyle} title={`${model}.${name}`} onClick={handleLabelClick}>{name}</span>
       <input
         style={{ ...inputStyle, width: '100%' }}
         value={displayName || query}
