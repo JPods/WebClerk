@@ -43,6 +43,7 @@ import ReportDesigner from "../pages/admin/ReportDesigner";
 import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import Placeholder from "../pages/Placeholder";
 import TransactionDetail from "../apps/transactions/components/TransactionDetail";
+import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
 
 export const protectedRoutesConfig = [
   { path: PageRoutes.dashboard, element: <Home /> },
@@ -121,6 +122,11 @@ export const protectedRoutesConfig = [
   { path: "/payment/:id", element: <TransactionDetail modelName="payment" /> },
   { path: "/contact", element: <AdminWorkbench /> },
   { path: "/contact/:id", element: <CoreContactDetail /> },
+  { path: "/customer/:id", element: <OrgDetailJson modelName="customer" /> },
+  { path: "/vendor/:id", element: <OrgDetailJson modelName="vendor" /> },
+  { path: "/manufacturer/:id", element: <OrgDetailJson modelName="manufacturer" /> },
+  { path: "/employee/:id", element: <OrgDetailJson modelName="employee" /> },
+  { path: "/rep/:id", element: <OrgDetailJson modelName="rep" /> },
   { path: "/customer", element: <AdminWorkbench /> },
   { path: "/vendor", element: <AdminWorkbench /> },
   { path: "/item", element: <AdminWorkbench /> },
