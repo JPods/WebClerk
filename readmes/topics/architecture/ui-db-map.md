@@ -10,6 +10,49 @@ If a model has no ui.json or ui.tsx entry, it's db.json only.
 
 ---
 
+## MVP Status — ui.json models
+
+Only ui.json models tracked here. db.json is universal (always available). ui.tsx is per-component.
+
+| Model | App | Layout | MVP Date |
+|-------|-----|--------|----------|
+| order | transactions | 3-col + lines | 2026-08-02 |
+| order_line | transactions | Line card | 2026-08-02 |
+| proposal | transactions | 3-col + lines | 2026-08-02 |
+| proposal_line | transactions | Line card | 2026-08-02 |
+| invoice | transactions | 3-col + lines | 2026-08-02 |
+| invoice_line | transactions | Line card | 2026-08-02 |
+| purchase | transactions | 3-col + lines | 2026-08-02 |
+| purchase_line | transactions | Line card | 2026-08-02 |
+| work_order | transactions | 3-col + lines | — |
+| work_order_line | transactions | Line card | — |
+| receipt | transactions | 2-col + lines | — |
+| receipt_line | transactions | Line card | — |
+| requisition | transactions | 2-col + lines | — |
+| requisition_line | transactions | Line card | — |
+| payment | transactions | 2-col | — |
+| email | communications | single-col card | — |
+| phone | communications | single-col card | — |
+| address | communications | single-col card | — |
+| domain | communications | single-col card | — |
+| contact | core | 3-col + 7 tabs | — |
+| action | core | 2-col | — |
+| document | docs | 2-col | — |
+| question_answer | docs | single-col | — |
+| report | core | 2-col | — |
+| customer | orgs | 3-col + 7 tabs | — |
+| vendor | orgs | 3-col + 7 tabs | — |
+| manufacturer | orgs | 2-col | — |
+| employee | orgs | 2-col | — |
+| rep | orgs | 2-col | — |
+| item | products | 3-col + 8 tabs | — |
+| serial | products | 2-col | — |
+| specification | products | single-col | — |
+| bill_of_material | products | BOM card in Item | — |
+| item_xref | products | XRef card in Item | — |
+
+---
+
 ## By App
 
 ### accounts
