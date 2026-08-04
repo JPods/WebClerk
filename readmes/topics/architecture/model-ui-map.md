@@ -26,6 +26,17 @@ These get `detail_layout` Settings, Design Mode, print templates, widget actions
 | requisition | 2-col: Requestor \| Requisition | exec | Pending |
 | payment | 2-col: Payer \| Payment | special | Pending |
 
+### Transaction Lines (family: sell/exec — rendered inside parent line card)
+| Model | Parent | Family | Status |
+|-------|--------|--------|--------|
+| order_line | order | sell | Done (via useLineCard) |
+| proposal_line | proposal | sell | Done |
+| invoice_line | invoice | sell | Done |
+| purchase_line | purchase | exec | Done |
+| work_order_line | work_order | exec | Pending |
+| receipt_line | receipt | exec | Pending |
+| requisition_line | requisition | exec | Pending |
+
 ### Communications (family: comm)
 | Model | Layout | Status |
 |-------|--------|--------|
