@@ -253,6 +253,41 @@ If a model has no ui.json or ui.tsx entry, it's db.json only.
 
 ---
 
+## Dashboards — ui.json + ui.tsx
+
+Dashboards are panel layouts stored as Settings. The panel renderer reads the config
+and renders the right component for each panel type.
+
+| Dashboard | Panels | ui.json | ui.tsx |
+|-----------|--------|---------|--------|
+| Commerce | KPIs, orders, invoices, AR | db.list panels | Chart (sales trend) |
+| Forecast | Running balance, pipeline, AR/AP | db.list panels | Area chart |
+| Apply Payments | Customer search, invoice list, payment form | db.list + form | Drag-apply |
+| Inventory | Receive, adjust, reconcile, warehouse | db.list panels | Count sheet |
+| Script Editor | Prompt, code editor, output | Form + code | Console |
+| Alice | Observations, insights, coaching | db.list panels | — |
+| Team | Activity, performance | db.list panels | Chart |
+| Accounting | GL, journals, aging | db.list panels | — |
+
+## Printing — ui.json (mostly)
+
+Print templates read from the same layout JSON as the working form.
+The print renderer builds standalone HTML — no React, no app chrome.
+
+| Output | Driven by | Notes |
+|--------|-----------|-------|
+| Standard document (order, invoice, etc.) | ui.json layout + record data | TransactionPrint.tsx |
+| Pick list | ui.json + report config (no prices, show location) | Template variant |
+| Packing slip | ui.json + report config (no prices, show shipped qty) | Template variant |
+| Labels/barcodes | Report config + pdfme | ui.tsx (pdfme layout editor) |
+| Statements | ui.json + aging calculation | Template variant |
+| Letters/email | Report config + template merge | Template-driven |
+| EDI/export | Report config + format spec | External convention may force ui.tsx |
+| Custom reports | Report model config | User-defined via Report records |
+
+**The rule:** if the output follows the document layout, ui.json drives it.
+If the output requires a specialized renderer (barcode layout, EDI format), ui.tsx.
+
 ## Summary
 
 - **All models**: db.json (DataBrowser) for administration — universal, not listed

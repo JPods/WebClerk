@@ -394,7 +394,7 @@ class Command(BaseCommand):
 
         # 17. Serial detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-serial', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'serial', 'name': 'Serial Detail',
+            'purpose': 'detail_layout', 'parent_model': 'serial_log', 'name': 'Serial Detail',
             'config': {
                 'model': 'serial', 'family': 'product',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
