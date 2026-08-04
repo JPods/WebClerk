@@ -6,13 +6,13 @@ import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 
-// Orgs — detail pages only (lists via DataBrowser)
-import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDetail";
+// Orgs — now use OrgDetailJson (lists via DataBrowser)
+import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
 
-// Alias CustomerDetail for route compatibility
-const CustomerDetailPage = CustomerDetail;
-const CustomerAddPage = CustomerDetail;
-const CustomerEditPage = CustomerDetail;
+// Alias for route compatibility
+const CustomerDetailPage = OrgDetailJson;
+const CustomerAddPage = OrgDetailJson;
+const CustomerEditPage = OrgDetailJson;
 
 // Core — detail page only (list via DataBrowser)
 import CoreContactDetail from "../apps/core/models/contact/pages/ContactDetailJson";
