@@ -1,149 +1,261 @@
 # UI / DB Model Map
 
-Every model, every rendering path. A model can appear in multiple columns —
-these are WHERE the model is used, not exclusive assignments.
+Every model has db.json access (DataBrowser) for administration. That's universal — not listed per model.
 
+This map shows which models ALSO get:
 - **ui.json** — JSON-driven detail layout with Design Mode, widgets, print
-- **db.json** — DataBrowser list + detail (admin, config, browse)
 - **ui.tsx** — Custom React component (interaction-heavy)
 
-## Transactions App
+If a model has no ui.json or ui.tsx entry, it's db.json only.
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| order | Order detail form, print, customer card | Order list browse, admin | Kanban (by status) |
-| order_line | Line card inside order | Line export, admin | — |
-| invoice | Invoice detail form, print | Invoice list, AR aging | — |
-| invoice_line | Line card inside invoice | Line export | — |
-| proposal | Proposal detail form, print | Proposal list, pipeline | Gantt (by project) |
-| proposal_line | Line card inside proposal | — | — |
-| purchase | PO detail form, print | PO list, AP aging | — |
-| purchase_line | Line card inside purchase | Line export | — |
-| work_order | WO detail form, print | WO list | Gantt (by project) |
-| work_order_line | Line card inside WO | — | — |
-| receipt | Receipt detail form | Receipt list | — |
-| receipt_line | Line card inside receipt | — | — |
-| requisition | Requisition detail form | Requisition list | — |
-| requisition_line | Line card inside requisition | — | — |
-| payment | Payment detail form | Payment list, journal | Apply Payments (drag) |
-| payment_application | — | Application list | Apply Payments (drag) |
-| project | — | Project list, admin | Kanban, Gantt |
-| statement_line | — | Statement list | — |
+---
 
-## Core App
+## By App
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| contact | Contact detail form (3-col + 7 tabs) | Contact list browse | — |
-| action | Action detail form (2-col) | Action list | Kanban (cards), Gantt (bars) |
-| document | Document detail form (2-col) | Document list, admin | — |
-| report | Report detail form (2-col) | Report list, admin | — |
-| question_answer | QA detail form | QA list | — |
-| setting | — | Setting list, admin | — |
-| template | — | Template list, admin | — |
-| notification | — | Notification list | — |
-| pending | — | Pending queue, admin | — |
+### accounts
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Audit | — | — |
+| Currency | — | — |
+| Erosion | — | — |
+| ExchangeRate | — | — |
+| ExchangeTransaction | — | — |
+| GlAccount | — | — |
+| GlJournal | — | — |
+| Ledger | — | — |
+| TaxJurisdiction | — | — |
+| Term | — | — |
 
-## Communications App
+### ai_assistant
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| AliceCoachingLog | — | — |
+| AliceInsight | — | — |
+| AliceObservation | — | Alice Dashboard |
+| AlicePreset | — | — |
+| CodingSession | — | — |
+| Conversation | — | — |
+| ErrorPattern | — | — |
+| GitEvent | — | — |
+| InventoryEvent | — | — |
+| Message | — | — |
+| SchemaDrift | — | — |
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| email | Email card (in contact, order) | Email list, admin | — |
-| phone | Phone card (in contact, order) | Phone list, admin | — |
-| address | Address card (in contact, order) | Address list, admin | — |
-| domain | Domain card (in contact) | Domain list, admin | — |
+### communications
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Address | Address card (contact, order, org) | — |
+| Domain | Domain card (contact) | — |
+| Email | Email card (contact, order, org) | — |
+| Phone | Phone card (contact, order, org) | — |
 
-## Organizations App
+### core
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| APILog | — | — |
+| Action | Action detail (2-col) | Kanban (cards), Gantt (bars) |
+| AuditLog | — | — |
+| Contact | Contact detail (3-col + 7 tabs) | — |
+| ModelLinkConfig | — | — |
+| ModelRoleConfig | — | — |
+| Notification | — | — |
+| Pending | — | — |
+| RefsMismatchLog | — | — |
+| Report | Report detail (2-col) | — |
+| RoleConfig | — | — |
+| Setting | — | — |
+| SoftDeleteLedger | — | — |
+| Template | — | — |
+| UserDailyLog | — | — |
+| UserProfile | — | — |
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| customer | Customer detail form (3-col + 7 tabs) | Customer list browse | — |
-| vendor | Vendor detail form (3-col + 7 tabs) | Vendor list browse | — |
-| manufacturer | Manufacturer detail form | Manufacturer list | — |
-| employee | Employee detail form | Employee list | — |
-| rep | Rep detail form | Rep list | — |
+### docs
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Document | Document detail (2-col) | — |
+| LinkageEntry | — | — |
+| QuestionAnswer | QA detail | — |
+| Tag | — | — |
 
-## Products App
+### orgs
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Customer | Customer detail (3-col + 7 tabs) | — |
+| Employee | Employee detail (2-col) | — |
+| Manufacturer | Manufacturer detail (2-col) | — |
+| OrgBase | — | — |
+| Rep | Rep detail (2-col) | — |
+| Vendor | Vendor detail (3-col + 7 tabs) | — |
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| item | Item detail form (3-col + 8 tabs) | Item list browse, price list | — |
-| serial | Serial detail form (2-col) | Serial list, tracking | — |
-| specification | Spec detail form | Spec list | — |
-| bill_of_material | BOM card in Item tabs | BOM list, admin | BOM tree (future) |
-| catalog | — | Catalog list, admin | — |
-| item_xref | XRef card in Item tabs | XRef list, admin | — |
-| org_item | — | Org-Item links, admin | — |
-| service | — | Service list | — |
-| variant | — | Variant list | — |
-| warehouse | — | Warehouse list, admin | Inventory Dashboard |
-| usage | — | Usage tracking | — |
-| matrics | — | Metrics, system | — |
+### products
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| BillOfMaterial | BOM card in Item tabs | BOM tree (future) |
+| Catalog | — | — |
+| CatalogLine | — | — |
+| DeliveryLine | — | — |
+| DeliveryVisit | — | — |
+| InventoryAdjustmentProcessorRun | — | — |
+| InventoryCheck | — | Inventory Dashboard |
+| InventoryCheckLine | — | Inventory Dashboard |
+| InventoryLayer | — | — |
+| InventoryMetricsSnapshot | — | — |
+| InventoryMovement | — | — |
+| InventoryReservation | — | — |
+| Item | Item detail (3-col + 8 tabs) | — |
+| ItemUsage | — | — |
+| ItemXRef | XRef card in Item tabs | — |
+| OrgItem | — | — |
+| PendingInventoryAdjustment | — | — |
+| Serial | Serial detail (2-col) | — |
+| SerialLog | — | — |
+| Service | — | — |
+| SiteInventory | — | — |
+| Specification | Spec detail | — |
+| Variant | — | — |
+| Warehouse | — | Inventory Dashboard |
 
-## Accounts App
+### sync
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Bundle | — | — |
+| Connection | — | — |
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| gl_account | — | Chart of accounts | — |
-| gl_journal | — | Journal entries | — |
-| ledger | — | Ledger records | — |
-| tax_jurisdiction | — | Tax rates, admin | — |
-| term | — | Payment terms, admin | — |
-| currency | — | Currency codes, admin | — |
-| exchange_rate | — | FX rates, admin | — |
-| exchange_transaction | — | FX transactions | — |
-| audit | — | Audit log, system | — |
-| tally_summary | — | Aggregations, system | — |
-| sales_dimension_tally | — | Analytics, system | — |
-| inventory_usage_tally | — | Analytics, system | — |
-| tally_registry | — | Tally config, admin | — |
+### transactions
+| Model | ui.json | ui.tsx |
+|-------|---------|--------|
+| Invoice | Invoice detail (3-col), print | — |
+| InvoiceLine | Line card inside invoice | — |
+| Order | Order detail (3-col), print | Kanban (by status) |
+| OrderLine | Line card inside order | — |
+| Payment | Payment detail (2-col) | Apply Payments |
+| PaymentApplication | — | Apply Payments |
+| PaymentMethod | — | — |
+| PaymentTerm | — | — |
+| PendingPaymentApplication | — | — |
+| Project | — | Kanban, Gantt |
+| Proposal | Proposal detail (3-col), print | Gantt |
+| ProposalLine | Line card inside proposal | — |
+| Purchase | Purchase detail (3-col), print | — |
+| PurchaseLine | Line card inside purchase | — |
+| Receipt | Receipt detail | — |
+| ReceiptLine | Line card inside receipt | — |
+| Requisition | Requisition detail | — |
+| RequisitionLine | Line card inside requisition | — |
+| StatementLine | — | — |
+| WorkOrder | WO detail (3-col), print | Gantt |
+| WorkOrderLine | Line card inside WO | — |
 
-## Docs App
+---
 
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| document | Document detail form | Document list | — |
-| question_answer | QA detail form | QA list | — |
-| tag | — | Tag list, admin | — |
-| linkage | — | Linkage list, system | — |
+## Alphabetical (all models)
 
-## Sync App
-
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| connection | — | Connection config, admin | — |
-| bundle | — | Bundle list, system | — |
-
-## Support App
-
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| All support models | — | Scheduler, tasks, admin | — |
-
-## AI Assistant App
-
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| alice_observation | — | Observation list | Alice Dashboard |
-| alice_preset | — | Preset list, admin | — |
-| alice_coaching_log | — | Coaching log | — |
-
-## JPods App (to be removed)
-
-| Model | ui.json uses | db.json uses | ui.tsx uses |
-|-------|-------------|-------------|------------|
-| All jpods models | Should be standard WC3 item/order flow | — | — |
+| Model | App | ui.json | ui.tsx |
+|-------|-----|---------|--------|
+| Action | core | Action detail (2-col) | Kanban, Gantt |
+| Address | communications | Address card | — |
+| AliceCoachingLog | ai_assistant | — | — |
+| AliceInsight | ai_assistant | — | — |
+| AliceObservation | ai_assistant | — | Alice Dashboard |
+| AlicePreset | ai_assistant | — | — |
+| APILog | core | — | — |
+| Audit | accounts | — | — |
+| AuditLog | core | — | — |
+| BillOfMaterial | products | BOM card in Item | BOM tree (future) |
+| Bundle | sync | — | — |
+| Catalog | products | — | — |
+| CatalogLine | products | — | — |
+| CodingSession | ai_assistant | — | — |
+| Connection | sync | — | — |
+| Contact | core | Contact detail (3-col + 7 tabs) | — |
+| Conversation | ai_assistant | — | — |
+| Currency | accounts | — | — |
+| Customer | orgs | Customer detail (3-col + 7 tabs) | — |
+| DeliveryLine | products | — | — |
+| DeliveryVisit | products | — | — |
+| Document | docs | Document detail (2-col) | — |
+| Domain | communications | Domain card | — |
+| Email | communications | Email card | — |
+| Employee | orgs | Employee detail (2-col) | — |
+| Erosion | accounts | — | — |
+| ErrorPattern | ai_assistant | — | — |
+| ExchangeRate | accounts | — | — |
+| ExchangeTransaction | accounts | — | — |
+| GitEvent | ai_assistant | — | — |
+| GlAccount | accounts | — | — |
+| GlJournal | accounts | — | — |
+| InventoryAdjustmentProcessorRun | products | — | — |
+| InventoryCheck | products | — | Inventory Dashboard |
+| InventoryCheckLine | products | — | Inventory Dashboard |
+| InventoryEvent | ai_assistant | — | — |
+| InventoryLayer | products | — | — |
+| InventoryMetricsSnapshot | products | — | — |
+| InventoryMovement | products | — | — |
+| InventoryReservation | products | — | — |
+| Invoice | transactions | Invoice detail (3-col), print | — |
+| InvoiceLine | transactions | Line card | — |
+| Item | products | Item detail (3-col + 8 tabs) | — |
+| ItemUsage | products | — | — |
+| ItemXRef | products | XRef card in Item | — |
+| Ledger | accounts | — | — |
+| LinkageEntry | docs | — | — |
+| Manufacturer | orgs | Manufacturer detail (2-col) | — |
+| Message | ai_assistant | — | — |
+| ModelLinkConfig | core | — | — |
+| ModelRoleConfig | core | — | — |
+| Notification | core | — | — |
+| Order | transactions | Order detail (3-col), print | Kanban |
+| OrderLine | transactions | Line card | — |
+| OrgBase | orgs | — | — |
+| OrgItem | products | — | — |
+| Payment | transactions | Payment detail (2-col) | Apply Payments |
+| PaymentApplication | transactions | — | Apply Payments |
+| PaymentMethod | transactions | — | — |
+| PaymentTerm | transactions | — | — |
+| Pending | core | — | — |
+| PendingInventoryAdjustment | products | — | — |
+| PendingPaymentApplication | transactions | — | — |
+| Phone | communications | Phone card | — |
+| Project | transactions | — | Kanban, Gantt |
+| Proposal | transactions | Proposal detail (3-col), print | Gantt |
+| ProposalLine | transactions | Line card | — |
+| Purchase | transactions | Purchase detail (3-col), print | — |
+| PurchaseLine | transactions | Line card | — |
+| QuestionAnswer | docs | QA detail | — |
+| Receipt | transactions | Receipt detail | — |
+| ReceiptLine | transactions | Line card | — |
+| RefsMismatchLog | core | — | — |
+| Rep | orgs | Rep detail (2-col) | — |
+| Report | core | Report detail (2-col) | — |
+| Requisition | transactions | Requisition detail | — |
+| RequisitionLine | transactions | Line card | — |
+| RoleConfig | core | — | — |
+| SchemaDrift | ai_assistant | — | — |
+| Serial | products | Serial detail (2-col) | — |
+| SerialLog | products | — | — |
+| Service | products | — | — |
+| Setting | core | — | — |
+| SiteInventory | products | — | — |
+| SoftDeleteLedger | core | — | — |
+| Specification | products | Spec detail | — |
+| StatementLine | transactions | — | — |
+| Tag | docs | — | — |
+| TaxJurisdiction | accounts | — | — |
+| Template | core | — | — |
+| Term | accounts | — | — |
+| UserDailyLog | core | — | — |
+| UserProfile | core | — | — |
+| Variant | products | — | — |
+| Vendor | orgs | Vendor detail (3-col + 7 tabs) | — |
+| Warehouse | products | — | Inventory Dashboard |
+| WorkOrder | transactions | WO detail (3-col), print | Gantt |
+| WorkOrderLine | transactions | Line card | — |
 
 ---
 
 ## Summary
 
-| Path | Model Count | Primary Use |
-|------|-------------|-------------|
-| ui.json | ~35 | User workflow: data entry, forms, cards, print |
-| db.json | ~60+ | All models for list/admin + config-only models |
-| ui.tsx | ~8 | Kanban, Gantt, Apply Payments, Inventory, BOM tree |
-
-**Every model appears in db.json** — DataBrowser can browse anything.
-**Workflow models also appear in ui.json** — dedicated forms for daily use.
-**Interaction-heavy views appear in ui.tsx** — drag, timeline, real-time.
+- **All models**: db.json (DataBrowser) for administration — universal, not listed
+- **~35 models**: ui.json — dedicated forms for daily workflow use
+- **~8 models**: ui.tsx — interaction-heavy custom components
+- **~50 models**: db.json only — config, system, admin, accounting
