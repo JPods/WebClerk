@@ -341,4 +341,126 @@ class Command(BaseCommand):
             })
             self.stdout.write(f"{'C' if c else 'U'} #{s.id}: {model_name} layout")
 
-        self.stdout.write(self.style.SUCCESS("Done — 15 Settings created/updated"))
+        # 16. Item detail_layout
+        s, c = Setting.objects.update_or_create(ida='detail-layout-item', defaults={
+            'purpose': 'detail_layout', 'parent_model': 'item', 'name': 'Item Detail',
+            'config': {
+                'model': 'item', 'family': 'product',
+                'sections': [
+                    {'type': 'header', 'layout': 'three-column', 'columns': [
+                        {'title': 'Item', 'title_ida': True, 'fields': [
+                            {'field': 'description', 'label': 'Description', 'type': 'search'},
+                            {'field': 'upc', 'label': 'UPC'},
+                            {'field': 'brand', 'label': 'Brand'},
+                            {'field': 'unit_of_measure', 'label': 'UOM'},
+                            {'field': 'type', 'label': 'Type', 'type': 'select'},
+                            {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['active', 'inactive', 'discontinued']},
+                        ]},
+                        {'title': 'Pricing', 'fields': [
+                            {'field': 'config.price.retail', 'label': 'Retail', 'type': 'currency'},
+                            {'field': 'config.price.wholesale', 'label': 'Wholesale', 'type': 'currency'},
+                            {'field': 'config.price.distributor', 'label': 'Distributor', 'type': 'currency'},
+                            {'field': 'config.price.sample', 'label': 'Sample', 'type': 'currency'},
+                            {'field': 'config.cost.average', 'label': 'Avg Cost', 'type': 'readonly'},
+                            {'field': 'config.cost.last', 'label': 'Last Cost', 'type': 'readonly'},
+                        ]},
+                        {'title': 'Inventory', 'fields': [
+                            {'field': 'config.qty.on_hand', 'label': 'On Hand', 'type': 'readonly'},
+                            {'field': 'config.qty.on_order', 'label': 'On Order', 'type': 'readonly'},
+                            {'field': 'config.qty.on_sales_order', 'label': 'Committed', 'type': 'readonly'},
+                            {'field': 'config.qty.available', 'label': 'Available', 'type': 'readonly'},
+                            {'field': 'config.qty.reorder_point', 'label': 'Reorder Pt'},
+                            {'field': 'config.qty.reorder_qty', 'label': 'Reorder Qty'},
+                            {'field': 'location', 'label': 'Location'},
+                            {'field': 'serialized', 'label': 'Serialized', 'type': 'readonly'},
+                        ]},
+                    ]},
+                    {'type': 'tabs', 'tabs': [
+                        {'label': 'Summary', 'content': 'summary'},
+                        {'label': 'BOM', 'content': 'bom'},
+                        {'label': 'XRef', 'content': 'xref'},
+                        {'label': 'Serials', 'content': 'serials'},
+                        {'label': 'Specs', 'content': 'specs'},
+                        {'label': 'History', 'content': 'history'},
+                        {'label': 'Documents', 'content': 'documents'},
+                        {'label': 'Notes', 'content': 'notes'},
+                    ]},
+                ],
+                'edit_rules': {'locked_statuses': ['discontinued'], 'status_field': 'status'},
+            },
+            'is_active': True,
+        })
+        self.stdout.write(f"{'C' if c else 'U'} #{s.id}: item layout")
+
+        # 17. Serial detail_layout
+        s, c = Setting.objects.update_or_create(ida='detail-layout-serial', defaults={
+            'purpose': 'detail_layout', 'parent_model': 'serial', 'name': 'Serial Detail',
+            'config': {
+                'model': 'serial', 'family': 'product',
+                'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
+                    {'title': 'Serial', 'fields': [
+                        {'field': 'serial_number', 'label': 'Serial #', 'type': 'search'},
+                        {'field': 'item_code', 'label': 'Item', 'type': 'readonly'},
+                        {'field': 'description', 'label': 'Description', 'type': 'readonly'},
+                        {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['available', 'sold', 'reserved', 'defective', 'returned']},
+                    ]},
+                    {'title': 'Assignment', 'fields': [
+                        {'field': 'customer', 'label': 'Customer', 'type': 'readonly'},
+                        {'field': 'order_id', 'label': 'Order', 'type': 'readonly'},
+                        {'field': 'invoice_id', 'label': 'Invoice', 'type': 'readonly'},
+                        {'field': 'warranty_date', 'label': 'Warranty', 'type': 'readonly'},
+                        {'field': 'dt_created', 'label': 'Received', 'type': 'readonly'},
+                    ]},
+                ]}],
+                'edit_rules': {'locked_statuses': ['sold'], 'status_field': 'status'},
+            },
+            'is_active': True,
+        })
+        self.stdout.write(f"{'C' if c else 'U'} #{s.id}: serial layout")
+
+        # 18. Specification detail_layout
+        s, c = Setting.objects.update_or_create(ida='detail-layout-specification', defaults={
+            'purpose': 'detail_layout', 'parent_model': 'specification', 'name': 'Specification Detail',
+            'config': {
+                'model': 'specification', 'family': 'product',
+                'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
+                    {'field': 'name', 'label': 'Name', 'type': 'search'},
+                    {'field': 'value', 'label': 'Value'},
+                    {'field': 'unit', 'label': 'Unit'},
+                    {'field': 'category', 'label': 'Category', 'type': 'select'},
+                    {'field': 'item_code', 'label': 'Item', 'type': 'readonly'},
+                    {'field': 'sequence', 'label': 'Order', 'type': 'readonly'},
+                ]}],
+                'edit_rules': {'locked_statuses': [], 'status_field': 'status'},
+            },
+            'is_active': True,
+        })
+        self.stdout.write(f"{'C' if c else 'U'} #{s.id}: specification layout")
+
+        # 19. BOM detail_layout (record view — tree view is ui.tsx)
+        s, c = Setting.objects.update_or_create(ida='detail-layout-bill-of-material', defaults={
+            'purpose': 'detail_layout', 'parent_model': 'bill_of_material', 'name': 'BOM Detail',
+            'config': {
+                'model': 'bill_of_material', 'family': 'product',
+                'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
+                    {'title': 'Component', 'fields': [
+                        {'field': 'parent_item', 'label': 'Parent', 'type': 'search'},
+                        {'field': 'child_item', 'label': 'Component', 'type': 'search'},
+                        {'field': 'quantity', 'label': 'Qty'},
+                        {'field': 'unit_of_measure', 'label': 'UOM'},
+                    ]},
+                    {'title': 'Details', 'fields': [
+                        {'field': 'level', 'label': 'Level', 'type': 'readonly'},
+                        {'field': 'sequence', 'label': 'Sequence'},
+                        {'field': 'scrap_factor', 'label': 'Scrap %'},
+                        {'field': 'effective_date', 'label': 'Effective'},
+                        {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['active', 'inactive', 'engineering']},
+                    ]},
+                ]}],
+                'edit_rules': {'locked_statuses': [], 'status_field': 'status'},
+            },
+            'is_active': True,
+        })
+        self.stdout.write(f"{'C' if c else 'U'} #{s.id}: bill_of_material layout")
+
+        self.stdout.write(self.style.SUCCESS("Done — 19 Settings created/updated"))

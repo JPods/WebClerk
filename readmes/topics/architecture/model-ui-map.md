@@ -115,20 +115,30 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | linkage | Linkage entries — system |
 | tag | Tags — admin |
 
-### Products Config
+### Products — ui.json
+| Model | Layout | Status |
+|-------|--------|--------|
+| item | 3-col: Item \| Pricing \| Inventory + 8 tabs | Seeded |
+| bill_of_material | 2-col: Component \| Details (record view; tree is ui.tsx) | Seeded |
+| serial | 2-col: Serial \| Assignment | Seeded |
+| specification | single-col | Seeded |
+
+### Products — db.json
 | Model | Why DataBrowser |
 |-------|----------------|
-| bill_of_material | BOM structure — admin/engineering |
 | catalog | Catalog config — admin |
 | item_xref | Cross-references — admin |
 | org_item | Org-item links — admin |
-| serial | Serial numbers — tracking |
 | service | Service records — admin |
-| specification | Specs — engineering |
 | variant | Variants — admin |
 | warehouse | Warehouse config — admin |
 | usage | Usage tracking — system |
 | matrics | Metrics — system |
+
+### Support — db.json
+| Model | Why DataBrowser |
+|-------|----------------|
+| All support models | Scheduler, tasks — admin/system |
 
 ### Sync
 | Model | Why DataBrowser |
