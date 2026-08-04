@@ -22,6 +22,10 @@ import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import { CommPanel } from '@/apps/communications/components';
 
+// Shared detail components
+import RecordToolbar from '@/components/common/RecordToolbar';
+import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
+
 // Existing panels — reuse as-is
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
@@ -46,6 +50,9 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId
   const dispatch = useDispatch();
   const windowManager = useWindowManager();
   const authUser = useSelector((s: RootState) => s.auth?.user);
+  const companyInfo = useSelector(selectCompanyInfo);
+  const logos = useSelector(selectLogos);
+  const documentText = useSelector((s: RootState) => (s as any).company?.document_text) || {};
 
   // Layout
   const { layout, loading: layoutLoading, invalidate: invalidateLayout } = useDetailLayout('contact');
@@ -89,6 +96,16 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId
   // Edit handlers
   const handleEdit = () => { setEditData({ ...data }); setIsEditing(true); };
   const handleCancel = () => { setEditData(data); setIsEditing(false); };
+
+  const handleAddNew = async () => {
+    try {
+      const res = await saveRecord('contact', { is_active: true });
+      const newId = res?.record?.id || res?.id;
+      if (newId) windowManager.ensureWindow(`/contact/${newId}`, `Contact #${newId}`);
+    } catch {
+      dispatch(showToast({ message: 'Failed to create contact', type: 'error' }));
+    }
+  };
 
   const handleFieldChange = useCallback((field: string, value: unknown) => {
     setEditData((prev: any) => prev ? { ...prev, [field]: value } : prev);
@@ -138,19 +155,22 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        {!isEditing && (
-          <button onClick={handleEdit} className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
-        )}
-        {isEditing && (
-          <>
-            <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-            <button onClick={handleCancel} className="px-3 py-1.5 text-sm font-medium bg-white text-slate-700 rounded border border-slate-300 hover:bg-slate-50">Cancel</button>
-          </>
-        )}
-      </div>
+      <RecordToolbar
+        data={data}
+        currentData={currentData}
+        modelName="contact"
+        layout={layout}
+        isEditing={isEditing}
+        saving={saving}
+        companyInfo={companyInfo}
+        logos={logos}
+        documentText={documentText}
+        userRole={authUser?.role}
+        onEdit={handleEdit}
+        onAddNew={handleAddNew}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
