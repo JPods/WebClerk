@@ -31,6 +31,10 @@ const APP_DETAIL_ROUTES: Record<string, string> = {
   customer: '/customer',
   item: '/item',
   contact: '/contact',
+  vendor: '/vendor',
+  manufacturer: '/manufacturer',
+  employee: '/employee',
+  rep: '/rep',
   action: '/action',
 };
 
@@ -919,8 +923,15 @@ const AdminWorkbench: React.FC = () => {
                 } catch (e) { console.error('Server filter failed:', e); }
               }}
               onSelectRecord={(id) => {
-                // Both Admin and App mode: select the record in the right panel
-                db.setSelectedId(id); db.setIsDirty(false);
+                const viewPref = getDetailViewPref();
+                const route = APP_DETAIL_ROUTES[db.selectedModel];
+                if (viewPref === 'app' && route && id) {
+                  // App mode: navigate to /:model/:id route
+                  navigate(`${route}/${id}`);
+                } else {
+                  // Admin mode: select in right panel (db.detail)
+                  db.setSelectedId(id); db.setIsDirty(false);
+                }
               }}
               onRowDoubleClicked={(row) => {
                 // Statement lines have no detail view — users look at their statement
