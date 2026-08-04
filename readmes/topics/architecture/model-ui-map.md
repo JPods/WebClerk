@@ -109,6 +109,12 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | notification | System notifications — admin |
 | pending | Queue records — system |
 
+### Docs Config
+| Model | Why DataBrowser |
+|-------|----------------|
+| linkage | Linkage entries — system |
+| tag | Tags — admin |
+
 ### Products Config
 | Model | Why DataBrowser |
 |-------|----------------|

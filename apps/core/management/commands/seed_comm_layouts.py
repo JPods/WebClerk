@@ -271,4 +271,74 @@ class Command(BaseCommand):
         })
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: report layout")
 
-        self.stdout.write(self.style.SUCCESS("Done — 10 Settings created/updated"))
+        # 11-15. Org models — shared pattern: Company | Primary Contact | Account
+        org_models = [
+            ('customer', 'Customer', [
+                {'field': 'price_level', 'label': 'Price Lvl', 'type': 'select', 'options': ['Retail', 'Wholesale', 'Distributor', 'Sample']},
+                {'field': 'terms', 'label': 'Terms', 'type': 'select'},
+                {'field': 'credit_limit', 'label': 'Credit Limit', 'type': 'readonly'},
+                {'field': 'balance_due', 'label': 'Balance', 'type': 'readonly'},
+            ]),
+            ('vendor', 'Vendor', [
+                {'field': 'terms', 'label': 'Terms', 'type': 'select'},
+                {'field': 'lead_time', 'label': 'Lead Time'},
+                {'field': 'minimum_order', 'label': 'Min Order'},
+            ]),
+            ('manufacturer', 'Manufacturer', [
+                {'field': 'lead_time', 'label': 'Lead Time'},
+                {'field': 'country', 'label': 'Country'},
+            ]),
+            ('employee', 'Employee', [
+                {'field': 'department', 'label': 'Department'},
+                {'field': 'hire_date', 'label': 'Hire Date', 'type': 'readonly'},
+                {'field': 'role', 'label': 'Role', 'type': 'select'},
+            ]),
+            ('rep', 'Rep', [
+                {'field': 'territory', 'label': 'Territory'},
+                {'field': 'commission_rate', 'label': 'Comm Rate'},
+            ]),
+        ]
+
+        for model_name, title, account_fields in org_models:
+            s, c = Setting.objects.update_or_create(ida=f'detail-layout-{model_name}', defaults={
+                'purpose': 'detail_layout', 'parent_model': model_name, 'name': f'{title} Detail',
+                'config': {
+                    'model': model_name, 'family': 'org',
+                    'sections': [
+                        {'type': 'header', 'layout': 'three-column', 'columns': [
+                            {'title': title, 'title_ida': True, 'fields': [
+                                {'field': 'company', 'label': 'Company', 'type': 'search'},
+                                {'field': 'attention', 'label': 'Attn', 'type': 'search'},
+                                {'field': 'phone', 'label': 'Phone', 'type': 'action', 'widget': 'phone_dialer'},
+                                {'field': 'email', 'label': 'Email', 'type': 'action', 'widget': 'email_composer'},
+                                {'field': 'address_full', 'label': 'Address', 'type': 'action', 'widget': 'address_formatter'},
+                            ]},
+                            {'title': 'Primary Contact', 'fields': [
+                                {'field': 'contact.attention', 'label': 'Name', 'type': 'readonly'},
+                                {'field': 'contact.phone', 'label': 'Phone', 'type': 'action', 'widget': 'phone_dialer'},
+                                {'field': 'contact.email', 'label': 'Email', 'type': 'action', 'widget': 'email_composer'},
+                                {'field': 'contact.title', 'label': 'Title', 'type': 'readonly'},
+                            ]},
+                            {'title': 'Account', 'fields': [
+                                {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['active', 'inactive', 'prospect', 'suspended']},
+                                {'field': 'dt_created', 'label': 'Since', 'type': 'readonly'},
+                                *account_fields,
+                            ], 'action_summary': True},
+                        ]},
+                        {'type': 'tabs', 'tabs': [
+                            {'label': 'Summary', 'content': 'summary'},
+                            {'label': 'Contacts', 'content': 'contacts'},
+                            {'label': 'Communications', 'content': 'communications'},
+                            {'label': 'Transactions', 'content': 'transactions'},
+                            {'label': 'Actions', 'content': 'actions'},
+                            {'label': 'Documents', 'content': 'documents'},
+                            {'label': 'Notes', 'content': 'notes'},
+                        ]},
+                    ],
+                    'edit_rules': {'locked_statuses': [], 'status_field': 'status'},
+                },
+                'is_active': True,
+            })
+            self.stdout.write(f"{'C' if c else 'U'} #{s.id}: {model_name} layout")
+
+        self.stdout.write(self.style.SUCCESS("Done — 15 Settings created/updated"))
