@@ -1,0 +1,264 @@
+/* LastChecked: 2026-08-03 | WhereUsed: Router, protectedRoutesConfig | WhoCreated: Claude */
+/**
+ * ContactDetailJson — JSON-driven contact detail page.
+ *
+ * Replaces ContactDetail.tsx (4,114 lines) with the same pattern as TransactionDetail:
+ * - Layout JSON from detail_layout Setting drives header rendering
+ * - CommPanel handles communications tab
+ * - Existing panels reused for actions, documents, notes
+ * - Single-purpose components, thin orchestrator
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+import { showToast } from '@/store/slices/toastSlice';
+import { getRecord, getRecords, saveRecord } from '@/api/wcapi';
+import { useWindowManager } from '@/context/WindowManagerContext';
+import { useDetailLayout } from '@/hooks/useDetailLayout';
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
+
+// Detail components — same as TransactionDetail uses
+import { FieldRow } from '@/apps/transactions/components/detail/FieldRow';
+import { CommPanel } from '@/apps/communications/components';
+
+// Existing panels — reuse as-is
+import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
+import { DocumentsPanel } from '@/apps/common/components/panels';
+import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
+import DataGrid from '@/components/common/DataGrid';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ContactDetailJsonProps {
+  contactId?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId: propId }) => {
+  const params = useParams<{ id?: string }>();
+  const recordId = propId || (params.id ? Number(params.id) : 0);
+  const dispatch = useDispatch();
+  const windowManager = useWindowManager();
+  const authUser = useSelector((s: RootState) => s.auth?.user);
+
+  // Layout
+  const { layout, loading: layoutLoading, invalidate: invalidateLayout } = useDetailLayout('contact');
+
+  // State
+  const [data, setData] = useState<any>(null);
+  const [editData, setEditData] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('communications');
+
+  // Auto-edit from user prefs
+  const autoEdit = authUser?.prefs?.layout?.detail?.auto_edit === true;
+
+  // Fetch
+  const fetchData = useCallback(async () => {
+    if (!recordId) return;
+    setLoading(true);
+    try {
+      const response = await getRecord('contact', recordId);
+      const record = response?.record || response;
+      setData(record);
+      setEditData(record);
+    } catch {
+      dispatch(showToast({ message: 'Failed to load contact', type: 'error' }));
+    }
+    setLoading(false);
+  }, [recordId, dispatch]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-edit
+  useEffect(() => {
+    if (autoEdit && data && !isEditing) {
+      setEditData({ ...data });
+      setIsEditing(true);
+    }
+  }, [autoEdit, data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Edit handlers
+  const handleEdit = () => { setEditData({ ...data }); setIsEditing(true); };
+  const handleCancel = () => { setEditData(data); setIsEditing(false); };
+
+  const handleFieldChange = useCallback((field: string, value: unknown) => {
+    setEditData((prev: any) => prev ? { ...prev, [field]: value } : prev);
+  }, []);
+
+  const handleSave = async () => {
+    if (!editData) return;
+    setSaving(true);
+    try {
+      const { uuid: _u, metadata: _m, refs: _r, prefs: _p, ...clean } = editData;
+      await saveRecord('contact', clean);
+      dispatch(showToast({ message: 'Contact saved', type: 'success' }));
+      setIsEditing(false);
+      fetchData();
+    } catch {
+      dispatch(showToast({ message: 'Save failed', type: 'error' }));
+    }
+    setSaving(false);
+  };
+
+  // Loading states
+  if (loading || layoutLoading) {
+    return <div className="flex items-center justify-center py-20 text-slate-400">Loading contact...</div>;
+  }
+  if (!data || !layout) {
+    return <div className="flex items-center justify-center py-20 text-slate-400">Contact not found</div>;
+  }
+
+  const currentData = isEditing ? editData : data;
+  const headerSection = layout.sections?.find((s: any) => s.type === 'header') as any;
+  const tabsSection = layout.sections?.find((s: any) => s.type === 'tabs') as any;
+  const columns = headerSection?.columns || [];
+  const tabs = tabsSection?.tabs || [
+    { label: 'Communications', content: 'communications' },
+    { label: 'Actions', content: 'actions' },
+    { label: 'Documents', content: 'documents' },
+    { label: 'Notes', content: 'notes' },
+  ];
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden" data-wc="contact-detail">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
+        <span className="text-sm font-bold text-slate-900 dark:text-white">Contact</span>
+        <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
+        <span className="text-xs text-slate-500">{data.attention || [data.name_first, data.name_last].filter(Boolean).join(' ')}</span>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        {!isEditing && (
+          <button onClick={handleEdit} className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
+        )}
+        {isEditing && (
+          <>
+            <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={handleCancel} className="px-3 py-1.5 text-sm font-medium bg-white text-slate-700 rounded border border-slate-300 hover:bg-slate-50">Cancel</button>
+          </>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        {/* Header columns */}
+        {headerSection && (
+          <div className={`grid grid-cols-${columns.length} gap-3`}>
+            {columns.map((col: any, colIdx: number) => (
+              <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
+                  {col.title}
+                </div>
+                {(col.fields || []).map((f: any) => (
+                  <FieldRow
+                    key={f.field}
+                    field={f.field}
+                    label={f.label}
+                    data={currentData}
+                    isEditing={isEditing}
+                    options={f.options}
+                    fieldType={f.type}
+                    help={f.help}
+                    onChange={handleFieldChange}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+            {tabs.map((tab: any) => (
+              <button
+                key={tab.content}
+                onClick={() => setActiveTab(tab.content)}
+                className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.content
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="p-2">
+            {activeTab === 'communications' && (
+              <CommPanel
+                contactId={data.id}
+                emails={data.refs?.links?.email || []}
+                phones={data.refs?.links?.phone || []}
+                addresses={data.refs?.links?.address || []}
+                domains={data.refs?.links?.domain || []}
+                onRefresh={fetchData}
+              />
+            )}
+            {activeTab === 'organizations' && (
+              <div className="p-4 text-xs text-slate-400">
+                <DataGrid
+                  records={[
+                    ...(data.refs?.links?.customer ? [{ type: 'Customer', ...data.refs.links.customer }] : []),
+                    ...(data.refs?.links?.vendor ? [{ type: 'Vendor', ...data.refs.links.vendor }] : []),
+                  ]}
+                  columns={['type', 'company', 'ida']}
+                  onSelectRecord={(id) => {}}
+                  sort={null}
+                  onSort={() => {}}
+                  fontSize={11}
+                />
+              </div>
+            )}
+            {activeTab === 'actions' && (
+              <ActionsPanel
+                entityType="contact"
+                entityId={data.id}
+                data={data.actions?.items || []}
+                isEditing={isEditing}
+              />
+            )}
+            {activeTab === 'documents' && (
+              <DocumentsPanel
+                parent_model="contact"
+                parentId={data.id}
+                data={data.refs?.links?.document}
+                isEditing={isEditing}
+              />
+            )}
+            {activeTab === 'notes' && (
+              <CommentsPanel
+                entityType="contact"
+                entityId={data.id}
+                data={data.comments}
+                isEditing={isEditing}
+                onChange={(comments: any) => handleFieldChange('comments', comments)}
+              />
+            )}
+            {activeTab === 'qa' && (
+              <div className="p-4 text-xs text-slate-400">QA panel — coming soon</div>
+            )}
+            {activeTab === 'history' && (
+              <div className="p-4 text-xs text-slate-400">History panel — coming soon</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default withDevIdentifier(ContactDetailJson, 'ContactDetailJson');

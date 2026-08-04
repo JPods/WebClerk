@@ -15,7 +15,7 @@ const CustomerAddPage = CustomerDetail;
 const CustomerEditPage = CustomerDetail;
 
 // Core — detail page only (list via DataBrowser)
-import CoreContactDetail from "../apps/core/models/contact/pages/ContactDetail";
+import CoreContactDetail from "../apps/core/models/contact/pages/ContactDetailJson";
 
 import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
