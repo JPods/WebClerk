@@ -25,18 +25,9 @@ import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
-// OrderDetail replaced by TransactionDetail — import kept for compatibility
-// import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
-import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
+// All model-specific detail pages replaced by TransactionDetail / OrgDetailJson / ItemDetailJson
+// Old imports archived to src/archive/replaced-2026-08-03/
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
-import PaymentDetailPage from "../apps/transactions/models/payment/pages/PaymentDetailPage";
-import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
-import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
-import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
-import ReceiptDetail from "../apps/transactions/models/receipt/pages/ReceiptDetail";
-import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
-// VendorDetail replaced by OrgDetailJson
-// import VendorDetail from "../apps/orgs/models/vendor/pages/VendorDetail";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import AliceDashboard from "../pages/admin/AliceDashboard";
 import HelpDashboard from "../pages/admin/HelpDashboard";
@@ -68,7 +59,7 @@ export const protectedRoutesConfig = [
 
   // User-facing: Actions
   { path: PageRoutes.actionList, element: <Navigate to="/db/action" replace /> },
-  { path: PageRoutes.actionDetail, element: <ActionDetail /> },
+  { path: PageRoutes.actionDetail, element: <Navigate to="/db/action" replace /> },
 
   // User-facing: Documents
   { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
@@ -81,20 +72,20 @@ export const protectedRoutesConfig = [
 
   // User-facing: Transactions — all lists via DataBrowser, details via custom pages
   { path: PageRoutes.transactionsProposalList, element: <Navigate to="/db/proposal" replace /> },
-  { path: PageRoutes.transactionsProposalDetail, element: <ProposalDetail /> },
+  { path: PageRoutes.transactionsProposalDetail, element: <TransactionDetail modelName="proposal" /> },
   { path: PageRoutes.transactionsOrderList, element: <Navigate to="/db/order" replace /> },
   { path: PageRoutes.transactionsOrderDetail, element: <TransactionDetail modelName="order" /> },
   { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/db/invoice" replace /> },
-  { path: PageRoutes.transactionsInvoiceDetail, element: <InvoiceDetail /> },
+  { path: PageRoutes.transactionsInvoiceDetail, element: <TransactionDetail modelName="invoice" /> },
   { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
   { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/db/payment" replace /> },
-  { path: PageRoutes.transactionsPaymentDetail, element: <PaymentDetailPage /> },
+  { path: PageRoutes.transactionsPaymentDetail, element: <TransactionDetail modelName="payment" /> },
   { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/db/purchase" replace /> },
-  { path: PageRoutes.transactionsPurchaseDetail, element: <PurchaseDetail /> },
+  { path: PageRoutes.transactionsPurchaseDetail, element: <TransactionDetail modelName="purchase" /> },
   { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/db/workorder" replace /> },
-  { path: PageRoutes.transactionsWorkOrderDetail, element: <WorkorderDetail /> },
+  { path: PageRoutes.transactionsWorkOrderDetail, element: <TransactionDetail modelName="workorder" /> },
   { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/db/receipt" replace /> },
-  { path: PageRoutes.transactionsReceiptDetail, element: <ReceiptDetail /> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <TransactionDetail modelName="receipt" /> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
   // Tools
