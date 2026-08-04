@@ -15,6 +15,7 @@ const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const AccountingDashboard = React.lazy(() => import("../pages/admin/AccountingDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 const PageDesigner = React.lazy(() => import("../pages/tools/PageDesigner"));
+const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
 
@@ -22,10 +23,15 @@ const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>
 );
 
-// All known model names — /:model routes
-const MODELS = [
+// Transaction models — use TransactionDetail
+const TRANSACTION_MODELS = [
   'order', 'invoice', 'proposal', 'purchase', 'work_order', 'workorder',
   'receipt', 'requisition', 'payment',
+];
+
+// All models that get a list view (/:model → AdminWorkbench)
+const ALL_LIST_MODELS = [
+  ...TRANSACTION_MODELS,
   'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep',
   'item', 'action', 'document', 'setting', 'report',
 ];
@@ -60,9 +66,10 @@ const Router: React.FC = () => {
           {/* Legacy /db/ routes — keep working */}
           <Route path="db/:model" element={<AdminWorkbench />} />
 
-          {/* /:model = list, /:model/:id = record — explicit per model */}
-          {MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail modelName={m} /></S>} />)}
-          {MODELS.map(m => <Route key={m} path={m} element={<AdminWorkbench />} />)}
+          {/* /:model = list, /:model/:id = record */}
+          {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail modelName={m} /></S>} />)}
+          <Route path="contact/:id" element={<S><ContactDetailJson /></S>} />
+          {ALL_LIST_MODELS.map(m => <Route key={m} path={m} element={<AdminWorkbench />} />)}
 
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><TransactionDetail /></S>} />

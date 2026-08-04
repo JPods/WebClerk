@@ -120,6 +120,7 @@ export const protectedRoutesConfig = [
   { path: "/payment", element: <AdminWorkbench /> },
   { path: "/payment/:id", element: <TransactionDetail modelName="payment" /> },
   { path: "/contact", element: <AdminWorkbench /> },
+  { path: "/contact/:id", element: <CoreContactDetail /> },
   { path: "/customer", element: <AdminWorkbench /> },
   { path: "/vendor", element: <AdminWorkbench /> },
   { path: "/item", element: <AdminWorkbench /> },
