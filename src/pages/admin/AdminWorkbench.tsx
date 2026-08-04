@@ -36,13 +36,13 @@ const APP_DETAIL_ROUTES: Record<string, string> = {
 
 /** Lazy-loaded detail components for App mode inline rendering in the right panel. */
 const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetail')),
-  customer: React.lazy(() => import('@/apps/orgs/models/customer/pages/CustomerDetail')),
-  order: React.lazy(() => import('@/apps/transactions/models/order/pages/OrderDetail')),
-  invoice: React.lazy(() => import('@/apps/transactions/models/invoice/pages/InvoiceDetail')),
-  proposal: React.lazy(() => import('@/apps/transactions/models/proposal/pages/ProposalDetail')),
-  purchase: React.lazy(() => import('@/apps/transactions/models/purchase/pages/PurchaseDetail')),
-  item: React.lazy(() => import('@/apps/products/models/item/pages/ItemDetail')),
+  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetailJson')),
+  customer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  proposal: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  item: React.lazy(() => import('@/apps/products/pages/ItemDetailJson')),
   action: React.lazy(() => import('@/apps/core/models/action/pages/ActionDetail')),
 };
 
