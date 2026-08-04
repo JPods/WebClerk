@@ -19,7 +19,7 @@ import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // Detail components — same as TransactionDetail uses
-import { FieldRow } from '@/apps/transactions/components/detail/FieldRow';
+import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import { CommPanel } from '@/apps/communications/components';
 
 // Existing panels — reuse as-is

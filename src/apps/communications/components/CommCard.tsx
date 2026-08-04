@@ -11,7 +11,7 @@ import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { saveRecord, deleteRecord } from '@/api/wcapi';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
-import { FieldRow } from '@/apps/transactions/components/detail/FieldRow';
+import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 
 export interface CommCardProps {
   model: 'email' | 'phone' | 'address' | 'domain';
