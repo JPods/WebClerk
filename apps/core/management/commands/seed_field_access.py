@@ -175,7 +175,11 @@ def _build_field_behaviors(model_key, field_map):
 
         # ── JSON fields ──
         if ftype == 'JSONField':
-            behaviors[name] = {'type': 'json'}
+            # Envelope fields get the tree editor — all editable for expert users
+            if name in ('metadata', 'prefs', 'config', 'refs'):
+                behaviors[name] = {'type': 'json-tree'}
+            else:
+                behaviors[name] = {'type': 'json'}
             continue
 
         # ── FK fields — lookup from related model ──
