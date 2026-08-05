@@ -57,15 +57,18 @@ export default function App() {
                 </div>
               )}
               <Router />
-              {/* Fixed position badge with expandable details */}
-              <DataSetBadge position="bottom-right" showDetails />
-              {/* Dev tools panel (only shows in DEV mode) */}
-              <DevTools position="bottom-left" />
-              {/* AI Help Assistant chat widget */}
-              <AiHelpWidget position="bottom-right" />
-              {/* Issue reporters — floating buttons for users & devs */}
-              <UserIssueReporter />
-              <DevIssueReporter />
+              {/* Floating widgets — hidden on public tool pages */}
+              {!window.location.pathname.startsWith('/json-tree') && <>
+                {/* Fixed position badge with expandable details */}
+                <DataSetBadge position="bottom-right" showDetails />
+                {/* Dev tools panel (only shows in DEV mode) */}
+                <DevTools position="bottom-left" />
+                {/* AI Help Assistant chat widget */}
+                <AiHelpWidget position="bottom-right" />
+                {/* Issue reporters — floating buttons for users & devs */}
+                <UserIssueReporter />
+                <DevIssueReporter />
+              </>}
             </div>
           </StaffBadgePrefsProvider>
         </WindowManagerProvider>

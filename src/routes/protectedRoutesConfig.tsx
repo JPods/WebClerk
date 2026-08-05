@@ -15,15 +15,15 @@ import {
   UserProfiles,
   CoreContactDetail,
 } from "../pages/wrapperPage";
-import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import DataBrowser from "../pages/admin/DataBrowser";
 import JsonViewer from "../pages/admin/JsonViewer";
 import CommerceDashboard from "../pages/admin/CommerceDashboard";
 import AccountingDashboard from "../pages/admin/AccountingDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
-import DetailReview from "../pages/admin/DetailReview";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
+import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
 // All model-specific detail pages replaced by TransactionDetail / OrgDetailJson / ItemDetailJson
 // Old imports archived to src/archive/replaced-2026-08-03/
@@ -98,46 +98,46 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
 
   // Clean URLs: /:model = list, /:model/:id = record
-  { path: "/order", element: <AdminWorkbench /> },
+  { path: "/order", element: <DataBrowser /> },
   { path: "/order/:id", element: <TransactionDetail modelName="order" /> },
-  { path: "/invoice", element: <AdminWorkbench /> },
+  { path: "/invoice", element: <DataBrowser /> },
   { path: "/invoice/:id", element: <TransactionDetail modelName="invoice" /> },
-  { path: "/proposal", element: <AdminWorkbench /> },
+  { path: "/proposal", element: <DataBrowser /> },
   { path: "/proposal/:id", element: <TransactionDetail modelName="proposal" /> },
-  { path: "/purchase", element: <AdminWorkbench /> },
+  { path: "/purchase", element: <DataBrowser /> },
   { path: "/purchase/:id", element: <TransactionDetail modelName="purchase" /> },
-  { path: "/work_order", element: <AdminWorkbench /> },
+  { path: "/work_order", element: <DataBrowser /> },
   { path: "/work_order/:id", element: <TransactionDetail modelName="work_order" /> },
-  { path: "/receipt", element: <AdminWorkbench /> },
+  { path: "/receipt", element: <DataBrowser /> },
   { path: "/receipt/:id", element: <TransactionDetail modelName="receipt" /> },
-  { path: "/requisition", element: <AdminWorkbench /> },
+  { path: "/requisition", element: <DataBrowser /> },
   { path: "/requisition/:id", element: <TransactionDetail modelName="requisition" /> },
-  { path: "/payment", element: <AdminWorkbench /> },
+  { path: "/payment", element: <DataBrowser /> },
   { path: "/payment/:id", element: <TransactionDetail modelName="payment" /> },
-  { path: "/contact", element: <AdminWorkbench /> },
+  { path: "/contact", element: <DataBrowser /> },
   { path: "/contact/:id", element: <CoreContactDetail /> },
   { path: "/customer/:id", element: <OrgDetailJson modelName="customer" /> },
   { path: "/vendor/:id", element: <OrgDetailJson modelName="vendor" /> },
   { path: "/manufacturer/:id", element: <OrgDetailJson modelName="manufacturer" /> },
   { path: "/employee/:id", element: <OrgDetailJson modelName="employee" /> },
   { path: "/rep/:id", element: <OrgDetailJson modelName="rep" /> },
-  { path: "/customer", element: <AdminWorkbench /> },
-  { path: "/vendor", element: <AdminWorkbench /> },
-  { path: "/item", element: <AdminWorkbench /> },
-  { path: "/action", element: <AdminWorkbench /> },
-  { path: "/document", element: <AdminWorkbench /> },
-  { path: "/setting", element: <AdminWorkbench /> },
+  { path: "/customer", element: <DataBrowser /> },
+  { path: "/vendor", element: <DataBrowser /> },
+  { path: "/item", element: <DataBrowser /> },
+  { path: "/action", element: <DataBrowser /> },
+  { path: "/document", element: <DataBrowser /> },
+  { path: "/setting", element: <DataBrowser /> },
 
   // Admin tools
-  { path: "/db/:model", element: <AdminWorkbench /> },
-  { path: PageRoutes.adminWorkbench, element: <AdminWorkbench /> },
+  { path: "/db/:model", element: <DataBrowser /> },
+  { path: PageRoutes.adminWorkbench, element: <DataBrowser /> },
   { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
   { path: PageRoutes.accountingDashboard, element: <AccountingDashboard /> },
   { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
-  { path: PageRoutes.detailReview, element: <DetailReview /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
+  { path: "/json-tree", element: <JsonTreeApplet /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
   { path: "/help", element: <HelpDashboard /> },
   { path: "/test-dashboard", element: <TestDashboard /> },

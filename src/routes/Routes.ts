@@ -35,10 +35,10 @@
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
   static readonly jsonViewer: string = "/json-viewer";
+  static readonly jsonTree: string = "/json-tree";
   static readonly commerceDashboard: string = "/commerce";
   static readonly accountingDashboard: string = "/accounting";
   static readonly aliceTraining: string = "/training";
-  static readonly detailReview: string = "/detail-review";
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";

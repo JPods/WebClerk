@@ -5,7 +5,7 @@ import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import PrivateRoute from "./PrivateRoute";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import { SignIn, SignUp, Home, UserProfiles } from "../pages/wrapperPage";
-import AdminWorkbench from "../pages/admin/AdminWorkbench";
+import DataBrowser from "../pages/admin/DataBrowser";
 import NotFoundPage from "../pages/NotFoundPage";
 
 const TransactionDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
@@ -20,6 +20,7 @@ const OrgDetailJson = React.lazy(() => import("../apps/orgs/components/OrgDetail
 const ItemDetailJson = React.lazy(() => import("../apps/products/pages/ItemDetailJson"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
+const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
 
 const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>
@@ -31,7 +32,7 @@ const TRANSACTION_MODELS = [
   'receipt', 'requisition', 'payment',
 ];
 
-// All models that get a list view (/:model → AdminWorkbench)
+// All models that get a list view (/:model → DataBrowser)
 const ALL_LIST_MODELS = [
   ...TRANSACTION_MODELS,
   'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep',
@@ -50,6 +51,7 @@ const Router: React.FC = () => {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/register" element={<SignUp />} />
         <Route path="/cart" element={<S><ShoppingCart items={[]} onUpdateQuantity={() => {}} onRemoveItem={() => {}} onCheckout={() => {}} onContinueShopping={() => {}} /></S>} />
+        <Route path="/json-tree" element={<S><JsonTreeApplet /></S>} />
 
         {/* Protected */}
         <Route element={<PrivateRoute />}>
@@ -61,12 +63,12 @@ const Router: React.FC = () => {
           <Route path="accounting" element={<S><AccountingDashboard /></S>} />
           <Route path="inventory-dashboard" element={<S><InventoryDashboard /></S>} />
           <Route path="page-designer" element={<S><PageDesigner /></S>} />
-          <Route path="admin-wb" element={<AdminWorkbench />} />
+          <Route path="admin-wb" element={<DataBrowser />} />
           <Route path="kanban" element={<S><KanbanBoardPage /></S>} />
           <Route path="gantt" element={<S><UnifiedGanttPage /></S>} />
 
           {/* Legacy /db/ routes — keep working */}
-          <Route path="db/:model" element={<AdminWorkbench />} />
+          <Route path="db/:model" element={<DataBrowser />} />
 
           {/* /:model = list, /:model/:id = record */}
           {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><TransactionDetail modelName={m} /></S>} />)}
@@ -75,7 +77,7 @@ const Router: React.FC = () => {
           {['customer', 'vendor', 'manufacturer', 'employee', 'rep'].map(m =>
             <Route key={`${m}-id`} path={`${m}/:id`} element={<S><OrgDetailJson modelName={m} /></S>} />
           )}
-          {ALL_LIST_MODELS.map(m => <Route key={m} path={m} element={<AdminWorkbench />} />)}
+          {ALL_LIST_MODELS.map(m => <Route key={m} path={m} element={<DataBrowser />} />)}
 
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><TransactionDetail /></S>} />

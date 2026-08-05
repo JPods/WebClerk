@@ -145,6 +145,15 @@ export const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
     labelColor: 'dim',
     span2: true,
   },
+  'json-tree': {
+    defaultWidth: 60,
+    sizing: 'fixed',
+    sortable: false,
+    editable: true,
+    filterType: 'none',
+    labelColor: 'dim',
+    span2: true,
+  },
   textarea: {
     defaultWidth: 200,
     sizing: 'grow',

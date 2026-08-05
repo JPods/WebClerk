@@ -16,10 +16,22 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  Truck,
+  Factory,
+  Briefcase,
+  ScrollText,
+  Settings,
+  Wrench,
+  Receipt,
+  CircleDollarSign,
+  Braces,
+  type LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 import { PageRoutes } from "@/routes/Routes";
 import { useWindowManager } from "../context/WindowManagerContext";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 
 type NavItem = {
   name: string;
@@ -28,30 +40,83 @@ type NavItem = {
   subItems?: { name: string; path: string; new?: boolean }[];
 };
 
-// ─── Work ───────────────────────────────────────────────
-const workItems: NavItem[] = [
-  { icon: <LayoutDashboard size={18} />, name: "Dashboard", path: "/dashboard" },
-  { icon: <Columns3 size={18} />, name: "Kanban", path: "/kanban" },
-  { icon: <CalendarRange size={18} />, name: "Gantt", path: PageRoutes.gantt },
-];
+// ─── Icon registry — maps model/page names to Lucide icons ───────────
+const ICON_MAP: Record<string, LucideIcon> = {
+  contact: UserCircle,
+  customer: Users,
+  vendor: Truck,
+  manufacturer: Factory,
+  employee: Briefcase,
+  rep: Briefcase,
+  proposal: ClipboardList,
+  order: ShoppingCart,
+  invoice: FileText,
+  purchase: CreditCard,
+  receipt: Receipt,
+  requisition: ScrollText,
+  work_order: Wrench,
+  workorder: Wrench,
+  item: Package,
+  serial: Package,
+  action: ClipboardList,
+  setting: Settings,
+  payment: CircleDollarSign,
+  // Dashboards / pages
+  dashboard: LayoutDashboard,
+  kanban: Columns3,
+  gantt: CalendarRange,
+  accounting: BarChart3,
+  alice: Bot,
+  databrowser: Database,
+  json: Braces,
+};
 
-// ─── Forms ──────────────────────────────────────────────
-const formItems: NavItem[] = [
-  { icon: <UserCircle size={18} />, name: "Contact", path: "/contact" },
-  { icon: <Users size={18} />, name: "Customer", path: "/customer" },
-  { icon: <ClipboardList size={18} />, name: "Proposal", path: "/proposal" },
-  { icon: <ShoppingCart size={18} />, name: "Order", path: "/order" },
-  { icon: <FileText size={18} />, name: "Invoice", path: "/invoice" },
-  { icon: <CreditCard size={18} />, name: "Purchase", path: "/purchase" },
-];
+function iconFor(name: string): React.ReactNode {
+  const Icon = ICON_MAP[name.toLowerCase()] || Database;
+  return <Icon size={18} />;
+}
 
-// ─── Dashboards ─────────────────────────────────────────
-const dashboardItems: NavItem[] = [
-  { icon: <Package size={18} />, name: "Item", path: "/item" },
-  { icon: <BarChart3 size={18} />, name: "Accounting", path: "/accounting" },
-  { icon: <Bot size={18} />, name: "Alice", path: "/alice-dashboard" },
-  { icon: <Database size={18} />, name: "DataBrowser", path: "/admin-wb" },
-];
+// ─── Route map — model name to route path ────────────────────────────
+const ROUTE_MAP: Record<string, string> = {
+  dashboard: "/dashboard",
+  kanban: "/kanban",
+  gantt: PageRoutes.gantt,
+  accounting: "/accounting",
+  alice: "/alice-dashboard",
+  databrowser: "/admin-wb",
+  json: "/json-tree",
+};
+
+function routeFor(name: string): string {
+  return ROUTE_MAP[name.toLowerCase()] || `/${name.toLowerCase()}`;
+}
+
+// ─── Defaults (used when user has no prefs.nav) ──────────────────────
+const DEFAULT_MODELS = ["contact", "customer", "proposal", "order", "invoice", "purchase"];
+const DEFAULT_DASHBOARDS = ["dashboard", "kanban", "gantt", "item", "accounting", "alice", "databrowser", "json"];
+
+// ─── Display names (capitalize, handle special cases) ────────────────
+const DISPLAY_NAMES: Record<string, string> = {
+  databrowser: "DataBrowser",
+  json: "JSON",
+  alice: "Alice",
+  work_order: "Work Order",
+  gantt: "Gantt",
+  kanban: "Kanban",
+};
+
+function displayName(name: string): string {
+  return DISPLAY_NAMES[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// ─── Build NavItem[] from a list of names ────────────────────────────
+function buildItems(names: string[]): NavItem[] {
+  return names.map(name => ({
+    name: displayName(name),
+    icon: iconFor(name),
+    path: routeFor(name),
+  }));
+}
 
 const AppSidebar: React.FC = () => {
   const {
@@ -63,6 +128,16 @@ const AppSidebar: React.FC = () => {
     toggleVisibility,
   } = useSidebar();
   const { ensureWindow, activateWindow, activePath } = useWindowManager();
+  const authUser = useSelector((s: RootState) => s.auth?.user);
+
+  // Read nav prefs from user's contact record (prefs.staff.nav or legacy prefs.nav)
+  const staffPrefs = (authUser as any)?.prefs?.staff;
+  const navPrefs = staffPrefs?.nav || (authUser as any)?.prefs?.nav;
+  const modelNames: string[] = navPrefs?.models || DEFAULT_MODELS;
+  const dashboardNames: string[] = navPrefs?.dashboards || DEFAULT_DASHBOARDS;
+
+  const modelItems = buildItems(modelNames);
+  const dashboardItems = buildItems(dashboardNames);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: string;
@@ -208,7 +283,8 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-[60px] left-0 flex h-[calc(100vh-60px)] flex-col bg-slate-900 transition-all duration-200 ease-in-out z-50 ${translateClass}`}
+      className={`fixed top-[40px] left-0 flex h-[calc(100vh-40px)] flex-col bg-slate-900 transition-all duration-200 ease-in-out z-50 ${translateClass}`}
+      data-zone="NavBar | aside.fixed | AppSidebar.tsx"
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -232,11 +308,8 @@ const AppSidebar: React.FC = () => {
 
       {/* Navigation — fills all available space */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2">
-        {sectionLabel("Work")}
-        {renderItems(workItems, "work")}
-
-        {sectionLabel("Forms")}
-        {renderItems(formItems, "forms")}
+        {sectionLabel("Models")}
+        {renderItems(modelItems, "models")}
 
         {sectionLabel("Dashboards")}
         {renderItems(dashboardItems, "dashboards")}

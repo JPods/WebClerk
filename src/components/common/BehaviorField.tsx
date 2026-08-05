@@ -12,6 +12,110 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { openFieldHelp } from './HelpMenu';
 import { getRecords } from '@/api/wcapi';
+import { JsonTree } from '@/components/widgets/JsonTreeWidget';
+
+// ── Floating JSON editor (split-pane: code left, tree right) ────────
+
+function JsonFloatingEditor({ name, data, onChange, onClose, theme: th }: {
+  name: string; data: any; onChange: (v: any) => void; onClose: () => void;
+  theme: { text: string; textMuted: string; border: string; surfaceAlt: string; inputBg: string };
+}) {
+  const [code, setCode] = useState(() => JSON.stringify(data, null, 2));
+  const [treeData, setTreeData] = useState(data);
+  const [error, setError] = useState('');
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Code → tree sync
+  const handleCodeChange = useCallback((text: string) => {
+    setCode(text);
+    try { const parsed = JSON.parse(text); setTreeData(parsed); setError(''); }
+    catch (e: any) { setError(e.message); }
+  }, []);
+
+  // Tree → code sync
+  const handleTreeChange = useCallback((newData: any) => {
+    setTreeData(newData);
+    setCode(JSON.stringify(newData, null, 2));
+    setError('');
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const handleSave = () => {
+    if (error) return; // don't save broken JSON
+    onChange(treeData);
+    onClose();
+  };
+
+  return (
+    <div ref={overlayRef}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
+      onClick={e => { if (e.target === overlayRef.current) onClose(); }}>
+      <div style={{ width: '90vw', maxWidth: 1200, height: '85vh', display: 'flex', flexDirection: 'column',
+        background: th.inputBg, border: `1px solid ${th.border}`, borderRadius: 8,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+        {/* Title bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 16px', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: th.text }}>{name}</span>
+            {error && <span style={{ fontSize: 11, color: '#f87171', fontFamily: 'monospace' }}>{error}</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={handleSave} disabled={!!error}
+              style={{ padding: '4px 14px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: 'none',
+                background: error ? '#64748b' : '#465fff', color: '#fff', cursor: error ? 'not-allowed' : 'pointer' }}>
+              Save
+            </button>
+            <button onClick={onClose}
+              style={{ padding: '4px 14px', fontSize: 12, fontWeight: 500, borderRadius: 4, border: `1px solid ${th.border}`, background: th.surfaceAlt, color: th.text, cursor: 'pointer' }}>
+              Close
+            </button>
+          </div>
+        </div>
+        {/* Split pane */}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+          {/* Code editor — left */}
+          <div style={{ width: '45%', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${th.border}` }}>
+            <div style={{ padding: '3px 10px', fontSize: 9, fontWeight: 600, color: th.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+              Code
+            </div>
+            <textarea
+              value={code}
+              onChange={e => handleCodeChange(e.target.value)}
+              spellCheck={false}
+              style={{
+                flex: 1, resize: 'none', border: 'none', outline: 'none', padding: 12,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 11, lineHeight: 1.6,
+                background: th.inputBg, color: th.text, tabSize: 2,
+              }}
+            />
+          </div>
+          {/* Tree view — right */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div style={{ padding: '3px 10px', fontSize: 9, fontWeight: 600, color: th.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+              Tree
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 8 }}>
+              {error ? (
+                <div style={{ padding: 32, textAlign: 'center', color: th.textMuted, fontSize: 12 }}>
+                  Fix the JSON to see the tree
+                </div>
+              ) : (
+                <JsonTree data={treeData} onChange={handleTreeChange} defaultExpanded maxHeight="none"
+                  theme={th} style={{ border: 'none', background: 'transparent' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface BehaviorFieldProps {
   name: string;
@@ -37,6 +141,7 @@ export default function BehaviorField({
   const isJson = typeof v === 'object' && v !== null;
   const isLong = typeof v === 'string' && (v as string).length > 100;
   const span2 = (isJson || isLong || behType === 'textarea' || behType === 'json');
+  const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
   // Default theme
   const th = t || {
@@ -193,14 +298,33 @@ export default function BehaviorField({
     <span style={{ fontSize, color: th.text }}>{name}</span>
   </label>;
 
+  // ── JSON Tree ──
+  if (behType === 'json-tree') {
+    const readOnly = beh.readOnly === true;
+    return <div style={{ gridColumn: '1 / -1' }} {...wcAttrs}>
+      <JsonTree data={v as any} onChange={readOnly ? undefined : (d) => onChange(d)}
+        readOnly={readOnly} label={name}
+        onLabelClick={() => setJsonEditorOpen(true)}
+        theme={{ text: th.text, textMuted: th.textMuted, border: th.border, surfaceAlt: th.surfaceAlt, inputBg: th.inputBg }} />
+      {jsonEditorOpen && <JsonFloatingEditor name={name} data={v} onChange={onChange}
+        onClose={() => setJsonEditorOpen(false)}
+        theme={{ text: th.text, textMuted: th.textMuted, border: th.border, surfaceAlt: th.surfaceAlt, inputBg: th.inputBg }} />}
+    </div>;
+  }
+
   // ── JSON ──
   if (behType === 'json' || isJson) {
     const js = JSON.stringify(v, null, 2);
     const rows = rowSize || (js.length > 200 ? 8 : 3);
     return <div style={{ gridColumn: '1 / -1' }}>
-      <span style={labelStyle}>{name} <span style={{ fontWeight: 400, textTransform: 'none' }}>({js.length})</span></span>
+      <span style={{ ...labelStyle, cursor: 'pointer' }} onClick={() => setJsonEditorOpen(true)} title="Click to open in editor">
+        {name} <span style={{ fontWeight: 400, textTransform: 'none' }}>({js.length})</span>
+      </span>
       <textarea style={{ ...inputStyle, width: '100%', fontFamily: 'monospace', fontSize: fontSize - 1, resize: 'vertical' }} rows={rows} value={js}
         onChange={(e) => { try { onChange(JSON.parse(e.target.value)); } catch { /* typing */ } }} />
+      {jsonEditorOpen && <JsonFloatingEditor name={name} data={v} onChange={onChange}
+        onClose={() => setJsonEditorOpen(false)}
+        theme={{ text: th.text, textMuted: th.textMuted, border: th.border, surfaceAlt: th.surfaceAlt, inputBg: th.inputBg }} />}
     </div>;
   }
 

@@ -22,6 +22,8 @@ export { ReadonlyWidget } from "./ReadonlyWidget";
 export { JsonTextWidget } from "./JsonTextWidget";
 export { ContactLookup } from "./ContactLookup";
 export { CheckboxWidget } from "./CheckboxWidget";
+export { JsonTreeWidgetAdapter, JsonTree } from "./JsonTreeWidget";
+export type { JsonTreeProps } from "./JsonTreeWidget";
 
 // Action widgets — buttons, toolbars, badges
 export { WcButton } from "./WcButton";
@@ -40,6 +42,7 @@ import { ReadonlyWidget } from "./ReadonlyWidget";
 import { JsonTextWidget } from "./JsonTextWidget";
 import { ContactLookup } from "./ContactLookup";
 import { CheckboxWidget } from "./CheckboxWidget";
+import { JsonTreeWidgetAdapter } from "./JsonTreeWidget";
 
 /**
  * The registry. Keys are the type names used in field configs
@@ -54,6 +57,7 @@ export const WIDGETS: Record<string, React.ComponentType<WidgetProps>> = {
   currency: CurrencyWidget,
   readonly: ReadonlyWidget,
   "json-text": JsonTextWidget,
+  "json-tree": JsonTreeWidgetAdapter,
   contact: ContactLookup,
   checkbox: CheckboxWidget,
 };
