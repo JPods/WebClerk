@@ -449,6 +449,97 @@ class DiagnoseView(APIView):
             )
 
 
+class DeviceStatusView(APIView):
+    """
+    GET  /wcapi/ai/device-status/  — Read current device health for dashboard.
+    POST /wcapi/ai/device-status/  — Andi/Mac pushes device telemetry.
+
+    Stored in Setting(purpose='device_status', parent_model='system').
+    Dashboard reads GET; Andi/Mac scripts POST every 5 minutes.
+
+    The stress_rating (1-5) is computed from the telemetry:
+      1 = cool and quiet, 5 = critical.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from apps.core.models import Setting
+        setting = Setting.objects.filter(
+            purpose='device_status', parent_model='system',
+        ).first()
+        if not setting or not setting.config:
+            return api_response(data={'status': 'no_data'})
+        return api_response(data=setting.config)
+
+    def post(self, request):
+        from apps.core.models import Setting
+        data = request.data
+        if not data:
+            return api_response(
+                data={'error': 'No data provided'},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Compute stress rating from telemetry
+        data['stress_rating'] = self._compute_stress(data)
+        data['dt_updated'] = _utc_now_iso()
+
+        setting, created = Setting.objects.update_or_create(
+            purpose='device_status',
+            parent_model='system',
+            defaults={
+                'name': 'device_status:system',
+                'config': data,
+            },
+        )
+
+        return api_response(data={
+            'stored': True,
+            'stress_rating': data['stress_rating'],
+            'created': created,
+        })
+
+    @staticmethod
+    def _compute_stress(data):
+        """Compute physical stress rating 1-5 from device telemetry.
+
+        Factors: CPU temp, memory usage, disk usage, load average.
+        Each factor scores 0-1, weighted sum maps to 1-5.
+        """
+        score = 0.0
+
+        # CPU temp: 40°C=0, 90°C=1
+        cpu_max = data.get('cpu_temp_max_c', 0)
+        if cpu_max:
+            score += max(0, min(1, (cpu_max - 40) / 50)) * 0.35
+
+        # Memory: 20%=0, 95%=1
+        mem_pct = data.get('memory_used_pct', 0)
+        if mem_pct:
+            score += max(0, min(1, (mem_pct - 20) / 75)) * 0.25
+
+        # Disk: 50%=0, 95%=1
+        disk_pct = data.get('disk_used_pct', 0)
+        if disk_pct:
+            score += max(0, min(1, (disk_pct - 50) / 45)) * 0.20
+
+        # Load avg (per core): 0.5=0, 2.0=1
+        load_1 = data.get('load_avg_1min', 0)
+        cores = data.get('cpu_cores', 1)
+        if load_1 and cores:
+            per_core = load_1 / cores
+            score += max(0, min(1, (per_core - 0.5) / 1.5)) * 0.20
+
+        # Map 0-1 to 1-5
+        rating = 1 + (score * 4)
+        return round(rating, 1)
+
+
+def _utc_now_iso():
+    import datetime
+    return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
 class HistoryView(APIView):
     """
     GET /wcapi/ai/history/
