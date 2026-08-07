@@ -1002,6 +1002,54 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.support.scheduler.tasks.task_athena_verify',
         'schedule': crontab(minute=0, hour='*/4'),
     },
+
+    # ── Alice: Health scoring (daily 2:30 AM) ──────────────────────
+    'alice-health-scoring-nightly': {
+        'task': 'apps.ai_assistant.tasks.health_scoring_task',
+        'schedule': crontab(hour=2, minute=30),
+    },
+
+    # ── Alice: Data cleanup (daily 3:10 AM) ────────────────────────
+    'alice-data-cleanup-nightly': {
+        'task': 'apps.ai_assistant.tasks.data_cleanup_task',
+        'schedule': crontab(hour=3, minute=10),
+    },
+
+    # ── Alice: JSON optimization (daily 3:30 AM) ──────────────────
+    'alice-json-optimize-nightly': {
+        'task': 'apps.ai_assistant.tasks.json_optimize_task',
+        'schedule': crontab(hour=3, minute=30),
+    },
+
+    # ── Alice: Relationship scan (daily 4 AM) ─────────────────────
+    'alice-relationship-scan-nightly': {
+        'task': 'apps.ai_assistant.tasks.relationship_scan_task',
+        'schedule': crontab(hour=4, minute=0),
+    },
+
+    # ── Alice: Schema drift (weekly Monday 4:30 AM) ───────────────
+    'alice-schema-drift-weekly': {
+        'task': 'apps.ai_assistant.tasks.schema_drift_task',
+        'schedule': crontab(hour=4, minute=30, day_of_week='monday'),
+    },
+
+    # ── Alice: Margin tracking (weekly Monday 5:00 AM) ────────────
+    'alice-margin-tracking-weekly': {
+        'task': 'apps.ai_assistant.tasks.margin_tracking_task',
+        'schedule': crontab(hour=5, minute=0, day_of_week='monday'),
+    },
+
+    # ── Alice: Velocity (weekly Monday 5:30 AM) ──────────────────
+    'alice-velocity-weekly': {
+        'task': 'apps.ai_assistant.tasks.velocity_task',
+        'schedule': crontab(hour=5, minute=30, day_of_week='monday'),
+    },
+
+    # ── Alice: Layout drift (weekly Monday 6:00 AM) ──────────────
+    'alice-layout-drift-weekly': {
+        'task': 'apps.ai_assistant.tasks.layout_drift_task',
+        'schedule': crontab(hour=6, minute=0, day_of_week='monday'),
+    },
 }
 
 # --- Inventory Pending Processing ---
