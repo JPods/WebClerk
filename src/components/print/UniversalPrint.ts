@@ -369,7 +369,53 @@ body { font-family: -apple-system, system-ui, 'Segoe UI', sans-serif; font-size:
 `;
 
 // ---------------------------------------------------------------------------
-// Main export
+// HTML generation (pure function — used by both print popup and designer preview)
+// ---------------------------------------------------------------------------
+
+export { PRINT_CSS };
+
+export function generatePrintHtml(
+  data: any,
+  companyInfo: any,
+  layout: PrintLayout,
+): string {
+  const title = layout.title || layout.model || 'Document';
+  const isList = layout.sections.some(s => s.type === 'data_table');
+  const ida = isList ? '' : (data?.ida || data?.id || '');
+  const recordCount = isList ? (data?.rows?.length || 0) : 0;
+  const printName = isList
+    ? `${title.toUpperCase()}_${recordCount}_records`
+    : `${title.toUpperCase()}_${ida}_${(data?.company || '').replace(/\s+/g, '_')}`;
+
+  const idLine = isList ? `${recordCount} records` : String(ida);
+  const docInfo = `<div class="up-doc-info"><div class="up-doc-title">${esc(title.toUpperCase())}</div><div class="up-doc-id">${esc(idLine)}</div><div style="font-size:11px;color:#64748b">${esc(data?.status || '')}</div></div>`;
+
+  const renderData = { ...data, _layout: layout };
+
+  const sectionsHtml = layout.sections.map(section => {
+    const renderer = RENDERERS[section.type];
+    if (!renderer) return `<!-- unknown section type: ${section.type} -->`;
+    return renderer(section, renderData, companyInfo);
+  }).join('\n');
+
+  const bodyHtml = sectionsHtml.replace(
+    '</div>\n  </div>',
+    `</div>${docInfo}</div>`
+  );
+
+  const co = companyInfo || {};
+  const footerParts = [co.name, co.domain, co.phone, co.email].filter(Boolean).join(' · ');
+  const pageFooter = `<div class="up-page-footer">${esc(footerParts)}</div>`;
+
+  return `<!DOCTYPE html><html><head><title>${esc(printName)}</title><style>${PRINT_CSS}</style></head><body>
+    <button class="up-print-btn" onclick="window.print()">Print ${esc(title)}</button>
+    ${bodyHtml}
+    ${pageFooter}
+  </body></html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Main export — opens print popup
 // ---------------------------------------------------------------------------
 
 export async function openUniversalPrint(
@@ -381,58 +427,10 @@ export async function openUniversalPrint(
   const w = window.open('', '_blank', 'width=850,height=1000');
   if (!w) return;
 
-  const title = layout.title || layout.model || 'Document';
-  const isList = layout.sections.some(s => s.type === 'data_table');
-  const ida = isList ? '' : (data?.ida || data?.id || '');
-  const company = data?.company || '';
-  const recordCount = isList ? (data?.rows?.length || 0) : 0;
-  const printName = isList
-    ? `${title.toUpperCase()}_${recordCount}_records`
-    : `${title.toUpperCase()}_${ida}_${company.replace(/\s+/g, '_')}`;
-
-  // Render document title alongside company header
-  const idLine = isList
-    ? `${recordCount} records`
-    : String(ida);
-  const docInfo = `<div class="up-doc-info"><div class="up-doc-title">${esc(title.toUpperCase())}</div><div class="up-doc-id">${esc(idLine)}</div><div style="font-size:11px;color:#64748b">${esc(data?.status || '')}</div></div>`;
-
-  // Pass layout flags to data_table sections via data
-  const renderData = { ...data, _layout: layout };
-
-  // Render all sections
-  const sectionsHtml = layout.sections.map(section => {
-    const renderer = RENDERERS[section.type];
-    if (!renderer) return `<!-- unknown section type: ${section.type} -->`;
-    return renderer(section, renderData, companyInfo);
-  }).join('\n');
-
-  // Inject doc info into company header if present
-  const bodyHtml = sectionsHtml.replace(
-    '</div>\n  </div>', // end of company header
-    `</div>${docInfo}</div>`
-  );
-
-  // Page footer with company identifiers and page numbering
-  const co = companyInfo || {};
-  const footerParts = [co.name, co.domain, co.phone, co.email].filter(Boolean).join(' · ');
-  const pageFooter = `<div class="up-page-footer">${esc(footerParts)}</div>`;
-
-  // Script to number pages after render (CSS counters don't work cross-browser for print)
-  const pageScript = `<script>
-    window.addEventListener('afterprint', function() {});
-    // Best-effort page numbering via print media
-    var style = document.createElement('style');
-    style.textContent = '@media print { @page { @bottom-center { content: "Page " counter(page) " of " counter(pages); } } }';
-    document.head.appendChild(style);
-  </script>`;
+  const html = generatePrintHtml(data, companyInfo, layout);
 
   w.document.open();
-  w.document.write(`<!DOCTYPE html><html><head><title>${esc(printName)}</title><style>${PRINT_CSS}</style></head><body>
-    <button class="up-print-btn" onclick="window.print()">Print ${esc(title)}</button>
-    ${bodyHtml}
-    ${pageFooter}
-    ${pageScript}
-  </body></html>`);
+  w.document.write(html);
   w.document.close();
 
   if (options?.autoprint !== false) {

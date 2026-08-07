@@ -13,9 +13,11 @@
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getRecords, getRecord } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord } from '@/api/wcapi';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
 import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
+import PrintLayoutDesigner from '@/components/print/PrintLayoutDesigner';
+import type { PrintLayout } from '@/components/print/printLayoutTypes';
 // ParadeOfReports available at /parade route — launched as a Report record, not a dialog button
 
 // ---------------------------------------------------------------------------
@@ -122,6 +124,57 @@ const ReportsDialog: React.FC<Props> = ({
   const [loadedModel, setLoadedModel] = useState('');
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // --- DesignMode ---
+  const [designMode, setDesignMode] = useState(false);
+  const [designReport, setDesignReport] = useState<ReportRecord | null>(null);
+  const [designLayout, setDesignLayout] = useState<PrintLayout | null>(null);
+  const [designSampleData, setDesignSampleData] = useState<any>(null);
+
+  const enterDesignMode = useCallback(async (report: ReportRecord) => {
+    // Load layout from report.config.form or fallback to Setting
+    let layout: PrintLayout;
+    const form = report.config?.form as PrintLayout | undefined;
+    if (form?.sections) {
+      layout = form;
+    } else {
+      layout = await fetchPrintLayout(model);
+    }
+    // Load sample data
+    let sample: any = null;
+    if (selectedId) {
+      try {
+        const res = await getRecord(model, selectedId);
+        sample = (res as any)?.record || res;
+      } catch { /* proceed without sample */ }
+    } else if (listRecords?.length) {
+      sample = context === 'list' ? { rows: listRecords.slice(0, 10) } : listRecords[0];
+    }
+    setDesignReport(report);
+    setDesignLayout(layout);
+    setDesignSampleData(sample);
+    setDesignMode(true);
+  }, [model, selectedId, listRecords, context]);
+
+  const handleDesignSave = useCallback(async (layout: PrintLayout) => {
+    if (!designReport) return;
+    await saveRecord('report', {
+      id: designReport.id,
+      config: { ...(designReport.config || {}), form: layout },
+    });
+    // Refresh report list
+    setLoadedModel('');
+    setDesignMode(false);
+    setDesignReport(null);
+    setDesignLayout(null);
+  }, [designReport]);
+
+  const exitDesignMode = useCallback(() => {
+    setDesignMode(false);
+    setDesignReport(null);
+    setDesignLayout(null);
+    setDesignSampleData(null);
+  }, []);
 
   // ---- Fetch reports for this model ----
   useEffect(() => {
@@ -278,7 +331,7 @@ const ReportsDialog: React.FC<Props> = ({
       <div data-wc="reports-dialog"
         style={{
           background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 8, width: showPreview ? 1100 : 620, maxHeight: '85vh',
+          borderRadius: 8, width: designMode ? 1200 : showPreview ? 1100 : 620, maxHeight: '85vh',
           display: 'flex', flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           transition: 'width 0.2s ease',
@@ -340,7 +393,10 @@ const ReportsDialog: React.FC<Props> = ({
             return (
               <div key={report.id}
                 data-wc="reports-dialog-row"
-                onClick={() => setSelectedIndex(i)}
+                onClick={(e) => {
+                  if (e.shiftKey && canEditReports) { enterDesignMode(report); return; }
+                  setSelectedIndex(i);
+                }}
                 onDoubleClick={() => executeReport(report)}
                 style={{
                   display: 'grid', gridTemplateColumns: '70px 1fr 72px 28px',
@@ -421,8 +477,23 @@ const ReportsDialog: React.FC<Props> = ({
           })}
         </div>
 
+        {/* DesignMode pane — visual PrintLayout editor */}
+        {designMode && designReport && designLayout && (
+          <PrintLayoutDesigner
+            report={designReport}
+            model={model}
+            layout={designLayout}
+            theme={t}
+            fontSize={fontSize}
+            companyInfo={companyInfo}
+            sampleData={designSampleData}
+            onSave={handleDesignSave}
+            onClose={exitDesignMode}
+          />
+        )}
+
         {/* Preview pane — shows sample data render for selected print report */}
-        {showPreview && (
+        {!designMode && showPreview && (
           <div style={{
             flex: 1, borderLeft: `1px solid ${t.border}`,
             display: 'flex', flexDirection: 'column',
@@ -456,16 +527,35 @@ const ReportsDialog: React.FC<Props> = ({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ fontSize: fontSize - 2, color: t.textMuted }}>
-            {context === 'detail' && selectedId
-              ? `Record #${selectedId}`
-              : 'List reports'}
-            {' · Double-click to print · '}
-            <span style={{ color: t.textDim }}>
-              {navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'} = Primary
-            </span>
+            {designMode
+              ? 'DesignMode — editing layout'
+              : <>
+                  {context === 'detail' && selectedId ? `Record #${selectedId}` : 'List reports'}
+                  {' · Double-click to print · Shift-click to design · '}
+                  <span style={{ color: t.textDim }}>
+                    {navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'} = Primary
+                  </span>
+                </>
+            }
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            {canEditReports && (
+            {canEditReports && !designMode && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+              <button
+                onClick={() => enterDesignMode(filteredReports[selectedIndex])}
+                title="Visual layout designer (or Shift-click a report)"
+                style={{
+                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                  fontSize: fontSize - 1, fontWeight: 600,
+                  background: 'none', border: `1px solid ${t.accent}`,
+                  color: t.accent,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+              >
+                Design
+              </button>
+            )}
+            {canEditReports && !designMode && (
               <button
                 onClick={() => {
                   onClose();
@@ -484,7 +574,7 @@ const ReportsDialog: React.FC<Props> = ({
                 Edit Layout
               </button>
             )}
-            {canEditReports && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+            {canEditReports && !designMode && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <button
                 onClick={() => handleSetup(filteredReports[selectedIndex])}
                 style={{
@@ -499,7 +589,7 @@ const ReportsDialog: React.FC<Props> = ({
                 Report Setup
               </button>
             )}
-            {canCreateReports && (
+            {canCreateReports && !designMode && (
               <button
                 onClick={handleNewReport}
                 style={{
