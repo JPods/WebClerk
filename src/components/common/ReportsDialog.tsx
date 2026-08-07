@@ -321,20 +321,24 @@ const ReportsDialog: React.FC<Props> = ({
   return (
     // Backdrop
     <div data-wc="reports-dialog-backdrop"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (!designMode && e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(0,0,0,0.5)',
+        background: designMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-      {/* Dialog — wider when preview is showing */}
+      {/* Dialog — near full width in design mode, hard modal */}
       <div data-wc="reports-dialog"
         style={{
           background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 8, width: designMode ? 1200 : showPreview ? 1100 : 620, maxHeight: '85vh',
+          borderRadius: 8,
+          width: designMode ? '95vw' : showPreview ? 1100 : 620,
+          maxWidth: designMode ? 1800 : undefined,
+          height: designMode ? '92vh' : undefined,
+          maxHeight: designMode ? '92vh' : '85vh',
           display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          transition: 'width 0.2s ease',
+          boxShadow: designMode ? '0 12px 48px rgba(0,0,0,0.6)' : '0 8px 32px rgba(0,0,0,0.4)',
+          transition: 'width 0.2s ease, height 0.2s ease',
         }}>
 
         {/* Header */}
@@ -356,7 +360,8 @@ const ReportsDialog: React.FC<Props> = ({
           }}>&times;</button>
         </div>
 
-        {/* Column headers */}
+        {/* Column headers — hidden in design mode */}
+        {!designMode && (
         <div style={{
           display: 'grid', gridTemplateColumns: '70px 1fr 72px 28px',
           gap: 8, padding: '6px 16px',
@@ -369,12 +374,19 @@ const ReportsDialog: React.FC<Props> = ({
           <span style={{ textAlign: 'center' }}>Output</span>
           <span></span>
         </div>
+        )}
 
         {/* Body — list + preview */}
         <div style={{ flex: 1, display: 'flex', minHeight: 120, overflow: 'hidden' }}>
 
-        {/* Report list */}
-        <div ref={listRef} style={{ flex: showPreview ? '0 0 480px' : 1, overflowY: 'auto', padding: '4px 0' }}>
+        {/* Report list — collapsed to narrow strip in design mode */}
+        <div ref={listRef} style={{
+          flex: designMode ? '0 0 0px' : showPreview ? '0 0 480px' : 1,
+          overflowY: 'auto', padding: designMode ? 0 : '4px 0',
+          width: designMode ? 0 : undefined,
+          overflow: designMode ? 'hidden' : undefined,
+          transition: 'flex 0.2s ease, width 0.2s ease',
+        }}>
           {loading && (
             <div style={{ padding: '16px', color: t.textMuted, textAlign: 'center' }}>
               Loading...
