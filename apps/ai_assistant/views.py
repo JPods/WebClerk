@@ -227,6 +227,229 @@ class HealthView(APIView):
         return api_response(data=health)
 
 
+class DiagnoseView(APIView):
+    """
+    GET  /wcapi/ai/diagnose/  — Full Alice diagnostic for Andi device manager.
+    POST /wcapi/ai/diagnose/  — Run a specific remediation action.
+
+    GET returns a structured report of every Alice subsystem with ok/fail
+    and a remediation hint for each failure. Andi reads this to decide
+    what to fix instead of blindly restarting everything.
+
+    POST body: {"action": "migrate" | "restart_celery" | "pull_model" | "reindex"}
+    Runs the specified remediation and returns the result.
+
+    AllowAny because Andi calls this from localhost without auth.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        checks = {}
+        actions = []
+
+        # 1. Ollama model
+        checks['ollama'] = self._check_ollama()
+        if not checks['ollama']['ok']:
+            actions.append('pull_model')
+
+        # 2. Chroma vector store
+        checks['chroma'] = self._check_chroma()
+        if not checks['chroma']['ok']:
+            actions.append('reindex')
+
+        # 3. Celery tasks registered
+        checks['celery_tasks'] = self._check_celery_tasks()
+        if not checks['celery_tasks']['ok']:
+            actions.append('restart_celery')
+
+        # 4. Beat schedule
+        checks['beat_schedule'] = self._check_beat_schedule()
+
+        # 5. Alice DB tables
+        checks['alice_db'] = self._check_alice_db()
+        if not checks['alice_db']['ok']:
+            actions.append('migrate')
+
+        # 6. Alice observations (is she producing output?)
+        checks['alice_activity'] = self._check_alice_activity()
+
+        all_ok = all(c['ok'] for c in checks.values())
+
+        return api_response(data={
+            'status': 'ok' if all_ok else 'degraded',
+            'checks': checks,
+            'recommended_actions': actions,
+        })
+
+    def post(self, request):
+        action = request.data.get('action', '')
+
+        if action == 'migrate':
+            return self._do_migrate()
+        elif action == 'restart_celery':
+            return self._do_restart_celery()
+        elif action == 'reindex':
+            return self._do_reindex()
+        elif action == 'pull_model':
+            return api_response(
+                data={'message': 'Model pull must be done via ollama CLI'},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            return api_response(
+                data={'message': f'Unknown action: {action}. Valid: migrate, restart_celery, reindex'},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # ── Check methods ─────────────────────────────────────────────
+
+    def _check_ollama(self):
+        try:
+            from django.conf import settings
+            import urllib.request
+            configured = getattr(settings, 'OLLAMA_MODEL', 'unknown')
+            base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
+            resp = urllib.request.urlopen(f'{base_url}/api/tags', timeout=5)
+            import json as _json
+            data = _json.loads(resp.read())
+            installed = [m['name'] for m in data.get('models', [])]
+            if configured in installed:
+                return {'ok': True, 'model': configured, 'installed': installed}
+            return {
+                'ok': False, 'model': configured, 'installed': installed,
+                'hint': f'Model {configured} not installed. Run: ollama pull {configured}',
+            }
+        except Exception as e:
+            return {'ok': False, 'error': str(e), 'hint': 'Ollama not responding'}
+
+    def _check_chroma(self):
+        try:
+            rag = RAGService()
+            stats = rag.vector_store.stats()
+            if stats.get('count', 0) > 0:
+                return {'ok': True, 'chunks': stats['count']}
+            return {'ok': False, 'chunks': 0, 'hint': 'Vector store empty — run reindex'}
+        except Exception as e:
+            return {'ok': False, 'error': str(e), 'hint': 'Chroma not responding'}
+
+    def _check_celery_tasks(self):
+        expected = [
+            'apps.ai_assistant.tasks.alice_schema_watch_task',
+            'apps.ai_assistant.tasks.apply_pending_layouts_task',
+            'apps.ai_assistant.tasks.data_cleanup_task',
+            'apps.ai_assistant.tasks.health_scoring_task',
+            'apps.ai_assistant.tasks.json_optimize_task',
+            'apps.ai_assistant.tasks.layout_drift_task',
+            'apps.ai_assistant.tasks.margin_tracking_task',
+            'apps.ai_assistant.tasks.relationship_scan_task',
+            'apps.ai_assistant.tasks.schema_drift_task',
+            'apps.ai_assistant.tasks.velocity_task',
+            'apps.ai_assistant.tasks.full_intelligence_run',
+        ]
+        try:
+            from celery import current_app
+            registered = current_app.control.inspect().registered()
+            if not registered:
+                return {'ok': False, 'hint': 'No Celery workers responding'}
+            all_tasks = set()
+            for worker_tasks in registered.values():
+                all_tasks.update(worker_tasks)
+            missing = [t for t in expected if t not in all_tasks]
+            if missing:
+                return {
+                    'ok': False, 'missing': missing,
+                    'hint': 'Tasks missing @shared_task decorator or Celery needs restart',
+                }
+            return {'ok': True, 'registered': len(all_tasks)}
+        except Exception as e:
+            return {'ok': False, 'error': str(e), 'hint': 'Cannot inspect Celery'}
+
+    def _check_beat_schedule(self):
+        from django.conf import settings as django_settings
+        schedule = getattr(django_settings, 'CELERY_BEAT_SCHEDULE', {})
+        alice_entries = {
+            k: v['task'] for k, v in schedule.items()
+            if 'ai_assistant' in v.get('task', '')
+        }
+        if len(alice_entries) < 3:
+            return {
+                'ok': False, 'count': len(alice_entries),
+                'hint': 'Alice tasks not wired in CELERY_BEAT_SCHEDULE',
+            }
+        return {'ok': True, 'count': len(alice_entries), 'entries': alice_entries}
+
+    def _check_alice_db(self):
+        try:
+            from .models_alice import AliceObservation, AliceCoachingLog, AliceInsight
+            counts = {
+                'observations': AliceObservation.objects.count(),
+                'coaching_logs': AliceCoachingLog.objects.count(),
+                'insights': AliceInsight.objects.count(),
+            }
+            return {'ok': True, **counts}
+        except Exception as e:
+            return {'ok': False, 'error': str(e), 'hint': 'Run: manage.py migrate'}
+
+    def _check_alice_activity(self):
+        """Check if Alice has produced any output in the last 24 hours."""
+        try:
+            from django.utils import timezone
+            from datetime import timedelta
+            from .models_alice import AliceObservation
+            cutoff = timezone.now() - timedelta(hours=24)
+            recent = AliceObservation.objects.filter(dt_created__gte=cutoff).count()
+            if recent > 0:
+                return {'ok': True, 'recent_24h': recent}
+            total = AliceObservation.objects.count()
+            return {
+                'ok': False, 'recent_24h': 0, 'total': total,
+                'hint': 'No observations in 24h — Alice may not be running her tasks',
+            }
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
+
+    # ── Remediation methods ───────────────────────────────────────
+
+    def _do_migrate(self):
+        try:
+            call_command('migrate', '--run-syncdb', verbosity=0)
+            return api_response(data={'action': 'migrate', 'result': 'ok'})
+        except Exception as e:
+            return api_response(
+                data={'action': 'migrate', 'result': 'failed', 'error': str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _do_restart_celery(self):
+        import subprocess
+        try:
+            result = subprocess.run(
+                ['sudo', 'systemctl', 'restart', 'webclerk3-celery'],
+                capture_output=True, text=True, timeout=30,
+            )
+            if result.returncode == 0:
+                return api_response(data={'action': 'restart_celery', 'result': 'ok'})
+            return api_response(
+                data={'action': 'restart_celery', 'result': 'failed', 'error': result.stderr},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except Exception as e:
+            return api_response(
+                data={'action': 'restart_celery', 'result': 'failed', 'error': str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _do_reindex(self):
+        try:
+            call_command('reindex_vectors', verbosity=0)
+            return api_response(data={'action': 'reindex', 'result': 'ok'})
+        except Exception as e:
+            return api_response(
+                data={'action': 'reindex', 'result': 'failed', 'error': str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 class HistoryView(APIView):
     """
     GET /wcapi/ai/history/
