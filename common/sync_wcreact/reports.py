@@ -468,7 +468,7 @@ REPORT_DEFS: dict[str, list[dict]] = {
 # Fields that get set/updated on each report record
 SYNC_FIELDS = [
     "description", "output_type", "category", "sort_order",
-    "role_required", "security_level", "purpose", "data",
+    "role_required", "security_level", "purpose", "config",
 ]
 
 # Defaults for fields not specified in a definition dict
@@ -480,7 +480,7 @@ _FIELD_DEFAULTS = {
     "role_required": "",
     "security_level": 0,
     "purpose": "",
-    "data": {},
+    "config": {},
 }
 
 

@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "model": "payment",
+    "description": "Sample payment for report parade — customer check payment applied to invoices",
+    "version": 1
+  },
+  "ida": "PMT-2026-0512",
+  "status": "applied",
+  "dt_created": 1785715200000,
+  "attention": "Maria Santos",
+  "company": "Ridgeline Hardware & Supply",
+  "address_full": "420 Main Street\nBurlington, VT 05401",
+  "phone": "(802) 555-0173",
+  "email": "maria@ridgelinehardware.com",
+  "comments": {
+    "public": "Check #4892 — applied to INV-2026-0847 and INV-2026-0791"
+  },
+  "config": {
+    "payment_method": "Check",
+    "check_number": "4892",
+    "bank_name": "Peoples United Bank"
+  },
+  "source": {},
+  "refs": {
+    "links": {
+      "contact": {"id": 142, "name": "Ridgeline Hardware & Supply", "ida": "RHS-142"}
+    }
+  },
+  "totals": {
+    "total": 7841.20,
+    "applied": 7841.20,
+    "unapplied": 0.00
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "INV-2026-0847",
+        "description": "Invoice dated 2026-06-30 — Hardware tools order"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 4263.35,
+        "extended": 4263.35
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "INV-2026-0791",
+        "description": "Invoice dated 2026-06-15 — Fasteners and adhesives"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 3577.85,
+        "extended": 3577.85
+      }
+    }
+  ]
+}

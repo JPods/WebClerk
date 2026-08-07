@@ -509,10 +509,16 @@ class WCAPIGetView(APIView):
             # Skip reserved parameters
             if key in {'model_name', 'id', 'fields', 'limit', 'offset', 'page', 'page_size', 
                     'q', 'search', 'keyword', 'search_fields', 'saved_search', 'saved_search_name',
-                    'saved_search_id', 'search_id', 'order_by', 'ordering', 'model_name_filter'}:
+                    'saved_search_id', 'search_id', 'order_by', 'ordering'}:
                 continue
             if key in reserved_keys:
                 continue
+
+            # model_name_filter → filter by the model_name column
+            # (model_name is reserved as the wcapi table selector, so models
+            # that have a model_name column use this alias to filter by it)
+            if key == 'model_name_filter' and 'model_name' in field_names:
+                key = 'model_name'
 
             # Map generic parent filters to the actual FK field on line models
             if key in {'parent', 'parent_id'}:
@@ -522,6 +528,12 @@ class WCAPIGetView(APIView):
             
             # Validate field name (before __lookup)
             field_base = key.split('__')[0]
+            # Django FK fields: parent_item_id → parent_item is the field name
+            if field_base not in field_names and field_base.endswith('_id'):
+                fk_name = field_base[:-3]  # strip _id suffix
+                if fk_name in field_names:
+                    field_base = fk_name
+                    key = fk_name + ('__' + key.split('__')[1] if '__' in key else '')
             if field_base not in field_names:
                 continue
             

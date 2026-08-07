@@ -3,12 +3,14 @@ from rest_framework.routers import DefaultRouter
 
 from apps.transactions.views.payment_views import (
     process_payment,
-    execute_paypal_payment,
+    refund_payment_view,
+    spreedly_webhook,
     stripe_webhook,
     paypal_webhook,
     reconcile_payments,
     payment_status,
-    payment_history
+    payment_history,
+    gateway_config,
 )
 from apps.transactions.views.transfer_views import (
     validate_transfer,
@@ -56,13 +58,15 @@ urlpatterns = [
 
     # Payment operations
     path('payments/process/', process_payment, name='process_payment'),
-    path('payments/paypal/execute/', execute_paypal_payment, name='execute_paypal_payment'),
+    path('payments/refund/', refund_payment_view, name='refund_payment'),
     path('payments/apply/', apply_payment, name='apply_payment'),
+    path('payments/webhooks/spreedly/', spreedly_webhook, name='spreedly_webhook'),
     path('payments/webhooks/stripe/', stripe_webhook, name='stripe_webhook'),
     path('payments/webhooks/paypal/', paypal_webhook, name='paypal_webhook'),
     path('payments/reconcile/', reconcile_payments, name='reconcile_payments'),
     path('payments/<int:payment_id>/status/', payment_status, name='payment_status'),
     path('payments/history/', payment_history, name='payment_history'),
+    path('payments/gateway-config/', gateway_config, name='gateway_config'),
 
     # Inventory operations
     path('inventory/reserve/', reserve_inventory, name='reserve_inventory'),

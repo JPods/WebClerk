@@ -1,5 +1,5 @@
 """
-core.services.wcui_prefs — Save UI preferences to Contact.metadata.wcui
+core.services.wcui_prefs — Save UI preferences to Contact.prefs.wcui
 
 Preferences belong on the user's Contact record, not in the browser.
 localStorage is the cache; the Contact record is the source of truth.
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 def save_wcui_prefs(prefs: dict, contact_id: int = None) -> dict:
     """
-    Merge prefs into Contact.metadata.wcui for the current user.
+    Merge prefs into Contact.prefs.wcui for the current user.
 
     If contact_id is not provided, uses the request context (TODO: wire auth).
     For now, accepts contact_id explicitly or defaults to id=8 (Bill).
@@ -32,12 +32,14 @@ def save_wcui_prefs(prefs: dict, contact_id: int = None) -> dict:
     except Contact.DoesNotExist:
         return {"saved": False, "reason": f"contact {cid} not found"}
 
-    metadata = contact.metadata if isinstance(contact.metadata, dict) else {}
-    wcui = metadata.get('wcui', {})
+    contact_prefs = contact.prefs if isinstance(contact.prefs, dict) else {}
+    staff = contact_prefs.get('staff', {})
+    wcui = staff.get('wcui', {})
     wcui.update(prefs)
-    metadata['wcui'] = wcui
-    contact.metadata = metadata
-    contact.save(update_fields=['metadata', 'dt_modified'])
+    staff['wcui'] = wcui
+    contact_prefs['staff'] = staff
+    contact.prefs = contact_prefs
+    contact.save(update_fields=['prefs', 'dt_modified'])
 
     log.info(f"Saved wcui prefs for contact {cid}: {list(prefs.keys())}")
     return {"saved": True, "contact_id": cid, "keys": list(prefs.keys())}

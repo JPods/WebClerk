@@ -94,7 +94,6 @@ class Service(ItemLinkedBase):
 
     # Core descriptive metadata
     description = models.CharField(max_length=255, blank=True)  # human readable summary
-    purpose = models.CharField(max_length=255, blank=True, help_text="Intended purpose or audience for this service")
     category = models.CharField(max_length=120, blank=True, help_text="Service category or type")
     display = models.TextField(blank=True, help_text="Rich text / HTML description")
 

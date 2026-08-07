@@ -39,7 +39,7 @@ Here's the comparison. WC3 has more models than I expected — several WC2
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤
   │ 1   │ WC3   │ 5eecefa │ BOM services, serial services, operator consolidation, harvest plan │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤
-  │ 2   │ React │ 67e49c8 │ DataBrowser: CSS migration, field widgets, tree mode, validation    │     
+  │ 2   │ React │ 67e49c8 │ databrowser: CSS migration, field widgets, tree mode, validation    │     
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
   │ 3   │ React │ 6d7305b │ JSON Viewer: standalone window with linked navigation               │     
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
@@ -79,13 +79,13 @@ Here's the comparison. WC3 has more models than I expected — several WC2
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
   │ 21  │ WC3   │ 0626cb7 │ BOM: three-cost basis (avg/last/min/landed)                         │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
-  │ 22  │ React │ a58f1f6 │ BOM panel in DataBrowser detail pane                                │
+  │ 22  │ React │ a58f1f6 │ BOM panel in databrowser detail pane                                │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
   │ 23  │ WC3   │ a558fff │ Session readme                                                      │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
   │ 24  │ WC3   │ b33bc11 │ Serial API endpoints: 9 routes                                      │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
-  │ 25  │ React │ 893330f │ Spawn links + serial DataBrowser integration                        │
+  │ 25  │ React │ 893330f │ Spawn links + serial databrowser integration                        │
   ├─────┼───────┼─────────┼─────────────────────────────────────────────────────────────────────┤     
   │ 26  │ Allie │ 871f411 │ Session handoff + memory saves                                      │
   └─────┴───────┴─────────┴─────────────────────────────────────────────────────────────────────┘     
@@ -112,7 +112,7 @@ We need services similar to these. You can also
   /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/WCapi_SerialNum.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/CCSSerialsToOrder.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/ItemSerialToOrder.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Http_SerialIssue.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/QtyOrd_SerialCh.4dm
   
   
-  Some items are in layouts you can search for contains "serial" in for more DataBrowser
+  Some items are in layouts you can search for contains "serial" in for more databrowser
   /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources
   
   
@@ -179,7 +179,7 @@ Bill_comment: We did this with non-journalable invoices in wc2. What is a better
   │ Requisition (pre-PO │ Requisition +          │ Models exist — need     │
   │  approval)          │ RequisitionLine        │ approval workflow       │
   
-Bill_comment: These are really requests for quotes. So there are documents associated with what is needed. There are vendors solicited and their responding documents. There are points of contact and actions required. I think the json window with messaging to the the requistion record in DataBrowser.
+Bill_comment: These are really requests for quotes. So there are documents associated with what is needed. There are vendors solicited and their responding documents. There are points of contact and actions required. I think the json window with messaging to the the requistion record in databrowser.
   /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ALDefine.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ALDefineOrd.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_AlExit.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_FillArrays.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_ItemFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Menu.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Open.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_OrdLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_OutSide.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_PoLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_PpLnFillRay.4dm /Users/williamjames/Documents/CommerceExpert/00WebClerk19/Project/Sources/Methods/Rq_Window.4dm
   
   
@@ -190,8 +190,8 @@ Bill_comment: These are really requests for quotes. So there are documents assoc
   
     Fully Built + Committed + Pushed ✓                                                                  
                                                                   
-  - DataBrowser (CSS, widgets, tree mode, JSON viewer, cross-window messaging)                        
-  - BOM (services, API, DataBrowser panel, three-cost, BB200 data)
+  - databrowser (CSS, widgets, tree mode, JSON viewer, cross-window messaging)                        
+  - BOM (services, API, databrowser panel, three-cost, BB200 data)
   - Serial services (12 operations in serial_services.py)                                             
   - Inventory services (13 operations, margin velocity, layers)   
   - Inventory reservations (order allocation)                                                         
@@ -206,7 +206,7 @@ Bill_comment: These are really requests for quotes. So there are documents assoc
                                                                                                       
   Built but Not Wired to UI                                                                           
                                                                                                       
-  - Serial services — 12 Python services exist, no API endpoints or DataBrowser spawn links yet       
+  - Serial services — 12 Python services exist, no API endpoints or databrowser spawn links yet       
   - Inventory services — 13 Python services exist, no API endpoints yet
   - Reservations — services exist, not wired to order→invoice chain                                   
                                                                   
@@ -450,7 +450,7 @@ Bill_comment: taken over by action model
   
   ├─────────────────┼────────────────────┼─────────────────────────┼───────┤
   │ Layout          │                    │ User-submitted          │ Stage │
-  │ Submission      │ LayoutSubmission   │ DataBrowser layouts for │  3    │
+  │ Submission      │ LayoutSubmission   │ databrowser layouts for │  3    │
   │ (marketplace)   │                    │  credit                 │       │
   
 Bill_comment: We need a post tool with a fense for users to post forms, idea, .... Ingrid and Athena need to ruthless cull these if there is buried harms. Users need to be credited and score points for contribution.
@@ -541,7 +541,7 @@ Bill_comment:
    
    
    
-  2. DataBrowser views that expose the models to operators
+  2. databrowser views that expose the models to operators
   
 Bill_comment: 
   

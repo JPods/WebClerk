@@ -201,7 +201,7 @@ class JSONBSet(Func):
 
 # ---------------- Default envelope factories -------------------------------
 def default_metadata() -> dict:
-    """Baseline metadata structure (history, health, flags, versioning, undefined).
+    """Baseline metadata structure (history, health, flags, versioning).
 
     Contribution: Ensures all BaseModel descendants have a predictable set of keys so
     generic serialization, diff tracking & keyword flags operate without key errors.
@@ -222,11 +222,8 @@ def default_metadata() -> dict:
     # Canonical keys; specific apps can mirror or promote to columns when needed for performance.
     "flow": {},   # e.g., lineage hints, parent/child hops for reporting
     "source": {}, # e.g., campaign/vendor/manufacturer attribution for analytics
-        "images": {
-            "primary": "",      # hero image path
-            "gallery": [],      # additional view paths
-            "thumbnail": "",    # list/grid display path
-        },
+        # images removed from base — only Contact, Item, Document use images.
+        # Model-specific schemas define image fields (see common/schemas/images.py).
         "history": {
             "created": {"dt": now_ms, "contact_id": 0},
             "modified": {"dt": now_ms, "contact_id": 0},
@@ -252,7 +249,8 @@ def default_metadata() -> dict:
         # Temporary snippets/hints for short-lived UX helpers.
         # Each entry should include clear_dt (epoch ms) so background cleanup can prune it.
         "temp": [],
-        "undefined": {},
+        # undefined was here — moved to prefs.userdefined (user's space, not system's)
+        # save_view captures unknown fields into prefs.userdefined
     }
 
 
@@ -346,12 +344,13 @@ LINK_DENORMALIZE_FIELDS = {k: list(v) for k, v in _DENORM_REGISTRY.items()}
 
 
 def default_prefs() -> dict:
-        """User / system preference seed; intentionally sparse to stay evolvable.
+        """User preference seed — matches RecordPrefsBase schema.
 
-        Shape: prefs.userdefined is a dict mapping unique keys to values, e.g.,
-            {"foo": "bar"}
+        userdefined: dict of user-added fields (save_view captures unknown fields here)
+        tags: user's personal tags (not categories — categories are model fields)
+        pinned: user pinned this record
         """
-        return {"userdefined": {}}
+        return {"userdefined": {}, "tags": [], "pinned": False}
 
 
 def default_data() -> dict:  # reserved placeholder (not currently used)
@@ -359,16 +358,24 @@ def default_data() -> dict:  # reserved placeholder (not currently used)
 
 
 def default_comments() -> dict:
-    """Structured comment / notes container.
+    """Structured comment container — matches _ensure_comment_root and CommentsBase.
 
-    Contribution: Supports both quick single-field comment slots and an append-only
-    notes list enabling audit / history without separate table (until needed).
+    Two scopes:
+      general — about the record itself (3 channels: public, process, foreign)
+      records — about related records, keyed by 'model/id' (same 3 channels)
+
+    Channels:
+      public  — customer-facing notes
+      process — internal workflow notes
+      foreign — vendor/supplier/partner communication
     """
     return {
-        "public": "",
-        "process": "",
-        "partner": "",
-        "notes": [],
+        "general": {
+            "public": [],
+            "process": [],
+            "foreign": [],
+        },
+        "records": {},
     }
 
 
@@ -397,6 +404,10 @@ class CoreModel(models.Model):
     # defines is_active, its field overrides this definition (no duplicate schema field in migration).
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
     security_level = models.IntegerField(default=0, blank=True, db_index=True, help_text="Security level or classification")
+    dt_approved = models.BigIntegerField(default=0, db_index=True, help_text="Epoch ms when record was approved; 0 = not approved")
+    times_used = models.BigIntegerField(default=0, db_index=True, help_text="Lifetime use count")
+    dt_last_used = models.BigIntegerField(default=0, db_index=True, help_text="Epoch ms of last use; 0 = never used")
+    purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Why this record exists: team_memory, alice_pending, search, template, etc.")
     config = models.JSONField(
         default=dict,
         blank=True,

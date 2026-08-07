@@ -38,10 +38,19 @@ SEED_SEQUENCE = [
     # QA templates
     ('seed_qa_templates',       {}),
 
+    # Connections — agent channels, deploy targets
+    ('seed_connections',        {}),
+
     # Operational
     ('seed_coaching',           {}),
     ('seed_wchq_settings',     {}),
     ('seed_collaborate_settings', {}),
+
+    # Model schema definitions
+    ('seed_all_schema_maps',    {}),
+    ('seed_serial_settings',    {}),  # serial-specific actions/behaviors on top of base schema
+    ('seed_status_guards',      {}),  # transaction status transitions + journalized locks
+    ('seed_receivables_layouts', {}),  # aged receivables report + customer statement print layouts
 
     # GL defaults into items/orgs/payment methods
     ('seed_gl_defaults',        {}),

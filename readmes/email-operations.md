@@ -78,7 +78,7 @@ Action.objects.filter(assigned_to__id=user_id, status__in=['Backlog', 'In Progre
 Action.objects.filter(assigned_to__id=user_id, task__en__startswith='Email:', status='Backlog')
 ```
 
-DataBrowser shows this. Spawn links on Contact show all Actions for that contact.
+databrowser shows this. Spawn links on Contact show all Actions for that contact.
 
 ---
 

@@ -59,7 +59,7 @@ digraph wc3_master_flow {
         mod_orderentry [label="Order Entry" shape=box fillcolor="#EAECEE" fontsize=8]
         mod_mgmt [label="Management" shape=box fillcolor="#EAECEE" fontsize=8]
         mod_acct [label="Accounting" shape=box fillcolor="#EAECEE" fontsize=8]
-        mod_reports [label="DataBrowser\nReports" shape=box fillcolor="#EAECEE" fontsize=8]
+        mod_reports [label="databrowser\nReports" shape=box fillcolor="#EAECEE" fontsize=8]
         mod_docs [label="Documents\n(Document)" shape=box fillcolor="#EAECEE" fontsize=8]
         mod_alice [label="Alice\n(AI Assistant)" shape=box fillcolor="#AED6F1" fontsize=8]
     }

@@ -17,7 +17,7 @@
   - Simple — a new user should understand the interface in 30 seconds
   - Formattable to match tastes — CSS-driven theming (dark/light/custom)
   - Dashboard-first — users land on their work, not a model list
-  - Links to DataBrowser and JSON viewer for data management
+  - Links to databrowser and JSON viewer for data management
   - Print-ready documents at natural points
   - Same Django API backend for all three
 

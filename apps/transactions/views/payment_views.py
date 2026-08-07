@@ -6,13 +6,15 @@ from django.views.decorators.http import require_POST, require_GET
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from apps.transactions.models import Payment, Invoice
 from apps.transactions.serializers.payment_serializers import PaymentSerializer
-from apps.transactions.services.payment_gateways import StripeService, PayPalService, PaymentReconciliationService
-from apps.transactions.services.payment_application import apply_payment_to_invoice, get_invoice_payment_status
+from apps.transactions.services.payment_gateways import SpreedlyService, SpreedlyError, process_payment as spreedly_process, refund_payment as spreedly_refund
+from apps.transactions.services.payment_pending import apply_payment_to_invoice
+from apps.transactions.services.payment_application import get_invoice_payment_status
 from apps.core.services import wcapi
 
 logger = logging.getLogger(__name__)
@@ -20,67 +22,55 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
 def process_payment(request):
-    """Process a payment through the specified gateway"""
+    """Process a payment through Spreedly.
+
+    The client-side Spreedly SDK collects card data in a secure iframe
+    and returns a payment_method_token. That token is all we receive.
+    WC3 never sees the card number.
+
+    POST body: { invoice_id, amount, payment_method_token }
+    """
+    request.throttle_scope = 'payment'
     try:
         data = request.data
         invoice_id = data.get('invoice_id')
         amount = data.get('amount')
-        gateway = data.get('gateway', 'stripe')  # Default to stripe
-        payment_method_id = data.get('payment_method_id')
+        payment_method_token = data.get('payment_method_token')
 
-        if not invoice_id or not amount:
+        if not invoice_id or not amount or not payment_method_token:
             return Response(
-                {'error': 'invoice_id and amount are required'},
+                {'error': 'invoice_id, amount, and payment_method_token are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get invoice
         invoice = get_object_or_404(Invoice, pk=invoice_id)
 
-        # Create payment record
         payment = Payment.objects.create(
             invoice=invoice,
-            contact=request.user,  # Assuming user is contact
+            contact=request.user,
             amount=amount,
-            gateway=gateway,
-            status='pending'
+            gateway='spreedly',
+            status='pending',
         )
 
-        # Process with gateway
-        if gateway == 'stripe':
-            service = StripeService()
-            result = service.create_payment_intent(payment)
+        result = spreedly_process(payment.id, payment_method_token)
+        txn = result.get('transaction', {})
 
-            return Response({
-                'payment_id': payment.id,
-                'client_secret': result.client_secret,
-                'gateway_transaction_id': result.id
-            })
+        return Response({
+            'payment_id': payment.id,
+            'status': payment.status,
+            'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
+            'message': txn.get('message', ''),
+        })
 
-        elif gateway == 'paypal':
-            service = PayPalService()
-            result = service.create_payment(payment)
-
-            # Find approval URL
-            approval_url = None
-            for link in result.links:
-                if link.rel == 'approval_url':
-                    approval_url = link.href
-                    break
-
-            return Response({
-                'payment_id': payment.id,
-                'approval_url': approval_url,
-                'gateway_transaction_id': result.id
-            })
-
-        else:
-            return Response(
-                {'error': f'Unsupported gateway: {gateway}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+    except SpreedlyError as e:
+        logger.error(f"Spreedly error processing payment: {e}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
     except Exception as e:
         logger.error(f"Error processing payment: {e}")
         return Response(
@@ -91,73 +81,85 @@ def process_payment(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def execute_paypal_payment(request):
-    """Execute a PayPal payment after user approval"""
+@throttle_classes([ScopedRateThrottle])
+def refund_payment_view(request):
+    """Refund a completed payment via Spreedly.
+
+    Tries void first (pre-settlement), falls back to credit.
+    POST body: { payment_id, amount_cents? }
+    """
+    request.throttle_scope = 'payment'
     try:
         payment_id = request.data.get('payment_id')
-        payer_id = request.data.get('payer_id')
+        amount_cents = request.data.get('amount_cents')
 
-        if not payment_id or not payer_id:
-            return Response(
-                {'error': 'payment_id and payer_id are required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not payment_id:
+            return Response({'error': 'payment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        service = PayPalService()
-        result = service.execute_payment(payment_id, payer_id)
+        result = spreedly_refund(int(payment_id), amount_cents)
+        txn = result.get('transaction', {})
 
+        payment = Payment.objects.get(pk=payment_id)
         return Response({
-            'status': 'completed',
-            'transaction_id': result.id
+            'payment_id': payment.id,
+            'status': payment.status,
+            'message': txn.get('message', ''),
         })
 
+    except SpreedlyError as e:
+        return Response({'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
     except Exception as e:
-        logger.error(f"Error executing PayPal payment: {e}")
-        return Response(
-            {'error': 'Payment execution failed'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        logger.error(f"Error refunding payment: {e}")
+        return Response({'error': 'Refund failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @csrf_exempt
 @require_POST
-def stripe_webhook(request):
-    """Handle Stripe webhook events"""
-    payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+def spreedly_webhook(request):
+    """Handle Spreedly webhook/callback events.
 
-    try:
-        service = StripeService()
-        event = service.handle_webhook(payload, sig_header)
-
-        return JsonResponse({'status': 'success'})
-
-    except ValueError as e:
-        logger.error(f"Invalid Stripe webhook: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
-    except Exception as e:
-        logger.error(f"Stripe webhook error: {e}")
-        return JsonResponse({'error': 'Webhook processing failed'}, status=500)
-
-
-@csrf_exempt
-@require_POST
-def paypal_webhook(request):
-    """Handle PayPal webhook events"""
+    Spreedly sends transaction lifecycle events. We verify and update
+    the corresponding Payment record.
+    """
     try:
         webhook_data = json.loads(request.body.decode('utf-8'))
+        txn = webhook_data.get('transaction', {})
+        txn_token = txn.get('token', '')
 
-        service = PayPalService()
-        service.handle_webhook(webhook_data)
+        if not txn_token:
+            return JsonResponse({'error': 'No transaction token'}, status=400)
 
-        return JsonResponse({'status': 'success'})
+        # Find payment by Spreedly transaction token
+        try:
+            payment = Payment.objects.get(id_gateway_transaction=txn_token)
+        except Payment.DoesNotExist:
+            logger.warning(f"Spreedly webhook: no payment for token {txn_token}")
+            return JsonResponse({'status': 'ignored'})
+
+        state = txn.get('state', '')
+        if state == 'succeeded' and payment.status != 'completed':
+            payment.status = 'completed'
+            from django.utils import timezone as tz
+            payment.dt_processed = tz.now()
+            payment.add_audit_entry('webhook_confirmed', {'state': state, 'token': txn_token})
+            payment.save()
+        elif state in ('failed', 'gateway_processing_failed'):
+            payment.status = 'failed'
+            payment.gateway_response = {'message': txn.get('message', ''), 'state': state}
+            payment.save()
+
+        return JsonResponse({'status': 'ok'})
 
     except json.JSONDecodeError:
-        logger.error("Invalid PayPal webhook payload")
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        logger.error(f"PayPal webhook error: {e}")
+        logger.error(f"Spreedly webhook error: {e}")
         return JsonResponse({'error': 'Webhook processing failed'}, status=500)
+
+
+# Legacy webhook aliases — redirect to Spreedly
+stripe_webhook = spreedly_webhook
+paypal_webhook = spreedly_webhook
 
 
 @api_view(['POST'])
@@ -264,15 +266,45 @@ def payment_history(request):
         )
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def gateway_config(request):
+    """Return public gateway configuration for client-side SDK.
+
+    Only exposes the environment_key (public, safe for iframes)
+    and test_mode flag. NEVER exposes access_secret.
+    """
+    from apps.core.models import Setting
+    try:
+        setting = Setting.objects.get(purpose='payment_gateway', is_active=True)
+        config = setting.config or {}
+        spreedly = config.get('spreedly', {})
+        return Response({
+            'environment_key': spreedly.get('environment_key', ''),
+            'test_mode': config.get('test_mode', True),
+            'active_gateway_type': config.get('active_gateway_type', ''),
+            'currency': config.get('currency', 'USD'),
+        })
+    except Setting.DoesNotExist:
+        return Response({
+            'environment_key': '',
+            'test_mode': True,
+            'active_gateway_type': '',
+            'currency': 'USD',
+        })
+
+
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for Payment. Writes go through /wcapi/save/."""
 
     queryset = Payment.objects.active()
     serializer_class = PaymentSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'payment'
 
     @action(detail=True, methods=['post'])
     def apply_to_invoice(self, request, pk=None):
-        """Apply payment to an invoice."""
+        """Apply payment to an invoice via pending record."""
         payment = self.get_object()
         invoice_id = request.data.get('invoice_id')
         amount = request.data.get('amount')
@@ -283,16 +315,18 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            invoice = Invoice.objects.get(pk=invoice_id)
-        except Invoice.DoesNotExist:
+        if not amount:
             return Response(
-                {'error': 'Invoice not found'},
-                status=status.HTTP_404_NOT_FOUND
+                {'error': 'amount is required'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            result = apply_payment_to_invoice(invoice, payment, amount)
+            result = apply_payment_to_invoice(
+                payment_id=payment.pk,
+                invoice_id=int(invoice_id),
+                amount=amount,
+            )
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error applying payment {payment.id} to invoice {invoice_id}: {e}")

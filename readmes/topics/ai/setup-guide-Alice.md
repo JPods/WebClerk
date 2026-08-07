@@ -286,7 +286,7 @@ All settings can be overridden in `.env` or `webclerk3_api/settings.py`:
 
 ## Console Capture — Alice Reads Browser Errors
 
-The DataBrowser automatically captures all browser console output (log, warn, error)
+The databrowser automatically captures all browser console output (log, warn, error)
 and feeds errors and warnings to Alice every 60 seconds. This requires no user action —
 it starts at app boot and runs silently.
 

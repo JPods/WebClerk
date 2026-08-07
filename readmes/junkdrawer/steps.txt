@@ -164,4 +164,4 @@ training documents.
 
 
 There are a few more thing that our team needs to
-  polish on the DataBrowser  1. flashing loading of lists. 2.  
+  polish on the databrowser  1. flashing loading of lists. 2.  

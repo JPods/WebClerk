@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -13,6 +14,18 @@ from apps.transactions.serializers import (
 )
 from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
 from apps.transactions.services.flow import receive_purchase, ReceiveLine
+from apps.transactions.services.commission import populate_transaction_commission
+
+
+def _require_staff(request):
+    """Return error Response if user is not staff, else None."""
+    user = getattr(request, 'user', None)
+    if not user or not (user.is_staff or user.is_superuser):
+        return Response(
+            {'error': 'Staff access required'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
 
 
 class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
@@ -36,6 +49,20 @@ class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
                 preserve_proposal=request.data.get('preserve_proposal', True),
             )
             return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(detail=True, methods=['post'])
+    def populate_commission(self, request, pk=None):
+        """Populate commission from customer's rep assignments. Staff only."""
+        denied = _require_staff(request)
+        if denied:
+            return denied
+        proposal = self.get_object()
+        try:
+            result = populate_transaction_commission(proposal.pk, 'proposal')
+            return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -91,6 +118,19 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         order = self.get_object()
         try:
             result = inventory_flow.reserve_inventory_for_order(order)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def populate_commission(self, request, pk=None):
+        """Populate commission from customer's rep assignments. Staff only."""
+        denied = _require_staff(request)
+        if denied:
+            return denied
+        order = self.get_object()
+        try:
+            result = populate_transaction_commission(order.pk, 'order')
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -154,6 +194,19 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
         """Get payment status for invoice."""
         invoice = self.get_object()
         return Response({'message': 'Payment status endpoint - implementation needed'})
+
+    @action(detail=True, methods=['post'])
+    def populate_commission(self, request, pk=None):
+        """Populate commission from customer's rep assignments. Staff only."""
+        denied = _require_staff(request)
+        if denied:
+            return denied
+        invoice = self.get_object()
+        try:
+            result = populate_transaction_commission(invoice.pk, 'invoice')
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):

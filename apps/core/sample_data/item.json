@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "model": "item",
+    "description": "Sample item for report parade — inventory item with pricing and stock levels",
+    "version": 1
+  },
+  "ida": "DW-735X",
+  "ida_item": "DW-735X",
+  "status": "active",
+  "dt_created": 1743552000000,
+  "description": "DeWalt 13\" Three Knife Two-Speed Planer",
+  "long_description": "The DeWalt DW735X features a powerful 15 Amp motor with a two-speed gearbox (96 and 179 cuts per inch). Includes extra knives, infeed/outfeed tables, and dust collection adapter. 6\" x 13\" max capacity.",
+  "uom": "Each",
+  "config": {
+    "weight": 92.0,
+    "weight_uom": "lbs",
+    "country_of_origin": "US",
+    "brand": "DeWalt",
+    "manufacturer_number": "DW735X",
+    "upc": "028877596372",
+    "category": "Power Tools > Planers",
+    "bin_location": "A-14-3",
+    "reorder_point": 5,
+    "reorder_qty": 12
+  },
+  "sell": {
+    "retail": 649.99,
+    "wholesale": 549.99,
+    "contractor": 524.99,
+    "msrp": 699.00
+  },
+  "cost": {
+    "average": 389.00,
+    "last": 385.00,
+    "standard": 390.00,
+    "landed": 395.50
+  },
+  "totals": {
+    "on_hand": 18,
+    "on_order": 12,
+    "committed": 5,
+    "available": 13,
+    "ytd_sold": 87,
+    "ytd_revenue": 47849.13
+  },
+  "refs": {
+    "links": {
+      "vendor": {"id": 56, "name": "Milwaukee Tool Distribution", "ida": "MTD-56"}
+    }
+  },
+  "metadata": {}
+}

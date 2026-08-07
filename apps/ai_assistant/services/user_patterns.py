@@ -482,3 +482,41 @@ def save_alice_observation(contact_id: int, observation: str, category: str = 'w
     Contact.objects.filter(pk=contact_id).update(metadata=metadata, dt_modified=_now_ms())
 
     return {'saved': True, 'observation_count': len(observations)}
+
+
+def log_schema_question(model_name: str, question: str, detail: str = '', field: str = '', observed_value: str = '') -> dict:
+    """Log a Pydantic schema question from Alice.
+
+    Alice calls this whenever she sees:
+    - A config/refs/metadata field that isn't in the Pydantic schema
+    - A status value that isn't in the Setting's status list
+    - An action that doesn't match the Setting's action definitions
+    - A JSON shape that doesn't match what the schema expects
+
+    Weekly review clears the queue by updating schemas and/or model dictionaries.
+
+    Returns: {id, model_name, message}
+    """
+    AliceObservation = dj_apps.get_model('ai_assistant', 'AliceObservation')
+
+    message_parts = [question]
+    if field:
+        message_parts.append(f'Field: {field}')
+    if observed_value:
+        message_parts.append(f'Observed: {observed_value}')
+
+    obs = AliceObservation.objects.create(
+        category='schema',
+        source='alice',
+        priority=0,
+        model_name=model_name,
+        message=question,
+        detail=detail or '\n'.join(message_parts),
+        config={
+            'field': field,
+            'observed_value': observed_value,
+            'schema_module': f'common.schemas.{model_name}',
+        },
+    )
+
+    return {'id': obs.pk, 'model_name': model_name, 'message': question}

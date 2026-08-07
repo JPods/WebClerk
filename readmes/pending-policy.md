@@ -156,7 +156,7 @@ The admin can process them manually:
 ./venv/bin/python3 manage.py process_pending --type financial  # just financial
 ```
 
-Or via the DataBrowser: open `/db/pending`, review, and process individually.
+Or via the databrowser: open `/db/pending`, review, and process individually.
 
 ### The Pending model fields
 
@@ -173,7 +173,7 @@ Or via the DataBrowser: open `/db/pending`, review, and process individually.
 ### Step 5: Manual review
 
 Alice flags Pending records older than 1 hour.
-Admin reviews in the DataBrowser at `/db/pending`.
+Admin reviews in the databrowser at `/db/pending`.
 
 ## What Pending Prevents
 

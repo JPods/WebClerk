@@ -63,10 +63,20 @@ def _normalize_line_kind(name: str | None) -> str:
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     """Return the canonical quantity JSONB structure for a line.
 
-    Canonical keys (all transaction types):
-      - staged:     quantity committed on this line (= active for standalone)
-      - active:     user-entered quantity (always the primary input)
-      - remaining:  uncommitted inventory available for downstream transfer
+    quantity.active is the verb of the document:
+      - proposal_line:   quantity being proposed
+      - order_line:      quantity being ordered
+      - invoice_line:    quantity being shipped
+      - purchase_line:   quantity being purchased
+      - receipt_line:    quantity being received
+      - workorder_line:  quantity being produced
+
+    The same three keys carry every document type:
+      - active:     the quantity this line is acting on (the verb)
+      - remaining:  active minus what has transferred downstream
+      - staged:     quantity committed from upstream (= active for standalone)
+
+    Controls:
       - is_fixed:   whether quantity is locked from editing
       - precision:  decimal places for quantity math
       - is_blanket: blanket/open-ended quantity (optional)
@@ -78,14 +88,17 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     Transfer semantics (how inventory responsibility moves):
       target.staged = transfer_qty  (taken from source.remaining)
       source.remaining -= transfer_qty
-      
-      Example: Order(remaining=10) → Invoice(staged=6)
+
+      Example: Order(active=10, remaining=10) → Invoice(active=6, staged=6)
                Order remaining becomes 10-6=4
+               The 6 on the invoice IS the shipped quantity.
+
+    There is no 'shipped' or 'picked' key. Shipped quantity is
+    invoice_line.quantity.active. Remaining to ship is order_line.quantity.remaining.
+    The document type gives the quantity its meaning.
 
     Legacy keys (ordered, invoiced, received, placed, actioned, processing, etc.) are DEPRECATED.
     Transfer services should read/write staged/active/remaining only.
-
-    See: readmes/topics/transactions/transactions-totals.md §2
     """
     # All known types share the same canonical structure.
     # normalize_quantity_map() handles standalone mirroring (staged=active)
@@ -125,18 +138,16 @@ def normalize_quantity_map(q: Dict[str, Any] | None, transaction_type: str | Non
       4. Standalone mirroring: if active set but staged is 0, staged = active
       5. Remaining calculation varies by context (see below)
 
-    Quantity Semantics:
-      The user always enters 'active' as the primary quantity input.
-      
-      staged  — allocated FROM parent (frozen at transfer); mirrors active for standalone
-      active  — user input (what this line is actually for)
+    The three quantity keys and their roles:
+      active    — the verb of the document (proposed/ordered/shipped/purchased/received)
+      staged    — allocated FROM parent (frozen at transfer); mirrors active for standalone
       remaining — available FOR children = active − sum(children.active)
-      
-      Without children (the common case at normalize time):
-        remaining = active
-      
-      With children (children_active tracker present):
-        remaining = active − children_active["sum"]
+
+    Without children (the common case at normalize time):
+      remaining = active
+
+    With children (children_active tracker present):
+      remaining = active − children_active["sum"]
     """
     base = default_quantity(transaction_type)
 
@@ -367,6 +378,20 @@ class BaseLineCore(BaseModel):
     # parent.line_increment on first save when left at 0.
     # Replaces the old item.line_number JSON key.
     line_number = models.IntegerField(default=0, db_index=True)
+
+    # Line type — controls how this line's extended amount routes in totals.
+    #   product  (default) → adds to subtotal, taxed at header rate
+    #   tax      → adds to tax total (environmental fee, recycling, bottle deposit)
+    #   shipping → adds to shipping total (freight line, handling charge)
+    #   discount → subtracts from subtotal
+    # No VAT mechanism at this time — US sales tax model only.
+    LINE_TYPE_CHOICES = [
+        ('product', 'Product'),
+        ('tax', 'Tax'),
+        ('shipping', 'Shipping'),
+        ('discount', 'Discount'),
+    ]
+    line_type = models.CharField(max_length=20, choices=LINE_TYPE_CHOICES, default='product', db_index=True)
 
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)

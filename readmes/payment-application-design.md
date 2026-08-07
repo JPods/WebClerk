@@ -1,5 +1,15 @@
 # Payment Application System Design
 
+## Gateway: Spreedly (established 2026-08-05)
+
+**WC3 uses Spreedly as a universal payment aggregator.** One backend integration, user picks their gateway (Stripe, PayPal, Braintree, Authorize.Net). WC3 never sees card data — Spreedly's client-side SDK collects it in a secure iframe.
+
+**Token-in-a-token rule:** WC3 stores ONLY `pm_token` (reference to Spreedly's token, which is itself a reference to the card), `last4`, `brand`, `exp`, `fingerprint`. NEVER card numbers, CVVs, or replayable tokens. This is non-negotiable.
+
+**Backend:** `apps/transactions/services/payment_gateways.py` — `SpreedlyService` class (purchase, authorize, capture, void, credit, refund). Setting #625 holds credentials.
+
+**Square:** Not supported by Spreedly. Direct integration can be added later if needed.
+
 ## Overview
 
 This document describes the payment application architecture from WC2 (4D) and how to implement equivalent functionality in WC3 (Django).

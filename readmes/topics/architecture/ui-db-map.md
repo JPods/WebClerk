@@ -1,6 +1,6 @@
 # UI / DB Model Map
 
-Every model has db.json access (DataBrowser) for administration. That's universal — not listed per model.
+Every model has db.json access (databrowser) for administration. That's universal — not listed per model.
 
 This map shows which models ALSO get:
 - **ui.json** — JSON-driven detail layout with Design Mode, widgets, print
@@ -333,7 +333,7 @@ If the output requires a specialized renderer (barcode layout, EDI format), ui.t
 
 ## Summary
 
-- **All models**: db.json (DataBrowser) for administration — universal, not listed
+- **All models**: db.json (databrowser) for administration — universal, not listed
 - **~35 models**: ui.json — dedicated forms for daily workflow use
 - **~8 models**: ui.tsx — interaction-heavy custom components
 - **~50 models**: db.json only — config, system, admin, accounting

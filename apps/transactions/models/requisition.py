@@ -11,7 +11,6 @@ class Requisition(common_models.BaseModel):
     """
 
     name = models.CharField(max_length=128, default="", db_index=True)
-    purpose = models.CharField(max_length=128, default="", db_index=True)
     status = models.CharField(max_length=50, default="draft", blank=True, db_index=True)
 
     class Meta:

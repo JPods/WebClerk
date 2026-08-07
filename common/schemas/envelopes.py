@@ -199,11 +199,11 @@ class WcuiPrefs(BaseModel):
         extra = "allow"
 
 
-class DataBrowserPrefs(BaseModel):
-    """DataBrowser-specific preferences."""
+class DatabrowserPrefs(BaseModel):
+    """Databrowser-specific preferences."""
     theme: str = "dark"
-    fontSize: str = "L"
-    activeLayout: str = ""
+    font_size: str = "L"
+    active_layout: str = ""
 
 
 class ColorModePrefs(BaseModel):
@@ -216,7 +216,7 @@ class StaffPrefsMixin(BaseModel):
     """Mixed into contact.prefs.staff for internal users only."""
     nav: NavPrefs = Field(default_factory=NavPrefs)
     wcui: WcuiPrefs = Field(default_factory=WcuiPrefs)
-    databrowser: DataBrowserPrefs = Field(default_factory=DataBrowserPrefs)
+    databrowser: DatabrowserPrefs = Field(default_factory=DatabrowserPrefs)
     color_mode: ColorModePrefs = Field(default_factory=ColorModePrefs)
     gantt: dict = Field(default_factory=dict)
     layout: dict = Field(default_factory=dict)
@@ -269,6 +269,69 @@ class CartPrefsMixin(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# CommentsBase — EVERY record inherits this
+# ═══════════════════════════════════════════════════════════════════════
+
+class CommentEntry(BaseModel):
+    """One entry in a comment channel. Append-only."""
+    ts: str = ''                              # ISO timestamp
+    by: str = ''                              # contact_id or username
+    text: str = ''                            # max 255 chars
+    source: str = ''                          # optional origin
+
+
+class CommentChannels(BaseModel):
+    """Three comment channels — public, process, foreign."""
+    public: list[CommentEntry] = Field(default_factory=list)
+    process: list[CommentEntry] = Field(default_factory=list)
+    foreign: list[CommentEntry] = Field(default_factory=list)
+
+
+class CommentsBase(BaseModel):
+    """Standard comments structure inherited by every BaseModel record.
+
+    Two scopes:
+      general — about the record itself (3 channels)
+      records — about related records, keyed by 'model/id' (same 3 channels)
+    """
+    general: CommentChannels = Field(default_factory=CommentChannels)
+    records: dict = Field(default_factory=dict)  # keyed by 'model/id'
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ActionsBase — EVERY record inherits this
+# ═══════════════════════════════════════════════════════════════════════
+
+class ActionsBase(BaseModel):
+    """Standard actions fields inherited by every BaseModel record.
+
+    Next-action metadata — frequently indexed for dashboard queries.
+    Kept small (32KB max) for queryability.
+    """
+    required: bool = False
+    status: str = ''                          # pending, done, blocked
+    who: Optional[int] = None                 # contact_id
+    when: int = 0                             # epoch ms — due/next date
+    what: str = ''                            # action description
+    kind: str = ''                            # followup, review, ship, approve
+    extra: dict = Field(default_factory=dict) # free-form per domain
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ConfigBase — model-specific structural data
+# ═══════════════════════════════════════════════════════════════════════
+
+class ConfigBase(BaseModel):
+    """Base config — models with no specific config fields inherit this.
+
+    Default: extra = 'forbid'. Models that need flexibility override
+    with their own Config class. This forces deliberate schema decisions.
+    """
+    class Config:
+        extra = 'forbid'
 
 
 # ═══════════════════════════════════════════════════════════════════════

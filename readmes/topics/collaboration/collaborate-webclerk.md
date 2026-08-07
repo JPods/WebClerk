@@ -31,7 +31,7 @@ WCHQ creates sync Pending record with recommendation
     ↓ delivered via sync app
 Alice_local receives Pending record
     ↓ creates Action for admin review
-Admin reviews recommendation in DataBrowser
+Admin reviews recommendation in databrowser
     ↓ accepts or rejects
 If accepted → applied to local instance
 If rejected → logged, WCHQ learns what this instance doesn't want
@@ -44,7 +44,7 @@ If rejected → logged, WCHQ learns what this instance doesn't want
 | `print_forms` | Invoice, proposal, PO, packing slip, pick list, BOL, statement templates |
 | `payment_portal` | Stripe checkout config, webhook setup, PCI compliance guidance |
 | `shipping_portal` | UPS/FedEx/DHL/USPS API configs, rate shopping, label generation |
-| `databrowser_layouts` | Community DataBrowser column layouts for all models |
+| `databrowser_layouts` | Community databrowser column layouts for all models |
 | `email_templates` | Transactional email templates (order confirmation, invoice, payment) |
 | `saved_searches` | Pre-built search filters and keyword configurations |
 | `alice_coaching` | Training tips, field help text, onboarding sequences, quiz questions |

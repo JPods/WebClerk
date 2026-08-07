@@ -20,23 +20,21 @@ def apply_payment_to_invoice(
     payment: Payment,
     amount: Optional[Decimal] = None
 ) -> Dict[str, any]:
-    """
-    Apply a payment to an invoice, updating balances and statuses.
+    """DEPRECATED — use payment_pending.apply_payment_to_invoice instead.
 
-    Args:
-        invoice: The invoice to apply payment to
-        payment: The payment record
-        amount: Amount to apply (defaults to payment.amount)
-
-    Returns:
-        {
-            'success': bool,
-            'amount_applied': float,
-            'invoice_balance_remaining': float,
-            'payment_fully_applied': bool,
-            'invoice_fully_paid': bool
-        }
+    This direct path bypasses the pending record. All payment applications
+    must flow through PendingPaymentApplication for a single audit trail.
+    Kept only for unapply_payment_from_invoice reference.
     """
+    import warnings
+    warnings.warn(
+        "payment_application.apply_payment_to_invoice is deprecated. "
+        "Use payment_pending.apply_payment_to_invoice instead.",
+        DeprecationWarning, stacklevel=2,
+    )
+    # Lock the payment row to prevent double-apply from concurrent requests
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+
     if payment.status != 'completed':
         raise PaymentApplicationError("Payment must be completed before application")
 

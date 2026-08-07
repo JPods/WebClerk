@@ -44,9 +44,9 @@ UI preferences belong on the user's Contact record, not in the browser. Your pre
 
 | Key | Type | Default | What it controls |
 |-----|------|---------|-----------------|
-| `font_size` | number | 12 | DataBrowser base font size (S=12, M=14, L=16) |
+| `font_size` | number | 12 | databrowser base font size (S=12, M=14, L=16) |
 | `dedup_font_size` | number | 13 | Dedup panel font scale |
-| `theme` | string | `"dark"` | DataBrowser color theme |
+| `theme` | string | `"dark"` | databrowser color theme |
 | `detail_view_pref` | string | `"app"` | Right panel: `"app"` = modelDetail.tsx, `"admin"` = field grid |
 | `button_style` | string | `"glass"` | Toolbar button style variant |
 | `phone_display` | string | `"local"` | `"local"` hides country code for domestic, `"international"` always shows |

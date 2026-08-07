@@ -132,7 +132,7 @@ Full documentation: `~/Allie/readmes/46-chrome-devtools-mcp.md`
 
 ## All Tool Document Records
 
-Every tool above has a Document record in WC3 with `model_name="tool_reference"`. Search in DataBrowser:
+Every tool above has a Document record in WC3 with `model_name="tool_reference"`. Search in databrowser:
 - Filter: `model_name = tool_reference`
 - Or search by IDA: `TOOL-GRAPHVIZ`, `TOOL-PANDAS`, etc.
 

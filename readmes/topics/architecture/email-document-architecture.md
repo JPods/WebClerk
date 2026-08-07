@@ -7,7 +7,7 @@
 
 ## Principle
 
-Email threads are Documents, not comments. One Document per conversation thread. The thread is the unit of value. Messages append to `config.messages[]`. Searchable in DataBrowser. Alice manages the lifecycle.
+Email threads are Documents, not comments. One Document per conversation thread. The thread is the unit of value. Messages append to `config.messages[]`. Searchable in databrowser. Alice manages the lifecycle.
 
 ---
 
@@ -73,7 +73,7 @@ Every element in `config.messages[]` must have enough data for search, display, 
 | Field | Type | Purpose | Searchable |
 |-------|------|---------|-----------|
 | `provider_msg_id` | string | Gmail/Outlook message ID — link back to source | No |
-| `subject` | string | Email subject line | Yes — DataBrowser text search |
+| `subject` | string | Email subject line | Yes — databrowser text search |
 | `from` | string | Sender email | Yes — find all emails from person |
 | `to` | string[] | Recipients | Yes — find all emails to person |
 | `cc` | string[] | CC recipients | Yes |
@@ -108,7 +108,7 @@ Every element in `config.messages[]` must have enough data for search, display, 
 
 ---
 
-## DataBrowser Display
+## databrowser Display
 
 ### In db.list (Document model, filtered by category=email_thread):
 
@@ -167,7 +167,7 @@ When an email has multiple recipients who are WC3 contacts:
 - One Document record (not duplicated)
 - `config.contact_ids = [10617, 6437]` — both Adrian and Tim Cook
 - Both contacts get the Document ID in their `refs.links.email_threads[]`
-- DataBrowser shows the thread on both contacts
+- databrowser shows the thread on both contacts
 
 ---
 
@@ -233,7 +233,7 @@ The same Document structure works for:
 | LinkedIn message | `linkedin` | linkedin_api |
 | WhatsApp | `whatsapp` | whatsapp_business |
 
-Same array, same fields, same DataBrowser display. Alice tracks all channels on the same contact timeline.
+Same array, same fields, same databrowser display. Alice tracks all channels on the same contact timeline.
 
 ---
 

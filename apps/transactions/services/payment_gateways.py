@@ -1,336 +1,265 @@
+"""Payment gateway integration via Spreedly.
+
+Spreedly is a universal payment aggregator. One integration, 100+ gateways.
+Users configure their own gateway (Stripe, PayPal, Braintree, etc.) in Settings.
+WC3 talks to Spreedly; Spreedly talks to the gateway.
+
+TOKEN RULE (established 2026-08-05):
+  WC3 stores ONLY: gateway reference ID (pm_xxx), last4, brand, exp.
+  NEVER: card number, CVV, full token, or anything replayable.
+  The gateway's client-side SDK (iframe) collects card data.
+  Our HTML/JS never touches card data. Token in a token.
+"""
+
 import logging
-import stripe
-from paypalrestsdk import Payment as PayPalPayment
-import paypalrestsdk
-from django.conf import settings
+import requests
+from decimal import Decimal
 from django.utils import timezone
-from apps.transactions.models import Payment
 
 logger = logging.getLogger(__name__)
 
 
-class StripeService:
-    """Service for handling Stripe payment processing"""
+class SpreedlyService:
+    """Universal payment gateway via Spreedly."""
 
-    def __init__(self):
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-        self.webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+    BASE = "https://core.spreedly.com/v1"
 
-    def create_payment_intent(self, payment_obj):
-        """Create a Stripe payment intent for the payment"""
+    def __init__(self, env_key: str, access_secret: str, gateway_token: str):
+        self.env_key = env_key
+        self.access_secret = access_secret
+        self.gateway_token = gateway_token
+
+    @classmethod
+    def from_settings(cls):
+        """Build from the payment_gateway Setting record."""
+        from apps.core.models.setting import Setting
         try:
-            intent = stripe.PaymentIntent.create(
-                amount=int(payment_obj.amount * 100),  # Convert to cents
-                currency=settings.PAYMENT_CURRENCY.lower(),
-                metadata={
-                    'payment_id': payment_obj.id,
-                    'invoice_id': payment_obj.invoice_id,
-                    'contact_id': payment_obj.contact_id,
-                },
-                description=f"Payment for Invoice #{payment_obj.invoice_id}",
-                receipt_email=payment_obj.contact.email if hasattr(payment_obj.contact, 'email') else None,
-            )
+            setting = Setting.objects.get(purpose='payment_gateway')
+        except Setting.DoesNotExist:
+            raise RuntimeError("No payment_gateway Setting found. Run: manage.py seed_payment_gateway")
+        cfg = setting.config or {}
+        spreedly = cfg.get('spreedly', {})
+        env_key = spreedly.get('environment_key', '')
+        access_secret = spreedly.get('access_secret', '')
+        gateway_token = cfg.get('active_gateway_token', '')
+        if not env_key or not access_secret:
+            raise RuntimeError("Spreedly credentials not configured in payment_gateway Setting")
+        if not gateway_token:
+            raise RuntimeError("No active_gateway_token configured in payment_gateway Setting")
+        return cls(env_key, access_secret, gateway_token)
 
-            payment_obj.gateway_payment_intent_id = intent.id
-            payment_obj.gateway_transaction_id = intent.id
-            payment_obj.status = 'processing'
-            payment_obj.gateway_response = intent
-            payment_obj.save()
+    def _request(self, method: str, path: str, body: dict | None = None) -> dict:
+        """Make authenticated request to Spreedly API."""
+        resp = requests.request(
+            method,
+            f"{self.BASE}{path}",
+            auth=(self.env_key, self.access_secret),
+            json=body,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        data = resp.json()
+        if resp.status_code >= 400:
+            errors = data.get('errors', [])
+            msg = errors[0].get('message', resp.text) if errors else resp.text
+            logger.error(f"Spreedly {method} {path} → {resp.status_code}: {msg}")
+            raise SpreedlyError(msg, status_code=resp.status_code, response=data)
+        return data
 
-            logger.info(f"Created Stripe payment intent {intent.id} for payment {payment_obj.id}")
-            return intent
+    # ── Transactions ─────────────────────────────────────────────────
 
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe error creating payment intent: {e}")
-            payment_obj.mark_as_failed(str(e))
-            raise
+    def purchase(self, payment_method_token: str, amount_cents: int,
+                 currency: str = "USD", order_id: str = "",
+                 retain: bool = True) -> dict:
+        """Authorize + capture in one step."""
+        body = {
+            "transaction": {
+                "payment_method_token": payment_method_token,
+                "amount": amount_cents,
+                "currency_code": currency,
+                "order_id": order_id,
+                "retain_on_success": retain,
+            }
+        }
+        return self._request("POST", f"/gateways/{self.gateway_token}/purchase.json", body)
 
-    def confirm_payment_intent(self, payment_intent_id):
-        """Confirm a payment intent"""
+    def authorize(self, payment_method_token: str, amount_cents: int,
+                  currency: str = "USD", order_id: str = "",
+                  retain: bool = True) -> dict:
+        """Authorize only — capture later."""
+        body = {
+            "transaction": {
+                "payment_method_token": payment_method_token,
+                "amount": amount_cents,
+                "currency_code": currency,
+                "order_id": order_id,
+                "retain_on_success": retain,
+            }
+        }
+        return self._request("POST", f"/gateways/{self.gateway_token}/authorize.json", body)
+
+    def capture(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Capture a prior authorization. Omit amount for full capture."""
+        body = {"transaction": {}}
+        if amount_cents is not None:
+            body["transaction"]["amount"] = amount_cents
+        return self._request("POST", f"/transactions/{transaction_token}/capture.json", body)
+
+    def void(self, transaction_token: str) -> dict:
+        """Void a transaction before settlement."""
+        return self._request("POST", f"/transactions/{transaction_token}/void.json")
+
+    def credit(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Refund after settlement. Omit amount for full refund."""
+        body = {"transaction": {}}
+        if amount_cents is not None:
+            body["transaction"]["amount"] = amount_cents
+        return self._request("POST", f"/transactions/{transaction_token}/credit.json", body)
+
+    def refund(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Try void first, fall back to credit."""
         try:
-            intent = stripe.PaymentIntent.confirm(payment_intent_id)
-            return intent
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe error confirming payment intent: {e}")
-            raise
+            return self.void(transaction_token)
+        except SpreedlyError:
+            return self.credit(transaction_token, amount_cents)
 
-    def handle_webhook(self, payload, sig_header):
-        """Handle Stripe webhook events"""
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, self.webhook_secret
-            )
-        except ValueError as e:
-            logger.error(f"Invalid Stripe webhook payload: {e}")
-            raise ValueError("Invalid payload")
-        except stripe.error.SignatureVerificationError as e:
-            logger.error(f"Invalid Stripe webhook signature: {e}")
-            raise ValueError("Invalid signature")
+    # ── Gateway management ───────────────────────────────────────────
 
-        # Handle the event
-        if event.type == 'payment_intent.succeeded':
-            payment_intent = event.data.object
-            self._handle_payment_succeeded(payment_intent)
-        elif event.type == 'payment_intent.payment_failed':
-            payment_intent = event.data.object
-            self._handle_payment_failed(payment_intent)
-        elif event.type == 'payment_intent.canceled':
-            payment_intent = event.data.object
-            self._handle_payment_cancelled(payment_intent)
+    def add_gateway(self, gateway_type: str, credentials: dict) -> dict:
+        """Add a payment gateway (Stripe, PayPal, etc.)."""
+        body = {"gateway": {"gateway_type": gateway_type, **credentials}}
+        return self._request("POST", "/gateways.json", body)
 
-        return event
+    def list_gateways(self) -> dict:
+        """List all configured gateways."""
+        return self._request("GET", "/gateways.json")
 
-    def _handle_payment_succeeded(self, payment_intent):
-        """Handle successful payment"""
-        try:
-            payment = Payment.objects.get(gateway_payment_intent_id=payment_intent.id)
+    # ── Payment method info ──────────────────────────────────────────
+
+    def get_payment_method(self, pm_token: str) -> dict:
+        """Retrieve payment method details (never returns full card number)."""
+        return self._request("GET", f"/payment_methods/{pm_token}.json")
+
+    def retain_payment_method(self, pm_token: str) -> dict:
+        """Retain (vault) a payment method for future use."""
+        return self._request("PUT", f"/payment_methods/{pm_token}/retain.json")
+
+    def redact_payment_method(self, pm_token: str) -> dict:
+        """Permanently remove a payment method from the vault."""
+        return self._request("PUT", f"/payment_methods/{pm_token}/redact.json")
+
+
+class SpreedlyError(Exception):
+    def __init__(self, message: str, status_code: int = 0, response: dict | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.response = response or {}
+
+
+# ── Helper: process a WC3 Payment record ─────────────────────────────
+
+def process_payment(payment_id: int, payment_method_token: str) -> dict:
+    """Process a Payment record through Spreedly.
+
+    Called from the payment UI after the client-side SDK returns a token.
+    The token is a reference to a card vaulted in Spreedly — WC3 never saw
+    the card number.
+
+    Returns the Spreedly transaction result.
+    """
+    from apps.transactions.models import Payment
+
+    payment = Payment.objects.get(pk=payment_id)
+    svc = SpreedlyService.from_settings()
+
+    amount_cents = int(payment.amount * 100)
+    order_id = f"wc3-{payment.id}"
+
+    payment.gateway = 'spreedly'
+    payment.status = 'processing'
+    payment.save(update_fields=['gateway', 'status'])
+
+    try:
+        result = svc.purchase(payment_method_token, amount_cents, order_id=order_id)
+        txn = result.get('transaction', {})
+        pm = txn.get('payment_method', {})
+
+        payment.id_gateway_transaction = txn.get('token', '')
+        payment.id_gateway_payment_intent = txn.get('gateway_transaction_id', '')
+        payment.dt_processed = timezone.now()
+
+        # Token-in-a-token: store only the reference, last4, brand
+        payment.refs = payment.refs or {}
+        payment.refs['card'] = {
+            'pm_token': pm.get('token', ''),
+            'last4': pm.get('last_four_digits', ''),
+            'brand': pm.get('card_type', ''),
+            'exp_month': pm.get('month', ''),
+            'exp_year': pm.get('year', ''),
+            'fingerprint': pm.get('fingerprint', ''),
+        }
+
+        if txn.get('succeeded'):
             payment.status = 'completed'
-            payment.processed_at = timezone.now()
-            payment.gateway_response = payment_intent
-            payment.fee_amount = (payment_intent.amount - payment_intent.amount_received) / 100  # Convert from cents
-
-            # Update metadata with gateway information
-            if not payment.metadata:
-                payment.metadata = {}
-            payment.metadata['gateway_metadata'] = {
-                'stripe_payment_intent_id': payment_intent.id,
-                'amount_received': payment_intent.amount_received / 100,
-                'currency': payment_intent.currency,
-                'fee': payment.fee_amount,
-                'net_amount': (payment_intent.amount_received - payment.fee_amount * 100) / 100
+            payment.gateway_response = {
+                'spreedly_token': txn.get('token', ''),
+                'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
+                'message': txn.get('message', ''),
+                'succeeded': True,
             }
             payment.add_audit_entry('gateway_payment_completed', {
-                'gateway': 'stripe',
-                'payment_intent_id': payment_intent.id,
-                'amount': payment_intent.amount / 100
+                'gateway': 'spreedly',
+                'transaction_token': txn.get('token', ''),
+                'amount_cents': amount_cents,
             })
+        else:
+            payment.status = 'failed'
+            payment.gateway_response = {
+                'succeeded': False,
+                'message': txn.get('message', 'Transaction failed'),
+            }
 
-            payment.save()
+        payment.save()
+        logger.info(f"Payment {payment.id} processed via Spreedly: {payment.status}")
+        return result
 
-            logger.info(f"Payment {payment.id} marked as completed via Stripe webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for Stripe payment intent {payment_intent.id}")
-
-    def _handle_payment_failed(self, payment_intent):
-        """Handle failed payment"""
-        try:
-            payment = Payment.objects.get(gateway_payment_intent_id=payment_intent.id)
-            payment.mark_as_failed(payment_intent.last_payment_error.message if payment_intent.last_payment_error else "Payment failed")
-            payment.gateway_response = payment_intent
-            payment.save()
-
-            logger.info(f"Payment {payment.id} marked as failed via Stripe webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for Stripe payment intent {payment_intent.id}")
-
-    def _handle_payment_cancelled(self, payment_intent):
-        """Handle cancelled payment"""
-        try:
-            payment = Payment.objects.get(gateway_payment_intent_id=payment_intent.id)
-            payment.status = 'cancelled'
-            payment.gateway_response = payment_intent
-            payment.save()
-
-            logger.info(f"Payment {payment.id} marked as cancelled via Stripe webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for Stripe payment intent {payment_intent.id}")
+    except SpreedlyError as e:
+        payment.status = 'failed'
+        payment.gateway_response = {'succeeded': False, 'message': str(e)}
+        payment.save(update_fields=['status', 'gateway_response'])
+        logger.error(f"Payment {payment.id} failed via Spreedly: {e}")
+        raise
 
 
-class PayPalService:
-    """Service for handling PayPal payment processing"""
+def refund_payment(payment_id: int, amount_cents: int | None = None) -> dict:
+    """Refund a completed Payment through Spreedly.
 
-    def __init__(self):
-        paypalrestsdk.configure({
-            "mode": settings.PAYPAL_ENVIRONMENT,
-            "client_id": settings.PAYPAL_CLIENT_ID,
-            "client_secret": settings.PAYPAL_CLIENT_SECRET
+    Tries void first (pre-settlement), falls back to credit (post-settlement).
+    """
+    from apps.transactions.models import Payment
+
+    payment = Payment.objects.get(pk=payment_id)
+    if not payment.id_gateway_transaction:
+        raise ValueError("Payment has no gateway transaction to refund")
+
+    svc = SpreedlyService.from_settings()
+    result = svc.refund(payment.id_gateway_transaction, amount_cents)
+
+    txn = result.get('transaction', {})
+    if txn.get('succeeded'):
+        if amount_cents and amount_cents < int(payment.amount * 100):
+            payment.status = 'partially_refunded'
+        else:
+            payment.status = 'refunded'
+        payment.add_audit_entry('gateway_refund', {
+            'refund_token': txn.get('token', ''),
+            'amount_cents': amount_cents or int(payment.amount * 100),
+        })
+    else:
+        payment.add_audit_entry('gateway_refund_failed', {
+            'message': txn.get('message', ''),
         })
 
-    def create_payment(self, payment_obj, return_url=None, cancel_url=None):
-        """Create a PayPal payment"""
-        try:
-            paypal_payment = PayPalPayment({
-                "intent": "sale",
-                "payer": {
-                    "payment_method": "paypal"
-                },
-                "redirect_urls": {
-                    "return_url": return_url or settings.PAYMENT_SUCCESS_URL,
-                    "cancel_url": cancel_url or settings.PAYMENT_CANCEL_URL
-                },
-                "transactions": [{
-                    "amount": {
-                        "total": str(payment_obj.amount),
-                        "currency": settings.PAYMENT_CURRENCY
-                    },
-                    "description": f"Payment for Invoice #{payment_obj.invoice_id}",
-                    "invoice_number": str(payment_obj.invoice_id)
-                }]
-            })
-
-            if paypal_payment.create():
-                payment_obj.gateway_transaction_id = paypal_payment.id
-                payment_obj.status = 'processing'
-                payment_obj.gateway_response = paypal_payment.to_dict()
-                payment_obj.save()
-
-                logger.info(f"Created PayPal payment {paypal_payment.id} for payment {payment_obj.id}")
-                return paypal_payment
-            else:
-                error_msg = paypal_payment.error
-                logger.error(f"PayPal payment creation failed: {error_msg}")
-                payment_obj.mark_as_failed(str(error_msg))
-                raise Exception(f"PayPal payment creation failed: {error_msg}")
-
-        except Exception as e:
-            logger.error(f"PayPal error creating payment: {e}")
-            payment_obj.mark_as_failed(str(e))
-            raise
-
-    def execute_payment(self, payment_id, payer_id):
-        """Execute a PayPal payment"""
-        try:
-            paypal_payment = PayPalPayment.find(payment_id)
-            if paypal_payment.execute({"payer_id": payer_id}):
-                # Update payment record
-                payment = Payment.objects.get(gateway_transaction_id=payment_id)
-                payment.status = 'completed'
-                payment.processed_at = timezone.now()
-                payment.gateway_response = paypal_payment.to_dict()
-
-                # Calculate fee (PayPal typically takes 2.9% + $0.30)
-                fee_rate = 0.029
-                fixed_fee = 0.30
-                payment.fee_amount = (payment.amount * fee_rate) + fixed_fee
-                payment.save()
-
-                logger.info(f"Executed PayPal payment {payment_id} for payment {payment.id}")
-                return paypal_payment
-            else:
-                error_msg = paypal_payment.error
-                logger.error(f"PayPal payment execution failed: {error_msg}")
-                payment = Payment.objects.get(gateway_transaction_id=payment_id)
-                payment.mark_as_failed(str(error_msg))
-                raise Exception(f"PayPal payment execution failed: {error_msg}")
-
-        except Exception as e:
-            logger.error(f"PayPal error executing payment: {e}")
-            raise
-
-    def handle_webhook(self, webhook_data):
-        """Handle PayPal webhook events"""
-        try:
-            event_type = webhook_data.get('event_type')
-            resource = webhook_data.get('resource', {})
-
-            if event_type == 'PAYMENT.SALE.COMPLETED':
-                self._handle_paypal_payment_completed(resource)
-            elif event_type == 'PAYMENT.SALE.DENIED':
-                self._handle_paypal_payment_failed(resource)
-            elif event_type == 'PAYMENT.SALE.REFUNDED':
-                self._handle_paypal_payment_refunded(resource)
-
-            logger.info(f"Processed PayPal webhook event: {event_type}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Error handling PayPal webhook: {e}")
-            raise
-
-    def _handle_paypal_payment_completed(self, resource):
-        """Handle PayPal payment completed"""
-        try:
-            paypal_payment_id = resource.get('parent_payment')
-            payment = Payment.objects.get(gateway_transaction_id=paypal_payment_id)
-            payment.status = 'completed'
-            payment.processed_at = timezone.now()
-            payment.gateway_response = resource
-            payment.save()
-
-            logger.info(f"Payment {payment.id} marked as completed via PayPal webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for PayPal payment {paypal_payment_id}")
-
-    def _handle_paypal_payment_failed(self, resource):
-        """Handle PayPal payment failed"""
-        try:
-            paypal_payment_id = resource.get('parent_payment')
-            payment = Payment.objects.get(gateway_transaction_id=paypal_payment_id)
-            payment.mark_as_failed("PayPal payment denied")
-            payment.gateway_response = resource
-            payment.save()
-
-            logger.info(f"Payment {payment.id} marked as failed via PayPal webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for PayPal payment {paypal_payment_id}")
-
-    def _handle_paypal_payment_refunded(self, resource):
-        """Handle PayPal payment refunded"""
-        try:
-            paypal_payment_id = resource.get('parent_payment')
-            payment = Payment.objects.get(gateway_transaction_id=paypal_payment_id)
-            payment.status = 'refunded'
-            payment.gateway_response = resource
-            payment.save()
-
-            logger.info(f"Payment {payment.id} marked as refunded via PayPal webhook")
-        except Payment.DoesNotExist:
-            logger.error(f"Payment not found for PayPal payment {paypal_payment_id}")
-
-
-class PaymentReconciliationService:
-    """Service for reconciling payments with gateway statements"""
-
-    def reconcile_payments(self, start_date=None, end_date=None):
-        """Reconcile payments within date range"""
-        from django.db.models import Q
-
-        query = Q(status='completed', reconciled=False)
-        if start_date:
-            query &= Q(processed_at__gte=start_date)
-        if end_date:
-            query &= Q(processed_at__lte=end_date)
-
-        payments = Payment.objects.filter(query)
-
-        reconciled_count = 0
-        for payment in payments:
-            try:
-                if self._verify_payment_with_gateway(payment):
-                    payment.reconcile()
-                    payment.add_reconciliation_note(f"Auto-reconciled on {timezone.now().date()}")
-                    payment.add_audit_entry('reconciled', {'method': 'auto', 'batch_id': f"batch_{timezone.now().strftime('%Y%m%d')}"})
-                    reconciled_count += 1
-                    logger.info(f"Reconciled payment {payment.id}")
-                else:
-                    logger.warning(f"Payment {payment.id} could not be verified with gateway")
-            except Exception as e:
-                logger.error(f"Error reconciling payment {payment.id}: {e}")
-
-        return reconciled_count
-
-    def _verify_payment_with_gateway(self, payment):
-        """Verify payment exists and matches gateway records"""
-        if payment.gateway == 'stripe':
-            return self._verify_stripe_payment(payment)
-        elif payment.gateway == 'paypal':
-            return self._verify_paypal_payment(payment)
-        else:
-            # Manual payments are assumed reconciled
-            return True
-
-    def _verify_stripe_payment(self, payment):
-        """Verify payment with Stripe"""
-        try:
-            intent = stripe.PaymentIntent.retrieve(payment.gateway_payment_intent_id)
-            return intent.status == 'succeeded' and intent.amount == int(payment.amount * 100)
-        except stripe.error.StripeError:
-            return False
-
-    def _verify_paypal_payment(self, payment):
-        """Verify payment with PayPal"""
-        try:
-            paypal_payment = PayPalPayment.find(payment.gateway_transaction_id)
-            return paypal_payment.state == 'approved'
-        except Exception:
-            return False
+    payment.save()
+    logger.info(f"Payment {payment.id} refund: {payment.status}")
+    return result

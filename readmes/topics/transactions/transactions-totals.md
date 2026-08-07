@@ -6,12 +6,30 @@
 
 ## Quick Reference: Quantity Semantics
 
-Each line has three quantity fields with distinct roles:
+### `quantity.active` is the verb of the document
+
+The meaning of `active` changes by document type — it IS the action:
+
+| Document | `quantity.active` means |
+|----------|------------------------|
+| proposal_line | quantity being **proposed** |
+| order_line | quantity being **ordered** |
+| invoice_line | quantity being **shipped** |
+| purchase_line | quantity being **purchased** |
+| receipt_line | quantity being **received** |
+| workorder_line | quantity being **produced** |
+
+There is no `shipped` or `picked` or `received` key. The document type
+gives the quantity its meaning. Invoice line active=6 means 6 shipped.
+Order line active=10 means 10 ordered. Order remaining=4 means 4 not
+yet shipped. The data is already there — look at the right document.
+
+### The three canonical keys
 
 | Field | Role | Source |
 |-------|------|--------|
+| `active` | The verb — what this line is acting on | **User input** — the primary quantity |
 | `staged` | What was allocated FROM the parent | Frozen at transfer time (= `parent.remaining`); mirrors `active` for standalone |
-| `active` | What the user decided to use on THIS line | **User input** — the primary quantity |
 | `remaining` | What's available FOR children | `active − sum(children.active)` |
 
 ### Standalone vs Transferred Lines

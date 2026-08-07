@@ -1,6 +1,6 @@
 # Field Behaviors — BehaviorField Reference
 
-BehaviorField renders each field in the DataBrowser detail view based on its
+BehaviorField renders each field in the databrowser detail view based on its
 `type` in the model's `field_access` Setting record (`config.field_behaviors`).
 
 Click the label to trigger the action. Shift+click any label opens field-level help.
@@ -131,9 +131,9 @@ behavior types. Copy and adapt for any field.
 
 ## Adding a New Behavior to a Model
 
-1. Open the DataBrowser → Settings → find `field_access:<model_name>`
+1. Open the databrowser → Settings → find `field_access:<model_name>`
 2. Edit `config.field_behaviors`
 3. Add or change the field's type (see examples in `_examples`)
-4. Save — DataBrowser picks up the change immediately (no restart)
+4. Save — databrowser picks up the change immediately (no restart)
 
 ## File: `src/components/common/BehaviorField.tsx`

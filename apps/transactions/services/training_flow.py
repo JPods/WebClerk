@@ -199,7 +199,7 @@ class TrainingFlow:
     def step_4_record_payment(self, amount: Optional[float] = None) -> Dict[str, Any]:
         """Record payment against invoice."""
         from apps.transactions.models import Payment
-        from apps.transactions.services.payment_application import apply_payment_to_invoice
+        from apps.transactions.services.payment_pending import apply_payment_to_invoice
         from apps.core.models import Contact
 
         if amount is None and self.invoice:
@@ -232,11 +232,15 @@ class TrainingFlow:
         )
         _stamp_training(self.payment)
 
-        # Apply payment
+        # Apply payment via pending (one path, one audit trail)
         application = None
         if self.invoice and amount and amount > 0:
             try:
-                application = apply_payment_to_invoice(self.payment, self.invoice)
+                application = apply_payment_to_invoice(
+                    payment_id=self.payment.pk,
+                    invoice_id=self.invoice.pk,
+                    amount=amount,
+                )
             except Exception as e:
                 logger.warning("Payment application failed in training: %s", e)
 

@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Q
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.choices import SETTING_PURPOSE_CHOICES, SETTING_SCOPE_CHOICES
+from apps.core.choices import SETTING_SCOPE_CHOICES
 from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta, get_model_meta_by_endpoint
 
 
@@ -15,12 +15,6 @@ class Setting(BaseModel):
     Use resolve_setting() to walk the chain and get the effective value.
     """
     name = models.CharField(max_length=255, blank=True, null=True)
-    purpose = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        choices=SETTING_PURPOSE_CHOICES,
-    )
     # Scope: who does this setting apply to?
     scope = models.CharField(
         max_length=20,

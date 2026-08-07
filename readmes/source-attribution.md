@@ -35,7 +35,7 @@ Most users use `source_name`. Power users populate both.
 | Purchase | `source_name` | (Less common — internal attribution) |
 | WorkOrder | `source_name` | What drove this job? |
 
-All are `CharField(max_length=80, db_index=True)`. Sortable, filterable in DataBrowser.
+All are `CharField(max_length=80, db_index=True)`. Sortable, filterable in databrowser.
 
 ---
 

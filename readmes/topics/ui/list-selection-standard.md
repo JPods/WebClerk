@@ -1,7 +1,7 @@
 # WC List Selection Standard
 
 **Established:** 2026-08-01
-**Applies to:** All list/table views across the WC ecosystem — DataBrowser, Statement Sorter, any future list UI.
+**Applies to:** All list/table views across the WC ecosystem — databrowser, Statement Sorter, any future list UI.
 
 ## The Rule
 
@@ -34,7 +34,7 @@ Row clicks on `<select>`, `<input>`, or other interactive elements inside the ro
 
 ## Implementation Reference
 
-- **DataBrowser:** `React2025/src/components/common/DataGrid.tsx` lines 649-677
+- **databrowser:** `React2025/src/components/common/DataGrid.tsx` lines 649-677
 - **Statement Sorter:** `sites/statement_sorter/index.html` — `handleRowClick()`
 
 ## Bulk Actions on Selection

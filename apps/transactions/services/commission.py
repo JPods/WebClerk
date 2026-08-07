@@ -452,3 +452,160 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
         Model.objects.filter(pk=transaction_id).update(commission=comm, dt_modified=_now_ms())
 
     return {'created': created, 'entries': entries, 'total_accrued': comm.get('total', 0)}
+
+
+# ---------------------------------------------------------------------------
+# Commission Report — data gathering for print reports
+# ---------------------------------------------------------------------------
+
+def get_commission_report(
+    period_start: str,
+    period_end: str,
+    rep_id: Optional[int] = None,
+    model_name: str = 'invoice',
+) -> dict:
+    """Gather commission data for a date range.
+
+    Two modes:
+      - rep_id=None → company summary by rep (all reps)
+      - rep_id=N → individual rep statement with invoice detail
+
+    Args:
+        period_start: ISO date string YYYY-MM-DD
+        period_end: ISO date string YYYY-MM-DD
+        rep_id: filter to one rep (optional)
+        model_name: 'invoice' (default — commissions accrue on invoices)
+
+    Returns dict with 'reps' (summary) and 'detail' (per-invoice lines).
+    """
+    from datetime import datetime
+
+    Model = dj_apps.get_model('transactions', 'Invoice')
+    OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+
+    # Parse dates — dt_created is stored as epoch ms
+    try:
+        dt_start = datetime.fromisoformat(period_start)
+        dt_end = datetime.fromisoformat(period_end + 'T23:59:59') if 'T' not in period_end else datetime.fromisoformat(period_end)
+    except (ValueError, TypeError):
+        return {'error': 'Invalid date format. Use YYYY-MM-DD.'}
+
+    start_ms = int(dt_start.timestamp() * 1000)
+    end_ms = int(dt_end.timestamp() * 1000)
+
+    # Query invoices with commission data in the period
+    invoices = Model.objects.filter(
+        dt_created__gte=start_ms,
+        dt_created__lte=end_ms,
+        is_deleted=False,
+    ).exclude(commission__isnull=True)
+
+    # Aggregate by rep
+    rep_summary = {}   # rep_id → {name, ida, rate_pct, basis, sales, commission, invoices, accrued, paid, pending, detail[]}
+    total_sales = Decimal('0')
+    total_commission = Decimal('0')
+    total_invoices = 0
+
+    for inv in invoices:
+        comm = inv.commission or {}
+        reps = comm.get('reps', [])
+        if not reps:
+            continue
+
+        sell = inv.sell or {}
+        inv_total = Decimal(str(sell.get('total', 0) or 0))
+        inv_ida = inv.ida or f'INV-{inv.pk}'
+        inv_date = ''
+        if inv.dt_created:
+            try:
+                inv_date = datetime.fromtimestamp(inv.dt_created / 1000).strftime('%Y-%m-%d')
+            except (OSError, ValueError):
+                inv_date = str(inv.dt_created)
+
+        # Customer name
+        cust_name = ''
+        if inv.customer_id:
+            try:
+                cust = OrgBase.objects.get(pk=inv.customer_id)
+                cust_name = cust.display_name or ''
+            except OrgBase.DoesNotExist:
+                cust_name = f'Org #{inv.customer_id}'
+
+        for rep_entry in reps:
+            rid = rep_entry.get('rep_id', 0)
+            if rep_id is not None and rid != rep_id:
+                continue
+
+            amount = Decimal(str(rep_entry.get('amount', 0) or 0))
+
+            if rid not in rep_summary:
+                rep_summary[rid] = {
+                    'rep_id': rid,
+                    'rep_ida': rep_entry.get('rep_ida', ''),
+                    'name': rep_entry.get('name', f'Rep #{rid}'),
+                    'rate_pct': rep_entry.get('rate_pct', 0),
+                    'basis': rep_entry.get('basis', ''),
+                    'sales_credited': Decimal('0'),
+                    'commission_earned': Decimal('0'),
+                    'invoice_count': 0,
+                    'accrued': Decimal('0'),
+                    'paid': Decimal('0'),
+                    'pending': Decimal('0'),
+                    'detail': [],
+                }
+
+            rs = rep_summary[rid]
+            split_pct = Decimal(str(rep_entry.get('split_pct', 100) or 100))
+            credited = (inv_total * split_pct / Decimal('100')).quantize(Decimal('0.01'))
+            rs['sales_credited'] += credited
+            rs['commission_earned'] += amount
+            rs['invoice_count'] += 1
+
+            if comm.get('accrued'):
+                rs['accrued'] += amount
+            else:
+                rs['pending'] += amount
+
+            rs['detail'].append({
+                'invoice_id': inv.pk,
+                'invoice_ida': inv_ida,
+                'date': inv_date,
+                'customer': cust_name,
+                'sale_amount': float(inv_total),
+                'credited': float(credited),
+                'rate_pct': rep_entry.get('rate_pct', 0),
+                'effective_rate': rep_entry.get('effective_rate', 0),
+                'commission': float(amount),
+                'accrued': comm.get('accrued', False),
+            })
+
+        total_sales += inv_total
+        total_invoices += 1
+
+    # Build output
+    rep_list = []
+    for rs in sorted(rep_summary.values(), key=lambda x: x['name']):
+        rep_list.append({
+            'rep_id': rs['rep_id'],
+            'rep_ida': rs['rep_ida'],
+            'name': rs['name'],
+            'basis': rs['basis'],
+            'rate_pct': rs['rate_pct'],
+            'sales_credited': float(rs['sales_credited']),
+            'commission_earned': float(rs['commission_earned']),
+            'invoice_count': rs['invoice_count'],
+            'accrued': float(rs['accrued']),
+            'paid': float(rs['paid']),
+            'pending': float(rs['pending']),
+            'detail': rs['detail'],
+        })
+        total_commission += rs['commission_earned']
+
+    return {
+        'period_start': period_start,
+        'period_end': period_end,
+        'reps': rep_list,
+        'total_sales': float(total_sales),
+        'total_commission': float(total_commission),
+        'total_invoices': total_invoices,
+    }

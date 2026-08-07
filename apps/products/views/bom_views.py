@@ -165,8 +165,8 @@ class BOMConsumeView(APIView):
         qty = Decimal(str(request.data.get('qty', '1')))
         adjust = bool(request.data.get('adjust_for_on_hand', False))
         reason = request.data.get('reason', 'BOM assembly')
-        batch_id = bom_services.consume_bom(parent_id, qty, adjust_for_on_hand=adjust, reason=reason)
-        return api_response(data={'batch_id': batch_id, 'parent_id': parent_id, 'qty': float(qty)}, message='Build posted')
+        result = bom_services.consume_bom(parent_id, qty, adjust_for_on_hand=adjust, reason=reason)
+        return api_response(data={**result, 'parent_id': parent_id}, message='Build posted')
 
 
 class BOMWhereUsedView(APIView):

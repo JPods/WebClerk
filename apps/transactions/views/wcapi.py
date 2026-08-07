@@ -456,6 +456,41 @@ class WCAPISaveView(APIView):
                             status=status.HTTP_403_FORBIDDEN
                         )
 
+        # ── Status guard: validate transitions and journalized locks ───
+        GUARDED_MODELS = {
+            'proposal', 'order', 'invoice', 'purchase', 'work_order',
+            'requisition', 'payment', 'invoice_line', 'purchase_line',
+            'receipt_line',
+        }
+        if model_key in GUARDED_MODELS and record_id is not None:
+            try:
+                from apps.transactions.services.status_guard import (
+                    validate_transition, validate_modification,
+                )
+                existing = ModelCls.objects.get(pk=record_id)
+
+                # Check journalized lock — blocks all edits on posted records
+                mod_result = validate_modification(existing, model_key)
+                if not mod_result.can_proceed:
+                    return Response(
+                        {"detail": mod_result.errors[0], "errors": mod_result.errors},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+                # Check status transition if status is changing
+                new_status = data.get('status')
+                if new_status and new_status != getattr(existing, 'status', ''):
+                    trans_result = validate_transition(existing, model_key, new_status)
+                    if not trans_result.can_proceed:
+                        return Response(
+                            {"detail": trans_result.errors[0], "errors": trans_result.errors},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+            except ModelCls.DoesNotExist:
+                pass  # new record with explicit ID — no guard needed
+            except Exception:
+                pass  # guard failure should not block save
+
         # ── Write-through: forward to remote, store result locally ───
         if is_write_through():
             # Build a payload compatible with forward_and_store
@@ -503,6 +538,19 @@ class WCAPIDeleteView(APIView):
             obj = ModelCls.objects.get(pk=record_id)
         except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
             return Response({"deleted": False, "id": record_id}, status=status.HTTP_200_OK)
+
+        # Status guard: cannot delete journalized records
+        if model_key in ('invoice', 'payment', 'purchase', 'invoice_line',
+                         'purchase_line', 'receipt_line'):
+            try:
+                from apps.transactions.services.status_guard import is_journalized
+                if is_journalized(obj):
+                    return Response(
+                        {"detail": f"Cannot delete — {model_key} has been journalized."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+            except Exception:
+                pass
 
         obj.delete()
         return Response({"deleted": True, "id": record_id}, status=status.HTTP_200_OK)

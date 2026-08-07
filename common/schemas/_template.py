@@ -1,15 +1,22 @@
 """
 Pydantic schemas for {Model} JSON envelopes.
 
-Copy this template for each model. Define exactly what goes in each envelope.
-Delete sections that don't apply (not every model needs reconciliation or GL).
+Copy this template. Inherit from bases — never duplicate standard fields.
 
-Schema review cycle:
-  1. Developer adds fields → runs validation → commits schema
-  2. Local Alice flags new/changed schemas → reports to WC_HQ
-  3. WC_HQ reviews across all installations → approves or corrects
-  4. Corrected schemas sync back to all installations
-  5. Before the pattern spreads, the data is clean
+Six envelopes — every record inherits all six:
+  ConfigBase — model-specific structural data (extra='forbid' by default)
+  MetadataBase — system-managed: history, health, flags, audit trail
+  RecordPrefsBase — user-managed: userdefined, tags, pinned
+  RefsBase — relationship cache: links, source (FKs are truth)
+  CommentsBase — structured comments: public, process, partner, notes[]
+  ActionsBase — next-action metadata: required, status, who, when, what, kind
+
+Mixins (compose only where needed):
+  FinancialMetadataMixin — GL, reconciliation, ledger (transactions, payments)
+  StaffPrefsMixin — nav, wcui, databrowser (contacts with is_staff)
+  RepPrefsMixin — territory, commission (contacts with rep FK)
+  EmployeePrefsMixin — department, schedule (contacts with employee FK)
+  CartPrefsMixin — shopping cart prefs (customer-facing contacts)
 """
 from __future__ import annotations
 
@@ -17,48 +24,58 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from .envelopes import (
-    AuditEntry, GlStage, ImportProvenance, ReconciliationData,
-    RecordPrefsBase, RefsBase, SourceRef,
+    ConfigBase, MetadataBase, RecordPrefsBase, RefsBase,
+    CommentsBase, ActionsBase, SourceRef,
 )
 
 
-# ── {Model} .metadata ───────────────────────────────────────────────
+# ── .config (inherits ConfigBase — extra='forbid' by default) ─────
+# If this model stores specific fields in config, define them here.
+# If not, inherit ConfigBase unchanged — unknown fields will be rejected.
 
-class ModelMetadata(BaseModel):
-    """System-written. What goes here: GL state, sync state, audit trail, import provenance."""
-    gl_accounts: Optional[GlStage] = None
-    audit_trail: list[AuditEntry] = Field(default_factory=list)
-    import_data: Optional[ImportProvenance] = None
-
-
-# ── {Model} .prefs ──────────────────────────────────────────────────
-
-class ModelPrefs(RecordPrefsBase):
-    """User-initiated. What goes here: userdefined fields, tags, pinned."""
+class ModelConfig(ConfigBase):
+    """Add model-specific config fields here. extra='forbid' inherited."""
     pass
 
 
-# ── {Model} .refs ───────────────────────────────────────────────────
+# ── .metadata (inherits MetadataBase) ─────────────────────────────
 
-class ModelRefsLinks(BaseModel):
-    """Denormalized cache. List the FKs this model commonly queries by."""
-    customer_id: Optional[int] = None
-    contact_id: Optional[int] = None
+class ModelMetadata(MetadataBase):
+    """Add model-specific metadata fields here. Standard fields inherited."""
+    pass
 
+
+# ── .prefs (inherits RecordPrefsBase) ─────────────────────────────
+
+class ModelPrefs(RecordPrefsBase):
+    """Add model-specific prefs here. userdefined/tags/pinned inherited."""
+    pass
+
+
+# ── .refs (inherits RefsBase) ─────────────────────────────────────
 
 class ModelRefs(RefsBase):
-    """Relationship pointers. FKs are truth, these are cache."""
-    links: ModelRefsLinks = Field(default_factory=ModelRefsLinks)  # type: ignore[assignment]
+    """Add model-specific refs here. links/source inherited."""
+    tags: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None
 
 
-# ── Setting({model}, field_access).prefs ────────────────────────────
+# ── .comments (inherits CommentsBase) ─────────────────────────────
+
+class ModelComments(CommentsBase):
+    """Add model-specific comment fields here. public/process/partner/notes inherited."""
+    pass
+
+
+# ── .actions (inherits ActionsBase) ───────────────────────────────
+
+class ModelActions(ActionsBase):
+    """Add model-specific action fields here. required/status/who/when/what/kind inherited."""
+    pass
+
+
+# ── Setting defaults ──────────────────────────────────────────────
 
 class ModelSettingDefaults(BaseModel):
-    """Installation defaults for new records. Admin sets, Alice recommends."""
-    status: str = 'draft'
-
-
-class ModelSettingPrefs(BaseModel):
-    """Full prefs for the field_access Setting."""
-    defaults: ModelSettingDefaults = Field(default_factory=ModelSettingDefaults)
+    status: str = "draft"

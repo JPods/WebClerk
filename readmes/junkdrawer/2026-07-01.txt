@@ -10,7 +10,7 @@ Massive session: DataGrid migration, AliceContext, pdfme reports, visual debuggi
 - pdfme ReportDesigner page + ReportViewer component
 - InventoryDashboard (4 tabs: Receive, Adjust, Warehouse, Reconcile)
 - ApplyPayments full two-pane workflow with FIFO auto-apply
-- DataBrowser: race condition fix, button consolidation, user prefs to contact.metadata
+- databrowser: race condition fix, button consolidation, user prefs to contact.metadata
 - data-wc attributes on all key elements for help system
 - alice_guess + alphabetical layouts for 62 models
 - Conversion chain buttons on Order/Invoice/Proposal ManageActionPanel

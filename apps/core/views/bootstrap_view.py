@@ -35,12 +35,16 @@ class BootstrapView(APIView):
         config = setting.config or {}
 
         # Build the bootstrap payload — only what React needs
+        # Commission config is internal — only staff sees rates and rules
+        user = getattr(request, 'user', None)
+        is_staff = user and (getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False))
+
         payload = {
             'currency': prefs.get('currency', {}),
             'order_defaults': prefs.get('order_defaults', {}),
             'price_levels': prefs.get('price_levels', {}),
             'inventory': prefs.get('inventory', {}),
-            'commissions': prefs.get('commissions', {}),
+            'commissions': prefs.get('commissions', {}) if is_staff else {},
             'collections': prefs.get('collections', {}),
             'document_text': prefs.get('document_text', {}),
             'behavior': prefs.get('behavior', {}),

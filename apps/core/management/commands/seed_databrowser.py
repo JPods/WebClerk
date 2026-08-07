@@ -179,12 +179,20 @@ class Command(BaseCommand):
             data = {
                 'list': list_fields,
                 'detail': detail_fields,
-                'views': [{
-                    'name': 'initial',
-                    'list': list_fields,
-                    'detail': detail_fields,
-                    'listWidths': {},
-                }],
+                'views': [
+                    {
+                        'name': 'initial',
+                        'list': list_fields,
+                        'detail': detail_fields,
+                        'listWidths': {},
+                    },
+                    {
+                        'name': 'flat',
+                        'list': list_fields,
+                        'detail': detail_fields,
+                        'listWidths': {},
+                    },
+                ],
             }
 
             existing = Setting.objects.filter(

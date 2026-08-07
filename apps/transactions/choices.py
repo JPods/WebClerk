@@ -45,8 +45,7 @@ PROJECT_ATTENTION_CHOICES: Final[ChoiceList] = (
 PAYMENT_GATEWAY_CHOICES: Final[ChoiceList] = (
     ("", "---------"),
     ("manual", "Manual"),
-    ("stripe", "Stripe"),
-    ("paypal", "PayPal"),
+    ("spreedly", "Spreedly"),
 )
 
 PAYMENT_STATUS_CHOICES: Final[ChoiceList] = (

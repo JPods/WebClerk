@@ -44,5 +44,5 @@ print(o.uuid)
 ```
 
 If a future admin UI needs UUID access (e.g., for manual sync debugging),
-add it to the DataBrowser detail view behind an admin-only flag — not to
+add it to the databrowser detail view behind an admin-only flag — not to
 the transaction detail form.

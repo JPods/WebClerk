@@ -7,7 +7,7 @@ Every model gets exactly two Setting records. Non-model features get one.
 | Purpose | What it holds | Who writes it |
 |---------|--------------|---------------|
 | `field_access` | Field behaviors, select lists, RBAC scope, `.prefs.defaults` | Admin via Alice onboarding, seed commands |
-| `workbench_fields` | List layout, detail layout, named views | User via DataBrowser Save, seed commands |
+| `workbench_fields` | List layout, detail layout, named views | User via databrowser Save, seed commands |
 
 One additional system-wide Setting:
 

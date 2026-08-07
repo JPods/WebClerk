@@ -134,7 +134,7 @@ Tables: `alice_observations`, `alice_presets`, `alice_coaching_log`
 | `alert` | Something needs attention now | "3 invoices past due > 90 days for customer ACME" |
 | `search` | Search pattern worth saving | "Frequent search: items where on_hand < reorder_point" |
 | `layout` | Layout suggestion | "You always hide the 'uuid' column — Alice can remove it from the default view" |
-| `performance` | Slow query or UI issue | "DataBrowser load time > 3s for Invoice model (2,000+ records)" |
+| `performance` | Slow query or UI issue | "databrowser load time > 3s for Invoice model (2,000+ records)" |
 | `console` | Browser error captured | "Failed to fetch staff badge prefs: 401" |
 
 ---
@@ -170,7 +170,7 @@ When Alice confirms a pattern (observed 5+ times across 2+ users), she promotes 
 | Preset Type | What it creates | Example |
 |-------------|----------------|---------|
 | `search` | Saved search with filters | "Open orders for customer ACME" |
-| `layout` | DataBrowser column layout | "Invoice list with payment status columns" |
+| `layout` | databrowser column layout | "Invoice list with payment status columns" |
 | `dashboard` | Dashboard widget config | "Aging summary by customer" |
 | `workflow` | Multi-step action sequence | "Order → verify inventory → create PO if needed → invoice" |
 | `report` | Report preset | "Monthly sales by rep with commission" |

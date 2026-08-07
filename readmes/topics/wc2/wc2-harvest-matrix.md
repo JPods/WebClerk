@@ -150,8 +150,8 @@ Each section lists features/patterns from WC2 with source file pointers. Priorit
 | 3 | Invoice type enum | `catalog.4DCatalog` | `invoice_type` CharField choices replacing boolean flags | H |
 | 4 | Product autofill + price snapshot | `_PROP_Product_ID_.4dm` | Copy `sale_price` and `tax_rate` from Product to line — independent thereafter | H |
 | 5 | Explicit save status handling | `TableShow.entitySave()` | wcapi returns structured response: success, autoMerged, stampChanged, locked, permissionDenied, gone | H |
-| 6 | Cross-table navigation | `Util25_PropagateSelection.4dm` | DataBrowser related-record traversal: Invoice→Client, Product→all Clients who bought it | M |
-| 7 | Conditional row highlighting | `Util25_LB_HIGHLIGHT_INVOICES.4dm` | DataBrowser `row_style` function in layout settings — highlight overdue/high-value | M |
+| 6 | Cross-table navigation | `Util25_PropagateSelection.4dm` | databrowser related-record traversal: Invoice→Client, Product→all Clients who bought it | M |
+| 7 | Conditional row highlighting | `Util25_LB_HIGHLIGHT_INVOICES.4dm` | databrowser `row_style` function in layout settings — highlight overdue/high-value | M |
 | 8 | Settings singleton | `Settings_GetCurrent` | WC3 `Setting` model holding company config (SMTP, invoice sequences, defaults) | M |
 | 9 | Partial payments | Payments table: Amount vs Applied | Support split payments across invoices + multiple partial payments per invoice | M |
 | 10 | Selective transaction wrapping | `TableShow.relatedDelete()` | `@transaction.atomic` only for multi-table ops (delete invoice + cascade lines) | M |
@@ -251,7 +251,7 @@ Each section lists features/patterns from WC2 with source file pointers. Priorit
 |---------|--------|----------------------|----------|
 | TableShow class — CRUD encapsulated in one object | `TableShow.4dm` | entityAdd/Open/Save/Delete/Move/Duplicate all on one controller object | H |
 | Generic property introspection for search/sort | `Util_GetPropertyList.4dm` | Walk model fields, FK paths, object sub-paths; exclude `_` prefixed | H |
-| Per-user per-table column layout persistence | `Listbox_Setting` table | DataBrowser column widths/visibility stored per user per model | H |
+| Per-user per-table column layout persistence | `Listbox_Setting` table | databrowser column widths/visibility stored per user per model | H |
 | Computed Entity properties (Amount_Due, Full_Address) | `ClientsEntity.4dm` | Django `@property` for totals, formatted addresses — server-side | H |
 | Optimistic lock + entity resurrection | `action_Save_Optimistic.4dm` | If entity deleted between load and save, offer to recreate | H |
 | Pessimistic lock showing WHO has the lock | `action_Unlock.4dm` | Multi-user: show lock holder name, not just "locked" | M |
@@ -272,7 +272,7 @@ Each section lists features/patterns from WC2 with source file pointers. Priorit
 | Pattern | Source | What WC3 Should Learn | Priority |
 |---------|--------|----------------------|----------|
 | BOM pattern (parent + line items with qty+unit) | `catalog.4DCatalog` | Recipe:Ingredients = Invoice:Lines = Kit:Components — same structure | H |
-| Faceted sidebar (distinct values + count) | `updateLookupListbox.4dm` | DataBrowser sidebar: pick field, show distinct values + counts, click to filter | H |
+| Faceted sidebar (distinct values + count) | `updateLookupListbox.4dm` | databrowser sidebar: pick field, show distinct values + counts, click to filter | H |
 | Thumbnail vs full image as separate fields | `catalog.4DCatalog` | List views use thumbnail; detail uses full — avoid large image transfer | H |
 | Structured blob for ordered sub-items | `catalog.4DCatalog` | JSON blob for items that don't need their own table (steps, instructions) | M |
 | Duration as integer + split display | `loadRecipeInput.4dm` | Store minutes, display as H:M — applies to lead time, payment delay | M |
@@ -329,7 +329,7 @@ Each section lists features/patterns from WC2 with source file pointers. Priorit
 | SID-based deduplication for inbound events | Twilio Example | Every external event needs idempotency key; get_or_create(external_id=sid) | H |
 | Operator vocabulary as data objects | 65-QueryClass | {text, operator} mapped to Django __startswith/__icontains/__gt — not hardcoded | H |
 | Type-aware query routing | 65-QueryClass | Numeric→range input, text→string ops, date→picker, FK→typeahead | H |
-| Global hotkey → command palette | QOM | Cmd+K opens search contacts, invoices, Alice commands, DataBrowser models | H |
+| Global hotkey → command palette | QOM | Cmd+K opens search contacts, invoices, Alice commands, databrowser models | H |
 | Context pinning avoids N+1 queries | 40-Contexts | Explicit select_related/prefetch_related in every wcapi view | H |
 | Store UTC, display local, convert at entry | Date4D | Confirms Axiom 14 implementation: convert at entry point, never store local | H |
 | Widget-container message protocol | isWidgets/Finder | Search input fires Redux actions with message types, never fetches data itself | H |
@@ -345,10 +345,10 @@ Each section lists features/patterns from WC2 with source file pointers. Priorit
 |---------|--------------|----------------------|----------|
 | Entity drag between two lists: .add() source, .minus() from target | 19-05_DragDrop Demo1 | Assign items to orders, move contacts between groups — add to target, remove from source | H |
 | In-list reorder via swap at drop position | 19-05_DragDrop Demo5 | Reorder line items, priority lists — swap item at drop index with dragged item | H |
-| Generate listbox from JSON at runtime (4 data source types) | 18-16_DynamicListbox | DataBrowser columns generated from layout JSON, not hardcoded components | H |
+| Generate listbox from JSON at runtime (4 data source types) | 18-16_DynamicListbox | databrowser columns generated from layout JSON, not hardcoded components | H |
 | Column width = container width ÷ column count (equal distribution) | 18-16_DynamicListbox | Default column sizing: equal share of available width, user resizes override | M |
 | Kirk: tabbed import wizard (choose file → preview → match columns → run) | Kirk/dataImporter | WC3 import: 4-step wizard: select file → preview data → map columns → execute import | H |
-| Row highlighting via metaExpression (conditional per-row styling) | testSurlignage | DataBrowser row_style callback: overdue=red, high-value=green, archived=gray | M |
+| Row highlighting via metaExpression (conditional per-row styling) | testSurlignage | databrowser row_style callback: overdue=red, high-value=green, archived=gray | M |
 
 ### Cross-Project Patterns (3+ independent projects)
 

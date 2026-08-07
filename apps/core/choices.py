@@ -47,6 +47,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("", ""),
     # Layout & display
     ("detail_layout", "detail_layout"),
+    ("print_layout", "print_layout"),
     ("compact_layout", "compact_layout"),
     ("list_column_config", "list_column_config"),
     ("field_registry", "field_registry"),
@@ -76,7 +77,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     # Admin & system
     ("admin", "admin"),
     ("admin_selectlist", "admin_selectlist"),
-    ("React_settings", "React_settings"),
+    ("react_settings", "react_settings"),
     ("seed", "seed"),
     ("system", "system"),
     ("feature", "feature"),
@@ -98,6 +99,10 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("burndown_config", "burndown_config"),
     # Line card
     ("line_card_fields", "line_card_fields"),
+    # UI behaviors
+    ("ui_webclerk", "ui_webclerk"),
+    # Payment
+    ("payment_gateway", "payment_gateway"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

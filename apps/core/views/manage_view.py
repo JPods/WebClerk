@@ -50,6 +50,9 @@ Actions:
     send_email                     — merge + send via Django email backend
     bulk_send                      — send to multiple records
     get_available_templates        — list available templates
+  Report Parade (Alice onboarding):
+    start_parade                   — build parade manifest with sample data URLs
+    save_parade_feedback           — save Keep/Modify/Don't Need feedback on a report
 """
 from __future__ import annotations
 
@@ -64,6 +67,65 @@ from rest_framework.views import APIView
 from common.api_responses import api_response
 
 logger = logging.getLogger(__name__)
+
+
+def _carrier_action(method_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Dispatch a carrier API call via the Connection record.
+
+    Params must include 'connection_id' (Connection PK with carrier config)
+    plus method-specific fields. The Connection config.carrier_code selects
+    the implementation (ups, fedex, usps, dhl).
+    """
+    from apps.sync.models.connection import Connection
+    from apps.transactions.services.carriers.base import get_carrier, Address, Package
+    from dataclasses import asdict
+
+    conn_id = params.get('connection_id')
+    if not conn_id:
+        raise ValueError('connection_id required — the Connection record with carrier credentials')
+
+    conn = Connection.objects.get(pk=conn_id, is_active=True)
+    carrier = get_carrier(conn.config or {})
+
+    if method_name == 'get_rates':
+        rates = carrier.get_rates(
+            origin=Address(**params.get('origin', {})),
+            destination=Address(**params.get('destination', {})),
+            packages=[Package(**p) for p in params.get('packages', [])],
+        )
+        return {'rates': [asdict(r) for r in rates]}
+
+    elif method_name == 'create_shipment':
+        shipment = carrier.create_shipment(
+            origin=Address(**params.get('origin', {})),
+            destination=Address(**params.get('destination', {})),
+            packages=[Package(**p) for p in params.get('packages', [])],
+            service_code=params.get('service_code', ''),
+            reference=params.get('reference', ''),
+        )
+        result = asdict(shipment)
+        # Don't send raw label bytes through JSON — base64 encode
+        import base64
+        if shipment.label_data:
+            result['label_data'] = base64.b64encode(shipment.label_data).decode('ascii')
+        return result
+
+    elif method_name == 'track':
+        tracking = carrier.track(params.get('tracking_number', ''))
+        return asdict(tracking)
+
+    elif method_name == 'validate_address':
+        validation = carrier.validate_address(Address(**params.get('address', {})))
+        result = {'valid': validation.valid, 'messages': validation.messages}
+        if validation.corrected:
+            result['corrected'] = asdict(validation.corrected)
+        return result
+
+    elif method_name == 'cancel_shipment':
+        success = carrier.cancel_shipment(params.get('tracking_number', ''))
+        return {'cancelled': success}
+
+    raise ValueError(f'Unknown carrier method: {method_name}')
 
 
 def _log_tally_observation(request, action_name: str, params: Dict[str, Any], result: Dict[str, Any]) -> None:
@@ -780,6 +842,7 @@ _ACTION_DISPATCH = {
     # ── Commission ──
     "populate_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['populate_transaction_commission']).populate_transaction_commission(p['transaction_id'], p['model_name']),
     "accrue_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['accrue_commission']).accrue_commission(p['transaction_id'], p['model_name'], p.get('ida_prefix', '')),
+    "get_commission_report": lambda p: __import__('apps.transactions.services.commission', fromlist=['get_commission_report']).get_commission_report(p['period_start'], p['period_end'], p.get('rep_id'), p.get('model_name', 'invoice')),
     # ── Vendor Scorecard ──
     "compute_vendor_scorecard": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['compute_vendor_scorecard']).compute_vendor_scorecard(p['vendor_id'], p.get('period_days', 90)),
     "update_vendor_scorecard": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['update_vendor_scorecard']).update_vendor_scorecard(p['vendor_id']),
@@ -843,6 +906,12 @@ _ACTION_DISPATCH = {
     "confirm_pack": lambda p: __import__('apps.transactions.services.shipping', fromlist=['confirm_pack']).confirm_pack(p['order_id'], p['packed_lines']),
     "ship_order": lambda p: __import__('apps.transactions.services.shipping', fromlist=['ship_order']).ship_order(p['order_id'], p.get('shipping_data', {}), p.get('contact_id')),
     "get_shipment_status": lambda p: __import__('apps.transactions.services.shipping', fromlist=['get_shipment_status']).get_shipment_status(p['order_id']),
+    # ── Carrier API (rates, labels, tracking) ──
+    "get_shipping_rates": lambda p: _carrier_action('get_rates', p),
+    "create_carrier_shipment": lambda p: _carrier_action('create_shipment', p),
+    "track_shipment": lambda p: _carrier_action('track', p),
+    "validate_ship_address": lambda p: _carrier_action('validate_address', p),
+    "cancel_carrier_shipment": lambda p: _carrier_action('cancel_shipment', p),
     # ── EOM (End of Month) Close ──
     "run_eom_close": lambda p: __import__('apps.accounts.services.eom', fromlist=['run_eom_close']).run_eom_close(p['period_year'], p['period_month'], p.get('contact_id')),
     "get_eom_status": lambda p: __import__('apps.accounts.services.eom', fromlist=['get_eom_status']).get_eom_status(p['period_year'], p['period_month']),
@@ -861,12 +930,26 @@ _ACTION_DISPATCH = {
     # ── Field Change Requests ──
     "request_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['request_field_change']).request_field_change(p.get('model',''), p.get('field',''), p.get('change_type','select'), p.get('values_source','static'), p.get('options'), p.get('query_model',''), p.get('query_field',''), p.get('query_filter',''), p.get('setting_name',''), p.get('reason',''), p.get('field_label',''), p.get('contact_id')),
     "approve_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['approve_field_change']).approve_field_change(p['action_id'], p['contact_id']),
-    # ── UI Preferences (metadata.wcui on Contact) ──
+    # ── UI Preferences (prefs.wcui on Contact) ──
     "save_wcui_prefs": lambda p: __import__('apps.core.services.wcui_prefs', fromlist=['save_wcui_prefs']).save_wcui_prefs(p.get('prefs', {}), p.get('contact_id')),
     # ── Dedup (any model) ──
     "find_duplicates": lambda p: __import__('apps.core.services.dedup', fromlist=['find_duplicates']).find_duplicates(p['model'], p.get('match_fields', ['name_first+name_last']), p.get('limit', 500)),
     "merge_records": lambda p: __import__('apps.core.services.dedup', fromlist=['merge_records']).merge_records(p['model'], p['winner_id'], p['loser_ids'], p.get('merge_strategy', 'fill_empty')),
     "journal_dedup_delete": lambda p: __import__('apps.core.services.dedup', fromlist=['journal_delete']).journal_delete(p['model'], p['record_ids']),
+    # ── Feature Lifecycle (Alice + Allie + Andi) ──
+    "lifecycle_record": lambda p: __import__('apps.core.services.lifecycle', fromlist=['lifecycle_record']).lifecycle_record(p),
+    # ── Dashboard Batch Counts ──
+    "get_dashboard_counts": lambda p: __import__('apps.core.services.dashboard_counts', fromlist=['get_dashboard_counts']).get_dashboard_counts(p),
+    # ── Report Parade (Alice onboarding) ──
+    "start_parade": lambda p: __import__('apps.core.services.parade_of_reports', fromlist=['build_parade_manifest']).build_parade_manifest(p.get('report_ids'), p.get('base_url', 'http://localhost:8000')),
+    "save_parade_feedback": lambda p: __import__('apps.core.services.parade_of_reports', fromlist=['save_parade_feedback']).save_parade_feedback(p['report_id'], p['feedback'], p.get('notes', ''), p.get('user_id')),
+}
+
+# Actions that require staff/superuser — commission data is internal-only
+_STAFF_ONLY_ACTIONS = {
+    "populate_commission",
+    "accrue_commission",
+    "get_commission_report",
 }
 
 
@@ -891,6 +974,17 @@ class ManageWcapiView(APIView):
                 message="missing 'action' field",
                 error={"code": "missing_action"},
             )
+
+        # Staff-only gate — commission and other internal actions
+        if action_name in _STAFF_ONLY_ACTIONS:
+            user = getattr(request, 'user', None)
+            if not user or not (user.is_staff or user.is_superuser):
+                return api_response(
+                    success=False,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message="staff access required",
+                    error={"code": "staff_required", "details": {"action": action_name}},
+                )
 
         handler = _ACTION_DISPATCH.get(action_name)
         if handler is None:

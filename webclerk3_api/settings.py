@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.ai_assistant',
     'apps.communications',
+    'apps.conversion',
     'apps.core',
     'apps.docs',
     'apps.jpods',
@@ -69,7 +70,6 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',
     # 'explorer',  # TODO: install in lib/python3.13 env
-    # 'import_export',  # TODO: install in lib/python3.13 env
     'drf_spectacular_sidecar',
 ]
 
@@ -222,6 +222,21 @@ else:
 if DATABASES['default']['ENGINE'].endswith('sqlite3') and DATABASES['default']['NAME'] == ':memory:' and 'runserver' in ' '.join(sys.argv):
     print('[WARNING] runserver using in-memory SQLite (:memory:). Data will not persist. Set USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 for Postgres.')
 
+# ── Alice's conversion database (separate from commerce_expert) ─────
+# All data conversion noise stays here. WC3 only sees clean bundles.
+if DATABASES['default']['ENGINE'].endswith('postgresql'):
+    DATABASES['alice_conversion'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'alice_conversion',
+        'USER': DATABASES['default'].get('USER', 'williamjames'),
+        'PASSWORD': DATABASES['default'].get('PASSWORD', ''),
+        'HOST': DATABASES['default'].get('HOST', 'localhost'),
+        'PORT': DATABASES['default'].get('PORT', '5432'),
+        'ATOMIC_REQUESTS': False,
+    }
+
+DATABASE_ROUTERS = ['apps.conversion.db_router.ConversionRouter']
+
 
 # ── Identity: DATA_SET_ID & IDA_PREFIX ──────────────────────────────
 # DATA_SET_ID identifies this environment (LOCAL, DEV, STAGING, PRODUCTION).
@@ -261,8 +276,11 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "600/minute",
-        "anon": "60/minute",
+        "user": "100/minute",
+        "anon": "20/minute",
+        "payment": "10/minute",
+        "webhook": "30/minute",
+        "tx_line": "60/minute",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

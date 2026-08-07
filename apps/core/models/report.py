@@ -41,7 +41,6 @@ class Report(BaseModel):
 
     name = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=500, blank=True, null=True)
-    purpose = models.CharField(max_length=120, blank=True, null=True)
     model_name = models.CharField(
         max_length=255, blank=True, null=True, db_index=True,
         help_text="Canonical model key (e.g. 'customer', 'order')",

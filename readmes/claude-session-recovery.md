@@ -38,9 +38,9 @@
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| `useDataBrowser` | hooks/useDataBrowser.ts | All state + data management for DataBrowser |
+| `usedatabrowser` | hooks/usedatabrowser.ts | All state + data management for databrowser |
 | `BehaviorField` | components/common/BehaviorField.tsx | Renders one field based on field_behaviors — reusable anywhere |
-| `AdminWorkbench` | pages/admin/AdminWorkbench.tsx | DataBrowser at /admin-wb — two-pane, dark/light, JPods Console palette |
+| `AdminWorkbench` | pages/admin/AdminWorkbench.tsx | databrowser at /admin-wb — two-pane, dark/light, JPods Console palette |
 | `DetailLayoutDialog` | components/common/DetailLayoutDialog.tsx | Drag/reorder detail fields, behavior badges, row sizes |
 | `FieldConfigBar` | components/common/FieldConfigBar.tsx | Collapsible column toggle/reorder bar for any list page |
 | `useListFieldConfig` | hooks/useListFieldConfig.ts | Column visibility + ordering for list pages, persisted to Settings |
@@ -56,7 +56,7 @@
 |------|------|---------|
 | Payment AR+AP | apps/transactions/models/payment.py | `type` field (received/disbursed) + `purchase` FK. Migration 0007. |
 | field_access seeder | apps/core/management/commands/seed_field_access.py | 61 models × 8 roles with query_scope + field_behaviors + formatting |
-| DataBrowser layout seeder | apps/core/management/commands/seed_databrowser.py | 61 initial layouts + 31 fake "zz" records |
+| databrowser layout seeder | apps/core/management/commands/seed_databrowser.py | 61 initial layouts + 31 fake "zz" records |
 | Report seeder | apps/core/management/commands/seed_reports.py | 59 reports across 15 models |
 | Coaching seeder | apps/core/management/commands/seed_coaching.py | 9 coaching Settings + 3 Documents + 8 onboarding Actions |
 | field_access + alice_coaching + seed | apps/core/choices.py | Added to SETTING_PURPOSE_CHOICES |
@@ -64,9 +64,9 @@
 ### Routes & Sidebar
 
 - 40+ admin model routes redirect to `/admin-wb?model=X`
-- Sidebar links go directly to DataBrowser for admin models
-- **Shift-click any sidebar model → opens in DataBrowser** (power user)
-- **Cmd/Ctrl+Shift+M** → model picker in DataBrowser
+- Sidebar links go directly to databrowser for admin models
+- **Shift-click any sidebar model → opens in databrowser** (power user)
+- **Cmd/Ctrl+Shift+M** → model picker in databrowser
 - 5 org pages at `/org/{customer,vendor,employee,rep,manufacturer}`
 - Print pages at `/transactions/{invoice,order,proposal}/print/:id`
 
@@ -74,7 +74,7 @@
 
 - 6 WC Training documents (data setup, admin, order processing, inventory, sales, rep quickstart)
 - 8 WC3 Flow Chart documents (master, order-to-invoice, purchase-to-inventory, inventory impact, sales/CRM, requisition/sync, report routing, territory)
-- 3 system guides (Getting Started, DataBrowser Guide, wcapi Reference)
+- 3 system guides (Getting Started, databrowser Guide, wcapi Reference)
 
 ## Don't Do List
 

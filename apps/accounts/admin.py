@@ -1,8 +1,4 @@
 from django.contrib import admin
-try:
-    from import_export.admin import ImportExportModelAdmin
-except ImportError:
-    ImportExportModelAdmin = admin.ModelAdmin
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import Currency, ExchangeRate, ExchangeTransaction, Term, GlAccount
@@ -12,7 +8,7 @@ from .models.gl_journal import GlJournal
 from .models.audit import Audit
 
 @admin.register(GlAccount)
-class GLAccountAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, ImportExportModelAdmin):
+class GLAccountAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
 	# Scalar fields: account_credit, account_debit, category, comment, division, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, type, type_id, used_for, uuid, version
 	list_display = ("ida", "name", "type", "account_credit", "account_debit", "is_active", "dt_created")
 	list_filter = ("is_active",)

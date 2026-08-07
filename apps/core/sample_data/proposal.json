@@ -1,0 +1,159 @@
+{
+  "_meta": {
+    "model": "proposal",
+    "description": "Sample proposal/quote for report parade — kitchen renovation estimate",
+    "version": 1
+  },
+  "ida": "QTE-2026-0067",
+  "status": "sent",
+  "dt_created": 1785024000000,
+  "attention": "David & Sarah Mitchell",
+  "company": "",
+  "address_full": "127 Elm Avenue\nCharlotte, NC 28203",
+  "phone": "(704) 555-0219",
+  "email": "mitchell.family@gmail.com",
+  "terms": "50% deposit, balance on completion",
+  "price_level": "Retail",
+  "conditions_description": "Quote valid for 30 days from date above. Custom orders are non-refundable. Installation includes removal of existing fixtures. Permit fees not included — municipality requires separate application. Timeline estimate: 3-4 weeks from deposit.",
+  "comments": {
+    "public": "Thank you for choosing us for your kitchen renovation. This quote includes all materials, labor, and standard installation. Appliances quoted at current pricing — subject to manufacturer availability."
+  },
+  "config": {
+    "valid_until": 1787616000000,
+    "project_name": "Mitchell Kitchen Renovation",
+    "salesperson": "Karen Bell"
+  },
+  "source": {
+    "campaign_name": "HomeShow-2026"
+  },
+  "refs": {
+    "links": {
+      "contact": {"id": 445, "name": "David Mitchell", "ida": "MITCH-445"}
+    }
+  },
+  "totals": {
+    "subtotal": 18475.00,
+    "tax": 1294.25,
+    "shipping": 0.00,
+    "total": 19769.25
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "CAB-SHAKER-36",
+        "description": "Shaker Style Base Cabinet, 36\" White",
+        "uom": "Each"
+      },
+      "quantity": {"active": 4},
+      "price": {
+        "unit": 685.00,
+        "discount_percent": 0,
+        "extended": 2740.00
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "CAB-SHAKER-W30",
+        "description": "Shaker Style Wall Cabinet, 30\" White",
+        "uom": "Each"
+      },
+      "quantity": {"active": 6},
+      "price": {
+        "unit": 425.00,
+        "discount_percent": 0,
+        "extended": 2550.00
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "CNTR-QUARTZ-SF",
+        "description": "Quartz Countertop, Calacatta Gold — per sq ft installed",
+        "uom": "SqFt"
+      },
+      "quantity": {"active": 42},
+      "price": {
+        "unit": 125.00,
+        "discount_percent": 0,
+        "extended": 5250.00
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "SINK-FARM-33",
+        "description": "Kohler Whitehaven 33\" Farmhouse Sink, White",
+        "uom": "Each"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 1295.00,
+        "discount_percent": 0,
+        "extended": 1295.00
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "FAUCET-DELTA-K",
+        "description": "Delta Trinsic Single Handle Pull-Down Kitchen Faucet",
+        "uom": "Each"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 389.00,
+        "discount_percent": 0,
+        "extended": 389.00
+      }
+    },
+    {
+      "line_number": 6,
+      "item": {
+        "ida_item": "LABOR-INSTALL",
+        "description": "Kitchen Installation Labor — includes demo, prep, install, cleanup",
+        "uom": "Flat"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 4500.00,
+        "discount_percent": 0,
+        "extended": 4500.00
+      }
+    },
+    {
+      "line_number": 7,
+      "item": {
+        "ida_item": "TILE-SUBWAY-CS",
+        "description": "Subway Tile Backsplash, 3x6 White — per case (100 pcs)",
+        "uom": "Case"
+      },
+      "quantity": {"active": 3},
+      "price": {
+        "unit": 89.00,
+        "discount_percent": 0,
+        "extended": 267.00
+      }
+    },
+    {
+      "line_number": 8,
+      "item": {
+        "ida_item": "LABOR-TILE",
+        "description": "Backsplash Tile Installation Labor",
+        "uom": "Flat"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 1484.00,
+        "discount_percent": 0,
+        "extended": 1484.00
+      }
+    }
+  ]
+}

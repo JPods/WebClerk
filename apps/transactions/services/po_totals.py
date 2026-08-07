@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, Any
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 # Do NOT import models at module scope to avoid cycles with model files.
 if TYPE_CHECKING:  # pragma: no cover
@@ -22,10 +23,6 @@ def compute_purchase_cost_totals(po: "Purchase") -> Dict[str, Any]:
       tax                alias of line_sum_tax (header-level convenience)
       tax_rate           None (not meaningful as an aggregate)
       total              goods + tax + shipping + handling + freight + commissions
-
-    BUG: uses `cast` and `Decimal` without importing them — will raise
-    NameError at runtime. Needs: ``from decimal import Decimal`` and
-    ``from typing import cast``.
 
     See: readmes/topics/transactions/transactions-totals.md §3
     """

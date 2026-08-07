@@ -1212,6 +1212,64 @@ def _resolve_template_key(report_name: str, report_data: Dict,
 
 
 # ---------------------------------------------------------------------------
+# Sample data normalization
+# ---------------------------------------------------------------------------
+
+def _normalize_sample_data(raw: Dict) -> Dict:
+    """Convert sample JSON (nested item/quantity/price) to the flat format
+    that built-in templates expect (item_number, item_name, qty_ordered, etc.).
+
+    Sample JSON uses the same structure as config.form field references:
+        item.ida_item, item.description, quantity.active, price.unit, etc.
+    Templates expect the flat keys from _extract_line_fields():
+        item_number, item_name, qty_ordered, unit_price, extended, etc.
+    """
+    data = dict(raw)
+
+    # Extract contact_name from refs if present
+    refs = data.get("refs", {})
+    if isinstance(refs, dict):
+        links = refs.get("links", {})
+        if isinstance(links, dict):
+            contact = links.get("contact", {})
+            if isinstance(contact, dict):
+                data.setdefault("contact_name", contact.get("name", ""))
+
+    # Flatten lines
+    raw_lines = data.get("lines", [])
+    flat_lines = []
+    for ln in raw_lines:
+        item = ln.get("item", {}) or {}
+        qty = ln.get("quantity", {}) or {}
+        price = ln.get("price", {}) or {}
+        cost = ln.get("cost", {}) or {}
+
+        flat_lines.append({
+            "line_number": ln.get("line_number", ""),
+            "item_number": item.get("ida_item", "") or item.get("number", "") or item.get("ida", ""),
+            "item_name": item.get("description", "") or item.get("name", ""),
+            "uom": item.get("uom", ""),
+            "bin_location": item.get("bin_location", "") or item.get("bin", ""),
+            "qty_ordered": qty.get("active", 0) or qty.get("ordered", 0),
+            "qty_shipped": qty.get("shipped", 0),
+            "unit_price": price.get("unit", 0),
+            "extended": price.get("extended", 0),
+            "discount_pct": price.get("discount_percent", 0) or price.get("discount_pct", 0),
+            "unit_cost": cost.get("unit", 0),
+            "extended_cost": cost.get("extended", 0),
+            "tax_amount": 0,
+            "weight": "",
+            "country_of_origin": "",
+            "hs_code": "",
+            "comm_rate": 0,
+            "comm_amount": 0,
+        })
+
+    data["lines"] = flat_lines
+    return data
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -1221,9 +1279,17 @@ def render_report(
     record_id: Optional[int] = None,
     filters: Optional[Dict] = None,
     fmt: str = "pdf",
+    sample_data: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """
     Render a report to PDF (or HTML).
+
+    Parameters
+    ----------
+    sample_data : dict, optional
+        If provided, use this data instead of loading from the database.
+        Used by the report parade onboarding to render reports with
+        polished sample data before the user has real records.
 
     Returns
     -------
@@ -1255,11 +1321,12 @@ def render_report(
     category = report_def.category or "report"
     company = _get_company_info()
 
-    # 2) Load data
+    # 2) Load data — use sample_data if provided (parade onboarding)
     template_key = _resolve_template_key(report_name, report_data, category)
 
-    # Statement is a special case: load customer's open invoices
-    if template_key == "statement" and record_id:
+    if sample_data is not None:
+        data = _normalize_sample_data(sample_data)
+    elif template_key == "statement" and record_id:
         data = _load_statement_data(effective_model, record_id)
     elif template_key == "commission_report":
         data = _load_commission_data(effective_model, record_id, filters)

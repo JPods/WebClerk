@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from apps.transactions.models import Invoice, InvoiceLine
 from apps.transactions.serializers.invoice_serializers import InvoiceSerializer, InvoiceLineSerializer
 from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
-from apps.transactions.services.payment_application import apply_payment_to_invoice, get_invoice_payment_status
+from apps.transactions.services.payment_pending import apply_payment_to_invoice
+from apps.transactions.services.payment_application import get_invoice_payment_status
 
 
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -27,14 +28,12 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        from apps.transactions.models import Payment
         try:
-            payment = Payment.objects.get(pk=payment_id)
-        except Payment.DoesNotExist:
-            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            result = apply_payment_to_invoice(invoice, payment, amount)
+            result = apply_payment_to_invoice(
+                payment_id=int(payment_id),
+                invoice_id=invoice.pk,
+                amount=amount or 0,
+            )
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

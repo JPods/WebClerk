@@ -110,6 +110,13 @@ PAYMENT_TYPE_OPTIONS = [
     {'value': 'disbursed', 'label': 'Disbursed (AP)'},
 ]
 
+LINE_TYPE_OPTIONS = [
+    {'value': 'product', 'label': 'Product'},
+    {'value': 'tax', 'label': 'Tax'},
+    {'value': 'shipping', 'label': 'Shipping'},
+    {'value': 'discount', 'label': 'Discount'},
+]
+
 
 def _build_field_behaviors(model_key, field_map):
     """Auto-detect UI behaviors from field names and Django field types."""
@@ -216,6 +223,9 @@ def _build_field_behaviors(model_key, field_map):
         if name == 'type' and model_key == 'payment':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PAYMENT_TYPE_OPTIONS}
             continue
+        if name == 'line_type' and model_key.endswith('_line'):
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': LINE_TYPE_OPTIONS}
+            continue
         if name == 'org_type':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
                 {'value': 'customer', 'label': 'Customer'}, {'value': 'vendor', 'label': 'Vendor'},
@@ -258,6 +268,72 @@ def _build_field_behaviors(model_key, field_map):
     return behaviors
 
 
+def _build_field_groups(model_key, fields):
+    """Auto-generate field groups based on field name patterns.
+
+    Group order matters — users see Identity first, then the groups most
+    likely to contain what they're looking for. Communication is placed
+    early because contact/order records are looked up by email/phone/address
+    more often than by system IDs or dates.
+    """
+    # Ordered dict — insertion order = display order
+    groups = {
+        'identity': {'label': 'Identity', 'fields': []},
+        'communication': {'label': 'Communication', 'fields': []},
+        'financial': {'label': 'Financial', 'fields': []},
+        'status': {'label': 'Status', 'fields': []},
+        'dates': {'label': 'Dates', 'fields': []},
+        'system': {'label': 'System', 'fields': []},
+        'json': {'label': 'Data', 'fields': []},
+    }
+
+    json_envelope_fields = {
+        'metadata', 'refs', 'prefs', 'config', 'comments', 'actions',
+        'cost', 'sell', 'totals', 'commission', 'finance', 'flow',
+        'source', 'price', 'quantity', 'physical', 'tax', 'item',
+        'catalog', 'flags', 'spec', 'quality', 'bom', 'routing',
+        'tracking', 'dimensions', 'hazmat', 'compliance', 'yield_data',
+        'conditions', 'scoring', 'benchmark',
+    }
+    system_fields = {'id', 'uuid', 'version', 'security_level',
+                     'health_rating', 'parent_id', 'parent_model',
+                     'line_increment'}
+    # FK ID fields — these are internal references, not identity
+    fk_id_fields = {'email_id', 'phone_id', 'domain_id', 'address_id',
+                    'conditions_id', 'terms_fk'}
+    financial_fields = {'total', 'balance', 'cost', 'sell', 'totals',
+                        'commission', 'price_level', 'terms', 'discount',
+                        'amount', 'tax_rate', 'margin'}
+    comm_fields = {'email', 'phone', 'fax', 'mobile', 'website', 'url'}
+    status_fields = {'status', 'priority', 'stage', 'state'}
+
+    for name in fields:
+        if name in json_envelope_fields:
+            groups['json']['fields'].append(name)
+        elif name in system_fields or name in fk_id_fields:
+            groups['system']['fields'].append(name)
+        elif name in financial_fields:
+            groups['financial']['fields'].append(name)
+        elif name in comm_fields or name.startswith('address'):
+            groups['communication']['fields'].append(name)
+        elif name in status_fields or name.startswith('is_'):
+            groups['status']['fields'].append(name)
+        elif name.startswith('dt_'):
+            groups['dates']['fields'].append(name)
+        elif name.startswith('security_') or name.startswith('health_'):
+            groups['system']['fields'].append(name)
+        else:
+            groups['identity']['fields'].append(name)
+
+    # Only include groups that have fields
+    result = [
+        {'key': k, 'label': v['label'], 'fields': v['fields']}
+        for k, v in groups.items()
+        if v['fields']
+    ]
+    return result
+
+
 def _build_config(model_key, fields, overrides=None, field_map=None):
     """Build a standard field_access config for a model."""
     all_view = fields
@@ -275,18 +351,33 @@ def _build_config(model_key, fields, overrides=None, field_map=None):
                    'op_data', 'answered_by', 'project_metadata']
     business_fields = _all_except(all_edit, json_fields)
 
-    # Customer-visible fields — conservative
+    # ── Role-based field exclusions ──────────────────────────────────────
+    # Customers and Reps see prices, never costs.
+    # Vendors and Manufacturers see their costs to us, never our prices.
+    # Decision: 2026-08-06. Review due: 2026-11-06.
+
+    # Cost fields — hidden from customer and rep roles
+    COST_FIELDS = {'cost', 'margin', 'margin_pct', 'margin_velocity',
+                   'annual_turns', 'margin_floor'}
+
+    # Price fields — hidden from vendor and manufacturer roles
+    PRICE_FIELDS = {'price', 'sell', 'price_level', 'universal_pct'}
+
+    # Customer-visible fields — conservative whitelist, no cost data
     customer_view = [f for f in fields if f in (
         'id', 'ida', 'display_name', 'name', 'status', 'email', 'phone',
         'address_full', 'attention', 'total', 'balance', 'dt_created',
         'description', 'sku', 'kind', 'uom', 'question', 'answer',
     )]
 
-    # Vendor-visible fields
+    # Vendor-visible fields — no price data
     vendor_view = [f for f in fields if f in (
         'id', 'ida', 'display_name', 'name', 'status', 'email', 'phone',
         'total', 'dt_created', 'description', 'sku', 'availability',
     )]
+
+    # Rep-visible fields — sees prices, never costs
+    rep_view = _all_except(all_view, list(COST_FIELDS))
 
     config = {
         'roles': {
@@ -341,7 +432,7 @@ def _build_config(model_key, fields, overrides=None, field_map=None):
                 'delete': False,
             },
             'rep': {
-                'view': all_view,
+                'view': rep_view,
                 'edit': [],
                 'create': False,
                 'delete': False,
@@ -354,6 +445,8 @@ def _build_config(model_key, fields, overrides=None, field_map=None):
             'partner': ['id', 'ida', 'display_name', 'name', 'email'],
         },
         'field_behaviors': _build_field_behaviors(model_key, field_map or {}),
+        'field_groups': _build_field_groups(model_key, fields),
+        'default_collapsed': ['system', 'dates'],
         'formatting': {
             'currency': 'USD',
             'locale': 'en-US',

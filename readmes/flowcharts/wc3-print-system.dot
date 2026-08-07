@@ -21,7 +21,7 @@ digraph wc3_print {
 
         cmd_p [label="Cmd+P\n(Print Primary)" shape=box fillcolor="#AED6F1"]
         print_btn [label="Print Button\nor Cmd+Opt+P" shape=box fillcolor="#AED6F1"]
-        db_print [label="DataBrowser\nPrint Column" shape=box fillcolor="#AED6F1"]
+        db_print [label="databrowser\nPrint Column" shape=box fillcolor="#AED6F1"]
     }
 
     // ---- Report Selector Dialog ----
@@ -52,7 +52,7 @@ digraph wc3_print {
         email_out [label="email\n(render PDF\n+ send via Alice)" shape=box fillcolor="#F5B7B1"]
         export_out [label="export\n(CSV/Tab/JSON\nto download)" shape=box fillcolor="#D5F5E3"]
         label_out [label="label\n(pdfme label\ntemplate)" shape=box fillcolor="#FADBD8"]
-        list_out [label="list\n(DataBrowser\nfiltered view)" shape=box fillcolor="#D6EAF8"]
+        list_out [label="list\n(databrowser\nfiltered view)" shape=box fillcolor="#D6EAF8"]
         letter_out [label="letter\n(pdfme letter\ntemplate)" shape=box fillcolor="#FCF3CF"]
         api_out [label="api / json\n(POST to endpoint\nor clipboard)" shape=box fillcolor="#D5D8DC"]
     }
@@ -94,7 +94,7 @@ digraph wc3_print {
         editor_router [label="Route by\ncategory" shape=diamond fillcolor="#D2B4DE"]
         pdf_designer [label="pdfme Designer\n(visual drag+drop)" shape=box fillcolor="#D7BDE2"]
         export_editor [label="Export Config\n(fields, delimiter,\nline ending)" shape=box fillcolor="#D7BDE2"]
-        list_editor [label="List Config\n(DataBrowser layout\ncolumns, filters)" shape=box fillcolor="#D7BDE2"]
+        list_editor [label="List Config\n(databrowser layout\ncolumns, filters)" shape=box fillcolor="#D7BDE2"]
         letter_editor [label="Letter Editor\n(rich text +\nmail merge fields)" shape=box fillcolor="#D7BDE2"]
         email_editor [label="Email Template\n(subject, body,\nmerge fields)" shape=box fillcolor="#D7BDE2"]
         save_report [label="Save to\nReport Model" shape=box fillcolor="#82E0AA"]
@@ -144,7 +144,7 @@ digraph wc3_print {
     export_out -> disk
     api_out -> clipboard
     api_out -> disk
-    list_out -> preview [label="DataBrowser\nfiltered" style=dashed]
+    list_out -> preview [label="databrowser\nfiltered" style=dashed]
 
     // ---- Edges: Editor Router ----
     editor_router -> pdf_designer [label="report\nstatement\nlabel"]

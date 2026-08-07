@@ -71,7 +71,7 @@ Returns `{config, scope}` — the effective config and which scope matched.
 |---------|---------------|
 | `detail_layout` | DynamicDetail form layout — row order, fields per row, column count |
 | `compact_layout` | Compact/floating window layout |
-| `list_column_config` | DataBrowser list column order, widths, visibility |
+| `list_column_config` | databrowser list column order, widths, visibility |
 | `field_registry` | Field types, labels, options, widgets per model |
 | `view_edit` | Per-table field visibility/edit matrix by role |
 | `field_access` | Field-level access control |

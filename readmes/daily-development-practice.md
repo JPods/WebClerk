@@ -9,11 +9,11 @@ Before writing any new function, check three things:
 
 1. **Does a like function already exist?**
    - Search the codebase: hooks/, components/common/, apps/*/components/
-   - Check useDataBrowser, useListFieldConfig, useListPage patterns
+   - Check usedatabrowser, useListFieldConfig, useListPage patterns
    - Check BehaviorField, FieldConfigBar, ReportMenu, CommunicationsPanel, DetailLayoutDialog
 
 2. **Does this function belong in an existing class/hook/utility?**
-   - Data management → `useDataBrowser.ts` (model selection, fetch, CRUD, layouts)
+   - Data management → `usedatabrowser.ts` (model selection, fetch, CRUD, layouts)
    - Field rendering → `BehaviorField.tsx` (reads field_behaviors from Setting)
    - List configuration → `useListFieldConfig.ts` + `FieldConfigBar.tsx`
    - Org pages → `orgConfig.ts` + `OrgPage.tsx` (config-driven, not per-model code)
@@ -59,9 +59,9 @@ One Project record per week for code development:
 ```
 Project: WC3 Code Dev W27
 Actions:
-  TEST W27-01: DataBrowser loads, dark/light toggle, font sizes
+  TEST W27-01: databrowser loads, dark/light toggle, font sizes
   TEST W27-02: Model picker — Cmd+Shift+M, filter, arrows
-  TEST W27-03: Sidebar admin models → DataBrowser
+  TEST W27-03: Sidebar admin models → databrowser
   ... (one action per testable item)
 ```
 
@@ -78,7 +78,7 @@ Current shared components (check these before building new):
 ### Hooks
 | Hook | File | Purpose |
 |------|------|---------|
-| `useDataBrowser` | `hooks/useDataBrowser.ts` | Model selection, records, search, sort, pagination, CRUD, layouts, field behaviors |
+| `usedatabrowser` | `hooks/usedatabrowser.ts` | Model selection, records, search, sort, pagination, CRUD, layouts, field behaviors |
 | `useListFieldConfig` | `hooks/useListFieldConfig.ts` | Column visibility + ordering for any list page, persisted to Settings |
 | `useColumnSetups` | `hooks/useColumnSetups.ts` | Named column configurations with server sync |
 
@@ -117,7 +117,7 @@ When coaching users who write scripts or manage layouts:
 
 ### Script/Component Writing
 1. **Check BehaviorField first** — if you need a field renderer, it already handles 15+ types
-2. **Check useDataBrowser first** — if you need model data, the hook already handles fetch/search/sort/CRUD
+2. **Check usedatabrowser first** — if you need model data, the hook already handles fetch/search/sort/CRUD
 3. **Check orgConfig first** — if you need org-specific behavior, add it to the config, don't create a new component
 4. **All CRUD through wcapi** — never write direct model access. The gate enforces RBAC.
 5. **field_access Settings define everything** — roles, field visibility, query scoping, behaviors, formatting. Change the Setting, not the code.

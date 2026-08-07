@@ -1,17 +1,17 @@
-# DataBrowser — Initial Layouts & Seed Data
+# databrowser — Initial Layouts & Seed Data
 
 **Created:** 2026-06-28
 **Command:** `./bin/python manage.py seed_databrowser`
 
 ## Purpose
 
-Every model in WebClerk3 gets a curated "initial" layout for the DataBrowser — a default set of list columns and detail fields, chosen in a deliberate order. This serves three purposes:
+Every model in WebClerk3 gets a curated "initial" layout for the databrowser — a default set of list columns and detail fields, chosen in a deliberate order. This serves three purposes:
 
 1. **Users see useful data immediately** — not raw field dumps. A new user opening the Customer model sees display_name, status, email, phone — not id, uuid, dt_created, version.
 
 2. **Alice has a baseline** — when users submit their own layouts for bonus credit, Alice can compare against the initial layout to see what experienced users prioritize differently. Divergence from the initial layout is a signal about what matters in practice.
 
-3. **Every table has at least one record** — fake records (marked `metadata.health = "fake"`, prefixed with "zz") let users explore the DataBrowser without needing real data. They sort to the bottom, they're filterable, and they're deletable.
+3. **Every table has at least one record** — fake records (marked `metadata.health = "fake"`, prefixed with "zz") let users explore the databrowser without needing real data. They sort to the bottom, they're filterable, and they're deletable.
 
 ## Usage
 

@@ -45,7 +45,6 @@ class LinkageEntry(BaseModel):
     record_id = models.BigIntegerField(db_index=True, help_text="ID in target model")
     
     # Classification / description
-    purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Linkage purpose/type")
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Human-readable name")
     note = models.TextField(blank=True, default="", help_text="Notes about this specific link")
     

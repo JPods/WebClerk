@@ -69,7 +69,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant UI as DataBrowser
+    participant UI as databrowser
     participant WC as Setting(wc, system)
     participant FA as Setting(payment, field_access)
     participant WB as Setting(payment, workbench_fields)

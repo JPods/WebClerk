@@ -116,12 +116,29 @@ class AuthLoginView(APIView):
         # Add role to token claims
         access["role"] = getattr(user, "role", "user")
         refresh["role"] = getattr(user, "role", "user")
+        # Look up Contact record for this user's email to get prefs
+        contact_prefs = {}
+        contact_id = user.pk
+        try:
+            from apps.core.models import Contact
+            contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
+            if contact:
+                contact_prefs = contact.prefs or {}
+                contact_id = contact.pk
+        except Exception:
+            pass
+
         data = {
             "user": {
-                "id": user.pk,
+                "id": contact_id,
                 "email": getattr(user, "email", None),
                 "username": getattr(user, "username", None),
                 "role": getattr(user, "role", None),
+                "name_first": getattr(user, "first_name", None),
+                "name_last": getattr(user, "last_name", None),
+                "is_staff": getattr(user, "is_staff", False),
+                "is_superuser": getattr(user, "is_superuser", False),
+                "prefs": contact_prefs,
             },
             "access": str(access),
         }
@@ -170,19 +187,32 @@ class AuthMeView(APIView):
         if not request.user.is_authenticated:
             return api_response(data=None, message="unauthenticated", status_code=401)
         
-        # Get user data with proper error handling
+        # Get user data — look up Contact for prefs
         user = request.user
+        contact_prefs = {}
+        contact_id = user.pk
+        try:
+            from apps.core.models import Contact
+            contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
+            if contact:
+                contact_prefs = contact.prefs or {}
+                contact_id = contact.pk
+        except Exception:
+            pass
+
         data = {
-            "id": user.pk,
+            "id": contact_id,
             "email": getattr(user, "email", None),
-            "name_first": getattr(user, "name_first", None),
-            "name_last": getattr(user, "name_last", None),
+            "name_first": getattr(user, "first_name", getattr(user, "name_first", None)),
+            "name_last": getattr(user, "last_name", getattr(user, "name_last", None)),
             "company": getattr(user, "company", None),
             "title": getattr(user, "title", None),
             "role": getattr(user, "role", None),
+            "is_staff": getattr(user, "is_staff", False),
+            "is_superuser": getattr(user, "is_superuser", False),
             "is_active": getattr(user, "is_active", False),
             "date_joined": getattr(user, "date_joined", None),
-            "prefs": getattr(user, "prefs", None) or {},
+            "prefs": contact_prefs,
         }
         return api_response(data={"user": data}, message="authenticated")
 

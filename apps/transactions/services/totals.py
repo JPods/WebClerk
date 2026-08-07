@@ -9,8 +9,9 @@ All calculations are server-side authoritative (Axiom: backend is source of trut
 See: readmes/topics/transactions/transactions-totals.md
 """
 import logging
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -90,32 +91,135 @@ def recalculate_totals(
     discount_total = Decimal(0) # sum of line discounts
     lines_recalculated = 0
 
+    # Resolve header tax rate for per-line application
+    finance = getattr(header, 'finance', None) or {}
+    header_tax_rate = _d(finance.get('sales_tax_rate', 0), places=6)
+    # Normalize: if rate > 1, treat as percentage (e.g., 8.25 → 0.0825)
+    if header_tax_rate > 1:
+        header_tax_rate = header_tax_rate / 100
+    # Check if transaction is tax exempt
+    tax_envelope = getattr(header, 'tax', None) or {}
+    is_exempt = bool(tax_envelope.get('exempt_code'))
+    tax_jurisdiction_name = finance.get('sales_tax_name', '')
+    tax_decisions: List[Dict[str, Any]] = []
+
     for line in lines:
         qty_data = getattr(line, 'quantity', None) or {}
         qty = _d(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
+        cost_data = getattr(line, 'cost', None) or {}
+        lt = getattr(line, 'line_type', 'product') or 'product'
 
-        # ── Sell side (price envelope) ─────────────────────────────────
+        # ── Route by line_type ────────────────────────────────────────
+        # tax      → extended goes to tax_total (special taxes: environmental, recycling, etc.)
+        # shipping → extended goes to shipping_total (freight lines, handling charges)
+        # discount → extended subtracts from subtotal
+        # product  → normal: extended goes to subtotal, taxed at header rate
+
+        if lt == 'tax':
+            # Special tax line — amount routes directly to tax total
+            unit = _d(cost_data.get('unit', 0))
+            if is_sell:
+                price_data = getattr(line, 'price', None) or {}
+                unit = _d(price_data.get('unit', 0)) or unit
+            tax_total += _d(qty * unit)
+            lines_recalculated += 1
+            continue
+
+        if lt == 'shipping':
+            # Shipping/freight line — amount routes to shipping total
+            unit = _d(cost_data.get('unit', 0))
+            if is_sell:
+                price_data = getattr(line, 'price', None) or {}
+                unit = _d(price_data.get('unit', 0)) or unit
+            shipping_total += _d(qty * unit)
+            lines_recalculated += 1
+            continue
+
+        # ── Product and discount lines ────────────────────────────────
+        price_extended = Decimal(0)
+        discount_amt = Decimal(0)
+
         if is_sell:
             price_data = getattr(line, 'price', None) or {}
             unit_price = _d(price_data.get('unit', 0))
             price_extended = _d(qty * unit_price)
             discount_amt = _d(price_data.get('discount_amount', 0))
-            subtotal += price_extended - discount_amt
-            discount_total += discount_amt
+            if lt == 'discount':
+                subtotal -= price_extended
+                discount_total += price_extended
+            else:
+                subtotal += price_extended - discount_amt
+                discount_total += discount_amt
 
         # ── Cost side ──────────────────────────────────────────────────
-        cost_data = getattr(line, 'cost', None) or {}
         unit_cost = _d(cost_data.get('unit', 0))
         cost_extended = _d(qty * unit_cost)
-        cost_total += cost_extended
+        if lt != 'discount':
+            cost_total += cost_extended
 
-        # Cost-side surcharges
+        # Cost-side surcharges (on product lines only)
         shipping_total += _d(cost_data.get('shipping', 0))
         shipping_total += _d(cost_data.get('handling', 0))
 
-        # ── Tax ────────────────────────────────────────────────────────
-        tax_data = getattr(line, 'tax', None) or {}
-        tax_total += _d(tax_data.get('sales', 0))
+        # ── Tax (per product line) ────────────────────────────────────
+        # Priority: line-level tax override > header rate > zero
+        # If customer is exempt, all lines are zero tax.
+        # If item is non-taxable (cost.tax_code == 'EXEMPT' or 'NONTAXABLE'), skip.
+        if lt == 'product':
+            line_tax_data = getattr(line, 'tax', None) or {}
+            line_tax_rate_override = _d(line_tax_data.get('sales_rate', 0), places=6)
+            line_tax_sales = _d(line_tax_data.get('sales', 0))
+
+            if line_tax_rate_override > 0:
+                # Line has explicit tax rate override (user set per-line rate)
+                if line_tax_rate_override > 1:
+                    line_tax_rate_override = line_tax_rate_override / 100
+                line_taxable = price_extended - discount_amt if is_sell else cost_extended
+                line_tax = _d(line_taxable * line_tax_rate_override)
+                tax_total += line_tax
+                tax_decisions.append({
+                    'line_id': getattr(line, 'pk', None),
+                    'rate': float(line_tax_rate_override),
+                    'taxable': float(line_taxable),
+                    'tax': float(line_tax),
+                    'source': 'line_override',
+                    'jurisdiction': tax_jurisdiction_name,
+                })
+            elif line_tax_sales > 0:
+                # Line has explicit tax amount (user override or prior calc)
+                tax_total += line_tax_sales
+                tax_decisions.append({
+                    'line_id': getattr(line, 'pk', None),
+                    'rate': None,
+                    'taxable': None,
+                    'tax': float(line_tax_sales),
+                    'source': 'line_amount',
+                    'jurisdiction': tax_jurisdiction_name,
+                })
+            elif not is_exempt and header_tax_rate > 0:
+                line_tax_code = (cost_data.get('tax_code', '') or '').upper()
+                item_exempt = line_tax_code in ('EXEMPT', 'NONTAXABLE', 'NON-TAXABLE')
+                if not item_exempt:
+                    line_taxable = price_extended - discount_amt if is_sell else cost_extended
+                    line_tax = _d(line_taxable * header_tax_rate)
+                    tax_total += line_tax
+                    tax_decisions.append({
+                        'line_id': getattr(line, 'pk', None),
+                        'rate': float(header_tax_rate),
+                        'taxable': float(line_taxable),
+                        'tax': float(line_tax),
+                        'source': 'header_rate',
+                        'jurisdiction': tax_jurisdiction_name,
+                    })
+                else:
+                    tax_decisions.append({
+                        'line_id': getattr(line, 'pk', None),
+                        'rate': 0,
+                        'taxable': 0,
+                        'tax': 0,
+                        'source': 'item_exempt',
+                        'jurisdiction': tax_jurisdiction_name,
+                    })
 
         lines_recalculated += 1
 
@@ -128,16 +232,13 @@ def recalculate_totals(
     header_freight = _d(header_cost.get('freight', 0))
     shipping_total += header_freight
 
-    # ── Calculate header tax from rate if no line-level tax ────────
-    # If tax_total is still 0 but header has a tax rate, apply it
-    finance = getattr(header, 'finance', None) or {}
-    if tax_total == 0 and finance.get('sales_tax_rate'):
-        header_tax_rate = _d(finance['sales_tax_rate'], places=6)
-        # Normalize: if rate > 1, treat as percentage
-        if header_tax_rate > 1:
-            header_tax_rate = header_tax_rate / 100
-        taxable = subtotal - discount_total
-        tax_total = _d(taxable * header_tax_rate)
+    # ── Tax on shipping (WC2: <>aTaxRateShipping per jurisdiction) ─
+    # finance.tax_on_shipping_rate or tax.shipping carries the rate
+    shipping_tax_rate = _d(tax_envelope.get('shipping', 0) or finance.get('tax_on_shipping_rate', 0), places=6)
+    if shipping_tax_rate > 1:
+        shipping_tax_rate = shipping_tax_rate / 100
+    if not is_exempt and shipping_tax_rate > 0 and shipping_total > 0:
+        tax_total += _d(shipping_total * shipping_tax_rate)
 
     # ── Grand total ────────────────────────────────────────────────
     total = subtotal + tax_total + shipping_total
@@ -165,12 +266,28 @@ def recalculate_totals(
         'balance': float(balance),
     }
 
+    # ── Tax audit trail ─────────────────────────────────────────────
+    if tax_decisions:
+        meta = getattr(header, 'metadata', None) or {}
+        if not isinstance(meta, dict):
+            meta = {}
+        meta['tax_decisions'] = {
+            'dt': datetime.now(timezone.utc).isoformat(),
+            'exempt': is_exempt,
+            'header_rate': float(header_tax_rate),
+            'jurisdiction': tax_jurisdiction_name,
+            'lines': tax_decisions,
+        }
+        header.metadata = meta
+
     # ── Persist to header ──────────────────────────────────────────
     header.totals = totals
     header.total = _d(total)
     header.balance = _d(balance)
 
     update_fields = ['totals', 'total', 'balance']
+    if tax_decisions:
+        update_fields.append('metadata')
     header.save(update_fields=update_fields)
 
     logger.info(

@@ -31,6 +31,10 @@ Keys:
     trend_pct      - Percent change vs prior moving_avg (can be negative)
     currency       - 3-letter currency code
     exchange_rate  - Rate to convert currency -> accounting base (1 if same)
+                     PLACEHOLDER: stored on receipt but no conversion logic yet.
+                     All valuation assumes base currency (USD). Multi-currency
+                     conversion is a Phase 5 feature — do not build on this field
+                     until conversion service exists.
 
 NOTE: Keep this lean; add new keys only with clear consumption paths.
 """
@@ -86,6 +90,7 @@ class InventoryLayer(ItemLinkedBase):
     source_doc_id = models.BigIntegerField(blank=True, null=True)
     # Soft concurrency / maintenance lock. When True direct issue mutations should enqueue a pending adjustment.
     is_locked = models.BooleanField(default=False, db_index=True)
+    dt_locked = models.DateTimeField(null=True, blank=True, help_text="When the lock was acquired. Auto-expires after 5 minutes.")
 
     class Meta:
         indexes = [
@@ -97,6 +102,41 @@ class InventoryLayer(ItemLinkedBase):
     def __str__(self):  # pragma: no cover
         qty = getattr(self, "quantity", {})
         return f"Stack#{self.pk}:{getattr(self.item, 'pk', '?')}:{qty}"
+
+    LOCK_TIMEOUT_SECONDS = 300  # 5 minutes
+
+    def check_lock_expired(self) -> bool:
+        """If lock has expired, release it (which drains pending queue). Otherwise return False."""
+        if not self.is_locked or not self.dt_locked:
+            return False
+        from django.utils import timezone
+        import datetime
+        if timezone.now() - self.dt_locked > datetime.timedelta(seconds=self.LOCK_TIMEOUT_SECONDS):
+            self.release_lock()
+            return True
+        return False
+
+    def acquire_lock(self):
+        from django.utils import timezone
+        self.is_locked = True
+        self.dt_locked = timezone.now()
+        self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
+
+    def release_lock(self):
+        """Clear the lock and drain any pending adjustments queued while locked."""
+        self.is_locked = False
+        self.dt_locked = None
+        self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
+        # Drain the pending queue — the whole reason pending exists
+        from apps.products.services.inventory_adjustment_processor import process_pending_for_stack
+        process_pending_for_stack(self.pk)
+
+    # Override LifecycleMixin so admin lock/unlock also honors the pending contract
+    def lock(self):
+        self.acquire_lock()
+
+    def unlock(self):
+        self.release_lock()
 
     # ---- Helpers ---------------------------------------------------------
     def remaining_qty(self) -> Decimal | float:
@@ -153,39 +193,38 @@ class InventoryLayer(ItemLinkedBase):
         setattr(self, 'cost', c)
 
     def issue_or_enqueue(self, qty: Decimal | float, reason: str = "issue", request_ref: dict | None = None):
-        """Attempt to issue qty from this stack.
+        """Create a pending inventory adjustment, then apply immediately if possible.
 
-        If stack locked, create PendingInventoryAdjustment record and return (False, pending_obj).
-        If not locked and sufficient remaining, apply immediately and return (True, self).
-        NOTE: Does not persist self automatically when issuing; caller should save.
+        Inventory always goes through pending — one path, one audit trail.
+        If locked or insufficient, the pending record waits for the next drain.
+        Returns (applied: bool, pending_obj).
         """
-        from .inventory_layer import PendingInventoryAdjustment  # local import to avoid circular in evaluation
+        from .inventory_layer import PendingInventoryAdjustment
         from django.utils import timezone
-        from django.db.models import Sum
-        # Treat active reservations (pending & unexpired) as reducing immediately issuable quantity.
-        # We allow issuing only if (remaining_qty - active_reserved) >= qty so reserved holds are protected.
-        if self.is_locked:
-            pending = PendingInventoryAdjustment.objects.create(
-                inventory_layer=self,
-                qty=Decimal(str(qty)),
-                state=PendingInventoryAdjustment.STATE_PENDING,
-                reason=reason,
-                request_ref=request_ref or {},
-            )
-            return False, pending
-        remaining = Decimal(str(self.remaining_qty()))
+
         request_qty = Decimal(str(qty))
-        if remaining < request_qty:
-            pending = PendingInventoryAdjustment.objects.create(
-                inventory_layer=self,
-                qty=request_qty,
-                state=PendingInventoryAdjustment.STATE_PENDING,
-                reason="insufficient_issue",
-                request_ref=request_ref or {"original_reason": reason},
-            )
+
+        # Always create pending first — this IS the audit trail
+        pending = PendingInventoryAdjustment.objects.create(
+            inventory_layer=self,
+            qty=request_qty,
+            state=PendingInventoryAdjustment.STATE_PENDING,
+            reason=reason,
+            request_ref=request_ref or {},
+        )
+
+        # Try to apply immediately if conditions allow
+        self.check_lock_expired()
+        if self.is_locked:
             return False, pending
-        # Compute active reserved
+
+        remaining = Decimal(str(self.remaining_qty()))
+        if remaining < request_qty:
+            return False, pending
+
+        # Check active reservations
         try:
+            from django.db.models import Sum
             from apps.products.models.inventory_reservation import InventoryReservation
             now = timezone.now()
             active_reserved = (InventoryReservation.objects
@@ -193,21 +232,17 @@ class InventoryLayer(ItemLinkedBase):
                                 .aggregate(total=Sum('qty'))['total'] or Decimal('0'))
             active_reserved = Decimal(str(active_reserved))
         except Exception:
-            # Fail open (if model not migrated yet) – treat as zero to avoid hard failure
             active_reserved = Decimal('0')
-        available_for_issue = remaining - active_reserved
-        if request_qty > available_for_issue:
-            # Would infringe reserved holds; enqueue with reserved_conflict reason
-            pending = PendingInventoryAdjustment.objects.create(
-                inventory_layer=self,
-                qty=request_qty,
-                state=PendingInventoryAdjustment.STATE_PENDING,
-                reason="reserved_conflict",
-                request_ref=request_ref or {"original_reason": reason, "active_reserved": float(active_reserved)},
-            )
+
+        if request_qty > (remaining - active_reserved):
             return False, pending
+
+        # Apply now
         self.mark_issue(qty)
-        return True, self
+        pending.state = PendingInventoryAdjustment.STATE_APPLIED
+        pending.dt_applied = timezone.now()
+        pending.save(update_fields=['state', 'dt_applied', 'dt_modified', 'version'])
+        return True, pending
 
 
 class SiteInventory(ItemLinkedBase):

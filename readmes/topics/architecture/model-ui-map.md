@@ -6,7 +6,7 @@
 |------|----------------|-------------|
 | **ui.json** | Custom layout renderer (FieldRow, HeaderRenderer, Design Mode) | User touches it during business |
 | **ui.tsx** | Custom React component | Complex interaction (drag, timeline, real-time) |
-| **db.json** | DataBrowser (db.list + db.detail) | Admin/config, structured data, no workflow |
+| **db.json** | databrowser (db.list + db.detail) | Admin/config, structured data, no workflow |
 
 Every model is exactly one of these three. No ambiguity.
 
@@ -80,12 +80,12 @@ These are interaction-heavy — drag, drop, timeline, real-time updates. JSON dr
 | ShoppingCart | Cart with qty, checkout | item, order |
 | InventoryDashboard | Receive, adjust, reconcile | item, warehouse, serial |
 
-## db.json Models — DataBrowser Only
+## db.json Models — databrowser Only
 
 These use db.list and db.detail. No custom layout. No Design Mode.
 
 ### Accounts
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | gl_account | Chart of accounts — admin setup |
 | gl_journal | Journal entries — accounting |
@@ -102,7 +102,7 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | tally_registry | Tally config — admin |
 
 ### Core Config
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | setting | System config — admin |
 | template | Document templates — admin |
@@ -110,7 +110,7 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | pending | Queue records — system |
 
 ### Docs Config
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | linkage | Linkage entries — system |
 | tag | Tags — admin |
@@ -123,7 +123,7 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | specification | single-col | Seeded |
 
 ### Products — db.json
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | bill_of_material | BOM records — db.json standalone, embedded as card in Item BOM tab |
 | catalog | Catalog config — admin |
@@ -136,12 +136,12 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 | matrics | Metrics — system |
 
 ### Support — db.json
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | All support models | Scheduler, tasks — admin/system |
 
 ### Sync
-| Model | Why DataBrowser |
+| Model | Why databrowser |
 |-------|----------------|
 | connection | Sync config — admin |
 | bundle | Sync bundles — system |
@@ -150,7 +150,7 @@ These use db.list and db.detail. No custom layout. No Design Mode.
 
 1. Decide: workflow or admin? (Does a user touch it during business?)
 2. If workflow: create a `detail_layout` Setting via `seed_comm_layouts` or similar
-3. If admin: DataBrowser handles it — add to `workbench_fields` if custom column layout needed
+3. If admin: databrowser handles it — add to `workbench_fields` if custom column layout needed
 4. Add to this map
 
 ## Future: Universal Detail Renderer

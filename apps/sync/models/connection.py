@@ -3,7 +3,6 @@ from django.db import models
 
 from common.models import BaseModel
 from apps.sync.choices import (
-    CONNECTION_PURPOSE_CHOICES,
     CONNECTION_STATUS_CHOICES,
     CONNECTION_TYPE_CHOICES,
 )
@@ -56,12 +55,6 @@ class Connection(BaseModel):
     scripts = models.JSONField(blank=True, null=True)
     relationships = models.JSONField(blank=True, null=True)
     action = models.CharField(max_length=255, blank=True)
-    purpose = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        choices=CONNECTION_PURPOSE_CHOICES,
-    )
     #rules and paths for converting between datasets
     maps = models.JSONField(blank=True, null=True)
     encryption = models.JSONField(blank=True, null=True)

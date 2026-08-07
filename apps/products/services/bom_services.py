@@ -211,31 +211,29 @@ def consume_bom(
     reason: str = "BOM assembly",
     as_of: date | None = None,
     revision: str | None = None,
-) -> str:
+) -> dict:
     """Post inventory movements for a BOM assembly build.
 
-    Creates:
-      - +qty movement for the parent (finished goods produced)
-      - -qty_actual movement for each child (components consumed)
+    Consumes child components via FIFO/LIFO (proper layer drain with cost),
+    sums the total component cost, then receipts the parent as a new layer
+    at unit_cost = total_component_cost / qty_built.
 
-    Returns the batch_id (UUID) tying all movements together.
+    The new parent layer is weighted-averaged into the parent's existing
+    inventory by create_layer → recalc_average_cost.
+
+    Returns dict with batch_id, build_cost, unit_cost, movements count.
     """
-    from apps.products.models.inventory_layer import InventoryMovement
+    from apps.products.services.inventory_services import (
+        consume_by_item_method, create_layer,
+    )
+    from apps.products.models.warehouse import Warehouse
 
     parent = Item.objects.get(id=parent_item_id)
     batch_id = str(uuid.uuid4())
+    total_component_cost = Decimal("0")
+    movement_count = 0
 
-    # Post the finished assembly receipt
-    InventoryMovement.objects.create(
-        item=parent,
-        movement_type=InventoryMovement.MOVEMENT_RECEIPT,
-        quantity=qty,
-        reason=reason,
-        source_doc_type="bom_build",
-        source_doc_id=batch_id,
-    )
-
-    # Consume each child component
+    # 1. Consume each child component using proper layer drain
     lines = list_bom_lines(parent_item_id, as_of=as_of, revision=revision)
     for line in lines:
         qty_plan = line.quantity * (Decimal("1") + line.scrap_factor)
@@ -247,16 +245,41 @@ def consume_bom(
             if qty_to_consume <= 0:
                 continue
 
-        InventoryMovement.objects.create(
-            item=line.child_item,
-            movement_type=InventoryMovement.MOVEMENT_ISSUE,
-            quantity=-qty_to_consume,
-            reason=f"BOM component for {parent.ida or parent_item_id}",
+        child_cost, _child_batch = consume_by_item_method(
+            line.child_item_id,
+            qty_to_consume,
+            reason=f"BOM build {batch_id[:8]} for {parent.ida or parent_item_id}",
             source_doc_type="bom_build",
-            source_doc_id=batch_id,
         )
+        total_component_cost += child_cost
+        movement_count += 1
 
-    return batch_id
+    # 2. Calculate unit cost for the built assembly
+    unit_cost = total_component_cost / qty if qty > 0 else Decimal("0")
+
+    # 3. Receipt the parent as a new inventory layer at the build cost
+    #    create_layer handles: layer creation, cost recording, receipt movement,
+    #    and recalc_average_cost (weighted average into existing inventory)
+    default_wh = Warehouse.objects.filter(is_active=True).first()
+    if default_wh:
+        create_layer(
+            item_id=parent_item_id,
+            warehouse_id=default_wh.id,
+            qty=qty,
+            unit_cost=unit_cost,
+            source_doc_type="bom_build",
+            lot=f"build-{batch_id[:8]}",
+            reason=f"{reason} (batch {batch_id[:8]})",
+        )
+        movement_count += 1
+
+    return {
+        "batch_id": batch_id,
+        "build_cost": float(total_component_cost),
+        "unit_cost": float(unit_cost),
+        "movements": movement_count,
+        "qty_built": float(qty),
+    }
 
 
 # ---------------------------------------------------------------------------

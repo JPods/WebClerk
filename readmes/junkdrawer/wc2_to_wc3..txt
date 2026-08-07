@@ -41,7 +41,7 @@ Agent "Document v20 forms for conversion" completed
   5. InShipGoods — receiving against PO
   6. Packing / PackingPallets — shipping workflow
   7. MatrixOrdering — order by size/color grid
-  8. DataBrowser — wc3 has this (AdminWorkbench)
+  8. databrowser — wc3 has this (AdminWorkbench)
   9. EOM — end of month close
   10. Forecasting — demand forecasting from usage history
   11. ReportDesign — user report designer

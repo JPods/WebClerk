@@ -31,6 +31,7 @@ class AliceObservation(CoreModel):
         ('search', 'Search Pattern'),
         ('layout', 'Layout Suggestion'),
         ('performance', 'Performance Issue'),
+        ('schema', 'Pydantic Schema Question'),
     ]
     SOURCE_CHOICES = [
         ('alice', 'Alice (local)'),

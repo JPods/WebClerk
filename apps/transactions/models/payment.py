@@ -275,13 +275,46 @@ class Payment(BaseModel):
         self.metadata['reconciliation'] = reconciliation
         self.save(update_fields=['metadata'])
 
+    GATEWAY_SAFE_KEYS = frozenset({
+        'id', 'status', 'amount', 'currency', 'created', 'captured',
+        'refunded', 'transaction_id', 'order_id', 'payment_id',
+        'intent_id', 'capture_id', 'refund_id', 'fee', 'net',
+        'payment_method_type', 'brand', 'last4', 'exp_month', 'exp_year',
+        'receipt_url', 'failure_code', 'failure_message', 'outcome',
+    })
+
+    @classmethod
+    def sanitize_gateway_response(cls, raw: dict) -> dict:
+        """Strip PII and card data from gateway response before storage.
+
+        Keeps only safe keys: transaction IDs, status, amounts, timestamps,
+        last4/brand (non-sensitive card identifiers), failure info.
+        """
+        if not raw or not isinstance(raw, dict):
+            return raw or {}
+        sanitized = {}
+        for key, value in raw.items():
+            k = key.lower().replace('-', '_')
+            if k in cls.GATEWAY_SAFE_KEYS:
+                sanitized[key] = value
+            elif isinstance(value, dict):
+                nested = cls.sanitize_gateway_response(value)
+                if nested:
+                    sanitized[key] = nested
+        return sanitized
+
+    def save(self, *args, **kwargs):
+        if self.gateway_response and self.gateway != 'manual':
+            self.gateway_response = self.sanitize_gateway_response(self.gateway_response)
+        super().save(*args, **kwargs)
+
     def add_audit_entry(self, action: str, details: dict = None):
         """Add an entry to the audit trail"""
         if not self.metadata:
             self.metadata = default_metadata()
         audit_trail = self.metadata.get('audit_trail', [])
         entry = {
-            'timestamp': models.functions.Now(),
+            'timestamp': django_now().isoformat(),
             'action': action,
             'details': details or {}
         }

@@ -17,7 +17,7 @@ digraph wc3_project {
     project [label="Project\n\nCan be bigger or smaller\nSimilar to how Linkage\nconnects data, Projects\nconnect transactions" shape=box fillcolor="#82E0AA" fontsize=11]
 
     // Display
-    display [label="Display\n(DataBrowser)" shape=box fillcolor="#AED6F1"]
+    display [label="Display\n(databrowser)" shape=box fillcolor="#AED6F1"]
 
     // Transaction models referenced by Project
     proposals [label="Proposals" shape=box fillcolor="#FCF3CF"]

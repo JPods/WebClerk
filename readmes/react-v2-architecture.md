@@ -13,7 +13,7 @@ Current React stays as baseline on port 5174. New site on 5173. Start from scrat
 
 1. **Dashboard-first** — start with the dashboards users need, not models
 2. **Data-driven pages** — most pages built from data-templates, not hardcoded .tsx
-3. **DataBrowser + JSON viewer** — link to these for data management, don't rebuild
+3. **databrowser + JSON viewer** — link to these for data management, don't rebuild
 4. **Print where expected** — convenient human-printable documents at natural points
 5. **Blockchain audit** — every page/template has a blockchain_id; changes mandate update; Athena enforces
 
@@ -30,12 +30,12 @@ Current React stays as baseline on port 5174. New site on 5173. Start from scrat
 | **Customer 360** | One customer: orders, invoices, payments, aging, serials, actions, Q&A | 3 |
 | **Item 360** | One item: BOM, serials, inventory layers, vendors, sales history, velocity | 4 |
 
-### Tier 2: Data Management (DataBrowser + JSON viewer)
+### Tier 2: Data Management (databrowser + JSON viewer)
 
 Not rebuilt — linked from dashboards:
-- Click a customer name → DataBrowser opens for that contact
+- Click a customer name → databrowser opens for that contact
 - Click a JSON field → JSON viewer opens in new window
-- Spawn links → related records in new DataBrowser windows
+- Spawn links → related records in new databrowser windows
 
 ### Tier 3: Documents (print-ready)
 

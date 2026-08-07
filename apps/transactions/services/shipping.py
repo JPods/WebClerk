@@ -190,12 +190,9 @@ def confirm_pack(
             logger.warning("Pack: line %s not found on order %s", line_id, order_id)
             continue
 
-        # Update line quantity.shipped
-        q = copy.deepcopy(getattr(line, "quantity", None) or {})
-        shipped_prev = float(q.get("shipped", 0) or 0)
-        q["shipped"] = shipped_prev + qty_packed
-        line.quantity = q
-        line.save(update_fields=["quantity", "dt_modified", "version"])
+        # No quantity mutation here — shipped qty lives on the invoice
+        # line (invoice_line.quantity.active) after order→invoice conversion.
+        # Packing records what goes in which box; conversion is the ship event.
 
         # Record in packed_lines
         existing_packed.append({

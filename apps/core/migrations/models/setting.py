@@ -1,19 +1,12 @@
 from django.db import models
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.choices import SETTING_PURPOSE_CHOICES
 from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta, get_model_meta_by_endpoint
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 # 
 class Setting(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
-    purpose = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        choices=SETTING_PURPOSE_CHOICES,
-    )
     role = models.CharField(max_length=255, blank=True, null=True)
     # Canonical model identifier (parent_model-only)
     parent_model = models.CharField(max_length=255, blank=True, null=True)

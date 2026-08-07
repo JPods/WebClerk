@@ -2,19 +2,19 @@
 
 ## Test What Was Built (Priority 1)
 - [ ] Start Django + React dev servers
-- [ ] DataBrowser: dark/light toggle, model picker (Cmd+Shift+M), column sort/resize/drag
-- [ ] DataBrowser: field behaviors (blue=mailto, green=select, purple=lookup labels)
-- [ ] DataBrowser: Form Layout dialog — reorder, behavior badges, row sizes
-- [ ] DataBrowser: Save/Load/Delete layouts (shift-click delete)
-- [ ] Sidebar: admin models open DataBrowser directly
-- [ ] Sidebar: shift-click any model opens DataBrowser
+- [ ] databrowser: dark/light toggle, model picker (Cmd+Shift+M), column sort/resize/drag
+- [ ] databrowser: field behaviors (blue=mailto, green=select, purple=lookup labels)
+- [ ] databrowser: Form Layout dialog — reorder, behavior badges, row sizes
+- [ ] databrowser: Save/Load/Delete layouts (shift-click delete)
+- [ ] Sidebar: admin models open databrowser directly
+- [ ] Sidebar: shift-click any model opens databrowser
 - [ ] Org pages: /org/customer, /org/vendor, /org/employee, /org/rep, /org/manufacturer
 - [ ] CommunicationsPanel: expand, inline edit, add, delete email/phone/address
 - [ ] Print pages: /transactions/invoice/print/{id}, order, proposal
 - [ ] ManageActionPanel on OrderDetail: Create Work Order, Partial Ship, Complete
 - [ ] ManageActionPanel on PurchaseDetail: Receive Goods, Create Serial
 - [ ] ManageActionPanel on InvoiceDetail: Consume Inventory, Assign Serial, Post GL
-- [ ] CSV export from DataBrowser
+- [ ] CSV export from databrowser
 - [ ] CustomerList: FieldConfigBar (Cols button)
 
 ## Build Expense Entry UI (Priority 2)

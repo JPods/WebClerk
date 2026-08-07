@@ -12,7 +12,6 @@ class Pending(CoreModel):
     # Canonical model identifier
     model_name = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
-    purpose = models.CharField(max_length=120, blank=True, null=True)
     name = models.CharField(max_length=120, blank=True, null=True)
     data = models.JSONField(default=default_data)
     dt_processed = models.BigIntegerField(default=0, db_index=True)

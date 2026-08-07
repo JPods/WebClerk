@@ -15,7 +15,7 @@ Reports are records in the `reports` table. Each has:
 - `config` — JSON with template reference, action handler, parameters
 - `description` — what the report does
 
-Reports appear in the Reports dialog when the user clicks the Reports button on a model's DataBrowser or detail page.
+Reports appear in the Reports dialog when the user clicks the Reports button on a model's databrowser or detail page.
 
 ---
 

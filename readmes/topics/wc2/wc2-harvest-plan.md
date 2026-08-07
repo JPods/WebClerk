@@ -135,8 +135,8 @@ Five stages, each builds on the previous. Each stage has a theme, a list of item
 
 ---
 
-## Stage 3: DataBrowser Evolution (r25)
-**Theme:** Make DataBrowser the power-user tool that replaces all 40+ admin pages.
+## Stage 3: databrowser Evolution (r25)
+**Theme:** Make databrowser the power-user tool that replaces all 40+ admin pages.
 **When:** Alongside Stage 2; these are UX improvements, not data model changes.
 
 ### 3.1 Per-User Layout Persistence
@@ -174,20 +174,20 @@ Five stages, each builds on the previous. Each stage has a theme, a list of item
 **Source:** EA_Contacts, EA_Tasks, EA_Invoices, UI-with-Classes `listbox.doSafeSelect`
 **What to build:**
 - After delete: if next record exists, select it; else select previous; else clear
-- Three lines of code in `handleDeleteRecord` in useDataBrowser.ts
+- Three lines of code in `handleDeleteRecord` in usedatabrowser.ts
 **Done when:** Deleting a record in a list auto-selects the adjacent record.
 
 ### 3.5 Reset Layout to Defaults
 **Gap:** Seeded `initial` view exists but no UI button to restore it.
 **Source:** UI-with-Classes `saveProperties/restoreProperties`
 **What to build:**
-- "Reset Layout" button in DataBrowser toolbar
+- "Reset Layout" button in databrowser toolbar
 - Loads the `initial` named view from seed data
 - Confirm dialog: "Reset to default layout? Your custom layout will be lost."
 **Done when:** User can click one button to restore the factory layout.
 
 ### 3.6 Validation Error Accumulation
-**Gap:** DataBrowser saves have no client-side validation; server returns first error only.
+**Gap:** databrowser saves have no client-side validation; server returns first error only.
 **Source:** EA_Tasks `validateTaskFields.4dm`, 4D best practice
 **What to build:**
 - Client-side: Zod schema per model (or generated from field behaviors)
@@ -206,12 +206,12 @@ Five stages, each builds on the previous. Each stage has a theme, a list of item
 **Done when:** User opens WC3 and sees their day's work in one view.
 
 ### 3.8 Unified Search Hub
-**Gap:** Search is per-model in DataBrowser; no cross-model search.
+**Gap:** Search is per-model in databrowser; no cross-model search.
 **Source:** Vue2020 `Search.vue` (8 parallel widgets), QOM command palette
 **What to build:**
 - Cmd+K command palette: search contacts, invoices, orders, products, actions
 - Results grouped by model with counts
-- Click navigates to DataBrowser for that model with the record selected
+- Click navigates to databrowser for that model with the record selected
 **Done when:** User types Cmd+K, types a customer name, sees matching contacts, orders, and invoices.
 
 ---

@@ -37,6 +37,15 @@ class PaymentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "dt_created", "dt_modified", "dt_processed", "dt_reconciliation", "version"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and not getattr(request.user, 'is_staff', False):
+            data.pop('gateway_response', None)
+            data.pop('id_gateway_transaction', None)
+            data.pop('id_gateway_payment_intent', None)
+        return data
+
     def create(self, validated_data):
         invoice_id = validated_data.pop("invoice_id", None)
         contact_id = validated_data.pop("contact_id")

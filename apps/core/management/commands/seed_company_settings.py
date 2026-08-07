@@ -68,12 +68,46 @@ COMPANY_PROFILE_CONFIG = {
         "show_tax_id": False,
         "footer_text": "",
     },
+    "receivables": {
+        "finance_charge_pct": 0,         # monthly finance charge % (e.g., 1.5)
+        "days_between_statements": 30,   # skip customer if statement sent within this window
+        "send_by_day": {
+            "period_1": 35,              # 30-day overdue: send statement by day 35
+            "period_2": 65,              # 60-day overdue: send statement by day 65
+            "period_3": 95,              # 90-day overdue: send statement by day 95
+        },
+        "messages": {
+            "period_1": {
+                "heading": "Our records show that we have not registered payments for the Invoice(s) listed below",
+                "closing": "We would appreciate payment of these items within the next few days.",
+            },
+            "period_2": {
+                "heading": "The following invoices are significantly past due",
+                "closing": "Please remit payment immediately or contact us to discuss payment arrangements.",
+            },
+            "period_3": {
+                "heading": "FINAL NOTICE — The following invoices are seriously delinquent",
+                "closing": "Immediate payment is required to avoid further collection action.",
+            },
+        },
+        "conditions": {
+            "invoice": "",               # additional conditions text for invoice statements
+            "purchase": "",              # additional conditions text for PO statements
+            "order": "",                 # additional conditions text for order statements
+        },
+    },
     "accounting": {
         "package": "",               # quickbooks, sage, xero, manual
         "export_format": "csv",      # csv, json, quickbooks_iif, tab
         "default_division": "",
         "fiscal_year_end_month": 12,
         "fiscal_year_end_day": 31,
+    },
+    "paths": {
+        "bundles": {
+            "unposted": "bundles/unposted/",
+            "posted": "bundles/posted/",
+        },
     },
     "alice_coaching": {
         "wchq_level": "receive_only",  # none, receive_only, send_only, full

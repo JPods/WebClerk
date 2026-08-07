@@ -24,6 +24,8 @@ from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_re
 from apps.core.views.refs_mismatch_view import RefsMismatchView
 from apps.core.views.permissions import UserPermissionsView, ModelPermissionsView
 from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsView
+from apps.core.views.sample_data_view import SampleDataView
+from apps.core.views.parade_preview_view import ParadePreviewView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -68,6 +70,9 @@ urlpatterns = [
     path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart"),
     # Refs mismatch audit
     path("wcapi/refs-mismatch/", RefsMismatchView.as_view(), name="refs-mismatch"),
+    # Sample data for report parade onboarding
+    path("wcapi/sample-data/", SampleDataView.as_view(), name="wcapi-sample-data"),
+    path("wcapi/parade-preview/", ParadePreviewView.as_view(), name="wcapi-parade-preview"),
     # Template resolution API — letters, emails, labels, external integrations
     path("wcapi/resolve-template/", ResolveTemplateView.as_view(), name="wcapi-resolve-template"),
     path("wcapi/template-fields/", TemplateFieldsView.as_view(), name="wcapi-template-fields"),

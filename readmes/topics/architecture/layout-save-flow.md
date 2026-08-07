@@ -1,4 +1,4 @@
-# Layout Save Flow — How DataBrowser Persists Field Order
+# Layout Save Flow — How databrowser Persists Field Order
 
 ## The Object We Save
 
@@ -117,7 +117,7 @@ Setting #224 for contact model:
 
 | File | Role |
 |------|------|
-| `React2025/src/hooks/useDataBrowser.ts` | `persistSetting()` — creates the Pending record |
+| `React2025/src/hooks/usedatabrowser.ts` | `persistSetting()` — creates the Pending record |
 | `React2025/src/api/wcapi.ts` | `saveRecord('pending', {...})` — POSTs to /wcapi/save/ |
 | `webClerk3/apps/core/models/pending.py` | Pending model with `.data` JSONField |
 | `webClerk3/apps/ai_assistant/tasks.py` | `apply_pending_layouts_task()` — Celery reads & applies |

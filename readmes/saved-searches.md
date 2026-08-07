@@ -15,7 +15,7 @@ No new model. Saved searches are Report records with `category='saved_search'`. 
 |---|---|---|
 | `customer_facing` / `operations` / `accounting` / `sales_analysis` | Print documents, PDFs | Formatted document |
 | `email` (delivery_type='email') | Email templates | SMTP send + Action |
-| `saved_search` | Reusable queries | DataBrowser filtered view |
+| `saved_search` | Reusable queries | databrowser filtered view |
 
 Same model, different category. Same pdfme template system for documents, same config JSON for queries.
 
@@ -39,7 +39,7 @@ Report (category='saved_search') config = {
 }
 ```
 
-Loading a saved search = opening DataBrowser with these filters pre-applied.
+Loading a saved search = opening databrowser with these filters pre-applied.
 
 ---
 
@@ -100,10 +100,10 @@ The actual SQL is never exposed directly — the filter config is translated to 
 Reports + Saved Searches + Scripts need a management dashboard:
 - List all Report records grouped by category
 - Quick-run any saved search
-- Edit/create via DataBrowser or JSON viewer
+- Edit/create via databrowser or JSON viewer
 - Alice helps organize — suggests grouping, flags unused, promotes popular
 
-This is a DataBrowser view on the Report model filtered by category. No new page needed — just good field_access Settings and named views.
+This is a databrowser view on the Report model filtered by category. No new page needed — just good field_access Settings and named views.
 
 ---
 

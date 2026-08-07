@@ -1,18 +1,18 @@
-# DataBrowser — Operations Guide
+# databrowser — Operations Guide
 **Built:** 2026-07-03/04 | **Route:** `/admin-wb`
 
 ---
 
 ## Overview
 
-DataBrowser is the universal record browser. Any model, one interface. List pane + detail pane. Every feature in WC3 is accessible through DataBrowser — it replaces 40+ admin pages.
+databrowser is the universal record browser. Any model, one interface. List pane + detail pane. Every feature in WC3 is accessible through databrowser — it replaces 40+ admin pages.
 
 ---
 
 ## Key Features (built this session)
 
 ### doSafeSelect
-After deleting a record, DataBrowser auto-selects the adjacent record. No blank detail pane.
+After deleting a record, databrowser auto-selects the adjacent record. No blank detail pane.
 
 ### Reset Layout
 Button restores the `initial` or `alice_guess` seeded layout. Users can experiment freely knowing they can get back.
@@ -65,10 +65,10 @@ Standalone window at `/json-viewer`. Zero npm dependencies.
 
 - Collapsible tree with depth control (1/2/3/5/All)
 - URLs render as clickable links (documents are URL pointers — click opens them)
-- `_id` fields link back to DataBrowser (customer_id → opens contact)
+- `_id` fields link back to databrowser (customer_id → opens contact)
 - Epoch ms timestamps auto-formatted as dates
 - Copy-to-clipboard
-- Dark/light theme syncs with DataBrowser
+- Dark/light theme syncs with databrowser
 
 JSON field labels are clickable (same pattern as email→mailto, phone→tel).
 
@@ -82,7 +82,7 @@ Spawned via: `window.open('/json-viewer?model=X&id=N&field=F')`
 
 | Message | When | Effect |
 |---|---|---|
-| `record-selected` | User clicks a record in DataBrowser | JSON Viewer reloads |
+| `record-selected` | User clicks a record in databrowser | JSON Viewer reloads |
 | `record-saved` | Record saved | JSON Viewer refreshes |
 | `theme-changed` | Theme toggled | All windows sync theme |
 
@@ -94,7 +94,7 @@ When viewing an Item with BOM children, the detail pane shows the BOM tree:
 - Build qty input — recalculates on change
 - Cost basis selector: Average / Last Receipt / Min / Landed
 - Total cost displayed
-- "Open BOM ↗" spawns full BOM DataBrowser
+- "Open BOM ↗" spawns full BOM databrowser
 - Double-click sub-assembly opens that item in new window
 
 ---
@@ -127,9 +127,9 @@ Shared filter bar: period, salesperson, rep, customer, vendor, warehouse. Double
 
 | File | Purpose |
 |------|---------|
-| `src/pages/admin/AdminWorkbench.tsx` | Main DataBrowser component |
+| `src/pages/admin/AdminWorkbench.tsx` | Main databrowser component |
 | `src/pages/admin/AdminWorkbench.css` | CSS custom properties + all classes |
-| `src/hooks/useDataBrowser.ts` | All state management |
+| `src/hooks/usedatabrowser.ts` | All state management |
 | `src/components/fields/` | 16 field widgets + BaseField + registry |
 | `src/components/fields/fields.css` | Field widget CSS |
 | `src/components/common/DataGrid.tsx` | Grid with tree mode |

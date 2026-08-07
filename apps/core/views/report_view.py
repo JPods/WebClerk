@@ -4,6 +4,7 @@ PDF report download endpoint.
 GET /wcapi/report/?report=Invoice&model=invoice&id=62
 GET /wcapi/report/?report=Statement&model=customer&id=15
 GET /wcapi/report/?report=Pick+/+Pull+Request&model=order&id=100&format=html
+GET /wcapi/report/?report=Invoice&model=invoice&sample=true&format=html
 
 Query params:
     report  — report name (matches reports.name)
@@ -11,11 +12,13 @@ Query params:
     id      — optional record id for single-record reports
     format  — 'pdf' (default) or 'html'
     filters — optional JSON-encoded filter dict for list reports
+    sample  — 'true' to use polished sample data instead of DB (parade onboarding)
 """
 from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 
 from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
@@ -24,6 +27,8 @@ from rest_framework.views import APIView
 from common.api_responses import api_response
 
 logger = logging.getLogger(__name__)
+
+SAMPLE_DATA_DIR = Path(__file__).resolve().parent.parent / "sample_data"
 
 
 class ReportDownloadView(APIView):
@@ -77,12 +82,43 @@ class ReportDownloadView(APIView):
                     error={"code": "invalid_filters"},
                 )
 
+        # Load sample data if requested (parade onboarding)
+        use_sample = request.query_params.get("sample", "").lower() == "true"
+        sample_data = None
+        if use_sample:
+            # Primary: config.sample_data on the Report record itself
+            from apps.core.models import Report as ReportModel
+            report_obj = ReportModel.objects.filter(
+                name=report_name, model_name=model_name,
+                is_active=True, is_deleted=False,
+            ).first()
+            if report_obj and isinstance(report_obj.config, dict):
+                sample_data = report_obj.config.get("sample_data")
+
+            # Fallback: filesystem sample data files
+            if not sample_data:
+                sample_file = SAMPLE_DATA_DIR / f"{model_name}.json"
+                if sample_file.exists():
+                    sample_data = json.loads(sample_file.read_text())
+                    sample_data.pop("_meta", None)
+
+            if not sample_data:
+                return api_response(
+                    success=False, status_code=404,
+                    message=f"No sample data for report: {report_name}",
+                    error={"code": "no_sample_data"},
+                )
+
         # Track usage — increment count on the Report record
-        self._track_usage(report_name, model_name, request.user)
+        if not use_sample:
+            self._track_usage(report_name, model_name, request.user)
 
         try:
             from apps.core.services.report_renderer import render_report
-            result = render_report(report_name, model_name, record_id, filters, fmt)
+            result = render_report(
+                report_name, model_name, record_id, filters, fmt,
+                sample_data=sample_data,
+            )
         except ValueError as e:
             return api_response(
                 success=False,

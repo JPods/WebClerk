@@ -58,7 +58,7 @@ Every WC_HQ relationship is controlled by a Connection record in your sync app. 
 ### How to Change Your Level
 
 In WebClerk:
-1. Go to DataBrowser → Connection model
+1. Go to databrowser → Connection model
 2. Find your WC_HQ connection
 3. Change `sync_level` to your preference
 4. Changes take effect immediately
@@ -120,7 +120,7 @@ Bundle:
   }
 ```
 
-You can see every Bundle in DataBrowser. Every piece of data that came from or went to WC_HQ is logged. No invisible transfers.
+You can see every Bundle in databrowser. Every piece of data that came from or went to WC_HQ is logged. No invisible transfers.
 
 ---
 
@@ -168,7 +168,7 @@ WC_HQ aggregates across all installations
     │
     ├── "80% of retail businesses cache these 5 fields on item refs"
     ├── "This coaching document has 90% positive feedback"
-    ├── "This DataBrowser layout is used by 60% of users"
+    ├── "This databrowser layout is used by 60% of users"
     │
     ▼
 Improved defaults flow back via sync Bundle
@@ -231,7 +231,7 @@ A: Yes. MIT license. Fork it. Modify it. Run it without WC_HQ. The software is f
 | `wchq_auto_apply` | Apply incoming Bundles automatically (vs manual review) | false |
 | `wchq_sync_frequency` | How often to sync (hourly/daily/weekly/manual) | daily |
 
-All settings are in the DataBrowser under the Setting model. Alice can change them on your behalf if you ask.
+All settings are in the databrowser under the Setting model. Alice can change them on your behalf if you ask.
 
 ---
 

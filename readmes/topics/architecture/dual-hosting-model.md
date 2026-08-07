@@ -99,7 +99,7 @@ See [allie-webclerk-integration.md](allie-webclerk-integration.md) for Allie's o
 
 When many Andi boxes are deployed, one WC3 instance operates as WC_HQ — the hub. WC_HQ is not a separate application. It is a WC3 instance configured with Connections to every deployed Andi.
 
-WC_HQ uses the same Connection/Bundle models for both commerce operations (catalog data, complication reports) and infrastructure operations (software deploys, knowledge sync, vector store rebuilds). One system, one audit trail, one DataBrowser interface.
+WC_HQ uses the same Connection/Bundle models for both commerce operations (catalog data, complication reports) and infrastructure operations (software deploys, knowledge sync, vector store rebuilds). One system, one audit trail, one databrowser interface.
 
 The three-data-type rule governs what flows:
 - **Common** data (catalogs, code, training) pushes from HQ to all instances

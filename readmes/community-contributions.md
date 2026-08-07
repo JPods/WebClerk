@@ -14,7 +14,7 @@ Users contribute layouts, report templates, saved searches, QA question sets. Th
 ### Internal: Contribution System (inside WC3)
 
 Fenced area for submitting:
-- DataBrowser layouts
+- databrowser layouts
 - Report templates (pdfme)
 - Saved searches
 - QA question sets
@@ -90,7 +90,7 @@ Ruthless. If in doubt, reject. Users can appeal.
 2. Points tracking on Contact.metadata
 3. Adoption counter (Alice increments when someone loads a contributed layout)
 4. External community channel setup (Substack or equivalent)
-5. Contribution browser in DataBrowser (Report records filtered by category + has contributor)
+5. Contribution browser in databrowser (Report records filtered by category + has contributor)
 
 ---
 
