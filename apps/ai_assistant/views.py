@@ -465,7 +465,7 @@ class DeviceStatusView(APIView):
     def get(self, request):
         from apps.core.models import Setting
         setting = Setting.objects.filter(
-            purpose='device_status', parent_model='system',
+            purpose='device_status',
         ).first()
         if not setting or not setting.config:
             return api_response(data={'status': 'no_data'})
