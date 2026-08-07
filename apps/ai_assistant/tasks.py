@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import logging
 
+from celery import shared_task
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Alice: Schema Watch ─────────────────────────────────────────────
 
+@shared_task
 def alice_schema_watch_task() -> dict:
     """Nightly task: let Alice assess schema changes and impacted pages.
 
@@ -71,6 +73,7 @@ def alice_schema_watch_task() -> dict:
 
 # ─── 5E: Health Scoring ───────────────────────────────────────────────
 
+@shared_task
 def health_scoring_task(limit: int = 500, use_llm: bool = False) -> dict:
     """Nightly task: score data health for all HealthMixin models.
 
@@ -98,6 +101,7 @@ def health_scoring_task(limit: int = 500, use_llm: bool = False) -> dict:
 
 # ─── 5D: Schema Drift Detection ───────────────────────────────────────
 
+@shared_task
 def schema_drift_task(use_llm: bool = False) -> dict:
     """Weekly task: detect Django ↔ TypeScript schema drift.
 
@@ -124,6 +128,7 @@ def schema_drift_task(use_llm: bool = False) -> dict:
 
 # ─── 5C: Data Cleanup ─────────────────────────────────────────────────
 
+@shared_task
 def data_cleanup_task(limit: int = 500, use_llm: bool = True) -> dict:
     """Nightly task: clean and normalize addresses and phone numbers.
 
@@ -157,6 +162,7 @@ def data_cleanup_task(limit: int = 500, use_llm: bool = True) -> dict:
 
 # ─── 5B: JSON Envelope Optimization ───────────────────────────────────
 
+@shared_task
 def json_optimize_task(limit: int = 500, dry_run: bool = True) -> dict:
     """Nightly task: analyze and optionally compact JSON envelopes.
 
@@ -195,6 +201,7 @@ def json_optimize_task(limit: int = 500, dry_run: bool = True) -> dict:
 
 # ─── 5F: Margin Tracking ──────────────────────────────────────────────
 
+@shared_task
 def margin_tracking_task(limit: int = 500, use_llm: bool = False) -> dict:
     """Weekly task: compute and analyze product margins.
 
@@ -230,6 +237,7 @@ def margin_tracking_task(limit: int = 500, use_llm: bool = False) -> dict:
 
 # ─── 5G: Inventory Velocity ───────────────────────────────────────────
 
+@shared_task
 def velocity_task(limit: int = 500, use_llm: bool = False) -> dict:
     """Weekly task: compute inventory velocity and investment efficiency.
 
@@ -270,6 +278,7 @@ def velocity_task(limit: int = 500, use_llm: bool = False) -> dict:
 
 # ─── 5H: Layout Drift Detection ───────────────────────────────────
 
+@shared_task
 def layout_drift_task(use_llm: bool = False) -> dict:
     """Weekly task: detect Django ↔ React layout field drift.
 
@@ -300,6 +309,7 @@ def layout_drift_task(use_llm: bool = False) -> dict:
 
 # ─── Apply Pending Layouts ───────────────────────────────────────────
 
+@shared_task
 def apply_pending_layouts_task() -> dict:
     """Process pending layout changes from Pending → Setting.
 
@@ -367,6 +377,7 @@ def apply_pending_layouts_task() -> dict:
 
 # ─── 5I: Relationship Intelligence ───────────────────────────────────
 
+@shared_task
 def relationship_scan_task(customer_limit: int = 500, vendor_limit: int = 200) -> dict:
     """Nightly task: scan all relationships for health, lifecycle, and triggers.
 
@@ -398,6 +409,7 @@ def relationship_scan_task(customer_limit: int = 500, vendor_limit: int = 200) -
 
 # ─── Combined: Full Intelligence Run ──────────────────────────────────
 
+@shared_task
 def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool = True) -> dict:
     """Run all Phase 5 tasks in sequence. Suitable for a nightly mega-task.
 
