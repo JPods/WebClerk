@@ -1060,7 +1060,7 @@ INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', defaul
 
 # ── AI Assistant ────────────────────────────────────────────────────
 OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')
-OLLAMA_MODEL = config('OLLAMA_MODEL', default='deepseek-r1:14b')
+OLLAMA_MODEL = config('OLLAMA_MODEL', default='gpt-oss:20b')
 OLLAMA_TIMEOUT = int(config('OLLAMA_TIMEOUT', default=120))
 CHROMA_PERSIST_DIR = os.path.join(BASE_DIR, '.chroma_db')
 CHROMA_COLLECTION = 'commerce_expert_docs'

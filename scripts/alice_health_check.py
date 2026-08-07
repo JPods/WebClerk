@@ -21,6 +21,8 @@ import os
 import subprocess
 import sys
 
+# Add project root to path so Django settings can be found
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 
 EXPECTED_TASKS = [
@@ -41,9 +43,15 @@ EXPECTED_TASKS = [
 def check_celery_tasks():
     """Verify all Alice tasks are registered with Celery."""
     try:
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        celery_bin = os.path.join(project_dir, 'venv', 'bin', 'celery')
+        if not os.path.exists(celery_bin):
+            celery_bin = 'celery'  # fallback to PATH
         result = subprocess.run(
-            ['celery', '-A', 'webclerk3_api', 'inspect', 'registered'],
+            [celery_bin, '-A', 'webclerk3_api', 'inspect', 'registered'],
             capture_output=True, text=True, timeout=15,
+            cwd=project_dir,
+            env={**os.environ, 'DJANGO_SETTINGS_MODULE': 'webclerk3_api.settings'},
         )
         output = result.stdout
         missing = [t for t in EXPECTED_TASKS if t not in output]
