@@ -393,10 +393,9 @@ class DiagnoseView(APIView):
     def _check_alice_activity(self):
         """Check if Alice has produced any output in the last 24 hours."""
         try:
-            from django.utils import timezone
-            from datetime import timedelta
+            import time
             from .models_alice import AliceObservation
-            cutoff = timezone.now() - timedelta(hours=24)
+            cutoff = int((time.time() - 86400) * 1000)  # epoch millis, 24h ago
             recent = AliceObservation.objects.filter(dt_created__gte=cutoff).count()
             if recent > 0:
                 return {'ok': True, 'recent_24h': recent}
