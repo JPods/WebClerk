@@ -160,4 +160,4 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ShippingPanel, 'ShippingPanel', 'teal');
+export default withDevIdentifier(ShippingPanel, 'ShippingPanel', 'teal', 'apps/common/components/panels/ShippingPanel.tsx');

@@ -6,8 +6,9 @@
  * Each tab displays relevant financial metrics for that org role.
  */
 import React, { useState } from 'react';
-import { 
-  FaDollarSign, FaChevronDown, FaChevronUp, FaPercent, 
+import { useAppSelector } from '@/store/hooks';
+import {
+  FaDollarSign, FaChevronDown, FaChevronUp, FaPercent,
   FaUser, FaBuilding, FaUserTie, FaIdBadge, FaIndustry,
   FaCreditCard, FaExclamationTriangle, FaChartLine, FaClock,
   FaBalanceScale, FaFileInvoice, FaMoneyCheckAlt, FaHandHoldingUsd
@@ -172,7 +173,16 @@ const CommonTab: React.FC<{ data?: OrgFinancialCommon; currency: string }> = ({ 
       <Section title="Settings" icon={<FaCreditCard size={12} />}>
         <LineItem label="Discount %" value={formatPercent(data.settings?.discount_pct)} />
         <LineItem label="Tax Exempt" value={data.settings?.tax_exempt ? 'Yes' : 'No'} />
-        {data.settings?.tax_exempt_id && <LineItem label="Tax Exempt ID" value={data.settings.tax_exempt_id} indent />}
+        {data.settings?.tax_exempt_id && (
+          <>
+            <LineItem label="Tax Exempt ID" value={data.settings.tax_exempt_id} indent />
+            <LineItem label="Cert Expires" value={formatDate(data.settings.tax_exempt_exp)} indent
+              warning={!!data.settings.tax_exempt_exp && new Date(data.settings.tax_exempt_exp) < new Date()} />
+            {data.settings.tax_exempt_verified_by && (
+              <LineItem label="Verified By" value={`${data.settings.tax_exempt_verified_by} — ${formatDate(data.settings.tax_exempt_verified_dt)}`} indent />
+            )}
+          </>
+        )}
       </Section>
     </div>
   );
@@ -285,10 +295,13 @@ const VendorTab: React.FC<{ data?: OrgFinancialVendor; currency: string }> = ({ 
 };
 
 const RepTab: React.FC<{ data?: OrgFinancialRep; currency: string }> = ({ data, currency }) => {
+  const au = useAppSelector((s) => s.auth.user);
+  const staff = au?.is_staff || au?.is_superuser || false;
   if (!data) return <div className="text-slate-400 text-sm">No rep data</div>;
-  
+
   return (
     <div className="space-y-2">
+      {staff && (
       <Section title="Commissions" icon={<FaHandHoldingUsd size={12} />}>
         <LineItem label="Commission MTD" value={formatCurrency(data.commissions?.mtd, currency)} />
         <LineItem label="Commission YTD" value={formatCurrency(data.commissions?.ytd, currency)} />
@@ -297,6 +310,7 @@ const RepTab: React.FC<{ data?: OrgFinancialRep; currency: string }> = ({ data, 
         <LineItem label="Paid" value={formatCurrency(data.commissions?.paid, currency)} />
         <LineItem label="Rate" value={formatPercent(data.commissions?.rate_pct)} />
       </Section>
+      )}
 
       <Section title="Sales Credited" icon={<FaChartLine size={12} />}>
         <LineItem label="Sales MTD" value={formatCurrency(data.sales_credited?.mtd, currency)} />
@@ -323,11 +337,6 @@ const EmployeeTab: React.FC<{ data?: OrgFinancialEmployee; currency: string }> =
         <LineItem label="Expenses MTD" value={formatCurrency(data.expenses?.mtd, currency)} />
         <LineItem label="Expenses YTD" value={formatCurrency(data.expenses?.ytd, currency)} />
         <LineItem label="Pending" value={formatCurrency(data.expenses?.pending, currency)} />
-      </Section>
-
-      <Section title="Commissions" icon={<FaHandHoldingUsd size={12} />} defaultOpen={false}>
-        <LineItem label="Commission MTD" value={formatCurrency(data.commissions?.mtd, currency)} />
-        <LineItem label="Commission YTD" value={formatCurrency(data.commissions?.ytd, currency)} />
       </Section>
 
       <Section title="Time" icon={<FaClock size={12} />} defaultOpen={false}>
@@ -426,7 +435,9 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
   className = '',
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  
+  const authUser = useAppSelector((s) => s.auth.user);
+  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
+
   // Determine which categories to show based on org type(s)
   const allOrgTypes = orgType ? [orgType, ...orgTypes] : orgTypes;
   const displayCurrency = financial?.common?.currency || currency;
@@ -513,4 +524,4 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(OrgFinancialsPanel, 'OrgFinancialsPanel', 'teal');
+export default withDevIdentifier(OrgFinancialsPanel, 'OrgFinancialsPanel', 'teal', 'apps/orgs/components/OrgFinancialsPanel.tsx');

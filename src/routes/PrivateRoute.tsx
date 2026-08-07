@@ -12,6 +12,7 @@ import { PageRoutes } from "./Routes";
 import { resolveWindowElement } from "./protectedRoutesConfig";
 import NotFoundPage from "../pages/NotFoundPage";
 import RippleLoader from "@/components/common/RippleLoader";
+import ZoneTooltip from "@/components/common/ZoneTooltip";
 import { fetchBootstrap } from "@/store/slices/companySlice";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
@@ -31,7 +32,8 @@ const titleMap: Array<{ prefix: string; title: string }> = [
   { prefix: '/org', title: 'Organizations' },
   { prefix: '/products', title: 'Products' },
   { prefix: '/transactions', title: 'Transactions' },
-  { prefix: '/admin-wb', title: 'Admin Workbench' },
+  { prefix: '/databrowser', title: 'databrowser' },
+  { prefix: '/admin-wb', title: 'databrowser' },
   { prefix: '/whitelist', title: 'Whitelist Tester' },
 ];
 
@@ -72,28 +74,30 @@ const AppLayout: React.FC = () => {
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
   const sidebarWidth = isVisible
-    ? (isExpanded || isHovered || isMobileOpen ? 290 : 90)
+    ? (isExpanded || isHovered || isMobileOpen ? 200 : 52)
     : 0;
 
   return (
     <div className="relative min-h-screen bg-transparent text-slate-900">
+      <ZoneTooltip />
       <MacTopBar activePath={activePath || ""} />
-      <div className="relative h-[calc(100vh-60px)]">
+      <div className="relative h-[calc(100vh-40px)]">
         <AppSidebar />
         <Backdrop />
 
         {!isVisible && (
           <button
-            className="fixed left-3 top-16 z-180 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+            className="fixed left-1 top-[52px] z-180 rounded-r border border-l-0 border-slate-300 bg-slate-800 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
             onClick={toggleVisibility}
+            title="Show navigation"
           >
-            Show Nav
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         )}
 
         <div
-          className="absolute inset-0 overflow-auto p-4 md:p-6"
-          style={{ paddingLeft: `${sidebarWidth + 20}px` }}
+          className="absolute inset-0 overflow-auto"
+          style={{ paddingLeft: `${sidebarWidth}px` }}
         >
           <div className="relative h-full w-full">
             {windows

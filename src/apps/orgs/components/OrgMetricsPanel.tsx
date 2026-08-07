@@ -128,4 +128,4 @@ const OrgMetricsPanel: React.FC<OrgMetricsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(OrgMetricsPanel, "OrgMetricsPanel", "indigo");
+export default withDevIdentifier(OrgMetricsPanel, "OrgMetricsPanel", "indigo", 'apps/orgs/components/OrgMetricsPanel.tsx');

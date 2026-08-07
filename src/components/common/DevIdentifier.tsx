@@ -36,6 +36,8 @@ interface DevIdentifierProps {
   name: string;
   /** Badge color scheme */
   variant?: Variant;
+  /** Source file path (relative to src/) — enables Cmd+click → open in editor */
+  source?: string;
   /** Children to render */
   children: React.ReactNode;
 }
@@ -55,30 +57,46 @@ const VARIANT_CLASSES: Record<Variant, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-export function DevIdentifier({ name, variant = 'indigo', children }: DevIdentifierProps) {
+export function DevIdentifier({ name, variant = 'indigo', source, children }: DevIdentifierProps) {
   const [hovered, setHovered] = useState(false);
+  const [shiftHeld, setShiftHeld] = useState(false);
 
   // Gate: skip entirely when badges are disabled
   if (import.meta.env.VITE_DEBUG_BADGES !== 'true') {
     return <>{children}</>;
   }
 
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      // Shift+click → copy source path (or name) to clipboard
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(source || name).then(() => {
+        const badge = e.currentTarget as HTMLElement;
+        badge.style.outline = '2px solid white';
+        setTimeout(() => { badge.style.outline = ''; }, 300);
+      });
+    }
+  };
+
   return (
     <div
       className="relative"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onMouseMove={(e) => setShiftHeld(e.shiftKey)}
     >
       {/* Hover badge – top-right, fades in/out */}
       <div
-        className={`absolute top-0 right-0 z-[9999] transition-opacity duration-150 pointer-events-none ${
-          hovered ? 'opacity-100' : 'opacity-0'
+        className={`absolute top-0 right-0 z-[9999] transition-opacity duration-150 ${
+          hovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         <span
-          className={`inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium tracking-wide rounded-bl shadow-sm whitespace-nowrap ${VARIANT_CLASSES[variant]}`}
+          onClick={handleBadgeClick}
+          className={`inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium tracking-wide rounded-bl shadow-sm whitespace-nowrap cursor-pointer ${VARIANT_CLASSES[variant]}`}
         >
-          {name}
+          {hovered && shiftHeld && source ? source : name}
         </span>
       </div>
       {children}
@@ -102,6 +120,7 @@ export function withDevIdentifier<P extends object>(
   Component: React.ComponentType<P>,
   name: string,
   variant: Variant = 'indigo',
+  source?: string,
 ): React.FC<P> {
   // Fast path: when badges are disabled, return the original component
   if (import.meta.env.VITE_DEBUG_BADGES !== 'true') {
@@ -109,7 +128,7 @@ export function withDevIdentifier<P extends object>(
   }
 
   const Wrapped: React.FC<P> = (props) => (
-    <DevIdentifier name={name} variant={variant}>
+    <DevIdentifier name={name} variant={variant} source={source}>
       <Component {...props} />
     </DevIdentifier>
   );

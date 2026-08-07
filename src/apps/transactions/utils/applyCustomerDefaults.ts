@@ -28,6 +28,10 @@ export interface CustomerDefaults {
   customer_config?: Record<string, any>;
   customer_company?: string;
   config?: { ship_to?: Record<string, any> };
+  finance?: Record<string, any>;
+  tax?: Record<string, any>;
+  /** True when customer has rep assignments — caller should trigger populateCommission after save */
+  has_reps?: boolean;
 }
 
 /**
@@ -79,6 +83,45 @@ export async function applyCustomerDefaults(
     };
   }
 
+  // ── Tax jurisdiction + exemption ─────────────────────────────────
+  // WC2 pattern: customer has a tax jurisdiction (rate) and an exempt code.
+  // If exempt → post "exempt" into transaction, zero tax.
+  // If not exempt → post jurisdiction id + rate into finance envelope.
+  const taxExemptCode = cust.tax_exempt_code || '';
+  const isExempt = taxExemptCode !== '' && taxExemptCode !== 'DoTax';
+
+  if (isExempt) {
+    // Customer is tax exempt — zero rate, record the cert
+    defaults.finance = {
+      sales_tax_rate: 0,
+      sales_tax_name: 'Exempt',
+      sales_tax_id: 0,
+    };
+    defaults.tax = {
+      sales_rate: 0,
+      sales: 0,
+      exempt_code: taxExemptCode,
+    };
+  } else if (cust.tax_jurisdiction_id) {
+    // Customer has a jurisdiction — fetch the rate
+    try {
+      const tjResp = await getRecord('tax_jurisdiction', cust.tax_jurisdiction_id);
+      const tj = tjResp?.record || tjResp;
+      if (tj) {
+        defaults.finance = {
+          sales_tax_rate: tj.tax_rate_sales || 0,
+          sales_tax_name: tj.tax_name || tj.tax_jurisdiction || '',
+          sales_tax_id: tj.id,
+        };
+        defaults.tax = {
+          sales_rate: tj.tax_rate_sales || 0,
+          cost_rate: tj.tax_rate_cost || 0,
+          shipping: tj.tax_rate_on_shipping || 0,
+        };
+      }
+    } catch { /* jurisdiction fetch failed — user sets rate manually */ }
+  }
+
   // Credit/sales data for Summary tab
   const creditFields = [
     'credit_limit', 'credit_available', 'balance_due', 'balance_current',
@@ -91,6 +134,17 @@ export async function applyCustomerDefaults(
   }
   if (Object.keys(customerConfig).length) {
     defaults.customer_config = customerConfig;
+  }
+
+  // ── Rep assignments → commission flag ────────────────────────────
+  // Check if customer has rep assignments. If so, caller should call
+  // populateCommission() after saving the transaction with lines.
+  const refs = cust.refs || {};
+  const repLinks = refs.links?.reps || [];
+  const repIds = cust.relations?.rep_ids || [];
+  if ((Array.isArray(repLinks) && repLinks.length > 0) ||
+      (Array.isArray(repIds) && repIds.length > 0)) {
+    defaults.has_reps = true;
   }
 
   // Fetch contact if specified — overrides customer fields

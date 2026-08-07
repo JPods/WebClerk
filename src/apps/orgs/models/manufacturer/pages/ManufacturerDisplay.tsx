@@ -38,7 +38,7 @@ import {
 } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { PageRoutes } from "../../../../../routes/Routes";
-import { dynamicData } from "../../../../../model/dynamicData";
+import { dynamicData } from "../../../../../type/dynamicData";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 type ManufacturerFormValues = z.infer<typeof manufacturerSchema>;
@@ -753,4 +753,4 @@ export function ManufacturerDetailPage() {
   return <ManufacturerDetail />;
 }
 
-export default withDevIdentifier(ManufacturerDetail, "ManufacturerDetail");
+export default withDevIdentifier(ManufacturerDetail, "ManufacturerDetail", 'indigo', 'apps/orgs/models/manufacturer/pages/ManufacturerDisplay.tsx');

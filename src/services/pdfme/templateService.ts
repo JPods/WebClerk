@@ -16,6 +16,7 @@ import type { Template } from '@pdfme/common';
 
 // Bundled starters — imported statically so they're in the build
 import invoiceStarter from './starter-templates/invoice.json';
+import creditmemoStarter from './starter-templates/creditmemo.json';
 
 export interface PdfmeReportTemplate {
   id?: number;
@@ -36,6 +37,12 @@ const STARTERS: Record<string, PdfmeReportTemplate> = {
     description: invoiceStarter.description,
     documentType: invoiceStarter.documentType,
     template: invoiceStarter.template as unknown as Template,
+  },
+  'creditmemo-standard': {
+    name: creditmemoStarter.name,
+    description: creditmemoStarter.description,
+    documentType: creditmemoStarter.documentType,
+    template: creditmemoStarter.template as unknown as Template,
   },
 };
 

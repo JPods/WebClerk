@@ -316,4 +316,4 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(PrefsPanel, "PrefsPanel", "teal");
+export default withDevIdentifier(PrefsPanel, "PrefsPanel", "teal", 'apps/common/components/panels/PrefsPanel.tsx');

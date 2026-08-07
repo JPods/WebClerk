@@ -251,7 +251,7 @@ const JsonViewer: React.FC = () => {
   }, [viewerModel, viewerId, viewerField, fetchData]);
 
   const handleNavigate = useCallback((model: string, id: number) => {
-    window.open(`/admin-wb?model=${model}&id=${id}`, '_blank');
+    window.open(`/${model}?id=${id}`, '_blank');
   }, []);
 
   const handleCopy = useCallback(() => {

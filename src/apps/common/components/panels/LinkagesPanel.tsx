@@ -526,4 +526,4 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(LinkagesPanel, 'LinkagesPanel', 'teal');
+export default withDevIdentifier(LinkagesPanel, 'LinkagesPanel', 'teal', 'apps/common/components/panels/LinkagesPanel.tsx');

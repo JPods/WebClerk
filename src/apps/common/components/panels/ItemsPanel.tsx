@@ -426,4 +426,4 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ItemsPanel, "ItemsPanel", "teal");
+export default withDevIdentifier(ItemsPanel, "ItemsPanel", "teal", 'apps/common/components/panels/ItemsPanel.tsx');

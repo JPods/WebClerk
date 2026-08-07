@@ -127,4 +127,4 @@ export function CustomerDataPanel({ data, showScalars = true, grouped = false, o
   );
 }
 
-export default withDevIdentifier(CustomerDataPanel, 'CustomerDataPanel', 'teal');
+export default withDevIdentifier(CustomerDataPanel, 'CustomerDataPanel', 'teal', 'apps/orgs/models/customer/pages/CustomerDataPanel.tsx');

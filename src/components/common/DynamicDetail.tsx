@@ -111,10 +111,23 @@ const DEFAULT_LAYOUTS: Record<string, typeof DEFAULT_ACTION_LAYOUT> = {
 
 // ── Styles ──────────────────────────────────────────────────────────
 
-const iClass = "w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
-const lClass = "text-[11px] text-gray-500 dark:text-gray-400 font-mono mb-0.5";
+const iClass = "w-full px-1.5 py-0.5 border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60 text-[inherit]";
+const lClass = "text-gray-500 dark:text-gray-400 font-mono mb-0.5 text-[0.85em]";
 
 // ── Component ───────────────────────────────────────────────────────
+
+export interface DynamicDetailActions {
+  save: () => void;
+  cancel: () => void;
+  startEdit: () => void;
+  fontUp: () => void;
+  fontDown: () => void;
+  setFontSize: (size: number) => void;
+  fontSize: number;
+  editing: boolean;
+  saving: boolean;
+  ida: string;
+}
 
 interface DynamicDetailProps {
   modelName: string;
@@ -123,6 +136,9 @@ interface DynamicDetailProps {
   onLayoutChange?: (layout: any) => void;
   onClose?: () => void;
   onSaved?: () => void;
+  hideToolbar?: boolean;
+  actionsRef?: React.MutableRefObject<DynamicDetailActions | null>;
+  onActionsReady?: () => void;
 }
 
 function DynamicDetail({
@@ -132,6 +148,9 @@ function DynamicDetail({
   onLayoutChange,
   onClose,
   onSaved,
+  hideToolbar,
+  actionsRef,
+  onActionsReady,
 }: DynamicDetailProps) {
   const dispatch = useDispatch();
   const fieldRegistry = FIELD_REGISTRIES[modelName] || {};
@@ -139,7 +158,7 @@ function DynamicDetail({
 
   const [data, setData] = useState<Record<string, any> | null>(null);
   const [values, setValues] = useState<Record<string, any>>({});
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!!hideToolbar);
   const [arranging, setArranging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [layout, setLayout] = useState(layoutProp || defaultLayout);
@@ -246,6 +265,24 @@ function DynamicDetail({
     }
   }, [modelName, recordId, values, fieldRegistry, dispatch, onSaved]);
 
+  // Expose actions to parent via ref
+  useEffect(() => {
+    if (!actionsRef) return;
+    actionsRef.current = {
+      save: () => { void handleSave(); },
+      cancel: () => setEditing(false),
+      startEdit: () => setEditing(true),
+      fontUp: () => setFontScale(s => s + 1),
+      fontDown: () => setFontScale(s => s - 1),
+      setFontSize: (size: number) => setFontScale(size - 12),
+      fontSize,
+      editing,
+      saving,
+      ida: data?.ida || `${modelName}:${recordId}`,
+    };
+    onActionsReady?.();
+  }, [actionsRef, handleSave, editing, saving, data, modelName, recordId, onActionsReady, fontSize]);
+
   // Arrange mode handlers
   const handleDragStart = (idx: number) => setDragRow(idx);
   const handleDragOver = (e: React.DragEvent, idx: number) => {
@@ -305,7 +342,8 @@ function DynamicDetail({
 
   return (
     <div className="space-y-1.5" style={{ fontSize: `${fontSize}px` }}>
-      {/* Toolbar */}
+      {/* Toolbar — hidden when parent controls it via actionsRef */}
+      {!hideToolbar && (
       <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
         <span className="font-mono text-gray-400" style={{ fontSize: "11px" }}>
           {data.ida || `${modelName}:${recordId}`}
@@ -317,7 +355,6 @@ function DynamicDetail({
             className="rounded border border-gray-300 px-1 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:border-gray-600">A+</button>
           <button onClick={() => {
               if (arranging) {
-                // Save layout back to Report record
                 if (layoutReportId) {
                   saveRecord("report", {
                     model_name: "report",
@@ -350,6 +387,7 @@ function DynamicDetail({
           )}
         </div>
       </div>
+      )}
 
       {/* Dynamic rows */}
       {layout.rows.map((row: any, idx: number) => (
@@ -412,6 +450,6 @@ function DynamicDetail({
   );
 }
 
-export default withDevIdentifier(DynamicDetail, 'DynamicDetail');
+export default withDevIdentifier(DynamicDetail, 'DynamicDetail', 'indigo', 'components/common/DynamicDetail.tsx');
 export { DynamicDetail, DEFAULT_ACTION_LAYOUT, FIELD_REGISTRIES, DEFAULT_LAYOUTS };
-export type { FieldConfig };
+export type { FieldConfig, DynamicDetailActions };

@@ -170,4 +170,5 @@ export default withDevIdentifier(
   BasicInformationPanel,
   "BasicInformationPanel",
   "teal",
+  'apps/common/components/panels/BasicInformationPanel.tsx',
 );

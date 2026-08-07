@@ -15,7 +15,7 @@
 import {
   FilePlus, FloppyDisk, ArrowCounterClockwise, Trash,
   TrashSimple, Funnel, ListBullets, Prohibit,
-  SortAscending, Printer,
+  SortAscending, Printer, X,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 
@@ -60,6 +60,12 @@ export const TB: Record<string, ToolbarAction> = {
     minimal: 'Discard',
     emoji: '↩',
   },
+  cancel: {
+    png: { button_glass: 'Cancel', OSX: 'Cancel' },
+    phosphor: X,
+    minimal: 'Cancel',
+    emoji: '✕',
+  },
   deleteRecord: {
     png: { button_glass: 'Delete Record', OSX: 'DeleteRecord' },
     phosphor: Trash,
@@ -103,10 +109,16 @@ export const TB: Record<string, ToolbarAction> = {
     emoji: '↕',
   },
   print: {
-    png: { button_glass: 'Print', OSX: 'Print' },
+    png: { button_glass: 'Report', OSX: 'Report' },
     phosphor: Printer,
-    minimal: 'Print',
+    minimal: 'Report',
     emoji: '🖨',
+  },
+  modelMenu: {
+    png: { button_glass: 'Globe', OSX: 'Globe' },
+    phosphor: ListBullets,
+    minimal: 'Menu',
+    emoji: '☰',
   },
 };
 

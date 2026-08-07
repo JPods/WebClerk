@@ -1,6 +1,6 @@
 /* LastChecked: 2026-07-10 | WhereUsed: Router.tsx, protectedRoutesConfig.tsx | WhoCreated: Unknown */
-/* All list views use DataBrowser (/db/:model). Only detail pages and tools here. */
-import NotFound from "./OtherPage/NotFound";
+/* All list views use DataBrowser (/:model). Only detail pages and tools here. */
+import NotFound from "./NotFoundPage";
 import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
@@ -20,7 +20,8 @@ import CoreContactDetail from "../apps/core/models/contact/pages/ContactDetailJs
 import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
 import UnifiedGanttPage from "../apps/utils/gantt/UnifiedGanttPage";
-import NotionTrackerPage from "./notion/NotionTrackerPage";
+import Placeholder from "./Placeholder";
+const NotionTrackerPage = () => Placeholder({ title: "Notion Tracker" });
 
 export {
   SignIn,

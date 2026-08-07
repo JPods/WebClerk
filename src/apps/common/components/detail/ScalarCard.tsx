@@ -109,4 +109,4 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
   );
 };
 
-export default withDevIdentifier(ScalarCard, "ScalarCard", "amber");
+export default withDevIdentifier(ScalarCard, "ScalarCard", "amber", 'apps/common/components/detail/ScalarCard.tsx');

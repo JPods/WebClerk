@@ -106,4 +106,4 @@ function ContactCard({ contactId, position, onClose }: ContactCardProps) {
   );
 }
 
-export default withDevIdentifier(ContactCard, 'ContactCard');
+export default withDevIdentifier(ContactCard, 'ContactCard', 'amber', 'apps/core/models/contact/pages/ContactCard.tsx');

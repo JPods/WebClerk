@@ -12,7 +12,7 @@ import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { SimpleDetailHeader } from "../../../../../components/common/SimpleDetailHeader";
-import { SimpleDetailToolbar } from "../../../../../components/common/SimpleDetailToolbar";
+import { DetailToolbar } from "@/components/common/DetailToolbar";
 import { createBundle, updateBundle } from "../services/bundleApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -161,7 +161,7 @@ function BundleDetail({
       )}
 
       {!inline && (
-        <SimpleDetailToolbar
+        <DetailToolbar
           mode={currentMode}
           isSaving={isSaving}
           onSave={handleSubmit(onSubmit)}
@@ -312,4 +312,4 @@ function BundleDetail({
   );
 }
 
-export default withDevIdentifier(BundleDetail, 'BundleDetail');
+export default withDevIdentifier(BundleDetail, 'BundleDetail', 'indigo', 'apps/sync/models/bundle/pages/BundleDetail.tsx');

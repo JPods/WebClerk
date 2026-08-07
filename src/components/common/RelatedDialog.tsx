@@ -8,7 +8,7 @@
  * Clicking a related model opens a new DataBrowser window filtered to show
  * related records.
  *
- * LastChecked: 2026-06-30 | WhereUsed: AdminWorkbench | WhoCreated: Bill+Claude
+ * LastChecked: 2026-06-30 | WhereUsed: DataBrowser | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState } from 'react';
 import { fetchLatestSettingRecord } from '@/api/settingsBridge';
@@ -98,7 +98,7 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
 
   const handleClick = (entry: RelatedEntry) => {
     // Build the URL for the related model
-    let url = `/admin-wb?model=${encodeURIComponent(entry.model)}`;
+    let url = `/${encodeURIComponent(entry.model)}`;
 
     // For now, open the related model — filtering can be enhanced later
     // Parent type: navigate to the parent record

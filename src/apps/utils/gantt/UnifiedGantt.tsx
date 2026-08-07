@@ -13,6 +13,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import { format as dateFnsFormat } from "date-fns";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IApi, IColumnConfig, ITask } from "@svar-ui/react-gantt";
@@ -459,6 +461,18 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Custom task order (used when autoSortByDate is false)
   const [customTaskOrder, setCustomTaskOrder] = useState<string[]>([]);
   
+  // Auth user — for gantt prefs
+  const authUser = useSelector((s: RootState) => s.auth?.user);
+  const ganttPrefs = (authUser as any)?.prefs?.gantt || {};
+  const handleSaveGanttPrefs = useCallback(async (prefs: any) => {
+    const userId = (authUser as any)?.id;
+    if (!userId) return;
+    try {
+      const currentPrefs = (authUser as any)?.prefs || {};
+      await saveRecord('contact', { id: userId, prefs: { ...currentPrefs, gantt: prefs } });
+    } catch (err) { console.error('Failed to save gantt prefs:', err); }
+  }, [authUser]);
+
   // Project selection state
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() => {
     if (projectId) return [projectId];
@@ -2773,6 +2787,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   onSelectionChange={setSelectedProjectIds}
                   isLoading={isLoadingProjects}
                   disabled={isRefreshing}
+                  ganttPrefs={ganttPrefs}
+                  onSaveGanttPrefs={handleSaveGanttPrefs}
                 />
               </div>
             )}
@@ -3409,4 +3425,4 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   );
 };
 
-export default withDevIdentifier(UnifiedGantt, 'UnifiedGantt');
+export default withDevIdentifier(UnifiedGantt, 'UnifiedGantt', 'rose', 'apps/utils/gantt/UnifiedGantt.tsx');

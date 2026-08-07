@@ -1,5 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React from "react";
+import { useAppSelector } from '@/store/hooks';
 import FieldLabel from "../components/FieldLabel";
 import { Input, DropDown } from "../../../components/wrapper";
 import CustomerSalesPanel, { type CustomerSelectionData, type OrgLinkSnapshot } from "./CustomerSalesPanel";
@@ -101,6 +102,8 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   onCustomerSelect,
   orgLinks,
 }) => {
+  const authUser = useAppSelector((s) => s.auth.user);
+  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   const statusOptions = [
     { value: "planned", label: "planned" },
     { value: "released", label: "released" },
@@ -687,6 +690,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                     {formatCurrency(data.cost?.freight)}
                   </dd>
                 </div>
+                {isStaff && (
                 <div className="flex justify-between items-center">
                   <FieldLabel
                     label="cost.commissions"
@@ -697,6 +701,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                     {formatCurrency(data.cost?.commissions)}
                   </dd>
                 </div>
+                )}
                 <div className="flex justify-between items-center">
                   <FieldLabel
                     label="cost.total"
@@ -780,4 +785,4 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   );
 };
 
-export default withDevIdentifier(SummaryCard, 'SummaryCard', 'amber');
+export default withDevIdentifier(SummaryCard, 'SummaryCard', 'amber', 'apps/transactions/components/SummaryCard.tsx');

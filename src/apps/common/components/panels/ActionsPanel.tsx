@@ -1800,4 +1800,4 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ActionsPanel, "ActionsPanel", "teal");
+export default withDevIdentifier(ActionsPanel, "ActionsPanel", "teal", 'apps/common/components/panels/ActionsPanel.tsx');

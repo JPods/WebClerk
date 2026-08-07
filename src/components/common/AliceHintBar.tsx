@@ -8,7 +8,7 @@
  * Sources: Alice (local), WCHQ (synced), Power users (shared).
  */
 import React from 'react';
-import { useAlice, AliceHint } from '@/contexts/AliceContext';
+import { useAlice, AliceHint } from '@/context/AliceContext';
 
 interface AliceHintBarProps {
   model?: string;

@@ -453,4 +453,4 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(PaymentPanel, 'PaymentPanel', 'teal');
+export default withDevIdentifier(PaymentPanel, 'PaymentPanel', 'teal', 'apps/common/components/panels/PaymentPanel.tsx');

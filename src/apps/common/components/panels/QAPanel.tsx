@@ -1029,4 +1029,4 @@ const QAPanel: React.FC<QAPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(QAPanel, 'QAPanel', 'teal');
+export default withDevIdentifier(QAPanel, 'QAPanel', 'teal', 'apps/common/components/panels/QAPanel.tsx');

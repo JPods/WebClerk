@@ -398,7 +398,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                       purchase: '/transactions/purchase/detail',
                       action: '/core/actions/detail',
                     };
-                    const route = routes[model] || `/db/${model}`;
+                    const route = routes[model] || `/${model}`;
                     window.open(`${route}/${rec.id}`, '_blank');
                   }}
                   style={{ fontSize: fontScale, padding: '3px 10px', background: '#1e3a5f', color: '#93c5fd', border: 'none', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}

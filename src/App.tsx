@@ -12,7 +12,7 @@ import { AiHelpWidget } from './components/AiHelpWidget';
 import { UserIssueReporter } from './components/UserIssueReporter';
 import { DevIssueReporter } from './components/DevIssueReporter';
 import { useDefaultCompany } from './hooks/useDefaultCompany';
-import { AliceProvider } from './contexts/AliceContext';
+import { AliceProvider } from './context/AliceContext';
 
 function PrimeCompanyBootstrap() {
   useDefaultCompany();

@@ -7,4 +7,4 @@ import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 const ActionEdit: React.FC<any> = () => null;
 
-export default withDevIdentifier(ActionEdit, 'ActionEdit');
+export default withDevIdentifier(ActionEdit, 'ActionEdit', 'rose', 'apps/utils/kanban/KanbanActionEdit.tsx');

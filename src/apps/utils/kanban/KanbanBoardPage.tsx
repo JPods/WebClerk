@@ -7,13 +7,14 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanDragLayer } from "./KanbanDragLayer";
 import KanbanTaskModal from "./KanbanTaskModal";
+import { ActionFloatingWindow } from "../../core/models/action/pages/ActionFloatingWindow";
 import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
-import { getRecords, manageAction, uploadDocument } from "../../../api/wcapi";
+import { getRecords, manageAction, saveRecord, uploadDocument } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link, useSearchParams } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
@@ -1180,6 +1181,7 @@ const KanbanBoardPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+  const [floatingActionId, setFloatingActionId] = useState<string | null>(null);
 
   // Contact Manager Modal state
   const [isContactManagerOpen, setIsContactManagerOpen] = useState(false);
@@ -1193,21 +1195,29 @@ const KanbanBoardPage: React.FC = () => {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
 
   // Track if any modal is open to pause auto-refresh
-  const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen || isGenerateOpen;
+  const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen || isGenerateOpen || !!floatingActionId;
 
   const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
   const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-  const [generateCount, setGenerateCount] = useState(4);
+  const [generateCount, setGenerateCount] = useState(1);
+  const [generateName, setGenerateName] = useState("");
+  const [generateCategory, setGenerateCategory] = useState("kanban");
   const [generateStartDate, setGenerateStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [generateEndDate, setGenerateEndDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 8);
     return d.toISOString().slice(0, 10);
   });
   const [generateInterval, setGenerateInterval] = useState(7);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateResult, setGenerateResult] = useState<string | null>(null);
+
+  const generatedProjectName = [generateCategory, generateName, generateStartDate].filter(Boolean).join("-");
 
   const handleGenerateProjects = useCallback(async () => {
     setIsGenerating(true);
@@ -1215,11 +1225,13 @@ const KanbanBoardPage: React.FC = () => {
     try {
       const result = await manageAction("generate_kanban_projects", {
         count: generateCount,
+        name: generateName,
+        category: generateCategory,
         start_date: generateStartDate,
+        end_date: generateEndDate,
         interval_days: generateInterval,
       });
       setGenerateResult(`Created ${result.created} project(s)`);
-      // Close modal after a brief success flash, then let normal refresh cycle pick up new projects
       setTimeout(() => {
         setIsGenerateOpen(false);
         setGenerateResult(null);
@@ -1230,7 +1242,7 @@ const KanbanBoardPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [generateCount, generateStartDate, generateInterval]);
+  }, [generateCount, generateName, generateCategory, generateStartDate, generateEndDate, generateInterval]);
   const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
   const [isTrashDeleting, setIsTrashDeleting] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
@@ -1894,6 +1906,20 @@ const KanbanBoardPage: React.FC = () => {
     resetCreateState();
     setIsCreateModalOpen(true);
   };
+
+  const handleNewActionFloating = useCallback(async () => {
+    try {
+      const result = await saveRecord("action", {
+        model_name: "action",
+        action: { en: "" },
+        status: "open",
+        priority: 2,
+        project_id: selectedProjectId || undefined,
+      });
+      const newId = result?.id || result?.record?.id;
+      if (newId) setFloatingActionId(String(newId));
+    } catch {}
+  }, [selectedProjectId]);
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
@@ -2660,157 +2686,64 @@ const KanbanBoardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageBreadcrumb pageTitle="Kanban Board" />
-
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to={PageRoutes.multiProjectGantt}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+      <div className="flex items-center gap-1 px-2 py-1" style={{ fontSize: 12, color: '#9cdcfe' }}>
+        <Link to={PageRoutes.multiProjectGantt}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe', textDecoration: 'none' }}
+        >📋 Multi-Project</Link>
+          <select value={selectedProjectId} onChange={handleProjectFilterChange} disabled={isLoadingProjects}
+            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Multi-Project
-          </Link>
-          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            <span>Project</span>
-            <select
-              value={selectedProjectId}
-              onChange={handleProjectFilterChange}
-              disabled={isLoadingProjects}
-              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
-            >
-              <option value="">
-                {isLoadingProjects ? "Loading..." : "All projects"}
-              </option>
-              {projectOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name ?? option.intent ?? option.id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            <span>Contact</span>
-            <select
-              value={selectedContactId}
-              onChange={handleContactFilterChange}
-              disabled={isLoadingContacts}
-              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
-            >
-              <option value="">
-                {isLoadingContacts ? "Loading..." : "All contacts"}
-              </option>
-              {contactOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {selectedProjectId && (
-              <button
-                type="button"
-                onClick={() => setIsContactManagerOpen(true)}
-                className="ml-1 rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-indigo-600 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
-                title="Manage project contacts"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            )}
-          </label>
-          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            <span>Columns</span>
-            <select
-              value={columnsPerRow}
-              onChange={(event) => setColumnsPerRow(Number(event.target.value))}
-              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
-            >
-              {columnDensityOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            onClick={() => setIsGenerateOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-            title="Generate kanban project records"
+            <option value="">{isLoadingProjects ? "Loading..." : "Project: All"}</option>
+            {projectOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.name ?? option.intent ?? option.id}</option>
+            ))}
+          </select>
+          <select value={selectedContactId} onChange={handleContactFilterChange} disabled={isLoadingContacts}
+            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Gen Projects
-          </button>
-          <button
-            onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            <option value="">{isLoadingContacts ? "Loading..." : "Contact: All"}</option>
+            {contactOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+          <select value={columnsPerRow} onChange={(event) => setColumnsPerRow(Number(event.target.value))}
+            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5v14m7-7H5" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            New Task
-          </button>
-          <button
-            onClick={() => void handleManualRefresh()}
-            disabled={isRefreshing || isLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            {columnDensityOptions.map((option) => (
+              <option key={option} value={option}>Cols: {option}</option>
+            ))}
+          </select>
+          <button onClick={() => setIsGenerateOpen(true)} title="Generate kanban project records"
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+          >📦 Gen Projects</button>
+          <button onClick={() => void handleNewActionFloating()}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#4ec98c' }}
+          >+ New Action</button>
+          <button onClick={() => void handleManualRefresh()} disabled={isRefreshing || isLoading}
             title={`Last refreshed: ${formatLastRefresh(lastRefreshTime)}. Auto-refresh every 5 minutes${isAnyModalOpen ? ' (paused while dialog open)' : ''}`}
-          >
-            <svg
-              className={clsx("h-4 w-4", isRefreshing && "animate-spin")}
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          <span className="text-xs text-gray-400 dark:text-gray-500" title="Auto-refresh every 5 minutes">
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: isRefreshing ? 'default' : 'pointer', opacity: isRefreshing ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+          >🔄 {isRefreshing ? "Refreshing..." : "Refresh"}</button>
+          <span style={{ fontSize: 10, color: '#888' }} title="Auto-refresh every 5 minutes">
             {formatLastRefresh(lastRefreshTime)}
           </span>
-        </div>
       </div>
 
       {projectFetchError && (
         <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
           <span>{projectFetchError}</span>
-          <button
-            type="button"
-            onClick={() => void fetchProjects()}
-            className="rounded-md border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
-          >
-            Retry
-          </button>
+          <button type="button" onClick={() => void fetchProjects()}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#e8c870' }}
+          >↩ Retry</button>
         </div>
       )}
 
       {fetchError && (
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
           <span>{fetchError}</span>
-          <button
-            type="button"
-            onClick={() =>
-              void fetchActions({
-                projectId: selectedProjectId || undefined,
-                contactId: selectedContactId || undefined,
-              })
-            }
-            className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/50"
-          >
-            Retry
-          </button>
+          <button type="button"
+            onClick={() => void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined })}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#e05252' }}
+          >↩ Retry</button>
         </div>
       )}
 
@@ -2845,7 +2778,7 @@ const KanbanBoardPage: React.FC = () => {
                 column={column}
                 tasks={column.task_ids.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
                 onDragEnd={handleDragEnd}
-                onTaskClick={handleOpenEditModal}
+                onTaskClick={(task) => setFloatingActionId(String(task.id))}
               />
             ))}
           </div>
@@ -2884,41 +2817,15 @@ const KanbanBoardPage: React.FC = () => {
         onLanguagePickerCancel={handleCreateLanguagePickerCancel}
       />
 
-      <KanbanTaskModal
-        mode="edit"
-        isOpen={isEditModalOpen}
-        title={editingTask ? `Update task (#${editingTask.id})` : "Update task"}
-        description="Fine-tune translations, ownership, or schedule without losing context."
-        isSaving={isSavingEdit}
-        submitLabel={isSavingEdit ? "Saving..." : "Update task"}
-        onClose={handleCloseEditModal}
-        onSubmit={handleEditTaskSubmit}
-        modalError={editModalError}
-        formState={editTaskState}
-        onFieldChange={handleEditTaskChange}
-        columnOptions={columnOptions}
-        projectOptions={projectOptions}
-        priorityOptions={priorityOptions}
-        difficultyOptions={editDifficultyOptions}
-        progressOptions={editProgressOptions}
-        assigneeOptions={contactOptions}
-        translations={editTaskState.translations}
-        onTranslationFieldChange={(entryId, field, value) =>
-          handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
-        }
-        onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
-        languagePickerOptions={availableEditLanguages}
-        languagePickerState={editLanguagePickerState}
-        onLanguagePickerToggle={handleEditLanguagePickerToggle}
-        onLanguageSelectionChange={handleEditLanguageSelectionChange}
-        onLanguageCustomChange={handleEditLanguageCustomChange}
-        onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
-        onLanguagePickerCancel={handleEditLanguagePickerCancel}
-        extraContent={editModalExtraContent}
-        currentTask={editingTask}
-        onRemoveFromKanban={handleRemoveTaskFromKanban}
-        isRemoving={isRemovingTask}
-      />
+      {/* Action Detail floating window — same as Gantt */}
+      {floatingActionId && (
+        <ActionFloatingWindow
+          key={floatingActionId}
+          actionId={floatingActionId}
+          onClose={() => setFloatingActionId(null)}
+          onSaved={() => void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined })}
+        />
+      )}
 
       {/* Contact Manager Modal */}
       <ProjectContactManager
@@ -2938,40 +2845,75 @@ const KanbanBoardPage: React.FC = () => {
               Generate Kanban Projects
             </h3>
             <div className="space-y-4">
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Number of projects</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={generateCount}
-                  onChange={(e) => setGenerateCount(Math.max(1, Math.min(100, Number(e.target.value))))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</span>
-                <input
-                  type="date"
-                  value={generateStartDate}
-                  onChange={(e) => setGenerateStartDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Interval (days)</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={generateInterval}
-                  onChange={(e) => setGenerateInterval(Math.max(1, Number(e.target.value)))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</span>
+                  <input
+                    type="text"
+                    value={generateCategory}
+                    onChange={(e) => setGenerateCategory(e.target.value)}
+                    placeholder="kanban"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Name</span>
+                  <input
+                    type="text"
+                    value={generateName}
+                    onChange={(e) => setGenerateName(e.target.value)}
+                    placeholder="optional"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</span>
+                  <input
+                    type="date"
+                    value={generateStartDate}
+                    onChange={(e) => setGenerateStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">End date</span>
+                  <input
+                    type="date"
+                    value={generateEndDate}
+                    onChange={(e) => setGenerateEndDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Number of projects</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={generateCount}
+                    onChange={(e) => setGenerateCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Interval (days)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={generateInterval}
+                    onChange={(e) => setGenerateInterval(Math.max(1, Number(e.target.value)))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
+                </label>
+              </div>
               <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                 Will create <strong>{generateCount}</strong> project(s) named{" "}
-                <code className="text-indigo-600 dark:text-indigo-400">kanban-YYYY-MM-DD</code>,
+                <code className="text-indigo-600 dark:text-indigo-400">{generatedProjectName}</code>,
                 starting <strong>{generateStartDate}</strong>, every <strong>{generateInterval}</strong> day(s).
               </div>
               {generateResult && (
@@ -3010,4 +2952,4 @@ const KanbanBoardPage: React.FC = () => {
   );
 };
 
-export default withDevIdentifier(KanbanBoardPage, 'KanbanBoardPage');
+export default withDevIdentifier(KanbanBoardPage, 'KanbanBoardPage', 'rose', 'apps/utils/kanban/KanbanBoardPage.tsx');

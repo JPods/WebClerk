@@ -57,6 +57,7 @@ interface Props {
   onDeleteLayout: (name: string) => void;
   onClose: () => void;
   theme?: 'dark' | 'light';
+  sampleRecord?: Record<string, any>;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +92,7 @@ const SIZABLE_TYPES = ['json', 'textarea', 'text'];
 export default function FieldOrderDialog({
   open, mode, allFields, visibleFields, fieldBehaviors, rowSizes: initialRowSizes,
   savedLayouts, activeLayoutName, onApply, onSaveLayout, onLoadLayout, onDeleteLayout, onClose, theme = 'dark',
-  colWidths: initialColWidths,
+  colWidths: initialColWidths, sampleRecord,
 }: Props) {
   // Local edit state
   const [order, setOrder] = useState<string[]>([]);
@@ -104,10 +105,11 @@ export default function FieldOrderDialog({
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
+  const [expandedJsonFields, setExpandedJsonFields] = useState<Set<string>>(new Set());
   const dragOverIdx = useRef<number | null>(null);
   const initialOrderRef = useRef<string>('');
 
-  const PROTECTED_LAYOUTS = ['alpha', 'best_guess', 'alice_guess', 'alphabetical'];
+  const PROTECTED_LAYOUTS = ['alpha', 'best_guess', 'alice_guess', 'alphabetical', 'flat'];
 
   const trySave = useCallback((name: string) => {
     if (!name.trim()) { alert('Please enter a layout name.'); return; }
@@ -140,9 +142,13 @@ export default function FieldOrderDialog({
   const rowHover = isDark ? '#2a2d2e' : '#f1f3f5';
   const dragBg = isDark ? '#094771' : '#cfe2ff';
 
-  // Initialize from props when dialog opens
+  // Initialize from props when dialog opens (only on open transition)
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (!open) return;
+    if (!open) { prevOpenRef.current = false; return; }
+    if (prevOpenRef.current) return; // already open — don't re-init
+    prevOpenRef.current = true;
+
     const vis = new Set(visibleFields);
     const unselected = allFields.filter((f) => !vis.has(f)).sort((a, b) => a.localeCompare(b));
     const initialOrder = [...visibleFields, ...unselected];
@@ -152,6 +158,7 @@ export default function FieldOrderDialog({
     setWidths({ ...(initialColWidths || {}) });
     setSelectedLayout(activeLayoutName || '__current__');
     setHasChanges(false);
+    setExpandedJsonFields(new Set());
     initialOrderRef.current = JSON.stringify([...visibleFields]);
 
     // Fetch Alice's recommended widths (synced from WCHQ via Setting)
@@ -422,35 +429,50 @@ export default function FieldOrderDialog({
             const isDragging = dragIdx === idx;
 
             return (
+              <React.Fragment key={field}>
               <div
-                key={field}
+                onPointerDown={(e) => handlePointerDown(idx, e)}
+                onPointerUp={handlePointerUp}
                 onPointerEnter={() => handlePointerEnter(idx)}
                 style={{
                   display: 'flex', alignItems: 'center', padding: '4px 14px',
                   borderBottom: `1px solid ${isDark ? '#2e2e2e' : '#f0f0f0'}`,
                   background: isDragging ? dragBg : 'transparent',
-                  opacity: isVisible ? 1 : 0.4,
+                  opacity: isVisible ? 1 : (isDark ? 0.55 : 0.4),
                   fontSize: 12,
+                  cursor: 'grab',
+                  userSelect: 'none',
+                  touchAction: 'none',
                   transition: 'background 0.05s',
                 }}
                 onMouseEnter={(e) => { if (dragIdx === null) (e.currentTarget).style.background = rowHover; }}
                 onMouseLeave={(e) => { if (dragIdx === null) (e.currentTarget).style.background = 'transparent'; }}
               >
-                {/* Drag handle — pointer based, works in modals */}
-                <span
-                  onPointerDown={(e) => handlePointerDown(idx, e)}
-                  onPointerUp={handlePointerUp}
-                  style={{ width: 24, cursor: 'grab', color: textMuted, fontSize: 14, textAlign: 'center', userSelect: 'none', touchAction: 'none' }}
-                  title="Drag to reorder"
-                >☰</span>
 
                 {/* Checkbox */}
                 <span style={{ width: 26 }}>
-                  <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} />
+                  <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} onPointerDown={(e) => e.stopPropagation()} />
                 </span>
 
-                {/* Field name */}
-                <span style={{ flex: 1, fontWeight: 500, color: isVisible ? text : textMuted }}>{field}</span>
+                {/* Field name — expandable for JSON types */}
+                <span
+                  style={{ flex: 1, fontWeight: 500, color: isVisible ? text : textMuted, cursor: beh.type === 'json' && sampleRecord?.[field] ? 'pointer' : 'default' }}
+                  onPointerDown={(e) => {
+                    if (beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object') {
+                      e.stopPropagation();
+                      setExpandedJsonFields(prev => {
+                        const next = new Set(prev);
+                        next.has(field) ? next.delete(field) : next.add(field);
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  {beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (
+                    <span style={{ fontSize: 10, marginRight: 4, color: textMuted }}>{expandedJsonFields.has(field) ? '▼' : '▶'}</span>
+                  )}
+                  {field}
+                </span>
 
                 {/* Behavior badge */}
                 <span style={{ width: 100, textAlign: 'center' }}>
@@ -469,6 +491,7 @@ export default function FieldOrderDialog({
                       placeholder={String(getRecWidth(field))}
                       onChange={(e) => setWidths((prev) => ({ ...prev, [field]: parseInt(e.target.value) || 0 }))}
                       onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       style={{ width: 48, textAlign: 'center', fontSize: 11, padding: '2px 3px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: widths[field] ? text : textMuted }}
                       title={`Recommended: ${getRecWidth(field)}px`}
                     />
@@ -487,6 +510,7 @@ export default function FieldOrderDialog({
                       <input type="number" min={1} max={12} value={currentSize}
                         onChange={(e) => setRowSize(field, parseInt(e.target.value) || 1)}
                         onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         style={{ width: 40, textAlign: 'center', fontSize: 11, padding: '2px 4px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: text }}
                       />
                     ) : (
@@ -495,13 +519,60 @@ export default function FieldOrderDialog({
                   </span>
                 )}
               </div>
+
+              {/* JSON object tree — shown when field is expanded */}
+              {beh.type === 'json' && expandedJsonFields.has(field) && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (() => {
+                const renderTree = (obj: any, prefix: string, depth: number): React.ReactNode[] => {
+                  if (!obj || typeof obj !== 'object') return [];
+                  return Object.entries(obj).map(([key, val]) => {
+                    const path = `${prefix}.${key}`;
+                    const isObj = val && typeof val === 'object' && !Array.isArray(val);
+                    const isArr = Array.isArray(val);
+                    const display = isObj ? '{ }' : isArr ? `[${val.length}]` : String(val ?? '—');
+                    const truncated = display.length > 40 ? display.slice(0, 40) + '…' : display;
+                    const isSelected = visible.has(path);
+                    return (
+                      <React.Fragment key={path}>
+                        <div
+                          style={{
+                            display: 'flex', alignItems: 'center', padding: '2px 14px', paddingLeft: 26 + depth * 16,
+                            borderBottom: `1px solid ${isDark ? '#1e1e1e' : '#f8f8f8'}`,
+                            fontSize: 11, color: textMuted,
+                            background: isSelected ? (isDark ? '#1a3a2a' : '#e8f5e9') : 'transparent',
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          <span style={{ width: 26 }}>
+                            <input type="checkbox" checked={isSelected}
+                              onChange={() => {
+                                setVisible(prev => { const next = new Set(prev); next.has(path) ? next.delete(path) : next.add(path); return next; });
+                                if (!order.includes(path)) setOrder(prev => [...prev, path]);
+                                setHasChanges(true);
+                              }}
+                            />
+                          </span>
+                          <span style={{ flex: 1, fontFamily: 'monospace', color: isSelected ? text : textMuted }}>
+                            {key}
+                          </span>
+                          <span style={{ fontSize: 10, color: isObj ? accent : textMuted, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {truncated}
+                          </span>
+                        </div>
+                        {isObj && renderTree(val, path, depth + 1)}
+                      </React.Fragment>
+                    );
+                  });
+                };
+                return renderTree(sampleRecord[field], field, 0);
+              })()}
+              </React.Fragment>
             );
           })}
         </div>
 
         {/* ═══ Footer ═══ */}
         <div style={{ padding: '6px 18px', borderTop: `1px solid ${border}`, fontSize: 10, color: textMuted }}>
-          ☰ drag to reorder · ☑ check to show/hide
+          drag row to reorder · ☑ check to show/hide
         </div>
       </div>
     </div>

@@ -929,6 +929,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   return createPortal(modal, document.body);
 };
 
-export default withDevIdentifier(ActionsModal, 'ActionsModal', 'rose');
+export default withDevIdentifier(ActionsModal, 'ActionsModal', 'rose', 'apps/transactions/components/ActionsModal.tsx');
 // Re-export types for consumers
 export type { ActionsModalProps as ActionModalProps };

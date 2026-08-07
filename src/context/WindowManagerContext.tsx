@@ -174,3 +174,6 @@ export const useWindowManager = () => {
   if (!ctx) throw new Error("useWindowManager must be used within WindowManagerProvider");
   return ctx;
 };
+
+/** Safe version that returns null instead of throwing when outside the provider. */
+export const useWindowManagerSafe = () => useContext(WindowManagerContext);

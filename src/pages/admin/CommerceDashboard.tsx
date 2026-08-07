@@ -328,7 +328,7 @@ function AccountingTab({ data }: { data: any }) {
   const balanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
   const openStaleInDbr = (model: string) => {
-    window.open(`/admin-wb?model=${model}&status=planned&ordering=dt_created`, '_blank');
+    window.open(`/${model}?status=planned&ordering=dt_created`, '_blank');
   };
 
   const handleExport = async (format: string) => {

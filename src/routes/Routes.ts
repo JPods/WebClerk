@@ -33,7 +33,7 @@
   static readonly vendorList: string = "/org/vendor/list";
 
   static readonly test: string = "/test";
-  static readonly adminWorkbench: string = "/admin-wb";
+  static readonly adminWorkbench: string = "/databrowser";
   static readonly jsonViewer: string = "/json-viewer";
   static readonly jsonTree: string = "/json-tree";
   static readonly commerceDashboard: string = "/commerce";

@@ -7,7 +7,7 @@
  * - Layout JSON from detail_layout Setting drives rendering
  * - CommPanel for communications tab
  * - OrgPanel not needed here (this IS the org detail)
- * - Reuses RecordToolbar, FieldRow, existing panels
+ * - Reuses DetailToolbar, FieldRow, existing panels
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -21,7 +21,7 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
-import RecordToolbar from '@/components/common/RecordToolbar';
+import DetailToolbar from '@/components/common/DetailToolbar';
 import { CommPanel } from '@/apps/communications/components';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
@@ -35,13 +35,17 @@ import DataGrid from '@/components/common/DataGrid';
 interface OrgDetailJsonProps {
   modelName?: string;
   recordId?: number;
+  inline?: boolean;
+  onRegisterActions?: (actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => void;
+  onEditStateChange?: (editing: boolean) => void;
+  [key: string]: any;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, recordId: propId }) => {
+const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, recordId: propId, inline, onRegisterActions, onEditStateChange }) => {
   const params = useParams<{ model?: string; id?: string }>();
   const modelName = propModel || params.model || 'customer';
   const recordId = propId || (params.id ? Number(params.id) : 0);
@@ -147,6 +151,14 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
     }
   };
 
+  // Register actions for parent toolbar
+  useEffect(() => {
+    if (onRegisterActions) onRegisterActions({ save: handleSave, cancel: handleCancel, addNew: handleAddNew });
+  }, [onRegisterActions, handleSave, handleCancel, handleAddNew]);
+  useEffect(() => {
+    if (onEditStateChange) onEditStateChange(isEditing);
+  }, [isEditing, onEditStateChange]);
+
   // Loading
   if (loading || layoutLoading) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Loading {modelName}...</div>;
@@ -170,36 +182,31 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`}>
-      {/* Header bar */}
-      <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
-        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>
-        <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
-        <span className="text-xs text-slate-500">{data.company || data.attention || ''}</span>
-      </div>
-
-      {/* Toolbar */}
-      <RecordToolbar
-        data={data}
-        currentData={currentData}
-        modelName={modelName}
-        layout={activeLayout}
-        isEditing={isEditing}
-        saving={saving}
-        companyInfo={companyInfo}
-        logos={logos}
-        documentText={documentText}
-        userRole={authUser?.role}
-        onEdit={handleEdit}
-        onAddNew={handleAddNew}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        designMode={designMode}
-        onToggleDesign={() => {
-          if (designMode) { setDesignMode(false); setDesignLayout(null); invalidateLayout(); }
-          else { setDesignMode(true); if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }
-        }}
-      />
+    <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`} data-zone={`db.detail.form | .${modelName}-detail | OrgDetail.json.tsx`}>
+      {/* Toolbar — hidden when inline (DataBrowser owns the toolbar) */}
+      {!inline && (
+        <DetailToolbar
+          data={data}
+          currentData={currentData}
+          modelName={modelName}
+          layout={activeLayout}
+          isEditing={isEditing}
+          saving={saving}
+          companyInfo={companyInfo}
+          logos={logos}
+          documentText={documentText}
+          userRole={authUser?.role}
+          onEdit={handleEdit}
+          onAddNew={handleAddNew}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          designMode={designMode}
+          onToggleDesign={() => {
+            if (designMode) { setDesignMode(false); setDesignLayout(null); invalidateLayout(); }
+            else { setDesignMode(true); if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }
+          }}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
@@ -208,10 +215,10 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
           <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
             {columns.map((col: any, colIdx: number) => (
               <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1 flex items-center gap-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
                   <span>{col.title}</span>
-                  {col.title_ida && data.id && (
-                    <span className="font-mono text-slate-400 text-[10px]">#{data.id}</span>
+                  {colIdx === 0 && data.ida && (
+                    <span className="font-mono font-normal text-slate-400 dark:text-slate-500">{data.ida}</span>
                   )}
                 </div>
                 {(col.fields || []).map((f: any) => (
@@ -313,4 +320,4 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
   );
 };
 
-export default withDevIdentifier(OrgDetailJson, 'OrgDetailJson');
+export default withDevIdentifier(OrgDetailJson, 'OrgDetailJson', 'indigo', 'apps/orgs/components/OrgDetail.json.tsx');

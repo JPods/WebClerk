@@ -83,12 +83,18 @@ export default function AccountingDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dashRes, orphanRes] = await Promise.all([
+      const [dashResult, orphanResult] = await Promise.allSettled([
         apiClient.post("/wcapi/manage/", { action: "get_accounting_dashboard", params: {} }),
         apiClient.post("/wcapi/manage/", { action: "get_orphan_counts", params: {} }),
       ]);
-      setData(dashRes.data?.data ?? dashRes.data);
-      setOrphans(orphanRes.data?.data ?? orphanRes.data);
+      if (dashResult.status === 'fulfilled') {
+        setData(dashResult.value.data?.data ?? dashResult.value.data);
+      } else {
+        setError(dashResult.reason?.message || "Failed to load dashboard");
+      }
+      if (orphanResult.status === 'fulfilled') {
+        setOrphans(orphanResult.value.data?.data ?? orphanResult.value.data);
+      }
     } catch (err: any) {
       setError(err?.message || "Failed to load dashboard");
     } finally {

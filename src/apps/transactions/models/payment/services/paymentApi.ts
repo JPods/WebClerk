@@ -31,6 +31,36 @@ export const updatePayment = async (id: number, data: UpdatePaymentRequest) =>
 export const deletePayment = async (id: number) =>
   deleteRecord(MODEL, id);
 
+/** Fetch public gateway config (environment_key for Spreedly SDK) */
+export const fetchGatewayConfig = async () => {
+  const res = await apiClient.get('/api/transactions/payments/gateway-config/');
+  return res.data as {
+    environment_key: string;
+    test_mode: boolean;
+    active_gateway_type: string;
+    currency: string;
+  };
+};
+
+/** Process a card payment through Spreedly */
+export const processGatewayPayment = async (
+  invoiceId: number,
+  amount: number,
+  paymentMethodToken: string,
+) => {
+  const res = await apiClient.post('/api/transactions/payments/process/', {
+    invoice_id: invoiceId,
+    amount,
+    payment_method_token: paymentMethodToken,
+  });
+  return res.data as {
+    payment_id: number;
+    status: string;
+    gateway_transaction_id: string;
+    message: string;
+  };
+};
+
 /** Payment methods lookup */
 export const fetchPaymentMethods = async () => {
   const res = await getRecords('paymentmethod', { is_active: true, limit: 50 });

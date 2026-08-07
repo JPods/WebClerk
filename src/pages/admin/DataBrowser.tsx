@@ -8,14 +8,19 @@ import { dbLog } from '../../utils/dbLog';
 import { getDetailViewPref } from '../../layout/MacTopBar';
 import BehaviorField from '../../components/common/BehaviorField';
 import JsonEnvelopePanel from '../../components/common/JsonEnvelopePanel';
+import FieldGroupSection from '../../components/common/FieldGroupSection';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
 import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
+import MarkdownEditor, { resolveTokens, type FieldPath } from '../../components/common/MarkdownEditor';
 import DataGrid from '../../components/common/DataGrid';
 import type { RowColorRule } from '../../components/common/DataGrid';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
 import { TB } from '../../components/common/toolbarActions';
 import DedupPanel from '../../components/common/DedupPanel';
+import { useReportShortcuts } from '../../hooks/useReportShortcuts';
+import { openUniversalPrint } from '../../components/print/UniversalPrint';
+import { fetchPrintLayout } from '../../hooks/usePrintLayout';
 import './DataBrowser.css';
 
 /** Maps DataBrowser model name → .tsx detail route (used for double-click new-tab). */
@@ -201,7 +206,7 @@ const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = (
       const refs = record.refs || {};
       filterValue = refs?.links?.vendor_id || recordId;
     }
-    window.open(`/admin-wb?model=${link.target}&${link.filterKey}=${filterValue}`, '_blank');
+    window.open(`/${link.target}?${link.filterKey}=${filterValue}`, '_blank');
   };
 
   return (
@@ -210,7 +215,7 @@ const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = (
       {links.map((link) => (
         <button key={link.label} className="db-btn db-btn--small db-btn--ghost"
           onClick={() => openSpawn(link)}
-          title={`Open ${link.label} in new DataBrowser window`}>
+          title={`Open ${link.label} in new databrowser window`}>
           {link.label} ↗
         </button>
       ))}
@@ -268,7 +273,7 @@ const BOMPanel: React.FC<{ itemId: number; theme: any; fontSize: number }> = ({ 
         </label>
         <span className="db-bom-total">Total: ${(bomData.total_cost || 0).toFixed(2)}</span>
         <button className="db-btn db-btn--small db-btn--ghost" onClick={() => {
-          window.open(`/admin-wb?model=bill_of_material&parent_id=${itemId}`, '_blank');
+          window.open(`/bill_of_material?parent_id=${itemId}`, '_blank');
         }}>Open BOM ↗</button>
       </div>
       <DataGrid
@@ -283,7 +288,7 @@ const BOMPanel: React.FC<{ itemId: number; theme: any; fontSize: number }> = ({ 
         numId={(v: unknown) => typeof v === 'number' ? v : null}
         onRowDoubleClicked={(row: any) => {
           if (row?.is_subassembly && row?.item_id) {
-            window.open(`/admin-wb?model=item&id=${row.item_id}`, '_blank');
+            window.open(`/item?id=${row.item_id}`, '_blank');
           }
         }}
       />
@@ -510,6 +515,83 @@ function MatchCandidatesPanel({
 }
 
 // ---------------------------------------------------------------------------
+// GroupedDetailFields — renders BehaviorFields in collapsible groups
+// ---------------------------------------------------------------------------
+
+type GroupedDetailFieldsProps = {
+  fields: string[];
+  record: Record<string, unknown>;
+  fieldGroups: { key: string; label: string; fields: string[] }[];
+  collapsedKeys: string[];
+  onToggleGroup: (key: string) => void;
+  fieldBehaviors: Record<string, any>;
+  detailFieldSpecs: FieldSpec[];
+  detailRowSizes: Record<string, number>;
+  validationErrors: Record<string, string>;
+  updateField: (field: string, value: unknown) => void;
+  fontSize: number;
+  theme: any;
+};
+
+function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onToggleGroup, fieldBehaviors, detailFieldSpecs, detailRowSizes, validationErrors, updateField, fontSize, theme }: GroupedDetailFieldsProps) {
+  const presentFields = fields.filter((f) => Object.prototype.hasOwnProperty.call(record, f));
+  const groupTheme = { text: theme.text, textMuted: theme.textMuted, border: theme.border, surfaceAlt: theme.surfaceAlt, inputBg: theme.inputBg };
+
+  const renderField = (f: string) => (
+    <BehaviorField key={f} name={f} value={record[f]} behavior={fieldBehaviors[f] || {}}
+      onChange={(v: unknown) => updateField(f, v)} record={record}
+      fontSize={fontSize} theme={theme} rowSize={detailRowSizes[f]}
+      typeHint={detailFieldSpecs.find(s => s.field === f)?.typeHint}
+      error={validationErrors[f]} />
+  );
+
+  // No groups defined — flat layout (backward compatible)
+  if (!fieldGroups.length) {
+    return <div className="db-detail-grid">{presentFields.map(renderField)}</div>;
+  }
+
+  // Partition fields into groups
+  const assigned = new Set<string>();
+  const groups = fieldGroups.map(g => {
+    const gFields = g.fields.filter(f => presentFields.includes(f));
+    gFields.forEach(f => assigned.add(f));
+    return { ...g, presentFields: gFields };
+  }).filter(g => g.presentFields.length > 0);
+
+  const ungrouped = presentFields.filter(f => !assigned.has(f));
+
+  return (
+    <div>
+      {groups.map(g => (
+        <FieldGroupSection
+          key={g.key}
+          group={g}
+          presentFields={g.presentFields}
+          collapsed={collapsedKeys.includes(g.key)}
+          onToggle={onToggleGroup}
+          fontSize={fontSize}
+          theme={groupTheme}
+        >
+          {g.presentFields.map(renderField)}
+        </FieldGroupSection>
+      ))}
+      {ungrouped.length > 0 && (
+        <FieldGroupSection
+          group={{ key: '_other', label: 'Other', fields: ungrouped }}
+          presentFields={ungrouped}
+          collapsed={collapsedKeys.includes('_other')}
+          onToggle={onToggleGroup}
+          fontSize={fontSize}
+          theme={groupTheme}
+        >
+          {ungrouped.map(renderField)}
+        </FieldGroupSection>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -517,6 +599,26 @@ const DataBrowser: React.FC = () => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
   const db = useDataBrowser(isAuthenticated);
+
+  // --- Cmd+P print shortcut ---
+  useReportShortcuts({
+    model: db.selectedModel,
+    enabled: !!db.selectedModel,
+    onPrintPrimary: async () => {
+      if (db.selectedId && db.selectedRecord) {
+        try {
+          const layout = await fetchPrintLayout(db.selectedModel);
+          await openUniversalPrint(db.selectedRecord, null, layout);
+        } catch (e) {
+          console.error('[DataBrowser] Print failed:', e);
+          setShowReportsDialog('detail');
+        }
+      } else {
+        setShowReportsDialog(db.selectedId ? 'detail' : 'list');
+      }
+    },
+    onOpenSelector: () => setShowReportsDialog(db.selectedId ? 'detail' : 'list'),
+  });
 
   // --- Sprint projects for Apply-to-Selection dropdown ---
   const [sprintProjects, setSprintProjects] = useState<string[]>([]);
@@ -577,6 +679,9 @@ const DataBrowser: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showDupes, setShowDupes] = useState(false);
   const [showDedup, setShowDedup] = useState(false);
+  const [showMarkdownTemplate, setShowMarkdownTemplate] = useState<'list' | 'detail' | null>(null);
+  const [mdTemplateContent, setMdTemplateContent] = useState('');
+  const [mdTemplateName, setMdTemplateName] = useState('');
   const [dedupAllIds, setDedupAllIds] = useState<number[]>([]);
   const [dedupCurrentIds, setDedupCurrentIds] = useState<number[]>([]);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -1057,6 +1162,10 @@ const DataBrowser: React.FC = () => {
               }} />
               <ToolbarIcon action={TB.print} title="Report / Print" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
               <ToolbarIcon action={TB.modelMenu} title={`${db.modelLabel} menu`} onClick={() => {}} />
+              <Btn small variant="ghost" onClick={() => {
+                dbLog('openDialog:detail', { model: db.selectedModel });
+                setShowLayoutDialog('detail');
+              }}>Detail Order</Btn>
               {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
               {db.isDirty && <span className="db-unsaved-badge">UNSAVED</span>}
               <ToolbarIcon action={TB.deleteRecord} danger title="Delete Record" disabled={!db.selectedId} onClick={() => {
@@ -1205,18 +1314,21 @@ const DataBrowser: React.FC = () => {
                 />
               </React.Suspense>
             ) : db.selectedRecord ? (
-              /* Admin mode: DataBrowser field grid */
-              <div className="db-detail-grid">
-                {db.visibleDetailFields
-                  .filter((f) => Object.prototype.hasOwnProperty.call(db.selectedRecord!, f))
-                  .map((f) => (
-                    <BehaviorField key={f} name={f} value={db.selectedRecord![f]} behavior={db.fieldBehaviors[f] || {}}
-                      onChange={(v) => db.updateField(f, v)} record={db.selectedRecord as Record<string, unknown>}
-                      fontSize={baseFontSize} theme={tDetail} rowSize={db.detailRowSizes[f]}
-                      typeHint={db.detailFieldSpecs.find(s => s.field === f)?.typeHint}
-                      error={db.validationErrors[f]} />
-                  ))}
-              </div>
+              /* Admin mode: DataBrowser field grid — grouped or flat */
+              <GroupedDetailFields
+                fields={db.visibleDetailFields}
+                record={db.selectedRecord}
+                fieldGroups={db.activeViewName === 'flat' ? [] : db.fieldGroups}
+                collapsedKeys={db.currentCollapsed}
+                onToggleGroup={db.toggleFieldGroup}
+                fieldBehaviors={db.fieldBehaviors}
+                detailFieldSpecs={db.detailFieldSpecs}
+                detailRowSizes={db.detailRowSizes}
+                validationErrors={db.validationErrors}
+                updateField={db.updateField}
+                fontSize={baseFontSize}
+                theme={tDetail}
+              />
             ) : null}
 
             {/* JSON envelope panel — tree editors for metadata, prefs, config, refs */}
@@ -1325,9 +1437,70 @@ const DataBrowser: React.FC = () => {
             const res = await manageAction('email_quality_scan', {});
             alert(JSON.stringify(res, null, 2));
             db.fetchRecords();
+          } else if (config.action === 'markdown_template' || (report.output_type || '').toLowerCase() === 'merge') {
+            setShowReportsDialog(null);
+            setMdTemplateContent(config.template || config.template_content || `# ${report.name}\n\n`);
+            setMdTemplateName(report.name || '');
+            setShowMarkdownTemplate(showReportsDialog);
           }
         }}
       />
+
+      {/* Markdown template editor — opened from Reports (merge/template type) */}
+      {showMarkdownTemplate && (
+        <div
+          data-wc="md-template-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowMarkdownTemplate(null); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9000,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div style={{
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: 8, width: 900, maxWidth: '90vw', maxHeight: '85vh',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }}>
+            <div style={{
+              padding: '10px 16px', borderBottom: `1px solid ${t.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontWeight: 700, color: t.accent }}>
+                {mdTemplateName || 'Markdown Template'}
+                <span style={{ fontWeight: 400, color: t.textMuted, marginLeft: 8, fontSize: baseFontSize - 1 }}>
+                  {showMarkdownTemplate === 'list'
+                    ? `${db.records?.length || 0} records`
+                    : db.selectedId ? `Record #${db.selectedId}` : ''}
+                </span>
+              </span>
+              <button onClick={() => setShowMarkdownTemplate(null)} style={{
+                background: 'none', border: 'none', color: t.textMuted,
+                fontSize: 18, cursor: 'pointer',
+              }}>&times;</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <MarkdownEditor
+                value={mdTemplateContent}
+                onChange={setMdTemplateContent}
+                record={showMarkdownTemplate === 'detail' && db.selectedId
+                  ? db.records?.find((r: any) => numId(r) === db.selectedId)
+                  : undefined}
+                listData={showMarkdownTemplate === 'list' ? db.records : undefined}
+                modelName={db.selectedModel}
+                fieldPaths={db.allFields.map((f: FieldSpec) => ({
+                  path: f.key,
+                  label: f.label || f.key,
+                  type: f.type,
+                } as FieldPath))}
+                templateName={mdTemplateName}
+                height={500}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Field order dialog — unified for list and detail, applies separately */}
       <FieldOrderDialog

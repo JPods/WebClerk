@@ -222,4 +222,4 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
 };
 
 export const TaskCard = memo(TaskCardComponent);
-export default withDevIdentifier(TaskCard, 'TaskCard', 'amber');
+export default withDevIdentifier(TaskCard, 'TaskCard', 'amber', 'apps/utils/kanban/TaskCard.tsx');

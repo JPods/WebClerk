@@ -61,8 +61,13 @@ export default function JsonTreeApplet() {
   const [dark, setDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false);
   const [splitPct, setSplitPct] = useState(45);
   const [copied, setCopied] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postResult, setPostResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [filePath, setFilePath] = useState('');
   const codeRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const th = dark ? DARK : LIGHT;
 
@@ -85,13 +90,74 @@ export default function JsonTreeApplet() {
     setError('');
   }, []);
 
+  // Load from URL param or localStorage (Matrix Builder sends data via ?json=... or localStorage)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const jsonParam = params.get('json');
+    const fromParam = params.get('from');
+    if (jsonParam) {
+      try { parseCode(decodeURIComponent(jsonParam)); } catch { /* ignore */ }
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (fromParam === 'matrix-builder') {
+      const stored = localStorage.getItem('matrix-builder-bundle');
+      if (stored) { parseCode(stored); localStorage.removeItem('matrix-builder-bundle'); setFilePath('matrix-builder-bundle.json'); }
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Actions
   const doFormat = () => { try { setCode(JSON.stringify(JSON.parse(code), null, 2)); setError(''); } catch (e: any) { setError(e.message); } };
   const doMinify = () => { try { setCode(JSON.stringify(JSON.parse(code))); setError(''); } catch (e: any) { setError(e.message); } };
   const doValidate = () => { try { JSON.parse(code); setError(''); alert('Valid JSON'); } catch (e: any) { setError(e.message); } };
   const doCopy = () => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); };
-  const doClear = () => { setCode(''); setData({}); setError(''); };
-  const doSample = () => { const s = JSON.stringify(SAMPLE, null, 2); setCode(s); setData(SAMPLE); setError(''); };
+  const doClear = () => { setCode(''); setData({}); setError(''); setPostResult(null); setFilePath(''); };
+  const doSample = () => { const s = JSON.stringify(SAMPLE, null, 2); setCode(s); setData(SAMPLE); setError(''); setPostResult(null); setFilePath('sample.json'); };
+
+  // Save as .json file
+  const doSave = () => {
+    if (!code.trim()) return;
+    const blob = new Blob([code], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filePath || 'data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Post as bundle to WC3 SelfConnection
+  const doPostBundle = async () => {
+    if (error || !code.trim()) return;
+    setPosting(true);
+    setPostResult(null);
+    try {
+      const payload = JSON.parse(code);
+      const body = {
+        idempotency_key: crypto.randomUUID(),
+        sequence: 1,
+        payload,
+        meta: { source: 'json-tree', posted: new Date().toISOString() },
+      };
+      const res = await fetch('/wcapi/sync/receive/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Sync-Key': 'self-connection',
+        },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json();
+      if (result.ack) {
+        setPostResult({ ok: true, msg: `Bundle #${result.bundle_id} created` });
+      } else {
+        setPostResult({ ok: false, msg: result.error || 'Post failed' });
+      }
+    } catch (e: any) {
+      setPostResult({ ok: false, msg: e.message || 'Network error' });
+    } finally {
+      setPosting(false);
+    }
+  };
 
   // Drag splitter
   const dragging = useRef(false);
@@ -109,14 +175,22 @@ export default function JsonTreeApplet() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, []);
 
-  // File drop
+  // File drop + file input
+  const loadFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => { parseCode(reader.result as string); setFilePath(file.name); };
+    reader.readAsText(file);
+  };
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => parseCode(reader.result as string);
-    reader.readAsText(file);
+    if (file) loadFile(file);
+  };
+  const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) loadFile(file);
+    e.target.value = '';
   };
 
   const stats = error ? null : jsonStats(data);
@@ -135,7 +209,14 @@ export default function JsonTreeApplet() {
         <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
           <span style={{ color: th.primary }}>JSON</span> Tree
         </h1>
-        <span style={{ fontSize: 11, color: th.textDim }}>Paste, explore, edit, format — free, no login, nothing leaves your browser</span>
+        {filePath ? (
+          <span style={{ fontSize: 12, color: th.text, fontFamily: 'monospace', background: th.surfaceAlt,
+            padding: '2px 10px', borderRadius: 4, border: `1px solid ${th.border}` }}>
+            {filePath}
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: th.textDim }}>Paste, explore, edit, format — free, no login, nothing leaves your browser</span>
+        )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
           {stats && (
             <span style={{ fontSize: 10, color: th.textDim, fontFamily: 'monospace', marginRight: 8 }}>
@@ -158,11 +239,45 @@ export default function JsonTreeApplet() {
         </button>
         <button style={btnStyle} onClick={doClear}>Clear</button>
         <button style={btnStyle} onClick={doSample}>Sample</button>
+        <span style={{ width: 1, height: 20, background: th.border, alignSelf: 'center' }} />
+        <button style={btnStyle} onClick={doSave} title="Save as .json file">Save</button>
+        <button
+          style={{ ...btnStyle, background: th.success, color: '#fff', border: 'none', opacity: posting ? 0.6 : 1 }}
+          onClick={doPostBundle}
+          disabled={posting || !!error}
+          title="Post as bundle to WebClerk"
+        >
+          {posting ? 'Posting...' : 'Post Bundle'}
+        </button>
+        {postResult && (
+          <span style={{ fontSize: 12, fontFamily: 'monospace', alignSelf: 'center', marginLeft: 4,
+            color: postResult.ok ? th.success : th.danger }}>
+            {postResult.msg}
+          </span>
+        )}
         {error && <span style={{ fontSize: 12, color: th.danger, fontFamily: 'monospace', alignSelf: 'center', marginLeft: 8 }}>{error}</span>}
       </div>
 
+      {/* Drop zone */}
+      <input ref={fileInputRef} type="file" accept=".json,.txt" style={{ display: 'none' }} onChange={onFileInput} />
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        style={{
+          margin: '8px 24px', padding: dragOver ? '16px' : '10px', textAlign: 'center', cursor: 'pointer',
+          border: `2px dashed ${dragOver ? th.primary : th.border}`, borderRadius: 6,
+          background: dragOver ? (dark ? 'rgba(96,165,250,0.08)' : 'rgba(70,95,255,0.06)') : 'transparent',
+          color: dragOver ? th.primary : th.textDim, fontSize: 12,
+          transition: 'all 150ms',
+        }}
+      >
+        {dragOver ? 'Drop JSON file here' : 'Drop a .json file here, or click to browse'}
+      </div>
+
       {/* Split pane: code + tree */}
-      <div ref={containerRef} style={{ display: 'flex', height: 'calc(100vh - 130px)', overflow: 'hidden' }}
+      <div ref={containerRef} style={{ display: 'flex', height: 'calc(100vh - 175px)', overflow: 'hidden' }}
         onDragOver={e => e.preventDefault()} onDrop={onDrop}>
 
         {/* Code editor */}

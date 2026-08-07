@@ -49,13 +49,19 @@ This is not about preventing access. Admins will always have database access. It
 - CSV/Excel export
 - Saved search presets
 
-### BrowserDetail (needs polish)
-- All fields editable with proper widgets
-- JSON fields inspectable via floating viewer
+### BrowserDetail (working — 2026-08-05)
+- All fields editable with proper widgets (BehaviorField)
+- Fields organized into collapsible groups (Identity, Communication, Financial, Status, Dates, System, Data)
+- Group definitions data-driven via `field_groups` in field_access Setting — not hardcoded
+- System/Dates collapsed by default; user collapse state persists via wcui prefs
+- `flat` layout restores ungrouped view for users who prefer it
+- Detail Order button in toolbar — users rearrange detail fields per model
+- JSON fields inspectable via JsonEnvelopePanel (collapsible tree editors)
 - JSON editing gated by authority (read-only default, unlock with permission)
 - Related records visible (subforms via Setting config)
 - Calculated columns with instant feedback (JS display, backend saves)
 - Print from detail view
+- Shift-for-Help: group headers carry `data-help` attributes
 
 ### Subforms (to build)
 - Five types: flat table, JSON, BOM/tree, grouped, calculated columns

@@ -534,4 +534,4 @@ function ModelScaffold({
   );
 }
 
-export default withDevIdentifier(ModelScaffold, 'ModelScaffold');
+export default withDevIdentifier(ModelScaffold, 'ModelScaffold', 'rose', 'apps/utils/scaffold/ModelScaffold.tsx');

@@ -90,4 +90,4 @@ const RawJsonCard: React.FC<RawJsonCardProps> = ({
   );
 };
 
-export default withDevIdentifier(RawJsonCard, 'RawJsonCard', 'amber');
+export default withDevIdentifier(RawJsonCard, 'RawJsonCard', 'amber', 'apps/common/components/detail/RawJsonCard.tsx');

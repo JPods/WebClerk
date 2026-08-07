@@ -39,4 +39,4 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   );
 };
 
-export default withDevIdentifier(ComponentCard, 'ComponentCard', 'amber');
+export default withDevIdentifier(ComponentCard, 'ComponentCard', 'amber', 'components/common/ComponentCard.tsx');

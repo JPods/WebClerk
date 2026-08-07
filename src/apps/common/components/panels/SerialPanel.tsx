@@ -247,4 +247,4 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(SerialPanel, 'SerialPanel', 'teal');
+export default withDevIdentifier(SerialPanel, 'SerialPanel', 'teal', 'apps/common/components/panels/SerialPanel.tsx');

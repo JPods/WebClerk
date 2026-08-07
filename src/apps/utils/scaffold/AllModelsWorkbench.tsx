@@ -71,4 +71,4 @@ function AllModelsWorkbench() {
   );
 }
 
-export default withDevIdentifier(AllModelsWorkbench, 'AllModelsWorkbench');
+export default withDevIdentifier(AllModelsWorkbench, 'AllModelsWorkbench', 'rose', 'apps/utils/scaffold/AllModelsWorkbench.tsx');

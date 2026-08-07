@@ -150,6 +150,10 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   const rawParent = record.id_parent ?? record.parent_id ?? record.parent;
   const id_parent = rawParent != null ? rawParent : null;
 
+  const category = typeof record.category === 'string' ? record.category : undefined;
+  const dt_start = typeof record.dt_start === 'number' ? record.dt_start : undefined;
+  const dt_end = typeof record.dt_end === 'number' ? record.dt_end : undefined;
+
   return {
     id: idStr,
     name: name || intent || `Project ${idStr}`,
@@ -158,6 +162,9 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     ida,
     prefs,
     id_parent: id_parent as string | number | null,
+    category,
+    dt_start,
+    dt_end,
   };
 };
 

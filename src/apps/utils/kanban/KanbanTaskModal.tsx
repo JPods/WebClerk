@@ -1060,4 +1060,4 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   return createPortal(modal, document.body);
 };
 
-export default withDevIdentifier(KanbanTaskModal, 'KanbanTaskModal', 'rose');
+export default withDevIdentifier(KanbanTaskModal, 'KanbanTaskModal', 'rose', 'apps/utils/kanban/KanbanTaskModal.tsx');

@@ -101,4 +101,4 @@ interface KanbanDragLayerProps {
   );
 };
 
-export default withDevIdentifier(KanbanDragLayer, 'KanbanDragLayer');
+export default withDevIdentifier(KanbanDragLayer, 'KanbanDragLayer', 'rose', 'apps/utils/kanban/KanbanDragLayer.tsx');

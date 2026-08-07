@@ -397,4 +397,4 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(RefsPanel, "RefsPanel", "teal");
+export default withDevIdentifier(RefsPanel, "RefsPanel", "teal", 'apps/common/components/panels/RefsPanel.tsx');

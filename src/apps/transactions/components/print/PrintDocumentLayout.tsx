@@ -59,7 +59,7 @@ const LinesTable: React.FC<{
   showPrices?: boolean;
   documentType: string;
 }> = ({ lines, showPrices = true, documentType }) => {
-  const isInvoice = documentType === 'invoice';
+  const isInvoice = documentType === 'invoice' || documentType === 'creditmemo';
   const isPurchase = documentType === 'purchase';
   
   return (
@@ -240,7 +240,7 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
         <DetailRow label={typeLabel + " #"} value={meta.documentNumber} />
         <DetailRow label="Type Sale" value={meta.typeSale} />
         
-        <DetailRow label={meta.documentType === 'invoice' ? 'Invoice Date' : 'Date Needed'} 
+        <DetailRow label={meta.documentType === 'invoice' || meta.documentType === 'creditmemo' ? 'Invoice Date' : 'Date Needed'}
                    value={formatDate(meta.dateNeeded || meta.dateInvoiced || meta.documentDate)} />
         <DetailRow label="Tax Juris" value={meta.taxJuris} />
         <DetailRow label={meta.documentType === 'proposal' ? 'Requested By' : 'Ordered By'} 
@@ -250,7 +250,7 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
         <DetailRow label="Sales ID" value={meta.salesId} />
         <DetailRow label="Terms" value={meta.terms} />
         <DetailRow label="FOB" value={meta.fob} />
-        {meta.documentType === 'invoice' && <DetailRow label="Packed By" value={meta.packedBy} />}
+        {(meta.documentType === 'invoice' || meta.documentType === 'creditmemo') && <DetailRow label="Packed By" value={meta.packedBy} />}
       </div>
 
       {/* Comments */}

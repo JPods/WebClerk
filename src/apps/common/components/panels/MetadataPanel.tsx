@@ -481,4 +481,4 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(MetadataPanel, "MetadataPanel", "teal");
+export default withDevIdentifier(MetadataPanel, "MetadataPanel", "teal", 'apps/common/components/panels/MetadataPanel.tsx');

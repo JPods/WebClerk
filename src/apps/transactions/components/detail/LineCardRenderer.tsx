@@ -1,6 +1,7 @@
 /* LastChecked: 2026-08-03 | WhereUsed: TransactionDetail | WhoCreated: Claude */
 import React, { useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useAppSelector } from '@/store/hooks';
 import DataGrid from '@/components/common/DataGrid';
 import { useLineCard } from '@/hooks/useLineCard';
 import { useWindowManager } from '@/context/WindowManagerContext';
@@ -9,6 +10,7 @@ import InventoryPanel from '../panels/InventoryPanel';
 import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
 import XRefPanel from '../panels/XRefPanel';
+import CommissionPanel from '../panels/CommissionPanel';
 import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveUnitPrice, resolveUnitCost, resolveQtyOnHand } from '../TransactionItemSearch';
 import type { ItemSearchResult } from '../TransactionItemSearch';
 import { getNextLineNumber } from '../../utils/lineHelpers';
@@ -39,6 +41,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const [showItemSearch, setShowItemSearch] = useState(false);
   const isSellSide = section.family === 'sell';
   const companyInventory = useSelector((s: any) => s.company?.inventory) || {};
+  const authUser = useAppSelector((s) => s.auth.user);
+  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
 
   const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
     const itemId = item.id || item.item_id || item.itemId || 0;
@@ -136,13 +140,36 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     priceLevel: data?.price_level,
     onLinesChange,
     onOpenItem: (itemId, itemCode) => {
-      const path = `/db/item?id=${itemId}`;
+      const path = `/item?id=${itemId}`;
       windowManager.ensureWindow(path, `Item ${itemCode || itemId}`, { maximized: false });
     },
   });
 
   const formatCurrency = (v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const formatNumber = (v: number) => v.toLocaleString();
+
+  // ── Line type toggle ─────────────────────────────────────────────
+  const LINE_TYPE_OPTIONS = [
+    { value: 'shipping', label: 'Ship', color: 'blue' },
+    { value: 'tax',      label: 'Tax',  color: 'amber' },
+    { value: 'discount', label: 'Disc', color: 'red' },
+  ] as const;
+
+  const selectedLine = lc.selectedId != null
+    ? lines.find((_: any, i: number) => lc.records[i]?.id === lc.selectedId)
+    : null;
+  const selectedLineType = selectedLine?.line_type || 'product';
+
+  const handleLineTypeToggle = useCallback((type: string) => {
+    if (!lc.canEdit || lc.selectedId == null) return;
+    const newLines = lines.map((l: any, i: number) => {
+      if (lc.records[i]?.id !== lc.selectedId) return l;
+      // Toggle: click same type reverts to product
+      const newType = (l.line_type || 'product') === type ? 'product' : type;
+      return { ...l, line_type: newType, _dirty: true };
+    });
+    onLinesChange(newLines);
+  }, [lc.canEdit, lc.selectedId, lines, lc.records, onLinesChange]);
 
   // Selection-aware footer calculations
   const activeRecords = lc.selectedLineIds.size > 0
@@ -177,6 +204,27 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             )}
           </span>
         )}
+        {lc.canEdit && lc.selectedId != null && (
+          <span className="flex items-center gap-0.5 ml-1 text-[10px]">
+            <span className="text-slate-400 mr-0.5">Type:</span>
+            {LINE_TYPE_OPTIONS.map(opt => {
+              const isActive = selectedLineType === opt.value;
+              const colorMap = { blue: 'bg-blue-500 text-white', amber: 'bg-amber-500 text-white', red: 'bg-red-500 text-white' };
+              const hoverMap = { blue: 'hover:bg-blue-50 hover:text-blue-600', amber: 'hover:bg-amber-50 hover:text-amber-600', red: 'hover:bg-red-50 hover:text-red-600' };
+              return (
+                <button key={opt.value} type="button" onClick={() => handleLineTypeToggle(opt.value)}
+                  className={`px-1.5 py-0.5 rounded transition-colors border-b-2 ${
+                    isActive
+                      ? `${colorMap[opt.color]} border-${opt.color}-700`
+                      : `text-slate-500 border-transparent ${hoverMap[opt.color]}`
+                  }`}
+                  title={`${isActive ? 'Revert to product' : `Mark as ${opt.value}`} line`}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </span>
+        )}
         <span className="flex-1" />
         {lc.canEdit && (
           <button type="button" onClick={() => setShowItemSearch(prev => !prev)}
@@ -196,6 +244,11 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           <button type="button" onClick={() => lc.togglePanel('margin')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'margin' ? 'bg-green-600 text-white' : 'text-slate-500 hover:text-green-600 hover:bg-green-50'}`}
             title="Margin view (M)">M</button>
+          {isSellSide && isStaff && (
+            <button type="button" onClick={() => lc.setShowCommission(!lc.showCommission)}
+              className={`px-1.5 py-0.5 rounded transition-colors ${lc.showCommission ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50'}`}
+              title="Commission columns (C)">C</button>
+          )}
         </span>
       </div>
       <div className="flex items-center gap-3 justify-end italic">
@@ -205,6 +258,12 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         <span className="font-mono text-slate-700 w-16 text-right">{formatCurrency(data?.totals?.shipping ?? 0)}</span>
         <span className="text-slate-400">Other:</span>
         <span className="font-mono text-slate-700 w-16 text-right">{formatCurrency(data?.totals?.other ?? 0)}</span>
+        {lc.showCommission && isStaff && (
+          <>
+            <span className="text-purple-400">Comm:</span>
+            <span className="font-mono text-purple-700 w-16 text-right">{formatCurrency(data?.commission?.total ?? activeRecords.reduce((s: number, r: any) => s + (r.comm_total ?? 0), 0))}</span>
+          </>
+        )}
         <span className="text-slate-300 not-italic">|</span>
         <span className="text-slate-500">Deposit:</span>
         <span className="font-bold text-slate-900 w-20 text-right">{formatCurrency(data?.totals?.deposit ?? 0)}</span>
@@ -233,6 +292,11 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       )}
       {lc.activePanel === 'margin' && (
         <MarginPanel lines={lines} selectedIds={lc.selectedLineIds} isSellSide={lc.isSellSide} />
+      )}
+      {lc.showCommission && isSellSide && (
+        <div className="border-t border-purple-200 bg-white max-h-[300px] overflow-y-auto">
+          <CommissionPanel lines={lines} selectedIds={lc.selectedLineIds} headerCommission={data?.commission} />
+        </div>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (
         <div className="border-t border-slate-200 bg-white max-h-[250px] overflow-y-auto">

@@ -461,4 +461,4 @@ function UserInfoCard() {
   );
 }
 
-export default withDevIdentifier(UserInfoCard, 'UserInfoCard', 'amber');
+export default withDevIdentifier(UserInfoCard, 'UserInfoCard', 'amber', 'components/UserProfile/UserInfoCard.tsx');

@@ -82,7 +82,7 @@ The payment module provides full CRUD for Payment records and a bulk A/R reconci
 | `amount` | decimal | Original payment amount |
 | `amount_available` | decimal | Remaining unapplied balance |
 | `status` | string | `pending` · `completed` · `processing` · `failed` · `cancelled` · `refunded` · `partially_refunded` |
-| `gateway` | string | `manual` · `stripe` · `paypal` |
+| `gateway` | string | `manual` · `spreedly` |
 | `payment_method` | FK → PaymentMethod | Nullable |
 | `reference_number` | string | Check #, approval code, transaction ID |
 | `dt_payment` | datetime | When payment was received |
@@ -103,27 +103,38 @@ Many-to-many join table linking a Payment to one or more Invoices.
 | `amount_applied` | decimal | Portion of payment applied to this invoice |
 | `unique_together` | | `['payment', 'invoice']` — one application per pair |
 
-### Metadata JSONB Structure
+### Card Data — Token-in-a-Token (established 2026-08-05)
 
-The `metadata` field stores payment-method-specific details:
+**WC3 NEVER stores card numbers, CVVs, or replayable tokens.**
+
+Card data is collected by Spreedly's client-side SDK (secure iframe). WC3 JS never touches it. After payment, WC3 stores only a reference in `payment.refs.card`:
 
 ```jsonc
 {
-  // Credit Card
-  "cc_number_masked": "****1234",
-  "cc_type": "visa",           // visa, mastercard, amex, discover
-  "cc_expiry": "0328",         // MMYY
-  "cc_approval": "AUTH123",
-  
+  "card": {
+    "pm_token": "AbC123...",       // Spreedly payment method token (reference to a reference)
+    "last4": "4242",               // display only
+    "brand": "visa",               // display only
+    "exp_month": "12",             // display only
+    "exp_year": "2028",            // display only
+    "fingerprint": "xyz..."        // detects same card across contacts
+  }
+}
+```
+
+**What is NOT stored:** card number, CVV, full PAN, Spreedly access secret, anything replayable. The `pm_token` is a reference to Spreedly's vault entry, which is itself a tokenized reference to the card. Token in a token.
+
+**Manual payment metadata** (check, cash, wire):
+
+```jsonc
+{
   // Check
   "check_number": "5678",
   "check_bank": "First National",
   
-  // Billing Address (AVS)
+  // Billing Address (AVS — manual entry only)
   "billing_company": "Acme Corp",
-  "billing_phone": "555-0100",
-  "billing_zip": "90210",
-  "billing_account": "CUST-001"
+  "billing_zip": "90210"
 }
 ```
 
@@ -153,11 +164,7 @@ The Apply Payments page mirrors the legacy wc2 `ApplyPayments` form:
 
 PaymentDialog collects CC/check/address fields and stores them in `payment.metadata` (not separate columns). This matches the legacy wc2 pattern where Table 28 stored these in dedicated fields — the JSONB approach is the wc3 equivalent.
 
-Card type auto-detection (from legacy):
-- `4` → Visa
-- `5` → Mastercard
-- `3` → Amex
-- `6` → Discover
+Card type is returned by Spreedly after tokenization — no client-side detection needed.
 
 ### PaymentPanel Column Setup
 
@@ -219,6 +226,63 @@ The legacy form includes currency display and `[Invoice:26]exchangeRate` field. 
 | `transactionsApplyPayments` | `/transactions/apply-payments` | `ApplyPayments` |
 
 Sidebar entries under **Transactions**: "Payments" and "Apply Payments".
+
+---
+
+## Gateway Architecture — Spreedly (established 2026-08-05)
+
+### Why Spreedly
+
+Universal payment aggregator. One backend integration → 100+ gateways. User picks their gateway (Stripe, PayPal, Braintree, Authorize.Net, etc.) in Settings. WC3 talks to Spreedly; Spreedly talks to the gateway.
+
+Square is not supported by Spreedly. Direct integration can be added later if needed.
+
+### Flow
+
+```
+Browser                          Spreedly SDK (iframe)         Spreedly API           Gateway
+  │                                    │                          │                     │
+  │  Card entry in secure iframe ───►  │                          │                     │
+  │  (WC3 JS never touches card)       │                          │                     │
+  │  ◄── payment_method_token ───────  │                          │                     │
+  │                                    │                          │                     │
+  │  POST /payments/process/           │                          │                     │
+  │  { pm_token, invoice_id, amt } ──────────────────────────►    │                     │
+  │                                    │            purchase() ──────────────────────►   │
+  │                                    │            ◄── result ──────────────────────    │
+  │  ◄── { status, message } ─────────────────────────────────    │                     │
+```
+
+### Backend
+
+| File | What it does |
+|------|-------------|
+| `services/payment_gateways.py` | `SpreedlyService` — purchase, authorize, capture, void, credit, refund |
+| `services/payment_gateways.py` | `process_payment()` — wires Payment record to Spreedly |
+| `services/payment_gateways.py` | `refund_payment()` — void-then-credit pattern |
+| `views/payment_views.py` | `POST /payments/process/`, `POST /payments/refund/`, `POST /payments/webhooks/spreedly/` |
+| Setting #625 | `purpose=payment_gateway` — Spreedly credentials, active gateway token |
+
+### Configuration
+
+Setting `payment_gateway` (purpose=payment_gateway):
+```jsonc
+{
+  "spreedly": {
+    "environment_key": "",       // public — client-side SDK
+    "access_secret": "",         // server-only
+    "webhook_signing_key": ""
+  },
+  "active_gateway_token": "",    // from Spreedly after adding gateway
+  "active_gateway_type": "",     // stripe, paypal, braintree, etc.
+  "test_mode": true,
+  "currency": "USD"
+}
+```
+
+### Frontend (pending)
+
+Needs: Spreedly Web SDK script, hosted fields iframe for card number + CVV, token callback that POSTs to `/payments/process/`. All checkout experiences (card, Apple Pay, Google Pay, PayPal button) produce the same `payment_method_token`.
 
 ---
 

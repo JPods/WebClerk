@@ -644,4 +644,4 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
   return createPortal(modalContent, document.body);
 };
 
-export default withDevIdentifier(TransactionTaskModal, 'TransactionTaskModal', 'rose');
+export default withDevIdentifier(TransactionTaskModal, 'TransactionTaskModal', 'rose', 'apps/transactions/components/TransactionTaskModal.tsx');

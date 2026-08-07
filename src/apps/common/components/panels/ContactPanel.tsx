@@ -645,4 +645,4 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(ContactPanel, "ContactPanel", "teal");
+export default withDevIdentifier(ContactPanel, "ContactPanel", "teal", 'apps/common/components/panels/ContactPanel.tsx');

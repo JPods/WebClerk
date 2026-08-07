@@ -107,4 +107,4 @@ export const CustomeModal: React.FC<ModalProps> = ({
     </div>
   );
 };
-export default withDevIdentifier(CustomeModal, 'CustomeModal', 'rose');
+export default withDevIdentifier(CustomeModal, 'CustomeModal', 'rose', 'components/ui/modal/CustomModal.tsx');

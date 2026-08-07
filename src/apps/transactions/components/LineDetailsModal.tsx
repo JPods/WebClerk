@@ -886,4 +886,4 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   );
 };
 
-export default withDevIdentifier(LineDetailsModal, "LineDetailsModal");
+export default withDevIdentifier(LineDetailsModal, "LineDetailsModal", 'indigo', 'apps/transactions/components/LineDetailsModal.tsx');

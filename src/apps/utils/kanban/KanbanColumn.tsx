@@ -157,4 +157,4 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
 };
 
 export const KanbanColumn = memo(KanbanColumnComponent);
-export default withDevIdentifier(KanbanColumn, 'KanbanColumn');
+export default withDevIdentifier(KanbanColumn, 'KanbanColumn', 'rose', 'apps/utils/kanban/KanbanColumn.tsx');

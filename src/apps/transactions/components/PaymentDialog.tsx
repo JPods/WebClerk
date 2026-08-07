@@ -22,12 +22,14 @@ import {
   FaSpinner,
   FaCreditCard,
   FaMoneyCheck,
+  FaLock,
 } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
 import apiClient from '@/api/axios';
 import { getRecords } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import SpreedlyCardForm from './SpreedlyCardForm';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +88,9 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
   onPaymentAdded,
 }) => {
   const dispatch = useDispatch();
+
+  // Payment mode: 'manual' (check/wire/ACH) or 'card' (Spreedly hosted fields)
+  const [paymentMode, setPaymentMode] = useState<'manual' | 'card'>('manual');
 
   // Options
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
@@ -171,6 +176,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
     setCity('');
     setState('');
     setZip('');
+    setPaymentMode('manual');
   }, [isOpen]);
 
   // Default amount to balance due
@@ -344,6 +350,50 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
             )}
           </div>
 
+          {/* Payment mode toggle */}
+          {invoice_id && (
+            <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setPaymentMode('manual')}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition ${
+                  paymentMode === 'manual'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                <FaMoneyCheck size={12} />
+                Manual (Check / Wire / ACH)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMode('card')}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition ${
+                  paymentMode === 'card'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                <FaLock size={12} />
+                Pay by Card
+              </button>
+            </div>
+          )}
+
+          {/* Card payment via Spreedly hosted fields */}
+          {paymentMode === 'card' && invoice_id ? (
+            <SpreedlyCardForm
+              invoiceId={invoice_id}
+              amount={balanceDue != null && balanceDue > 0 ? balanceDue : parseFloat(amount) || 0}
+              customerName={customer_name}
+              onSuccess={(paymentId) => {
+                onPaymentAdded?.();
+                onClose();
+              }}
+              onCancel={() => setPaymentMode('manual')}
+            />
+          ) : (
+          <>
           {/* Amount + Difference row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -608,37 +658,42 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
               className={`${inputClass} resize-none`}
             />
           </div>
+
+          </>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !amount || parseFloat(amount) <= 0}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {saving ? (
-              <>
-                <FaSpinner className="animate-spin" size={14} />
-                Saving...
-              </>
-            ) : (
-              <>
-                <FaCheck size={14} />
-                {isCredit ? 'Apply Credit' : 'Add Payment'}
-              </>
-            )}
-          </button>
-        </div>
+        {/* Footer — only for manual mode (card mode has its own buttons) */}
+        {paymentMode === 'manual' && (
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 shrink-0">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !amount || parseFloat(amount) <= 0}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <FaSpinner className="animate-spin" size={14} />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <FaCheck size={14} />
+                  {isCredit ? 'Apply Credit' : 'Add Payment'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default withDevIdentifier(PaymentDialog, 'PaymentDialog', 'rose');
+export default withDevIdentifier(PaymentDialog, 'PaymentDialog', 'rose', 'apps/transactions/components/PaymentDialog.tsx');

@@ -84,3 +84,10 @@ export type {
   TaxReportData,
   TaxReportLine,
 } from './TaxReportPrintDocument';
+
+export { default as CommissionReportPrintDocument } from './CommissionReportPrintDocument';
+export type {
+  CommissionReportData,
+  CommissionReportRepLine,
+  CommissionDetailLine,
+} from './CommissionReportPrintDocument';

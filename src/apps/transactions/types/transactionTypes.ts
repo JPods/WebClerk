@@ -161,6 +161,20 @@ export interface TransactionMetadata {
     changed_fields?: string[];
     keywords_dt_refreshed?: number;
   };
+  tax_decisions?: {
+    dt?: string;
+    exempt?: boolean;
+    header_rate?: number;
+    jurisdiction?: string;
+    lines?: Array<{
+      line_id?: number | null;
+      rate?: number | null;
+      taxable?: number | null;
+      tax?: number | null;
+      source?: 'header_rate' | 'line_override' | 'line_amount' | 'item_exempt';
+      jurisdiction?: string;
+    }>;
+  };
 }
 
 // --- Prefs Structure (from PrefsMixin) ---
@@ -458,6 +472,28 @@ export interface LineTax {
   tax_service_id?: number;
 }
 
+export interface CommissionRepEntry {
+  rep_id?: number;
+  rep_ida?: string;
+  name?: string;
+  rate_pct?: number;
+  split_pct?: number;
+  level_factor?: number;
+  effective_rate?: number;
+  basis?: 'revenue' | 'margin' | 'script';
+  amount?: number;
+  override?: boolean;
+  override_reason?: string;
+}
+
+export interface LineCommission {
+  reps?: CommissionRepEntry[];
+  total?: number;
+  basis?: string;
+  accrued?: boolean;
+  dt_accrued?: number;
+}
+
 export interface LinePhysical {
   weight?: { value: number; unit: string };
   dimensions?: { length: number; width: number; height: number; unit: string };
@@ -481,6 +517,7 @@ export interface TransactionLine {
   cost?: LineCost;
   price?: LinePrice;
   tax?: LineTax;
+  commission?: LineCommission;
   physical?: LinePhysical;
 
   // From BaseModel

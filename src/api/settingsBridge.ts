@@ -51,6 +51,21 @@ export async function fetchLatestSettingRecord<T = unknown>(
   return [...rows].sort(sortLatest)[0] as SettingRecord<T>;
 }
 
+export async function fetchSettingRecords<T = unknown>(
+  scope: SettingScope,
+): Promise<SettingRecord<T>[]> {
+  const params: Record<string, unknown> = {
+    purpose: scope.purpose,
+    limit: 200,
+  };
+  if (scope.parent_model) params.parent_model = scope.parent_model;
+  if (scope.name) params.name = scope.name;
+  if (scope.role) params.role = scope.role;
+
+  const result = await getRecords("setting", params);
+  return pickRows(result).sort(sortLatest) as SettingRecord<T>[];
+}
+
 export async function upsertSettingRecord<T = unknown>(args: {
   scope: SettingScope;
   config: T;

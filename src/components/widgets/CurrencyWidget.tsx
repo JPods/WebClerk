@@ -1,6 +1,6 @@
 import type { WidgetProps } from "./types";
 
-const s = "w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60 text-right";
+const s = "w-full px-1.5 py-0.5 text-[inherit] border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60 text-right";
 
 export const CurrencyWidget: React.FC<WidgetProps> = ({
   name, value, onChange, disabled, className, mode,
@@ -11,7 +11,7 @@ export const CurrencyWidget: React.FC<WidgetProps> = ({
     return n.toLocaleString(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2 });
   };
 
-  if (mode === "print") return <span className="text-xs">{fmt(value)}</span>;
+  if (mode === "print") return <span className="text-[inherit]">{fmt(value)}</span>;
   return (
     <input
       type="number"

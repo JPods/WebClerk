@@ -658,4 +658,4 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(CommentsPanel, "CommentsPanel", "teal");
+export default withDevIdentifier(CommentsPanel, "CommentsPanel", "teal", 'apps/common/components/panels/CommentsPanel.tsx');

@@ -6,7 +6,7 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useEffect } from "react";
 import { userDetails } from "../../api/auth";
-//import { dynamicData } from "../../model/dynamicData";
+//import { dynamicData } from "../../type/dynamicData";
 import { useAppSelector } from "../../store/hooks";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
@@ -261,4 +261,4 @@ function UserMetaCard() {
   );
 }
 
-export default withDevIdentifier(UserMetaCard, 'UserMetaCard', 'amber');
+export default withDevIdentifier(UserMetaCard, 'UserMetaCard', 'amber', 'components/UserProfile/UserMetaCard.tsx');

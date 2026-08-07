@@ -10,10 +10,13 @@
  *
  * Data source: getRecords('report', { model_name }) filtered client-side
  *
- * LastChecked: 2026-07-21 | WhereUsed: AdminWorkbench, TransactionDetailBase | WhoCreated: Bill+Claude
+ * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { getRecords, getRecord } from '@/api/wcapi';
+import { openUniversalPrint } from '@/components/print/UniversalPrint';
+import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
+// ParadeOfReports available at /parade route — launched as a Report record, not a dialog button
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,6 +41,8 @@ interface Props {
   context: 'list' | 'detail';
   /** Selected record ID for detail-context reports */
   selectedId: number | null;
+  /** Current list records (for list-context reports) */
+  listRecords?: any[];
   theme: {
     bg: string; surface: string; surfaceAlt: string;
     border: string; borderLight: string;
@@ -50,6 +55,8 @@ interface Props {
   /** Called when user double-clicks a report row — executes the report.
    *  If not provided, default: opens /wcapi/report/ in new tab. */
   onExecuteReport?: (report: ReportRecord) => void;
+  /** Company info for print headers/footers */
+  companyInfo?: any;
   /** Whether user has edit authority on reports (default true) */
   canEditReports?: boolean;
   /** Whether user has create authority on reports (default true) */
@@ -69,7 +76,8 @@ const OUTPUT_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   list:   { label: 'List',   icon: '📋' },
   api:    { label: 'API',    icon: '🔗' },
   json:   { label: 'JSON',   icon: '{ }' },
-  merge:  { label: 'Merge',  icon: '📎' },
+  merge:  { label: 'Template', icon: '📝' },
+  screen: { label: 'Screen', icon: '🖥️' },
 };
 
 // ---------------------------------------------------------------------------
@@ -102,9 +110,10 @@ function categoryColor(cat?: string): string {
 // ---------------------------------------------------------------------------
 
 const ReportsDialog: React.FC<Props> = ({
-  open, model, context, selectedId,
+  open, model, context, selectedId, listRecords,
   theme: t, fontSize, onClose,
   onExecuteReport,
+  companyInfo,
   canEditReports = true,
   canCreateReports = true,
 }) => {
@@ -118,7 +127,7 @@ const ReportsDialog: React.FC<Props> = ({
   useEffect(() => {
     if (!open || !model || loadedModel === model) return;
     setLoading(true);
-    getRecords('report', { model_name: model }).then((result: any) => {
+    getRecords('report', { model_name_filter: model }).then((result: any) => {
       const rows: ReportRecord[] = result?.results || result?.records || result?.data?.results || result?.data?.records || [];
       // Sort: sort_order asc, then name
       rows.sort((a, b) => {
@@ -140,14 +149,9 @@ const ReportsDialog: React.FC<Props> = ({
   useEffect(() => { setLoadedModel(''); }, [model]);
 
   // ---- Filter by context ----
-  const filteredReports = reports.filter((r) => {
-    const rt = (r.report_type || '').toLowerCase();
-    const cat = (r.category || '').toLowerCase();
-    // Tools (dedup, normalize, etc.) show in both contexts
-    if (cat === 'tool') return true;
-    if (context === 'list') return rt === 'list' || cat === 'list' || cat === 'summary' || cat === 'export';
-    return rt !== 'list'; // detail shows everything except list-only
-  });
+  // All reports show in both contexts — reports apply to the model, not to a specific view.
+  // The context only affects execution (list = all selected, detail = one record).
+  const filteredReports = reports;
 
   // ---- Keyboard: Escape, Enter, Arrow keys ----
   useEffect(() => {
@@ -177,13 +181,58 @@ const ReportsDialog: React.FC<Props> = ({
   }, [selectedIndex]);
 
   // ---- Execute report (double-click or Enter) ----
-  const executeReport = useCallback((report: ReportRecord) => {
+  const executeReport = useCallback(async (report: ReportRecord) => {
     if (onExecuteReport) {
       onExecuteReport(report);
       onClose();
       return;
     }
-    // Default: open report endpoint in new tab
+    const ot = (report.output_type || '').toLowerCase();
+
+    // Print reports → universal print renderer (JSON-driven)
+    if (ot === 'print') {
+      onClose();
+      try {
+        const form = report.config?.form;
+        const layout = form || await fetchPrintLayout(model);
+        const hasDataTable = layout?.sections?.some((s: any) => s.type === 'data_table');
+
+        if (hasDataTable && listRecords?.length) {
+          // List report — pass current list records as rows
+          await openUniversalPrint({ rows: listRecords }, companyInfo, layout);
+        } else if (context === 'detail' && selectedId) {
+          // Single-record form
+          const recordRes = await getRecord(model, selectedId);
+          const record = (recordRes as any)?.record || recordRes;
+          await openUniversalPrint(record, companyInfo, layout);
+        } else if (listRecords?.length) {
+          // List context, no data_table section — still pass rows
+          await openUniversalPrint({ rows: listRecords }, companyInfo, layout);
+        }
+      } catch (e) {
+        console.error('[ReportsDialog] Print failed:', e);
+      }
+      return;
+    }
+
+    // Screen reports → navigate to config.screen_url (e.g. /parade)
+    if (ot === 'screen') {
+      const screenUrl = (report.config as any)?.screen_url;
+      if (screenUrl) {
+        window.open(screenUrl, '_blank');
+      }
+      onClose();
+      return;
+    }
+
+    // Export reports → trigger CSV download via wcapi
+    if (ot === 'export') {
+      window.open(`/wcapi/export/?model=${encodeURIComponent(model)}&format=csv`, '_blank');
+      onClose();
+      return;
+    }
+
+    // Fallback — open report endpoint in new tab
     const reportName = encodeURIComponent(report.name);
     const modelName = encodeURIComponent(model);
     let url = `/wcapi/report/?report=${reportName}&model=${modelName}`;
@@ -194,24 +243,27 @@ const ReportsDialog: React.FC<Props> = ({
     onClose();
   }, [onExecuteReport, model, context, selectedId, onClose]);
 
-  // ---- Report Setup: open in PDF Designer ----
+  // ---- Report Setup: open report record in DataBrowser ----
   const handleSetup = useCallback((report: ReportRecord) => {
-    let url = `/pdf-designer/${report.id}`;
-    if (context === 'detail' && selectedId) {
-      url += `?preview_model=${model}&preview_id=${selectedId}`;
-    }
-    window.open(url, '_blank');
-  }, [context, selectedId, model]);
+    window.open(`/report?search=${encodeURIComponent(report.name)}`, '_blank');
+  }, []);
 
-  // ---- New Report ----
+  // ---- New Report — open DataBrowser to create a new Report record ----
   const handleNewReport = useCallback(() => {
-    let url = `/pdf-designer?model=${encodeURIComponent(model)}`;
-    window.open(url, '_blank');
-  }, [model]);
+    window.open(`/report`, '_blank');
+  }, []);
+
+  // ---- Preview URL for selected report ----
+  const selectedReport = selectedIndex >= 0 && selectedIndex < filteredReports.length
+    ? filteredReports[selectedIndex] : null;
+  const previewUrl = selectedReport?.output_type === 'print' && selectedReport?.id
+    ? `/wcapi/parade-preview/?report_id=${selectedReport.id}`
+    : null;
 
   if (!open) return null;
 
   const isPrimary = (r: ReportRecord) => (r.sort_order ?? 999) === 0;
+  const showPreview = !!previewUrl;
 
   return (
     // Backdrop
@@ -222,13 +274,14 @@ const ReportsDialog: React.FC<Props> = ({
         background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-      {/* Dialog */}
+      {/* Dialog — wider when preview is showing */}
       <div data-wc="reports-dialog"
         style={{
           background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 8, width: 620, maxHeight: '75vh',
+          borderRadius: 8, width: showPreview ? 1100 : 620, maxHeight: '85vh',
           display: 'flex', flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          transition: 'width 0.2s ease',
         }}>
 
         {/* Header */}
@@ -264,8 +317,11 @@ const ReportsDialog: React.FC<Props> = ({
           <span></span>
         </div>
 
-        {/* Body — report list */}
-        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 0', minHeight: 120 }}>
+        {/* Body — list + preview */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 120, overflow: 'hidden' }}>
+
+        {/* Report list */}
+        <div ref={listRef} style={{ flex: showPreview ? '0 0 480px' : 1, overflowY: 'auto', padding: '4px 0' }}>
           {loading && (
             <div style={{ padding: '16px', color: t.textMuted, textAlign: 'center' }}>
               Loading...
@@ -365,6 +421,35 @@ const ReportsDialog: React.FC<Props> = ({
           })}
         </div>
 
+        {/* Preview pane — shows sample data render for selected print report */}
+        {showPreview && (
+          <div style={{
+            flex: 1, borderLeft: `1px solid ${t.border}`,
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{
+              padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
+              fontSize: fontSize - 1, color: t.textMuted,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span>Preview: {selectedReport?.name}</span>
+              <span style={{ fontSize: fontSize - 2, color: t.textDim }}>
+                Double-click to print
+              </span>
+            </div>
+            <iframe
+              src={previewUrl!}
+              style={{
+                flex: 1, border: 'none', background: '#fff',
+                minHeight: 300,
+              }}
+              title={`Preview: ${selectedReport?.name || ''}`}
+            />
+          </div>
+        )}
+
+        </div>{/* end body flex row */}
+
         {/* Footer — WC2: Report Setup + New Setup buttons */}
         <div style={{
           padding: '10px 16px', borderTop: `1px solid ${t.border}`,
@@ -380,6 +465,25 @@ const ReportsDialog: React.FC<Props> = ({
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            {canEditReports && (
+              <button
+                onClick={() => {
+                  onClose();
+                  window.open(`/setting?search=print_layout+${encodeURIComponent(model)}`, '_blank');
+                }}
+                title="Edit the print layout JSON for this model"
+                style={{
+                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                  fontSize: fontSize - 1, fontWeight: 600,
+                  background: 'none', border: `1px solid ${t.border}`,
+                  color: t.text,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+              >
+                Edit Layout
+              </button>
+            )}
             {canEditReports && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <button
                 onClick={() => handleSetup(filteredReports[selectedIndex])}

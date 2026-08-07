@@ -558,4 +558,4 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(TemplateQAPanel, 'TemplateQAPanel', 'teal');
+export default withDevIdentifier(TemplateQAPanel, 'TemplateQAPanel', 'teal', 'apps/common/components/panels/TemplateQAPanel.tsx');

@@ -1,9 +1,9 @@
 /**
- * AdminWorkbench.css — DataBrowser styles
+ * DataBrowser.css — DataBrowser styles
  *
  * Theme-aware: uses CSS custom properties set on .db-root.
  * Two themes: [data-theme="dark"] and [data-theme="light"].
- * Import this file in AdminWorkbench.tsx.
+ * Import this file in DataBrowser.tsx.
  */
 
 /* ---------------------------------------------------------------------------
@@ -64,6 +64,37 @@
   --db-row-active: #cfe2ff;
   --db-row-checked: #fff3cd;
   --db-resize-handle: #0d6efd;
+}
+
+/* Per-zone theme overrides — db.list and db.detail can have independent color modes
+   via data-theme attr, read from contact.prefs.color_mode */
+.db-list-pane[data-theme="dark"],
+.db-detail-pane[data-theme="dark"] {
+  --db-bg: #1e1e1e; --db-surface: #252526; --db-surface-alt: #2d2d2d;
+  --db-border: #3c3c3c; --db-border-light: #4d4d4d;
+  --db-text: #d4d4d4; --db-text-muted: #888; --db-text-dim: #666;
+  --db-accent: #9cdcfe; --db-accent-green: #4ec98c; --db-accent-gold: #e8c870;
+  --db-accent-red: #e05252; --db-accent-purple: #c8a8e8;
+  --db-btn-bg: #2d2d2d; --db-btn-primary: #0e639c; --db-btn-save: #1a6b2e; --db-btn-danger: #6b1a1a;
+  --db-btn-danger-border: #964040; --db-btn-save-border: #2f8f45;
+  --db-input-bg: #2a2a2a; --db-input-border: #555;
+  --db-row-hover: #2a2d2e; --db-row-active: #094771; --db-row-checked: #3a3a1a;
+  --db-resize-handle: #4a9eff;
+  background: var(--db-bg); color: var(--db-text);
+}
+.db-list-pane[data-theme="light"],
+.db-detail-pane[data-theme="light"] {
+  --db-bg: #f8f9fa; --db-surface: #ffffff; --db-surface-alt: #f1f3f5;
+  --db-border: #dee2e6; --db-border-light: #e9ecef;
+  --db-text: #212529; --db-text-muted: #6c757d; --db-text-dim: #adb5bd;
+  --db-accent: #0d6efd; --db-accent-green: #198754; --db-accent-gold: #fd7e14;
+  --db-accent-red: #dc3545; --db-accent-purple: #6f42c1;
+  --db-btn-bg: #ffffff; --db-btn-primary: #0d6efd; --db-btn-save: #198754; --db-btn-danger: #dc3545;
+  --db-btn-danger-border: #dc3545; --db-btn-save-border: #157347;
+  --db-input-bg: #ffffff; --db-input-border: #ced4da;
+  --db-row-hover: #f1f3f5; --db-row-active: #cfe2ff; --db-row-checked: #fff3cd;
+  --db-resize-handle: #0d6efd;
+  background: var(--db-bg); color: var(--db-text);
 }
 
 /* ---------------------------------------------------------------------------
@@ -227,12 +258,6 @@
   overflow: hidden;
 }
 
-.db-list-pane {
-  flex: 1;
-  overflow: auto;
-  min-width: 200px;
-}
-
 .db-splitter {
   width: 5px;
   cursor: col-resize;
@@ -273,6 +298,21 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding-left: 8px;
+}
+
+.db-toolbar-row {
+  display: flex;
+  align-items: center;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+}
+
+.db-toolbar-divider {
+  width: 5px;
+  background: var(--db-border);
+  align-self: stretch;
+  flex-shrink: 0;
 }
 
 .db-list-toolbar {
@@ -280,8 +320,6 @@
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  background: var(--db-surface-alt);
-  border-bottom: 1px solid var(--db-border);
   font-size: 11px;
   color: var(--db-text-muted);
 }

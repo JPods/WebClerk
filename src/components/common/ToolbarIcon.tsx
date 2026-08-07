@@ -17,7 +17,7 @@ import { AVAILABLE_PNG_STYLES } from './toolbarActions';
 // Style preference
 // ---------------------------------------------------------------------------
 export function getButtonStyle(): ButtonStyleName {
-  return (localStorage.getItem('wc3_button_style') as ButtonStyleName) || 'button_glass';
+  return 'minimal'; // Standardized on minimal — clean, readable, scales with font
 }
 
 export function setButtonStyle(style: ButtonStyleName) {

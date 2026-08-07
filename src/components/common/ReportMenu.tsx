@@ -61,7 +61,7 @@ export default function ReportMenu({ modelName, recordId, parentModel }: ReportM
     if (loaded || !modelName) return;
     (async () => {
       try {
-        const res = await getRecords('report', { model_name: modelName, ordering: 'sort_order' }) as any;
+        const res = await getRecords('report', { model_name_filter: modelName, ordering: 'sort_order' }) as any;
         setReports((res?.results || []) as ReportRecord[]);
       } catch { /* no reports available */ }
       setLoaded(true);

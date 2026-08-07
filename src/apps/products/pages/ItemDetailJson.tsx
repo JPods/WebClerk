@@ -18,8 +18,10 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
-import RecordToolbar from '@/components/common/RecordToolbar';
+import DetailToolbar from '@/components/common/DetailToolbar';
 import { BomPanel, SerialPanel, ProductListPanel, WarehouseCard, VariantCard, XRefCard, SpecCard } from '@/apps/products/components';
+import InventoryLayersPanel from '@/apps/products/components/InventoryLayersPanel';
+import CycleCountPanel from '@/apps/products/components/CycleCountPanel';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
 import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
@@ -31,9 +33,13 @@ import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
 interface ItemDetailJsonProps {
   itemId?: number;
   recordId?: number;
+  inline?: boolean;
+  onRegisterActions?: (actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => void;
+  onEditStateChange?: (editing: boolean) => void;
+  [key: string]: any;
 }
 
-const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propId }) => {
+const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propId, inline, onRegisterActions, onEditStateChange }) => {
   const resolvedPropId = propId || itemId;
   const params = useParams<{ id?: string }>();
   const recordId = resolvedPropId || (params.id ? Number(params.id) : 0);
@@ -122,6 +128,14 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
     }
   };
 
+  // Register actions for parent toolbar
+  useEffect(() => {
+    if (onRegisterActions) onRegisterActions({ save: handleSave, cancel: handleCancel, addNew: handleAddNew });
+  }, [onRegisterActions, handleSave, handleCancel, handleAddNew]);
+  useEffect(() => {
+    if (onEditStateChange) onEditStateChange(isEditing);
+  }, [isEditing, onEditStateChange]);
+
   if (loading || layoutLoading) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Loading item...</div>;
   }
@@ -140,42 +154,39 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
     { label: 'XRef', content: 'xref' },
     { label: 'Serials', content: 'serials' },
     { label: 'Specs', content: 'specs' },
+    { label: 'Layers', content: 'layers' },
+    { label: 'Counts', content: 'counts' },
     { label: 'History', content: 'history' },
     { label: 'Documents', content: 'documents' },
     { label: 'Notes', content: 'notes' },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" data-wc="item-detail">
-      {/* Header bar */}
-      <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
-        <span className="text-sm font-bold text-slate-900 dark:text-white">Item</span>
-        <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{itemCode}</span>
-        <span className="text-xs text-slate-500 truncate">{data.description || ''}</span>
-      </div>
-
-      {/* Toolbar */}
-      <RecordToolbar
-        data={data}
-        currentData={currentData}
-        modelName="item"
-        layout={activeLayout}
-        isEditing={isEditing}
-        saving={saving}
-        companyInfo={companyInfo}
-        logos={logos}
-        documentText={documentText}
-        userRole={authUser?.role}
-        onEdit={handleEdit}
-        onAddNew={handleAddNew}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        designMode={designMode}
-        onToggleDesign={() => {
-          if (designMode) { setDesignMode(false); setDesignLayout(null); invalidateLayout(); }
-          else { setDesignMode(true); if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }
-        }}
-      />
+    <div className="flex flex-col h-full overflow-hidden" data-wc="item-detail" data-zone="db.detail.form | .item-detail | ItemDetailJson.tsx">
+      {/* Toolbar — hidden when inline (DataBrowser owns the toolbar) */}
+      {!inline && (
+        <DetailToolbar
+          data={data}
+          currentData={currentData}
+          modelName="item"
+          layout={activeLayout}
+          isEditing={isEditing}
+          saving={saving}
+          companyInfo={companyInfo}
+          logos={logos}
+          documentText={documentText}
+          userRole={authUser?.role}
+          onEdit={handleEdit}
+          onAddNew={handleAddNew}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          designMode={designMode}
+          onToggleDesign={() => {
+            if (designMode) { setDesignMode(false); setDesignLayout(null); invalidateLayout(); }
+            else { setDesignMode(true); if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout))); }
+          }}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
@@ -184,9 +195,11 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
             {columns.map((col: any, colIdx: number) => (
               <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1 flex items-center gap-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
                   <span>{col.title}</span>
-                  {col.title_ida && <span className="font-mono text-slate-400 text-[10px]">{itemCode}</span>}
+                  {colIdx === 0 && data.ida && (
+                    <span className="font-mono font-normal text-slate-400 dark:text-slate-500">{data.ida}</span>
+                  )}
                 </div>
                 {(col.fields || []).map((f: any) => (
                   <FieldRow
@@ -237,7 +250,7 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
                 CardComponent={XRefCard}
                 headers={['Type', 'XRef Code', 'Description', 'Org']}
                 headerWidths={['w-16', 'w-28', 'flex-1', 'w-20']}
-                onCardClick={(id) => windowManager.ensureWindow(`/db/item_xref?id=${id}`, `XRef #${id}`)}
+                onCardClick={(id) => windowManager.ensureWindow(`/item_xref?id=${id}`, `XRef #${id}`)}
               />
             )}
             {activeTab === 'serials' && (
@@ -251,6 +264,12 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
                 headers={['Name', 'Value', 'Unit', 'Category']}
                 headerWidths={['w-32', 'w-24', 'w-16', 'flex-1']}
               />
+            )}
+            {activeTab === 'layers' && (
+              <InventoryLayersPanel itemId={data.id} />
+            )}
+            {activeTab === 'counts' && (
+              <CycleCountPanel itemId={data.id} itemCode={itemCode} />
             )}
             {activeTab === 'history' && (
               <div className="p-4 text-xs text-slate-400">Transaction history — coming soon</div>
@@ -269,4 +288,4 @@ const ItemDetailJson: React.FC<ItemDetailJsonProps> = ({ itemId, recordId: propI
   );
 };
 
-export default withDevIdentifier(ItemDetailJson, 'ItemDetailJson');
+export default withDevIdentifier(ItemDetailJson, 'ItemDetailJson', 'indigo', 'apps/products/pages/ItemDetailJson.tsx');

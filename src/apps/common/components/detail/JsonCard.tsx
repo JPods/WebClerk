@@ -146,4 +146,4 @@ const JsonCard: React.FC<JsonCardProps> = ({
   );
 };
 
-export default withDevIdentifier(JsonCard, 'JsonCard', 'amber');
+export default withDevIdentifier(JsonCard, 'JsonCard', 'amber', 'apps/common/components/detail/JsonCard.tsx');

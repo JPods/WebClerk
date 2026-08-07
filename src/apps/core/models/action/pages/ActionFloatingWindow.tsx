@@ -1,10 +1,12 @@
 /**
  * ActionFloatingWindow — Draggable, resizable floating window for ActionDetailCompact.
  * Used in Gantt and Kanban to view/edit actions without covering the workspace.
+ * Closes on Save, Cancel, or Delete. No close × button.
  */
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
-import SprintBurndown from "./SprintBurndown";
+import type { DynamicDetailActions } from "../../../../../components/common/DynamicDetail";
+import { deleteRecord } from "../../../../../api/wcapi";
 
 interface Props {
   actionId: string;
@@ -14,10 +16,41 @@ interface Props {
 
 export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSaved }) => {
   const [pos, setPos] = useState({ x: Math.max(20, Math.min(200, window.innerWidth / 2 - 300)), y: 60 });
-  const [size, setSize] = useState({ w: 600, h: 320 });
+  const [size, setSize] = useState({ w: 600, h: 500 });
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [, forceUpdate] = useState(0);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<DynamicDetailActions | null>(null);
+
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteRecord("action", Number(actionId));
+      onSaved?.();
+      onClose();
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }, [actionId, onClose, onSaved, confirmDelete]);
+
+  const handleSave = useCallback(() => {
+    actionsRef.current?.save();
+    onSaved?.();
+    onClose();
+  }, [onClose, onSaved]);
+
+  const handleCancel = useCallback(() => {
+    actionsRef.current?.cancel();
+    onClose();
+  }, [onClose]);
 
   // Drag handlers
   const onDragStart = useCallback((e: React.MouseEvent) => {
@@ -60,6 +93,9 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
     document.addEventListener("mouseup", onUp);
   }, [size]);
 
+  const actions = actionsRef.current;
+  const btnBase = "rounded px-2 py-0.5 text-[10px] font-medium";
+
   return (
     <div
       ref={windowRef}
@@ -76,27 +112,58 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
         onMouseDown={onDragStart}
         className="flex shrink-0 cursor-move items-center justify-between rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-1.5 dark:border-gray-700 dark:bg-gray-800"
       >
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-300 select-none">
-          Action #{actionId}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700"
-        >
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        <div className="flex items-center gap-2 select-none">
+          {actions?.ida && (
+            <span className="font-mono text-[10px] text-gray-400">{actions.ida}</span>
+          )}
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+            Action #{actionId}
+          </span>
+        </div>
+        <div className="flex flex-1 items-center justify-between ml-4">
+          <div className="flex items-center gap-1">
+            <button onClick={handleSave} disabled={actions?.saving}
+              className={`${btnBase} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50`}>
+              {actions?.saving ? "..." : "Save"}</button>
+            <button onClick={handleCancel}
+              className={`${btnBase} border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300`}>Cancel</button>
+            <select
+              value={actions?.fontSize ?? 12}
+              onMouseDown={(e) => e.stopPropagation()}
+              onChange={(e) => { actionsRef.current?.setFontSize(Number(e.target.value)); forceUpdate(n => n + 1); }}
+              className={`${btnBase} border border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600 cursor-pointer`}
+              title="Font size"
+            >
+              <option value={10}>Font: 10</option>
+              <option value={12}>Font: 12</option>
+              <option value={14}>Font: 14</option>
+              <option value={16}>Font: 16</option>
+              <option value={18}>Font: 18</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className={`${btnBase} ${confirmDelete
+              ? "bg-red-600 text-white hover:bg-red-700"
+              : "border border-red-300 text-red-500 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/30"
+            } disabled:opacity-50`}
+          >
+            {deleting ? "..." : confirmDelete ? "Confirm Delete" : "Delete"}
+          </button>
+        </div>
       </div>
 
-      {/* Content — scrollable */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <DynamicDetail
           modelName="action"
           recordId={actionId}
-          onClose={onClose}
           onSaved={onSaved}
+          hideToolbar
+          actionsRef={actionsRef}
+          onActionsReady={() => forceUpdate(n => n + 1)}
         />
       </div>
 

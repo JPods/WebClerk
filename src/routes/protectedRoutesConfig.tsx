@@ -1,5 +1,5 @@
-/* LastChecked: 2026-06-28 | WhereUsed: WindowManager route resolution | WhoCreated: Unknown */
-/* Admin-managed models redirect to DataBrowser (/admin-wb?model=X) */
+/* LastChecked: 2026-08-06 | WhereUsed: WindowManager route resolution | WhoCreated: Unknown */
+/* Routes for WindowManager — /:model catch-all renders databrowser */
 import React from "react";
 import { Navigate } from "react-router";
 import { PageRoutes } from "./Routes";
@@ -18,13 +18,16 @@ import {
 import DataBrowser from "../pages/admin/DataBrowser";
 import JsonViewer from "../pages/admin/JsonViewer";
 import CommerceDashboard from "../pages/admin/CommerceDashboard";
-import AccountingDashboard from "../pages/admin/AccountingDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
+import ProductsDashboard from "../apps/products/pages/ProductsDashboard";
+import TransactionsDashboard from "../apps/transactions/pages/TransactionsDashboard";
+import OrgsDashboard from "../apps/orgs/pages/OrgsDashboard";
+import OperationsDashboard from "../pages/admin/OperationsDashboard";
 // All model-specific detail pages replaced by TransactionDetail / OrgDetailJson / ItemDetailJson
 // Old imports archived to src/archive/replaced-2026-08-03/
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
@@ -33,6 +36,7 @@ import AliceDashboard from "../pages/admin/AliceDashboard";
 import HelpDashboard from "../pages/admin/HelpDashboard";
 import TestDashboard from "../pages/admin/TestDashboard";
 import ReportDesigner from "../pages/admin/ReportDesigner";
+import ParadeOfReportsPage from "../pages/admin/ParadeOfReportsPage";
 import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import Placeholder from "../pages/Placeholder";
 import TransactionDetail from "../apps/transactions/components/TransactionDetail";
@@ -43,48 +47,62 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.profile, element: <UserProfiles /> },
 
   // User-facing: Contact
-  { path: PageRoutes.coreContactList, element: <Navigate to="/db/contact" replace /> },
+  { path: PageRoutes.coreContactList, element: <Navigate to="/contact" replace /> },
   { path: PageRoutes.coreContactDetail, element: <CoreContactDetail /> },
 
   // User-facing: Customer
-  { path: "/org/customer", element: <Navigate to="/db/customer" replace /> },
-  { path: "/org/vendor", element: <Navigate to="/db/vendor" replace /> },
-  { path: "/org/employee", element: <Navigate to="/db/employee" replace /> },
-  { path: "/org/rep", element: <Navigate to="/db/rep" replace /> },
-  { path: "/org/manufacturer", element: <Navigate to="/db/manufacturer" replace /> },
-  { path: PageRoutes.customerList, element: <Navigate to="/db/customer" replace /> },
+  { path: "/org/customer", element: <Navigate to="/customer" replace /> },
+  { path: "/org/vendor", element: <Navigate to="/vendor" replace /> },
+  { path: "/org/employee", element: <Navigate to="/employee" replace /> },
+  { path: "/org/rep", element: <Navigate to="/rep" replace /> },
+  { path: "/org/manufacturer", element: <Navigate to="/manufacturer" replace /> },
+  { path: PageRoutes.customerList, element: <Navigate to="/customer" replace /> },
   { path: `${PageRoutes.customerDetail}/:id`, element: <CustomerDetailPage /> },
   { path: PageRoutes.customerAdd, element: <CustomerAddPage /> },
   { path: `${PageRoutes.customerEdit}/:id`, element: <CustomerEditPage /> },
 
   // User-facing: Actions
-  { path: PageRoutes.actionList, element: <Navigate to="/db/action" replace /> },
-  { path: PageRoutes.actionDetail, element: <Navigate to="/db/action" replace /> },
+  { path: PageRoutes.actionList, element: <Navigate to="/action" replace /> },
+  { path: PageRoutes.actionDetail, element: <Navigate to="/action" replace /> },
 
   // User-facing: Documents
   { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
 
-  // User-facing: Products — list via DataBrowser, detail via custom page
-  { path: PageRoutes.products, element: <Navigate to="/db/item" replace /> },
-  { path: PageRoutes.productsItemList, element: <Navigate to="/db/item" replace /> },
+  // User-facing: Products — app dashboard, lists via DataBrowser, detail via custom page
+  { path: "/products", element: <ProductsDashboard /> },
+  { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
+  { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
   { path: PageRoutes.productsItemDetail, element: <ItemDetailJson /> },
   { path: "/item/:id", element: <ItemDetailJson /> },
 
-  // User-facing: Transactions — all lists via DataBrowser, details via custom pages
-  { path: PageRoutes.transactionsProposalList, element: <Navigate to="/db/proposal" replace /> },
+  // User-facing: Transactions — app dashboard
+  { path: "/transactions", element: <TransactionsDashboard /> },
+
+  // User-facing: Orgs — app dashboard
+  { path: "/orgs", element: <OrgsDashboard /> },
+
+  // User-facing: Operations — unified Accounting + Support + Sync
+  { path: "/operations", element: <OperationsDashboard /> },
+  { path: "/administration", element: <OperationsDashboard /> },
+  { path: "/sync", element: <Navigate to="/operations?tab=sync" replace /> },
+  { path: "/support", element: <Navigate to="/operations?tab=support" replace /> },
+  { path: "/accounting", element: <Navigate to="/operations?tab=accounting" replace /> },
+
+  // User-facing: Transactions — lists via DataBrowser, details via custom pages
+  { path: PageRoutes.transactionsProposalList, element: <Navigate to="/proposal" replace /> },
   { path: PageRoutes.transactionsProposalDetail, element: <TransactionDetail modelName="proposal" /> },
-  { path: PageRoutes.transactionsOrderList, element: <Navigate to="/db/order" replace /> },
+  { path: PageRoutes.transactionsOrderList, element: <Navigate to="/order" replace /> },
   { path: PageRoutes.transactionsOrderDetail, element: <TransactionDetail modelName="order" /> },
-  { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/db/invoice" replace /> },
+  { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/invoice" replace /> },
   { path: PageRoutes.transactionsInvoiceDetail, element: <TransactionDetail modelName="invoice" /> },
   { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
-  { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/db/payment" replace /> },
+  { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/payment" replace /> },
   { path: PageRoutes.transactionsPaymentDetail, element: <TransactionDetail modelName="payment" /> },
-  { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/db/purchase" replace /> },
+  { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/purchase" replace /> },
   { path: PageRoutes.transactionsPurchaseDetail, element: <TransactionDetail modelName="purchase" /> },
-  { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/db/workorder" replace /> },
+  { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/workorder" replace /> },
   { path: PageRoutes.transactionsWorkOrderDetail, element: <TransactionDetail modelName="workorder" /> },
-  { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/db/receipt" replace /> },
+  { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/receipt" replace /> },
   { path: PageRoutes.transactionsReceiptDetail, element: <TransactionDetail modelName="receipt" /> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
@@ -97,43 +115,32 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.svarGantt, element: <Navigate to="/gantt" replace /> },
   { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
 
-  // Clean URLs: /:model = list, /:model/:id = record
-  { path: "/order", element: <DataBrowser /> },
+  // /:model/:id = record detail pages
   { path: "/order/:id", element: <TransactionDetail modelName="order" /> },
-  { path: "/invoice", element: <DataBrowser /> },
   { path: "/invoice/:id", element: <TransactionDetail modelName="invoice" /> },
-  { path: "/proposal", element: <DataBrowser /> },
   { path: "/proposal/:id", element: <TransactionDetail modelName="proposal" /> },
-  { path: "/purchase", element: <DataBrowser /> },
   { path: "/purchase/:id", element: <TransactionDetail modelName="purchase" /> },
-  { path: "/work_order", element: <DataBrowser /> },
   { path: "/work_order/:id", element: <TransactionDetail modelName="work_order" /> },
-  { path: "/receipt", element: <DataBrowser /> },
   { path: "/receipt/:id", element: <TransactionDetail modelName="receipt" /> },
-  { path: "/requisition", element: <DataBrowser /> },
   { path: "/requisition/:id", element: <TransactionDetail modelName="requisition" /> },
-  { path: "/payment", element: <DataBrowser /> },
   { path: "/payment/:id", element: <TransactionDetail modelName="payment" /> },
-  { path: "/contact", element: <DataBrowser /> },
   { path: "/contact/:id", element: <CoreContactDetail /> },
   { path: "/customer/:id", element: <OrgDetailJson modelName="customer" /> },
   { path: "/vendor/:id", element: <OrgDetailJson modelName="vendor" /> },
   { path: "/manufacturer/:id", element: <OrgDetailJson modelName="manufacturer" /> },
   { path: "/employee/:id", element: <OrgDetailJson modelName="employee" /> },
   { path: "/rep/:id", element: <OrgDetailJson modelName="rep" /> },
-  { path: "/customer", element: <DataBrowser /> },
-  { path: "/vendor", element: <DataBrowser /> },
-  { path: "/item", element: <DataBrowser /> },
-  { path: "/action", element: <DataBrowser /> },
-  { path: "/document", element: <DataBrowser /> },
-  { path: "/setting", element: <DataBrowser /> },
+
+  // Report Parade — onboarding tool, walks through reports with sample data
+  { path: "/parade", element: <ParadeOfReportsPage /> },
+
+  // /:model catch-all — any model renders databrowser
+  { path: "/:model", element: <DataBrowser /> },
 
   // Admin tools
-  { path: "/db/:model", element: <DataBrowser /> },
   { path: PageRoutes.adminWorkbench, element: <DataBrowser /> },
   { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
-  { path: PageRoutes.accountingDashboard, element: <AccountingDashboard /> },
   { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
@@ -144,65 +151,9 @@ export const protectedRoutesConfig = [
   { path: "/report-designer", element: <ReportDesigner /> },
   { path: "/inventory-dashboard", element: <InventoryDashboard /> },
   { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
-  { path: PageRoutes.coreApiLogList, element: <Navigate to="/db/apilog" replace /> },
+  { path: PageRoutes.coreApiLogList, element: <Navigate to="/apilog" replace /> },
   { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },
   { path: PageRoutes.coreTeamDashboard, element: <TeamDashboard /> },
-
-  // Admin model redirects → DataBrowser
-  { path: PageRoutes.employeeList, element: <Navigate to="/db/orgs.Employee" replace /> },
-  { path: PageRoutes.manufacturerList, element: <Navigate to="/db/orgs.Manufacturer" replace /> },
-  { path: PageRoutes.organizationList, element: <Navigate to="/db/orgs.Organization" replace /> },
-  { path: PageRoutes.repList, element: <Navigate to="/db/orgs.Rep" replace /> },
-  { path: PageRoutes.vendorList, element: <Navigate to="/db/vendor" replace /> },
-  { path: PageRoutes.coreSettingList, element: <Navigate to="/db/core.Setting" replace /> },
-  { path: PageRoutes.coreSettingDetail, element: <Navigate to="/db/core.Setting" replace /> },
-  { path: PageRoutes.coreReportList, element: <Navigate to="/db/core.Report" replace /> },
-  { path: PageRoutes.coreReportDetail, element: <Navigate to="/db/core.Report" replace /> },
-  { path: PageRoutes.coreTemplateList, element: <Navigate to="/db/core.Template" replace /> },
-  { path: PageRoutes.coreTemplateDetail, element: <Navigate to="/db/core.Template" replace /> },
-  { path: PageRoutes.commDomainList, element: <Navigate to="/db/communications.Domain" replace /> },
-  { path: PageRoutes.commDomainDetail, element: <Navigate to="/db/communications.Domain" replace /> },
-  { path: PageRoutes.commEmailList, element: <Navigate to="/db/communications.Email" replace /> },
-  { path: PageRoutes.commEmailDetail, element: <Navigate to="/db/communications.Email" replace /> },
-  { path: PageRoutes.commAddressList, element: <Navigate to="/db/communications.Address" replace /> },
-  { path: PageRoutes.commAddressDetail, element: <Navigate to="/db/communications.Address" replace /> },
-  { path: PageRoutes.commPhoneList, element: <Navigate to="/db/communications.Phone" replace /> },
-  { path: PageRoutes.commPhoneDetail, element: <Navigate to="/db/communications.Phone" replace /> },
-  { path: PageRoutes.documentList, element: <Navigate to="/db/docs.Document" replace /> },
-  { path: PageRoutes.documentDetail, element: <Navigate to="/db/docs.Document" replace /> },
-  { path: PageRoutes.questionAnswerList, element: <Navigate to="/db/docs.QuestionAnswer" replace /> },
-  { path: PageRoutes.tagList, element: <Navigate to="/db/docs.Tag" replace /> },
-  { path: PageRoutes.productsBillOfMaterialList, element: <Navigate to="/db/products.BillOfMaterial" replace /> },
-  { path: PageRoutes.productsCatalogList, element: <Navigate to="/db/products.Catalog" replace /> },
-  { path: PageRoutes.productsFlowList, element: <Navigate to="/db/products.Flow" replace /> },
-  { path: PageRoutes.productsItemXrefList, element: <Navigate to="/db/products.ItemXref" replace /> },
-  { path: PageRoutes.productsMatricsList, element: <Navigate to="/db/products.Matrics" replace /> },
-  { path: PageRoutes.productsOrgItemList, element: <Navigate to="/db/products.OrgItem" replace /> },
-  { path: PageRoutes.productsSerialList, element: <Navigate to="/db/products.Serial" replace /> },
-  { path: PageRoutes.productsServiceList, element: <Navigate to="/db/products.Service" replace /> },
-  { path: PageRoutes.productsSpecificationList, element: <Navigate to="/db/products.Specification" replace /> },
-  { path: PageRoutes.productsUsageList, element: <Navigate to="/db/products.Usage" replace /> },
-  { path: PageRoutes.productsVariantList, element: <Navigate to="/db/products.Variant" replace /> },
-  { path: PageRoutes.productsWarehouseList, element: <Navigate to="/db/products.Warehouse" replace /> },
-  { path: PageRoutes.auditList, element: <Navigate to="/db/accounts.Audit" replace /> },
-  { path: PageRoutes.auditDetail, element: <Navigate to="/db/accounts.Audit" replace /> },
-  { path: PageRoutes.currencyList, element: <Navigate to="/db/accounts.Currency" replace /> },
-  { path: PageRoutes.currencyDetail, element: <Navigate to="/db/accounts.Currency" replace /> },
-  { path: PageRoutes.exchangeRateList, element: <Navigate to="/db/accounts.ExchangeRate" replace /> },
-  { path: PageRoutes.exchangeRateDetail, element: <Navigate to="/db/accounts.ExchangeRate" replace /> },
-  { path: PageRoutes.exchangeTransactionList, element: <Navigate to="/db/accounts.ExchangeTransaction" replace /> },
-  { path: PageRoutes.exchangeTransactionDetail, element: <Navigate to="/db/accounts.ExchangeTransaction" replace /> },
-  { path: PageRoutes.glAccountList, element: <Navigate to="/db/accounts.GLAccount" replace /> },
-  { path: PageRoutes.glAccountDetail, element: <Navigate to="/db/accounts.GLAccount" replace /> },
-  { path: PageRoutes.glJournalList, element: <Navigate to="/db/accounts.GlJournal" replace /> },
-  { path: PageRoutes.glJournalDetail, element: <Navigate to="/db/accounts.GlJournal" replace /> },
-  { path: PageRoutes.ledgerList, element: <Navigate to="/db/accounts.Ledger" replace /> },
-  { path: PageRoutes.tallySummaryList, element: <Navigate to="/db/accounts.TallySummary" replace /> },
-  { path: PageRoutes.salesDimensionTallyList, element: <Navigate to="/db/accounts.SalesDimensionTally" replace /> },
-  { path: PageRoutes.inventoryUsageTallyList, element: <Navigate to="/db/accounts.InventoryUsageTally" replace /> },
-  { path: PageRoutes.tallyRegistryList, element: <Navigate to="/db/accounts.TallyRegistry" replace /> },
-  { path: PageRoutes.taxJurisdictionList, element: <Navigate to="/db/accounts.TaxJurisdiction" replace /> },
-  { path: PageRoutes.termList, element: <Navigate to="/db/accounts.Term" replace /> },
 
   // Placeholders
   { path: "/core/audit/list", element: <Placeholder title="Core Audit" /> },

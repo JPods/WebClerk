@@ -44,13 +44,7 @@ const UnifiedGanttPage: React.FC = () => {
     : "Multi-Project Gantt";
 
   return (
-    <div className="space-y-2 px-4 py-2 md:px-5 lg:px-6">
-      <nav className="text-sm text-gray-500 dark:text-gray-400">
-        <Link to="/" className="hover:text-gray-700 dark:hover:text-gray-200">Home</Link>
-        <span className="mx-1">›</span>
-        <span className="text-gray-900 dark:text-white font-medium">{pageTitle}</span>
-      </nav>
-      
+    <div className="space-y-1 px-2 py-1">
       <UnifiedGantt
         projectId={projectId}
         initialProjectIds={initialProjectIds}
@@ -61,4 +55,4 @@ const UnifiedGanttPage: React.FC = () => {
   );
 };
 
-export default withDevIdentifier(UnifiedGanttPage, 'UnifiedGanttPage');
+export default withDevIdentifier(UnifiedGanttPage, 'UnifiedGanttPage', 'rose', 'apps/utils/gantt/UnifiedGanttPage.tsx');

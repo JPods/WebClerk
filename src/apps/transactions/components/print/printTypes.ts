@@ -76,7 +76,8 @@ export interface PrintDocumentMeta {
     | 'receipt'
     | 'adjustment'
     | 'requisition'
-    | 'project';
+    | 'project'
+    | 'creditmemo';
   documentNumber: string;
   documentDate?: string;
   dueDate?: string;
@@ -161,6 +162,7 @@ export const DOCUMENT_TYPE_LABELS: Record<PrintDocumentMeta['documentType'], str
   adjustment: 'Adjustment',
   requisition: 'Requisition',
   project: 'Project',
+  creditmemo: 'Credit Memo',
 };
 
 // Print-specific CSS classes (for @media print)

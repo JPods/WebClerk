@@ -121,6 +121,14 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     _itemId: Number(line.item_id ?? line.item?.id ?? line.item?.item_id ?? 0),
     _itemIsActive: line.item?.is_active !== false,
     _hasBacklog: remaining > 0 && !isComplete,
+    line_type: String(line.line_type || 'product'),
+    tax_rate: Number(line.tax?.sales_rate ?? line.tax?.sales ?? 0),
+    // Commission — from commission.reps[] envelope
+    comm_total: Number(line.commission?.total ?? 0),
+    comm_rate: Number(line.commission?.reps?.[0]?.rate_pct ?? 0),
+    comm_eff_rate: Number(line.commission?.reps?.[0]?.effective_rate ?? 0),
+    comm_basis: String(line.commission?.basis || ''),
+    _commReps: line.commission?.reps || [],
     // Receipt-specific fields
     warehouse: line.warehouse?.name || line.warehouse_name || '',
     lot: line.lot || '',
@@ -148,6 +156,7 @@ export function useLineCard(options: UseLineCardOptions) {
   const [discountInput, setDiscountInput] = useState('');
   const [bulkEditField, setBulkEditField] = useState<string | null>(null);
   const [bulkEditValue, setBulkEditValue] = useState('');
+  const [showCommission, setShowCommission] = useState(false);
 
   const togglePanel = (panel: typeof activePanel) =>
     setActivePanel(prev => prev === panel ? 'none' : panel);
@@ -209,6 +218,44 @@ export function useLineCard(options: UseLineCardOptions) {
         const qty = updated.quantity?.active ?? 0;
         return { ...updated, cost: { ...updated.cost, unit: newCost, extended: qty * newCost } };
       }
+      case "tax_rate": {
+        const newRate = Number(value);
+        return { ...updated, tax: { ...updated.tax, sales_rate: newRate, sales: newRate } };
+      }
+      case "comm_rate": {
+        const newRate = Number(value);
+        const priceExt = updated.price?.extended ?? 0;
+        const costExt = updated.cost?.extended ?? 0;
+        const existingComm = updated.commission || {};
+        const existingReps = existingComm.reps || [];
+        const basis = existingComm.basis || 'revenue';
+        const levelFactor = existingReps[0]?.level_factor ?? 1.0;
+        const splitPct = existingReps[0]?.split_pct ?? 100;
+        const baseAmount = basis === 'margin' ? (priceExt - costExt) : priceExt;
+        const amount = Math.round(baseAmount * (newRate / 100) * levelFactor * (splitPct / 100) * 100) / 100;
+        const effRate = Math.round(newRate * levelFactor * (splitPct / 100) * 10000) / 10000;
+        const newRep = {
+          ...(existingReps[0] || {}),
+          rate_pct: newRate,
+          level_factor: levelFactor,
+          split_pct: splitPct,
+          effective_rate: effRate,
+          amount,
+          override: true,
+          override_reason: 'manual',
+        };
+        const otherReps = existingReps.slice(1);
+        const otherTotal = otherReps.reduce((s: number, r: any) => s + (r.amount ?? 0), 0);
+        return {
+          ...updated,
+          commission: {
+            ...existingComm,
+            reps: [newRep, ...otherReps],
+            total: Math.round((amount + otherTotal) * 100) / 100,
+            basis,
+          },
+        };
+      }
       default:
         return updated;
     }
@@ -261,6 +308,17 @@ export function useLineCard(options: UseLineCardOptions) {
 
     cols.push({ name: 'extended', field: 'extended', width: '110px', sortable: true });
 
+    if (isSellSide) {
+      cols.push({ name: 'tax%', field: 'tax_rate', width: '55px', sortable: true });
+    }
+
+    // Commission columns — hidden unless toggled on
+    if (showCommission && isSellSide) {
+      cols.push({ name: 'comm%', field: 'comm_rate', width: '55px', sortable: true });
+      cols.push({ name: 'eff%', field: 'comm_eff_rate', width: '55px', sortable: true });
+      cols.push({ name: 'comm$', field: 'comm_total', width: '80px', sortable: true });
+    }
+
     // Receipt-specific columns
     if (isReceipt) {
       cols.push({ name: 'warehouse', field: 'warehouse', width: '100px', sortable: true });
@@ -269,7 +327,7 @@ export function useLineCard(options: UseLineCardOptions) {
     }
 
     return cols;
-  }, [isSellSide, isExecSide, isReceipt]);
+  }, [isSellSide, isExecSide, isReceipt, showCommission]);
 
   const colWidths = useMemo(() => {
     const w: Record<string, number> = {};
@@ -294,6 +352,10 @@ export function useLineCard(options: UseLineCardOptions) {
     warehouse: { type: 'readonly' },
     lot: { type: 'readonly' },
     serial_batch: { type: 'readonly' },
+    tax_rate: { type: 'number', precision: 4, bulkEditable: true },
+    comm_rate: { type: 'number', precision: 2, bulkEditable: true },
+    comm_eff_rate: { type: 'number', precision: 2, calculated: true },
+    comm_total: { type: 'currency', precision: currency.total_precision, calculated: true },
   }), [currency]);
 
   // ── Discount ─────────────────────────────────────────────────────
@@ -309,7 +371,7 @@ export function useLineCard(options: UseLineCardOptions) {
   }, [discountInput, selectedLineIds, records, handleCellEdit]);
 
   // ── Bulk edit from header click ─────────────────────────────────
-  const BULK_EDITABLE = new Set(['unit_price', 'discount_pct', 'discounted_unit', 'qty']);
+  const BULK_EDITABLE = new Set(['unit_price', 'discount_pct', 'discounted_unit', 'qty', 'tax_rate', 'comm_rate']);
 
   const openBulkEdit = useCallback((field: string) => {
     if (!canEdit || !BULK_EDITABLE.has(field)) return;
@@ -347,6 +409,10 @@ export function useLineCard(options: UseLineCardOptions) {
         return l;
       } else if (bulkEditField === 'qty') {
         return applyFieldUpdate(l, 'qty', val);
+      } else if (bulkEditField === 'tax_rate') {
+        return applyFieldUpdate(l, 'tax_rate', val);
+      } else if (bulkEditField === 'comm_rate') {
+        return applyFieldUpdate(l, 'comm_rate', val);
       }
       return l;
     });
@@ -392,5 +458,7 @@ export function useLineCard(options: UseLineCardOptions) {
     openBulkEdit,
     applyBulkEdit,
     cancelBulkEdit,
+    showCommission,
+    setShowCommission,
   };
 }

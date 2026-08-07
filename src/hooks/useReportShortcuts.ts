@@ -8,7 +8,7 @@
  * It intercepts the browser's native Cmd+P (print page) and replaces it
  * with the WC2 "print primary report" behavior.
  *
- * LastChecked: 2026-07-19 | WhereUsed: TransactionDetailBase, AdminWorkbench | WhoCreated: Bill+Claude
+ * LastChecked: 2026-07-19 | WhereUsed: TransactionDetailBase, DataBrowser | WhoCreated: Bill+Claude
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { getRecords } from '@/api/wcapi';

@@ -11,7 +11,6 @@ import { getRecords } from '@/api/wcapi';
 import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
 
-const DetailReview = React.lazy(() => import('./DetailReview'));
 const AliceQuiz = React.lazy(() => import('./AliceQuiz'));
 const PageDesigner = React.lazy(() => import('../tools/PageDesigner'));
 const PdfDesigner = React.lazy(() => import('../tools/PdfDesigner'));
@@ -25,7 +24,7 @@ export default function AliceDashboard() {
   const [consoleSummary, setConsoleSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [askText, setAskText] = useState('');
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'cycle' | 'page-designer' | 'pdf-designer' | 'data-quality'>('coaching');
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'page-designer' | 'pdf-designer' | 'data-quality'>('coaching');
   const [llmConfig, setLlmConfig] = useState<any>(null);
   const [llmSaving, setLlmSaving] = useState(false);
 
@@ -136,7 +135,6 @@ export default function AliceDashboard() {
         {tabBtn('health', 'System Health')}
         {tabBtn('llm', 'LLM Config')}
         {tabBtn('quiz', 'Quiz')}
-        {tabBtn('cycle', 'Cycle Details')}
         {tabBtn('data-quality', 'Data Quality')}
         {tabBtn('page-designer', 'Page Designer')}
         {tabBtn('pdf-designer', 'PDF Designer')}
@@ -631,12 +629,6 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
         </Suspense>
       )}
 
-      {/* ═══ Cycle Details ═══ */}
-      {activeTab === 'cycle' && (
-        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading Cycle Details...</div>}>
-          <DetailReview />
-        </Suspense>
-      )}
 
       {/* ═══ Page Designer ═══ */}
       {activeTab === 'page-designer' && (

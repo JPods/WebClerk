@@ -970,4 +970,4 @@ export const CustomerSalesPanel: React.FC<CustomerSalesPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(CustomerSalesPanel, 'CustomerSalesPanel', 'teal');
+export default withDevIdentifier(CustomerSalesPanel, 'CustomerSalesPanel', 'teal', 'apps/transactions/components/CustomerSalesPanel.tsx');

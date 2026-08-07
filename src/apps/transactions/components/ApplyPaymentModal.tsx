@@ -315,4 +315,4 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   );
 };
 
-export default withDevIdentifier(ApplyPaymentModal, 'ApplyPaymentModal', 'rose');
+export default withDevIdentifier(ApplyPaymentModal, 'ApplyPaymentModal', 'rose', 'apps/transactions/components/ApplyPaymentModal.tsx');

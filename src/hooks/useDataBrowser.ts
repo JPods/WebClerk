@@ -7,7 +7,9 @@
  * Reusable — any page that needs a model browser can call this hook.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { useWindowPath } from '@/context/WindowPathContext';
+import { useWindowManagerSafe } from '@/context/WindowManagerContext';
 import { dbLog } from '@/utils/dbLog';
 import {
   getModelNames,
@@ -159,6 +161,12 @@ export type NamedView = {
   listWidths?: Record<string, number>;  // backward compat — prefer FieldSpec.width
 };
 
+export type FieldGroup = {
+  key: string;
+  label: string;
+  fields: string[];
+};
+
 export type WorkbenchFieldsSetting = {
   list: (string | FieldSpec)[];
   detail: (string | FieldSpec)[];
@@ -206,7 +214,26 @@ export const PAGE_SIZE = 50;
 export function useDataBrowser(isAuthenticated: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ model?: string }>();
+  const navigate = useNavigate();
   const previousModelParam = useRef<string | null>(null);
+
+  // Determine if this DataBrowser instance is in the active window.
+  // Inactive windows should not react to URL changes or fire API calls.
+  const windowPath = useWindowPath();
+  const wmCtx = useWindowManagerSafe();
+  const activePath = wmCtx?.activePath ?? null;
+  const isActiveWindow = !windowPath || !activePath || windowPath.split('?')[0] === activePath.split('?')[0];
+
+  // Capture URL filter params on mount (e.g. dt_created__gte from dashboard links)
+  const urlFiltersRef = useRef<Record<string, string> | null>(null);
+  if (urlFiltersRef.current === null) {
+    const filters: Record<string, string> = {};
+    const sp = new URLSearchParams(window.location.search);
+    sp.forEach((v, k) => {
+      if (k !== 'model' && k.includes('__')) filters[k] = v;
+    });
+    urlFiltersRef.current = filters;
+  }
 
   // --- Model list ---
   const [modelNames, setModelNames] = useState<string[]>([]);
@@ -253,12 +280,51 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const [fieldDefaults, setFieldDefaults] = useState<Record<string, any>>({});
   const [detailRowSizes, setDetailRowSizes] = useState<Record<string, number>>({});
 
+  // --- Field groups ---
+  const [fieldGroups, setFieldGroups] = useState<FieldGroup[]>([]);
+  const [defaultCollapsed, setDefaultCollapsed] = useState<string[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, string[]>>({});
+
+  /** Which groups are currently collapsed for this model */
+  const currentCollapsed = useMemo(() => {
+    if (!selectedModel) return defaultCollapsed;
+    return collapsedGroups[selectedModel] ?? defaultCollapsed;
+  }, [selectedModel, collapsedGroups, defaultCollapsed]);
+
+  /** Toggle a field group's collapsed state; persist to wcui prefs */
+  const toggleFieldGroup = useCallback((groupKey: string) => {
+    if (!selectedModel) return;
+    const cur = collapsedGroups[selectedModel] ?? [...defaultCollapsed];
+    const next = cur.includes(groupKey) ? cur.filter(k => k !== groupKey) : [...cur, groupKey];
+    setCollapsedGroups(prev => ({ ...prev, [selectedModel]: next }));
+    // Persist — fire and forget
+    import('@/utils/wcuiPrefs').then(({ setWcuiPref, getWcuiPref }) => {
+      const all = getWcuiPref<Record<string, string[]>>('detail_collapsed', {});
+      setWcuiPref('detail_collapsed', { ...all, [selectedModel]: next });
+    });
+  }, [selectedModel, collapsedGroups, defaultCollapsed]);
+
+  // Load user's saved collapse state from wcui prefs on model change
+  useEffect(() => {
+    if (!selectedModel) return;
+    if (collapsedGroups[selectedModel] !== undefined) return; // already loaded
+    import('@/utils/wcuiPrefs').then(({ getWcuiPref }) => {
+      const all = getWcuiPref<Record<string, string[]>>('detail_collapsed', {});
+      if (all[selectedModel]) {
+        setCollapsedGroups(prev => ({ ...prev, [selectedModel]: all[selectedModel] }));
+      }
+    });
+  }, [selectedModel]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---------------------------------------------------------------------------
   // Derived
   // ---------------------------------------------------------------------------
 
-  // Route param (/db/:model) takes priority, then search param (?model=X), then pathname
-  const pathnameModel = window.location.pathname.split('/').filter(Boolean)[0] || '';
+  // Route param (/:model) takes priority, then search param (?model=X), then pathname
+  // Exclude known route paths that are NOT model names (e.g. /databrowser, /admin-wb, /db)
+  const ROUTE_PATHS = new Set(['databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'page-designer', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'report-designer', 'model-workbench']);
+  const rawPathname = window.location.pathname.split('/').filter(Boolean)[0] || '';
+  const pathnameModel = ROUTE_PATHS.has(rawPathname) ? '' : rawPathname;
   const modelParam = routeParams.model || searchParams.get('model') || pathnameModel;
 
   const modelLabel = useMemo(() => {
@@ -329,16 +395,23 @@ export function useDataBrowser(isAuthenticated: boolean) {
     setRecordsError(null);
     // Set new model — this triggers the fetchRecords useEffect via dep change
     setSelectedModel(name);
-    // Update URL
-    const next = new URLSearchParams(searchParams);
-    next.set('model', name);
-    setSearchParams(next, { replace: true });
+    // On a /:model route, navigate to /<newModel> (stays in same window).
+    // On /databrowser, use search params to stay in the same window/component instance.
+    if (routeParams.model) {
+      navigate(`/${name}`, { replace: true });
+    } else {
+      const next = new URLSearchParams(searchParams);
+      next.set('model', name);
+      setSearchParams(next, { replace: true });
+    }
     previousModelParam.current = name;
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, routeParams.model, navigate]);
 
   // Sync model FROM URL param (browser back/forward, external navigation, initial load ONLY)
   // This effect should NOT run when handleSelectModel changes the URL — previousModelParam guards that
+  // Only the ACTIVE window reacts to URL changes — inactive windows keep their last model
   useEffect(() => {
+    if (!isActiveWindow) return;
     if (!modelNames.length) return;
     // URL param present and different from what we currently show — always switch
     if (modelParam && modelNames.includes(modelParam) && modelParam !== selectedModel) {
@@ -356,7 +429,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
       setSelectedModel(modelNames[0]);
       previousModelParam.current = modelNames[0];
     }
-  }, [modelNames, modelParam, selectedModel]); // include selectedModel to detect stale state
+  }, [modelNames, modelParam, selectedModel, isActiveWindow]); // include selectedModel to detect stale state
 
   // ---------------------------------------------------------------------------
   // Load models
@@ -383,6 +456,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // ---------------------------------------------------------------------------
 
   const fetchRecords = useCallback(async () => {
+    if (!isActiveWindow) return; // inactive windows don't fetch
     if (!selectedModel || (modelNames.length && !modelNames.includes(selectedModel))) return;
     const fetchId = modelChangeRef.current;
     console.log('[DB]', instanceId.current, 'fetchRecords', selectedModel, 'fetchId=', fetchId);
@@ -400,8 +474,15 @@ export function useDataBrowser(isAuthenticated: boolean) {
       dbLog('fetchRecords:fields', { model: selectedModel, fieldCount: fields.length, fields: fields.slice(0, 10) });
 
       const params: Record<string, unknown> = { limit: PAGE_SIZE, offset: page * PAGE_SIZE };
-      if (activeSearch.trim()) params.keyword = activeSearch.trim();
+      if (activeSearch.trim().length >= 3) params.keyword = activeSearch.trim();
       if (sort) params.ordering = sort.direction === 'desc' ? `-${sort.field}` : sort.field;
+      // Apply URL filter params (e.g. dt_created__gte from dashboard drill-down links)
+      const urlFilters = urlFiltersRef.current;
+      if (urlFilters) {
+        for (const [k, v] of Object.entries(urlFilters)) {
+          if (!params[k]) params[k] = v;
+        }
+      }
 
       const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
       if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
@@ -442,7 +523,9 @@ export function useDataBrowser(isAuthenticated: boolean) {
         const faRec = (faRes?.results || [])[0];
         setFieldBehaviors(faRec?.config?.field_behaviors || {});
         setFieldDefaults(faRec?.prefs?.defaults || {});
-      } catch { setFieldBehaviors({}); setFieldDefaults({}); }
+        setFieldGroups(faRec?.config?.field_groups || []);
+        setDefaultCollapsed(faRec?.config?.default_collapsed || []);
+      } catch { setFieldBehaviors({}); setFieldDefaults({}); setFieldGroups([]); setDefaultCollapsed([]); }
     } catch (e) {
       if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
       const msg = errMsg(e, 'Failed to load records');
@@ -450,7 +533,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
       dbLog.error('fetchRecords:failed', { model: selectedModel, error: msg });
     }
     finally { setRecordsLoading(false); fetchingRef.current = false; }
-  }, [selectedModel, modelNames, page, activeSearch, sort]);
+  }, [selectedModel, modelNames, page, activeSearch, sort, isActiveWindow]);
   // NOTE: workbenchSettingsMap intentionally excluded — it changes when layouts are saved,
   // which would cause infinite re-fetch. We read it inside fetchRecords via closure.
 
@@ -744,7 +827,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
   }, [selectedModel, selectedId, modelLabel, records]);
 
   // Protected layouts — never overwrite these
-  const PROTECTED_VIEWS = ['alice_guess', 'alphabetical', 'alpha', 'best_guess'];
+  const PROTECTED_VIEWS = ['alice_guess', 'alphabetical', 'alpha', 'best_guess', 'flat'];
 
   // Update list fields — persists to data.list (survives reload) but does NOT touch named views.
   // User must explicitly Save/Save As to commit to a named view.
@@ -798,6 +881,8 @@ export function useDataBrowser(isAuthenticated: boolean) {
     colWidths, setColWidths, handleColumnDrop, handleResizeStart,
     // Field behaviors
     fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes,
+    // Field groups
+    fieldGroups, currentCollapsed, toggleFieldGroup,
     // CRUD
     updateField, handleSaveRecord, handleDeleteRecord, validationErrors,
     updateListLayout,

@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: AdminWorkbench, Router | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: DataBrowser, Router | WhoCreated: Claude */
 /**
  * TransactionDetail — JSON-driven transaction detail renderer.
  *
@@ -14,6 +14,7 @@ import type { RootState } from '@/store';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { populateCommission } from '@/api/wcapi';
 import { getNextLineNumber } from '../utils/lineHelpers';
 import type { TransactionLine } from '../types/transactionTypes';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -22,7 +23,9 @@ import { useCustomerSearch } from './detail/CustomerSearch';
 import HeaderRenderer from './detail/HeaderRenderer';
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
-import TransactionToolbar from './detail/TransactionToolbar';
+import { DetailToolbar } from '@/components/common/DetailToolbar';
+import ManageActionPanel from '@/components/common/ManageActionPanel';
+import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
 import DesignMode from './detail/DesignMode';
 
 // ---------------------------------------------------------------------------
@@ -33,6 +36,9 @@ interface TransactionDetailProps {
   modelName?: string;
   recordId?: number;
   onClose?: () => void;
+  /** When true, rendered inside DataBrowser — hide toolbar (DB has its own) */
+  inline?: boolean;
+  [key: string]: unknown;  // accept extra props from DataBrowser
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +49,8 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
   modelName: propModelName,
   recordId: propRecordId,
   onClose,
+  inline,
+  ...rest
 }) => {
   const params = useParams<{ model?: string; id?: string }>();
   const modelName = propModelName || params.model || 'order';
@@ -167,7 +175,9 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
       if (custId > 0) {
         applyCustomerDefaults(custId).then(defaults => {
           setEditData((prev: any) => prev ? { ...prev, ...defaults } : prev);
-          dispatch(showToast({ message: `Customer defaults applied: ${defaults.company}`, type: 'success' }));
+          const isStaff = authUser?.is_staff || authUser?.is_superuser;
+          const repMsg = (defaults.has_reps && isStaff) ? ' (commission will populate on save)' : '';
+          dispatch(showToast({ message: `Customer defaults applied: ${defaults.company}${repMsg}`, type: 'success' }));
         }).catch(() => {
           dispatch(showToast({ message: 'Could not load customer defaults', type: 'error' }));
         });
@@ -196,6 +206,21 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
       if (hasLines) { await saveTransactionWithLines(modelName, editData); }
       else { await saveRecord(modelName, editData); }
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
+      // Auto-populate commission if customer has reps — staff only
+      const txId = editData.id;
+      const sellModels = ['order', 'proposal', 'invoice'];
+      const isStaff = authUser?.is_staff || authUser?.is_superuser;
+      if (isStaff && editData.has_reps && txId && sellModels.includes(modelName)) {
+        try {
+          const commResult = await populateCommission(modelName, txId);
+          if (commResult.lines_updated > 0) {
+            dispatch(showToast({
+              message: `Commission populated: ${commResult.reps?.map((r: any) => r.name).join(', ') || 'reps assigned'}`,
+              type: 'info',
+            }));
+          }
+        } catch { /* commission populate is best-effort */ }
+      }
       setIsEditing(false);
       fetchData();
     } catch (err) {
@@ -257,37 +282,24 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         )}
       </div>
 
-      {/* Toolbar */}
-      <TransactionToolbar
-        data={data}
-        currentData={currentData}
-        modelName={modelName}
-        layout={activeLayout}
-        isEditing={isEditing}
-        canEdit={canEdit}
-        saving={saving}
-        companyInfo={companyInfo}
-        logos={logos}
-        documentText={documentText}
-        onEdit={handleEdit}
-        onAddNew={handleAddNew}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        designMode={designMode}
-        userRole={authUser?.role}
-        onToggleDesign={() => {
-          if (designMode) {
-            // Exiting design mode — invalidate cache so layout reloads from server
-            setDesignMode(false);
-            setDesignLayout(null);
-            invalidateLayout();
-          } else {
-            // Entering design mode — copy current layout for editing
-            setDesignMode(true);
-            if (layout) setDesignLayout(JSON.parse(JSON.stringify(layout)));
-          }
-        }}
-      />
+      {/* Toolbar — hidden when inline (DataBrowser has its own) */}
+      {!inline && (
+        <DetailToolbar
+          data={data}
+          currentData={currentData}
+          modelName={modelName}
+          layout={activeLayout}
+          isEditing={isEditing}
+          canEdit={canEdit}
+          saving={saving}
+          companyInfo={companyInfo}
+          logos={logos}
+          documentText={documentText}
+          onAddNew={handleAddNew}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
 
       {/* Design mode panel */}
       {designMode && activeLayout && (
@@ -298,6 +310,11 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
             onLayoutChange={(newLayout) => setDesignLayout(newLayout)}
           />
         </div>
+      )}
+
+      {/* Document lineage — shows chain when this record has parent/children */}
+      {currentData && (
+        <TransactionFlowIndicator modelName={modelName} record={currentData} />
       )}
 
       {/* Content — scrollable */}
@@ -355,6 +372,12 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
               return null;
           }
         })}
+        <ManageActionPanel
+          modelName={modelName}
+          recordId={recordId}
+          record={currentData}
+          onActionComplete={fetchData}
+        />
       </div>
     </div>
   );

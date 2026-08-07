@@ -339,4 +339,4 @@ const SplitLineModal: React.FC<SplitLineModalProps> = ({
   );
 };
 
-export default withDevIdentifier(SplitLineModal, 'SplitLineModal', 'rose');
+export default withDevIdentifier(SplitLineModal, 'SplitLineModal', 'rose', 'apps/transactions/components/SplitLineModal.tsx');

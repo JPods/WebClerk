@@ -360,4 +360,4 @@ function UserAddressCard() {
   );
 }
 
-export default withDevIdentifier(UserAddressCard, 'UserAddressCard', 'amber');
+export default withDevIdentifier(UserAddressCard, 'UserAddressCard', 'amber', 'components/UserProfile/UserAddressCard.tsx');

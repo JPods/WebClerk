@@ -303,4 +303,4 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
   );
 };
 
-export default withDevIdentifier(EmailGatePanel, 'EmailGatePanel', 'teal');
+export default withDevIdentifier(EmailGatePanel, 'EmailGatePanel', 'teal', 'apps/common/components/panels/EmailGatePanel.tsx');

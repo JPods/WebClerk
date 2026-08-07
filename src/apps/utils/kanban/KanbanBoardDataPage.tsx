@@ -508,4 +508,4 @@ const KanbanBoardDataPage: React.FC = () => {
   );
 };
 
-export default withDevIdentifier(KanbanBoardDataPage, 'KanbanBoardDataPage');
+export default withDevIdentifier(KanbanBoardDataPage, 'KanbanBoardDataPage', 'rose', 'apps/utils/kanban/KanbanBoardDataPage.tsx');

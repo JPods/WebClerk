@@ -28,7 +28,7 @@ import {
 } from "@/components/form/useColumnCount";
 import { Input } from "@/components/wrapper";
 import { SimpleDetailHeader } from "@/components/common/SimpleDetailHeader";
-import { SimpleDetailToolbar } from "@/components/common/SimpleDetailToolbar";
+import { DetailToolbar } from "@/components/common/DetailToolbar";
 import {
   DetailTabs,
   useDetailTabs,
@@ -154,7 +154,7 @@ export default function MatricsDisplay({
       />
 
       {/* Toolbar */}
-      <SimpleDetailToolbar
+      <DetailToolbar
         mode={currentMode}
         isSaving={isSaving}
         onSave={handleSave}

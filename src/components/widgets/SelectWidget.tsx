@@ -1,13 +1,13 @@
 import type { WidgetProps } from "./types";
 
-const s = "w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
+const s = "w-full px-1.5 py-0.5 text-[inherit] border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
 
 export const SelectWidget: React.FC<WidgetProps> = ({
   name, value, onChange, disabled, options = [], className, mode,
 }) => {
   if (mode === "print") {
     const match = options.find(o => String(o.value) === String(value));
-    return <span className="text-xs">{match?.label || value || "—"}</span>;
+    return <span className="text-[inherit]">{match?.label || value || "—"}</span>;
   }
   return (
     <select

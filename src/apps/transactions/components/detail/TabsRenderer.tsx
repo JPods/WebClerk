@@ -1,5 +1,6 @@
 /* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
 import React from 'react';
+import { useAppSelector } from '@/store/hooks';
 import { getRecord, getRecords } from '@/api/wcapi';
 import DataGrid from '@/components/common/DataGrid';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
@@ -28,6 +29,8 @@ export interface TabsRendererProps {
 
 /** Render tabbed sections */
 const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, modelName, activeTab, onTabChange, onChange, onRefresh, loggedInUserName }) => {
+  const authUser = useAppSelector((s) => s.auth.user);
+  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   // Default to first tab if activeTab not in this section
   const tabIds = section.tabs.map(t => t.content);
   const currentTab = tabIds.includes(activeTab) ? activeTab : tabIds[0] || 'summary';
@@ -393,7 +396,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
           <div className="flex justify-between"><span className="text-slate-500">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods || totalCost)}</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>
+          {isStaff && <div className="flex justify-between"><span className="text-slate-500">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
           <div className="flex justify-between"><span className="text-slate-500">Cost Total</span><span className="font-mono">{fmt(cost.total || totalCost)}</span></div>
           <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
           <div className="flex justify-between">

@@ -15,7 +15,7 @@ export type PaymentStatus =
   | 'refunded'
   | 'partially_refunded';
 
-export type PaymentGateway = 'manual' | 'stripe' | 'paypal';
+export type PaymentGateway = 'manual' | 'stripe' | 'paypal' | 'spreedly';
 
 /** Matches wc3 PaymentMethod model */
 export interface PaymentMethod {

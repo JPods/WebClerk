@@ -1,6 +1,6 @@
 /**
  * CommerceDashboard.css — unified 5-tab commerce view.
- * Reuses the same CSS custom properties as AdminWorkbench.
+ * Reuses the same CSS custom properties as DataBrowser.
  */
 
 .cd-root[data-theme="dark"] {

@@ -12,7 +12,7 @@
  * 9. Print list
  * 10. Duplicate detection (highlight potential dupes)
  *
- * Replaces the inline table in AdminWorkbench.
+ * Replaces the inline table in DataBrowser.
  * Reusable in any page that needs a data table.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -799,7 +799,7 @@ export default function DataGrid(props: DataGridProps) {
           </td>
           {columns.map((f, ci) => {
             const spec = fieldSpecs[f];
-            const doWrap = spec?.wrap === true;
+            const doWrap = false; // List rows are always single-line; wrapping is for detail view
             const isTreeCol = treeColumn && f === treeColumn;
             return (
             <td key={f}

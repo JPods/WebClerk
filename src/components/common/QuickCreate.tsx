@@ -7,11 +7,11 @@ interface QuickAction {
 }
 
 const actions: QuickAction[] = [
-  { label: 'New Order', path: '/admin-wb?model=order&action=new' },
-  { label: 'New Proposal', path: '/admin-wb?model=proposal&action=new' },
-  { label: 'New Purchase', path: '/admin-wb?model=purchase&action=new' },
-  { label: 'New Customer', path: '/admin-wb?model=customer&action=new' },
-  { label: 'New Contact', path: '/admin-wb?model=contact&action=new' },
+  { label: 'New Order', path: '/order?action=new' },
+  { label: 'New Proposal', path: '/proposal?action=new' },
+  { label: 'New Purchase', path: '/purchase?action=new' },
+  { label: 'New Customer', path: '/customer?action=new' },
+  { label: 'New Contact', path: '/contact?action=new' },
 ]
 
 export default function QuickCreate() {

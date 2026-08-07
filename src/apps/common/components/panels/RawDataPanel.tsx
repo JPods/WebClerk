@@ -389,4 +389,4 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(RawDataPanel, "RawDataPanel", "teal");
+export default withDevIdentifier(RawDataPanel, "RawDataPanel", "teal", 'apps/common/components/panels/RawDataPanel.tsx');

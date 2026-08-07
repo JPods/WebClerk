@@ -380,4 +380,5 @@ export default withDevIdentifier(
   TransactionsPanel,
   "TransactionsPanel",
   "teal",
+  'apps/common/components/panels/TransactionsPanel.tsx',
 );

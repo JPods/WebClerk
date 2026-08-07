@@ -39,14 +39,14 @@ interface RecordCount {
 // ---------------------------------------------------------------------------
 
 const QUICK_ADDS = [
-  { label: "+ Order", to: "/admin-wb?model=order&action=new", accent: "bg-blue-600 text-white" },
-  { label: "+ Proposal", to: "/admin-wb?model=proposal&action=new", accent: "bg-indigo-600 text-white" },
-  { label: "+ Purchase", to: "/admin-wb?model=purchase&action=new", accent: "bg-emerald-600 text-white" },
-  { label: "+ Customer", to: "/admin-wb?model=customer&action=new", accent: "bg-amber-600 text-white" },
-  { label: "+ Contact", to: "/admin-wb?model=contact&action=new", accent: "bg-purple-600 text-white" },
-  { label: "Payments", to: "/db/payment", accent: "bg-teal-600 text-white" },
-  { label: "Expenses", to: "/db/payment?filter=type:expense", accent: "bg-rose-600 text-white" },
-  { label: "Statements", to: "/db/statement_line", accent: "bg-orange-600 text-white" },
+  { label: "+ Order", to: "/order?action=new", accent: "bg-blue-600 text-white" },
+  { label: "+ Proposal", to: "/proposal?action=new", accent: "bg-indigo-600 text-white" },
+  { label: "+ Purchase", to: "/purchase?action=new", accent: "bg-emerald-600 text-white" },
+  { label: "+ Customer", to: "/customer?action=new", accent: "bg-amber-600 text-white" },
+  { label: "+ Contact", to: "/contact?action=new", accent: "bg-purple-600 text-white" },
+  { label: "Payments", to: "/payment", accent: "bg-teal-600 text-white" },
+  { label: "Expenses", to: "/payment?filter=type:expense", accent: "bg-rose-600 text-white" },
+  { label: "Statements", to: "/statement_line", accent: "bg-orange-600 text-white" },
 ];
 
 // Tables to query for the user's action records (mirrors wc2 Cal_SearchMySales)
@@ -61,12 +61,12 @@ const ACTION_TABLES = [
 
 // Models to count for the signed-in user
 const COUNT_MODELS: Omit<RecordCount, "count">[] = [
-  { model: "contact", label: "Contacts", link: "/admin-wb?model=contact" },
-  { model: "customer", label: "Customers", link: "/admin-wb?model=customer" },
-  { model: "proposal", label: "Proposals", link: "/admin-wb?model=proposal" },
-  { model: "order", label: "Orders", link: "/admin-wb?model=order" },
-  { model: "invoice", label: "Invoices", link: "/admin-wb?model=invoice" },
-  { model: "purchase", label: "Purchases", link: "/admin-wb?model=purchase" },
+  { model: "contact", label: "Contacts", link: "/contact" },
+  { model: "customer", label: "Customers", link: "/customer" },
+  { model: "proposal", label: "Proposals", link: "/proposal" },
+  { model: "order", label: "Orders", link: "/order" },
+  { model: "invoice", label: "Invoices", link: "/invoice" },
+  { model: "purchase", label: "Purchases", link: "/purchase" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -287,7 +287,7 @@ export default function Home() {
 
       {/* My Actions — link to standard DataBrowser */}
       <Link
-        to="/db/action"
+        to="/action"
         className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-[1px] hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-500"
       >
         <div className="flex items-center gap-3">

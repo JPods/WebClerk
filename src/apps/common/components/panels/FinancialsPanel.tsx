@@ -263,4 +263,4 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(FinancialsPanel, 'FinancialsPanel', 'teal');
+export default withDevIdentifier(FinancialsPanel, 'FinancialsPanel', 'teal', 'apps/common/components/panels/FinancialsPanel.tsx');

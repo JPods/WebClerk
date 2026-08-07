@@ -23,7 +23,7 @@ import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import { CommPanel } from '@/apps/communications/components';
 
 // Shared detail components
-import RecordToolbar from '@/components/common/RecordToolbar';
+import DetailToolbar from '@/components/common/DetailToolbar';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 
 // Existing panels — reuse as-is
@@ -31,6 +31,8 @@ import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
 import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
 import DataGrid from '@/components/common/DataGrid';
+import ProjectKanbanPanel from '@/apps/common/components/panels/ProjectKanbanPanel';
+import ProjectGanttPanel from '@/apps/common/components/panels/ProjectGanttPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,13 +41,19 @@ import DataGrid from '@/components/common/DataGrid';
 interface ContactDetailJsonProps {
   contactId?: number;
   recordId?: number;
+  inline?: boolean;
+  onRegisterActions?: (actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => void;
+  onEditStateChange?: (editing: boolean) => void;
+  onSaved?: () => void;
+  onCancelInline?: () => void;
+  [key: string]: any;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, recordId: propId }) => {
+const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, recordId: propId, inline, onRegisterActions, onEditStateChange, onSaved: onSavedProp, onCancelInline }) => {
   const resolvedPropId = propId || contactId;
   const params = useParams<{ id?: string }>();
   const recordId = resolvedPropId || (params.id ? Number(params.id) : 0);
@@ -141,6 +149,18 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
     setSaving(false);
   };
 
+  // Register actions for parent toolbar (when inline in DataBrowser)
+  useEffect(() => {
+    if (onRegisterActions) {
+      onRegisterActions({ save: handleSave, cancel: handleCancel, addNew: handleAddNew });
+    }
+  }, [onRegisterActions, handleSave, handleCancel, handleAddNew]);
+
+  // Report editing state to parent
+  useEffect(() => {
+    if (onEditStateChange) onEditStateChange(isEditing);
+  }, [isEditing, onEditStateChange]);
+
   // Loading states
   if (loading || layoutLoading) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Loading contact...</div>;
@@ -156,36 +176,33 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
   const tabs = tabsSection?.tabs || [
     { label: 'Communications', content: 'communications' },
     { label: 'Actions', content: 'actions' },
+    { label: 'Kanban', content: 'kanban' },
+    { label: 'Gantt', content: 'gantt' },
     { label: 'Documents', content: 'documents' },
     { label: 'Notes', content: 'notes' },
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" data-wc="contact-detail">
-      {/* Header bar */}
-      <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
-        <span className="text-sm font-bold text-slate-900 dark:text-white">Contact</span>
-        <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
-        <span className="text-xs text-slate-500">{data.attention || [data.name_first, data.name_last].filter(Boolean).join(' ')}</span>
-      </div>
-
-      {/* Toolbar */}
-      <RecordToolbar
-        data={data}
-        currentData={currentData}
-        modelName="contact"
-        layout={layout}
-        isEditing={isEditing}
-        saving={saving}
-        companyInfo={companyInfo}
-        logos={logos}
-        documentText={documentText}
-        userRole={authUser?.role}
-        onEdit={handleEdit}
-        onAddNew={handleAddNew}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
+    <div className="flex flex-col h-full overflow-hidden" data-wc="contact-detail" data-zone="db.detail.form | .contact-detail | ContactDetailJson.tsx">
+      {/* Toolbar — hidden when inline (DataBrowser owns the toolbar) */}
+      {!inline && (
+        <DetailToolbar
+          data={data}
+          currentData={currentData}
+          modelName="contact"
+          layout={layout}
+          isEditing={isEditing}
+          saving={saving}
+          companyInfo={companyInfo}
+          logos={logos}
+          documentText={documentText}
+          userRole={authUser?.role}
+          onEdit={handleEdit}
+          onAddNew={handleAddNew}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
@@ -194,8 +211,11 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
           <div className={`grid grid-cols-${columns.length} gap-3`}>
             {columns.map((col: any, colIdx: number) => (
               <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
-                  {col.title}
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
+                  <span>{col.title}</span>
+                  {colIdx === 0 && data.ida && (
+                    <span className="font-mono font-normal text-slate-400 dark:text-slate-500">{data.ida}</span>
+                  )}
                 </div>
                 {(col.fields || []).map((f: any) => (
                   <FieldRow
@@ -266,6 +286,12 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
                 isEditing={isEditing}
               />
             )}
+            {activeTab === 'kanban' && data.id && (
+              <ProjectKanbanPanel contactId={data.id} />
+            )}
+            {activeTab === 'gantt' && data.id && (
+              <ProjectGanttPanel contactId={data.id} />
+            )}
             {activeTab === 'documents' && (
               <DocumentsPanel
                 parent_model="contact"
@@ -296,4 +322,4 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
   );
 };
 
-export default withDevIdentifier(ContactDetailJson, 'ContactDetailJson');
+export default withDevIdentifier(ContactDetailJson, 'ContactDetailJson', 'indigo', 'apps/core/models/contact/pages/ContactDetailJson.tsx');

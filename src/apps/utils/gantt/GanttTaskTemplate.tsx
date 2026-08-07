@@ -466,4 +466,4 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   );
 };
 
-export default withDevIdentifier(GanttTaskTemplate, 'GanttTaskTemplate');
+export default withDevIdentifier(GanttTaskTemplate, 'GanttTaskTemplate', 'rose', 'apps/utils/gantt/GanttTaskTemplate.tsx');

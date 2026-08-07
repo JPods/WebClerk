@@ -346,4 +346,4 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   );
 };
 
-export default withDevIdentifier(PrintPreviewModal, 'PrintPreviewModal', 'rose');
+export default withDevIdentifier(PrintPreviewModal, 'PrintPreviewModal', 'rose', 'apps/transactions/components/PrintPreviewModal.tsx');

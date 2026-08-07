@@ -1,5 +1,5 @@
 /**
- * wcuiPrefs.ts — User UI preferences stored on Contact.metadata.wcui
+ * wcuiPrefs.ts — User UI preferences stored on Contact.prefs.wcui
  *
  * Preferences belong on the user's record, not in the browser.
  * localStorage is the cache; the Contact record is the source of truth.
@@ -61,7 +61,7 @@ export function setWcuiPref(key: string, value: any) {
   prefs[key] = value;
   _saveCache(prefs);
 
-  // Save to server (Contact.metadata.wcui) — fire and forget
+  // Save to server (Contact.prefs.wcui) — fire and forget
   _saveToServer(key, value);
 }
 
@@ -82,7 +82,7 @@ function _saveToServer(key: string, value: any) {
     _pendingSave = {};
     try {
       const { manageAction } = await import('@/api/wcapi');
-      // Use a lightweight manage action to patch metadata.wcui
+      // Use a lightweight manage action to patch prefs.wcui
       await manageAction('save_wcui_prefs', { prefs: updates });
     } catch (e) {
       console.warn('[wcui] Server save failed:', e);
@@ -98,10 +98,10 @@ function _saveToServer(key: string, value: any) {
 export async function loadWcuiFromServer() {
   try {
     const { getRecords } = await import('@/api/wcapi');
-    const res = await getRecords('contact', { filters: { email: '_me_' }, fields: ['metadata'], limit: 1 }) as any;
+    const res = await getRecords('contact', { filters: { email: '_me_' }, fields: ['prefs'], limit: 1 }) as any;
     const contact = res?.results?.[0];
-    if (contact?.metadata?.wcui) {
-      const serverPrefs = contact.metadata.wcui;
+    const serverPrefs = contact?.prefs?.staff?.wcui || contact?.prefs?.wcui;
+    if (serverPrefs) {
       const localPrefs = _loadCache();
       // Server wins for each key that exists on server
       const merged = { ...localPrefs, ...serverPrefs };

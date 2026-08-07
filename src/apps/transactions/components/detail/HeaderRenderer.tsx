@@ -114,7 +114,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   onClick={() => {
                     const actionId = data?.actions?.items?.[0]?.id;
                     if (actionId) {
-                      window.open(`/db/action?id=${actionId}`, '_blank');
+                      window.open(`/action?id=${actionId}`, '_blank');
                     }
                   }}
                   title="Click to open action record"

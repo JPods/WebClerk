@@ -25,6 +25,8 @@ import {
   Receipt,
   CircleDollarSign,
   Braces,
+  ArrowLeftRight,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
@@ -57,6 +59,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   work_order: Wrench,
   workorder: Wrench,
   item: Package,
+  products: Package,
+  transactions: ShoppingCart,
+  orgs: Users,
+  sync: ArrowLeftRight,
+  support: LifeBuoy,
+  operations: Settings,
+  administration: Settings,
   serial: Package,
   action: ClipboardList,
   setting: Settings,
@@ -81,10 +90,18 @@ const ROUTE_MAP: Record<string, string> = {
   dashboard: "/dashboard",
   kanban: "/kanban",
   gantt: PageRoutes.gantt,
-  accounting: "/accounting",
+  products: "/products",
+  transactions: "/transactions",
+  orgs: "/orgs",
+  sync: "/operations?tab=sync",
+  support: "/operations?tab=support",
+  accounting: "/operations?tab=accounting",
+  operations: "/operations",
+  administration: "/administration",
   alice: "/alice-dashboard",
-  databrowser: "/admin-wb",
+  databrowser: "/databrowser",
   json: "/json-tree",
+  adjust: "/inventory-adjust",
 };
 
 function routeFor(name: string): string {
@@ -93,11 +110,19 @@ function routeFor(name: string): string {
 
 // ─── Defaults (used when user has no prefs.nav) ──────────────────────
 const DEFAULT_MODELS = ["contact", "customer", "proposal", "order", "invoice", "purchase"];
-const DEFAULT_DASHBOARDS = ["dashboard", "kanban", "gantt", "item", "accounting", "alice", "databrowser", "json"];
+const DEFAULT_DASHBOARDS = ["dashboard", "products", "transactions", "orgs", "administration", "kanban", "gantt", "alice", "databrowser", "json"];
 
 // ─── Display names (capitalize, handle special cases) ────────────────
 const DISPLAY_NAMES: Record<string, string> = {
-  databrowser: "DataBrowser",
+  adjust: "Adjust",
+  products: "Products",
+  transactions: "Transactions",
+  orgs: "Orgs",
+  sync: "Sync",
+  support: "Support",
+  operations: "Operations",
+  administration: "Administration",
+  databrowser: "databrowser",
   json: "JSON",
   alice: "Alice",
   work_order: "Work Order",
@@ -138,6 +163,7 @@ const AppSidebar: React.FC = () => {
 
   const modelItems = buildItems(modelNames);
   const dashboardItems = buildItems(dashboardNames);
+  console.log('[AppSidebar] dashboardNames:', dashboardNames, 'from prefs:', !!navPrefs?.dashboards);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: string;
@@ -172,11 +198,11 @@ const AppSidebar: React.FC = () => {
   };
 
   const openWindow = (path: string, title: string, shiftKey?: boolean) => {
-    if (shiftKey && !path.startsWith("/admin-wb")) {
+    if (shiftKey && !path.startsWith("/databrowser")) {
       const segments = path.replace(/^\//, "").split("/");
       const modelGuess =
         segments.length >= 2 ? segments[segments.length - 2] : segments[0];
-      const dbPath = `/admin-wb?model=${modelGuess}`;
+      const dbPath = `/${modelGuess}`;
       ensureWindow(dbPath, `DB: ${title}`);
       activateWindow(dbPath);
       return;

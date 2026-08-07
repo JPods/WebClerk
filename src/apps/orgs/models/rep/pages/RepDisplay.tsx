@@ -38,7 +38,7 @@ import {
 } from "@/components/common/DetailTabs";
 import { useAppSelector } from "@/store/hooks";
 import { PageRoutes } from "../../../../../routes/Routes";
-import { dynamicData } from "../../../../../model/dynamicData";
+import { dynamicData } from "../../../../../type/dynamicData";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 type RepFormValues = z.infer<typeof repSchema>;
@@ -719,4 +719,4 @@ export function RepDetailPage() {
   return <RepDetail />;
 }
 
-export default withDevIdentifier(RepDetail, "RepDetail");
+export default withDevIdentifier(RepDetail, "RepDetail", 'indigo', 'apps/orgs/models/rep/pages/RepDisplay.tsx');

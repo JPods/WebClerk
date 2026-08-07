@@ -342,7 +342,7 @@ function buildTransactionTemplate(data: CommercePdfData): { template: Template; 
 
   // --- Line items rows ---
   const maxLines = Math.min(data.lines.length, 40); // safety cap per page
-  const isInvoice = data.meta.documentType === 'invoice';
+  const isInvoice = data.meta.documentType === 'invoice' || data.meta.documentType === 'creditmemo';
 
   for (let i = 0; i < maxLines; i++) {
     const ln = data.lines[i];

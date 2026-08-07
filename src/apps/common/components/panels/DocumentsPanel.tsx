@@ -636,4 +636,4 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(DocumentsPanel, "DocumentsPanel", "teal");
+export default withDevIdentifier(DocumentsPanel, "DocumentsPanel", "teal", 'apps/common/components/panels/DocumentsPanel.tsx');

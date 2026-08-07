@@ -181,4 +181,4 @@ function SprintBurndown({ projectId, compact = false }: SprintBurndownProps) {
   );
 }
 
-export default withDevIdentifier(SprintBurndown, 'SprintBurndown');
+export default withDevIdentifier(SprintBurndown, 'SprintBurndown', 'indigo', 'apps/core/models/action/pages/SprintBurndown.tsx');

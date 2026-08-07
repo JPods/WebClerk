@@ -3,7 +3,7 @@
  * GanttProjectSelector - Multi-select project listbox for Gantt chart
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface ProjectPrefs {
@@ -21,6 +21,14 @@ export interface ProjectOption {
   actionCount?: number;
   prefs?: ProjectPrefs;
   id_parent?: string | number | null;
+  category?: string;
+  dt_start?: number;
+  dt_end?: number;
+}
+
+interface GanttPrefs {
+  categories?: string[];
+  byid?: number[];
 }
 
 interface GanttProjectSelectorProps {
@@ -29,6 +37,8 @@ interface GanttProjectSelectorProps {
   onSelectionChange: (ids: string[]) => void;
   isLoading?: boolean;
   disabled?: boolean;
+  ganttPrefs?: GanttPrefs;
+  onSaveGanttPrefs?: (prefs: GanttPrefs) => void;
 }
 
 // Color palette for projects
@@ -80,8 +90,25 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   onSelectionChange,
   isLoading = false,
   disabled = false,
+  ganttPrefs,
+  onSaveGanttPrefs,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  // If ganttPrefs not passed from Redux (stale login), fetch from current user
+  const [fetchedPrefs, setFetchedPrefs] = useState<GanttPrefs | null>(null);
+  useEffect(() => {
+    if (!ganttPrefs?.categories?.length) {
+      (async () => {
+        try {
+          const res = await fetch('/wcapi/me/');
+          const json = await res.json();
+          const me = json.data?.record || json.data || json;
+          if (me?.prefs?.gantt) setFetchedPrefs(me.prefs.gantt);
+        } catch { /* no prefs */ }
+      })();
+    }
+  }, [ganttPrefs]);
+  const effectivePrefs = ganttPrefs?.categories?.length ? ganttPrefs : (fetchedPrefs || ganttPrefs);
   const [showAllLevels, setShowAllLevels] = useState(() => {
     try {
       const stored = localStorage.getItem('wc3_wcui_prefs');
@@ -92,6 +119,37 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
     } catch {}
     return false;
   });
+
+  // Build dynamic gantt list from categories + byid
+  const ganttListItems = useMemo(() => {
+    const items: { label: string; ids: string[] }[] = [];
+    const now = Date.now();
+    const categories = effectivePrefs?.categories || [];
+    const byid = effectivePrefs?.byid || [];
+
+    for (const cat of categories) {
+      const catProjects = projects
+        .filter(p => p.category?.toLowerCase() === cat.toLowerCase() && p.dt_start && p.dt_end)
+        .sort((a, b) => (a.dt_start || 0) - (b.dt_start || 0));
+
+      const last = [...catProjects].reverse().find(p => (p.dt_end || 0) < now);
+      const current = catProjects.find(p => (p.dt_start || 0) <= now && (p.dt_end || 0) >= now);
+      const next = catProjects.find(p => (p.dt_start || 0) > now);
+
+      const label = cat.toUpperCase();
+      if (last) items.push({ label: `${label} — Last Sprint`, ids: [last.id] });
+      if (current) items.push({ label: `${label} — Current Sprint`, ids: [current.id] });
+      if (next) items.push({ label: `${label} — Next Sprint`, ids: [next.id] });
+    }
+
+    // byid — specific projects
+    for (const id of byid) {
+      const p = projects.find(proj => String(proj.id) === String(id));
+      if (p) items.push({ label: p.name || p.ida || `#${id}`, ids: [p.id] });
+    }
+
+    return items;
+  }, [projects, effectivePrefs]);
 
   const filteredProjects = useMemo(() => {
     let list = projects;
@@ -181,13 +239,44 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   return (
     <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
       {/* Header */}
-      <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-          Projects
-        </h3>
-        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-          {selectedIds.length} of {projects.length} selected
-        </p>
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2 dark:border-gray-700">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Projects
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {selectedIds.length} of {projects.length} selected
+          </p>
+        </div>
+        <select
+          className="rounded border border-gray-300 bg-white px-1 py-0.5 text-[10px] text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+          style={{ width: 80, maxWidth: '100%' }}
+          title="Load a project set"
+          value=""
+          onChange={(e) => {
+            const val = e.target.value;
+            if (!val) return;
+            if (val === '__save__') {
+              // Add current selection as byid entries
+              const currentByid = ganttPrefs?.byid || [];
+              const newIds = selectedIds.map(Number).filter(n => !isNaN(n) && !currentByid.includes(n));
+              if (newIds.length === 0) return;
+              onSaveGanttPrefs?.({ ...ganttPrefs, byid: [...currentByid, ...newIds] });
+              return;
+            }
+            const idx = Number(val);
+            if (!isNaN(idx) && ganttListItems[idx]) {
+              onSelectionChange(ganttListItems[idx].ids);
+            }
+          }}
+        >
+          <option value="">My Sprints...</option>
+          {ganttListItems.map((item, i) => (
+            <option key={i} value={i}>{item.label}</option>
+          ))}
+          {ganttListItems.length > 0 && <option disabled>───</option>}
+          <option value="__save__">Add Current to My List...</option>
+        </select>
       </div>
 
       {/* Search */}
@@ -202,29 +291,18 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
         />
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-col gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleSelectAll}
-            disabled={disabled || isLoading || filteredProjects.length === 0}
-            className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            {allFilteredSelected ? "Deselect All" : "Select All"}
-          </button>
-          <button
-            type="button"
-            onClick={handleClear}
-            disabled={disabled || isLoading || selectedIds.length === 0}
-            className="flex-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Clear
-          </button>
-        </div>
+      {/* Action buttons — minimal style matching DataBrowser toolbars */}
+      <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-1 dark:border-gray-700" style={{ fontSize: 12, color: '#9cdcfe' }}>
+        <button type="button" onClick={handleSelectAll}
+          disabled={disabled || isLoading || filteredProjects.length === 0}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+        >📋 {allFilteredSelected ? "Deselect" : "Select All"}</button>
+        <button type="button" onClick={handleClear}
+          disabled={disabled || isLoading || selectedIds.length === 0}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: (disabled || selectedIds.length === 0) ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+        >✕ Clear</button>
         {hasHierarchy && (
-          <button
-            type="button"
+          <button type="button"
             onClick={() => {
               const next = !showAllLevels;
               setShowAllLevels(next);
@@ -236,10 +314,8 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
               } catch {}
             }}
             disabled={disabled || isLoading}
-            className="w-full rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
-          >
-            {showAllLevels ? "▴ Top Level Only" : "▾ Show Sub-Projects"}
-          </button>
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+          >{showAllLevels ? "▴ Top Only" : "▾ Sub-Projects"}</button>
         )}
       </div>
 
@@ -339,4 +415,4 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   );
 };
 
-export default withDevIdentifier(GanttProjectSelector, 'GanttProjectSelector');
+export default withDevIdentifier(GanttProjectSelector, 'GanttProjectSelector', 'rose', 'apps/utils/gantt/GanttProjectSelector.tsx');

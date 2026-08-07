@@ -848,7 +848,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(OrgLinkPanel, "OrgLinkPanel", "teal");
+export default withDevIdentifier(OrgLinkPanel, "OrgLinkPanel", "teal", 'apps/common/components/panels/OrgLinkPanel.tsx');
 // ---------------------------------------------------------------------------
 // Inline org record editor
 // ---------------------------------------------------------------------------

@@ -10,9 +10,11 @@
  * Usage:
  *   <ManageActionPanel modelName="order" recordId={123} record={orderData} />
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, lazy, Suspense } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
+
+const PackingPanel = lazy(() => import('@/apps/transactions/components/detail/PackingPanel'));
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +117,7 @@ export default function ManageActionPanel({ modelName, recordId, record, onActio
   const [loading, setLoading] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [dialogAction, setDialogAction] = useState<ActionDef | null>(null);
+  const [showPacking, setShowPacking] = useState(false);
 
   // Dialog state for various input forms
   const [dialogInputs, setDialogInputs] = useState<Record<string, any>>({});
@@ -141,6 +144,11 @@ export default function ManageActionPanel({ modelName, recordId, record, onActio
   }, [record, recordId, dispatch, onActionComplete]);
 
   const handleClick = useCallback((action: ActionDef) => {
+    // Ship Order opens the PackingPanel instead of the generic dialog
+    if (action.key === 'ship_order') {
+      setShowPacking(true);
+      return;
+    }
     if (action.needsDialog) {
       setDialogAction(action);
       setDialogInputs({});
@@ -240,6 +248,22 @@ export default function ManageActionPanel({ modelName, recordId, record, onActio
               <pre className="text-[10px] text-gray-600 dark:text-gray-400 overflow-auto max-h-32">{JSON.stringify(result.data, null, 2)}</pre>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Packing Panel — full pick/pack/ship workflow */}
+      {showPacking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPacking(false)}>
+          <div style={{ width: 720, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
+            <Suspense fallback={<div style={{ padding: 32, color: '#999', textAlign: 'center' }}>Loading...</div>}>
+              <PackingPanel
+                orderId={typeof recordId === 'number' ? recordId : parseInt(String(recordId))}
+                orderIda={record?.ida}
+                onComplete={() => { setShowPacking(false); onActionComplete?.(); }}
+                onClose={() => setShowPacking(false)}
+              />
+            </Suspense>
+          </div>
         </div>
       )}
 

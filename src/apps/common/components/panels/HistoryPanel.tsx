@@ -481,4 +481,4 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   );
 };
 
-export default withDevIdentifier(HistoryPanel, "HistoryPanel", "teal");
+export default withDevIdentifier(HistoryPanel, "HistoryPanel", "teal", 'apps/common/components/panels/HistoryPanel.tsx');

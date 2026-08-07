@@ -41,8 +41,8 @@ export default function RecordLink({ model, id, label, className }: RecordLinkPr
     e.stopPropagation();
 
     if (e.shiftKey) {
-      // Shift-click → DataBrowser
-      navigate(`/admin-wb?model=${model}`);
+      // Shift-click → databrowser
+      navigate(`/${model}`);
       return;
     }
 
@@ -50,7 +50,7 @@ export default function RecordLink({ model, id, label, className }: RecordLinkPr
     if (route) {
       navigate(`${route}/${id}`);
     } else {
-      navigate(`/admin-wb?model=${model}`);
+      navigate(`/${model}`);
     }
   }, [model, id, navigate]);
 

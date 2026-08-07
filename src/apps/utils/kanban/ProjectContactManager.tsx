@@ -378,4 +378,4 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
   );
 };
 
-export default withDevIdentifier(ProjectContactManager, 'ProjectContactManager');
+export default withDevIdentifier(ProjectContactManager, 'ProjectContactManager', 'rose', 'apps/utils/kanban/ProjectContactManager.tsx');
