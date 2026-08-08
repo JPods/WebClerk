@@ -166,8 +166,9 @@ export const resolveWindowElement = (path: string) => {
   const match = protectedRoutesConfig.find((r) => {
     if (r.path?.includes(":")) {
       const base = r.path.split(":")[0];
-      const baseNoSlash = base.endsWith("/") ? base.slice(0, -1) : base;
-      return cleanPath === baseNoSlash || cleanPath.startsWith(base);
+      // Parameterized routes require the path to have content after the base
+      // e.g., /customer/:id matches /customer/42, NOT /customer
+      return cleanPath.startsWith(base) && cleanPath.length > base.length;
     }
     return r.path === cleanPath;
   });
