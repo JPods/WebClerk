@@ -444,7 +444,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
         setModelNames((Array.isArray(data.model_names) ? data.model_names : []).slice().sort((a, b) => a.localeCompare(b)));
         const settings = await getAllWorkbenchFieldsSettings();
         const map: Record<string, WorkbenchFieldsSetting> = {};
-        settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.config; });
+        settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.config?.db || s.config; });
         setWorkbenchSettingsMap(map);
       } catch (e) { setModelsError(errMsg(e, 'Failed to load models')); }
       finally { setLoadingModels(false); }
@@ -508,7 +508,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
         const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'workbench_fields', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const wsRec = (wsRes?.results || [])[0];
-        ws = wsRec?.config || null;
+        ws = wsRec?.config?.db || wsRec?.config || null;
         wsId = wsRec?.id ?? null;
       } catch { /* use null */ }
       setWorkbenchSetting(ws);
@@ -653,17 +653,16 @@ export function useDataBrowser(isAuthenticated: boolean) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (settingId) {
-          // Surgical update: send each piece separately using dot-path ops
-          // config.list and config.detail update in place; views upsert by name
+          // Surgical update: write to config.db.* path
           const ops: Record<string, any> = {
             id: settingId,
-            'config.list': { mode: 'update', value: next.list || [] },
-            'config.detail': { mode: 'update', value: next.detail || [] },
+            'config.db.list': { mode: 'update', value: next.list || [] },
+            'config.db.detail': { mode: 'update', value: next.detail || [] },
           };
           // Upsert each named view individually
           for (const view of (next.views || [])) {
             if (view.name) {
-              ops[`config.views`] = { mode: 'upsert', key: 'name', value: view };
+              ops['config.db.views'] = { mode: 'upsert', key: 'name', value: view };
             }
           }
           await saveRecord('setting', ops);
@@ -672,7 +671,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
             name: `workbench_fields:${model}`,
             parent_model: model,
             purpose: 'workbench_fields',
-            config: next,
+            config: { db: next },
           });
           const newId = result?.id || result?.data?.id || result?.data?.record?.id;
           if (newId) workbenchSettingIdMap.current[model] = newId;
