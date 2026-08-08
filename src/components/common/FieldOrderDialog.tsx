@@ -58,6 +58,10 @@ interface Props {
   onClose: () => void;
   theme?: 'dark' | 'light';
   sampleRecord?: Record<string, any>;
+  /** Name of the paired view (detail when editing list, list when editing detail) */
+  pairedViewName?: string | null;
+  /** Called when user changes the paired view selection */
+  onPairedViewChange?: (viewName: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,7 +96,7 @@ const SIZABLE_TYPES = ['json', 'textarea', 'text'];
 export default function FieldOrderDialog({
   open, mode, allFields, visibleFields, fieldBehaviors, rowSizes: initialRowSizes,
   savedLayouts, activeLayoutName, onApply, onSaveLayout, onLoadLayout, onDeleteLayout, onClose, theme = 'dark',
-  colWidths: initialColWidths, sampleRecord,
+  colWidths: initialColWidths, sampleRecord, pairedViewName, onPairedViewChange,
 }: Props) {
   // Local edit state
   const [order, setOrder] = useState<string[]>([]);
@@ -380,6 +384,25 @@ export default function FieldOrderDialog({
             )}
           </div>
 
+          {/* Paired view selector — pick which detail opens from this list (or vice versa) */}
+          {onPairedViewChange && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {mode === 'list' ? 'Detail:' : 'List:'}
+              </span>
+              <select
+                value={pairedViewName || ''}
+                onChange={(e) => onPairedViewChange(e.target.value || null)}
+                style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text, cursor: 'pointer' }}
+              >
+                <option value="">Default</option>
+                {savedLayouts.map((l) => (
+                  <option key={l.name} value={l.name}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Save name input (inline, shows when Save clicked) */}
           {saveDialogOpen && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
@@ -401,11 +424,6 @@ export default function FieldOrderDialog({
             </div>
           )}
 
-          {/* Bulk actions */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <button onClick={handleSelectAll} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>All</button>
-            <button onClick={handleSelectNone} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>Min</button>
-          </div>
         </div>
 
         {/* ═══ Column headers ═══ */}

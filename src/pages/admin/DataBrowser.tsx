@@ -674,6 +674,7 @@ const DataBrowser: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveLayoutName, setSaveLayoutName] = useState('');
   const [showLayoutDialog, setShowLayoutDialog] = useState<'list' | 'detail' | null>(null);
+  const [pairedViewName, setPairedViewName] = useState<string | null>(null);
   const [showRelatedDialog, setShowRelatedDialog] = useState<'list' | 'detail' | null>(null);
   const [showReportsDialog, setShowReportsDialog] = useState<'list' | 'detail' | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -939,27 +940,33 @@ const DataBrowser: React.FC = () => {
           title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span className="db-model-count">({db.modelNames.length})</span></button>
         <input data-wc="db-search" className="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} />
         <div className="db-layout-bar">
-          {db.savedViews.length > 0 && (
-            <select
-              style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
-              value={db.activeViewName || ''}
-              title={db.workbenchSettingId ? `Setting #${db.workbenchSettingId} · Shift-click label to inspect` : 'Select a layout'}
-              onChange={(e) => {
-                const name = e.target.value;
-                if (name === '__reset__') { db.resetLayout(); return; }
-                const v = db.savedViews.find(sv => sv.name === name);
-                if (v) db.loadView(v);
-              }}
-            >
-              <option value="">Layout...</option>
-              {db.savedViews.map(v => (
-                <option key={v.name} value={v.name}>{v.name}</option>
-              ))}
-              <option value="__reset__">— Reset —</option>
-            </select>
-          )}
-          <Btn small variant="save" onClick={() => { setShowSaveDialog(true); setSaveLayoutName(db.activeViewName || ''); }}>Save</Btn>
-          {db.activeViewName && <Btn small onClick={() => db.saveView(db.activeViewName!)}>Update</Btn>}
+          <select
+            style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
+            value={db.activeViewName || ''}
+            title={db.workbenchSettingId ? `Setting #${db.workbenchSettingId}` : 'Layout'}
+            onChange={(e) => {
+              const name = e.target.value;
+              if (name === '__list_order__') { setShowLayoutDialog('list'); return; }
+              if (name === '__detail_order__') { setShowLayoutDialog('detail'); return; }
+              if (name === '__save__') { db.saveView(db.activeViewName || 'default', db.listFieldSpecs, 'list'); return; }
+              if (name === '__save_new__') { setShowSaveDialog(true); setSaveLayoutName(''); return; }
+              if (name === '__reset__') { db.resetLayout(); return; }
+              const v = db.savedViews.find(sv => sv.name === name);
+              if (v) db.loadView(v);
+            }}
+          >
+            <option value="">Layout...</option>
+            {db.savedViews.map(v => (
+              <option key={v.name} value={v.name}>{v.name}</option>
+            ))}
+            <option disabled>──────</option>
+            <option value="__list_order__">List Order...</option>
+            <option value="__detail_order__">Detail Order...</option>
+            <option disabled>──────</option>
+            <option value="__save__">Save</option>
+            <option value="__save_new__">Save As New...</option>
+            <option value="__reset__">Reset to Default</option>
+          </select>
         </div>
       </header>
 
@@ -1108,10 +1115,6 @@ const DataBrowser: React.FC = () => {
             }
           }} />}
           <span className="db-separator">|</span>
-          <Btn small variant="ghost" onClick={() => {
-            dbLog('openDialog:list', { model: db.selectedModel, allFields: db.allFields.length, visibleList: db.visibleListFields, visibleDetail: db.visibleDetailFields.length, behaviors: Object.keys(db.fieldBehaviors).length });
-            setShowLayoutDialog('list');
-          }}>List Order</Btn>
           <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
@@ -1531,6 +1534,8 @@ const DataBrowser: React.FC = () => {
         onLoadLayout={(layout) => db.loadView(layout)}
         onDeleteLayout={(name) => db.deleteView(name)}
         onClose={() => setShowLayoutDialog(null)}
+        pairedViewName={pairedViewName}
+        onPairedViewChange={setPairedViewName}
       />
     </div>
   );

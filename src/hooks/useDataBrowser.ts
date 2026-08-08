@@ -782,19 +782,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     const commit = () => {
       const v = Math.max(3, parseInt(input.value) || currentW);
       setColWidths((p) => ({ ...p, [field]: v }));
-      // Auto-save
-      if (selectedModel) {
-        setColWidths((latestWidths) => {
-          const cur = workbenchSetting ?? { list: [], detail: [] };
-          const updatedList = toFieldSpecs(cur.list || []).map(s => ({
-            ...s, width: latestWidths[s.field] ?? s.width,
-          }));
-          const next = { ...cur, list: updatedList };
-          setWorkbenchSetting(next);
-          persistSetting(selectedModel, next).catch(() => {});
-          return latestWidths;
-        });
-      }
+      // Local only — user must click Save to persist
       input.remove();
     };
     input.addEventListener('keydown', (e) => {
@@ -821,20 +809,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
       _hideResizeTooltip();
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      // Auto-save widths to the setting — update FieldSpec widths
-      if (selectedModel) {
-        setColWidths((latestWidths) => {
-          const cur = workbenchSetting ?? { list: [], detail: [] };
-          const updatedList = toFieldSpecs(cur.list || []).map(s => ({
-            ...s,
-            width: latestWidths[s.field] ?? s.width,
-          }));
-          const next = { ...cur, list: updatedList };
-          setWorkbenchSetting(next);
-          persistSetting(selectedModel, next).catch(() => {});
-          return latestWidths;
-        });
-      }
+      // Width change is local only — user must click Save to persist
     };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
   }, [colWidths, selectedModel, workbenchSetting, persistSetting]);
