@@ -14,6 +14,7 @@ import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
 import MarkdownEditor, { resolveTokens, type FieldPath } from '../../components/common/MarkdownEditor';
 import DataGrid from '../../components/common/DataGrid';
+import { getRecords } from '../../api/wcapi';
 import type { RowColorRule } from '../../components/common/DataGrid';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
 import { TB } from '../../components/common/toolbarActions';
@@ -115,6 +116,100 @@ const SPAWN_CONFIG: Record<string, Array<{ label: string; target: string; filter
     { label: 'Documents', target: 'document', filterKey: 'refs__links__contact_id' },
   ],
 };
+
+// ── RelatedPanel — embedded list of FK-connected records in detail view ──
+
+// Common FK patterns: model_id, contact_id, or refs__links__model_id
+const FK_PATTERNS: Record<string, Record<string, string>> = {
+  contact: {
+    email: 'contact_id', phone: 'contact_id', address: 'contact_id', domain: 'contact_id',
+    action: 'refs__links__contact_id', document: 'refs__links__contact_id',
+    question_answer: 'refs__links__contact_id',
+    order: 'customer_id', invoice: 'customer_id', payment: 'invoice__customer_id',
+  },
+  customer: { order: 'customer_id', invoice: 'customer_id', contact: 'customer_id' },
+  vendor: { purchase: 'vendor_id', contact: 'vendor_id' },
+  order: { order_line: 'order_id', document: 'refs__links__order_id', action: 'refs__links__order_id' },
+  invoice: { invoice_line: 'invoice_id', payment: 'invoice_id', document: 'refs__links__invoice_id' },
+  purchase: { purchase_line: 'purchase_id', document: 'refs__links__purchase_id' },
+  item: { serial: 'item_id', item_xref: 'item_id', org_item: 'item_id' },
+};
+
+function getFilterKey(parentModel: string, relatedModel: string): string {
+  return FK_PATTERNS[parentModel]?.[relatedModel] || `${parentModel}_id`;
+}
+
+function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
+  modelName: string; parentModel: string; parentId: number;
+  fontSize: number; theme: any;
+}) {
+  const [records, setRecords] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [columns, setColumns] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const filterKey = getFilterKey(parentModel, modelName);
+        const params: Record<string, any> = { [filterKey]: parentId, limit: 50 };
+        const res = await getRecords(modelName, params) as any;
+        if (cancelled) return;
+        const list = res?.results || [];
+        setRecords(list);
+        // Auto-detect columns from first record
+        if (list.length > 0) {
+          const keys = Object.keys(list[0]).filter(k =>
+            k !== 'id' && k !== 'uuid' && k !== 'version' && k !== 'is_deleted' &&
+            k !== 'is_archived' && k !== 'is_locked' && k !== 'search_vector' &&
+            k !== 'security_level' && k !== 'health_rating'
+          ).slice(0, 6);
+          setColumns(keys);
+        }
+      } catch (e) {
+        console.error(`[RelatedPanel] ${modelName}:`, e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [modelName, parentModel, parentId]);
+
+  return (
+    <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 4 }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        <span style={{ fontSize: fontSize - 2, color: theme.textMuted }}>{collapsed ? '▶' : '▼'}</span>
+        <span style={{ fontSize: fontSize - 1, fontWeight: 600, color: theme.accent, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {modelName.replace(/_/g, ' ')}
+        </span>
+        <span style={{ fontSize: fontSize - 2, color: theme.textMuted }}>({records.length})</span>
+        {loading && <span style={{ fontSize: fontSize - 2, color: theme.textDim }}>loading...</span>}
+      </div>
+      {!collapsed && records.length > 0 && (
+        <div style={{ padding: '0 4px 8px' }}>
+          <DataGrid
+            records={records}
+            columns={columns}
+            fontSize={fontSize - 1}
+            theme={theme}
+            hideToolbar
+            noDataMessage={`No ${modelName} records`}
+          />
+        </div>
+      )}
+      {!collapsed && !loading && records.length === 0 && (
+        <div style={{ padding: '4px 8px 8px', fontSize: fontSize - 2, color: theme.textMuted }}>
+          No {modelName.replace(/_/g, ' ')} records
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── HarvestBar — folder input + harvest button for StatementLine ──
 const HarvestBar: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
@@ -1337,6 +1432,18 @@ const DataBrowser: React.FC = () => {
                 theme={tDetail}
               />
             ) : null}
+
+            {/* Related panels — FK models listed in config.db.related[] */}
+            {db.selectedId && db.relatedModels.length > 0 && db.relatedModels.map((relModel) => (
+              <RelatedPanel
+                key={relModel}
+                modelName={relModel}
+                parentModel={db.selectedModel}
+                parentId={db.selectedId!}
+                fontSize={baseFontSize}
+                theme={tDetail}
+              />
+            ))}
 
             {/* JSON envelope panel — tree editors for metadata, prefs, config, refs */}
             {viewPref !== 'app' && db.selectedRecord && (
