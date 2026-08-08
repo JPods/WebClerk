@@ -62,15 +62,35 @@ class ContactMetadata(MetadataBase):
 
 # ── .prefs (inherits RecordPrefsBase) ──────────────────────────────
 
+class OrgLink(BaseModel):
+    """One org relationship this contact cares about.
+
+    Users add what matters for their context — buyer adds customer,
+    purchasing adds vendor + terms. No canonical fields for every
+    possible org relationship. Users control what's here.
+    """
+    model: str                                # org_type: customer, vendor, manufacturer, employee, rep
+    id: Optional[int] = None                  # OrgBase FK
+    company: Optional[str] = None             # display name (denormalized for convenience)
+    role: Optional[str] = None                # contact's role at this org
+    terms: Optional[str] = None               # payment terms if relevant
+    note: Optional[str] = None                # user's note about this relationship
+
+    class Config:
+        extra = 'allow'                       # users will add fields we haven't thought of
+
+
 class ContactPrefs(RecordPrefsBase):
     """Contact prefs — role-conditional sections activated by Setting.
 
     Base (every contact): userdefined, tags, pinned
+    orgs: org relationships this contact cares about
     staff: is_staff or employee FK
     employee: employee FK
     rep: rep FK
     cart: customer-facing contacts
     """
+    orgs: list[OrgLink] = Field(default_factory=list)
     staff: Optional[StaffPrefsMixin] = None
     employee: Optional[EmployeePrefsMixin] = None
     rep: Optional[RepPrefsMixin] = None

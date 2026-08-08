@@ -66,6 +66,7 @@ class DbLayout(BaseModel):
     detail: list[DbFieldSpec] = Field(default_factory=list)
     panel: list[DbFieldSpec] = Field(default_factory=list)
     card: list[DbFieldSpec] = Field(default_factory=list)
+    related: list[str] = Field(default_factory=list)  # FK model names to show as panels in detail
     views: list[DbNamedView] = Field(default_factory=list)
 
     class Config:
