@@ -813,7 +813,7 @@ export default function DataGrid(props: DataGridProps) {
                 textAlign: getAlign(f),
                 fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
                 paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
-                ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
+                width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
                 ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
@@ -860,6 +860,18 @@ export default function DataGrid(props: DataGridProps) {
     a.download = `export_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click(); URL.revokeObjectURL(a.href);
   }, [filteredRecords, columns]);
+
+  // Compute effective width per column — every column gets an explicit width
+  const DEFAULT_COL_W = 120;
+  const INDICATOR_W = 8;
+  const effectiveColWidths = useMemo(() => {
+    const w: Record<string, number> = {};
+    columns.forEach((f) => { w[f] = colWidths[f] || DEFAULT_COL_W; });
+    return w;
+  }, [columns, colWidths]);
+  const tableWidth = useMemo(() =>
+    INDICATOR_W + columns.reduce((sum, f) => sum + effectiveColWidths[f], 0),
+    [columns, effectiveColWidths]);
 
   // --- Early returns (AFTER all hooks) ---
   if (props.loading) {
@@ -924,7 +936,7 @@ export default function DataGrid(props: DataGridProps) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {!props.hideToolbar && toolbar}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize }}>
+        <table style={{ width: tableWidth, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize }}>
           <thead>
             {/* Header row */}
             <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
@@ -939,7 +951,7 @@ export default function DataGrid(props: DataGridProps) {
                       fontWeight: 600, fontSize: fontSize - 1, letterSpacing: '0.02em',
                       fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
                       cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      ...(colWidths[f] ? { width: colWidths[f], minWidth: colWidths[f] } : {}),
+                      width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
                       ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: t.surface, zIndex: 3 } : {}),
                     }}
                     draggable
