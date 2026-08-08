@@ -550,10 +550,13 @@ function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onTog
     return <div className="db-detail-grid">{presentFields.map(renderField)}</div>;
   }
 
-  // Partition fields into groups
+  // Partition fields into groups — preserve user's detail order within each group
+  const fieldOrder = new Map(presentFields.map((f, i) => [f, i]));
   const assigned = new Set<string>();
   const groups = fieldGroups.map(g => {
-    const gFields = g.fields.filter(f => presentFields.includes(f));
+    const gFields = g.fields
+      .filter(f => presentFields.includes(f))
+      .sort((a, b) => (fieldOrder.get(a) ?? 999) - (fieldOrder.get(b) ?? 999));
     gFields.forEach(f => assigned.add(f));
     return { ...g, presentFields: gFields };
   }).filter(g => g.presentFields.length > 0);
@@ -1536,6 +1539,8 @@ const DataBrowser: React.FC = () => {
         onClose={() => setShowLayoutDialog(null)}
         pairedViewName={pairedViewName}
         onPairedViewChange={setPairedViewName}
+        relatedModels={db.relatedModels}
+        onRelatedModelsChange={db.setRelatedModels}
       />
     </div>
   );

@@ -62,6 +62,10 @@ interface Props {
   pairedViewName?: string | null;
   /** Called when user changes the paired view selection */
   onPairedViewChange?: (viewName: string | null) => void;
+  /** Related model names shown as panels in detail view */
+  relatedModels?: string[];
+  /** Called when user changes related models text */
+  onRelatedModelsChange?: (models: string[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +100,7 @@ const SIZABLE_TYPES = ['json', 'textarea', 'text'];
 export default function FieldOrderDialog({
   open, mode, allFields, visibleFields, fieldBehaviors, rowSizes: initialRowSizes,
   savedLayouts, activeLayoutName, onApply, onSaveLayout, onLoadLayout, onDeleteLayout, onClose, theme = 'dark',
-  colWidths: initialColWidths, sampleRecord, pairedViewName, onPairedViewChange,
+  colWidths: initialColWidths, sampleRecord, pairedViewName, onPairedViewChange, relatedModels, onRelatedModelsChange,
 }: Props) {
   // Local edit state
   const [order, setOrder] = useState<string[]>([]);
@@ -400,6 +404,22 @@ export default function FieldOrderDialog({
                   <option key={l.name} value={l.name}>{l.name}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Related panels — FK model names shown as panels in detail view */}
+          {mode === 'detail' && onRelatedModelsChange && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Panels:
+              </span>
+              <input
+                type="text"
+                value={(relatedModels || []).join(', ')}
+                onChange={(e) => onRelatedModelsChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                placeholder="email, phone, action, order..."
+                style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text }}
+              />
             </div>
           )}
 

@@ -170,6 +170,7 @@ export type FieldGroup = {
 export type WorkbenchFieldsSetting = {
   list: (string | FieldSpec)[];
   detail: (string | FieldSpec)[];
+  related?: string[];   // FK model names shown as panels in detail view
   views?: NamedView[];
 };
 
@@ -658,6 +659,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
             id: settingId,
             'config.db.list': { mode: 'update', value: next.list || [] },
             'config.db.detail': { mode: 'update', value: next.detail || [] },
+            'config.db.related': { mode: 'update', value: next.related || [] },
           };
           // Upsert each named view individually
           for (const view of (next.views || [])) {
@@ -993,6 +995,15 @@ export function useDataBrowser(isAuthenticated: boolean) {
     // Layouts
     savedViews, activeViewName, saveView, loadView, deleteView, resetLayout,
     workbenchSettingId,
+    // Related panels
+    relatedModels: workbenchSetting?.related || [],
+    setRelatedModels: async (models: string[]) => {
+      if (!selectedModel) return;
+      const cur = workbenchSetting ?? { list: [], detail: [] };
+      const next = { ...cur, related: models };
+      setWorkbenchSetting(next);
+      await persistSetting(selectedModel, next);
+    },
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart, handleWidthClick,
     // Field behaviors
