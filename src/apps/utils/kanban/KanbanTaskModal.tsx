@@ -635,12 +635,13 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   ))}
                 </div>
                 <select
-                  className={`${controlClass}`}
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                  style={{ fontSize: 'inherit', padding: 0 }}
                   value={assigneeSelection}
                   onChange={handleAssigneeSelect}
                   disabled={isSaving}
                 >
-                  <option value="">Select assignee...</option>
+                  <option value="">Assignee</option>
                   {assigneeOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
@@ -787,18 +788,16 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Project
-                  </label>
                   <select
-                    className={controlClass}
+                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                    style={{ fontSize: 'inherit', padding: 0 }}
                     value={formState.projectId ?? ""}
                     onChange={(event) =>
                       onFieldChange("projectId", event.target.value)
                     }
                     disabled={isSaving}
                   >
-                    <option value="">Select project...</option>
+                    <option value="">Project</option>
                     {projectOptions.map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.name || option.intent || option.id}
@@ -851,13 +850,11 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Language
-              </label>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[180px] space-y-1">
                   <select
-                    className={controlClass}
+                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                    style={{ fontSize: 'inherit', padding: 0 }}
                     value={activeTranslation?.id || ""}
                     onChange={(event) =>
                       setActiveTranslationId(event.target.value)

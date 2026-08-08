@@ -2834,10 +2834,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     if (typeof ps.list_collapsed === 'boolean') setTaskListCollapsed(ps.list_collapsed);
                     if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
                   }}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                  style={{ fontSize: 'inherit', padding: 0 }}
                   title="Load a saved view configuration"
                 >
-                  <option value="">Views</option>
+                  <option value="">Views...</option>
                   {(projectMetadata?.kanban?.settings || [])
                     .sort((a: GanttSettingsSnapshot, b: GanttSettingsSnapshot) => (b.use_count || 0) - (a.use_count || 0))
                     .map((s: GanttSettingsSnapshot, i: number) => (
@@ -2853,7 +2854,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               <select
                 value={colorMode}
                 onChange={(e) => setColorMode(e.target.value as any)}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                style={{ fontSize: 'inherit', padding: 0 }}
               >
                 <option value="priority">Color: Priority</option>
                 <option value="status">Color: Status</option>
@@ -2869,7 +2871,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   setScalePreset(v);
                   import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_scale', v));
                 }}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                style={{ fontSize: 'inherit', padding: 0 }}
               >
                 {scaleButtons.map((b) => (
                   <option key={b.id} value={b.id}>{b.label}</option>
@@ -2894,9 +2897,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   }
                   e.target.value = '';
                 }}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                style={{ fontSize: 'inherit', padding: 0 }}
               >
-                <option value="">View</option>
+                <option value="">View...</option>
                 <option value="text">{textOverflow ? '✓' : '○'} Full Text</option>
                 <option value="cp">{criticalPathHighlight ? '✓' : '○'} Critical Path</option>
                 <option value="font+">A+ Larger</option>
@@ -2908,9 +2912,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 <select
                   value={assigneeFilter || ''}
                   onChange={(e) => setAssigneeFilter(e.target.value || null)}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                  style={{ fontSize: 'inherit', padding: 0 }}
                 >
-                  <option value="">All</option>
+                  <option value="">Who...</option>
                   {uniqueAssignees.map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}

@@ -40,13 +40,6 @@ const TRANSACTION_MODELS = [
   'receipt', 'requisition', 'payment',
 ];
 
-// All models that get a list view (/:model → DataBrowser)
-const ALL_LIST_MODELS = [
-  ...TRANSACTION_MODELS,
-  'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep',
-  'item', 'action', 'document', 'setting', 'report',
-];
-
 const Router: React.FC = () => {
   return (
     <BrowserRouter basename={import.meta.env.VITE_BASE_PATH || '/'}>
@@ -63,8 +56,9 @@ const Router: React.FC = () => {
 
         {/* Protected */}
         <Route element={<PrivateRoute />}>
-          <Route index element={<Home />} />
+          <Route index element={<Navigate to="/browser" replace />} />
           <Route path="dashboard" element={<Home />} />
+          <Route path="browser" element={<DataBrowser />} />
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />
           <Route path="help" element={<S><HelpDashboard /></S>} />
@@ -93,12 +87,10 @@ const Router: React.FC = () => {
           {['customer', 'vendor', 'manufacturer', 'employee', 'rep'].map(m =>
             <Route key={`${m}-id`} path={`${m}/:id`} element={<S><OrgDetailJson modelName={m} /></S>} />
           )}
-          {ALL_LIST_MODELS.map(m => <Route key={m} path={m} element={<DataBrowser />} />)}
-
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><TransactionDetail /></S>} />
 
-          {/* Catch-all: any model not explicitly routed above */}
+          {/* /:model — any model name → DataBrowser list */}
           <Route path=":model" element={<DataBrowser />} />
         </Route>
 

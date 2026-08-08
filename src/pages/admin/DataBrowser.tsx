@@ -1234,6 +1234,7 @@ const DataBrowser: React.FC = () => {
               onSort={(field) => db.handleSort(field)}
               onColumnDrop={db.handleColumnDrop}
               onResizeStart={db.handleResizeStart}
+              onWidthClick={db.handleWidthClick}
               onCellEdit={async (rid, field, value) => {
                 try {
                   const { saveRecord } = await import('@/api/wcapi');
@@ -1519,11 +1520,14 @@ const DataBrowser: React.FC = () => {
           if (showLayoutDialog === 'detail') {
             db.updateDetailLayout(fields, rowSizes);
           } else {
-            db.updateListLayout(fields);
-            db.setColWidths(colWidths);
+            db.updateListLayout(fields, colWidths);
+            db.setColWidths(prev => ({ ...prev, ...colWidths }));
           }
         }}
-        onSaveLayout={(name, fields) => db.saveView(name, fields, showLayoutDialog || 'list')}
+        onSaveLayout={(name, fields, widths) => {
+          if (widths) db.setColWidths(prev => ({ ...prev, ...widths }));
+          db.saveView(name, fields, showLayoutDialog || 'list', widths);
+        }}
         onLoadLayout={(layout) => db.loadView(layout)}
         onDeleteLayout={(name) => db.deleteView(name)}
         onClose={() => setShowLayoutDialog(null)}

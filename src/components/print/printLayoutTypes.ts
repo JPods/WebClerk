@@ -76,6 +76,12 @@ export interface SignatureSection {
   }[];
 }
 
+/** Body detail — non-repeating fields (attention, company, address, phone) */
+export interface DetailFieldsSection {
+  type: 'detail_fields';
+  fields: PrintField[];
+}
+
 export interface FooterSection {
   type: 'footer';
   fields: PrintField[];
@@ -100,6 +106,7 @@ export type PrintLayoutSection =
   | CompanyHeaderSection
   | AddressBlocksSection
   | MetaRowSection
+  | DetailFieldsSection
   | CommentsSection
   | LineItemsSection
   | TotalsSection

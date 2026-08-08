@@ -13,7 +13,8 @@
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getRecords, getRecord, saveRecord } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord, getFormLibrary, checkoutForm, submitFormToLibrary, restoreFormFromLibrary } from '@/api/wcapi';
+import type { FormLibraryEntry } from '@/api/wcapi';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
 import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
 import PrintLayoutDesigner from '@/components/print/PrintLayoutDesigner';
@@ -130,6 +131,60 @@ const ReportsDialog: React.FC<Props> = ({
   const [designReport, setDesignReport] = useState<ReportRecord | null>(null);
   const [designLayout, setDesignLayout] = useState<PrintLayout | null>(null);
   const [designSampleData, setDesignSampleData] = useState<any>(null);
+
+  // --- Library ---
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryForms, setLibraryForms] = useState<FormLibraryEntry[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryStatus, setLibraryStatus] = useState('');
+
+  const openLibrary = useCallback(() => {
+    setLibraryOpen(true);
+    setLibraryLoading(true);
+    setLibraryStatus('');
+    getFormLibrary(model).then(result => {
+      setLibraryForms(result.forms);
+      setLibraryStatus(result.forms.length === 0 ? `No forms in library for ${model}` : '');
+    }).catch(err => {
+      setLibraryStatus(`Library unavailable: ${err?.message || 'connection error'}`);
+      setLibraryForms([]);
+    }).finally(() => setLibraryLoading(false));
+  }, [model]);
+
+  const handleCheckout = useCallback(async (entry: FormLibraryEntry) => {
+    setLibraryStatus('Checking out...');
+    try {
+      // Fetch the full report record from the library
+      const fullRecord = await getRecord('report', entry.id);
+      const record = (fullRecord as any)?.record || fullRecord;
+      const result = await checkoutForm(entry.uuid, record);
+      setLibraryStatus(`${result.action === 'created' ? 'Checked out' : 'Updated'}: ${entry.name}`);
+      // Refresh the report list
+      setLoadedModel('');
+      setTimeout(() => setLibraryOpen(false), 1200);
+    } catch (err: any) {
+      setLibraryStatus(`Checkout failed: ${err?.message || 'error'}`);
+    }
+  }, []);
+
+  const handleSubmitToLibrary = useCallback(async (report: ReportRecord) => {
+    try {
+      const result = await submitFormToLibrary(report.id);
+      setLibraryStatus(`Submitted: ${result.name}`);
+    } catch (err: any) {
+      setLibraryStatus(`Submit failed: ${err?.message || 'error'}`);
+    }
+  }, []);
+
+  const handleRestore = useCallback(async (report: ReportRecord) => {
+    try {
+      await restoreFormFromLibrary(report.id);
+      setLoadedModel(''); // refresh
+      setLibraryStatus(`Restored: ${report.name} to library original`);
+    } catch (err: any) {
+      setLibraryStatus(`Restore failed: ${err?.message || 'error'}`);
+    }
+  }, []);
 
   const enterDesignMode = useCallback(async (report: ReportRecord) => {
     // Load layout from report.config.form or fallback to Setting
@@ -504,8 +559,69 @@ const ReportsDialog: React.FC<Props> = ({
           />
         )}
 
+        {/* Library pane — shows available forms from Andi/Alice */}
+        {libraryOpen && !designMode && (
+          <div style={{
+            flex: 1, borderLeft: `1px solid ${t.border}`,
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '8px 12px', borderBottom: `1px solid ${t.borderLight}`,
+              fontSize: fontSize - 1, color: t.accent, fontWeight: 700,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span>Form Library — {model}</span>
+              <span style={{ fontSize: fontSize - 2, color: t.textMuted, fontWeight: 400 }}>
+                Double-click to check out
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+              {libraryLoading && (
+                <div style={{ padding: 16, color: t.textMuted, textAlign: 'center' }}>
+                  Loading library...
+                </div>
+              )}
+              {!libraryLoading && libraryForms.length === 0 && (
+                <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center' }}>
+                  {libraryStatus || `No forms available for ${model}`}
+                </div>
+              )}
+              {!libraryLoading && libraryForms.map((entry) => (
+                <div key={entry.uuid}
+                  onDoubleClick={() => handleCheckout(entry)}
+                  style={{
+                    padding: '8px 16px', cursor: 'pointer',
+                    borderBottom: `1px solid ${t.borderLight}`,
+                    display: 'grid', gridTemplateColumns: '1fr 80px 80px',
+                    gap: 8, alignItems: 'center',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize, color: t.text }}>
+                      {entry.name}
+                    </div>
+                    {entry.description && (
+                      <div style={{ fontSize: fontSize - 2, color: t.textMuted, marginTop: 1 }}>
+                        {entry.description}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
+                    {entry.row_count} rows
+                  </span>
+                  <span style={{ fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
+                    {entry.field_count} fields
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Preview pane — shows sample data render for selected print report */}
-        {!designMode && showPreview && (
+        {!designMode && !libraryOpen && showPreview && (
           <div style={{
             flex: 1, borderLeft: `1px solid ${t.border}`,
             display: 'flex', flexDirection: 'column',
@@ -550,24 +666,92 @@ const ReportsDialog: React.FC<Props> = ({
                 </>
             }
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {canEditReports && !designMode && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {libraryStatus && (
+              <span style={{ fontSize: fontSize - 2, color: t.textMuted, marginRight: 4 }}>
+                {libraryStatus}
+              </span>
+            )}
+            {!designMode && !libraryOpen && (
               <button
-                onClick={() => enterDesignMode(filteredReports[selectedIndex])}
-                title="Visual layout designer (or Shift-click a report)"
+                onClick={openLibrary}
+                title="Browse form library from Andi/Alice"
                 style={{
                   padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
                   fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.accent}`,
-                  color: t.accent,
+                  background: 'none', border: `1px solid ${t.accentGreen || t.accent}`,
+                  color: t.accentGreen || t.accent,
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
               >
-                Design
+                Library
               </button>
             )}
-            {canEditReports && !designMode && (
+            {libraryOpen && (
+              <button
+                onClick={() => { setLibraryOpen(false); setLibraryStatus(''); }}
+                style={{
+                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                  fontSize: fontSize - 1, fontWeight: 600,
+                  background: 'none', border: `1px solid ${t.border}`,
+                  color: t.textMuted,
+                }}
+              >
+                Close Library
+              </button>
+            )}
+            {canEditReports && !designMode && !libraryOpen && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+              <>
+                <button
+                  onClick={() => enterDesignMode(filteredReports[selectedIndex])}
+                  title="Visual layout designer (or Shift-click a report)"
+                  style={{
+                    padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                    fontSize: fontSize - 1, fontWeight: 600,
+                    background: 'none', border: `1px solid ${t.accent}`,
+                    color: t.accent,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                >
+                  Design
+                </button>
+                {/* Submit selected form to library */}
+                <button
+                  onClick={() => handleSubmitToLibrary(filteredReports[selectedIndex])}
+                  title="Submit this form improvement to the library"
+                  style={{
+                    padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                    fontSize: fontSize - 1, fontWeight: 600,
+                    background: 'none', border: `1px solid ${t.border}`,
+                    color: t.text,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                >
+                  Submit
+                </button>
+                {/* Restore to library original */}
+                {(filteredReports[selectedIndex]?.config as any)?.library_original && (
+                  <button
+                    onClick={() => handleRestore(filteredReports[selectedIndex])}
+                    title="Restore to library original"
+                    style={{
+                      padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                      fontSize: fontSize - 1, fontWeight: 600,
+                      background: 'none', border: `1px solid ${t.accentGold || t.border}`,
+                      color: t.accentGold || t.text,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                  >
+                    Restore
+                  </button>
+                )}
+              </>
+            )}
+            {canEditReports && !designMode && !libraryOpen && (
               <button
                 onClick={() => {
                   onClose();
@@ -586,7 +770,7 @@ const ReportsDialog: React.FC<Props> = ({
                 Edit Layout
               </button>
             )}
-            {canEditReports && !designMode && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+            {canEditReports && !designMode && !libraryOpen && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <button
                 onClick={() => handleSetup(filteredReports[selectedIndex])}
                 style={{
@@ -601,7 +785,7 @@ const ReportsDialog: React.FC<Props> = ({
                 Report Setup
               </button>
             )}
-            {canCreateReports && !designMode && (
+            {canCreateReports && !designMode && !libraryOpen && (
               <button
                 onClick={handleNewReport}
                 style={{

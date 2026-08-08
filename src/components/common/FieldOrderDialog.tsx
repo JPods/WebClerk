@@ -52,7 +52,7 @@ interface Props {
   savedLayouts: SavedLayout[];
   activeLayoutName: string | null;
   onApply: (fields: string[], rowSizes: Record<string, number>, colWidths: Record<string, number>) => void;
-  onSaveLayout: (name: string, fields?: string[]) => void;
+  onSaveLayout: (name: string, fields?: string[], widths?: Record<string, number>) => void;
   onLoadLayout: (layout: SavedLayout) => void;
   onDeleteLayout: (name: string) => void;
   onClose: () => void;
@@ -120,7 +120,7 @@ export default function FieldOrderDialog({
     // Always save current state — user clicked Save, that's sovereign
     const fields = order.filter((f) => visible.has(f));
     onApply(fields, sizes, widths);
-    onSaveLayout(name.trim(), fields);
+    onSaveLayout(name.trim(), fields, widths);
     setSaveDialogOpen(false);
     setHasChanges(false);
   }, [onSaveLayout, onApply, order, visible, sizes, widths]);
@@ -486,10 +486,10 @@ export default function FieldOrderDialog({
                 {/* Column width (list mode) — shows recommended as placeholder */}
                 {mode === 'list' && (
                   <span style={{ width: 80, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                    <input type="number" min={40} max={600}
+                    <input type="number" min={3} max={600}
                       value={widths[field] || ''}
                       placeholder={String(getRecWidth(field))}
-                      onChange={(e) => setWidths((prev) => ({ ...prev, [field]: parseInt(e.target.value) || 0 }))}
+                      onChange={(e) => { const v = parseInt(e.target.value) || 0; setWidths((prev) => ({ ...prev, [field]: v > 0 ? Math.max(3, v) : 0 })); }}
                       onClick={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
                       style={{ width: 48, textAlign: 'center', fontSize: 11, padding: '2px 3px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: widths[field] ? text : textMuted }}

@@ -264,7 +264,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "var(--gantt-text-overflow, hidden)",
+        overflow: "visible",
         pointerEvents: "none",
         opacity: isDimmed ? 0.25 : 1,
         outline: emphasized ? "2px solid #3b82f6" : "none",
@@ -388,8 +388,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
         {/* Task Text */}
         <span
           style={{
-            overflow: "var(--gantt-text-overflow, hidden)",
-            textOverflow: "ellipsis",
+            overflow: "visible",
             whiteSpace: "nowrap",
             flex: 1,
             fontSize: "inherit",

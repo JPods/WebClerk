@@ -10,6 +10,7 @@
 import type {
   PrintLayout, PrintLayoutSection, PrintField,
   CompanyHeaderSection, AddressBlocksSection, MetaRowSection,
+  DetailFieldsSection,
   CommentsSection, LineItemsSection, TotalsSection,
   ConditionsSection, SignatureSection, FooterSection,
   DataTableSection,
@@ -135,6 +136,14 @@ function renderMetaRow(section: MetaRowSection, data: any): string {
     return `<div class="up-meta-item"><span class="up-meta-label">${esc(f.label || f.field)}</span><span>${esc(val || '--')}</span></div>`;
   }).join('');
   return `<div class="up-meta-row">${items}</div>`;
+}
+
+function renderDetailFields(section: DetailFieldsSection, data: any): string {
+  const items = section.fields.map(f => {
+    const val = resolveField(data, f);
+    return `<div class="up-detail-field"><span class="up-detail-label">${esc(f.label || f.field)}:</span> <span>${esc(val || '--')}</span></div>`;
+  }).join('');
+  return `<div class="up-detail-fields">${items}</div>`;
 }
 
 function renderComments(section: CommentsSection, data: any): string {
@@ -299,6 +308,7 @@ const RENDERERS: Record<string, (s: any, data: any, company: any) => string> = {
   company_header: renderCompanyHeader,
   address_blocks: renderAddressBlocks,
   meta_row: renderMetaRow,
+  detail_fields: renderDetailFields,
   comments: renderComments,
   line_items: renderLineItems,
   totals: renderTotals,
@@ -330,6 +340,9 @@ body { font-family: -apple-system, system-ui, 'Segoe UI', sans-serif; font-size:
 .up-meta-row { display: flex; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
 .up-meta-item { flex: 1; min-width: 120px; display: flex; gap: 4px; }
 .up-meta-label { font-size: 10px; font-weight: 700; color: #94a3b8; white-space: nowrap; }
+.up-detail-fields { margin: 8px 0; }
+.up-detail-field { display: flex; gap: 6px; padding: 2px 0; font-size: 12px; }
+.up-detail-label { font-weight: 700; color: #555; min-width: 100px; }
 .up-comments { margin: 8px 0; padding: 8px 12px; background: #f8f9fa; border-radius: 4px; font-size: 11px; }
 .up-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
 .up-table th { border-bottom: 2px solid #333; padding: 6px 8px; font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase; text-align: left; }

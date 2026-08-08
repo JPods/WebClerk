@@ -521,7 +521,82 @@ export function useDataBrowser(isAuthenticated: boolean) {
         const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'field_access' }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
-        setFieldBehaviors(faRec?.config?.field_behaviors || {});
+        const behaviors = faRec?.config?.field_behaviors || {};
+
+        // Dynamic assigned_to select for action model — three-tier fallback
+        if (selectedModel === 'action' && behaviors.assigned_to) {
+          const settingAssignTo = faRec?.prefs?.assigned_to;
+          let assignOptions: { label: string; value: string }[] = [];
+
+          // Tier 1: try active project — refs.links (full roster) then prefs.assign_to (curated)
+          try {
+            const projRes = await getRecords('project', {
+              status__in: 'open,in_progress',
+              order_by: '-dt_modified',
+              limit: 1,
+            }) as any;
+            const proj = (projRes?.results || [])[0];
+
+            // Tier 1a: flatten refs.links — vendor, customer, contact, manufacturer
+            const links = proj?.refs?.links || {};
+            const roster: { id?: number; name?: string; role?: string }[] = [];
+            for (const linkType of ['contact', 'vendor', 'customer', 'manufacturer']) {
+              const arr = links[linkType];
+              if (Array.isArray(arr)) {
+                arr.forEach((c: any) => {
+                  if (c.id || c.name) roster.push({ id: c.id, name: c.name || c.label, role: linkType });
+                });
+              }
+            }
+            if (roster.length > 0) {
+              // Deduplicate by id
+              const seen = new Set<number>();
+              assignOptions = roster.filter(r => { if (!r.id || seen.has(r.id)) return false; seen.add(r.id); return true; })
+                .map(r => ({
+                  label: `${r.name}${r.role && r.role !== 'contact' ? ` (${r.role})` : ''}`,
+                  value: JSON.stringify({ id: r.id, name: r.name, role: r.role }),
+                }));
+            }
+
+            // Tier 1b: curated prefs.assign_to overrides refs if present
+            const projAssignTo = proj?.prefs?.assigned_to;
+            if (Array.isArray(projAssignTo) && projAssignTo.length > 0) {
+              assignOptions = projAssignTo.map((p: any) => ({
+                label: p.name || p.label || `Contact ${p.id}`,
+                value: JSON.stringify({ id: p.id, name: p.name || p.label, role: p.role }),
+              }));
+            }
+          } catch { /* project fetch failed — fall through */ }
+
+          // Tier 2: setting.prefs.assign_to
+          if (assignOptions.length === 0 && Array.isArray(settingAssignTo) && settingAssignTo.length > 0) {
+            assignOptions = settingAssignTo.map((p: any) => ({
+              label: p.name || p.label || `Contact ${p.id}`,
+              value: JSON.stringify({ id: p.id, name: p.name || p.label }),
+            }));
+          }
+
+          // Tier 3: hardcoded crew seed
+          if (assignOptions.length === 0) {
+            assignOptions = [
+              { label: 'Bill James', value: JSON.stringify({ id: 8, name: 'Bill James' }) },
+              { label: 'Claude Code', value: JSON.stringify({ id: 10627, name: 'Claude Code' }) },
+              { label: 'Allie', value: JSON.stringify({ name: 'Allie' }) },
+              { label: 'Alice', value: JSON.stringify({ name: 'Alice' }) },
+              { label: 'Noelle', value: JSON.stringify({ name: 'Noelle' }) },
+              { label: 'Nora', value: JSON.stringify({ name: 'Nora' }) },
+            ];
+          }
+
+          behaviors.assigned_to = {
+            ...behaviors.assigned_to,
+            type: 'select',
+            source: 'inline',
+            options: assignOptions,
+          };
+        }
+
+        setFieldBehaviors(behaviors);
         setFieldDefaults(faRec?.prefs?.defaults || {});
         setFieldGroups(faRec?.config?.field_groups || []);
         setDefaultCollapsed(faRec?.config?.default_collapsed || []);
@@ -669,18 +744,82 @@ export function useDataBrowser(isAuthenticated: boolean) {
     persistSetting(selectedModel, next);
   }, [workbenchSetting, visibleListFields, selectedModel, persistSetting]);
 
-  // Column resize
+  // Column resize — with width tooltip
   const resizingRef = useRef<{ field: string; startX: number; startW: number } | null>(null);
+  const resizeTooltipRef = useRef<HTMLDivElement | null>(null);
+
+  const _showResizeTooltip = (x: number, y: number, width: number, field?: string) => {
+    if (!resizeTooltipRef.current) {
+      const tip = document.createElement('div');
+      tip.style.cssText = 'position:fixed;padding:2px 6px;background:#1e40af;color:#fff;font-size:11px;border-radius:3px;pointer-events:none;z-index:9999;font-family:monospace;white-space:nowrap;';
+      document.body.appendChild(tip);
+      resizeTooltipRef.current = tip;
+    }
+    resizeTooltipRef.current.textContent = `${width}px`;
+    resizeTooltipRef.current.style.left = `${x + 12}px`;
+    resizeTooltipRef.current.style.top = `${y - 8}px`;
+  };
+
+  const _hideResizeTooltip = () => {
+    if (resizeTooltipRef.current) {
+      resizeTooltipRef.current.remove();
+      resizeTooltipRef.current = null;
+    }
+  };
+
+  // Click on width badge to type a value directly
+  const handleWidthClick = useCallback((field: string, anchor: HTMLElement) => {
+    const currentW = colWidths[field] || 120;
+    const rect = anchor.getBoundingClientRect();
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '3';
+    input.max = '800';
+    input.value = String(currentW);
+    input.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom + 2}px;width:60px;padding:2px 4px;font-size:11px;font-family:monospace;text-align:center;border:1px solid #1e40af;border-radius:3px;background:#1a1a2e;color:#fff;z-index:9999;outline:none;`;
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+    const commit = () => {
+      const v = Math.max(3, parseInt(input.value) || currentW);
+      setColWidths((p) => ({ ...p, [field]: v }));
+      // Auto-save
+      if (selectedModel) {
+        setColWidths((latestWidths) => {
+          const cur = workbenchSetting ?? { list: [], detail: [] };
+          const updatedList = toFieldSpecs(cur.list || []).map(s => ({
+            ...s, width: latestWidths[s.field] ?? s.width,
+          }));
+          const next = { ...cur, list: updatedList };
+          setWorkbenchSetting(next);
+          persistSetting(selectedModel, next).catch(() => {});
+          return latestWidths;
+        });
+      }
+      input.remove();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') commit();
+      if (e.key === 'Escape') input.remove();
+    });
+    input.addEventListener('blur', commit);
+  }, [colWidths, selectedModel, workbenchSetting, persistSetting]);
+
   const handleResizeStart = useCallback((field: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    resizingRef.current = { field, startX: e.clientX, startW: colWidths[field] || 120 };
+    // Use the actual rendered width of the th element, not the stored value
+    const th = (e.target as HTMLElement).closest('th');
+    const renderedW = th ? th.getBoundingClientRect().width : (colWidths[field] || 120);
+    resizingRef.current = { field, startX: e.clientX, startW: Math.round(renderedW) };
     const onMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return;
-      const newW = resizingRef.current!.startW + ev.clientX - resizingRef.current!.startX;
-      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: Math.max(12, newW) }));
+      const newW = Math.max(5, resizingRef.current!.startW + ev.clientX - resizingRef.current!.startX);
+      setColWidths((p) => ({ ...p, [resizingRef.current!.field]: newW }));
+      _showResizeTooltip(ev.clientX, ev.clientY, newW);
     };
     const onUp = () => {
       resizingRef.current = null;
+      _hideResizeTooltip();
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       // Auto-save widths to the setting — update FieldSpec widths
@@ -705,24 +844,26 @@ export function useDataBrowser(isAuthenticated: boolean) {
   // Layouts
   // ---------------------------------------------------------------------------
 
-  const saveView = useCallback(async (name: string, fields?: (string | FieldSpec)[], mode?: 'list' | 'detail') => {
+  const saveView = useCallback(async (name: string, fields?: (string | FieldSpec)[], mode?: 'list' | 'detail', dialogWidths?: Record<string, number>) => {
     if (!selectedModel || !name.trim()) return;
     if (PROTECTED_VIEWS.includes(name.trim().toLowerCase())) {
       alert(`"${name}" is a system layout and cannot be overwritten.`);
       return;
     }
+    // Merge dialog widths (authoritative) with existing colWidths (fallback)
+    const effectiveWidths = { ...colWidths, ...(dialogWidths || {}) };
     const cur = workbenchSetting ?? { list: [], detail: [] };
     const views = [...(cur.views || [])];
     const idx = views.findIndex((v) => v.name === name.trim());
-    // Convert fields to FieldSpec objects, merge with current column widths
+    // Convert fields to FieldSpec objects, merge with effective widths
     const specs = fields ? toFieldSpecs(fields).map(s => ({
       ...s,
-      width: s.width || colWidths[s.field] || undefined,
+      width: s.width || effectiveWidths[s.field] || undefined,
     })) : undefined;
     // Only update the side (list or detail) that changed — preserve the other
     const listSpecs = (mode === 'list' && specs) ? specs : cur.list || [];
     const detailSpecs = (mode === 'detail' && specs) ? specs : cur.detail || [];
-    const view: NamedView = { name: name.trim(), list: listSpecs, detail: detailSpecs, listWidths: { ...colWidths } };
+    const view: NamedView = { name: name.trim(), list: listSpecs, detail: detailSpecs, listWidths: effectiveWidths };
     if (idx >= 0) views[idx] = view; else views.push(view);
     const next: WorkbenchFieldsSetting = { ...cur, list: listSpecs, detail: detailSpecs, views };
     setWorkbenchSetting(next); setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
@@ -831,11 +972,12 @@ export function useDataBrowser(isAuthenticated: boolean) {
 
   // Update list fields — persists to data.list (survives reload) but does NOT touch named views.
   // User must explicitly Save/Save As to commit to a named view.
-  const updateListLayout = useCallback(async (fields: (string | FieldSpec)[]) => {
+  const updateListLayout = useCallback(async (fields: (string | FieldSpec)[], dialogWidths?: Record<string, number>) => {
     if (!selectedModel) return;
+    const effectiveWidths = { ...colWidths, ...(dialogWidths || {}) };
     const cur = workbenchSetting ?? { list: [], detail: [] };
     const specs = toFieldSpecs(fields).map(s => ({
-      ...s, width: s.width || colWidths[s.field] || undefined,
+      ...s, width: s.width || effectiveWidths[s.field] || undefined,
     }));
     const next: WorkbenchFieldsSetting = { ...cur, list: specs };
     setWorkbenchSetting(next);
@@ -878,7 +1020,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
     savedViews, activeViewName, saveView, loadView, deleteView, resetLayout,
     workbenchSettingId,
     // Columns
-    colWidths, setColWidths, handleColumnDrop, handleResizeStart,
+    colWidths, setColWidths, handleColumnDrop, handleResizeStart, handleWidthClick,
     // Field behaviors
     fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes,
     // Field groups

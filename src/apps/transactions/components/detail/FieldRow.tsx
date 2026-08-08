@@ -83,6 +83,29 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const isClickable = resolvedType === 'select' || resolvedType === 'action' || resolvedType === 'search';
   return (
     <div className="flex items-baseline gap-2 py-0.5 relative">
+      {/* For select fields in edit mode: label IS the select */}
+      {isEditing && options ? (
+        <>
+          <select
+            value={val || ''}
+            onChange={(e) => onChange(field, e.target.value)}
+            className="text-[10px] font-semibold bg-transparent border-none cursor-pointer outline-none"
+            style={{ ...labelStyle, fontSize: 'inherit', padding: 0 }}
+            title={help || label}
+            onMouseEnter={(e) => { if (e.shiftKey && help) setShowHelp(true); }}
+            onMouseLeave={() => setShowHelp(false)}
+          >
+            <option value="">{label}</option>
+            {options.map(o => <option key={o} value={o}>{o.split('|')[0]}</option>)}
+          </select>
+          {showHelp && help && (
+            <div className="absolute left-20 top-0 z-50 bg-slate-800 text-white text-[10px] px-2 py-1 rounded shadow-lg max-w-64 whitespace-normal leading-relaxed">
+              {help}
+            </div>
+          )}
+        </>
+      ) : (
+      <>
       <span
         className={`text-[10px] font-medium w-16 shrink-0 text-right ${isClickable ? 'hover:underline cursor-pointer' : ''}`}
         style={labelStyle}
@@ -95,16 +118,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           {help}
         </div>
       )}
-      {isEditing && options ? (
-        <select
-          value={val || ''}
-          onChange={(e) => onChange(field, e.target.value)}
-          className="flex-1 text-xs px-1 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-        >
-          <option value="">—</option>
-          {options.map(o => <option key={o} value={o}>{o.split('|')[0]}</option>)}
-        </select>
-      ) : isEditing ? (
+      {isEditing ? (
         <input
           type="text"
           value={displayVal === '—' ? '' : displayVal}
@@ -113,6 +127,8 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         />
       ) : (
         <span className="flex-1 text-xs text-slate-900 dark:text-white">{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
+      )}
+      </>
       )}
     </div>
   );

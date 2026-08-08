@@ -327,6 +327,8 @@ export const TabContent: React.FC<{
 // ---------------------------------------------------------------------------
 
 export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ data, modelName }) => {
+  const authUser = useAppSelector((s) => s.auth.user);
+  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   const lines = data?.lines || [];
   const isSellSide = ['order', 'invoice', 'proposal'].includes(modelName);
   const totals = data?.totals || {};

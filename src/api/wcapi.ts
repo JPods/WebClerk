@@ -1029,3 +1029,42 @@ export async function uploadDocument(
     document: payload?.document ?? null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Form Library — Andi/Alice is librarian, local checks out on demand
+// ---------------------------------------------------------------------------
+
+export interface FormLibraryEntry {
+  id: number;
+  uuid: string;
+  ida: string;
+  name: string;
+  model_name: string;
+  description: string;
+  category: string;
+  row_count: number;
+  field_count: number;
+  dt_modified: number;
+  version: number;
+}
+
+export async function getFormLibrary(modelName: string): Promise<{ forms: FormLibraryEntry[]; total: number; source: string }> {
+  const res = await apiClient.get('/wcapi/sync/form-library/', { params: { model: modelName, source: 'library' } });
+  const payload = (res.data as any)?.data ?? res.data;
+  return { forms: payload?.forms ?? [], total: payload?.total ?? 0, source: payload?.source ?? 'unknown' };
+}
+
+export async function checkoutForm(uuid: string, formData: any): Promise<any> {
+  const res = await apiClient.post('/wcapi/sync/form-library/checkout/', { uuid, form_data: formData });
+  return (res.data as any)?.data ?? res.data;
+}
+
+export async function submitFormToLibrary(reportId: number): Promise<any> {
+  const res = await apiClient.post('/wcapi/sync/form-library/submit/', { report_id: reportId });
+  return (res.data as any)?.data ?? res.data;
+}
+
+export async function restoreFormFromLibrary(reportId: number): Promise<any> {
+  const res = await apiClient.post('/wcapi/sync/form-library/restore/', { report_id: reportId });
+  return (res.data as any)?.data ?? res.data;
+}

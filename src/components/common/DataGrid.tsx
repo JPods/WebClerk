@@ -73,6 +73,7 @@ export interface DataGridProps {
   onSort?: (field: string, multiSort?: boolean) => void;
   onColumnDrop?: (dragField: string, targetField: string) => void;
   onResizeStart?: (field: string, e: React.MouseEvent) => void;
+  onWidthClick?: (field: string, anchor: HTMLElement) => void;
   onCellEdit?: (recordId: number, field: string, value: unknown) => void;
   onHeaderClick?: (field: string) => void;
   headerEditField?: string | null;
@@ -416,6 +417,7 @@ export default function DataGrid(props: DataGridProps) {
 
   const onColumnDrop = props.onColumnDrop ?? ((_a: string, _b: string) => {});
   const onResizeStart = props.onResizeStart ?? ((_f: string, _e: React.MouseEvent) => {});
+  const onWidthClick = props.onWidthClick;
   const onCellEdit = props.onCellEdit;
 
   const { pinnedColumn, colorRules, groupByField } = props;
@@ -944,6 +946,8 @@ export default function DataGrid(props: DataGridProps) {
                     onDragStart={(e) => { if (props.disableReorder || !e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
+                    onMouseEnter={(e) => { const badge = e.currentTarget.querySelector('.db-width-badge') as HTMLElement; if (badge) badge.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { const badge = e.currentTarget.querySelector('.db-width-badge') as HTMLElement; if (badge) badge.style.opacity = '0'; }}
                     onClick={(e) => {
                       if (e.shiftKey && props.onHeaderClick && fieldBehaviors[f]?.bulkEditable) {
                         e.preventDefault();
@@ -986,11 +990,21 @@ export default function DataGrid(props: DataGridProps) {
                         {sortIdx >= 0 && <span style={{ marginLeft: 2, fontSize: 9, color: t.accent }}>({sortIdx + 1})</span>}
                       </>
                     )}
+                    {/* Width badge — visible on hover, click to type */}
+                    {colWidths[f] && onWidthClick && (
+                      <span
+                        className="db-width-badge"
+                        style={{ position: 'absolute', right: 10, top: 1, fontSize: 9, color: t.textDim, cursor: 'text', opacity: 0, transition: 'opacity 0.15s', padding: '0 3px', borderRadius: 2, background: t.surfaceAlt }}
+                        onClick={(e) => { e.stopPropagation(); onWidthClick(f, e.currentTarget); }}
+                        title="Click to set width"
+                      >{colWidths[f]}</span>
+                    )}
                     <span
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, cursor: 'col-resize', background: t.borderLight }}
+                      style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 7, cursor: 'col-resize', background: 'transparent', zIndex: 2 }}
                       onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
-                      onMouseEnter={(e) => { (e.target as HTMLElement).style.background = t.resizeHandle; }}
-                      onMouseLeave={(e) => { (e.target as HTMLElement).style.background = t.borderLight; }}
+                      onDoubleClick={(e) => { e.stopPropagation(); if (onWidthClick) { const cur = colWidths[f] || 120; onWidthClick(f, e.currentTarget as HTMLElement); } }}
+                      onMouseEnter={(e) => { const el = e.target as HTMLElement; el.style.background = t.resizeHandle; el.style.opacity = '0.7'; el.style.borderRadius = '2px'; const badge = el.previousElementSibling?.previousElementSibling as HTMLElement; if (badge?.classList.contains('db-width-badge')) badge.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { const el = e.target as HTMLElement; el.style.background = 'transparent'; el.style.opacity = '1'; const badge = el.previousElementSibling?.previousElementSibling as HTMLElement; if (badge?.classList.contains('db-width-badge')) badge.style.opacity = '0'; }}
                     />
                   </th>
                 );

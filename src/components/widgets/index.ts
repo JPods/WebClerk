@@ -21,6 +21,7 @@ export { CurrencyWidget } from "./CurrencyWidget";
 export { ReadonlyWidget } from "./ReadonlyWidget";
 export { JsonTextWidget } from "./JsonTextWidget";
 export { ContactLookup } from "./ContactLookup";
+export { ContactSelectWidget } from "./ContactSelectWidget";
 export { CheckboxWidget } from "./CheckboxWidget";
 export { JsonTreeWidgetAdapter, JsonTree } from "./JsonTreeWidget";
 export type { JsonTreeProps } from "./JsonTreeWidget";
@@ -41,6 +42,7 @@ import { CurrencyWidget } from "./CurrencyWidget";
 import { ReadonlyWidget } from "./ReadonlyWidget";
 import { JsonTextWidget } from "./JsonTextWidget";
 import { ContactLookup } from "./ContactLookup";
+import { ContactSelectWidget } from "./ContactSelectWidget";
 import { CheckboxWidget } from "./CheckboxWidget";
 import { JsonTreeWidgetAdapter } from "./JsonTreeWidget";
 
@@ -59,6 +61,7 @@ export const WIDGETS: Record<string, React.ComponentType<WidgetProps>> = {
   "json-text": JsonTextWidget,
   "json-tree": JsonTreeWidgetAdapter,
   contact: ContactLookup,
+  "contact-select": ContactSelectWidget,
   checkbox: CheckboxWidget,
 };
 

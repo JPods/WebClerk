@@ -1099,37 +1099,58 @@ const KanbanBoardPage: React.FC = () => {
     setSelectedContactId(event.target.value);
   };
 
-  // Fetch all active contacts (used when "All projects" is selected)
+  // Fetch staff contacts + project assigned_to (not all contacts)
   const fetchAllContacts = useCallback(async () => {
     setIsLoadingContacts(true);
     try {
+      const uniqueById = new Map<string, ContactOption>();
+
+      // Source 1: is_staff contacts
       const response = await getRecords("contact", {
+        is_staff: true,
         is_active: true,
-        limit: 500,
+        limit: 200,
       });
       const records = extractRecordArray(response);
-      const options: ContactOption[] = records
+      records
         .filter((r: Record<string, unknown>) => r.id !== undefined && r.id !== null)
-        .map((r: Record<string, unknown>) => {
+        .forEach((r: Record<string, unknown>) => {
           const attention = typeof r.attention === "string" ? r.attention : "";
           const id = String(r.id);
-          return {
-            id,
-            label: attention || `Contact #${id}`,
-            searchName: (attention || id).toLowerCase(),
-            email: typeof r.email === "string" ? r.email : undefined,
-          };
+          if (!uniqueById.has(id)) {
+            uniqueById.set(id, {
+              id,
+              label: attention || `Contact #${id}`,
+              searchName: (attention || id).toLowerCase(),
+              email: typeof r.email === "string" ? r.email : undefined,
+            });
+          }
         });
 
-      const uniqueById = new Map<string, ContactOption>();
-      options.forEach((option) => {
-        if (!uniqueById.has(option.id)) {
-          uniqueById.set(option.id, option);
+      // Source 2: active projects' prefs.assigned_to
+      try {
+        const projRes = await getRecords("project", {
+          status__in: "open,in_progress",
+          fields: "prefs",
+          limit: 10,
+        });
+        const projRecords = extractRecordArray(projRes);
+        for (const proj of projRecords) {
+          const assignedTo = (proj as any)?.prefs?.assigned_to;
+          if (Array.isArray(assignedTo)) {
+            for (const a of assignedTo) {
+              const id = a.id ? String(a.id) : null;
+              if (id && !uniqueById.has(id)) {
+                const label = a.name || a.label || `Contact #${id}`;
+                uniqueById.set(id, { id, label, searchName: label.toLowerCase() });
+              }
+            }
+          }
         }
-      });
+      } catch { /* project fetch failed — staff list is enough */ }
 
       const sorted = Array.from(uniqueById.values()).sort((a, b) => a.label.localeCompare(b.label));
-      console.log("All contacts fetched:", sorted.length);
+      console.log("Staff + project contacts fetched:", sorted.length);
       setContactOptions(sorted);
       setSelectedContactId((previous) => {
         if (previous && sorted.some((option) => option.id === previous)) {

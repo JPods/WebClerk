@@ -1,21 +1,28 @@
 /**
  * DynamicDetail — Data-driven form renderer.
  *
- * Reads a layout definition (JSON) and renders a form.
+ * Reads a layout definition (JSON) from a Report record and renders a form.
  * Users can toggle into "arrange" mode to drag rows, add/remove fields.
- * Layout saves to project.metadata or a Setting record.
+ * Layout saves back to the Report record.
  *
- * Layout format:
+ * Report config format:
  * {
+ *   fields: {
+ *     "ida":           { type: "readonly", label: "ID" },
+ *     "name":          { type: "text", label: "Name" },
+ *     "config.po_num": { type: "text", label: "PO #" },    // dot-notation into JSON
+ *     "refs.links.customer": { type: "readonly", label: "Customer" },
+ *   },
  *   rows: [
- *     { fields: ["action"], cols: 1 },
- *     { fields: ["assigned_to", "status"], cols: 2 },
- *     { fields: ["priority", "difficulty", "percent_complete"], cols: 3 },
- *     { fields: ["dt_start", "dt_deadline", "dt_completed"], cols: 3 },
+ *     { fields: ["ida", "name"], cols: 2 },
+ *     { fields: ["config.po_num", "refs.links.customer"], cols: 2 },
  *   ]
  * }
+ *
+ * Field configs can come from: Report config.fields (data-driven, preferred),
+ * hardcoded FIELD_REGISTRIES (legacy), or auto-inferred from record data.
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
 import { patchAction } from "../../api/userProfile";
 import { getWidget } from "../widgets";
@@ -24,40 +31,83 @@ import { useDispatch } from "react-redux";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ── Field type registry ─────────────────────────────────────────────
-// Maps field names to their widget config. Extend as needed.
 
 interface FieldConfig {
-  type: "text" | "select" | "date" | "number" | "readonly" | "json-text";
+  type: "text" | "select" | "date" | "number" | "readonly" | "json-text" | "currency" | "checkbox" | "textarea";
   label?: string;
   options?: { value: string | number; label: string }[];
   min?: number;
   max?: number;
+  path?: string; // dot-notation path into record (e.g. "config.po_num")
 }
+
+// ── Dot-notation helpers ────────────────────────────────────────────
+
+function getNestedValue(obj: any, path: string): any {
+  if (!obj || !path) return undefined;
+  const parts = path.split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function setNestedValue(obj: any, path: string, value: any): any {
+  const parts = path.split(".");
+  const result = { ...obj };
+  let cur = result;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i];
+    cur[p] = cur[p] != null && typeof cur[p] === "object" ? { ...cur[p] } : {};
+    cur = cur[p];
+  }
+  cur[parts[parts.length - 1]] = value;
+  return result;
+}
+
+// Auto-infer field type from a data value
+function inferFieldType(value: any): FieldConfig["type"] {
+  if (value == null) return "text";
+  if (typeof value === "boolean") return "checkbox";
+  if (typeof value === "number") {
+    // Large integers are likely epoch timestamps
+    if (value > 1_000_000_000_000 && value < 2_000_000_000_000) return "date";
+    return "number";
+  }
+  if (typeof value === "object" && value.en !== undefined) return "json-text";
+  if (typeof value === "object") return "readonly";
+  if (typeof value === "string" && value.length > 200) return "textarea";
+  return "text";
+}
+
+// ── Legacy hardcoded registries (kept for backward compat) ──────────
 
 const ACTION_FIELDS: Record<string, FieldConfig> = {
   action: { type: "json-text", label: "action" },
   description: { type: "json-text", label: "description" },
-  assigned_to: { type: "text", label: "assigned_to" },
+  assigned_to: { type: "contact-select", label: "assigned_to" },
   status: {
     type: "select", label: "status",
     options: [
       { value: "", label: "—" },
       { value: "open", label: "Open" },
-      { value: "In progress", label: "In Progress" },
-      { value: "active", label: "Active" },
-      { value: "completed", label: "Completed" },
-      { value: "on hold", label: "On Hold" },
-      { value: "blocked", label: "Blocked" },
+      { value: "in_progress", label: "In Progress" },
+      { value: "complete", label: "Complete" },
+      { value: "on_hold", label: "On Hold" },
       { value: "cancelled", label: "Cancelled" },
     ],
   },
   priority: {
     type: "select", label: "priority",
     options: [
-      { value: 1, label: "Low (1)" },
-      { value: 2, label: "Medium (2)" },
-      { value: 3, label: "High (3)" },
-      { value: 4, label: "Critical (4)" },
+      { value: 1, label: "1 - Highest" },
+      { value: 2, label: "2 - High" },
+      { value: 3, label: "3 - Medium" },
+      { value: 4, label: "4 - Normal" },
+      { value: 5, label: "5 - Low" },
+      { value: 6, label: "6 - Lowest" },
     ],
   },
   difficulty: {
@@ -71,7 +121,7 @@ const ACTION_FIELDS: Record<string, FieldConfig> = {
     ],
   },
   percent_complete: {
-    type: "select", label: "% complete",
+    type: "select", label: "%_complete",
     options: [
       { value: 0, label: "0%" },
       { value: 20, label: "20%" },
@@ -83,12 +133,11 @@ const ACTION_FIELDS: Record<string, FieldConfig> = {
   dt_start: { type: "date", label: "dt_start" },
   dt_deadline: { type: "date", label: "dt_deadline" },
   dt_completed: { type: "date", label: "dt_completed" },
-  project_name: { type: "readonly", label: "project" },
+  project_name: { type: "readonly", label: "project_name" },
   kanban_column: { type: "text", label: "kanban_column" },
   ida: { type: "readonly", label: "ida" },
 };
 
-// Default layout for actions
 const DEFAULT_ACTION_LAYOUT = {
   rows: [
     { fields: ["action"], cols: 1 },
@@ -100,7 +149,7 @@ const DEFAULT_ACTION_LAYOUT = {
   ],
 };
 
-// Model field registries — add more models here
+// Legacy hardcoded registries — Report config.fields takes precedence
 const FIELD_REGISTRIES: Record<string, Record<string, FieldConfig>> = {
   action: ACTION_FIELDS,
 };
@@ -153,7 +202,7 @@ function DynamicDetail({
   onActionsReady,
 }: DynamicDetailProps) {
   const dispatch = useDispatch();
-  const fieldRegistry = FIELD_REGISTRIES[modelName] || {};
+  const legacyRegistry = FIELD_REGISTRIES[modelName] || {};
   const defaultLayout = DEFAULT_LAYOUTS[modelName] || { rows: [] };
 
   const [data, setData] = useState<Record<string, any> | null>(null);
@@ -161,6 +210,7 @@ function DynamicDetail({
   const [editing, setEditing] = useState(!!hideToolbar);
   const [arranging, setArranging] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reportConfig, setReportConfig] = useState<any>(null);
   const [layout, setLayout] = useState(layoutProp || defaultLayout);
   const [layoutReportId, setLayoutReportId] = useState<number | null>(null);
   const [fontScale, setFontScale] = useState(0);
@@ -168,20 +218,43 @@ function DynamicDetail({
 
   const fontSize = 12 + fontScale;
 
+  // Merged field registry: Report config.fields > legacy hardcoded > auto-inferred
+  const fieldRegistry = useMemo(() => {
+    const serverFields: Record<string, FieldConfig> = reportConfig?.fields || {};
+    const merged = { ...legacyRegistry, ...serverFields };
+    // Auto-infer any fields referenced in layout rows but missing from registry
+    if (data && layout?.rows) {
+      for (const row of layout.rows) {
+        for (const fieldName of (row.fields || [])) {
+          if (!merged[fieldName]) {
+            const val = fieldName.includes(".")
+              ? getNestedValue(data, fieldName)
+              : data[fieldName];
+            merged[fieldName] = {
+              type: inferFieldType(val),
+              label: fieldName.split(".").pop() || fieldName,
+            };
+          }
+        }
+      }
+    }
+    return merged;
+  }, [legacyRegistry, reportConfig, data, layout]);
+
   // Load form layout from Report record (output_type=screen, category=form)
   useEffect(() => {
-    if (layoutProp) return; // prop overrides server layout
+    if (layoutProp) return;
     const cacheKey = `form_layout_${modelName}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        setLayout(parsed.config);
+        setReportConfig(parsed.config);
+        if (parsed.config?.rows) setLayout(parsed.config);
         setLayoutReportId(parsed.id);
         return;
       } catch {}
     }
-    // Fetch from server
     import("../../api/wcapi").then(({ getRecords }) => {
       getRecords("report", {
         model_name: modelName,
@@ -192,18 +265,38 @@ function DynamicDetail({
       }).then((resp: any) => {
         const records = resp?.data || resp?.records || [];
         const arr = Array.isArray(records) ? records : [];
-        if (arr.length > 0 && arr[0].config?.rows) {
-          setLayout(arr[0].config);
+        if (arr.length > 0 && arr[0].config) {
+          const cfg = arr[0].config;
+          setReportConfig(cfg);
+          if (cfg.rows) setLayout(cfg);
           setLayoutReportId(arr[0].id);
           sessionStorage.setItem(cacheKey, JSON.stringify({
             id: arr[0].id,
             version: arr[0].version,
-            config: arr[0].config,
+            config: cfg,
           }));
         }
       }).catch(() => {});
     });
   }, [modelName, layoutProp]);
+
+  // Extract a form value from record data using field config
+  const extractValue = useCallback((fieldName: string, cfg: FieldConfig, record: any): any => {
+    const path = cfg.path || fieldName;
+    const raw = path.includes(".") ? getNestedValue(record, path) : record[path];
+    if (cfg.type === "json-text") return raw?.en || "";
+    if (cfg.type === "date") {
+      if (raw && typeof raw === "number") {
+        try { return new Date(raw).toISOString().split("T")[0]; } catch { return ""; }
+      }
+      return "";
+    }
+    if (cfg.type === "checkbox") return !!raw;
+    if (cfg.type === "readonly" && typeof raw === "object" && raw !== null) {
+      return JSON.stringify(raw);
+    }
+    return raw ?? "";
+  }, []);
 
   // Load record
   useEffect(() => {
@@ -212,31 +305,20 @@ function DynamicDetail({
       const r = resp?.record || resp;
       if (!r) return;
       setData(r);
-      // Extract form values
-      const v: Record<string, any> = {};
-      for (const key of Object.keys(fieldRegistry)) {
-        const cfg = fieldRegistry[key];
-        if (cfg.type === "json-text") {
-          v[key] = r[key]?.en || "";
-        } else if (cfg.type === "date") {
-          const ms = r[key];
-          if (ms && typeof ms === "number") {
-            try { v[key] = new Date(ms).toISOString().split("T")[0]; } catch { v[key] = ""; }
-          } else { v[key] = ""; }
-        } else if (key === "assigned_to") {
-          const at = r[key];
-          v[key] = typeof at === "string" ? at :
-            Array.isArray(at) ? (at[0]?.name || "") :
-            at?.lead || "";
-        } else {
-          v[key] = r[key] ?? "";
-        }
-      }
-      setValues(v);
     }).catch(() => {});
   }, [modelName, recordId]);
 
-  // Save handler
+  // Extract form values when data or field registry changes
+  useEffect(() => {
+    if (!data) return;
+    const v: Record<string, any> = {};
+    for (const [key, cfg] of Object.entries(fieldRegistry)) {
+      v[key] = extractValue(key, cfg, data);
+    }
+    setValues(v);
+  }, [data, fieldRegistry, extractValue]);
+
+  // Save handler — uses generic saveRecord for all models, patchAction for legacy action
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -244,17 +326,38 @@ function DynamicDetail({
       for (const [key, cfg] of Object.entries(fieldRegistry)) {
         if (cfg.type === "readonly") continue;
         const val = values[key];
-        if (cfg.type === "json-text") {
+        const path = cfg.path || key;
+        if (path.includes(".")) {
+          // Nested JSON field — build atomic update for the top-level key
+          const parts = path.split(".");
+          const topKey = parts[0];
+          const subPath = parts.slice(1).join(".");
+          if (!payload[topKey] || typeof payload[topKey] !== "object" || !payload[topKey].mode) {
+            payload[topKey] = { mode: "update", value: data?.[topKey] || {} };
+          }
+          payload[topKey].value = setNestedValue(payload[topKey].value, subPath,
+            cfg.type === "date" && val ? new Date(val).getTime() : val);
+        } else if (cfg.type === "json-text") {
           payload[key] = { mode: "update", value: { en: val } };
         } else if (cfg.type === "date" && val) {
           payload[key] = { mode: "update", value: new Date(val).getTime() };
-        } else if (cfg.type === "select" || cfg.type === "number") {
+        } else if (cfg.type === "contact-select") {
+          // assigned_to is an array of {id, name} — send as-is
+          payload[key] = { mode: "update", value: Array.isArray(val) ? val : [] };
+        } else if (cfg.type === "select" || cfg.type === "number" || cfg.type === "currency") {
           payload[key] = { mode: "update", value: typeof val === "string" ? (isNaN(Number(val)) ? val : Number(val)) : val };
+        } else if (cfg.type === "checkbox") {
+          payload[key] = { mode: "update", value: !!val };
         } else {
           payload[key] = { mode: "update", value: val };
         }
       }
-      await patchAction(payload);
+      // Use patchAction for legacy action model, saveRecord for everything else
+      if (modelName === "action" && !reportConfig?.fields) {
+        await patchAction(payload);
+      } else {
+        await saveRecord(modelName, payload);
+      }
       dispatch(showToast({ message: "Saved", type: "success" }));
       setEditing(false);
       onSaved?.();
@@ -263,7 +366,7 @@ function DynamicDetail({
     } finally {
       setSaving(false);
     }
-  }, [modelName, recordId, values, fieldRegistry, dispatch, onSaved]);
+  }, [modelName, recordId, values, fieldRegistry, reportConfig, data, dispatch, onSaved]);
 
   // Expose actions to parent via ref
   useEffect(() => {
@@ -313,18 +416,21 @@ function DynamicDetail({
     }));
   };
 
-  // Field renderer
-  // Render a field using the widget registry
+  // Field renderer — uses merged registry (server + legacy + auto-inferred)
   const renderField = (fieldName: string, disabled: boolean) => {
     const cfg = fieldRegistry[fieldName];
-    if (!cfg) return <span className="text-xs text-red-400">{fieldName}?</span>;
+    if (!cfg) {
+      // Last resort: show raw value as readonly
+      const raw = data ? (fieldName.includes(".") ? getNestedValue(data, fieldName) : data[fieldName]) : undefined;
+      return <span className="text-xs text-gray-500">{raw != null ? String(raw) : "—"}</span>;
+    }
 
     const Widget = getWidget(cfg.type);
     return (
       <Widget
         name={fieldName}
         value={values[fieldName] ?? ""}
-        onChange={(v) => setValues(prev => ({ ...prev, [fieldName]: v }))}
+        onChange={(v: any) => setValues(prev => ({ ...prev, [fieldName]: v }))}
         disabled={disabled}
         options={cfg.options}
         min={cfg.min}
@@ -412,12 +518,56 @@ function DynamicDetail({
             row.cols === 2 ? "grid-cols-2" :
             "grid-cols-1"
           }`}>
-            {row.fields.map((fieldName: string) => (
-              <div key={fieldName}>
-                <div className={lClass}>{fieldRegistry[fieldName]?.label || fieldName}</div>
-                {renderField(fieldName, disabled)}
-              </div>
-            ))}
+            {row.fields.map((fieldName: string) => {
+              const cfg = fieldRegistry[fieldName];
+              const isSelect = cfg?.type === 'select' && cfg?.options?.length;
+              const isContactSelect = cfg?.type === 'contact-select';
+              const label = cfg?.label || fieldName;
+
+              // Select fields: colored label left, select control right
+              if (isSelect) {
+                const currentOpt = cfg.options.find((o: any) => String(o.value) === String(values[fieldName]));
+                const displayText = currentOpt?.label || values[fieldName] || '—';
+                return (
+                  <div key={fieldName}>
+                    <div className="font-mono text-[0.85em] mb-0.5 text-indigo-600 dark:text-indigo-400 font-semibold">{label}</div>
+                    {editing ? (
+                      <select
+                        value={values[fieldName] ?? ''}
+                        onChange={(e) => setValues(prev => ({ ...prev, [fieldName]: e.target.value }))}
+                        className="w-full text-xs px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white"
+                        style={{ fontSize: 'inherit' }}
+                      >
+                        <option value="">—</option>
+                        {cfg.options.map((o: any) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-xs text-gray-900 dark:text-white">{displayText}</div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Contact-select: label IS the add-select, chips below
+              if (isContactSelect) {
+                return (
+                  <div key={fieldName}>
+                    {renderField(fieldName, disabled)}
+                  </div>
+                );
+              }
+
+              // Other fields: label + widget
+              const isInteractive = cfg?.type === 'search' || cfg?.type === 'action';
+              return (
+                <div key={fieldName}>
+                  <div className={isInteractive ? "font-mono text-[0.85em] mb-0.5 text-indigo-600 dark:text-indigo-400 font-semibold" : lClass}>{label}</div>
+                  {renderField(fieldName, disabled)}
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
@@ -437,13 +587,13 @@ function DynamicDetail({
         </div>
       )}
 
-      {/* Open full detail */}
+      {/* Open db.page — primary record in full page layout */}
       <div className="border-t border-gray-200 pt-1.5 dark:border-gray-700">
         <button
-          onClick={() => window.open(`/core/${modelName}s/detail/${recordId}`, '_blank')}
+          onClick={() => window.open(`/${modelName}/${recordId}`, '_blank')}
           className="w-full rounded border border-gray-300 py-1 text-[11px] text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
         >
-          Open Full Detail
+          {modelName}/{recordId}
         </button>
       </div>
     </div>
