@@ -255,6 +255,7 @@
 .db-main {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -299,6 +300,46 @@
   flex-direction: column;
   min-width: 0;
   padding-left: 8px;
+}
+
+/* Always show horizontal scrollbar on the list grid — defeats macOS overlay hide */
+.datagrid-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--db-border, #adb5bd) var(--db-surface-alt, #f1f3f5);
+}
+.datagrid-scroll::-webkit-scrollbar {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+}
+.datagrid-scroll::-webkit-scrollbar-track {
+  background: var(--db-surface-alt, #f1f3f5);
+}
+.datagrid-scroll::-webkit-scrollbar-thumb {
+  background: var(--db-border, #adb5bd);
+  border-radius: 6px;
+  border: 2px solid var(--db-surface-alt, #f1f3f5);
+}
+.datagrid-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--db-text-muted, #6c757d);
+}
+
+/* Bottom horizontal scrollbar — always visible */
+.datagrid-hbar::-webkit-scrollbar {
+  -webkit-appearance: none;
+  height: 12px;
+}
+.datagrid-hbar::-webkit-scrollbar-track {
+  background: var(--db-surface-alt, #f1f3f5);
+}
+.datagrid-hbar::-webkit-scrollbar-thumb {
+  background: var(--db-border, #adb5bd);
+  border-radius: 6px;
+  border: 2px solid var(--db-surface-alt, #f1f3f5);
+}
+.datagrid-hbar::-webkit-scrollbar-thumb:hover {
+  background: var(--db-text-muted, #6c757d);
 }
 
 .db-toolbar-row {

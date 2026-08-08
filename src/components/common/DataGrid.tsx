@@ -861,6 +861,10 @@ export default function DataGrid(props: DataGridProps) {
     a.click(); URL.revokeObjectURL(a.href);
   }, [filteredRecords, columns]);
 
+  // --- Drag-to-scroll horizontal panning ---
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragScrollRef = useRef<{ startX: number; startScrollLeft: number } | null>(null);
+
   // Compute effective width per column — every column gets an explicit width
   const DEFAULT_COL_W = 120;
   const INDICATOR_W = 8;
@@ -933,9 +937,30 @@ export default function DataGrid(props: DataGridProps) {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
       {!props.hideToolbar && toolbar}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div ref={scrollRef} className="datagrid-scroll" style={{ flex: 1, minWidth: 0, minHeight: 0, overflowX: 'auto', overflowY: 'auto', cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
+        onMouseDown={(e) => {
+          // Only drag-scroll on middle button or when table overflows
+          if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;
+          if (e.button !== 0) return;
+          // Don't interfere with resize handles, edit inputs, or header clicks
+          const tag = (e.target as HTMLElement).tagName;
+          if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON') return;
+          const target = e.target as HTMLElement;
+          if (target.style.cursor === 'col-resize' || target.closest('[style*="col-resize"]')) return;
+          dragScrollRef.current = { startX: e.clientX, startScrollLeft: scrollRef.current.scrollLeft };
+        }}
+        onMouseMove={(e) => {
+          if (!dragScrollRef.current || !scrollRef.current) return;
+          const dx = e.clientX - dragScrollRef.current.startX;
+          if (Math.abs(dx) > 3) {
+            scrollRef.current.style.cursor = 'grabbing';
+            scrollRef.current.scrollLeft = dragScrollRef.current.startScrollLeft - dx;
+          }
+        }}
+        onMouseUp={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}
+        onMouseLeave={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}>
         <table style={{ width: tableWidth, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize }}>
           <thead>
             {/* Header row */}
