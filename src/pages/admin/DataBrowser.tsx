@@ -1263,10 +1263,33 @@ const DataBrowser: React.FC = () => {
               }} />
               <ToolbarIcon action={TB.print} title="Report / Print" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
               <ToolbarIcon action={TB.modelMenu} title={`${db.modelLabel} menu`} onClick={() => {}} />
-              <Btn small variant="ghost" onClick={() => {
-                dbLog('openDialog:detail', { model: db.selectedModel });
-                setShowLayoutDialog('detail');
-              }}>Detail Order</Btn>
+              <select
+                style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
+                value={db.activeViewName || ''}
+                title="Detail Layout"
+                onChange={(e) => {
+                  const name = e.target.value;
+                  if (name === '__detail_order__') { setShowLayoutDialog('detail'); return; }
+                  if (name === '__list_order__') { setShowLayoutDialog('list'); return; }
+                  if (name === '__save__') { db.saveView(db.activeViewName || 'default', db.detailFieldSpecs, 'detail'); return; }
+                  if (name === '__save_new__') { setShowSaveDialog(true); setSaveLayoutName(''); return; }
+                  if (name === '__reset__') { db.resetLayout(); return; }
+                  const v = db.savedViews.find(sv => sv.name === name);
+                  if (v) db.loadView(v);
+                }}
+              >
+                <option value="">Layout...</option>
+                {db.savedViews.map(v => (
+                  <option key={v.name} value={v.name}>{v.name}</option>
+                ))}
+                <option disabled>──────</option>
+                <option value="__detail_order__">Detail Order...</option>
+                <option value="__list_order__">List Order...</option>
+                <option disabled>──────</option>
+                <option value="__save__">Save</option>
+                <option value="__save_new__">Save As New...</option>
+                <option value="__reset__">Reset to Default</option>
+              </select>
               {db.selectedId && <span className="db-detail-id">#{db.selectedId}</span>}
               {db.isDirty && <span className="db-unsaved-badge">UNSAVED</span>}
               <ToolbarIcon action={TB.deleteRecord} danger title="Delete Record" disabled={!db.selectedId} onClick={() => {
