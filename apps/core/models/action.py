@@ -84,8 +84,13 @@ class Action(BaseModel):
         verbose_name_plural = "Actions"
 
     def __str__(self):
-        action_dict = self.action or {}
-        action_text = action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
+        action_val = self.action or {}
+        if isinstance(action_val, str):
+            action_text = action_val
+        elif isinstance(action_val, dict):
+            action_text = action_val.get('en') or action_val.get('bn') or action_val.get('ar') or 'Untitled'
+        else:
+            action_text = str(action_val) if action_val else 'Untitled'
         return f"{action_text} ({self.kanban_column})"
 
     def pre_save_hook(self, data, is_update=False, context=None):

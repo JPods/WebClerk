@@ -1,8 +1,9 @@
 """
 App initialization handler to populate cache after Django is ready.
 
-This module uses Django signals to populate cache after app initialization
-to avoid the database access warning during app loading.
+Uses post_migrate signal but only runs ONCE (for the core app).
+Only caches purposes that are needed at request time — not alice_*
+or other operational data.
 """
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
@@ -14,15 +15,14 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_migrate)
 def populate_cache_after_migration(sender, **kwargs):
-    """
-    Populate cache after migrations are complete.
-    This ensures Django is fully initialized before any database operations.
-    """
+    """Populate cache once — only when the core app's migrations finish."""
+    if sender.label != 'core':
+        return
     try:
-        logger.info("Populating cache after Django initialization...")
+        logger.info("Populating settings cache (core only)...")
         result = update_all_settings_cache_working()
         if result['status'] == 'completed':
-            logger.info(f"Cache populated successfully: {result.get('total_settings', 0)} settings loaded")
+            logger.info(f"Cache populated: {result.get('total_settings', 0)} settings loaded")
         else:
             logger.warning(f"Cache population failed: {result.get('error', 'Unknown error')}")
     except Exception as e:

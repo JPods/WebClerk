@@ -7,18 +7,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+    # Purposes needed at startup for request handling.
+    # Everything else is lazy-loaded when first accessed.
+STARTUP_PURPOSES = {
+    'field_access', 'schema_map', 'workbench_fields', 'db_defaults',
+    'keywords', 'search', 'detail_layout', 'admin_selectlist',
+    'model_related', 'list_column_config', 'feature',
+    'company_profile', 'react_settings',
+}
+
+
 def update_all_settings_cache_working():
-    """Load all active Setting records into cache - working version without .only()."""
+    """Load essential Setting records into cache at startup."""
     start_time = time.time()
-    
+
     try:
         logger.info("Starting working cache population...")
-        
+
         from apps.core.models.setting import Setting
-        
-        # Use a simpler query without .only() to avoid the freezing issue
-        logger.info("Querying active settings (without .only())...")
-        active_settings = Setting.objects.filter(is_active=True)
+
+        logger.info("Querying active settings (startup purposes only)...")
+        active_settings = Setting.objects.filter(
+            is_active=True, purpose__in=STARTUP_PURPOSES
+        )
         
         # Convert to list to force immediate evaluation
         settings_list = list(active_settings)
