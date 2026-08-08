@@ -2,19 +2,83 @@
 Pydantic schemas for Setting JSON envelopes.
 
 Inherits standard bases. Add model-specific fields only.
+
+Settings with purpose='workbench_fields' use config.db to store
+DataBrowser layouts:
+  config.db.list[]   — columns visible in the list view
+  config.db.detail[] — fields visible in the detail view
+  config.db.views[]  — named layout snapshots
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
+# ── DataBrowser layout types ─────────────────────────────────────────────
+
+class DbFieldSpec(BaseModel):
+    """One field in a list or detail layout."""
+    field: str
+    width: Optional[int] = None              # px — user sets via drag or type
+    min_width: Optional[int] = None
+    max_width: Optional[int] = None
+    align: Optional[Literal['left', 'center', 'right']] = None
+    visible: bool = True
+    format: Optional[Literal[
+        'currency', 'percent', 'date', 'number',
+        'json', 'phone', 'masked'
+    ]] = None
+    wrap: bool = False                       # true = word-wrap, false = ellipsis
+    frozen: bool = False                     # sticky left
+    summary: Optional[Literal['sum', 'avg', 'count']] = None
+    alice_note: Optional[str] = None         # Alice's annotation
+    type_hint: Optional[str] = None          # override auto-detected widget type
+
+    class Config:
+        extra = 'forbid'
+
+
+class DbNamedView(BaseModel):
+    """A named layout snapshot — saved set of all four layout types."""
+    name: str
+    list: list[DbFieldSpec] = Field(default_factory=list)
+    detail: list[DbFieldSpec] = Field(default_factory=list)
+    panel: list[DbFieldSpec] = Field(default_factory=list)
+    card: list[DbFieldSpec] = Field(default_factory=list)
+
+    class Config:
+        extra = 'forbid'
+
+
+class DbLayout(BaseModel):
+    """DataBrowser layout — lives at config.db on workbench_fields Settings.
+
+    Four layout types:
+      list   — columns in the list/grid view
+      detail — fields in the record detail view
+      panel  — fields shown in embedded panels (line items, related records)
+      card   — fields shown in card/tile view
+    """
+    list: list[DbFieldSpec] = Field(default_factory=list)
+    detail: list[DbFieldSpec] = Field(default_factory=list)
+    panel: list[DbFieldSpec] = Field(default_factory=list)
+    card: list[DbFieldSpec] = Field(default_factory=list)
+    views: list[DbNamedView] = Field(default_factory=list)
+
+    class Config:
+        extra = 'forbid'
+
+
 # -- .config ----------------------------------------------------------------
 
 class SettingConfig(ConfigBase):
-    pass
+    db: Optional[DbLayout] = None
+
+    class Config:
+        extra = 'allow'  # Settings carry diverse config by purpose
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------
