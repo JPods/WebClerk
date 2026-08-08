@@ -238,7 +238,75 @@ export default function AliceDashboard() {
 
       {/* ═══ Training ═══ */}
       {activeTab === 'training' && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {/* ── Flowcharts ── */}
+          <details open className="border border-indigo-200 dark:border-indigo-800 rounded-lg">
+            <summary className="p-3 cursor-pointer bg-indigo-50 dark:bg-indigo-900/30 rounded-t-lg">
+              <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">Commerce Flowcharts</span>
+              <span className="ml-2 text-xs text-indigo-500">24 charts — WC3/R25 complete system</span>
+            </summary>
+            <div className="p-4 border-t border-indigo-200 dark:border-indigo-800">
+              {[
+                { title: 'Core Commerce Flow', charts: [
+                  { name: 'Master Commerce Flow', file: 'wc3-master-flow', desc: 'Market → Contact → Proposal → Order → Invoice → Payment → GL' },
+                  { name: 'Big 4 Transactions', file: 'wc3-big4-transactions', desc: 'Proposal/Order/Purchase/Invoice line quantities and pending inventory' },
+                  { name: 'Order to Invoice', file: 'wc3-order-to-invoice', desc: 'Customer → verify → order → production → backorder/invoice' },
+                  { name: 'Customer-Centered Sales', file: 'wc3-customer-centered-sales', desc: 'Commerce from the customer perspective' },
+                ]},
+                { title: 'Inventory & Purchasing', charts: [
+                  { name: 'Inventory Buckets', file: 'wc3-inventory-buckets', desc: 'on_hand, on_so, on_po, on_wo → available' },
+                  { name: 'Inventory Costing', file: 'wc3-inventory-costing', desc: 'Layer-based: LIFO / FIFO / Weighted Average' },
+                  { name: 'Forecast & Purchasing', file: 'wc3-forecast-purchasing', desc: 'Demand signals → forecast → PO → receive' },
+                  { name: 'Requisition Management', file: 'wc3-requisition-management', desc: 'Internal procurement: request → approve → PO' },
+                ]},
+                { title: 'Sales & Marketing', charts: [
+                  { name: 'Sales Management', file: 'wc3-sales-management', desc: 'Pipeline, activity tracking, performance evaluation' },
+                  { name: 'Lead Qualification', file: 'wc3-lead-qualification', desc: 'Marketing → leads → qualify → commit or disqualify' },
+                  { name: 'Ad Source Tracking', file: 'wc3-ad-source-tracking', desc: 'Campaign ROI: source → lead → customer → revenue' },
+                  { name: 'Territory Assignment', file: 'wc3-territory-assignment', desc: 'Auto-assign rep & sales ID by geography' },
+                  { name: 'Commission Calculation', file: 'wc3-commission-calculation', desc: 'Rep rate × item commissionableness → line commission' },
+                ]},
+                { title: 'Support & Service', charts: [
+                  { name: 'Service & RMA', file: 'wc3-service-rma', desc: 'Track, route, resolve, learn (Pareto + Alice)' },
+                  { name: 'QA Entity', file: 'wc3-qa-entity', desc: 'Quality inspection, surveys, customer feedback' },
+                  { name: 'Serial Tracking', file: 'wc3-serial-tracking', desc: 'Receive → reserve → ship → return; warranty' },
+                ]},
+                { title: 'Financial', charts: [
+                  { name: 'Payment & GL', file: 'wc3-payment-gl', desc: 'Payment → journals → GL; aging; erosion detection' },
+                  { name: 'Management Dashboard', file: 'wc3-management-dashboard', desc: 'Input efforts → evaluation → business results' },
+                ]},
+                { title: 'Organization & Infrastructure', charts: [
+                  { name: 'Project', file: 'wc3-project', desc: 'Project connects transactions; data layer' },
+                  { name: 'Action', file: 'wc3-action', desc: 'Universal task: Who/What/Why/When' },
+                  { name: 'Contact', file: 'wc3-contact', desc: 'Central identity: roles, linkage' },
+                  { name: 'Sign-in / Register', file: 'wc3-signin-register', desc: 'Authentication + role assignment' },
+                  { name: 'Report & Document Output', file: 'wc3-report-output', desc: 'PDF / email / API / webhook / sync bundle' },
+                  { name: 'Data Sync', file: 'wc3-sync', desc: 'Connection model: bundles, field maps, conflict resolution' },
+                ]},
+              ].map((section) => (
+                <div key={section.title} className="mb-3">
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{section.title}</h4>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      {section.charts.map((chart) => (
+                        <tr key={chart.file} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="py-1.5 pr-3">
+                            <a href={`/static/training/flowcharts/${chart.file}.pdf`} target="_blank" rel="noopener noreferrer"
+                               className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+                              {chart.name}
+                            </a>
+                          </td>
+                          <td className="py-1.5 text-gray-500 dark:text-gray-400">{chart.desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          </details>
+
+          {/* ── Training Documents ── */}
           {trainingDocs.map((doc: any) => (
             <details key={doc.id} className="border border-gray-200 dark:border-gray-700 rounded-lg">
               <summary className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
