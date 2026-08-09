@@ -31,6 +31,15 @@ export interface PrintParty {
   email?: string;
 }
 
+// Serial number for printing
+export interface PrintSerial {
+  serialIda: string;
+  modelIda?: string;
+  status?: string;
+  warranty?: string;
+  cost?: number;
+}
+
 // Line item for printing
 export interface PrintLineItem {
   lineNum?: number;
@@ -47,6 +56,8 @@ export interface PrintLineItem {
   extendedPrice?: number;
   taxable?: boolean;
   notes?: string;
+  serials?: PrintSerial[];
+  isSerialized?: boolean;
 }
 
 // Totals block

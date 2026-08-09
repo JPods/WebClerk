@@ -118,8 +118,10 @@ async function sendToAlice(context?: string) {
     });
     // Clear sent errors so we don't re-send
     entries = entries.filter((e) => e.level === 'log');
-  } catch (e) {
-    origError?.call(console, '[consoleCapture] Failed to send to Alice:', e);
+  } catch {
+    // Swallow. Do NOT log via console.error — that gets captured,
+    // added to the error buffer, and triggers the next flush to send
+    // it again. That's the loop.
   }
 }
 

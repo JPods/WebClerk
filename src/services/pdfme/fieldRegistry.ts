@@ -117,6 +117,10 @@ const COMMON_LINE_FIELDS: FieldDef[] = [
   { path: 'physical.hs_code', label: 'HS Code', type: 'text', group: 'Physical' },
   { path: 'commission.rate', label: 'Commission Rate', type: 'text', group: 'Commission' },
   { path: 'commission.amount', label: 'Commission Amount', type: 'currency', group: 'Commission' },
+  // Serial number fields
+  { path: 'serials', label: 'Serial Numbers', type: 'table', group: 'Serials' },
+  { path: 'serials.count', label: 'Serial Count', type: 'text', group: 'Serials' },
+  { path: 'serials.list', label: 'Serial Number List', type: 'text', group: 'Serials' },
 ];
 
 // ---------------------------------------------------------------------------

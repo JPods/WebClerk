@@ -382,18 +382,47 @@ function buildTransactionTemplate(data: CommercePdfData): { template: Template; 
     });
 
     // Row bottom border
+    const hasSerials = ln.isSerialized && ln.serials && ln.serials.length > 0;
+    const serialRowsHeight = hasSerials ? ln.serials!.length * LH_XS + 1 : 0;
+
     schemas.push({
       name: `lineRowBorder_${i}`,
       type: 'line',
-      position: { x: MARGIN, y: rowY + LH_SM + 1 },
+      position: { x: MARGIN, y: rowY + LH_SM + 1 + serialRowsHeight },
       width: CONTENT_W,
       height: 0.2,
       color: '#DDDDDD',
     });
+
+    // Serial numbers under the line item (compact: S/N list)
+    if (hasSerials) {
+      const serialText = 'S/N: ' + ln.serials!.map(s => {
+        let entry = s.serialIda;
+        if (s.modelIda) entry += ` (${s.modelIda})`;
+        return entry;
+      }).join(', ');
+
+      schemas.push({
+        name: `lineSerials_${i}`,
+        type: 'text',
+        position: { x: MARGIN + headerWidths[0] + 2, y: rowY + LH_SM + 1 },
+        width: CONTENT_W - headerWidths[0] - 4,
+        height: serialRowsHeight,
+        fontSize: FONT_XS,
+        fontColor: '#666666',
+      });
+      inputData[`lineSerials_${i}`] = serialText;
+    }
   }
 
-  // Position after lines
-  const linesEndY = y + maxLines * (LH_SM + 1.5) + 2;
+  // Position after lines (account for serial rows)
+  let totalLineHeight = 0;
+  for (let i = 0; i < maxLines; i++) {
+    const ln = data.lines[i];
+    const hasSerials = ln.isSerialized && ln.serials && ln.serials.length > 0;
+    totalLineHeight += LH_SM + 1.5 + (hasSerials ? ln.serials!.length * LH_XS + 1 : 0);
+  }
+  const linesEndY = y + totalLineHeight + 2;
   y = Math.min(linesEndY, PAGE_H - MARGIN - 35);
 
   // --- Bottom divider ---

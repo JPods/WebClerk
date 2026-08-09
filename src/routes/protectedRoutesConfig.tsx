@@ -163,14 +163,16 @@ export const protectedRoutesConfig = [
 
 export const resolveWindowElement = (path: string) => {
   const cleanPath = path.split("?")[0];
-  const match = protectedRoutesConfig.find((r) => {
-    if (r.path?.includes(":")) {
-      const base = r.path.split(":")[0];
-      // Parameterized routes require the path to have content after the base
-      // e.g., /customer/:id matches /customer/42, NOT /customer
-      return cleanPath.startsWith(base) && cleanPath.length > base.length;
-    }
-    return r.path === cleanPath;
+  // Check exact paths first, then parameterized. Prevents /:model catch-all
+  // from swallowing /alice-dashboard, /help, /test-dashboard, etc.
+  const exact = protectedRoutesConfig.find((r) =>
+    r.path && !r.path.includes(":") && r.path === cleanPath
+  );
+  if (exact) return exact.element;
+  const paramMatch = protectedRoutesConfig.find((r) => {
+    if (!r.path?.includes(":")) return false;
+    const base = r.path.split(":")[0];
+    return cleanPath.startsWith(base) && cleanPath.length > base.length;
   });
-  return match?.element ?? null;
+  return paramMatch?.element ?? null;
 };

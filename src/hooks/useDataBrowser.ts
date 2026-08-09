@@ -914,6 +914,11 @@ export function useDataBrowser(isAuthenticated: boolean) {
     try {
       await saveRecord(selectedModel, { ...selectedRecord });
       setIsDirty(false); setValidationErrors({}); fetchRecords();
+      // Re-fetch detail to get updated version (prevents 412 on next save)
+      if (selectedId != null) {
+        const d = await getRecord(selectedModel, selectedId) as { record?: unknown };
+        setSelectedRecord(toRec(d?.record));
+      }
       // Notify other windows
       import('@/utils/windowChannel').then(({ windowChannel }) => {
         windowChannel.send({ type: 'record-saved', model: selectedModel, id: selectedId ?? undefined });

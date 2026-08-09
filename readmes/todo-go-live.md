@@ -15,18 +15,18 @@ Alice pointer: Document `wc3-go-live` (id: 945).
 
 | | Count |
 |---|---|
-| Total items | 108 |
-| DONE | 60 |
+| Total items | 113 |
+| DONE | 61 |
 | BLOCKED | 0 |
-| TODO | 47 |
+| TODO | 51 |
 | DEFERRED | 1 |
 | READY | 1 |
-| **Progress** | **56%** |
+| **Progress** | **55%** |
 
 | Priority | Remaining |
 |----------|-----------|
-| P1 | 11 |
-| P2 | 16 |
+| P1 | 12 |
+| P2 | 19 |
 | P3 | 14 |
 | P4 | 6 |
 
@@ -205,7 +205,7 @@ Alice pointer: Document `wc3-go-live` (id: 945).
 
 | # | Item | Status | Pri | Notes |
 |---|------|--------|-----|-------|
-| 95 | PO → SO bundle (field mapping, conversion, status dashboard) | TODO | P1 | Structural — defines how purchase and sales sides connect. ~2 sessions. |
+| 95 | PO → SO bundle (field mapping, conversion, status dashboard) | DONE | P1 | Cross-instance bundle: 5 endpoints, cost→price mapping, bundle UUID tracking, status polling. 2026-08-09. |
 
 ### Analytics & Reporting (salvaged from WC2 Tally system)
 
@@ -224,6 +224,16 @@ Alice pointer: Document `wc3-go-live` (id: 945).
 | 106 | Work order cost rollup (labor time × rate + materials by activity) | TODO | P3 | WC2: `Tally_OrdProfit.4dm`. ~1 session. |
 | 107 | EOM inventory snapshot (qty on hand, value, type by item) | TODO | P4 | WC2: `TallyUsageEOMValue.4dm`. ~1 session. |
 | 108 | Sales history into customer record (YTD, last year, lifetime) | TODO | P2 | Denormalized for fast org lookup. WC2: `TallySalesIntoCustomerRecord.4dm`, `TallyEndOfYr.4dm`. ~1 session. |
+
+### AR & Multi-Currency
+
+| # | Item | Status | Pri | Notes |
+|---|------|--------|-----|-------|
+| 109 | Customer statements — periodic AR statement generation (list of open invoices, payments, balance) | TODO | P2 | Not the bank statement import (that exists). The outbound statement you mail to the customer. ~1 session. |
+| 110 | Multi-currency on transactions — exchange rate field on transaction header, rate lookup | TODO | P2 | WC2 had exchangeRate and currency on every order/invoice. WC3 has currency in cost envelope and exchange_expense in finance, but no exchange rate on the transaction header. No rate lookup. ~1-2 sessions. |
+| 111 | Recurring orders / subscriptions — comment `quantity.increment` intent in base_line_model.py | TODO | P2 | Mechanism exists: proposal with `line.quantity.increment > 0` = standing order template. Scheduled job generates orders each cycle using increment as qty. No separate subscription model. Needs better comments + the scheduler itself. ~1 session. |
+| 112 | Drop ship — order line flag, auto-PO generation, address copy | TODO | P1 | WC2: DropShipFill.4dm + Data_AddressCopy. Flag order line as drop-ship → auto-generate PO to vendor with customer's ship-to address. Need: drop_ship flag on line, auto-PO trigger, address copy from customer org to PO. ~1-2 sessions. |
+| 113 | Landed cost allocation — distribute PO/receipt-level freight, duty, customs across received lines | TODO | P1 | InventoryLayer has fields (cost.freight, cost.duty, cost.handling, cost.vat, cost.landed) and `update_cost_after_receipt()`. Missing: allocation service to split header-level charges across lines by weight, value, or qty. Core for importers/distributors. ~1-2 sessions. |
 
 ---
 
@@ -244,3 +254,137 @@ Alice pointer: Document `wc3-go-live` (id: 945).
 ---
 
 *Prior version: `_archive/todo-go-live-2026-08-05.md`*
+
+
+
+P1 — Must have (13 remaining):                                                
+                                                                                
+  ┌─────┬──────────────────────────────────────────────────────────────┐        
+  │  #  │                             Item                             │        
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 79  │ Item detail enrichment (sales history, margins, images)      │        
+
+Should have a pydantic structure for these defined in setting.item_model. Same for supporting product models. Draft something then we can apply it. 
+
+Similar summary reporting in org and contact records 
+
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 81  │ Work Order detail page (BOM explosion, labor)                │        
+
+Todo list, not mvp
+
+  ├─────┼──────────────────────────────────────────────────────────────┤
+  │ 82  │ Receipt detail page (receive vs PO, inspect, put-away)       │        
+
+Please build this
+
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 89  │ Return / credit memo (from invoice, reverse inventory)       │
+
+  Negative invoice. Done
+
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 95  │ PO → SO bundle (field mapping, conversion, status dashboard) │
+
+  Done
+
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 112 │ Drop ship (auto-PO, address copy)                            │
+
+Not mvp
+
+  ├─────┼──────────────────────────────────────────────────────────────┤        
+  │ 113 │ Landed cost allocation                                       │
+
+  Look at wc2. These are fields added to a receipt with costs spread accross all times per inshipment
+
+  └─────┴──────────────────────────────────────────────────────────────┘
+
+  P2 — Important for daily use (19 remaining):
+              
+  ┌─────┬───────────────────────────────────────────────┐
+  │  #  │                     Item                      │                       
+  ├─────┼───────────────────────────────────────────────┤
+  │ 45  │ Statement generation (customer, date range)   │                       
+
+need to put into pdfme
+
+  ├─────┼───────────────────────────────────────────────┤         
+  │ 46  │ Aged receivables report (30/60/90/120+)       │
+
+Need to put into pdfme
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 55  │ Refund button                                 │
+
+  Negative invoice
+
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 60  │ Email merge (token engine renders email body) │         
+
+Need to workout and apply .md editor
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 76  │ Commission panel                              │
+
+  Not mvp
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 78  │ Commission payment                            │         
+
+Done in accounting, not wc3 feature
+
+  ├─────┼───────────────────────────────────────────────┤
+  │ 87  │ Status guard rails                            │
+
+Review. Not sure what is needed. We make users responsible without over-protecting them.
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 90  │ Cancellation workflow                         │
+
+There is a cancel by line. Review the cancel order function in wc2
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 91  │ Document cloning                              │         
+
+Cloning is built. needs to be reviewed.
+
+  ├─────┼───────────────────────────────────────────────┤
+  │ 94  │ Discount / promotion engine                   │
+
+
+  not mvp
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 101 │ Open order amounts by customer                │
+
+Review wc2 schema and assure we have similar.metadata pydantic defined.
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 102 │ Available qty by item                         │         
+
+Should be showing in the add item panel in transaction models
+
+  ├─────┼───────────────────────────────────────────────┤
+  │ 108 │ Sales history into customer record            │
+
+
+Review wc2 schema and assure we have similar.metadata pydantic defined.
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 109 │ Customer statements (outbound AR)             │
+
+We need to loop through all reports and put them in pdfme
+
+  ├─────┼───────────────────────────────────────────────┤                       
+  │ 110 │ Multi-currency on transactions                │         
+
+  not mvp
+
+  ├─────┼───────────────────────────────────────────────┤
+  │ 111 │ Recurring orders / subscriptions              │
+
+  blacket orders in proposal, convert to order by increment amount
+
+  └─────┴───────────────────────────────────────────────┘
+

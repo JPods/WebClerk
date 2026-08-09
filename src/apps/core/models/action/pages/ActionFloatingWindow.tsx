@@ -1,12 +1,17 @@
 /**
- * ActionFloatingWindow — Draggable, resizable floating window for ActionDetailCompact.
+ * ActionFloatingWindow — Draggable, resizable floating window for action detail.
+ * Uses DynamicDetail with the standard DetailToolbar (same as db.detail).
+ * Includes photo/video upload for job site documentation and QA.
  * Used in Gantt and Kanban to view/edit actions without covering the workspace.
- * Closes on Save, Cancel, or Delete. No close × button.
  */
 import { useState, useRef, useCallback } from "react";
 import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
 import type { DynamicDetailActions } from "../../../../../components/common/DynamicDetail";
+import { DetailToolbar } from "../../../../../components/common/DetailToolbar";
+import { FileUploadPanel } from "../../../../../components/common/FileUploadPanel";
 import { deleteRecord } from "../../../../../api/wcapi";
+import { useDispatch } from "react-redux";
+import { showToast } from "@/store/slices/toastSlice";
 
 interface Props {
   actionId: string;
@@ -16,7 +21,7 @@ interface Props {
 
 export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSaved }) => {
   const [pos, setPos] = useState({ x: Math.max(20, Math.min(200, window.innerWidth / 2 - 300)), y: 60 });
-  const [size, setSize] = useState({ w: 600, h: 500 });
+  const [size, setSize] = useState({ w: 640, h: 560 });
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [, forceUpdate] = useState(0);
@@ -24,6 +29,7 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<DynamicDetailActions | null>(null);
+  const dispatch = useDispatch();
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) {
@@ -94,7 +100,6 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   }, [size]);
 
   const actions = actionsRef.current;
-  const btnBase = "rounded px-2 py-0.5 text-[10px] font-medium";
 
   return (
     <div
@@ -110,50 +115,32 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
       {/* Title bar — draggable */}
       <div
         onMouseDown={onDragStart}
-        className="flex shrink-0 cursor-move items-center justify-between rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-1.5 dark:border-gray-700 dark:bg-gray-800"
+        className="flex shrink-0 cursor-move items-center gap-2 rounded-t-lg border-b border-gray-200 bg-gray-50 px-2 py-0.5 dark:border-gray-700 dark:bg-gray-800 select-none"
       >
-        <div className="flex items-center gap-2 select-none">
-          {actions?.ida && (
-            <span className="font-mono text-[10px] text-gray-400">{actions.ida}</span>
-          )}
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            Action #{actionId}
-          </span>
-        </div>
-        <div className="flex flex-1 items-center justify-between ml-4">
-          <div className="flex items-center gap-1">
-            <button onClick={handleSave} disabled={actions?.saving}
-              className={`${btnBase} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50`}>
-              {actions?.saving ? "..." : "Save"}</button>
-            <button onClick={handleCancel}
-              className={`${btnBase} border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300`}>Cancel</button>
-            <select
-              value={actions?.fontSize ?? 12}
-              onMouseDown={(e) => e.stopPropagation()}
-              onChange={(e) => { actionsRef.current?.setFontSize(Number(e.target.value)); forceUpdate(n => n + 1); }}
-              className={`${btnBase} border border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600 cursor-pointer`}
-              title="Font size"
-            >
-              <option value={10}>Font: 10</option>
-              <option value={12}>Font: 12</option>
-              <option value={14}>Font: 14</option>
-              <option value={16}>Font: 16</option>
-              <option value={18}>Font: 18</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className={`${btnBase} ${confirmDelete
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "border border-red-300 text-red-500 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/30"
-            } disabled:opacity-50`}
-          >
-            {deleting ? "..." : confirmDelete ? "Confirm Delete" : "Delete"}
-          </button>
-        </div>
+        {actions?.ida && (
+          <span className="font-mono text-[10px] text-gray-400">{actions.ida}</span>
+        )}
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+          Action #{actionId}
+        </span>
+        <span className="flex-1" />
+        <button onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm px-1"
+          title="Close">×</button>
       </div>
+
+      {/* Standard DetailToolbar — same as db.detail */}
+      <DetailToolbar
+        data={actions?.data}
+        currentData={actions?.currentData}
+        modelName="action"
+        isEditing={true}
+        saving={actions?.saving}
+        canDelete={true}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onDelete={handleDelete}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
@@ -164,6 +151,14 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
           hideToolbar
           actionsRef={actionsRef}
           onActionsReady={() => forceUpdate(n => n + 1)}
+        />
+
+        {/* File upload — creates Document record per file */}
+        <FileUploadPanel
+          modelName="action"
+          recordId={actionId}
+          recordIda={actions?.ida}
+          className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700"
         />
       </div>
 

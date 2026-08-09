@@ -1,31 +1,14 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store/hooks";
 import { getRecords } from "../../api/wcapi";
 import DataGrid from "@/components/common/DataGrid";
+import ToolbarIcon from "@/components/common/ToolbarIcon";
+import { TB } from "@/components/common/toolbarActions";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface ServiceRecord {
-  id: number;
-  tableName: string;
-  actionBy?: string;
-  action?: string;
-  action_en?: string;
-  actionDate?: string;
-  due_date?: string;
-  company?: string;
-  attention?: string;
-  contact_name?: string;
-  variable?: string;
-  notes?: string;
-  priority?: string;
-  status?: string;
-  project_name?: string;
-  [k: string]: any;
-}
 
 interface RecordCount {
   model: string;
@@ -49,16 +32,6 @@ const QUICK_ADDS = [
   { label: "Statements", to: "/statement_line", accent: "bg-orange-600 text-white" },
 ];
 
-// Tables to query for the user's action records (mirrors wc2 Cal_SearchMySales)
-const ACTION_TABLES = [
-  { model: "order", label: "Orders" },
-  { model: "invoice", label: "Invoices" },
-  { model: "proposal", label: "Proposals" },
-  { model: "customer", label: "Customers" },
-  { model: "purchase", label: "Purchases" },
-  { model: "contact", label: "Contacts" },
-];
-
 // Models to count for the signed-in user
 const COUNT_MODELS: Omit<RecordCount, "count">[] = [
   { model: "contact", label: "Contacts", link: "/contact" },
@@ -69,18 +42,234 @@ const COUNT_MODELS: Omit<RecordCount, "count">[] = [
   { model: "purchase", label: "Purchases", link: "/purchase" },
 ];
 
+// Action list columns — action with related entity detail
+const ACTION_COLUMNS = [
+  "ida",
+  "action_en",
+  "status",
+  "kanban_column",
+  "priority",
+  "project_name",
+  "contact_name",
+  "company",
+  "dt_deadline",
+  "percent_complete",
+];
+
+// ---------------------------------------------------------------------------
+// StaffPicker — compact multi-select for staff members
+// ---------------------------------------------------------------------------
+
+function StaffPicker({
+  members,
+  selected,
+  onToggle,
+  onSelectAll,
+  onSelectNone,
+}: {
+  members: { id: number; name: string }[];
+  selected: Set<number>;
+  onToggle: (id: number) => void;
+  onSelectAll: () => void;
+  onSelectNone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const count = selected.size;
+  const label = count === 0
+    ? "Nobody"
+    : count === members.length
+      ? "Everyone"
+      : count <= 2
+        ? members.filter((m) => selected.has(m.id)).map((m) => m.name.split(" ")[0]).join(", ")
+        : `${count} people`;
+
+  // Hover preview — show names as tooltip
+  const hoverText = members
+    .filter((m) => selected.has(m.id))
+    .map((m) => m.name)
+    .join("\n") || "No one selected";
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        title={hoverText}
+        style={{
+          fontSize: 11, padding: "2px 8px", cursor: "pointer",
+          background: open ? "var(--db-accent, #4a9eff)" : "var(--db-surface-alt, #f8f9fa)",
+          color: open ? "#fff" : "var(--db-text, #495057)",
+          border: `1px solid ${open ? "var(--db-accent, #4a9eff)" : "var(--db-border, #dee2e6)"}`,
+          borderRadius: 3, whiteSpace: "nowrap",
+        }}
+      >
+        {label} ▾
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, zIndex: 100,
+          marginTop: 2, minWidth: 180, maxHeight: 300, overflowY: "auto",
+          background: "var(--db-surface, #fff)", border: "1px solid var(--db-border, #dee2e6)",
+          borderRadius: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        }}>
+          {/* All / None header */}
+          <div style={{
+            display: "flex", gap: 8, padding: "4px 8px",
+            borderBottom: "1px solid var(--db-border, #dee2e6)",
+            fontSize: 10, color: "var(--db-text-muted, #6c757d)",
+          }}>
+            <button onClick={onSelectAll}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", textDecoration: "underline", fontSize: 10 }}>
+              all
+            </button>
+            <button onClick={onSelectNone}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", textDecoration: "underline", fontSize: 10 }}>
+              none
+            </button>
+            <span style={{ flex: 1 }} />
+            <span>{count}/{members.length}</span>
+          </div>
+          {/* Staff list */}
+          {members.map((s) => {
+            const active = selected.has(s.id);
+            return (
+              <label
+                key={s.id}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "3px 8px", cursor: "pointer", fontSize: 11,
+                  background: active ? "var(--db-accent-bg, #e8f0fe)" : "transparent",
+                  color: "var(--db-text, #495057)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = active ? "var(--db-accent-bg, #d0e3fc)" : "var(--db-surface-alt, #f8f9fa)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = active ? "var(--db-accent-bg, #e8f0fe)" : "transparent")}
+              >
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => onToggle(s.id)}
+                  style={{ margin: 0, accentColor: "var(--db-accent, #4a9eff)" }}
+                />
+                {s.name}
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Date range presets
+// ---------------------------------------------------------------------------
+
+type DatePreset = "today" | "yesterday" | "tomorrow" | "this_week" | "last_week" | "next_week" | "between" | "all";
+
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "tomorrow", label: "Tomorrow" },
+  { value: "this_week", label: "This Week" },
+  { value: "last_week", label: "Last Week" },
+  { value: "next_week", label: "Next Week" },
+  { value: "between", label: "Between..." },
+];
+
+function startOfDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function dateRangeForPreset(preset: DatePreset): { from: number; to: number } | null {
+  const now = new Date();
+  const today = startOfDay(now);
+  const oneDay = 86400000;
+  const dow = now.getDay(); // 0=Sun
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+
+  switch (preset) {
+    case "today":
+      return { from: today, to: today + oneDay - 1 };
+    case "yesterday":
+      return { from: today - oneDay, to: today - 1 };
+    case "tomorrow":
+      return { from: today + oneDay, to: today + 2 * oneDay - 1 };
+    case "this_week": {
+      const mon = today + mondayOffset * oneDay;
+      return { from: mon, to: mon + 7 * oneDay - 1 };
+    }
+    case "last_week": {
+      const mon = today + (mondayOffset - 7) * oneDay;
+      return { from: mon, to: mon + 7 * oneDay - 1 };
+    }
+    case "next_week": {
+      const mon = today + (mondayOffset + 7) * oneDay;
+      return { from: mon, to: mon + 7 * oneDay - 1 };
+    }
+    case "all":
+    case "between":
+    default:
+      return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Extract action title from the multilingual action JSON */
+function actionTitle(action: any): string {
+  if (!action) return "";
+  if (typeof action === "string") return action;
+  if (typeof action === "object") return action.en || action.bn || action.ar || "";
+  return String(action);
 }
 
-function daysAgoISO(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+/** Flatten an action record for grid display — denormalize related entity info from refs.links */
+function flattenAction(rec: any): any {
+  const action_en = actionTitle(rec.action);
+  const refs = rec.refs || {};
+  const links = refs.links || {};
+
+  // Collect related entity summaries from refs.links
+  const related: string[] = [];
+  for (const [model, ids] of Object.entries(links)) {
+    if (!Array.isArray(ids) || ids.length === 0) continue;
+    if (model === "contact" || model === "item") continue; // skip standard link buckets
+    const count = ids.length;
+    const label = model.charAt(0).toUpperCase() + model.slice(1);
+    related.push(count === 1 ? `${label} #${ids[0]}` : `${count} ${label}s`);
+  }
+
+  // Contact name from assigned_to
+  let contact_name = "";
+  if (rec.assigned_to && Array.isArray(rec.assigned_to) && rec.assigned_to.length > 0) {
+    const first = rec.assigned_to[0];
+    contact_name = typeof first === "object" ? (first.name || first.email || "") : String(first);
+  }
+
+  // Company from project or first linked customer/org
+  const company = rec.project_name || rec.company || "";
+
+  return {
+    ...rec,
+    action_en,
+    contact_name,
+    company,
+    related: related.join(", "),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -89,70 +278,112 @@ function daysAgoISO(days: number): string {
 
 export default function Home() {
   const { user } = useAppSelector((state) => state.auth);
-  const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
+  const navigate = useNavigate();
+  const [actions, setActions] = useState<any[]>([]);
   const [counts, setCounts] = useState<RecordCount[]>([]);
-  const [loadingRecords, setLoadingRecords] = useState(false);
+  const [loadingActions, setLoadingActions] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [dateRange, setDateRange] = useState({ begin: daysAgoISO(7), end: todayISO() });
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customFrom, setCustomFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customTo, setCustomTo] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [selectedStaffIds, setSelectedStaffIds] = useState<Set<number>>(() => new Set(user?.id ? [user.id] : []));
+  const [staffMembers, setStaffMembers] = useState<{ id: number; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: number; name: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [subsetMode, setSubsetMode] = useState<"all" | "show" | "omit">("all");
 
-  // Fetch action records across all tables for the current user
-  const fetchServiceRecords = useCallback(async () => {
-    if (!user?.id) return;
-    setLoadingRecords(true);
+  // Fetch staff members and active projects
+  const fetchStaff = useCallback(async () => {
     try {
-      const results = await Promise.all(
-        ACTION_TABLES.map(async (table) => {
-          try {
-            const res = await getRecords(table.model, {
-              contact_id: user.id,
-              is_active: true,
-              action_date__gte: dateRange.begin,
-              action_date__lte: dateRange.end,
-              limit: 200,
-            });
-            const records = (res?.results ?? []).map((r: any) => ({
-              ...r,
-              tableName: table.label,
-              actionDate: r.action_date || r.due_date || r.created_at || "",
-              company: r.company || r.contact_name || r.customer_name || "",
-              attention: r.attention || r.contact_name || "",
-              variable: r.notes || r.description || r.comment || "",
-            }));
-            return records;
-          } catch {
-            return [];
-          }
-        })
-      );
-      const merged = results.flat().sort((a, b) => {
-        const da = a.actionDate || "";
-        const db = b.actionDate || "";
-        return db.localeCompare(da); // newest first
-      });
-      setServiceRecords(merged);
-    } catch (err) {
-      console.error("[Dashboard] Failed to fetch service records:", err);
-    } finally {
-      setLoadingRecords(false);
-    }
-  }, [user?.id, dateRange]);
+      const res = await getRecords("contact", { is_staff: true, is_active: true, limit: 100, ordering: "attention" });
+      const members = (res?.results ?? []).map((c: any) => ({
+        id: c.id,
+        name: c.attention || c.name_first || c.email || `#${c.id}`,
+      }));
+      setStaffMembers(members);
+    } catch { /* silent */ }
+  }, []);
 
-  // Also fetch open actions specifically assigned to user
-  const [myActions, setMyActions] = useState<ServiceRecord[]>([]);
-  const fetchMyActions = useCallback(async () => {
-    if (!user?.id) return;
+  const fetchProjects = useCallback(async () => {
     try {
-      const res = await getRecords("action", {
-        contact_id: user.id,
+      const res = await getRecords("project", { is_active: true, limit: 100, ordering: "name" });
+      const items = (res?.results ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name || p.ida || `#${p.id}`,
+      }));
+      setProjects(items);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchStaff(); fetchProjects(); }, [fetchStaff, fetchProjects]);
+
+  const toggleStaff = useCallback((id: number) => {
+    setSelectedStaffIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllStaff = useCallback(() => {
+    setSelectedStaffIds(new Set(staffMembers.map((s) => s.id)));
+  }, [staffMembers]);
+
+  const selectNone = useCallback(() => {
+    setSelectedStaffIds(new Set());
+  }, []);
+
+  // Fetch active actions with optional date filtering on dt_deadline
+  const fetchActions = useCallback(async () => {
+    setLoadingActions(true);
+    try {
+      const params: Record<string, any> = {
         is_active: true,
+        ordering: "-priority,-dt_deadline",
         limit: 500,
-      });
-      setMyActions(res?.results ?? []);
+      };
+
+      // Owner filter — selected staff ids
+      if (selectedStaffIds.size === 1) {
+        params.contact_id = Array.from(selectedStaffIds)[0];
+      } else if (selectedStaffIds.size > 1) {
+        params.contact_id__in = Array.from(selectedStaffIds).join(",");
+      }
+      // size 0 = show all (no filter)
+
+      // Project filter
+      if (selectedProjectId) {
+        params.project_id = selectedProjectId;
+      }
+
+      // Apply date range filter on dt_deadline
+      if (datePreset === "between" && customFrom && customTo) {
+        params.dt_deadline__gte = new Date(customFrom).getTime();
+        params.dt_deadline__lte = new Date(customTo).getTime() + 86400000 - 1;
+      } else if (datePreset !== "all") {
+        const range = dateRangeForPreset(datePreset);
+        if (range) {
+          params.dt_deadline__gte = range.from;
+          params.dt_deadline__lte = range.to;
+        }
+      }
+
+      const res = await getRecords("action", params);
+      setActions((res?.results ?? []).map(flattenAction));
     } catch (err) {
       console.error("[Dashboard] Failed to fetch actions:", err);
+    } finally {
+      setLoadingActions(false);
     }
-  }, [user?.id]);
+  }, [datePreset, customFrom, customTo, selectedStaffIds, selectedProjectId]);
 
   // Fetch record counts for models where user appears
   const fetchCounts = useCallback(async () => {
@@ -182,43 +413,11 @@ export default function Home() {
   }, [user?.id]);
 
   useEffect(() => {
-    fetchServiceRecords();
-    fetchMyActions();
+    fetchActions();
     fetchCounts();
-  }, [fetchServiceRecords, fetchMyActions, fetchCounts]);
+  }, [fetchActions, fetchCounts]);
 
-  // Columns for the bottom DataGrid (mirrors wc2 LB_Service listbox)
-  const gridColumns = useMemo(() => [
-    "tableName",
-    "actionBy",
-    "action_en",
-    "actionDate",
-    "company",
-    "attention",
-    "variable",
-    "id",
-  ], []);
-
-  // Combine actions + service records for the grid
-  const gridRecords = useMemo(() => {
-    const actionRows = myActions.map((a: any) => ({
-      ...a,
-      tableName: "Action",
-      actionDate: a.due_date || a.action_date || a.created_at || "",
-      company: a.project_name || "",
-      attention: a.contact_name || "",
-      variable: a.notes || a.action_en || "",
-      actionBy: a.assignee_name || a.contact_name || "",
-    }));
-    return [...actionRows, ...serviceRecords];
-  }, [myActions, serviceRecords]);
-
-  const getActionTitle = (a: any): string => {
-    if (a.action_en) return a.action_en;
-    if (typeof a.action === "string") return a.action;
-    if (a.action?.value?.en) return a.action.value.en;
-    return `#${a.id}`;
-  };
+  const gridColumns = useMemo(() => ACTION_COLUMNS, []);
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
@@ -258,64 +457,79 @@ export default function Home() {
         ))}
       </section>
 
-      {/* Filter bar: date range */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">From</label>
-        <input
-          type="date"
-          value={dateRange.begin}
-          onChange={(e) => setDateRange((d) => ({ ...d, begin: e.target.value }))}
-          className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-        />
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">To</label>
-        <input
-          type="date"
-          value={dateRange.end}
-          onChange={(e) => setDateRange((d) => ({ ...d, end: e.target.value }))}
-          className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-        />
-        <button
-          onClick={() => { fetchServiceRecords(); fetchMyActions(); }}
-          className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
-        >
-          Refresh
-        </button>
-        <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-          {gridRecords.length} records
-        </span>
-      </div>
-
-      {/* My Actions — link to standard DataBrowser */}
-      <Link
-        to="/action"
-        className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-[1px] hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-500"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-gray-900 dark:text-white">My Actions</span>
-          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            {myActions.length} open
-          </span>
-        </div>
-        <span className="text-sm text-gray-400">Open in DataBrowser →</span>
-      </Link>
-
-      {/* DataBrowser (DataGrid) — bottom section, shows all action records across tables */}
+      {/* Actions list — standard db.list toolbar + DataGrid */}
       <section className="min-h-0 flex-1 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div className="flex h-full flex-col">
-          <div className="border-b border-gray-100 px-4 py-2 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              All Records — Sales & Service
-            </h2>
-          </div>
-          <div className="flex-1 overflow-auto px-2 py-1">
-            <DataGrid
-              records={gridRecords}
-              columns={gridColumns}
-              selectedId={selectedId}
-              onSelectRecord={(id) => setSelectedId(id)}
-              sort={null}
+          {/* Standard db.list toolbar */}
+          <div className="db-toolbar-row" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 6px", borderBottom: "1px solid var(--db-border, #dee2e6)" }}>
+            <div className="db-list-toolbar" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <ToolbarIcon action={TB.filter} title="Filter" active={showFilters} onClick={() => setShowFilters(!showFilters)} />
+              <ToolbarIcon action={TB.showAll} title="Show All" onClick={() => { setSubsetMode("all"); selectAllStaff(); setDatePreset("all"); }} />
+              <ToolbarIcon action={TB.showSubset} title="Show Selected" active={subsetMode === "show"} onClick={() => setSubsetMode(subsetMode === "show" ? "all" : "show")} />
+              <ToolbarIcon action={TB.omit} title="Omit Selected" active={subsetMode === "omit"} onClick={() => setSubsetMode(subsetMode === "omit" ? "all" : "omit")} />
+              <ToolbarIcon action={TB.sort} title="Sort" onClick={() => {}} />
+              <ToolbarIcon action={TB.print} title="Reports" onClick={() => window.print()} />
+            </div>
+            {/* Period */}
+            <span style={{ width: 1, height: 16, background: "var(--db-border, #dee2e6)", margin: "0 2px" }} />
+            <select
+              value={datePreset}
+              onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+              style={{ fontSize: 11, padding: "2px 4px", background: "var(--db-surface-alt, #f8f9fa)", color: "var(--db-text, #495057)", border: "1px solid var(--db-border, #dee2e6)", borderRadius: 3, cursor: "pointer" }}
+            >
+              {DATE_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+            {datePreset === "between" && (
+              <>
+                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
+                  style={{ fontSize: 11, padding: "2px 4px", border: "1px solid var(--db-border, #dee2e6)", borderRadius: 3 }} />
+                <span style={{ fontSize: 11, color: "var(--db-text-muted, #6c757d)" }}>to</span>
+                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)}
+                  style={{ fontSize: 11, padding: "2px 4px", border: "1px solid var(--db-border, #dee2e6)", borderRadius: 3 }} />
+              </>
+            )}
+
+            {/* Project */}
+            <span style={{ width: 1, height: 16, background: "var(--db-border, #dee2e6)", margin: "0 2px" }} />
+            <select
+              value={selectedProjectId ?? ""}
+              onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
+              style={{ fontSize: 11, padding: "2px 4px", background: "var(--db-surface-alt, #f8f9fa)", color: "var(--db-text, #495057)", border: "1px solid var(--db-border, #dee2e6)", borderRadius: 3, cursor: "pointer" }}
+            >
+              <option value="">All Projects</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* People */}
+            <span style={{ width: 1, height: 16, background: "var(--db-border, #dee2e6)", margin: "0 2px" }} />
+            <StaffPicker
+              members={staffMembers}
+              selected={selectedStaffIds}
+              onToggle={toggleStaff}
+              onSelectAll={selectAllStaff}
+              onSelectNone={selectNone}
             />
+
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 11, color: "var(--db-text-muted, #6c757d)" }}>
+              {loadingActions ? "Loading..." : `${actions.length} actions`}
+            </span>
           </div>
+          <DataGrid
+            records={actions}
+            columns={gridColumns}
+            selectedId={selectedId}
+            hideToolbar
+            onSelectRecord={(id) => {
+              setSelectedId(id);
+              navigate(`/action/${id}`);
+            }}
+            sort={{ field: "priority", direction: "desc" }}
+          />
         </div>
       </section>
     </div>

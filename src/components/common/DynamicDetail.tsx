@@ -29,6 +29,7 @@ import { getWidget } from "../widgets";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { FileUploadPanel } from './FileUploadPanel';
 
 // ── Field type registry ─────────────────────────────────────────────
 
@@ -586,6 +587,15 @@ function DynamicDetail({
           </div>
         </div>
       )}
+
+      {/* File upload — every upload creates a Document record */}
+      <FileUploadPanel
+        modelName={modelName}
+        recordId={recordId}
+        recordIda={data?.ida}
+        compact={hideToolbar}
+        className="border-t border-gray-200 pt-1.5 dark:border-gray-700"
+      />
 
       {/* Open db.page — primary record in full page layout */}
       <div className="border-t border-gray-200 pt-1.5 dark:border-gray-700">

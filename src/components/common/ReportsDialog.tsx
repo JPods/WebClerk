@@ -12,7 +12,8 @@
  *
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+const PdfDesigner = React.lazy(() => import('@/pages/tools/PdfDesigner'));
 import { getRecords, getRecord, saveRecord, getFormLibrary, checkoutForm, submitFormToLibrary, restoreFormFromLibrary } from '@/api/wcapi';
 import type { FormLibraryEntry } from '@/api/wcapi';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
@@ -131,6 +132,10 @@ const ReportsDialog: React.FC<Props> = ({
   const [designReport, setDesignReport] = useState<ReportRecord | null>(null);
   const [designLayout, setDesignLayout] = useState<PrintLayout | null>(null);
   const [designSampleData, setDesignSampleData] = useState<any>(null);
+
+  // --- pdfme DesignMode ---
+  const [pdfmeMode, setPdfmeMode] = useState(false);
+  const [pdfmeReport, setPdfmeReport] = useState<ReportRecord | null>(null);
 
   // --- Library ---
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -387,10 +392,10 @@ const ReportsDialog: React.FC<Props> = ({
         style={{
           background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: 8,
-          width: designMode ? '95vw' : showPreview ? 1100 : 620,
-          maxWidth: designMode ? 1800 : undefined,
-          height: designMode ? '92vh' : undefined,
-          maxHeight: designMode ? '92vh' : '85vh',
+          width: (designMode || pdfmeMode) ? '95vw' : showPreview ? 1100 : 620,
+          maxWidth: (designMode || pdfmeMode) ? 1800 : undefined,
+          height: (designMode || pdfmeMode) ? '92vh' : undefined,
+          maxHeight: (designMode || pdfmeMode) ? '92vh' : '85vh',
           display: 'flex', flexDirection: 'column',
           boxShadow: designMode ? '0 12px 48px rgba(0,0,0,0.6)' : '0 8px 32px rgba(0,0,0,0.4)',
           transition: 'width 0.2s ease, height 0.2s ease',
@@ -436,9 +441,9 @@ const ReportsDialog: React.FC<Props> = ({
 
         {/* Report list — collapsed to narrow strip in design mode */}
         <div ref={listRef} style={{
-          flex: designMode ? '0 0 0px' : showPreview ? '0 0 480px' : 1,
+          flex: (designMode || pdfmeMode) ? '0 0 0px' : showPreview ? '0 0 480px' : 1,
           overflowY: 'auto', padding: designMode ? 0 : '4px 0',
-          width: designMode ? 0 : undefined,
+          width: (designMode || pdfmeMode) ? 0 : undefined,
           overflow: designMode ? 'hidden' : undefined,
           transition: 'flex 0.2s ease, width 0.2s ease',
         }}>
@@ -455,6 +460,10 @@ const ReportsDialog: React.FC<Props> = ({
           {!loading && filteredReports.map((report, i) => {
             const isSelected = i === selectedIndex;
             const primary = isPrimary(report);
+            // Derive editor type from config — pdfme, .tsx, .md, or generic print
+            const hasPdfme = !!(report.config as any)?.pdfme_template;
+            const hasForm = !!(report.config as any)?.form;
+            const editorTag = hasPdfme ? 'pdfme' : hasForm ? 'layout' : null;
             const ot = OUTPUT_TYPE_LABELS[report.output_type || 'print'] || OUTPUT_TYPE_LABELS.print;
 
             return (
@@ -513,10 +522,19 @@ const ReportsDialog: React.FC<Props> = ({
                 {/* Output type */}
                 <span style={{
                   fontSize: fontSize - 2, color: t.textDim, textAlign: 'center',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                 }}>
-                  <span>{ot.icon}</span>
-                  <span>{ot.label}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span>{ot.icon}</span>
+                    <span>{ot.label}</span>
+                  </span>
+                  {editorTag && (
+                    <span style={{
+                      fontSize: fontSize - 4, padding: '0px 4px', borderRadius: 3,
+                      background: editorTag === 'pdfme' ? '#4f46e5' : '#059669',
+                      color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
+                    }}>{editorTag}</span>
+                  )}
                 </span>
 
                 {/* Per-row edit button */}
@@ -557,6 +575,24 @@ const ReportsDialog: React.FC<Props> = ({
             onSave={handleDesignSave}
             onClose={exitDesignMode}
           />
+        )}
+
+        {/* pdfme DesignMode pane */}
+        {pdfmeMode && pdfmeReport && (
+          <div style={{ flex: 1, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${t.border}` }}>
+              <span style={{ fontWeight: 600, fontSize, color: t.text }}>PDF Designer — {pdfmeReport.name}</span>
+              <button
+                onClick={() => { setPdfmeMode(false); setPdfmeReport(null); }}
+                style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1, color: t.text }}
+              >Close</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <Suspense fallback={<div style={{ padding: 16, color: t.textMuted }}>Loading PDF Designer...</div>}>
+                <PdfDesigner />
+              </Suspense>
+            </div>
+          </div>
         )}
 
         {/* Library pane — shows available forms from Andi/Alice */}
@@ -704,18 +740,30 @@ const ReportsDialog: React.FC<Props> = ({
             {canEditReports && !designMode && !libraryOpen && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <>
                 <button
-                  onClick={() => enterDesignMode(filteredReports[selectedIndex])}
-                  title="Visual layout designer (or Shift-click a report)"
+                  onClick={() => {
+                    const rpt = filteredReports[selectedIndex];
+                    const hasPdfme = !!(rpt.config as any)?.pdfme_template;
+                    if (hasPdfme) {
+                      setPdfmeReport(rpt);
+                      setPdfmeMode(true);
+                    } else {
+                      enterDesignMode(rpt);
+                    }
+                  }}
+                  title={!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template
+                    ? "Open in pdfme PDF Designer"
+                    : "Visual layout designer (or Shift-click a report)"}
                   style={{
                     padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
                     fontSize: fontSize - 1, fontWeight: 600,
-                    background: 'none', border: `1px solid ${t.accent}`,
-                    color: t.accent,
+                    background: 'none',
+                    border: `1px solid ${!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? '#4f46e5' : t.accent}`,
+                    color: !!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? '#4f46e5' : t.accent,
                   }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
                 >
-                  Design
+                  {!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? 'PDF Design' : 'Design'}
                 </button>
                 {/* Submit selected form to library */}
                 <button

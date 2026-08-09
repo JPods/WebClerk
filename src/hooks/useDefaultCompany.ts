@@ -459,18 +459,7 @@ export function useDefaultCompany(): UseDefaultCompanyResult {
       setError(err instanceof Error ? err.message : 'Failed to fetch company');
       lastFailureAt = Date.now();
 
-      const status = (err as any)?.response?.status;
-      const canRetry = status === 401 || status === 403 || status === 429;
-      if (canRetry && retryCountRef.current < 3) {
-        retryCountRef.current += 1;
-        if (retryTimerRef.current) {
-          window.clearTimeout(retryTimerRef.current);
-        }
-        const delay = 500 * retryCountRef.current;
-        retryTimerRef.current = window.setTimeout(() => {
-          void fetchCompany();
-        }, delay);
-      }
+      // No retry. Fail visibly. User can reload if needed.
     } finally {
       inFlightCompanyFetch = null;
       setLoading(false);

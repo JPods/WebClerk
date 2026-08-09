@@ -15,8 +15,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Designer } from '@pdfme/ui';
 import { generate } from '@pdfme/generator';
-import { text, image } from '@pdfme/schemas';
-import { BLANK_PDF } from '@pdfme/common';
 import type { Template } from '@pdfme/common';
 import { getRecords, saveRecord } from '@/api/wcapi';
 import { getDefaultTemplate } from '@/config/defaultReportTemplates';
@@ -40,8 +38,8 @@ interface ReportRecord {
 // Blank template for new reports
 // ---------------------------------------------------------------------------
 
-const EMPTY_TEMPLATE: Template = {
-  basePdf: BLANK_PDF,
+const EMPTY_TEMPLATE = {
+  basePdf: { width: 215.9, height: 279.4, padding: [12.7, 12.7, 12.7, 12.7] },
   schemas: [
     [
       {
@@ -105,21 +103,22 @@ export default function ReportDesigner() {
     }
 
     // Resolve template: saved > default > empty
+    // Check both config.pdfme_template and config.template for backward compat
     let template: Template =
+      selectedReport.config?.pdfme_template ||
       selectedReport.config?.template ||
       getDefaultTemplate(selectedReport.name) ||
       EMPTY_TEMPLATE;
 
-    // Ensure template has basePdf
+    // Ensure template has basePdf — use letter-size object format (works in Vite dev)
     if (!template.basePdf) {
-      template = { ...template, basePdf: BLANK_PDF };
+      template = { ...template, basePdf: { width: 215.9, height: 279.4, padding: [12.7, 12.7, 12.7, 12.7] } };
     }
 
     try {
       const designer = new Designer({
         domContainer: containerRef.current,
-        template,
-        plugins: { text, image },
+        template: template as any,
       });
       designerRef.current = designer;
     } catch (err) {
@@ -143,8 +142,8 @@ export default function ReportDesigner() {
       setSaving(true);
       const template = designerRef.current.getTemplate();
 
-      // Merge template into existing data
-      const newConfig = { ...(selectedReport.config || {}), template };
+      // Merge template into existing config
+      const newConfig = { ...(selectedReport.config || {}), pdfme_template: template };
 
       await saveRecord('report', {
         id: selectedReport.id,
@@ -184,7 +183,6 @@ export default function ReportDesigner() {
       const pdf = await generate({
         template,
         inputs: [sampleInputs],
-        plugins: { text, image },
       });
 
       // Cleanup previous preview URL
@@ -261,7 +259,7 @@ export default function ReportDesigner() {
                     <div className="text-[10px] text-gray-400 mt-0.5 truncate">
                       {r.model_name} &middot; {r.output_type} &middot; {r.category}
                     </div>
-                    {r.config?.template && (
+                    {(r.config?.pdfme_template || r.config?.template) && (
                       <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
                         has template
                       </span>

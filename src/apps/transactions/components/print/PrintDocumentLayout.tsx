@@ -16,40 +16,53 @@ import {
   PAPER_DIMENSIONS,
 } from './printTypes';
 
-// Render a party block (bill-to, ship-to, etc.)
+// Render a party block as a card — title header, label-above-value fields
 const PartyBlock: React.FC<{ title: string; party?: PrintParty }> = ({ title, party }) => {
   if (!party) return null;
-  
+
   const fullName = [party.firstName, party.lastName].filter(Boolean).join(' ') || party.name;
-  
+  const cityStateZip = [
+    [party.city, party.state].filter(Boolean).join(', '),
+    party.zip,
+  ].filter(Boolean).join(' ');
+  const country = party.country && party.country !== 'US' && party.country !== 'USA' ? party.country : '';
+
+  // Collect non-empty fields as label/value pairs
+  const fields: { label: string; value: string }[] = [];
+  if (party.attention) fields.push({ label: 'Attn', value: party.attention });
+  if (fullName) fields.push({ label: 'Name', value: fullName });
+  if (party.company) fields.push({ label: 'Company', value: party.company });
+  const addrLines = [party.address1, party.address2].filter(Boolean).join(', ');
+  if (addrLines) fields.push({ label: 'Address', value: addrLines });
+  if (cityStateZip) fields.push({ label: 'City/State', value: cityStateZip + (country ? ` ${country}` : '') });
+  if (party.phone) fields.push({ label: 'Phone', value: party.phone });
+  if (party.email) fields.push({ label: 'Email', value: party.email });
+
   return (
-    <div className="text-xs">
-      <p className="text-gray-500 mb-1 font-medium">{title}:</p>
-      {party.attention && <p className="text-gray-700">{party.attention}</p>}
-      {fullName && <p className="text-gray-700">{fullName}</p>}
-      {party.company && <p className="text-gray-700">{party.company}</p>}
-      {party.address1 && <p className="text-gray-700">{party.address1}</p>}
-      {party.address2 && <p className="text-gray-700">{party.address2}</p>}
-      {(party.city || party.state || party.zip) && (
-        <p className="text-gray-700">
-          {[party.city, party.state].filter(Boolean).join(', ')} {party.zip}
-          {party.country && party.country !== 'US' && party.country !== 'USA' && ` ${party.country}`}
-        </p>
-      )}
-      {party.phone && <p className="text-gray-700">Phone: {party.phone}</p>}
-      {party.email && <p className="text-gray-700">{party.email}</p>}
+    <div className="border border-gray-200 rounded">
+      <div className="bg-gray-50 px-2 py-1 border-b border-gray-200">
+        <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">{title}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-0">
+        {fields.map((f, i) => (
+          <div key={i} className="px-2 py-1 border-b border-gray-100 last:border-b-0">
+            <div className="text-[9px] text-gray-400 uppercase tracking-wider leading-tight">{f.label}</div>
+            <div className="text-[11px] text-gray-800 leading-tight mt-0.5">{f.value}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-// Detail row component
-const DetailRow: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
+// Detail card — label on top, value below, controlled spacing
+const DetailCard: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
   if (value === undefined || value === null || value === '') return null;
   return (
-    <>
-      <span className="text-gray-500 text-[10px]">{label}:</span>
-      <span className="text-gray-800 text-[10px]">{value}</span>
-    </>
+    <div className="px-2 py-1">
+      <div className="text-[9px] text-gray-400 uppercase tracking-wider leading-tight">{label}</div>
+      <div className="text-[11px] text-gray-800 leading-tight mt-0.5">{value}</div>
+    </div>
   );
 };
 
@@ -214,15 +227,9 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
         <PartyBlock title={partyTitles?.shipTo || 'Ship To'} party={shipTo} />
       </div>
 
-      {(shipFrom || meta.shipVia) && (
+      {shipFrom && (
         <div className="grid grid-cols-3 gap-4 mb-4">
-          {shipFrom && <PartyBlock title={partyTitles?.shipFrom || 'Ship From'} party={shipFrom} />}
-          {meta.shipVia && (
-            <div className="text-xs">
-              <p className="text-gray-500 mb-1 font-medium">Ship Via:</p>
-              <p className="text-gray-700">{meta.shipVia}</p>
-            </div>
-          )}
+          <PartyBlock title={partyTitles?.shipFrom || 'Ship From'} party={shipFrom} />
         </div>
       )}
 
@@ -233,24 +240,33 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
         </div>
       )}
 
-      {/* Detail Grid */}
-      <div className="grid grid-cols-8 gap-x-2 gap-y-1 mb-4 text-xs border-y border-gray-200 py-2">
-        <DetailRow label="Cust PO#" value={meta.customerPO} />
-        <DetailRow label="Account" value={meta.customerId} />
-        <DetailRow label={typeLabel + " #"} value={meta.documentNumber} />
-        <DetailRow label="Type Sale" value={meta.typeSale} />
-        
-        <DetailRow label={meta.documentType === 'invoice' || meta.documentType === 'creditmemo' ? 'Invoice Date' : 'Date Needed'}
-                   value={formatDate(meta.dateNeeded || meta.dateInvoiced || meta.documentDate)} />
-        <DetailRow label="Tax Juris" value={meta.taxJuris} />
-        <DetailRow label={meta.documentType === 'proposal' ? 'Requested By' : 'Ordered By'} 
-                   value={meta.requestedBy || meta.orderedBy} />
-        <DetailRow label="Action By" value={meta.actionBy} />
-        
-        <DetailRow label="Sales ID" value={meta.salesId} />
-        <DetailRow label="Terms" value={meta.terms} />
-        <DetailRow label="FOB" value={meta.fob} />
-        {(meta.documentType === 'invoice' || meta.documentType === 'creditmemo') && <DetailRow label="Packed By" value={meta.packedBy} />}
+      {/* Detail Cards — grouped by function, label above value */}
+      <div className="border border-gray-200 rounded mb-4">
+        <div className="grid grid-cols-4 divide-x divide-gray-200 border-b border-gray-200">
+          <DetailCard label={typeLabel + " #"} value={meta.documentNumber} />
+          <DetailCard label="Account" value={meta.customerId} />
+          <DetailCard label="Cust PO#" value={meta.customerPO} />
+          <DetailCard label="Date" value={formatDate(meta.documentDate)} />
+        </div>
+        <div className="grid grid-cols-4 divide-x divide-gray-200">
+          <DetailCard label="Terms" value={meta.terms} />
+          <DetailCard label={meta.documentType === 'proposal' ? 'Requested By' : 'Ordered By'}
+                     value={meta.requestedBy || meta.orderedBy} />
+          <DetailCard label="Sales ID" value={meta.salesId} />
+          <DetailCard label={meta.documentType === 'invoice' || meta.documentType === 'creditmemo' ? 'Invoice Date' : 'Date Needed'}
+                     value={formatDate(meta.dateNeeded || meta.dateInvoiced)} />
+        </div>
+        {(meta.shipVia || meta.fob || meta.typeSale || meta.taxJuris || meta.actionBy || meta.packedBy) && (
+          <div className="grid grid-cols-4 divide-x divide-gray-200 border-t border-gray-200">
+            <DetailCard label="Ship Via" value={meta.shipVia} />
+            <DetailCard label="FOB" value={meta.fob} />
+            <DetailCard label="Type Sale" value={meta.typeSale} />
+            {(meta.documentType === 'invoice' || meta.documentType === 'creditmemo')
+              ? <DetailCard label="Packed By" value={meta.packedBy} />
+              : <DetailCard label="Tax Juris" value={meta.taxJuris} />
+            }
+          </div>
+        )}
       </div>
 
       {/* Comments */}
