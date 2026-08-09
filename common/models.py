@@ -434,7 +434,7 @@ class CoreModel(models.Model):
             if self.uuid:
                 try:
                     orig_uuid = type(self).objects.filter(pk=self.pk).values_list('uuid', flat=True).first()
-                    if orig_uuid and self.uuid != orig_uuid:
+                    if orig_uuid and str(self.uuid) != str(orig_uuid):
                         raise ValueError(f"uuid is immutable: cannot change {orig_uuid} to {self.uuid}")
                 except type(self).DoesNotExist:
                     pass
@@ -818,7 +818,7 @@ class PrefsMixin(models.Model):
     """Per-record preference / settings envelope (experiment friendly)."""
 
     feature_flags = {"prefs"}
-    prefs = models.JSONField(default=default_prefs, help_text="User preferences / settings")
+    prefs = models.JSONField(default=default_prefs, blank=True, help_text="User preferences / settings")
 
     class Meta:
         abstract = True
@@ -859,7 +859,7 @@ class CommentsMixin(models.Model):
     """Structured comments & append-only notes list (audit assistance)."""
 
     feature_flags = {"comments"}
-    comments = models.JSONField(default=default_comments, help_text="Threaded notes / comment fields")
+    comments = models.JSONField(default=default_comments, blank=True, help_text="Threaded notes / comment fields")
 
     class Meta:
         abstract = True

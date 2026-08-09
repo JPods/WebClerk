@@ -280,9 +280,16 @@ class SaveWcapiView(APIView):
     )
 
     def post(self, request):
+        # Demo mode — block all saves at the application layer
+        if getattr(settings, 'READ_ONLY_MODE', False):
+            return api_response(
+                success=False, status_code=405,
+                message='This is a read-only demo. Download WebClerk at webclerk.com to modify data.',
+                error={'code': 'demo_read_only', 'details': 'Saves are disabled on the demo instance.'})
+
         # Enhanced logging for debugging
         console_logger.debug(f"[SAVE_VIEW] Starting save operation for request ID: {getattr(request, 'request_id', 'unknown')}")
-        
+
         # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
@@ -529,9 +536,15 @@ class SaveWcapiView(APIView):
                 if hasattr(f, 'attname') and isinstance(f, models.JSONField)
             }
             console_logger.debug(f"[SAVE_VIEW] JSON fields found: {json_field_names}")
+            # M2M fields cannot be set via setattr — must use .set() after save
+            m2m_field_names = {
+                f.name for f in obj._meta.get_fields()
+                if f.many_to_many or f.one_to_many
+            }
         except Exception as e:
             console_logger.warning(f"[SAVE_VIEW] Error getting JSON field names: {e}")
             json_field_names = set()
+            m2m_field_names = set()
         
         console_logger.info(f"[SAVE_VIEW] Starting pre-save hooks...")
 
@@ -596,7 +609,10 @@ class SaveWcapiView(APIView):
                 else:
                     raw_password = field_data
                 continue
-            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines'):
+            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines', 'uuid'):
+                continue
+            # Skip M2M fields — cannot be set via setattr, must use .set() after save
+            if field in m2m_field_names:
                 continue
 
             # Normalize field payload:
@@ -681,8 +697,14 @@ class SaveWcapiView(APIView):
                     result = apply_json_op(obj, field, mode, value, key=field_data.get('key'))
                     console_logger.warning(f"[SAVE_VIEW] JSON_OP result={result}")
                 else:
-                    # Regular field
-                    if hasattr(obj, field):
+                    # Regular field — check against actual model fields, not hasattr
+                    # (hasattr can return True for non-field attributes like properties)
+                    try:
+                        model_cls._meta.get_field(field)
+                        _is_model_field = True
+                    except Exception:
+                        _is_model_field = False
+                    if _is_model_field:
                         current = getattr(obj, field)
                         is_json_field = field in json_field_names or isinstance(current, dict)
                         if isinstance(value, dict) and is_json_field:

@@ -1,0 +1,84 @@
+// WC3 PO Receipt — purchase through receiving to inventory
+// From Miro_PO: PO → Line → Receipt → InventoryLayer → Serial → GL
+// Render: dot -Tpdf wc3-po-receipt.dot -o wc3-po-receipt.pdf
+
+digraph wc3_po_receipt {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — PO Receipt Flow\nPurchase → receive → inventory layers → serials → GL"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.6
+    ranksep=0.7
+
+    // ── Purchase ──
+    po [label="Purchase Order\n(purchases)" fillcolor="#E8EAF6" color="#9FA8DA" fontsize=11]
+
+    po_line [label="Purchase Line\n(purchase_lines)\n\nquantity (JSON)\nitem_id\ncost" fillcolor="#C5CAE9" color="#7986CB"]
+
+    // ── Vendor documents ──
+    subgraph cluster_vendor {
+        label="Vendor Documents"
+        style="filled,rounded"
+        fillcolor="#FFF8E1"
+        color="#FFE082"
+        fontsize=9
+        fontcolor="#F57F17"
+
+        packing [label="Vendor\nPacking List" fillcolor="#FFF9C4" color="#FFF176"]
+        vendor_inv [label="Vendor\nInvoice" fillcolor="#FFF9C4" color="#FFF176"]
+    }
+
+    // ── Receipt ──
+    receipt [label="Receipt\n(receipt)\n\ndt_received\npurchase_id\nsource_type" fillcolor="#C8E6C9" color="#81C784" fontsize=11]
+
+    receipt_line [label="Receipt Line\n(receipt_line)\n\nquantity received\ncost per unit" fillcolor="#A5D6A7" color="#66BB6A"]
+
+    // ── Inventory effects ──
+    inv_layer [label="Inventory Layer\n(products_inventorylayer)\n\nquantity (JSON)\ncost\nlot\nserial_numbers[]\nserial_batch\nwarehouse_id\nitem_id" fillcolor="#E1BEE7" color="#BA68C8" fontsize=9]
+
+    item [label="Item Record\n(products_item)\n\nquantity.on_po -= qty\nquantity.on_hand += qty\ncost updated" fillcolor="#E1BEE7" color="#CE93D8" fontsize=10]
+
+    // ── Serial creation ──
+    serial_check [label="Serialized\nItem?" shape=diamond fillcolor="#FFF9C4" color="#FFF176"]
+
+    serial [label="Serial\n(products_serial)\n\n1 per unit received\nstatus: available\ncost from layer" fillcolor="#BBDEFB" color="#64B5F6"]
+
+    serial_log [label="SerialLog\n(products_seriallog)\n\naction: received\ndt, vendor, PO ref" fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+
+    // ── Linkage ──
+    linkage [label="Linkage\n(linkage_entries)\n\nspecs, QA, docs\nfrom PO line" fillcolor="#A5D6A7" color="#66BB6A" fontsize=9]
+
+    // ── GL ──
+    gl [label="GL Journal\n(gl_journals)\n\nDebit: Inventory (1300)\nCredit: AP (2000)\nvalue from InventoryLayer" fillcolor="#C8E6C9" color="#43A047"]
+
+    // ── Pending ──
+    pending_adj [label="PendingInventory\nAdjustment\n(pending)\n\non_po -= qty\non_hand += qty" fillcolor="#FFCDD2" color="#EF9A9A" fontsize=9]
+
+    // ── Edges ──
+    po -> po_line [color="#7986CB"]
+    po_line -> receipt [label="receive\ngoods" color="#66BB6A" style=bold]
+    packing -> receipt [style=dashed color="#FF8F00"]
+    vendor_inv -> receipt [style=dashed color="#FF8F00"]
+
+    receipt -> receipt_line [color="#66BB6A"]
+    receipt_line -> inv_layer [label="create layer\nper receipt line" color="#AB47BC" style=bold]
+    inv_layer -> item [label="update\nitem qty" color="#CE93D8"]
+    receipt_line -> pending_adj [label="adjust\nbuckets" color="#E57373"]
+    pending_adj -> item [color="#E57373"]
+
+    inv_layer -> serial_check [color="#42A5F5"]
+    serial_check -> serial [label="yes\n1 per unit" color="#1E88E5"]
+    serial -> serial_log [label="log\nreceipt" color="#29B6F6"]
+
+    po_line -> linkage [label="carry\nforward" style=dashed color="#66BB6A"]
+    linkage -> receipt_line [style=dashed color="#66BB6A"]
+
+    inv_layer -> gl [label="post\ninventory entry" color="#43A047"]
+}

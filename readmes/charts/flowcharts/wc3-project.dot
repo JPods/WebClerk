@@ -1,0 +1,106 @@
+// WC3 Project — from wc2 Project diagram
+// Updated 2026-08-08 with current WC3 table names
+// Project connects transactions; Linkage connects data
+// Render: dot -Tpdf wc3-project.dot -o wc3-project.pdf
+
+digraph wc3_project {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=11
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 penwidth=0.8]
+    label="WC3 — Project Model\nProject connects transactions; Linkage connects data"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Project hub
+    project [label="projects\n\nCan be bigger or smaller\nSimilar to how Linkage\nconnects data, Projects\nconnect transactions" shape=box fillcolor="#82E0AA" fontsize=11]
+
+    // Display
+    display [label="Display\n(databrowser)" shape=box fillcolor="#AED6F1"]
+
+    // Transaction models referenced by Project
+    proposals [label="Proposals" shape=box fillcolor="#FCF3CF"]
+    orders [label="orders" shape=box fillcolor="#FCF3CF"]
+    invoices [label="invoices" shape=box fillcolor="#F5B7B1"]
+    payments [label="transactions_payment" shape=box fillcolor="#AED6F1"]
+    purchases [label="purchases" shape=box fillcolor="#D6EAF8"]
+    workorders [label="work_orders\nto Crews" shape=box fillcolor="#ABEBC6"]
+
+    // Support models
+    contact [label="contacts" shape=box fillcolor="#F9E79F"]
+    responsible [label="Responsible\nPerson" shape=box fillcolor="#F9E79F"]
+    qa [label="Q & A Details\nBest Practices\nTaskID/ItemNum" shape=box fillcolor="#FCF3CF" fontsize=8]
+
+    // Related records
+    documents [label="documents" shape=box fillcolor="#E8DAEF"]
+    items [label="products_item" shape=box fillcolor="#E8DAEF"]
+    itemspecs [label="ItemSpecs" shape=box fillcolor="#E8DAEF"]
+    serials [label="products_serial" shape=box fillcolor="#E8DAEF"]
+    serial_log [label="products_seriallog" shape=box fillcolor="#E8DAEF"]
+
+    // Crew/Vendor view
+    crew_view [label="View for\nCrew & Vendors" shape=box fillcolor="#ABEBC6" fontsize=8]
+
+    // Lower section — data model
+    subgraph cluster_data {
+        label="Data Layer"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        customer [label="contacts\n(Customer role)" shape=box fillcolor="#F4D03F"]
+        vendor [label="contacts\n(Vendor role)" shape=box fillcolor="#E59866"]
+        sos [label="SOs" shape=box fillcolor="#ABEBC6"]
+        pos [label="POs" shape=box fillcolor="#D6EAF8"]
+        inv [label="invoices" shape=box fillcolor="#F5B7B1"]
+        wo [label="work_orders" shape=box fillcolor="#ABEBC6"]
+        pay [label="transactions_payment" shape=box fillcolor="#AED6F1"]
+
+        line [label="Line" shape=box fillcolor="#D5F5E3" fontsize=9]
+        item [label="products_item\nqtyOnSO\nqtyOnPO\nqtyOnHand" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9]
+        inv_cache [label="products_inventorylayer" shape=box fillcolor="#E74C3C" fontcolor=white fontsize=9]
+        inv_layer [label="products_inventorylayer\nqtyOnHand\nby cost" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9]
+        serial_rec [label="products_serial" shape=box fillcolor="#FCF3CF" fontsize=9]
+        serial_act [label="products_seriallog" shape=box fillcolor="#FCF3CF" fontsize=9]
+
+        linkage [label="linkage_entries" shape=box fillcolor="#82E0AA"]
+        action [label="actions" shape=box fillcolor="#82E0AA"]
+        qa_ent [label="qas" shape=box fillcolor="#82E0AA" style="filled,rounded,dashed"]
+        resource [label="Resource" shape=box fillcolor="#82E0AA"]
+    }
+
+    // Project connections
+    project -> display
+    project -> proposals
+    project -> orders
+    project -> invoices
+    project -> payments
+    project -> purchases
+    project -> workorders
+    project -> qa
+    project -> contact
+    workorders -> responsible
+    responsible -> crew_view
+
+    // Related records (right side)
+    project -> documents [style=dashed]
+    project -> items [style=dashed]
+    project -> serials [style=dashed]
+
+    // Data layer connections
+    customer -> sos
+    customer -> proposals [style=dashed]
+    vendor -> pos
+    sos -> line
+    pos -> line
+    inv -> line
+    sos -> inv [style=dashed]
+    wo -> line [style=dashed]
+    inv -> pay
+    line -> item [color="#E74C3C"]
+    line -> linkage [color="#27AE60"]
+    item -> inv_layer [style=dashed]
+    inv_layer -> serial_rec
+    serial_rec -> serial_act
+}

@@ -1,0 +1,77 @@
+// WC3 Lead Qualification — marketing effort to commitment
+// From wc2 page 23: Wants/Needs → Marketing → Qualify → Close or Disqualify
+// Render: dot -Tpdf wc3-lead-qualification.dot -o wc3-lead-qualification.pdf
+
+digraph wc3_lead_qualification {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Lead Qualification\nFrom market effort to customer commitment"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.6
+    ranksep=0.7
+
+    // ── Market entry ──
+    wants [label="Customer\nWants & Needs" fillcolor="#E8EAF6" color="#9FA8DA"]
+    marketing [label="Marketing\nEffort" fillcolor="#C5CAE9" color="#7986CB"]
+    leads [label="Leads\nIdentified" fillcolor="#BBDEFB" color="#64B5F6"]
+
+    // ── Qualification ──
+    qualify_work [label="Qualification Checklist\n\nMatch products to wants\nMatch budget to wants\nIdentify sales timing\nIdentify competitors\nIdentify decision makers\nIdentify decision factors\nIdentify supporters"
+                 fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+
+    worksheet [label="Lead Worksheet\nto Sales/Rep" fillcolor="#FFE0B2" color="#FFB74D"]
+
+    qualified [label="Qualified?" shape=diamond fillcolor="#C8E6C9" color="#81C784"
+              fontsize=11]
+
+    // ── Commitment path ──
+    subgraph cluster_commit {
+        label="Commitment on Wants/Needs"
+        style="filled,rounded"
+        fillcolor="#E8F5E9"
+        color="#A5D6A7"
+        fontsize=9
+        fontcolor="#2E7D32"
+
+        committed [label="Committed\n→ Process Sale" fillcolor="#C8E6C9" color="#66BB6A"
+                   fontsize=11]
+        budget [label="Budget\nDefined" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        match [label="Wants match\nour products" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        schedule [label="Schedule\nDefined" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        follow [label="Follow\nMaintained" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+    }
+
+    // ── Disqualify path ──
+    disqualify [label="Disqualify\nremove from further\nresource consumption" fillcolor="#FFCDD2"
+                color="#EF9A9A"]
+
+    // ── Feedback ──
+    feedback [label="Automated Feedback\n→ Ad Source metrics\n→ effective market effort"
+             fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+
+    // ── Edges ──
+    wants -> marketing [color="#7986CB"]
+    marketing -> leads [color="#5C6BC0"]
+    leads -> qualify_work [color="#42A5F5"]
+    qualify_work -> worksheet [color="#FF8F00"]
+    worksheet -> qualified [color="#66BB6A"]
+
+    qualified -> committed [label="yes" color="#43A047"]
+    qualified -> disqualify [label="no" color="#E53935"]
+
+    committed -> budget [style=invis]
+    budget -> match [color="#AED581"]
+    match -> schedule [color="#AED581"]
+    schedule -> follow [color="#AED581"]
+
+    disqualify -> feedback [style=dashed color="#29B6F6"]
+    committed -> feedback [style=dashed color="#29B6F6"]
+    feedback -> marketing [label="improve\ntargeting" style=dashed color="#29B6F6"]
+}

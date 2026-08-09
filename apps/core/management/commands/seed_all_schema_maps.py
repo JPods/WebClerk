@@ -138,6 +138,7 @@ class Command(BaseCommand):
             else:
                 Setting.objects.create(
                     name=f"{meta.singular} schema",
+                    ida=f"wchq-schema-{key}",
                     parent_model=key,
                     purpose="schema_map",
                     scope="system",

@@ -940,4 +940,151 @@ def _athena_fault(failures):
     path.write_text(fault_text)
 
 
+# ── Alice: Pending Record Archive & Analysis ─────────────────────────
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def task_archive_pending(self, batch_size=1000):
+    """Archive processed pending records to external dated storage.
+
+    Nightly task. Extracts applied/canceled/processed pending records
+    from PendingInventoryAdjustment, PendingPaymentApplication, and
+    generic Pending. Writes to .local/dated_outside/ as JSONL.gz files
+    organized by type/category/month. Deletes from operational DB.
+    """
+    task_name = 'archive_pending'
+    run = _create_task_run(task_name, self.request.id or '', {'batch_size': batch_size})
+    try:
+        from apps.support.services.pending_archive import archive_processed_pending
+        result = archive_processed_pending(batch_size=batch_size)
+        logger.info("Archive pending complete: %s total records", result.get('total_archived', 0))
+        if run:
+            run.complete(result)
+        return result
+    except Exception as exc:
+        logger.error("Archive pending failed: %s", exc)
+        if run:
+            run.fail(str(exc), traceback.format_exc())
+        self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def task_pending_patterns(self):
+    """Analyze inventory pending archives for trend, cycle, and volatility.
+
+    Weekly task. Runs pattern analysis across all archived product classes.
+    Results feed ItemUsage metrics and Alice's coaching signals.
+    """
+    task_name = 'pending_patterns'
+    run = _create_task_run(task_name, self.request.id or '', {})
+    try:
+        from apps.support.services.pending_analysis import (
+            list_archived_categories,
+            compute_demand_trend,
+            detect_seasonal_cycle,
+            compute_volatility,
+            flag_pattern_changes,
+        )
+        categories = list_archived_categories('inventory')
+        results = []
+        coaching_flags = []
+
+        for cat in categories:
+            if cat.startswith('_'):
+                continue
+            trend = compute_demand_trend(cat, months=12)
+            cycle = detect_seasonal_cycle(cat, min_months=12)
+            vol = compute_volatility(cat, months=12)
+            pattern = flag_pattern_changes(cat)
+
+            results.append({
+                'product_class': cat,
+                'trend_direction': trend.get('direction'),
+                'trend_slope': trend.get('slope'),
+                'has_seasonal_pattern': cycle.get('has_pattern'),
+                'seasonality_index': cycle.get('seasonality_index'),
+                'volatility_band': vol.get('band'),
+                'cv': vol.get('cv'),
+                'band_shifted': pattern.get('band_shifted'),
+            })
+
+            if pattern.get('coaching_signal'):
+                coaching_flags.append({
+                    'product_class': cat,
+                    'from_band': pattern.get('historical_band'),
+                    'to_band': pattern.get('recent_band'),
+                })
+
+        summary = {
+            'categories_analyzed': len(results),
+            'coaching_flags': len(coaching_flags),
+            'results': results,
+            'coaching': coaching_flags,
+        }
+
+        logger.info(
+            "Pending patterns complete: %d categories, %d coaching flags",
+            len(results), len(coaching_flags),
+        )
+        if run:
+            run.complete(summary)
+        return summary
+    except Exception as exc:
+        logger.error("Pending patterns failed: %s", exc)
+        if run:
+            run.fail(str(exc), traceback.format_exc())
+        self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def task_cash_flow_patterns(self):
+    """Analyze cash flow pending archives for seasonality and process health.
+
+    Weekly task. Runs cash flow analysis across all archived payment categories.
+    Reveals revenue concentration, payment timing, and collection effectiveness.
+    """
+    task_name = 'cash_flow_patterns'
+    run = _create_task_run(task_name, self.request.id or '', {})
+    try:
+        from apps.support.services.pending_analysis import (
+            list_archived_categories,
+            compute_cash_flow_seasonality,
+            compute_conversion_rates,
+            compute_processing_latency,
+        )
+        categories = list_archived_categories('cash_flow')
+        results = []
+
+        for cat in categories:
+            if cat.startswith('_'):
+                continue
+            seasonality = compute_cash_flow_seasonality(cat, months=24)
+            conversion = compute_conversion_rates('cash_flow', cat, months=6)
+            latency = compute_processing_latency('cash_flow', cat, months=6)
+
+            results.append({
+                'category': cat,
+                'concentration_pct': seasonality.get('concentration_pct'),
+                'quarter_distribution': seasonality.get('quarter_distribution'),
+                'peak_months': seasonality.get('peak_months'),
+                'conversion_rate': conversion.get('conversion_rate'),
+                'avg_processing_ms': latency.get('avg_ms'),
+                'latency_trend': latency.get('trend_direction'),
+            })
+
+        summary = {
+            'categories_analyzed': len(results),
+            'results': results,
+        }
+
+        logger.info("Cash flow patterns complete: %d categories", len(results))
+        if run:
+            run.complete(summary)
+        return summary
+    except Exception as exc:
+        logger.error("Cash flow patterns failed: %s", exc)
+        if run:
+            run.fail(str(exc), traceback.format_exc())
+        self.retry(exc=exc)
+
+
 CELERY_BEAT_SCHEDULE = build_celery_beat_schedule()

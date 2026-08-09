@@ -136,7 +136,7 @@ CUSTOMER_STATEMENT_TEMPLATE = """\
 
 TEMPLATE_REPORTS = [
     {
-        'ida': 'rpt-pick-list-md',
+        'ida': 'wchq-rpt-pick-list-md',
         'name': 'Pick List',
         'description': 'Warehouse pick list sorted by bin — checkboxes, qty to pick, location',
         'model_name': 'order',
@@ -151,7 +151,7 @@ TEMPLATE_REPORTS = [
         },
     },
     {
-        'ida': 'rpt-packing-slip-md',
+        'ida': 'wchq-rpt-packing-slip-md',
         'name': 'Packing Slip',
         'description': 'Packing slip for shipment — ship-to address, line items, qty shipped, weight. No prices.',
         'model_name': 'order',
@@ -166,7 +166,7 @@ TEMPLATE_REPORTS = [
         },
     },
     {
-        'ida': 'rpt-customer-statement-md',
+        'ida': 'wchq-rpt-customer-statement-md',
         'name': 'Customer Statement',
         'description': 'Open invoice statement with aging buckets — current / 30 / 60 / 90+ days',
         'model_name': 'contact',

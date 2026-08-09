@@ -1,0 +1,76 @@
+// WC3 Save Pipeline — Setting-driven pre/post/async hooks
+// From Miro_Save: Setting records control save behavior per model
+// Render: dot -Tpdf wc3-save-pipeline.dot -o wc3-save-pipeline.pdf
+
+digraph wc3_save_pipeline {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Save Pipeline\nSetting-driven hooks: pre → validate → save → post → async"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.6
+    ranksep=0.7
+
+    // ── Trigger ──
+    request [label="API Request\nwcapi save_view.py\n\nmodel + data + user" fillcolor="#E8EAF6" color="#9FA8DA" fontsize=11]
+
+    // ── Setting records ──
+    setting [label="Setting Records\n(settings table)\n\ndata.save_pre\ndata.save_post\ndata.save_async\n\nper model_key" fillcolor="#FFE0B2" color="#FFB74D" fontsize=10]
+
+    // ── Pre-save ──
+    pre_save [label="Pre-Save Hooks\n(lines 268-276)\n\nexecute_save_hook(model_key, 'save_pre')\nvalidation, enrichment\ncan reject save (400)" shape=octagon fillcolor="#FFCDD2" color="#EF9A9A"]
+
+    // ── RBAC check ──
+    rbac [label="RBAC Check\n\nfield_access Setting\nquery_scope filter\nsaveFields by role" shape=diamond fillcolor="#FFF9C4" color="#FFF176"]
+
+    // ── Save ──
+    save [label="Model.save()\n\nversion check\ndt_modified update\nrefs/metadata merge" fillcolor="#C8E6C9" color="#81C784" fontsize=11]
+
+    // ── Cache ──
+    cache [label="Cache\nInvalidation" fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+
+    // ── Post-save ──
+    post_save [label="Post-Save Hooks\n(lines 396-402)\n\nexecute_save_hook(model_key, 'save_post')\nAction creation\nLinkage updates\ndenormalization" shape=octagon fillcolor="#C5CAE9" color="#7986CB"]
+
+    // ── Async ──
+    async_save [label="Async Hooks\n\ndata.save_async\nnotifications\nalice observations\nGL journal posting" shape=octagon fillcolor="#E1BEE7" color="#BA68C8"]
+
+    // ── Outputs ──
+    subgraph cluster_outputs {
+        label="Side Effects"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#546E7A"
+
+        action [label="Action\ncreated" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        linkage_out [label="Linkage\nupdated" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        denorm [label="Denormalize\nto keywords" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        audit [label="AuditLog\nfield diffs" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+        pending [label="Pending\nInventory" fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+    }
+
+    // ── Edges ──
+    request -> setting [label="lookup\nmodel_key" color="#7986CB"]
+    setting -> pre_save [label="save_pre" color="#E57373"]
+    pre_save -> rbac [label="passed" color="#66BB6A"]
+    pre_save -> request [label="rejected\n(400)" style=dashed color="#E57373"]
+
+    rbac -> save [label="authorized" color="#66BB6A"]
+    save -> cache [color="#29B6F6"]
+    save -> post_save [color="#5C6BC0"]
+    post_save -> async_save [label="queue" style=dashed color="#AB47BC"]
+
+    post_save -> action [color="#AED581"]
+    post_save -> linkage_out [color="#AED581"]
+    post_save -> denorm [color="#AED581"]
+    post_save -> audit [color="#AED581"]
+    post_save -> pending [color="#AED581"]
+}

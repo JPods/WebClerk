@@ -25,6 +25,8 @@ REPORT_CATEGORY_CHOICES = (
     ("label", "Label"),
     ("export", "Export"),
     ("utility", "Utility"),
+    ("tally", "Tally / Calculation"),
+    ("dashboard", "Dashboard widget"),
 )
 
 
@@ -70,6 +72,18 @@ class Report(BaseModel):
     config = models.JSONField(
         default=dict,
         help_text="Extended config: endpoint_url, template, parameters, etc.",
+    )
+    script_before = models.TextField(
+        blank=True, default="",
+        help_text="Setup phase: initialize accumulators, apply filters, establish selections",
+    )
+    script_during = models.TextField(
+        blank=True, default="",
+        help_text="Calculation phase: the business logic — line extensions, bucket assignments, GL accumulation",
+    )
+    script_after = models.TextField(
+        blank=True, default="",
+        help_text="Completion phase: write results, format output, send notifications, update records",
     )
 
     class Meta:

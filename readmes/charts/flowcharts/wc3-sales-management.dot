@@ -1,0 +1,100 @@
+// WC3 Sales Management — full sales module overview
+// From wc2 pages 13, 19: Sales pipeline with evaluation outputs
+// Render: dot -Tpdf wc3-sales-management.dot -o wc3-sales-management.pdf
+
+digraph wc3_sales_management {
+    rankdir=LR
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Sales Management Overview\nPipeline, activity tracking, and performance evaluation"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.5
+    ranksep=1.0
+
+    // ── Pipeline (left to right) ──
+    subgraph cluster_pipeline {
+        label="Sales Pipeline"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#546E7A"
+
+        leads [label="Leads" fillcolor="#E8EAF6" color="#9FA8DA"]
+        customers [label="Customers" fillcolor="#C5CAE9" color="#7986CB"]
+        proposals [label="Proposals" fillcolor="#BBDEFB" color="#64B5F6"]
+        orders [label="Orders" fillcolor="#B2DFDB" color="#80CBC4"]
+        invoices [label="Invoices" fillcolor="#C8E6C9" color="#81C784"]
+    }
+
+    // ── Activity tracking ──
+    subgraph cluster_activity {
+        label="Activity Tracking"
+        style="filled,rounded"
+        fillcolor="#FFF8E1"
+        color="#FFE082"
+        fontsize=9
+        fontcolor="#F57F17"
+
+        call_reports [label="Call Reports\n(Communication)" fillcolor="#FFF9C4" color="#FFF176"]
+        service [label="Service Records\n(Action)" fillcolor="#FFF9C4" color="#FFF176"]
+        qa [label="Q&A\n(QA Entity)" fillcolor="#FFF9C4" color="#FFF176"]
+    }
+
+    // ── Evaluation outputs ──
+    subgraph cluster_eval {
+        label="Performance Evaluation"
+        style="filled,rounded"
+        fillcolor="#F3E5F5"
+        color="#CE93D8"
+        fontsize=9
+        fontcolor="#7B1FA2"
+
+        sales_eval [label="Sales Evaluation\n(margin & activity)" fillcolor="#E1BEE7" color="#BA68C8"]
+        my_sales [label="My Sales & Service\n(activity calendar)" fillcolor="#E1BEE7" color="#BA68C8"]
+        item_period [label="Item Period Sales\n(volume & turns)" fillcolor="#E1BEE7" color="#BA68C8"]
+        ad_source [label="Ad Source\n(campaign ROI)" fillcolor="#E1BEE7" color="#BA68C8"]
+        forecast [label="Forecasting" fillcolor="#E1BEE7" color="#BA68C8"]
+        commissions [label="Commissions" fillcolor="#E1BEE7" color="#BA68C8"]
+    }
+
+    // ── Alice ──
+    alice [label="Alice\npattern recognition\nerosion detection" fillcolor="#B3E5FC"
+           color="#4FC3F7" fontsize=9]
+
+    // ── Pipeline flow ──
+    leads -> customers [color="#7986CB"]
+    customers -> proposals [color="#5C6BC0"]
+    proposals -> orders [color="#26A69A"]
+    orders -> invoices [color="#66BB6A"]
+
+    // ── Activity connections ──
+    leads -> call_reports [style=dashed color="#FFB300"]
+    customers -> call_reports [style=dashed color="#FFB300"]
+    customers -> service [style=dashed color="#FFB300"]
+    proposals -> service [style=dashed color="#FFB300"]
+    orders -> service [style=dashed color="#FFB300"]
+
+    // ── Evaluation connections ──
+    invoices -> sales_eval [color="#AB47BC"]
+    invoices -> commissions [color="#AB47BC"]
+    invoices -> item_period [color="#AB47BC"]
+    call_reports -> my_sales [color="#AB47BC"]
+    service -> my_sales [color="#AB47BC"]
+    leads -> ad_source [color="#AB47BC"]
+    customers -> ad_source [color="#AB47BC"]
+    proposals -> forecast [style=dashed color="#AB47BC"]
+    orders -> forecast [color="#AB47BC"]
+    invoices -> forecast [color="#AB47BC"]
+
+    // ── Alice watches ──
+    sales_eval -> alice [style=dashed color="#29B6F6"]
+    item_period -> alice [style=dashed color="#29B6F6"]
+    service -> alice [style=dashed color="#29B6F6"]
+}

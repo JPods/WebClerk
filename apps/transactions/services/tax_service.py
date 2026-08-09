@@ -21,9 +21,20 @@ class TaxService:
     """
 
     def __init__(self):
-        self.tax_provider = getattr(settings, 'TAX_PROVIDER', 'builtin')
-        self.tax_provider_api_key = getattr(settings, 'TAX_PROVIDER_API_KEY', '')
-        self.tax_provider_url = getattr(settings, 'TAX_PROVIDER_URL', '')
+        # Check for a tax_service Connection record first (preferred),
+        # then fall back to Django settings (legacy).
+        from apps.transactions.services.tax_lookup import get_tax_connection
+        conn = get_tax_connection()
+        if conn:
+            config = getattr(conn, 'config', {}) or {}
+            self.tax_provider = config.get('provider', 'builtin')
+            creds = config.get('credentials', {})
+            self.tax_provider_api_key = creds.get('api_key', '')
+            self.tax_provider_url = creds.get('url', '') or config.get('settings', {}).get('url', '')
+        else:
+            self.tax_provider = getattr(settings, 'TAX_PROVIDER', 'builtin')
+            self.tax_provider_api_key = getattr(settings, 'TAX_PROVIDER_API_KEY', '')
+            self.tax_provider_url = getattr(settings, 'TAX_PROVIDER_URL', '')
 
     def calculate_tax(
         self,
@@ -156,20 +167,19 @@ class TaxService:
         if error:
             warnings.append(f"Tax provider error, using built-in calculation: {error}")
 
-        # Determine tax jurisdiction
+        # Determine tax jurisdiction from TaxJurisdiction records
         state = shipping_address.get('state', '').upper()
         zip_code = shipping_address.get('zip_code', '')
 
-        # Simple US sales tax rates (example - should be configurable)
-        tax_rates = {
-            'CA': Decimal('0.0825'),  # California
-            'NY': Decimal('0.04'),    # New York
-            'TX': Decimal('0.0625'),  # Texas
-            # Add more states as needed
-        }
-
-        tax_rate = tax_rates.get(state, Decimal('0'))
-        if tax_rate == 0:
+        from apps.transactions.services.tax_lookup import lookup_tax_jurisdiction
+        tj = lookup_tax_jurisdiction(state=state)
+        if tj:
+            tax_rate = Decimal(str(tj['sales_rate']))
+            # Normalize: if stored as percentage (e.g. 8.25), convert to decimal
+            if tax_rate > 1:
+                tax_rate = tax_rate / Decimal('100')
+        else:
+            tax_rate = Decimal('0')
             warnings.append(f"No tax rate configured for state: {state}")
 
         # Calculate taxable amount

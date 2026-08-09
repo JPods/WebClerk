@@ -393,6 +393,80 @@ Every request requires JWT auth. Role-based query scoping restricts external use
         'model_name': 'system',
         'confidential': 'internal',
     },
+    {
+        'name': 'Pricing Architecture',
+        'slug': 'pricing-architecture',
+        'description': 'How WC3 resolves prices: catalogs, price levels, qty breaks, margin warnings. The full chain explained.',
+        'body': '''# Pricing Architecture
+
+## The Chain
+Every line item resolves its price through this chain (first match wins):
+
+1. **Catalog item-specific** — item listed in an active catalog for this customer
+2. **OrgItem contract** — customer-specific price override
+3. **Customer price_level** — retail, wholesale, distributor, or sample
+4. **Explicit level** — line or header override
+5. **Item base price** — fallback
+
+After the price resolves: quantity breaks adjust it, then universal catalog % discounts apply.
+
+## Price Levels
+Four levels stored on each item: retail, wholesale, distributor, sample. Plus base (list) and msrp.
+
+## Quantity Breaks
+JSON on the item — each break row has per-level columns (dollar and/or percentage):
+```json
+{"min_qty": 25, "base": 14.00, "retail": 11.00, "wholesale_pct": 33.3}
+```
+Dollar wins. Percentage calculates from base. Alice recalculates when base changes.
+
+## Catalogs
+Two modes: item-specific (CatalogLine with fixed price) or universal % (blanket discount on all products). Catalogs target customers by org FK, contact list, contact type, or "all."
+
+## Margin Warning
+If the resolved price falls below the margin floor (default 15%), `below_margin_floor` is flagged. **The system warns — it never overrides the user's price.**
+
+Full readme: readmes/topics/transactions/pricing-architecture.md
+''',
+        'status': 'published',
+        'model_name': 'system',
+        'confidential': 'public',
+    },
+    {
+        'name': 'Payment Application',
+        'slug': 'payment-application',
+        'description': 'How payments work: apply to invoices, early payment discounts, write-off differences, unapplied payments, AR aging.',
+        'body': '''# Payment Application
+
+## The One Rule
+Every dollar gets its own Payment record. Cash, discounts, and write-offs are all Payment records with their own GL posting and audit trail.
+
+## Three Payment Types
+
+| Type | When | Example |
+|------|------|---------|
+| **Cash/check/card** | Normal payment | Customer pays $980 |
+| **Early payment discount** | Within terms window | 2/10 Net 30 → $20 discount auto-created |
+| **Write-off difference** | Small balance not worth collecting | $0.50 remaining → write off |
+
+## Early Payment Discount
+Invoice has terms "2/10 Net 30". Customer pays within 10 days. System auto-creates a discount Payment for 2% of the invoice total. Two Payment records close the invoice: cash + discount.
+
+## Write-Off Difference
+Check the "Write off difference" box when applying payment. Any remaining balance becomes a write-off Payment posted to the write-off GL account.
+
+## Unapplied Payments
+Payment with no invoice number → sits as unapplied. Reduces customer balance for credit check. Does NOT clear past-due invoices. Apply to specific invoices later.
+
+## AR Aging (Alice Nightly)
+Fixed buckets: Future, Current, Past 30, Past 60, Past 90+. Plus avgDaysPaid, highCredit, totalExposure.
+
+Full readme: readmes/topics/transactions/payment-application.md
+''',
+        'status': 'published',
+        'model_name': 'system',
+        'confidential': 'public',
+    },
 ]
 
 

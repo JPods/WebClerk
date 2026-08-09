@@ -11,9 +11,12 @@ their logic genuinely differs per model.
 """
 from __future__ import annotations
 import json
+import logging
 import subprocess
 import pathlib
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 from django.db.models.signals import post_save, pre_save, post_delete
 
 _ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
@@ -308,7 +311,10 @@ def send_proposal_submitted_notification(sender, instance: Proposal, created, **
 def send_order_created_notification(sender, instance: Order, created, **kwargs):
     if not created:
         return
-    TransactionEmailService.send_order_created_notification(instance)
+    try:
+        TransactionEmailService.send_order_created_notification(instance)
+    except Exception as e:
+        logger.warning(f"Order notification failed for order {instance.ida}: {e}")
 
 
 @receiver(pre_save, sender=Invoice)

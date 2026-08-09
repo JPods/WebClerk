@@ -94,23 +94,49 @@ class BundleReceiveView(APIView):
             # Unencrypted fallback (legacy or test)
             payload = data.get("payload", data)
 
+        # Detect bundle_uuid in payload for po_to_so tracking
+        bundle_uuid = ""
+        if isinstance(payload, dict):
+            bundle_uuid = payload.get("bundle_uuid", "")
+
         # Create a Bundle record for the incoming data
+        bundle_config = {
+            "idempotency_key": idempotency_key,
+            "sequence": sequence,
+        }
+        if bundle_uuid:
+            bundle_config["bundle_uuid"] = bundle_uuid
+
         bundle = Bundle.objects.create(
             connection=matched,
             direction="pull",
-            config={
-                "idempotency_key": idempotency_key,
-                "sequence": sequence,
-            },
+            config=bundle_config,
             status="success",
             payload=payload,
             response={"dt_received": dt_received, "test": is_test},
         )
 
-        return Response({
+        # Auto-unpack po_to_so bundles into pending Orders
+        unpack_result = None
+        if isinstance(payload, dict) and payload.get("type") == "po_to_so" and not is_test:
+            try:
+                from apps.sync.services.bundle_to_order import unpack_po_to_so_bundle
+                unpack_result = unpack_po_to_so_bundle(bundle)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to unpack po_to_so bundle %s: %s", bundle.id, e
+                )
+
+        resp_data = {
             "ack": True,
             "echo": data.get("echo", ""),
             "dt_received": dt_received,
             "bundle_id": str(bundle.id),
             "test": is_test,
-        })
+        }
+        if unpack_result:
+            resp_data["order_id"] = unpack_result.get("order_id")
+            resp_data["order_ida"] = unpack_result.get("order_ida")
+
+        return Response(resp_data)

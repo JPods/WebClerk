@@ -121,6 +121,27 @@ class MetadataBase(BaseModel):
 # RecordPrefsBase — EVERY record inherits this
 # ═══════════════════════════════════════════════════════════════════════
 
+class SavedSearch(BaseModel):
+    """A user's personal saved search definition.
+
+    Stored in prefs.search[] on UserProfile (personal) or in a Report
+    record (shared/delivered). Same shape in both places so promotion
+    from personal → shared is a copy, not a transform.
+    """
+    name: str = ""
+    model_name: str = ""
+    keyword: Optional[str] = None
+    search_fields: list[str] = Field(default_factory=list)
+    filters: dict = Field(default_factory=dict)
+    ordering: Optional[str] = None
+    limit: Optional[int] = None
+    relative_period: Optional[dict] = None
+    dt_saved: int = 0
+
+    class Config:
+        extra = "allow"
+
+
 class RecordPrefsBase(BaseModel):
     """Standard prefs fields inherited by every BaseModel record.
 
@@ -129,6 +150,7 @@ class RecordPrefsBase(BaseModel):
     userdefined: dict = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     pinned: bool = False
+    search: list[SavedSearch] = Field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════════════

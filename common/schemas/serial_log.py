@@ -8,12 +8,12 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from .envelopes import MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
 # -- .config ----------------------------------------------------------------
 
-class SerialLogConfig(BaseModel):
+class SerialLogConfig(ConfigBase):
     """Audit context for serial state changes."""
     doc_type: str = ''                       # purchase, order, invoice
     doc_id: Optional[int] = None

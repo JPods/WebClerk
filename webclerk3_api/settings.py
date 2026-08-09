@@ -277,8 +277,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "100/minute",
-        "anon": "20/minute",
+        "user": "1000/minute",
+        "anon": "60/minute",
         "payment": "10/minute",
         "webhook": "30/minute",
         "tx_line": "60/minute",
@@ -443,6 +443,9 @@ API_JSON_DEFAULT = True
 HTML_EXEMPT_PATH_PREFIXES = (
     '/admin/', '/admin-django/', '/static/', '/media/', '/api/swagger/', '/api/schema/','/api/redoc/',
 )
+# Read-only demo mode — blocks ALL writes, disables admin
+READ_ONLY_MODE = config('READ_ONLY_MODE', default=False, cast=bool)
+
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
     '/wcapi/save', '/wcapi/save/',
@@ -1050,6 +1053,25 @@ CELERY_BEAT_SCHEDULE = {
     'alice-layout-drift-weekly': {
         'task': 'apps.ai_assistant.tasks.layout_drift_task',
         'schedule': crontab(hour=6, minute=0, day_of_week='monday'),
+    },
+
+    # ── Alice: Pending record archive (nightly 1:00 AM) ───────────
+    'alice-archive-pending-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_archive_pending',
+        'schedule': crontab(hour=1, minute=0),
+        'kwargs': {'batch_size': 1000},
+    },
+
+    # ── Alice: Inventory pending patterns (weekly Monday 3:00 AM) ─
+    'alice-pending-patterns-weekly': {
+        'task': 'apps.support.scheduler.tasks.task_pending_patterns',
+        'schedule': crontab(hour=3, minute=0, day_of_week='monday'),
+    },
+
+    # ── Alice: Cash flow patterns (weekly Monday 3:30 AM) ─────────
+    'alice-cash-flow-patterns-weekly': {
+        'task': 'apps.support.scheduler.tasks.task_cash_flow_patterns',
+        'schedule': crontab(hour=3, minute=30, day_of_week='monday'),
     },
 }
 

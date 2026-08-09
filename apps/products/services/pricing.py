@@ -22,6 +22,8 @@ import logging
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
+from django.db import models
+
 logger = logging.getLogger(__name__)
 
 # Default price level when no level is set anywhere in the chain
@@ -86,21 +88,35 @@ def resolve_unit_price(
             return Decimal('0')
 
     # Apply quantity breaks if defined
+    # Each break can carry per-level dollar prices and/or percentages:
+    #   {"min_qty": 25, "max_qty": 99, "base": 14.00, "retail": 11.00,
+    #    "wholesale": 9.00, "wholesale_pct": 33.3}
+    # Dollar price wins. Percentage calculates from the break's base (or item base).
     qty_breaks = item_price.get('qty_breaks')
     if isinstance(qty_breaks, list) and qty_breaks:
-        # qty_breaks sorted by min_qty ascending
-        # Find the highest break where quantity >= min_qty
         for brk in reversed(qty_breaks):
             if not isinstance(brk, dict):
                 continue
             min_qty = brk.get('min_qty', 0)
             try:
                 if float(quantity) >= float(min_qty):
-                    break_price = brk.get('unit_price')
-                    if break_price is not None:
-                        return Decimal(str(break_price))
-                    # variant_item_id breaks are not resolved here —
-                    # caller must look up the variant item separately
+                    # Try level-specific dollar price first
+                    level_price = brk.get(price_level)
+                    if level_price is not None and level_price != '':
+                        return Decimal(str(level_price))
+                    # Try level-specific percentage (off break's base or item base)
+                    level_pct_key = f'{price_level}_pct'
+                    level_pct = brk.get(level_pct_key)
+                    if level_pct is not None:
+                        break_base = brk.get('base')
+                        if break_base is None:
+                            break_base = item_price.get('base', 0)
+                        if break_base:
+                            return Decimal(str(break_base)) * (1 - Decimal(str(level_pct)) / 100)
+                    # Fall back to generic unit_price (legacy format)
+                    generic = brk.get('unit_price')
+                    if generic is not None:
+                        return Decimal(str(generic))
                     break
             except (TypeError, ValueError):
                 continue
@@ -167,6 +183,172 @@ def get_price_for_line(
             'resolved': effective_level,
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Catalog price resolution
+# ---------------------------------------------------------------------------
+
+def _resolve_catalog_price(
+    item_id: int,
+    customer_id: int,
+    qty: int = 1,
+) -> Optional[Dict[str, Any]]:
+    """Check if this item has special catalog pricing for this customer.
+
+    Finds active catalogs that:
+      - Contain this item (via CatalogLine)
+      - Apply to this customer (via applies_to scope or customer_orgbase FK)
+      - Are within their effective date range
+    Highest priority catalog wins.
+
+    Returns dict with price, level, catalog info — or None if no catalog applies.
+    """
+    import time
+    from django.apps import apps as dj_apps
+
+    now_ms = int(time.time() * 1000)
+
+    CatalogLine = dj_apps.get_model('products', 'CatalogLine')
+
+    # Find catalog lines for this item in active, current catalogs
+    lines = CatalogLine.objects.filter(
+        item_id=item_id,
+        catalog__is_active=True,
+        catalog__dt_effective_start__lte=now_ms,
+    ).filter(
+        models.Q(catalog__dt_effective_end__isnull=True) |
+        models.Q(catalog__dt_effective_end__gte=now_ms)
+    ).select_related('catalog').order_by('-catalog__priority')
+
+    for cl in lines:
+        catalog = cl.catalog
+
+        # Check if this catalog applies to this customer
+        if not _catalog_applies_to_customer(catalog, customer_id):
+            continue
+
+        # Resolve price from the catalog line
+        price = _get_catalog_line_price(cl, qty)
+        if price is not None:
+            return {
+                'price': price,
+                'catalog_id': catalog.pk,
+                'catalog_name': catalog.name,
+                'level': f'catalog:{catalog.code}',
+                'qty_break': None,
+            }
+
+    # No item-specific catalog line found — check for universal % catalogs
+    # These apply a blanket discount to ALL products for matching customers.
+    Catalog = dj_apps.get_model('products', 'Catalog')
+    universal_catalogs = Catalog.objects.filter(
+        is_active=True,
+        is_universal_pct=True,
+        universal_pct__gt=0,
+        dt_effective_start__lte=now_ms,
+    ).filter(
+        models.Q(dt_effective_end__isnull=True) |
+        models.Q(dt_effective_end__gte=now_ms)
+    ).order_by('-priority')
+
+    for catalog in universal_catalogs:
+        if not _catalog_applies_to_customer(catalog, customer_id):
+            continue
+
+        # Universal catalog applies — return the discount percentage.
+        # Caller will apply it to whatever base price resolves from the
+        # standard chain (price_level → base).
+        return {
+            'price': None,  # no fixed price — percentage discount
+            'universal_pct': float(catalog.universal_pct),
+            'catalog_id': catalog.pk,
+            'catalog_name': catalog.name,
+            'level': f'catalog:{catalog.code}',
+            'qty_break': None,
+        }
+
+    return None
+
+
+def _catalog_applies_to_customer(catalog, customer_id: int) -> bool:
+    """Check if a catalog's scope includes this customer.
+
+    Scope check:
+      1. customer_orgbase FK matches directly
+      2. applies_to.all = True (universal catalog)
+      3. applies_to.contacts includes customer_id
+      4. applies_to.contact_types includes customer's price_level/type
+    No scope and no customer_orgbase = catalog applies to everyone.
+    """
+    # Direct FK match
+    if catalog.customer_orgbase_id and catalog.customer_orgbase_id == customer_id:
+        return True
+
+    applies_to = catalog.applies_to if isinstance(catalog.applies_to, dict) else {}
+
+    # No scope defined and no customer FK = applies to all
+    if not applies_to and not catalog.customer_orgbase_id:
+        return True
+
+    # Explicit all flag
+    if applies_to.get('all'):
+        return True
+
+    # Contact list
+    contacts = applies_to.get('contacts', [])
+    if isinstance(contacts, list) and customer_id in contacts:
+        return True
+
+    # Contact type match (e.g., 'wholesale' matches customer.price_level)
+    contact_types = applies_to.get('contact_types', [])
+    if isinstance(contact_types, list) and contact_types:
+        try:
+            from django.apps import apps as dj_apps
+            OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+            customer = OrgBase.objects.filter(pk=customer_id).only('price_level').first()
+            if customer and getattr(customer, 'price_level', '') in contact_types:
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
+def _get_catalog_line_price(cl, qty: int = 1) -> Optional[Decimal]:
+    """Extract the effective price from a CatalogLine for a quantity.
+
+    Checks:
+      1. Quantity-based tiers in items.pricing.tiers
+      2. CatalogLine.price_unit (flat catalog price)
+      3. Discount applied to price_unit
+    """
+    # Check tiers first
+    items_data = cl.items if isinstance(cl.items, dict) else {}
+    pricing = items_data.get('pricing', {})
+    tiers = pricing.get('tiers', [])
+    if isinstance(tiers, list) and tiers:
+        tiers_sorted = sorted(tiers, key=lambda t: t.get('min_qty', 0))
+        tier_price = None
+        for t in tiers_sorted:
+            if qty >= (t.get('min_qty', 0) or 0):
+                tp = t.get('price')
+                if tp is not None:
+                    tier_price = Decimal(str(tp))
+        if tier_price is not None:
+            return tier_price
+
+    # Flat catalog price
+    if cl.price_unit is not None:
+        base = Decimal(str(cl.price_unit))
+        # Apply discount if present
+        if cl.discount_percent and cl.discount_percent > 0:
+            base = base * (1 - cl.discount_percent / 100)
+        elif cl.discount_amount and cl.discount_amount > 0:
+            base = base - cl.discount_amount
+        return base.quantize(Decimal('0.01'))
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -238,8 +420,32 @@ def resolve_price(
     level_used = None
     qty_break_applied = None
 
-    # ── Step 1: OrgItem contract price ─────────────────────────────────
+    # ── Step 0: Catalog price (highest priority) ─────────────────────
+    # If the item is listed in an active catalog that applies to this
+    # customer, the catalog price wins. Catalogs with higher priority
+    # take precedence. This is the most common pricing path — vendors
+    # publish catalogs with special pricing for their customers.
+    #
+    # Two catalog types:
+    #   - Item-specific: CatalogLine with fixed price or tiers
+    #   - Universal %: blanket discount on ALL products for this customer
+    catalog_universal_pct = None
     if customer_id:
+        catalog_result = _resolve_catalog_price(item_id, customer_id, qty)
+        if catalog_result:
+            if catalog_result.get('price') is not None:
+                # Item-specific catalog price — use directly
+                resolved_price = catalog_result['price']
+                source = 'catalog'
+                level_used = catalog_result.get('level')
+                qty_break_applied = catalog_result.get('qty_break')
+            elif catalog_result.get('universal_pct'):
+                # Universal % catalog — apply after base price resolves
+                catalog_universal_pct = Decimal(str(catalog_result['universal_pct']))
+                # Don't set source yet — let the chain resolve base price first
+
+    # ── Step 1: OrgItem contract price ─────────────────────────────────
+    if source == 'fallback' and customer_id:
         try:
             OrgItem = dj_apps.get_model('products', 'OrgItem')
             org_item = OrgItem.objects.filter(
@@ -300,6 +506,10 @@ def resolve_price(
                 pass
 
     # ── Quantity breaks ────────────────────────────────────────────────
+    # Each break row can have per-level dollar prices and percentages:
+    #   {"min_qty": 25, "retail": 11.00, "wholesale_pct": 33.3, ...}
+    # Dollar price wins. Percentage calculates off break's base or item base.
+    effective_level = level_used or 'base'
     qty_breaks = item_price.get('qty_breaks')
     if isinstance(qty_breaks, list) and qty_breaks:
         for brk in reversed(qty_breaks):
@@ -308,13 +518,30 @@ def resolve_price(
             min_qty = brk.get('min_qty', 0)
             try:
                 if float(qty) >= float(min_qty):
-                    break_price = brk.get('unit_price')
-                    if break_price is not None:
-                        resolved_price = Decimal(str(break_price))
-                        qty_break_applied = {'min_qty': min_qty, 'unit_price': float(break_price)}
+                    # Level-specific dollar price
+                    level_price = brk.get(effective_level)
+                    if level_price is not None and level_price != '':
+                        resolved_price = Decimal(str(level_price))
+                        qty_break_applied = {'min_qty': min_qty, 'level': effective_level, 'unit_price': float(level_price)}
                         source = f"{source}+qty_break"
                         break
-                    # variant_item_id break — look up that item's base price
+                    # Level-specific percentage
+                    level_pct = brk.get(f'{effective_level}_pct')
+                    if level_pct is not None:
+                        break_base = brk.get('base') or item_price.get('base', 0)
+                        if break_base:
+                            resolved_price = Decimal(str(break_base)) * (1 - Decimal(str(level_pct)) / 100)
+                            qty_break_applied = {'min_qty': min_qty, 'level': effective_level, 'pct': float(level_pct)}
+                            source = f"{source}+qty_break_pct"
+                            break
+                    # Generic unit_price (legacy)
+                    generic = brk.get('unit_price')
+                    if generic is not None:
+                        resolved_price = Decimal(str(generic))
+                        qty_break_applied = {'min_qty': min_qty, 'unit_price': float(generic)}
+                        source = f"{source}+qty_break"
+                        break
+                    # Variant item break
                     variant_id = brk.get('variant_item_id')
                     if variant_id is not None:
                         try:
@@ -330,6 +557,14 @@ def resolve_price(
                     break
             except (TypeError, ValueError):
                 continue
+
+    # ── Universal catalog % discount ──────────────────────────────────
+    # Applied after base price resolves, before margin check.
+    # A catalog with is_universal_pct=True and universal_pct=15 means
+    # "15% off whatever this customer's price_level price is."
+    if catalog_universal_pct and catalog_universal_pct > 0 and resolved_price > 0:
+        resolved_price = resolved_price * (1 - catalog_universal_pct / 100)
+        source = f"{source}+catalog_universal_{catalog_universal_pct}pct"
 
     # ── Margin floor ───────────────────────────────────────────────────
     cost_value = Decimal('0')
@@ -349,13 +584,11 @@ def resolve_price(
     if cost_value > 0 and resolved_price > 0:
         margin_pct = float(((resolved_price - cost_value) / resolved_price) * 100)
         floor_price = cost_value / (1 - min_margin / 100)
-        if resolved_price < floor_price and not config.get('allow_below_cost', False):
+        if resolved_price < floor_price:
             below_margin_floor = True
-            resolved_price = floor_price.quantize(Decimal('0.01'))
-            margin_pct = float(min_margin)
-            source = f"{source}+margin_floor"
-    elif cost_value > 0 and resolved_price > 0:
-        margin_pct = float(((resolved_price - cost_value) / resolved_price) * 100)
+            # WARNING only — user is in control, system does not override price.
+            # WC2 heritage: PriceBelowMargi warned but never blocked.
+            # The flag 'below_margin_floor' is returned for UI to display a warning.
 
     return {
         'unit_price': float(resolved_price),

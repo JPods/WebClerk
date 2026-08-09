@@ -45,6 +45,7 @@ def default_serial_config() -> dict:
             "dt_expires": None,
             "plan_line": None,
         },
+        "actions": [],
     }
 
 
@@ -86,19 +87,43 @@ class Serial(ItemLinkedBase):
     def description_value(self):
         return self.description or f"Serial {self.serial_ida} ({self.model_ida}) [{self.status}]"
 
-    def log_action(self, action: str, doc_type: str = '', doc_id: int | None = None, notes: str = ''):
-        """Record a state change in SerialLog. Full sentence actions, no codes."""
-        SerialLog.objects.create(
-            serial=self,
-            action=action,
-            dt=int(timezone.now().timestamp()),
-            config={
-                'doc_type': doc_type,
-                'doc_id': doc_id,
-                'status_before': self.status,
-                'notes': notes,
-            },
-        )
+    def log_action(self, action: str, doc_type: str = '', doc_id: int | None = None,
+                   notes: str = '', cost: float | None = None, price: float | None = None,
+                   discount: float | None = None, by: str = ''):
+        """Append action to config.actions[]. Self-contained history on the serial record.
+
+        SerialLog is retained as read-only archive for existing data.
+        New actions go to config.actions[] so the serial carries its own history.
+        """
+        now_ms = int(timezone.now().timestamp() * 1000)
+        status_before = self.status
+        entry = {
+            'action': action,
+            'dt': now_ms,
+            'status_before': status_before,
+            'status_after': self.status,
+        }
+        if doc_type:
+            entry['doc_type'] = doc_type
+        if doc_id is not None:
+            entry['doc_id'] = doc_id
+        if notes:
+            entry['notes'] = notes
+        if cost is not None:
+            entry['cost'] = cost
+        if price is not None:
+            entry['price'] = price
+        if discount is not None:
+            entry['discount'] = discount
+        if by:
+            entry['by'] = by
+
+        cfg = self.config or default_serial_config()
+        actions_list = cfg.get('actions', [])
+        actions_list.append(entry)
+        cfg['actions'] = actions_list
+        self.config = cfg
+        self.save(update_fields=['config'])
 
     def receive(self, vendor_id=None, purchase_id=None, purchase_line_ref=None, cost: float = 0.0, warranty_days: int = 0):
         """Receive on purchase order."""

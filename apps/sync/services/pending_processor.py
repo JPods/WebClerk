@@ -28,8 +28,18 @@ def _handle_bundle_out(pending):
     return handle_bundle_out(pending)
 
 
+def _handle_alice_denormalize(pending):
+    """Update refs.links + refs.keywords for a saved record and its related records.
+
+    Skips locked records (returns False so they retry next cycle).
+    """
+    from apps.core.services.alice_denormalize import denormalize_record
+    return denormalize_record(pending)
+
+
 HANDLERS = {
     "sync.bundle_out": _handle_bundle_out,
+    "alice.denormalize": _handle_alice_denormalize,
     # "sync.bundle_in":        _handle_bundle_in,
     # "alice.pattern_review":  _handle_pattern_review,
     # "allie.nightly_reflect": _handle_nightly_reflect,

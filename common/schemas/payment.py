@@ -10,14 +10,23 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from .envelopes import (
-    AuditEntry, GlStage, ImportProvenance, ReconciliationData,
-    RecordPrefsBase, RefsBase, SourceRef,
+    AuditEntry, ConfigBase, GlStage, ImportProvenance, MetadataBase,
+    ReconciliationData, RecordPrefsBase, RefsBase, SourceRef,
 )
+
+
+# ── Payment .config ─────────────────────────────────────────────────
+
+class PaymentConfig(ConfigBase):
+    """Structural config on a Payment record."""
+
+    class Config:
+        extra = "allow"
 
 
 # ── Payment .metadata ───────────────────────────────────────────────
 
-class PaymentMetadata(BaseModel):
+class PaymentMetadata(MetadataBase):
     """System-written data on a Payment record."""
     gl_accounts: Optional[GlStage] = None
     reconciliation: Optional[ReconciliationData] = None

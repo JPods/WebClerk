@@ -78,4 +78,36 @@ def get_customer_defaults(customer: Any, contact: Any = None) -> dict:
     if customer_config:
         defaults['customer_config'] = customer_config
 
+    # Tax jurisdiction lookup — ZIP code drives tax rate assignment.
+    # User enters ZIP, system resolves state and tax rate automatically.
+    zip_code = ''
+    if isinstance(customer, dict):
+        zip_code = customer.get('zip', '') or customer.get('zip_code', '')
+    else:
+        # Try to get ZIP from the customer's primary address
+        try:
+            addr = getattr(customer, 'addresses', None)
+            if addr:
+                primary = addr.first()
+                if primary:
+                    zip_code = getattr(primary, 'zip', '') or ''
+        except Exception:
+            pass
+        if not zip_code:
+            # Fall back to parsing from address_full ("City, ST 12345")
+            address_full = defaults.get('address_full', '')
+            if address_full:
+                parts = address_full.strip().split()
+                if parts:
+                    candidate = parts[-1]
+                    if candidate.isdigit() and len(candidate) >= 5:
+                        zip_code = candidate
+
+    if zip_code:
+        from apps.transactions.services.tax_lookup import apply_tax_to_finance
+        finance = {}
+        apply_tax_to_finance(finance, zip_code=zip_code)
+        if finance.get('sales_tax_rate'):
+            defaults['finance'] = finance
+
     return defaults

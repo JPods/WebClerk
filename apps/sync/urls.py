@@ -6,6 +6,13 @@ from apps.sync.views.connection import (
     ConnectionSearchView,
 )
 from apps.sync.views.bundle_sync import BundleReceiveView
+from apps.sync.views.po_so_bundle import (
+    POToSOSendView,
+    BundleApproveView,
+    BundleStatusView,
+    BundleCallbackView,
+    POStatusPollView,
+)
 from apps.sync.views.form_library import (
     FormLibraryCatalogView,
     FormLibraryCheckoutView,
@@ -21,6 +28,13 @@ urlpatterns = [
 
     # Bundle sync — machine-to-machine, key-authenticated
     path("receive/", BundleReceiveView.as_view(), name="bundle-receive"),
+
+    # PO → SO cross-instance commerce
+    path("po-to-so/<int:pk>/", POToSOSendView.as_view(), name="po-to-so-send"),
+    path("bundle/<str:bundle_uuid>/approve/", BundleApproveView.as_view(), name="bundle-approve"),
+    path("bundle/<str:bundle_uuid>/status/", BundleStatusView.as_view(), name="bundle-status"),
+    path("bundle/callback/", BundleCallbackView.as_view(), name="bundle-callback"),
+    path("po-status/<int:pk>/<str:bundle_uuid>/", POStatusPollView.as_view(), name="po-status-poll"),
 
     # Form library — Andi/Alice is librarian, local checks out on demand
     path("form-library/", FormLibraryCatalogView.as_view(), name="form-library-catalog"),

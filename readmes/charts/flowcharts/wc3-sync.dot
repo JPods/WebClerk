@@ -1,0 +1,98 @@
+// WC3 Sync — Connection model data exchange
+// From wc2 page 17: Data Sync soft/hard match, site IDs, echo changes
+// WC3: Connection model, bundles, field maps, conflict resolution
+// Render: dot -Tpdf wc3-sync.dot -o wc3-sync.pdf
+
+digraph wc3_sync {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Data Sync\nConnection model: bundles, field maps, conflict resolution"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.7
+    ranksep=0.8
+
+    // ── Site identity ──
+    subgraph cluster_site_a {
+        label="Site A (local)"
+        style="filled,rounded"
+        fillcolor="#E8F5E9"
+        color="#A5D6A7"
+        fontsize=9
+        fontcolor="#2E7D32"
+
+        site_a_id [label="Site ID\n(alpha + numeric prefix)" fillcolor="#C8E6C9"
+                   color="#81C784" fontsize=9]
+        site_a_data [label="Contacts\nCustomers\nProposals\nOrders\nInvoices\nService"
+                     fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+    }
+
+    subgraph cluster_site_b {
+        label="Site B (remote)"
+        style="filled,rounded"
+        fillcolor="#E3F2FD"
+        color="#90CAF9"
+        fontsize=9
+        fontcolor="#1565C0"
+
+        site_b_id [label="Site ID\n(different prefix)" fillcolor="#BBDEFB"
+                   color="#64B5F6" fontsize=9]
+        site_b_data [label="Contacts\nCustomers\nProposals\nOrders\nInvoices\nService"
+                     fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+    }
+
+    // ── Connection model ──
+    connection [label="Connection\n(Connection model)\n\ntype: api / sftp / webhook\nfield_map: JSON\nschedule: cron" fillcolor="#FFF9C4"
+               color="#FFF176" fontsize=10]
+
+    // ── Sync engine ──
+    sync [label="Data Sync\nEngine" shape=octagon fillcolor="#E8EAF6"
+          color="#7986CB" fontsize=11]
+
+    // ── Match logic ──
+    match [label="Match?" shape=diamond fillcolor="#FFE0B2" color="#FFB74D"
+           fontsize=11]
+
+    // ── Outcomes ──
+    hard_match [label="Hard Match\n(uuid or ida)\nfield-by-field update" fillcolor="#C8E6C9"
+                color="#81C784" fontsize=9]
+    soft_match [label="Soft Match\n(name + address)\noffer field-by-field" fillcolor="#FFF9C4"
+                color="#FFF176" fontsize=9]
+    no_match [label="No Match\ncreate new record" fillcolor="#BBDEFB"
+              color="#64B5F6" fontsize=9]
+
+    // ── Bundle ──
+    bundle [label="Bundle\n(audit trail per exchange)\nchange tracking\nconflict log" fillcolor="#F3E5F5"
+            color="#CE93D8" fontsize=9]
+
+    // ── Echo ──
+    echo [label="Echo Changed\nRelating Field Values\n→ back to source" fillcolor="#FFCDD2"
+          color="#EF9A9A" fontsize=9]
+
+    // ── Edges ──
+    site_a_data -> connection [color="#66BB6A"]
+    site_b_data -> connection [color="#42A5F5"]
+    site_a_id -> sync [style=dashed color="#90A4AE"]
+    site_b_id -> sync [style=dashed color="#90A4AE"]
+
+    connection -> sync [color="#7986CB"]
+    sync -> match [color="#FF8F00"]
+
+    match -> hard_match [label="uuid\nmatch" color="#43A047"]
+    match -> soft_match [label="fuzzy\nmatch" color="#FFB300"]
+    match -> no_match [label="none" color="#42A5F5"]
+
+    hard_match -> bundle [color="#AB47BC"]
+    soft_match -> bundle [color="#AB47BC"]
+    no_match -> bundle [color="#AB47BC"]
+
+    bundle -> echo [label="propagate\nchanges" color="#E57373"]
+    echo -> site_a_data [style=dashed color="#66BB6A"]
+    echo -> site_b_data [style=dashed color="#42A5F5"]
+}

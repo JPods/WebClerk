@@ -34,7 +34,14 @@ class TransactionEmailService:
                 emails.append(contact.email)
 
             # Additional emails that are verified and not opted out
-            for email_obj in Email.objects.filter(id__in=contact.refs.get('links', {}).get('email', [])).filter(is_verified=True, opt_out=''):
+            # refs.links.email entries may be plain IDs or dicts with an 'id' key
+            raw_email_refs = contact.refs.get('links', {}).get('email', [])
+            email_ids = [
+                (e['id'] if isinstance(e, dict) else e)
+                for e in raw_email_refs
+                if (isinstance(e, dict) and 'id' in e) or isinstance(e, (int, str))
+            ]
+            for email_obj in Email.objects.filter(id__in=email_ids).filter(is_verified=True, opt_out=''):
                 emails.append(email_obj.email)
 
         except Contact.DoesNotExist:

@@ -209,69 +209,113 @@ class BillOfMaterial(BaseModel):
 
     # Lightweight roll-up helper (not auto-invoked here to avoid recursion) -----------------
     @staticmethod
-    def recalc_parent_cost(parent_item_id: int):  # pragma: no cover - service style
-        """Recompute aggregate component cost snapshot for a parent item.
+    def recalc_parent_cost(parent_item_id: int, depth: int = 1):  # pragma: no cover - service style
+        """Recompute aggregate component cost for a parent item.
 
-        Behaviour:
-          - Uses each BOM line's stored ``cost_snapshot`` when present.
-          - If a line has no snapshot (e.g. created before component cost populated),
-            it will *fallback* to current component.cost JSON probing the same
-            precedence order used at creation (avg -> standard -> last -> landed).
-          - Ignores lines where neither snapshot nor a fallback value resolved.
-          - Applies scrap_factor as qty * (1 + scrap).
-          - Result is rounded (quantized) to 4 decimal places for consistency with
-            ``cost_snapshot`` field precision before storing.
+        Args:
+            parent_item_id: the parent item to recalculate
+            depth: how deep to explode the BOM
+              - 1: immediate children only (kit — use component costs as-is)
+              - 2: children + grandchildren (intermediate assemblies exploded one level)
+              - 0 or -1: all levels (full tree to leaf nodes)
 
-        Stores summarized value under ``parent.cost['components']['snapshot_total']``
-        (if parent.cost is a dict). Silent on all errors by design (best-effort roll-up).
+        Depth matters for inventory:
+          - depth=1: "I have subassemblies in stock, cost them as units"
+          - depth=2: "Explode one level deeper for intermediate builds"
+          - depth=0: "Cost from raw materials — full explosion"
+
+        If a child is itself a parent (has BOM children) and depth allows,
+        its cost is recursively computed from its children rather than using
+        its own cost_snapshot or cost.avg.
+
+        Stores result in parent.cost['components']['snapshot_total'].
+        Also records depth used in parent.cost['components']['depth'].
         """
         try:
             parent = Item.objects.get(id=parent_item_id)
         except Exception:
             return
         from decimal import Decimal as _D
-        lines = BillOfMaterial.objects.filter(parent_item_id=parent_item_id)
+
+        # Normalize depth: 0 or negative = unlimited
+        max_depth = depth if depth > 0 else 999
+
+        total = BillOfMaterial._rollup_cost(parent_item_id, max_depth, current_depth=0)
+
+        try:
+            if isinstance(parent.cost, dict):
+                comp = parent.cost.setdefault('components', {})
+                try:
+                    total = total.quantize(_D("0.0001"))
+                except Exception:
+                    pass
+                comp['snapshot_total'] = float(total)
+                comp['depth'] = depth
+                if parent.cost.get('avg') in (None, 0, 0.0):
+                    parent.cost['avg'] = float(total)
+            parent.save(update_fields=['cost'])
+        except Exception:
+            return
+
+    @staticmethod
+    def _rollup_cost(parent_item_id: int, max_depth: int, current_depth: int) -> 'Decimal':
+        """Recursively compute BOM cost, respecting depth limit.
+
+        At each level:
+          - If the child has its own BOM children AND we haven't hit max_depth,
+            recurse into the child (explode it).
+          - Otherwise, use the child's cost_snapshot or cost.avg (treat it as
+            a purchased/stocked component — don't explode further).
+
+        This means depth=1 uses each child's own cost (kit mode).
+        Depth=2 explodes children that have BOMs, but uses grandchildren's
+        own costs. Depth=0 (unlimited) walks to leaf nodes.
+        """
+        from decimal import Decimal as _D
+
+        lines = BillOfMaterial.objects.filter(
+            parent_item_id=parent_item_id
+        ).select_related('child_item')
+
         total = _D("0")
+
         for line in lines:
             try:
                 qty = line.quantity or _D("0")
                 scrap = line.scrap_factor or _D("0")
-                unit_cost = line.cost_snapshot
-                if unit_cost is None:
-                    # Fallback probe of live component.cost JSON (same precedence as snapshot capture)
-                    comp_cost = getattr(line.child_item, 'cost', None)
-                    if isinstance(comp_cost, dict):
-                        for key in ("avg", "standard", "last", "landed"):
-                            raw = comp_cost.get(key)
-                            if raw is not None:
-                                try:
-                                    unit_cost = _D(str(raw))
-                                    break
-                                except Exception:  # pragma: no cover - non-numeric
-                                    continue
-                if unit_cost is None:
-                    continue  # no usable cost
+
+                # Check if child has its own BOM and we can go deeper
+                child_has_bom = BillOfMaterial.objects.filter(
+                    parent_item_id=line.child_item_id
+                ).exists() if current_depth + 1 < max_depth else False
+
+                if child_has_bom:
+                    # Explode: child's cost comes from its children
+                    unit_cost = BillOfMaterial._rollup_cost(
+                        line.child_item_id, max_depth, current_depth + 1
+                    )
+                else:
+                    # Leaf or depth limit: use component's own cost
+                    unit_cost = line.cost_snapshot
+                    if unit_cost is None:
+                        comp_cost = getattr(line.child_item, 'cost', None)
+                        if isinstance(comp_cost, dict):
+                            for key in ("avg", "standard", "last", "landed"):
+                                raw = comp_cost.get(key)
+                                if raw is not None:
+                                    try:
+                                        unit_cost = _D(str(raw))
+                                        break
+                                    except Exception:
+                                        continue
+                    if unit_cost is None:
+                        continue
+
                 total += unit_cost * qty * (_D("1") + scrap)
             except Exception:
                 continue
-        try:
-            if isinstance(parent.cost, dict):
-                comp = parent.cost.setdefault('components', {})
-                # Quantize to 4 decimal places for deterministic representation
-                try:
-                    total = total.quantize(_D("0.0001"))
-                except Exception:  # pragma: no cover - safety
-                    pass
-                comp['snapshot_total'] = float(total)
-                # Optional multi-level propagation: if parent has no direct avg/standard cost assigned yet,
-                # promote the aggregated component snapshot total into 'avg' (non-destructive if already set).
-                # This allows higher-level assemblies to contribute their rolled-up cost when used as components elsewhere.
-                if parent.cost.get('avg') in (None, 0, 0.0):
-                    parent.cost['avg'] = float(total)
-                # History: let Item.save() handle diff-based history when saving (update_fields includes cost)
-            parent.save(update_fields=['cost'])
-        except Exception:
-            return
+
+        return total
 
     # ----------------- Cycle / recursion utilities ---------------------------------
     @staticmethod

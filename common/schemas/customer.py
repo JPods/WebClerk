@@ -37,7 +37,7 @@ class CustomerRefs(RefsBase):
     keywords: list[str] = Field(default_factory=list)
     categories: list[str] = Field(default_factory=list)
     parents: list = Field(default_factory=list)
-    depends_on: list = Field(default_factory=list)
+    depends_on: dict = Field(default_factory=dict)
     related_ids: list[int] = Field(default_factory=list)
     source: Optional[SourceRef] = None
 

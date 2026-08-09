@@ -10,7 +10,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from .envelopes import (
-    MetadataBase, RecordPrefsBase, RefsBase, SourceRef,
+    ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef,
     StaffPrefsMixin, RepPrefsMixin, EmployeePrefsMixin, CartPrefsMixin,
 )
 from .images import ContactImages
@@ -18,7 +18,7 @@ from .images import ContactImages
 
 # ── .config ────────────────────────────────────────────────────────────
 
-class ContactConfig(BaseModel):
+class ContactConfig(ConfigBase):
     """Structural data — import originals."""
     original_mac: Optional[dict] = None
     phone_original: Optional[str] = None

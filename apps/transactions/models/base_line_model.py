@@ -80,7 +80,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
       - is_fixed:   whether quantity is locked from editing
       - precision:  decimal places for quantity math
       - is_blanket: blanket/open-ended quantity (optional)
-      - increment:  minimum order increment (optional)
+      - increment:  minimum order increment (optional), used the blanket order fulfillment
 
     Quantity flow for standalone lines (no parent):
       All types: active=10 → staged=10, remaining=10

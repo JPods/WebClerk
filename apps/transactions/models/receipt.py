@@ -29,6 +29,39 @@ class Receipt(BaseModel):
     )
     dt_received = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, help_text="Overall notes for this receipt")
+
+    # ── Landed cost fields (receipt-header-level, allocated to lines) ──
+    # These are the total costs for the entire inshipment. The allocation
+    # service spreads them across ReceiptLines → InventoryLayers.
+    vendor_invoice_freight = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Total freight on vendor invoice for this inshipment"
+    )
+    duty = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Total duties/tariffs for this inshipment"
+    )
+    handling = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Total handling/insurance/non-product costs"
+    )
+    vat = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Total VAT for this inshipment"
+    )
+    vendor_invoice_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Total vendor invoice amount"
+    )
+    ALLOCATION_CHOICES = [
+        ('value', 'By Value (cost-proportional)'),
+        ('weight', 'By Weight'),
+        ('quantity', 'By Quantity'),
+    ]
+    allocation_method = models.CharField(
+        max_length=20, choices=ALLOCATION_CHOICES, default='value',
+        help_text="How to spread header costs across receipt lines"
+    )
     
     # Optional FK to source transaction header
     purchase = models.ForeignKey(

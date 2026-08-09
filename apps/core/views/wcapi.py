@@ -60,6 +60,13 @@ class WCAPIDeleteView(APIView):
 
     def _do_delete(self, request, model_key, record_id):
         """Shared delete logic for GET and POST."""
+        from django.conf import settings as _settings
+        if getattr(_settings, 'READ_ONLY_MODE', False):
+            return api_response(
+                success=False, status_code=405,
+                message='This is a read-only demo. Download WebClerk at webclerk.com to modify data.',
+                error={'code': 'demo_read_only', 'details': 'Deletes are disabled on the demo instance.'})
+
         if not model_key or record_id is None:
             return api_response(
                 success=False,
@@ -622,37 +629,69 @@ class WCAPIGetView(APIView):
         if not search_id and not search_name:
             return None
 
-        from apps.core.models.setting import Setting
+        # Primary source: Report records (category='list', output_type='screen')
+        from apps.core.models.report import Report
 
-        qs = Setting.objects.filter(
+        rpt_qs = Report.objects.filter(
             is_active=True,
-            purpose="search",
-            parent_model=model_key,
+            model_name=model_key,
         )
 
         if search_id:
             if not str(search_id).isdigit():
                 raise ValueError("saved_search_id must be numeric")
-            qs = qs.filter(pk=int(search_id))
+            rpt_qs = rpt_qs.filter(pk=int(search_id))
         elif search_name:
-            qs = qs.filter(name=search_name)
+            rpt_qs = rpt_qs.filter(name=search_name)
 
-        setting = qs.order_by("-dt_modified").first()
-        if not setting:
-            raise LookupError("saved search not found")
+        report = rpt_qs.order_by("-dt_modified").first()
 
-        required_role = str(setting.role or "").strip().lower()
+        # Fallback: legacy Setting records (purpose='search')
+        if not report:
+            from apps.core.models.setting import Setting
+            setting_qs = Setting.objects.filter(
+                is_active=True,
+                purpose="search",
+                parent_model=model_key,
+            )
+            if search_id:
+                setting_qs = setting_qs.filter(pk=int(search_id))
+            elif search_name:
+                setting_qs = setting_qs.filter(name=search_name)
+
+            setting = setting_qs.order_by("-dt_modified").first()
+            if not setting:
+                raise LookupError("saved search not found")
+
+            required_role = str(setting.role or "").strip().lower()
+            user_role = str(getattr(getattr(request, "user", None), "role", "") or "").strip().lower()
+            role_open = required_role in {"", "all", "*"}
+            if not role_open and not self._is_admin_user(request) and user_role != required_role:
+                raise PermissionError("saved search is not shared with your role")
+
+            data = setting.config if isinstance(setting.config, dict) else {}
+            return {
+                "id": setting.id,
+                "name": setting.name,
+                "role": setting.role,
+                "data": data,
+                "source": "setting",
+            }
+
+        # Report found — check role access
+        required_role = str(report.role_required or "").strip().lower()
         user_role = str(getattr(getattr(request, "user", None), "role", "") or "").strip().lower()
         role_open = required_role in {"", "all", "*"}
         if not role_open and not self._is_admin_user(request) and user_role != required_role:
             raise PermissionError("saved search is not shared with your role")
 
-        data = setting.config if isinstance(setting.config, dict) else {}
+        data = report.config if isinstance(report.config, dict) else {}
         return {
-            "id": setting.id,
-            "name": setting.name,
-            "role": setting.role,
+            "id": report.id,
+            "name": report.name,
+            "role": report.role_required,
             "data": data,
+            "source": "report",
         }
 
     def _parse_search(self, request, model_key: str, ModelCls) -> Optional[str]:
@@ -1486,17 +1525,60 @@ class SearchPresetListView(APIView):
                 error={"code": "missing_model_name"},
             )
 
+        user = getattr(request, "user", None)
+        is_admin = self._is_admin_user(user)
+        user_role = str(getattr(user, "role", "") or "").strip()
+
+        presets = []
+
+        # Primary: Report records (the new home for shared searches)
+        from apps.core.models.report import Report
+
+        rpt_qs = Report.objects.filter(
+            is_active=True,
+            model_name=model_key,
+        )
+        if not is_admin:
+            rpt_qs = rpt_qs.filter(
+                Q(role_required__isnull=True)
+                | Q(role_required="")
+                | Q(role_required="*")
+                | Q(role_required__iexact="all")
+                | (Q(role_required__iexact=user_role) if user_role else Q())
+            )
+
+        for report in rpt_qs.order_by("sort_order", "name"):
+            payload = report.config if isinstance(report.config, dict) else {}
+            presets.append(
+                {
+                    "id": report.id,
+                    "name": report.name,
+                    "role": report.role_required,
+                    "model_name": report.model_name,
+                    "source": "report",
+                    "output_type": report.output_type,
+                    "category": report.category,
+                    "keyword": payload.get("keyword"),
+                    "search_fields": payload.get("search_fields"),
+                    "filters": payload.get("filters"),
+                    "ordering": payload.get("ordering"),
+                    "pagination": payload.get("pagination"),
+                    "request_keyword": payload.get("request_keyword"),
+                    "request_filters": payload.get("request_filters"),
+                    "relative_period": payload.get("relative_period"),
+                    "dt_modified": getattr(report, "dt_modified", None),
+                }
+            )
+
+        # Fallback: legacy Setting records (purpose='search')
         from apps.core.models import Setting
 
-        qs = Setting.objects.filter(
+        setting_qs = Setting.objects.filter(
             is_active=True,
             purpose="search",
             parent_model=model_key,
         )
-
-        user = getattr(request, "user", None)
-        if not self._is_admin_user(user):
-            user_role = str(getattr(user, "role", "") or "").strip()
+        if not is_admin:
             role_filters = (
                 Q(role__isnull=True)
                 | Q(role="")
@@ -1505,10 +1587,9 @@ class SearchPresetListView(APIView):
             )
             if user_role:
                 role_filters |= Q(role__iexact=user_role)
-            qs = qs.filter(role_filters)
+            setting_qs = setting_qs.filter(role_filters)
 
-        presets = []
-        for setting in qs.order_by("name", "-dt_modified"):
+        for setting in setting_qs.order_by("name", "-dt_modified"):
             payload = setting.config if isinstance(setting.config, dict) else {}
             presets.append(
                 {
@@ -1516,6 +1597,7 @@ class SearchPresetListView(APIView):
                     "name": setting.name,
                     "role": setting.role,
                     "model_name": setting.parent_model,
+                    "source": "setting",
                     "keyword": payload.get("keyword"),
                     "search_fields": payload.get("search_fields"),
                     "filters": payload.get("filters"),

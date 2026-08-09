@@ -8,12 +8,12 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from .envelopes import MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
 # -- .config ----------------------------------------------------------------
 
-class OrgItemConfig(BaseModel):
+class OrgItemConfig(ConfigBase):
     """Inventory management parameters for this org's relationship to an item."""
     quantity_minimum: Optional[float] = None
     quantity_maximum: Optional[float] = None

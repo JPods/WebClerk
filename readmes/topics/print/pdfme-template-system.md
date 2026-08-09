@@ -153,23 +153,83 @@ Fields starting with `_` are computed by the caller (formatted addresses, date s
 | ProjectPrintDocument | Project summary |
 | TaxReportPrintDocument | Tax report |
 
-## PDF Designer
+## Report Designer (primary tool)
 
-The visual designer at `/pdf-designer` allows:
+**Route:** `/report-designer`
 
-1. **Create** — Start from a starter template or blank
-2. **Edit** — Drag/drop fields, resize, style, add tables
-3. **Save** — Saves to WC3 Report model (config.pdfme_template)
-4. **Preview** — Generate PDF with sample data
-5. **Export** — Download template JSON for version control
+The Report Designer is the primary tool for creating and editing print templates.
+It loads Report records from the database and provides a visual drag-and-drop editor
+(like WC2's SuperUser report designer).
+
+### How to Access
+
+1. Navigate to `/report-designer` (or Alice Dashboard → Reports tab)
+2. Left sidebar shows all Report records with `has template` badges
+3. Click any report to load it in the visual editor
+4. The canvas shows a US Letter page (215.9 × 279.4mm) with positioned fields
 
 ### Using the Designer
 
-1. Navigate to `/pdf-designer`
-2. Choose a starter template or existing saved template
-3. Customize layout in the visual editor
-4. Click "Save Template" to store in WC3
-5. Template is now available in print preview dropdown
+1. **Select a report** from the left sidebar
+2. **Click a field** on the canvas to select it — blue handles appear
+3. **Drag** to reposition — ruler at top shows mm coordinates
+4. **Resize** by dragging corner or edge handles
+5. **Right panel** shows the Field List — all fields in this template
+6. **Add fields** by clicking the add icon in the toolbar (top-left)
+7. **Delete fields** by selecting and pressing Delete/Backspace
+8. **Preview PDF** button generates a PDF with placeholder values
+9. **Save Template** writes the template back to the Report record
+
+### Field Sources (via `/wcapi/report-fields/?model=order`)
+
+Fields come from four sources:
+
+| Source | Example | Notation |
+|--------|---------|----------|
+| Direct | `ida`, `status`, `terms` | Field name |
+| Related | `customer.company`, `vendor.phone` | `related.field` |
+| JSON path | `totals.subtotal`, `config.po_num` | `path.to.value` |
+| Line items | `item.ida`, `price.extended` | Table columns |
+
+### MVP Report Templates (13 reports loaded)
+
+| Model | Report | Category |
+|-------|--------|----------|
+| invoice | Invoice | customer_facing |
+| invoice | Credit Memo | customer_facing |
+| customer | Statement | statement |
+| customer | Aging Report | report |
+| order | Order Confirmation | customer_facing |
+| order | Pick Ticket | operations |
+| order | Packing Slip | operations |
+| purchase | Purchase Order | vendor_facing |
+| purchase | Receiving Report | operations |
+| proposal | Proposal | customer_facing |
+| requisition | Requisition | operations |
+| workorder | Work Order | operations |
+| payment | Payment Receipt | customer_facing |
+
+### Template Storage
+
+Templates save to `Report.config.pdfme_template` (JSON). The `basePdf` uses
+the object format `{ width, height, padding }` — not the base64 BLANK_PDF constant
+(which causes Web Worker failures in Vite dev mode).
+
+### Key Files
+
+| File | What it does |
+|------|-------------|
+| `React2025/src/pages/admin/ReportDesigner.tsx` | Report Designer page |
+| `webClerk3/apps/core/views/report_fields_view.py` | Field registry API |
+| `webClerk3/apps/core/services/report_renderer.py` | Backend PDF renderer (WeasyPrint) |
+
+## PDF Designer (legacy — Alice Dashboard tab)
+
+**Route:** `/pdf-designer` (also embedded in Alice Dashboard → PDF Designer tab)
+
+The PDF Designer is the older, simpler pdfme editor. It works with free-form
+templates not tied to Report records. Use the Report Designer instead for
+production report templates.
 
 ## Generation Flow
 

@@ -159,6 +159,8 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     is_active = models.BooleanField(default=True, help_text="User account is active")
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
     dt_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
+    # Override AbstractBaseUser.password to allow blank — contacts without login still need records
+    password = models.CharField(max_length=128, blank=True, default='', help_text="Hashed password")
     
     objects = ContactManager()
 

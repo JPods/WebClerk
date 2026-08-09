@@ -13,8 +13,11 @@ from apps.core.views.wcapi import (
     ModelDetailView,
     SearchPresetListView,
 )
+from apps.core.views.range_query_view import RangeQueryView
+from apps.core.views.save_search_view import SaveSearchView
 from apps.core.views.manage_view import ManageWcapiView
 from apps.core.views.report_view import ReportDownloadView
+from apps.core.views.report_fields_view import ReportFieldsView
 from apps.core.views.burndown_view import BurndownView
 from apps.core.views.setting_resolve_view import SettingResolveView
 from apps.core.views.choices import ChoiceCatalogView
@@ -43,6 +46,8 @@ urlpatterns = [
     path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get"),
     path("wcapi/get/<str:model_name>/", WCAPIGetViewWithModel.as_view(), name="wcapi-get-with-model"),
     path("wcapi/<str:model_name>/get/", WCAPIGetViewWithModel.as_view(), name="wcapi-model-get"),
+    # RESTful range query: /wcapi/order/dt_created/2026-01-01/2026-01-31/
+    path("wcapi/<str:model_name>/<str:field>/<str:from_val>/<str:to_val>/", RangeQueryView.as_view(), name="wcapi-range-query"),
     path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
     path("wcapi/save/<str:model_name>/", SaveWcapiViewWithModel.as_view(), name="wcapi-save-with-model"),
     path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
@@ -50,11 +55,13 @@ urlpatterns = [
     path("wcapi/delete/", WCAPIDeleteView.as_view(), name="wcapi-delete"),
     path("wcapi/manage/", ManageWcapiView.as_view(), name="wcapi-manage"),
     path("wcapi/report/", ReportDownloadView.as_view(), name="wcapi-report"),
+    path("wcapi/report-fields/", ReportFieldsView.as_view(), name="wcapi-report-fields"),
     path("wcapi/burndown/<int:project_id>/", BurndownView.as_view(), name="wcapi-burndown"),
     path("wcapi/setting/resolve/", SettingResolveView.as_view(), name="wcapi-setting-resolve"),
     path("wcapi/model_name/list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/search-presets/", SearchPresetListView.as_view(), name="search-preset-list"),
+    path("wcapi/save-search/", SaveSearchView.as_view(), name="wcapi-save-search"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
     path("wcapi/bootstrap/", BootstrapView.as_view(), name="wcapi-bootstrap"),
     path("wcapi/system-info/", SystemInfoView.as_view(), name="system-info"),

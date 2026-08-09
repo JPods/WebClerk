@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from .envelopes import MetadataBase, RecordPrefsBase, RefsBase
+from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase
 
 
 # -- Serial actions (stored in Setting.serial.config.serial_actions) -------
@@ -65,12 +65,38 @@ class FloorPlan(BaseModel):
         extra = "allow"
 
 
-class SerialConfig(BaseModel):
+class SerialActionEntry(BaseModel):
+    """One recorded action in config.actions[].
+
+    Self-contained event: the serial carries its own history.
+    Replaces SerialLog for new actions (SerialLog retained as read-only archive).
+    """
+    action: str = Field(..., description="Full sentence action name")
+    dt: int = Field(..., description="Unix timestamp (epoch ms) — UTC (Axiom 14)")
+    status_before: Optional[str] = Field(None, description="Status before this action")
+    status_after: str = Field(..., description="Status after this action")
+    doc_type: str = Field("", description="Document type: purchase, order, invoice, work_order, or empty")
+    doc_id: Optional[int] = Field(None, description="Document ID that triggered this action")
+    cost: Optional[float] = Field(None, description="Cost at time of action")
+    price: Optional[float] = Field(None, description="Price at time of action")
+    discount: Optional[float] = Field(None, description="Discount at time of action")
+    notes: str = Field("", description="Freeform notes")
+    by: str = Field("", description="Who/what performed the action")
+
+    class Config:
+        extra = "allow"
+
+
+class SerialConfig(ConfigBase):
     """Transaction context stored on each Serial record.
 
     Tracks who holds this unit, what document moved it, and what it
     cost at time of transaction. Updated by lifecycle methods on the
     Serial model (receive, issue_on_invoice, return_from_customer, etc).
+
+    actions[] carries the serial's complete lifecycle history as embedded
+    JSON — no separate table needed. Self-contained: travels with the
+    serial on sync/export.
     """
     customer_id: Optional[int] = None
     vendor_id: Optional[int] = None
@@ -86,6 +112,7 @@ class SerialConfig(BaseModel):
     dt_shipped: Optional[str] = None
     days_on_plan: int = 0
     floor_plan: FloorPlan = Field(default_factory=FloorPlan)
+    actions: list[SerialActionEntry] = Field(default_factory=list, description="Embedded action history — self-contained on the serial record")
 
     class Config:
         extra = "allow"

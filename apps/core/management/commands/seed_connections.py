@@ -1,11 +1,16 @@
-"""Seed Connection records for agent communication channels.
+"""Seed Connection records for all connection classes.
 
-Alice → Claude Code escalation uses the internal connection to route
-Action records that exceed Alice's 8B/20B model capability. The connection
-carries the protocol: what to include, how to format, where it lands.
-
-WC_HQ connection carries user template contributions and schema feedback
-upstream. Bundle records flow through this connection.
+Each connection class represents a category of external integration:
+  - Internal: alice-claude, wchq-upstream, self-connection
+  - Deploy: local server (Andi / Mac Mini / IT15)
+  - Shipping: UPS, FedEx, USPS, DHL
+  - Tax: Avalara, TaxJar, Vertex
+  - Communication: Gmail, Outlook (email)
+  - Calendar: Google Calendar, Outlook Calendar
+  - Payment: Stripe, Square, PayPal
+  - Accounting: QuickBooks, Xero (WC3 produces GL journal entries)
+  - Banking: bank feed import (Statement Sorter)
+  - Identity: MyCarryOn (portable sovereign identity)
 
 Usage:
     ./manage.py seed_connections
@@ -83,7 +88,7 @@ CONNECTIONS = [
         },
     },
     {
-        'ida': 'conn-wchq-upstream',
+        'ida': 'wchq-conn-upstream',
         'name': 'WC_HQ Upstream',
         'type': 'api',
         'purpose': 'sync',
@@ -279,6 +284,601 @@ CONNECTIONS = [
             },
         },
         'metadata': {'established': '2026-08-05'},
+    },
+    {
+        'ida': 'conn-tax-service',
+        'name': 'Tax Service',
+        'type': 'tax_service',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'External tax calculation service (Avalara, TaxJar, Vertex). '
+            'Staged — not wired until a customer needs multi-jurisdiction tax. '
+            'Simple case (one jurisdiction, one rate) uses TaxJurisdiction records directly. '
+            'Set status=active and fill credentials when ready to go live.'
+        ),
+        'config': {
+            'provider': '',  # 'avalara', 'taxjar', 'vertex'
+            'credentials': {
+                'api_key': '',
+                'account_id': '',
+                'url': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'company_code': 'DEFAULT',
+                'fallback_to_builtin': True,
+            },
+        },
+        'metadata': {'established': '2026-08-09'},
+    },
+    # -- Communication connections ---------------------------------------------
+    {
+        'ida': 'conn-comm-gmail',
+        'name': 'Gmail',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Gmail integration via Google Workspace API. Inbound: customer emails '
+            'create or update Action records. Outbound: WC3 sends transactional '
+            'email (order confirmations, shipping notifications, invoice delivery). '
+            'Alice monitors for patterns — unanswered threads, repeat complaints.'
+        ),
+        'config': {
+            'provider': 'google',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'refresh_token': '',
+                'scopes': [
+                    'https://www.googleapis.com/auth/gmail.readonly',
+                    'https://www.googleapis.com/auth/gmail.send',
+                    'https://www.googleapis.com/auth/gmail.labels',
+                ],
+            },
+            'settings': {
+                'watch_labels': ['INBOX'],
+                'auto_action': True,
+                'action_rules': {
+                    'new_thread_from_contact': 'create_action',
+                    'reply_to_action_thread': 'update_action',
+                },
+                'outbound': {
+                    'order_confirmation': True,
+                    'shipping_notification': True,
+                    'invoice_delivery': True,
+                    'from_address': '',
+                },
+            },
+        },
+        'rules': {
+            'privacy': {
+                'no_bulk_export': True,
+                'pii_stays_local': True,
+                'alice_sees_metadata_only': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'communication',
+            'doc': 'readmes/connections/communication.md',
+        },
+    },
+    {
+        'ida': 'conn-comm-outlook',
+        'name': 'Outlook',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Outlook / Microsoft 365 email via Microsoft Graph API. Same flow as '
+            'Gmail: inbound threads create Actions, outbound sends transactional '
+            'email. User chooses Gmail OR Outlook — not both simultaneously.'
+        ),
+        'config': {
+            'provider': 'microsoft',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'tenant_id': '',
+                'scopes': [
+                    'https://graph.microsoft.com/Mail.ReadWrite',
+                    'https://graph.microsoft.com/Mail.Send',
+                ],
+            },
+            'settings': {
+                'watch_folders': ['Inbox'],
+                'auto_action': True,
+                'action_rules': {
+                    'new_thread_from_contact': 'create_action',
+                    'reply_to_action_thread': 'update_action',
+                },
+                'outbound': {
+                    'order_confirmation': True,
+                    'shipping_notification': True,
+                    'invoice_delivery': True,
+                    'from_address': '',
+                },
+            },
+        },
+        'rules': {
+            'privacy': {
+                'no_bulk_export': True,
+                'pii_stays_local': True,
+                'alice_sees_metadata_only': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'communication',
+            'doc': 'readmes/connections/communication.md',
+        },
+    },
+    # -- Calendar connections --------------------------------------------------
+    {
+        'ida': 'conn-cal-google',
+        'name': 'Google Calendar',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Google Calendar via Google Workspace API. WC3 Actions with due dates '
+            'sync to calendar events. Calendar events with WC3 tags sync back as '
+            'Actions. Alice monitors for overdue items and scheduling conflicts.'
+        ),
+        'config': {
+            'provider': 'google',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'refresh_token': '',
+                'scopes': [
+                    'https://www.googleapis.com/auth/calendar',
+                    'https://www.googleapis.com/auth/calendar.events',
+                ],
+            },
+            'settings': {
+                'calendar_id': 'primary',
+                'sync_direction': 'bidirectional',
+                'action_to_event': {
+                    'due_date': 'event.start',
+                    'name': 'event.summary',
+                    'comment': 'event.description',
+                    'assigned_to': 'event.attendees',
+                },
+                'event_prefix': '[WC3]',
+            },
+        },
+        'rules': {
+            'sync': {
+                'wc3_is_source_of_truth': True,
+                'conflict_resolution': 'wc3_wins',
+                'delete_sync': False,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'calendar',
+            'doc': 'readmes/connections/calendar.md',
+        },
+    },
+    {
+        'ida': 'conn-cal-outlook',
+        'name': 'Outlook Calendar',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Outlook Calendar via Microsoft Graph API. Same bidirectional Action ↔ '
+            'Event sync as Google Calendar. User chooses one calendar provider.'
+        ),
+        'config': {
+            'provider': 'microsoft',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'tenant_id': '',
+                'scopes': [
+                    'https://graph.microsoft.com/Calendars.ReadWrite',
+                ],
+            },
+            'settings': {
+                'calendar_id': 'primary',
+                'sync_direction': 'bidirectional',
+                'action_to_event': {
+                    'due_date': 'event.start',
+                    'name': 'event.summary',
+                    'comment': 'event.body',
+                    'assigned_to': 'event.attendees',
+                },
+                'event_prefix': '[WC3]',
+            },
+        },
+        'rules': {
+            'sync': {
+                'wc3_is_source_of_truth': True,
+                'conflict_resolution': 'wc3_wins',
+                'delete_sync': False,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'calendar',
+            'doc': 'readmes/connections/calendar.md',
+        },
+    },
+    # -- Payment connections ---------------------------------------------------
+    {
+        'ida': 'conn-pay-stripe',
+        'name': 'Stripe',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Stripe payment processing. WC3 creates payment intents, Stripe '
+            'processes cards. Webhooks update Payment records. WC3 produces GL '
+            'journal entries from completed payments — never holds card data.'
+        ),
+        'config': {
+            'provider': 'stripe',
+            'credentials': {
+                'publishable_key': '',
+                'secret_key': '',
+                'webhook_secret': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'currency': 'usd',
+                'payment_methods': ['card'],
+                'webhook_events': [
+                    'payment_intent.succeeded',
+                    'payment_intent.payment_failed',
+                    'charge.refunded',
+                    'charge.dispute.created',
+                ],
+                'auto_journal': True,
+            },
+        },
+        'rules': {
+            'pci': {
+                'no_card_storage': True,
+                'tokenize_only': True,
+                'stripe_holds_pci_scope': True,
+            },
+            'accounting': {
+                'wc3_produces_gl_entries': True,
+                'debit_cash_credit_ar': True,
+                'refund_reverses_entry': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'payment',
+            'doc': 'readmes/connections/payment.md',
+        },
+    },
+    {
+        'ida': 'conn-pay-square',
+        'name': 'Square',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Square payment processing. Same pattern as Stripe — WC3 sends '
+            'payment requests, Square processes, webhooks update Payment records, '
+            'WC3 produces GL journal entries.'
+        ),
+        'config': {
+            'provider': 'square',
+            'credentials': {
+                'access_token': '',
+                'application_id': '',
+                'location_id': '',
+                'webhook_signature_key': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'currency': 'usd',
+                'auto_journal': True,
+            },
+        },
+        'rules': {
+            'pci': {
+                'no_card_storage': True,
+                'tokenize_only': True,
+            },
+            'accounting': {
+                'wc3_produces_gl_entries': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'payment',
+            'doc': 'readmes/connections/payment.md',
+        },
+    },
+    {
+        'ida': 'conn-pay-paypal',
+        'name': 'PayPal',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'PayPal payment processing. Redirect flow — customer pays on PayPal, '
+            'IPN/webhook updates WC3 Payment record. WC3 produces GL journal entries.'
+        ),
+        'config': {
+            'provider': 'paypal',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'webhook_id': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'currency': 'usd',
+                'auto_journal': True,
+            },
+        },
+        'rules': {
+            'pci': {
+                'no_card_storage': True,
+                'paypal_holds_pci_scope': True,
+            },
+            'accounting': {
+                'wc3_produces_gl_entries': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'payment',
+            'doc': 'readmes/connections/payment.md',
+        },
+    },
+    # -- Accounting connections ------------------------------------------------
+    {
+        'ida': 'conn-acct-quickbooks',
+        'name': 'QuickBooks',
+        'type': 'api',
+        'purpose': 'export',
+        'status': 'draft',
+        'comment': (
+            'QuickBooks Online integration. WC3 produces GL journal entries from '
+            'production data (sales, payments, inventory). Journal entries export '
+            'to QuickBooks. WC3 does not do checkbooks, payables, or P&L — '
+            'QuickBooks owns that. Payable feedback (purchase receipts) imports '
+            'for landed cost tracking.'
+        ),
+        'config': {
+            'provider': 'quickbooks',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'realm_id': '',
+                'refresh_token': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'export': {
+                    'journal_entries': True,
+                    'customers': True,
+                    'invoices': True,
+                    'items': False,
+                },
+                'import': {
+                    'purchase_receipts': True,
+                    'vendor_bills': True,
+                    'chart_of_accounts': True,
+                },
+                'sync_interval_minutes': 60,
+            },
+        },
+        'rules': {
+            'boundary': {
+                'wc3_produces_gl_entries': True,
+                'wc3_does_not_do_checkbooks': True,
+                'wc3_does_not_do_payables': True,
+                'wc3_does_not_do_pnl': True,
+                'accounting_program_consumes_entries': True,
+                'payable_feedback_for_landed_cost': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'accounting',
+            'doc': 'readmes/connections/accounting.md',
+        },
+    },
+    {
+        'ida': 'conn-acct-xero',
+        'name': 'Xero',
+        'type': 'api',
+        'purpose': 'export',
+        'status': 'draft',
+        'comment': (
+            'Xero integration. Same boundary as QuickBooks — WC3 exports GL '
+            'journal entries, imports payable feedback for landed cost. '
+            'Xero owns checkbooks, payables, P&L, balance sheet.'
+        ),
+        'config': {
+            'provider': 'xero',
+            'credentials': {
+                'client_id': '',
+                'client_secret': '',
+                'tenant_id': '',
+            },
+            'settings': {
+                'test_mode': True,
+                'export': {
+                    'journal_entries': True,
+                    'contacts': True,
+                    'invoices': True,
+                },
+                'import': {
+                    'purchase_receipts': True,
+                    'bills': True,
+                    'chart_of_accounts': True,
+                },
+            },
+        },
+        'rules': {
+            'boundary': {
+                'wc3_produces_gl_entries': True,
+                'wc3_does_not_do_checkbooks': True,
+                'wc3_does_not_do_payables': True,
+                'accounting_program_consumes_entries': True,
+                'payable_feedback_for_landed_cost': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'accounting',
+            'doc': 'readmes/connections/accounting.md',
+        },
+    },
+    # -- Banking connections ---------------------------------------------------
+    {
+        'ida': 'conn-bank-feed',
+        'name': 'Bank Feed Import',
+        'type': 'manual',
+        'purpose': 'ingest',
+        'status': 'draft',
+        'comment': (
+            'Bank statement import via Statement Sorter. User downloads CSV/OFX '
+            'from their bank, uploads to WC3. Statement Sorter classifies '
+            'transactions, matches to invoices and payments. Alice learns '
+            'categorization patterns over time. No direct bank API — user '
+            'controls what data enters the system.'
+        ),
+        'config': {
+            'provider': 'manual_upload',
+            'formats': ['csv', 'ofx', 'qfx', 'qbo'],
+            'settings': {
+                'statement_sorter_url': '/sort/',
+                'auto_match_payments': True,
+                'auto_categorize': True,
+                'confidence_threshold': 0.85,
+                'alice_learns_categories': True,
+            },
+        },
+        'rules': {
+            'privacy': {
+                'user_uploads_manually': True,
+                'no_direct_bank_api': True,
+                'user_controls_data': True,
+                'personal_transactions_never_in_db': True,
+            },
+            'matching': {
+                'match_by_amount_and_date': True,
+                'match_by_reference_number': True,
+                'unmatched_flagged_for_review': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'banking',
+            'doc': 'readmes/connections/banking.md',
+        },
+    },
+    # -- Identity connections --------------------------------------------------
+    {
+        'ida': 'conn-identity-carryon',
+        'name': 'MyCarryOn',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'MyCarryOn portable sovereign identity. Contact records carry a '
+            'carryon_uuid — the person owns their identity, WC3 holds a pointer. '
+            'Permissions are enumerated, revocable, and sunset. Context travels '
+            'with the person, not locked in any one system.'
+        ),
+        'config': {
+            'provider': 'mycarryon',
+            'credentials': {
+                'api_key': '',
+                'instance_url': '',
+            },
+            'settings': {
+                'sync_direction': 'bidirectional',
+                'contact_field': 'carryon_uuid',
+                'permission_model': {
+                    'enumerated': True,
+                    'revocable': True,
+                    'sunset_required': True,
+                },
+                'context_portable': True,
+            },
+        },
+        'rules': {
+            'sovereignty': {
+                'person_owns_identity': True,
+                'wc3_holds_pointer_not_identity': True,
+                'permissions_expire': True,
+                'no_data_hoarding': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'identity',
+            'doc': 'readmes/connections/identity.md',
+        },
+    },
+    # -- AI connections --------------------------------------------------------
+    {
+        'ida': 'conn-ai-claude',
+        'name': 'Claude API',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'draft',
+        'comment': (
+            'Claude API connection for Alice. When Alice hits the ceiling of her '
+            'local model (8B/20B), she calls Claude for help — report generation, '
+            'complex classification, template authoring, data analysis. Alice '
+            'frames the question, Claude answers, Alice applies the result. '
+            'User provides their own API key. Alice learns from each exchange.'
+        ),
+        'config': {
+            'provider': 'anthropic',
+            'credentials': {
+                'api_key': '',
+            },
+            'settings': {
+                'model': 'claude-sonnet-4-6',
+                'max_tokens': 4096,
+                'temperature': 0.3,
+                'capabilities': [
+                    'report_generation',
+                    'template_authoring',
+                    'data_classification',
+                    'serial_load_normalization',
+                    'complex_queries',
+                    'document_analysis',
+                ],
+                'rate_limit': {
+                    'requests_per_minute': 30,
+                    'daily_budget_usd': 5.00,
+                },
+                'alice_learns': True,
+                'log_exchanges': True,
+            },
+        },
+        'rules': {
+            'usage': {
+                'alice_frames_question': True,
+                'alice_applies_result': True,
+                'no_raw_user_data_sent': True,
+                'pii_scrubbed_before_send': True,
+                'user_owns_api_key': True,
+                'exchanges_logged_locally': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-09',
+            'class': 'ai',
+            'doc': 'readmes/connections/connection-classes.md',
+        },
     },
 ]
 

@@ -26,10 +26,10 @@ def user_id_is_superuser(user_id):
 
 # -------- Validation / cleanup stubs ---------------------------------------
 def validate_address_osm(address_id: int, connection_name: str | None = None) -> Dict[str, Any]:
-    """Address verification via Connection/Bundle (stubbed provider).
+    """Address verification via carrier supervisor + geocoding.
 
-    Builds a minimal address payload and verifies through a Connection of
-    type 'address_verification'. Records review pending bundle in metadata.
+    Tries carriers in priority order (USPS → UPS → FedEx → DHL for US),
+    corrects the address, geocodes for lat/lng, and applies results.
     """
     Address = apps.get_model('communications', 'Address')
     addr = Address.objects.filter(pk=address_id).first()
@@ -43,7 +43,8 @@ def validate_address_osm(address_id: int, connection_name: str | None = None) ->
         "zip": getattr(addr, "zip", ""),
         "country": getattr(addr, "country", ""),
     }
-    res = verify_address_via_connection(payload, connection_name)
+    from apps.sync.services.address_verification import verify_address
+    res = verify_address(payload)
     result = res.get("result") or {}
     bundle_id = res.get("bundle_id")
 

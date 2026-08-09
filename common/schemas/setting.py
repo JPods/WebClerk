@@ -11,7 +11,7 @@ DataBrowser layouts:
 """
 from __future__ import annotations
 
-from typing import Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
@@ -44,10 +44,10 @@ class DbFieldSpec(BaseModel):
 class DbNamedView(BaseModel):
     """A named layout snapshot — saved set of all four layout types."""
     name: str
-    list: list[DbFieldSpec] = Field(default_factory=list)
-    detail: list[DbFieldSpec] = Field(default_factory=list)
-    panel: list[DbFieldSpec] = Field(default_factory=list)
-    card: list[DbFieldSpec] = Field(default_factory=list)
+    list: List[DbFieldSpec] = Field(default_factory=list)
+    detail: List[DbFieldSpec] = Field(default_factory=list)
+    panel: List[DbFieldSpec] = Field(default_factory=list)
+    card: List[DbFieldSpec] = Field(default_factory=list)
 
     class Config:
         extra = 'forbid'
@@ -62,12 +62,12 @@ class DbLayout(BaseModel):
       panel  — fields shown in embedded panels (line items, related records)
       card   — fields shown in card/tile view
     """
-    list: list[DbFieldSpec] = Field(default_factory=list)
-    detail: list[DbFieldSpec] = Field(default_factory=list)
-    panel: list[DbFieldSpec] = Field(default_factory=list)
-    card: list[DbFieldSpec] = Field(default_factory=list)
-    related: list[str] = Field(default_factory=list)  # FK model names to show as panels in detail
-    views: list[DbNamedView] = Field(default_factory=list)
+    list: List[DbFieldSpec] = Field(default_factory=list)
+    detail: List[DbFieldSpec] = Field(default_factory=list)
+    panel: List[DbFieldSpec] = Field(default_factory=list)
+    card: List[DbFieldSpec] = Field(default_factory=list)
+    related: List[str] = Field(default_factory=list)  # FK model names to show as panels in detail
+    views: List[DbNamedView] = Field(default_factory=list)
 
     class Config:
         extra = 'forbid'
