@@ -263,14 +263,14 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   const { groups, groupNames } = useMemo(() => {
     if (!registry) return { groups: {} as Record<string, RegistryField[]>, groupNames: [] as string[] };
     const grp: Record<string, RegistryField[]> = {};
-    grp[model] = registry.direct;
-    for (const [relName, relFields] of Object.entries(registry.related)) grp[relName] = relFields;
-    for (const f of registry.json_paths) {
+    grp[model] = registry.direct || [];
+    for (const [relName, relFields] of Object.entries(registry.related || {})) grp[relName] = relFields;
+    for (const f of registry.json_paths || []) {
       const g = f.group || 'json';
       if (!grp[g]) grp[g] = [];
       grp[g].push(f);
     }
-    if (registry.lines.length > 0) grp[registry.line_model || 'lines'] = registry.lines;
+    if ((registry.lines || []).length > 0) grp[registry.line_model || 'lines'] = registry.lines;
     const names = Object.keys(grp).sort((a, b) => a === model ? -1 : b === model ? 1 : a.localeCompare(b));
     return { groups: grp, groupNames: names };
   }, [registry, model]);
