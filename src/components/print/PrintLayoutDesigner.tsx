@@ -496,162 +496,10 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
         </div>
       </div>
 
-      {/* Body: three panels */}
+      {/* Body: Panels | Preview | Fields+Models */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* === LEFT PANEL: Models + Fields === */}
-        <div style={{
-          flex: `0 0 ${leftWidth}px`, display: 'flex', flexDirection: 'column',
-          background: t.bg,
-        }}>
-          {/* Model selector */}
-          <div style={{ flex: '0 0 auto', borderBottom: `2px solid ${t.border}` }}>
-            <div style={panelHeader('Models')}>
-              <span>Models</span>
-            </div>
-            <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-              {/* Base model always first */}
-              <div
-                onClick={() => fetchModelFields(model)}
-                style={{
-                  padding: '5px 10px', cursor: 'pointer', fontSize: fontSize - 1,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: activeModel === model ? t.surfaceAlt : 'transparent',
-                  borderLeft: activeModel === model ? `3px solid ${t.accent}` : '3px solid transparent',
-                  color: t.text, fontWeight: 700,
-                }}
-                onMouseEnter={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                onMouseLeave={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-              >
-                <span>{model}</span>
-                <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400 }}>base</span>
-              </div>
-              {/* Separator */}
-              <div style={{ height: 1, background: t.border, margin: '2px 0' }} />
-              {/* All other models */}
-              {allModelNames.filter(m => m !== model).map(m => (
-                <div key={m}
-                  onClick={() => fetchModelFields(m)}
-                  style={{
-                    padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1,
-                    display: 'flex', alignItems: 'center',
-                    background: activeModel === m ? t.surfaceAlt : 'transparent',
-                    borderLeft: activeModel === m ? `3px solid ${t.accent}` : '3px solid transparent',
-                    color: activeModel === m ? t.text : t.textMuted,
-                    fontWeight: activeModel === m ? 600 : 400,
-                  }}
-                  onMouseEnter={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                >
-                  <span>{m}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Fields for selected model */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={panelHeader('Fields')}>
-              <span>{activeModel} fields</span>
-              <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
-                dbl-click to add
-              </span>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {visibleFields.map(rf => (
-                <div key={rf.field}
-                  onDoubleClick={() => addFieldToSection(rf.field)}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', rf.field);
-                    e.dataTransfer.effectAllowed = 'copy';
-                  }}
-                  style={{
-                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    borderBottom: `1px solid ${t.borderLight}`,
-                    background: 'transparent',
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                >
-                  <span style={{ flex: 1, color: t.text }}>{rf.label}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: fontSize - 4, color: t.textDim }}>{rf.field}</span>
-                  <span style={{ fontSize: fontSize - 4, color: t.textDim, fontStyle: 'italic' }}>{rf.type}</span>
-                </div>
-              ))}
-              {visibleFields.length === 0 && (
-                <div style={{ padding: '12px 10px', fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
-                  {fieldGroups.length === 0 ? 'Loading...' : 'All fields in use'}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Drag handle: left ↔ middle */}
-        <div
-          onMouseDown={(e) => {
-            dragRef.current = { which: 'left', startX: e.clientX, startW: leftWidth };
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-          }}
-          style={{
-            flex: '0 0 5px', cursor: 'col-resize',
-            background: t.border,
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
-          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
-        />
-
-        {/* === CENTER PANEL: Live preview — fixed to paper size === */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{
-            padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
-            fontSize: fontSize - 2, color: t.textMuted,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span>Preview</span>
-            <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
-              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
-            </span>
-          </div>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            padding: 16, overflow: 'auto', background: t.bg,
-          }}>
-            <iframe
-              srcDoc={previewHtml}
-              style={{
-                border: `1px solid ${t.border}`, background: '#fff',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-                width: paper === 'a4' ? 595 : 612,  /* 72dpi: A4=595, Letter/Legal=612 */
-                height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792, /* Legal=1008, A4=842, Letter=792 */
-                flexShrink: 0,
-              }}
-              title="PrintLayout Preview"
-            />
-          </div>
-        </div>
-
-        {/* Drag handle: preview ↔ panels */}
-        <div
-          onMouseDown={(e) => {
-            dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-          }}
-          style={{
-            flex: '0 0 5px', cursor: 'col-resize',
-            background: t.border,
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
-          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
-        />
-
-        {/* === RIGHT PANEL: Sections as panels === */}
+        {/* === LEFT PANEL: Sections as panels === */}
         <div style={{
           flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
           background: t.bg, overflow: 'hidden',
@@ -809,6 +657,155 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                 Click <strong>+ Insert</strong> to add panels
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Drag handle: panels ↔ preview */}
+        <div
+          onMouseDown={(e) => {
+            dragRef.current = { which: 'left', startX: e.clientX, startW: leftWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{
+            flex: '0 0 5px', cursor: 'col-resize',
+            background: t.border,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
+          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+        />
+
+        {/* === CENTER PANEL: Live preview — fixed to paper size === */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{
+            padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
+            fontSize: fontSize - 2, color: t.textMuted,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>Preview</span>
+            <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
+              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
+            </span>
+          </div>
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 16, overflow: 'auto', background: t.bg,
+          }}>
+            <iframe
+              srcDoc={previewHtml}
+              style={{
+                border: `1px solid ${t.border}`, background: '#fff',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                width: paper === 'a4' ? 595 : 612,
+                height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792,
+                flexShrink: 0,
+              }}
+              title="PrintLayout Preview"
+            />
+          </div>
+        </div>
+
+        {/* Drag handle: preview ↔ fields */}
+        <div
+          onMouseDown={(e) => {
+            dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{
+            flex: '0 0 5px', cursor: 'col-resize',
+            background: t.border,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
+          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+        />
+
+        {/* === RIGHT PANEL: Fields (top) + Models (bottom) === */}
+        <div style={{
+          flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
+          background: t.bg, overflow: 'hidden',
+        }}>
+          {/* Fields for selected model — top, takes most space */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={panelHeader('Fields')}>
+              <span>{activeModel} fields</span>
+              <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
+                dbl-click to add
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {visibleFields.map(rf => (
+                <div key={rf.field}
+                  onDoubleClick={() => addFieldToSection(rf.field)}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', rf.field);
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
+                  style={{
+                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    borderBottom: `1px solid ${t.borderLight}`,
+                    background: 'transparent',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <span style={{ flex: 1, color: t.text }}>{rf.label}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: fontSize - 4, color: t.textDim }}>{rf.field}</span>
+                  <span style={{ fontSize: fontSize - 4, color: t.textDim, fontStyle: 'italic' }}>{rf.type}</span>
+                </div>
+              ))}
+              {visibleFields.length === 0 && (
+                <div style={{ padding: '12px 10px', fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
+                  {fieldGroups.length === 0 ? 'Loading...' : 'All fields in use'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Models — bottom, compact */}
+          <div style={{ flex: '0 0 auto', borderTop: `2px solid ${t.border}` }}>
+            <div style={panelHeader('Models')}>
+              <span>Models</span>
+            </div>
+            <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+              {/* Base model first */}
+              <div
+                onClick={() => fetchModelFields(model)}
+                style={{
+                  padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: activeModel === model ? t.surfaceAlt : 'transparent',
+                  borderLeft: activeModel === model ? `3px solid ${t.accent}` : '3px solid transparent',
+                  color: t.text, fontWeight: 700,
+                }}
+                onMouseEnter={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                onMouseLeave={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                <span>{model}</span>
+                <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400 }}>base</span>
+              </div>
+              <div style={{ height: 1, background: t.border, margin: '1px 0' }} />
+              {allModelNames.filter(m => m !== model).map(m => (
+                <div key={m}
+                  onClick={() => fetchModelFields(m)}
+                  style={{
+                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
+                    background: activeModel === m ? t.surfaceAlt : 'transparent',
+                    borderLeft: activeModel === m ? `3px solid ${t.accent}` : '3px solid transparent',
+                    color: activeModel === m ? t.text : t.textMuted,
+                    fontWeight: activeModel === m ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <span>{m}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
