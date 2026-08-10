@@ -418,9 +418,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     }).catch(() => {});
   }, [projectId]);
 
-  // Sidebar collapsed state (collapsed by default)
-  const [selectorCollapsed, setSelectorCollapsed] = useState(true);
-  
+  // Project dropdown state (replaces sidebar)
+  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState("");
+
   // Task list (grid) collapsed state - shows only minimal columns when collapsed
   // Default collapsed: the bars carry the value; grid expands on demand
   const [taskListCollapsed, setTaskListCollapsed] = useState(() => {
@@ -497,7 +498,51 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     sortByDate: autoSortByDate,
     customTaskOrder: autoSortByDate ? undefined : customTaskOrder,
   });
-  
+
+  // Filtered projects for the dropdown
+  const filteredDropdownProjects = useMemo(() => {
+    let list = projects.filter((p) => p.id_parent == null); // top-level only
+    if (!projectSearchTerm.trim()) return list;
+    const lower = projectSearchTerm.toLowerCase();
+    return list.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(lower) ||
+        p.slug?.toLowerCase().includes(lower) ||
+        p.intent?.toLowerCase().includes(lower) ||
+        p.id.includes(lower)
+    );
+  }, [projects, projectSearchTerm]);
+
+  // Get all descendant project ids (children, grandchildren, etc.)
+  const getDescendantIds = useCallback((parentId: string): string[] => {
+    const descendants: string[] = [];
+    const queue = [parentId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const p of projects) {
+        if (String(p.id_parent) === current && !descendants.includes(p.id)) {
+          descendants.push(p.id);
+          queue.push(p.id);
+        }
+      }
+    }
+    return descendants;
+  }, [projects]);
+
+  // Toggle project selection (with cascading to children)
+  const handleProjectToggle = useCallback((id: string) => {
+    const childIds = getDescendantIds(id);
+    const idsToToggle = [id, ...childIds];
+    if (selectedProjectIds.includes(id)) {
+      setSelectedProjectIds(selectedProjectIds.filter((sid) => !idsToToggle.includes(sid)));
+    } else {
+      const newIds = new Set([...selectedProjectIds, ...idsToToggle]);
+      setSelectedProjectIds(Array.from(newIds));
+    }
+  }, [selectedProjectIds, getDescendantIds]);
+
+  const onSelectionChange = setSelectedProjectIds;
+
   // Save task order to project.refs.links.actions
   // Uses debouncing to avoid excessive API calls during rapid reordering
   const saveTaskOrderToProject = useCallback(async (tasks: GanttMappedTask[]) => {
@@ -2506,78 +2551,101 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           right: 0;
         }
       `}</style>
-      <div className={combineClassNames("flex h-[calc(100vh-4rem)]", className)}>
-      {/* Project Selector Sidebar - Collapsible */}
-      {showSelector && (
-        <div className={combineClassNames(
-          "shrink-0 transition-all duration-300 ease-in-out",
-          selectorCollapsed ? "w-10" : (compact ? "w-56" : "w-72")
-        )}>
-          <div className="sticky top-0 h-full">
-            {selectorCollapsed ? (
-              // Collapsed state - just a toggle button
-              <div className="flex h-full flex-col items-center rounded-l-2xl border border-gray-200 bg-white py-3 dark:border-gray-700 dark:bg-gray-900">
-                <button
-                  type="button"
-                  onClick={() => setSelectorCollapsed(false)}
-                  className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                  title="Expand project list"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                <span className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400 [writing-mode:vertical-lr]">
-                  Projects ({selectedProjectIds.length})
-                </span>
-              </div>
-            ) : (
-              // Expanded state - full selector with collapse button
-              <div className="relative h-full">
-                <button
-                  type="button"
-                  onClick={() => setSelectorCollapsed(true)}
-                  className="absolute -right-3 top-3 z-10 rounded-full border border-gray-200 bg-white p-1 text-gray-500 shadow-sm transition hover:bg-gray-100 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                  title="Collapse project list"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <GanttProjectSelector
-                  projects={projects}
-                  selectedIds={selectedProjectIds}
-                  onSelectionChange={setSelectedProjectIds}
-                  isLoading={isLoadingProjects}
-                  disabled={isRefreshing}
-                  ganttPrefs={ganttPrefs}
-                  onSaveGanttPrefs={handleSaveGanttPrefs}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Gantt Chart Area */}
-      <div className="min-w-0 flex-1 flex flex-col">
+      <div className={combineClassNames("flex flex-col h-[calc(100vh-4rem)]", className)}>
         <section className={combineClassNames(
           "flex flex-1 min-h-0 flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900",
         )}>
-          {/* Header */}
-          <div className={combineClassNames(
-            "flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700",
-            compact ? "px-4 py-3" : "px-6 py-4"
-          )}>
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {ganttData.tasks.length > 0
-                  ? `${ganttData.tasks.length} task${ganttData.tasks.length !== 1 ? "s" : ""}${
-                      !isSingleProjectMode && selectedProjectIds.length > 1 ? ` · ${selectedProjectIds.length} projects` : ""
-                    }`
-                  : ""}
-              </span>
-            </div>
+          {/* Toolbar — matches db-list-toolbar style */}
+          <div
+            data-wc="gantt-toolbar"
+            className="db-list-toolbar flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 dark:border-gray-700 px-2 py-1"
+          >
+            {/* Project selector — multi-select dropdown */}
+            {showSelector && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
+                  className="inline-flex items-center gap-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {selectedProjectIds.length === 0
+                    ? "Projects..."
+                    : `${selectedProjectIds.length} project${selectedProjectIds.length !== 1 ? "s" : ""}`}
+                  <svg className="h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {projectDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setProjectDropdownOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1 z-40 w-72 max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg">
+                      {/* Search */}
+                      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 p-2">
+                        <input
+                          type="text"
+                          placeholder="Search projects..."
+                          value={projectSearchTerm}
+                          onChange={(e) => setProjectSearchTerm(e.target.value)}
+                          className="w-full rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1 text-xs text-gray-800 dark:text-gray-200 outline-none focus:border-indigo-400"
+                          autoFocus
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                          <button
+                            className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                            onClick={() => {
+                              const allIds = filteredDropdownProjects.map(p => p.id);
+                              const allDescendants = allIds.flatMap(id => getDescendantIds(id));
+                              onSelectionChange(Array.from(new Set([...allIds, ...allDescendants])));
+                            }}
+                          >All</button>
+                          <button
+                            className="text-[10px] text-gray-500 dark:text-gray-400 hover:underline"
+                            onClick={() => onSelectionChange([])}
+                          >Clear</button>
+                          <span className="text-[10px] text-gray-400 ml-auto">{selectedProjectIds.length}/{projects.length}</span>
+                        </div>
+                      </div>
+                      {/* Project list */}
+                      {filteredDropdownProjects.map((p) => {
+                        const isSelected = selectedProjectIds.includes(p.id);
+                        const color = getProjectColor(p.id, selectedProjectIds, p.prefs?.action?.color);
+                        return (
+                          <button
+                            key={p.id}
+                            className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                              isSelected ? "bg-indigo-50/50 dark:bg-indigo-900/20" : ""
+                            }`}
+                            onClick={() => handleProjectToggle(p.id)}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: isSelected ? color : "transparent", border: `1.5px solid ${isSelected ? color : "#d1d5db"}` }}
+                            />
+                            <span className="truncate text-gray-800 dark:text-gray-200">{p.name || p.intent || `#${p.id}`}</span>
+                            {p.actionCount != null && (
+                              <span className="ml-auto text-[10px] text-gray-400">{p.actionCount}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {filteredDropdownProjects.length === 0 && (
+                        <div className="px-3 py-4 text-xs text-gray-400 text-center">No projects found</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Separator */}
+            {showSelector && <span className="text-gray-300 dark:text-gray-600">|</span>}
+
+            {/* Task count */}
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              {ganttData.tasks.length > 0
+                ? `${ganttData.tasks.length} task${ganttData.tasks.length !== 1 ? "s" : ""}`
+                : ""}
+            </span>
             
             <div className="flex items-center gap-3">
               {/* Project settings presets */}
@@ -2932,7 +3000,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {showSelector 
-                    ? "Select one or more projects from the sidebar to view their tasks"
+                    ? "Click Projects to select one or more projects"
                     : "No project configured for this view"}
                 </p>
               </div>
@@ -3010,8 +3078,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
             )}
           </DualScrollbar>
         </section>
-      </div>
-      
+
       {/* Edit Modal */}
       <KanbanTaskModal
         mode="edit"
