@@ -208,20 +208,7 @@ layer(base);
   @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
-/* SVAR Gantt customizations */
-/* .svar-kanban-gantt :is(
-    .gantt_task_progress,
-    .gantt_task_progress_drag,
-    .gantt_task_progress_wrap,
-    .gantt_task_progress_wrapper,
-    .gantt_task_line .gantt_task_progress,
-    .gantt_task_line .gantt_task_progress_drag
-  ) {
-  display: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  pointer-events: none !important;
-} */
+/* SVAR Gantt removed — native Gantt uses inline styles */
 
 @utility menu-item-inactive {
   @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
@@ -917,105 +904,7 @@ span.flatpickr-weekday,
    End Model List Table Styles
    ============================================ */
 
-/* ============================================
-   SVAR Gantt Custom Task Bar Colors
-   Override SVAR defaults to allow per-project coloring via project.prefs.action.color
-   ============================================ */
-
-/* Most specific selectors to override SVAR defaults */
-.wx-gantt .wx-bars .wx-bar.wx-task:not(.wx-split),
-.wx-gantt .wx-bars .wx-bar.wx-task .wx-segment,
-.wx-bars .wx-bar.wx-task:not(.wx-split),
-.wx-bars .wx-bar.wx-task .wx-segment,
-.wx-bar.wx-task:not(.wx-split),
-.wx-bar.wx-task .wx-segment {
-  background-color: var(--wx-gantt-task-color) !important;
-  border-color: var(
-    --wx-gantt-task-border-color,
-    var(--wx-gantt-task-color)
-  ) !important;
-  color: var(--wx-gantt-task-font-color, #fff) !important;
-}
-
-/* Any bar with data-project-color attribute (set by JS) */
-.wx-bar[data-project-color] {
-  background-color: var(--wx-gantt-task-color) !important;
-  border-color: var(--wx-gantt-task-color) !important;
-}
-
-/* Generic bar styling with inline style override */
-.wx-bar[style*="background-color"],
-.wx-bar[style*="--wx-gantt-task-color"] {
-  background: var(--wx-gantt-task-color) !important;
-  background-color: var(--wx-gantt-task-color) !important;
-}
-
-/* Summary bar (parent/group tasks) */
-.wx-gantt .wx-bars .wx-bar.wx-summary,
-.wx-bars .wx-bar.wx-summary,
-.wx-bar.wx-summary {
-  background-color: var(--wx-gantt-task-color) !important;
-  border-color: var(
-    --wx-gantt-task-border-color,
-    var(--wx-gantt-task-color)
-  ) !important;
-  color: var(--wx-gantt-task-font-color, #fff) !important;
-}
-
-/* Milestone diamond */
-.wx-gantt .wx-bar.wx-milestone .wx-content,
-.wx-bar.wx-milestone .wx-content {
-  background-color: var(--wx-gantt-task-color) !important;
-}
-.wx-gantt .wx-bar.wx-milestone,
-.wx-bar.wx-milestone {
-  border-color: var(--wx-gantt-task-color) !important;
-}
-
-/* Progress bar inside task - slightly darker than main color */
-.wx-gantt .wx-bar .wx-progress-wrapper .wx-progress-percent,
-.wx-bar .wx-progress-wrapper .wx-progress-percent,
-.wx-bar .wx-progress-percent {
-  background-color: var(
-    --wx-gantt-task-fill-color,
-    var(--wx-gantt-task-color)
-  ) !important;
-  filter: brightness(0.85);
-}
-
-/* Task text content */
-.wx-gantt .wx-bar .wx-content,
-.wx-gantt .wx-bar .wx-text,
-.wx-bar .wx-content,
-.wx-bar .wx-text {
-  color: var(--wx-gantt-task-font-color, #fff) !important;
-}
-
-/* Ensure custom template content inherits text color */
-.wx-bar .wx-content span,
-.wx-bar .wx-content div {
-  color: inherit;
-}
-
-/* Today highlight column */
-.wx-gantt .today-highlight {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-}
-
-/* Link markers should match task color */
-.wx-bar .wx-link .wx-inner {
-  border-color: var(--wx-gantt-task-color) !important;
-}
-
-/* Selected state - add glow using task color */
-.wx-gantt .wx-bar.wx-selected:not(.wx-split),
-.wx-bar.wx-selected:not(.wx-split) {
-  box-shadow: 0 0 0 2px var(--wx-gantt-task-color),
-    0px 1px 2px rgba(44, 47, 60, 0.06), 0px 3px 10px rgba(44, 47, 60, 0.12) !important;
-}
-/* ============================================
-   End SVAR Gantt Styles
-   ============================================ */
+/* SVAR Gantt styles removed — native Gantt uses React components with inline styles */
 .react-international-phone-country-selector-button__flag-emoji {
   margin: 0px 0px 0 8px !important;
 }

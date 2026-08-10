@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import type { ILink, ITask } from "@svar-ui/react-gantt";
+import type { GanttTask, GanttLink } from "./gantt.types";
 import type { ApiKanbanItem } from "../kanban/kanbanDataMapper";
 
 // Default start offset: today - 5 days
@@ -25,7 +25,7 @@ export interface AssignedUser {
   };
 }
 
-export interface GanttMappedTask extends ITask {
+export interface GanttMappedTask extends GanttTask {
   projectId: string;
   projectName: string;
   projectIda?: string;
@@ -60,7 +60,7 @@ export interface ProjectActionData {
 
 export interface GanttDataset {
   tasks: GanttMappedTask[];
-  links: ILink[];
+  links: GanttLink[];
 }
 
 // Priority mapping
@@ -374,8 +374,8 @@ const extractRefParents = (action: ApiKanbanItem): string[] => {
 const createDependencyLinks = (
   tasks: GanttMappedTask[],
   actions: ApiKanbanItem[]
-): ILink[] => {
-  const links: ILink[] = [];
+): GanttLink[] => {
+  const links: GanttLink[] = [];
   const taskIdSet = new Set(tasks.map((t) => String(t.id)));
   
   for (const action of actions) {

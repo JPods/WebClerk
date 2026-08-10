@@ -17,7 +17,6 @@
  *   Person name — right-aligned in their assigned color
  */
 import { type FC, useState, useCallback } from "react";
-import type { ITask, IApi } from "@svar-ui/react-gantt";
 import type { GanttMappedTask, AssignedUser, BadgePrefs } from "./ganttDataMapper";
 import { useStaffBadgePrefsOptional } from "../../../context/StaffBadgePrefsContext";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
@@ -118,9 +117,7 @@ export const setGanttAssigneeFilter = (v: string | null) => { _assigneeFilter = 
 export const setGanttOnOpenDetail = (fn: ((id: string) => void) | null) => { _onOpenDetail = fn; };
 
 interface GanttTaskTemplateProps {
-  data: ITask;
-  api: IApi;
-  onaction: (ev: { action: string; data: Record<string, any> }) => void;
+  data: GanttMappedTask;
 }
 
 export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {

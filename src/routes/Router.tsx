@@ -14,7 +14,6 @@ const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"))
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const AccountingDashboard = React.lazy(() => import("../pages/admin/AccountingDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
-const PageDesigner = React.lazy(() => import("../pages/tools/PageDesigner"));
 const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
 const OrgDetailJson = React.lazy(() => import("../apps/orgs/components/OrgDetail.json"));
 const OrgsDashboard = React.lazy(() => import("../apps/orgs/pages/OrgsDashboard"));
@@ -71,7 +70,7 @@ const Router: React.FC = () => {
           <Route path="inventory-dashboard" element={<S><InventoryDashboard /></S>} />
           <Route path="inventory-adjust" element={<S><InventoryAdjust /></S>} />
           <Route path="cycle-count" element={<S><CycleCountMobile /></S>} />
-          <Route path="page-designer" element={<S><PageDesigner /></S>} />
+          {/* page-designer removed — grapesjs dependency eliminated */}
           <Route path="databrowser" element={<DataBrowser />} />
           <Route path="admin-wb" element={<Navigate to="/databrowser" replace />} />
           <Route path="kanban" element={<S><KanbanBoardPage /></S>} />

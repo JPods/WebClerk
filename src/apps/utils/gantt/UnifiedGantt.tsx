@@ -16,9 +16,10 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import { format as dateFnsFormat } from "date-fns";
-import { Gantt, Willow } from "@svar-ui/react-gantt";
-import type { IApi, IColumnConfig, ITask } from "@svar-ui/react-gantt";
-import "@svar-ui/react-gantt/all.css";
+import type { GanttColumn } from "./gantt.types";
+import { GanttTimeline } from "./GanttTimeline";
+import { GanttGrid } from "./GanttGrid";
+import { GanttLinks } from "./GanttLinks";
 import KanbanTaskModal from "../kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
@@ -93,8 +94,7 @@ const ganttDateFormatter = new Intl.DateTimeFormat("en-US", {
 
 const formatDate = (value?: Date) => (value ? ganttDateFormatter.format(value) : "-");
 
-// SVAR template signature: (value: string, task: ITask, column: IColumnConfig)
-// The task with all custom properties is in the 2nd argument
+// Column template signature: (value: unknown, task: GanttMappedTask, column: GanttColumn)
 
 // =============================================================================
 // Project-level Gantt settings — stored in project.metadata.kanban.settings[]
@@ -180,37 +180,16 @@ async function saveProjectGanttSettings(
 }
 
 // Reorder column for manual task ordering (shown when auto-sort is disabled)
-// Uses a global event emitter pattern since SVAR templates can't directly call React state setters
-let _reorderCallback: ((taskId: string, direction: 'up' | 'down') => void) | null = null;
-
-const createReorderColumn = (): IColumnConfig => ({
+const createReorderColumn = (): GanttColumn => ({
   id: "reorder",
   header: "#",
   width: 55,
   align: "center",
-  template: (_value: unknown, task: GanttMappedTask, _column: IColumnConfig) => {
-    const taskId = String(task?.id || "");
-    // Render up/down arrow buttons as HTML
-    return `
-      <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-        <button 
-          onclick="window.__ganttMoveTask?.('${taskId}', 'up')"
-          style="border:none;background:transparent;cursor:pointer;padding:2px;color:#6b7280;line-height:1;"
-          title="Move up"
-        >▲</button>
-        <button 
-          onclick="window.__ganttMoveTask?.('${taskId}', 'down')"
-          style="border:none;background:transparent;cursor:pointer;padding:2px;color:#6b7280;line-height:1;"
-          title="Move down"
-        >▼</button>
-      </div>
-    `;
-  },
 });
 
 // Factory function to create columns (taskLookup no longer needed since task is in arg[1])
-const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): IColumnConfig[] => {
-  const columns: IColumnConfig[] = [];
+const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): GanttColumn[] => {
+  const columns: GanttColumn[] = [];
   
   // Add reorder column first if enabled
   if (includeReorder) {
@@ -305,7 +284,7 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
 };
 
 // Factory for single-project mode (hides project column)
-const createGanttColumnsSingleProject = (taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): IColumnConfig[] => 
+const createGanttColumnsSingleProject = (taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): GanttColumn[] => 
   createGanttColumns(taskLookup, includeReorder).filter((col) => col.id !== "projectIda");
 
 type ScalePresetKey = "day" | "week" | "month" | "quarter";
@@ -403,7 +382,7 @@ const formatLastRefresh = (date: Date | null): string => {
 type TaskColorInfo = {
   color: string;
   textColor: string;
-  type?: ITask["type"];
+  type?: "task" | "milestone";
 };
 
 // =============================================================================
@@ -577,38 +556,24 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     };
   }, []);
   
-  // Setup global handler for task reorder buttons
-  // This is needed because SVAR templates render HTML strings, not React components
-  useEffect(() => {
-    const handleMoveTask = (taskId: string, direction: 'up' | 'down') => {
-      const currentTasks = ganttData.tasks;
-      const taskIndex = currentTasks.findIndex((t) => String(t.id) === taskId);
-      if (taskIndex === -1) return;
-      
-      const newIndex = direction === 'up' 
-        ? Math.max(0, taskIndex - 1)
-        : Math.min(currentTasks.length - 1, taskIndex + 1);
-      
-      if (newIndex !== taskIndex) {
-        reorderTaskLocally(taskIndex, newIndex);
-        // Update custom order state
-        setCustomTaskOrder(getTaskOrder());
-        
-        // Save order to project (debounced)
-        // Calculate the new tasks array for saving
-        const newTasks = [...currentTasks];
-        const [movedTask] = newTasks.splice(taskIndex, 1);
-        newTasks.splice(newIndex, 0, movedTask);
-        debouncedSaveOrder(newTasks);
-      }
-    };
-    
-    // Attach to window for HTML button onclick access
-    (window as any).__ganttMoveTask = handleMoveTask;
-    
-    return () => {
-      delete (window as any).__ganttMoveTask;
-    };
+  // Task reorder handler — called directly by GanttGrid React buttons
+  const handleMoveTask = useCallback((taskId: string, direction: 'up' | 'down') => {
+    const currentTasks = ganttData.tasks;
+    const taskIndex = currentTasks.findIndex((t) => String(t.id) === taskId);
+    if (taskIndex === -1) return;
+
+    const newIndex = direction === 'up'
+      ? Math.max(0, taskIndex - 1)
+      : Math.min(currentTasks.length - 1, taskIndex + 1);
+
+    if (newIndex !== taskIndex) {
+      reorderTaskLocally(taskIndex, newIndex);
+      setCustomTaskOrder(getTaskOrder());
+      const newTasks = [...currentTasks];
+      const [movedTask] = newTasks.splice(taskIndex, 1);
+      newTasks.splice(newIndex, 0, movedTask);
+      debouncedSaveOrder(newTasks);
+    }
   }, [ganttData.tasks, reorderTaskLocally, getTaskOrder, debouncedSaveOrder]);
   
   // Load saved task order from project.refs.links.actions on mount / project change
@@ -816,10 +781,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   
   // Refs
   const ganttContainerRef = useRef<HTMLDivElement | null>(null);
-  const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
-  // Ref to hold latest update handler for use in init callback
-  const handleSvarUpdateTaskRef = useRef<((ev: { id: string | number; task: Partial<ITask> }) => Promise<boolean>) | null>(null);
+  const scrollYRef = useRef<{ value: number }>({ value: 0 });
 
   // Column options for KanbanTaskModal
   const columnOptions = useMemo(() => {
@@ -862,60 +825,25 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     };
   }, [editLanguagePickerOpen, editLanguageSelection, editCustomLanguage, editLanguagePickerError]);
 
-  // Color refresh logic
-  const refreshTaskColorCache = useCallback(() => {
-    const container = ganttContainerRef.current;
-    if (!container) return;
+  // Color map — computed directly, no DOM manipulation needed
+  const taskColorMap = useMemo(() => {
+    const priorityColors: Record<string, string> = {
+      low: '#e2e8f0', medium: '#93c5fd', high: '#f97316', critical: '#ef4444',
+    };
+    const statusColors: Record<string, string> = {
+      open: '#94a3b8', in_progress: '#3b82f6', active: '#3b82f6',
+      complete: '#22c55e', done: '#22c55e', on_hold: '#9ca3af',
+      blocked: '#ef4444', cancelled: '#6b7280', draft: '#d1d5db',
+    };
+    const difficultyColors: Record<number, string> = {
+      1: '#10b981', 2: '#a3e635', 3: '#f59e0b', 4: '#f97316', 5: '#ef4444',
+    };
+    const assignedColors = ['#3b82f6','#8b5cf6','#06b6d4','#d946ef','#84cc16','#eab308','#ec4899','#6366f1'];
 
-    // SVAR Gantt uses CSS variables for colors, not direct style properties
-    // We need to find task bar elements and set CSS custom properties on them
-    const bars = container.querySelectorAll<HTMLElement>(".wx-bar");
-    const newMap = new Map<string, TaskColorInfo>();
+    const map = new Map<string | number, { bg: string; border: string; text: string }>();
 
-    bars.forEach((bar) => {
-      // Try multiple ways to find task ID:
-      // 1. Check the bar itself for data-id
-      let taskId = bar.getAttribute("data-id");
-      
-      // 2. Check closest parent with data-id
-      if (!taskId) {
-        const closestWithId = bar.closest("[data-id]");
-        if (closestWithId) {
-          taskId = closestWithId.getAttribute("data-id");
-        }
-      }
-      
-      // 3. Walk up the DOM as fallback
-      if (!taskId) {
-        let parent = bar.parentElement;
-        while (parent && parent !== container) {
-          if (parent.hasAttribute("data-id")) {
-            taskId = parent.getAttribute("data-id");
-            break;
-          }
-          parent = parent.parentElement;
-        }
-      }
-      
-      if (!taskId) return;
-
-      const task = ganttData.tasks.find((t) => String(t.id) === taskId);
-      if (!task) return;
-
-      // Color based on selected mode
+    for (const task of ganttData.tasks) {
       let color: string;
-      const priorityColors: Record<string, string> = {
-        low: '#e2e8f0', medium: '#93c5fd', high: '#f97316', critical: '#ef4444',
-      };
-      const statusColors: Record<string, string> = {
-        open: '#94a3b8', in_progress: '#3b82f6', active: '#3b82f6',
-        complete: '#22c55e', done: '#22c55e', on_hold: '#9ca3af',
-        blocked: '#ef4444', cancelled: '#6b7280', draft: '#d1d5db',
-      };
-      const difficultyColors: Record<number, string> = {
-        1: '#10b981', 2: '#a3e635', 3: '#f59e0b', 4: '#f97316', 5: '#ef4444',
-      };
-      const assignedColors = ['#3b82f6','#8b5cf6','#06b6d4','#d946ef','#84cc16','#eab308','#ec4899','#6366f1'];
 
       if (colorMode === 'priority') {
         const p = (task as GanttMappedTask).priority || 'medium';
@@ -935,71 +863,21 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         const d = (task as any).difficulty || 3;
         color = difficultyColors[Math.min(5, Math.max(1, d))] || difficultyColors[3];
       } else {
-        // project mode (original behavior)
         const project = projects.find((p) => String(p.id) === String(task.projectId));
         const prefsColor = project?.prefs?.action?.color;
         color = getProjectColor(String(task.projectId), selectedProjectIds, prefsColor);
       }
       const textColor = pickReadableTextColor(color);
+      map.set(task.id, { bg: color, border: color, text: textColor });
+    }
 
-      newMap.set(taskId, { color, textColor, type: task.type });
+    // Update legacy ref for print handlers
+    const legacyMap = new Map<string, TaskColorInfo>();
+    map.forEach((v, k) => legacyMap.set(String(k), { color: v.bg, textColor: v.text }));
+    taskColorMapRef.current = legacyMap;
 
-      // Apply SVAR CSS variables on the bar element
-      bar.style.setProperty("--wx-gantt-task-color", color);
-      bar.style.setProperty("--wx-gantt-task-fill-color", color);
-      bar.style.setProperty("--wx-gantt-task-border-color", color);
-      bar.style.setProperty("--wx-gantt-task-font-color", textColor);
-      
-      // Apply direct styles with !important to override SVAR defaults
-      bar.style.setProperty("background-color", color, "important");
-      bar.style.setProperty("border-color", color, "important");
-      bar.style.setProperty("background", color, "important");
-      
-      // Also set as data attribute for CSS targeting
-      bar.setAttribute("data-project-color", color);
-      
-      // Find and style progress bar elements (SVAR uses multiple class names)
-      const progressSelectors = [".wx-progress", ".wx-progress-percent", ".wx-progress-wrapper .wx-progress-percent"];
-      for (const selector of progressSelectors) {
-        const progress = bar.querySelector<HTMLElement>(selector);
-        if (progress) {
-          progress.style.setProperty("background-color", color, "important");
-          progress.style.opacity = "0.7";
-        }
-      }
-      
-      // Find and style text content elements
-      const textSelectors = [".wx-content", ".wx-text"];
-      for (const selector of textSelectors) {
-        const textEl = bar.querySelector<HTMLElement>(selector);
-        if (textEl) {
-          textEl.style.setProperty("color", textColor, "important");
-        }
-      }
-    });
-
-    taskColorMapRef.current = newMap;
+    return map;
   }, [ganttData.tasks, selectedProjectIds, projects, colorMode]);
-
-  const scheduleColorRefresh = useCallback(() => {
-    // Multiple refresh attempts to catch SVAR's async rendering
-    // Immediate refresh
-    requestAnimationFrame(() => {
-      refreshTaskColorCache();
-    });
-    // Quick follow-up
-    setTimeout(() => {
-      refreshTaskColorCache();
-    }, 50);
-    // Delayed refresh to catch any late renders
-    setTimeout(() => {
-      refreshTaskColorCache();
-    }, 150);
-    // Final catch-all
-    setTimeout(() => {
-      refreshTaskColorCache();
-    }, 300);
-  }, [refreshTaskColorCache]);
 
   // Derive form state from a task
   const deriveFormStateFromTask = useCallback(
@@ -1295,8 +1173,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     [isSavingEdit, editingTask, editTaskState, buildEditActionPayload, refetchActions, handleCloseEditModal]
   );
 
-  const handleSvarUpdateTask = useCallback(
-    async ({ id, task }: { id: string | number; task: Partial<ITask> }) => {
+  const handleUpdateTaskDrag = useCallback(
+    async (id: string | number, updates: { start?: Date; end?: Date }) => {
+      const task = updates;
       console.log("[Gantt] handleSvarUpdateTask called (before checks)", { id, task });
       if (!id) return false;
 
@@ -1369,8 +1248,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     [ganttData.tasks, pushToUndoStack, updateTaskLocally]
   );
 
-  // Keep ref updated for use in init callback
-  handleSvarUpdateTaskRef.current = handleSvarUpdateTask;
 
   /**
    * Check if adding a link from source → target would create a circular dependency.
@@ -1566,121 +1443,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     setGanttKey((prev) => prev + 1);
   }, [selectedProjectIds]);
   
-  // Refresh task bar colors when tasks, projects (with prefs), or selection changes
-  useEffect(() => {
-    refreshTaskColorCache();
-    scheduleColorRefresh();
-  }, [ganttData.tasks, projects, refreshTaskColorCache, scheduleColorRefresh, colorMode]);
-  
-  // MutationObserver to apply colors when SVAR adds new bar elements
-  useEffect(() => {
-    const container = ganttContainerRef.current;
-    if (!container) return;
-    
-    const observer = new MutationObserver((mutations) => {
-      let hasNewBars = false;
-      for (const mutation of mutations) {
-        if (mutation.type === "childList") {
-          for (const node of mutation.addedNodes) {
-            if (node instanceof HTMLElement) {
-              // Check if it's a bar or contains bars
-              if (node.classList.contains("wx-bar") || node.querySelector(".wx-bar")) {
-                hasNewBars = true;
-                break;
-              }
-            }
-          }
-        }
-        if (hasNewBars) break;
-      }
-      
-      if (hasNewBars) {
-        // Debounce to avoid excessive calls
-        requestAnimationFrame(() => {
-          refreshTaskColorCache();
-        });
-      }
-    });
-    
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-    });
-    
-    return () => observer.disconnect();
-  }, [refreshTaskColorCache]);
-  
-  // Link context menu handler
-  useEffect(() => {
-    const container = ganttContainerRef.current;
-    if (!container) return;
-
-    const handleContextMenu = (e: MouseEvent) => {
-      // Check if clicked on a link element (SVG path within the chart area)
-      const target = e.target as Element;
-      
-      // SVAR renders links as SVG paths with specific classes
-      // Look for parent with data-link-id or similar, or check if it's a path in the chart
-      let linkElement: Element | null = target;
-      let linkId: string | null = null;
-      
-      // Walk up the DOM to find a link element
-      while (linkElement && linkElement !== container) {
-        // Check for data-id attribute on link-related elements
-        const dataId = linkElement.getAttribute("data-id");
-        if (dataId && dataId.startsWith("dep-")) {
-          linkId = dataId;
-          break;
-        }
-        
-        // Check if it's an SVG path (links are rendered as paths)
-        if (linkElement.tagName.toLowerCase() === "path") {
-          // Look for the closest g element with data-id
-          const parentG = linkElement.closest("g[data-id]");
-          if (parentG) {
-            const gDataId = parentG.getAttribute("data-id");
-            if (gDataId && gDataId.startsWith("dep-")) {
-              linkId = gDataId;
-              break;
-            }
-          }
-        }
-        
-        linkElement = linkElement.parentElement;
-      }
-      
-      if (linkId) {
-        e.preventDefault();
-        e.stopPropagation();
-        setLinkContextMenu({
-          x: e.clientX,
-          y: e.clientY,
-          linkId,
-        });
-      }
-    };
-
-    const handleClick = () => {
-      // Close context menu on any click
-      setLinkContextMenu(null);
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setLinkContextMenu(null);
-      }
-    };
-
-    container.addEventListener("contextmenu", handleContextMenu);
-    document.addEventListener("click", handleClick);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      container.removeEventListener("contextmenu", handleContextMenu);
-      document.removeEventListener("click", handleClick);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  // Link context menu is now handled by GanttLinks component
   
   const handleManualRefresh = useCallback(async () => {
     await refetchActions();
@@ -2646,7 +2409,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   }, [ganttData.tasks]);
   
   // Minimal column configuration when task list is collapsed
-  const collapsedColumns: IColumnConfig[] = useMemo(() => [
+  const collapsedColumns: GanttColumn[] = useMemo(() => [
     {
       id: "taskIda",
       header: "#",
@@ -3148,7 +2911,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           )}
           
           {/* Gantt Chart */}
-          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector=".wx-chart">
+          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector="[data-wc='GanttTimeline']">
             {selectedProjectIds.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <svg
@@ -3205,115 +2968,44 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </p>
               </div>
             ) : (
-              <div ref={ganttContainerRef} className="h-full w-full [&_.wx-gantt]:!h-full [&_.wx-gantt]:!w-full [&_.wx-scale]:!sticky [&_.wx-scale]:!top-0 [&_.wx-scale]:!z-10 [&_.wx-scale]:!bg-white [&_.wx-scale]:dark:!bg-gray-900" style={{ fontSize: `${12 + ganttFontScale}px`, '--gantt-font-scale': ganttFontScale, '--gantt-text-overflow': textOverflow ? 'visible' : 'hidden', '--gantt-cp-highlight': criticalPathHighlight ? '1' : '0' } as React.CSSProperties}>
-                {/* Frozen top 2 rows — project header rows stay pinned while scrolling */}
-                <style>{`
-                  .wx-content .wx-row:nth-child(1),
-                  .wx-content .wx-row:nth-child(2) {
-                    position: sticky !important;
-                    top: 0 !important;
-                    z-index: 5 !important;
-                    background: var(--wx-background, #fff) !important;
-                    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
-                  }
-                  .wx-content .wx-row:nth-child(2) {
-                    top: ${38 + ganttFontScale}px !important;
-                  }
-                `}</style>
-                <Willow>
-                  <Gantt
-                    key={`${ganttKey}-fs${ganttFontScale}`}
-                    tasks={ganttData.tasks}
-                    links={ganttData.links}
+              <div ref={ganttContainerRef} className="h-full w-full flex" style={{ fontSize: `${12 + ganttFontScale}px` }}>
+                {/* Left-side task grid */}
+                {!taskListCollapsed && (
+                  <GanttGrid
                     columns={activeColumns}
-                    scales={activeScales}
-                    start={dateRange.start}
-                    end={dateRange.end}
-                    onItemDoubleClick={handleOpenDetailPanel}
-                    onUpdateTask={handleSvarUpdateTask}
-                    onAddLink={handleAddLink}
-                    onDeleteLink={handleDeleteLink}
-                    onUpdateLink={handleUpdateLink}
+                    tasks={ganttData.tasks}
                     cellHeight={38 + ganttFontScale}
-                    taskTemplate={GanttTaskTemplate}
-                    highlightTime={(date: Date, unit: string) => {
-                      const classes: string[] = [];
-                      const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-                      const todayStr = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
-
-                      // Highlight today
-                      if (dateStr === todayStr) {
-                        classes.push('today-highlight');
-                      }
-                      // Sprint end lines
-                      if (sprintEndDates.has(dateStr)) {
-                        classes.push('sprint-boundary');
-                      }
-                      return classes.join(' ');
-                    }}
-                    init={(api) => {
-                      console.log("[Gantt] init callback called, api:", api);
-                      ganttApiRef.current = api;
-                      api.detach(GANTT_COLOR_EVENT_TAG);
-                      const rerender = () => scheduleColorRefresh();
-                      api.on("render-data", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Intercept update-task to catch the event before it's processed
-                      api.intercept("update-task", (ev: { id: string | number; task: Partial<ITask>; diff?: number; inProgress?: boolean; eventSource?: string }) => {
-                        console.log("[Gantt API INTERCEPT] update-task event", {
-                          id: ev.id,
-                          task: ev.task,
-                          diff: ev.diff,
-                          inProgress: ev.inProgress,
-                          eventSource: ev.eventSource,
-                          hasStart: ev.task?.start !== undefined,
-                          hasEnd: ev.task?.end !== undefined,
-                        });
-                        return ev; // Must return the event to continue processing
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Handle task updates from drag-and-drop via API event
-                      api.on("update-task", (ev: { id: string | number; task: Partial<ITask> }) => {
-                        console.log("[Gantt API] update-task event fired", ev);
-                        if (handleSvarUpdateTaskRef.current) {
-                          handleSvarUpdateTaskRef.current(ev);
-                        }
-                        rerender();
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Intercept drag-task to see what happens during drag
-                      api.intercept("drag-task", (ev: { id?: string | number; width?: number; left?: number; top?: number; inProgress?: boolean }) => {
-                        console.log("[Gantt API INTERCEPT] drag-task event", {
-                          id: ev.id,
-                          width: ev.width,
-                          left: ev.left,
-                          top: ev.top,
-                          inProgress: ev.inProgress,
-                          eventType: ev.width !== undefined ? "RESIZE (edge drag)" : "MOVE (center drag)"
-                        });
-                        return ev;
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Listen for drag-task events (might fire during drag)
-                      api.on("drag-task", (ev: { id?: string | number; width?: number; left?: number; inProgress?: boolean }) => {
-                        console.log("[Gantt API] drag-task event fired", {
-                          id: ev.id,
-                          width: ev.width,
-                          left: ev.left,
-                          inProgress: ev.inProgress
-                        });
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Allow vertical row reordering (drag up/down)
-                      api.intercept("move-task", (ev: unknown) => {
-                        return ev;
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Listen for move-task events (for logging only)
-                      api.on("move-task", (ev: unknown) => {
-                        console.log("[Gantt API] move-task event fired", ev);
-                      }, { tag: GANTT_COLOR_EVENT_TAG });
-                      // Also rerender when links change
-                      api.on("add-link", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                      api.on("delete-link", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                      scheduleColorRefresh();
-                    }}
+                    scaleHeaderHeight={activeScales.length * 28}
+                    scrollYRef={scrollYRef}
+                    onTaskDoubleClick={(task) => handleOpenDetailPanel({ id: task.id })}
+                    onMoveTask={!autoSortByDate ? handleMoveTask : undefined}
                   />
-                </Willow>
+                )}
+                {/* Timeline with bars and dependency arrows */}
+                <GanttTimeline
+                  key={`${ganttKey}-fs${ganttFontScale}`}
+                  tasks={ganttData.tasks}
+                  scales={activeScales}
+                  start={dateRange.start}
+                  end={dateRange.end}
+                  cellHeight={38 + ganttFontScale}
+                  taskTemplate={GanttTaskTemplate}
+                  sprintEndDates={sprintEndDates}
+                  onUpdateTask={handleUpdateTaskDrag}
+                  onTaskDoubleClick={(task) => handleOpenDetailPanel({ id: task.id })}
+                  scrollYRef={scrollYRef}
+                  colorMap={taskColorMap}
+                >
+                  <GanttLinks
+                    links={ganttData.links}
+                    tasks={ganttData.tasks}
+                    cellHeight={38 + ganttFontScale}
+                    onDeleteLink={(linkId) => handleDeleteLink({ id: linkId })}
+                    criticalTaskIds={criticalPathHighlight
+                      ? new Set(ganttData.tasks.filter(t => (t as GanttMappedTask).isCritical).map(t => String(t.id)))
+                      : undefined}
+                  />
+                </GanttTimeline>
               </div>
             )}
           </DualScrollbar>
@@ -3354,67 +3046,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         onAssigneeUIModeChange={setEditAssigneeUIMode}
       />
       
-      {/* Link Context Menu */}
-      {linkContextMenu && (
-        <div
-          style={{
-            position: "fixed",
-            top: linkContextMenu.y,
-            left: linkContextMenu.x,
-            zIndex: 9999,
-            backgroundColor: "white",
-            borderRadius: "6px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-            border: "1px solid #e5e7eb",
-            padding: "4px 0",
-            minWidth: "140px",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={async () => {
-              const linkId = linkContextMenu.linkId;
-              setLinkContextMenu(null);
-              await handleDeleteLink({ id: linkId });
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "8px 12px",
-              textAlign: "left",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "14px",
-              color: "#dc2626",
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = "#fef2f2";
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = "transparent";
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 6h18" />
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-            </svg>
-            Delete Link
-          </button>
-        </div>
-      )}
+      {/* Link context menu is now handled by GanttLinks component */}
     </div>
 
     {/* Action Detail floating window — opens on double-click, draggable + resizable */}

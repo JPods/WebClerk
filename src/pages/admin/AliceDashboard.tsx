@@ -12,7 +12,6 @@ import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
 
 const AliceQuiz = React.lazy(() => import('./AliceQuiz'));
-const PageDesigner = React.lazy(() => import('../tools/PageDesigner'));
 const PdfDesigner = React.lazy(() => import('../tools/PdfDesigner'));
 
 /**
@@ -86,7 +85,7 @@ export default function AliceDashboard() {
     return params.get('report') || null;
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'reports' | 'page-designer' | 'pdf-designer' | 'data-quality' | 'import' | 'library' | 'readmes'>(urlTab);
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'reports' | 'pdf-designer' | 'data-quality' | 'import' | 'library' | 'readmes'>(urlTab);
   const [llmConfig, setLlmConfig] = useState<any>(null);
   const [llmSaving, setLlmSaving] = useState(false);
   const [importPath, setImportPath] = useState('');
@@ -212,7 +211,6 @@ export default function AliceDashboard() {
             { tab: 'import', label: 'Import Data', desc: 'File → Alice analysis → mapping → Athena → bundle' },
             { tab: 'library', label: 'Library', desc: 'File upload, Celery pipeline, cloud transfer' },
             { tab: 'reports', label: 'Reports', desc: '13 print templates + report designer' },
-            { tab: 'page-designer', label: 'Page Designer', desc: 'Visual page layout editor' },
             { tab: 'pdf-designer', label: 'PDF Designer', desc: 'pdfme template builder' },
             { tab: 'readmes', label: 'Readmes', desc: 'Scrollable index of all system documentation' },
           ].map((item) => (
@@ -242,7 +240,6 @@ export default function AliceDashboard() {
         {tabBtn('import', 'Import Data')}
         {tabBtn('library', 'Library')}
         {tabBtn('reports', 'Reports')}
-        {tabBtn('page-designer', 'Page Designer')}
         {tabBtn('pdf-designer', 'PDF Designer')}
         {tabBtn('readmes', 'Readmes')}
       </div>
@@ -848,14 +845,6 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
       )}
 
 
-      {/* ═══ Page Designer ═══ */}
-      {activeTab === 'page-designer' && (
-        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading Page Designer...</div>}>
-          <div className="h-[70vh]">
-            <PageDesigner />
-          </div>
-        </Suspense>
-      )}
 
       {/* ═══ Library ═══ */}
       {activeTab === 'library' && (
