@@ -249,6 +249,25 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   const [insertMenuOpen, setInsertMenuOpen] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // --- Resizable panel widths ---
+  const [leftWidth, setLeftWidth] = useState(240);
+  const [midWidth, setMidWidth] = useState(340);
+  const dragRef = useRef<{ which: 'left' | 'mid'; startX: number; startW: number } | null>(null);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = e.clientX - dragRef.current.startX;
+      const newW = Math.max(160, Math.min(600, dragRef.current.startW + delta));
+      if (dragRef.current.which === 'left') setLeftWidth(newW);
+      else setMidWidth(newW);
+    };
+    const onMouseUp = () => { dragRef.current = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp); };
+  }, []);
+
   // Fetch fields from /wcapi/report-fields/ registry
   const [registry, setRegistry] = useState<ReportFieldsResponse | null>(null);
   useEffect(() => {
@@ -462,8 +481,8 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
 
         {/* === LEFT PANEL: Models + Fields === */}
         <div style={{
-          flex: '0 0 240px', display: 'flex', flexDirection: 'column',
-          background: t.bg, borderRight: `1px solid ${t.border}`,
+          flex: `0 0 ${leftWidth}px`, display: 'flex', flexDirection: 'column',
+          background: t.bg,
         }}>
           {/* Model group selector */}
           <div style={{ flex: '0 0 auto', borderBottom: `2px solid ${t.border}` }}>
@@ -537,10 +556,26 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           </div>
         </div>
 
+        {/* Drag handle: left ↔ middle */}
+        <div
+          onMouseDown={(e) => {
+            dragRef.current = { which: 'left', startX: e.clientX, startW: leftWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{
+            flex: '0 0 5px', cursor: 'col-resize',
+            background: t.border,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
+          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+        />
+
         {/* === MIDDLE PANEL: Sections as panels === */}
         <div style={{
-          flex: '0 0 340px', display: 'flex', flexDirection: 'column',
-          background: t.bg, borderRight: `1px solid ${t.border}`,
+          flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
+          background: t.bg,
         }}>
           <div style={{
             ...panelHeader('Panels'),
@@ -700,6 +735,22 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
             )}
           </div>
         </div>
+
+        {/* Drag handle: middle ↔ preview */}
+        <div
+          onMouseDown={(e) => {
+            dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{
+            flex: '0 0 5px', cursor: 'col-resize',
+            background: t.border,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
+          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+        />
 
         {/* === RIGHT PANEL: Live preview === */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
