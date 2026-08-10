@@ -102,6 +102,22 @@ export interface DataTableSection {
   grand_totals?: boolean;
 }
 
+/** Conditional text — first matching rule wins (top-down).
+ *  Rules reference config paths; renderer resolves against record data.
+ *  Example: statement dunning messages based on aging buckets. */
+export interface ConditionalTextSection {
+  type: 'conditional_text';
+  /** Dot-path into report config where rules are stored (e.g. "statement.comments") */
+  source: string;
+}
+
+export interface ConditionalTextRule {
+  when?: string;      // expression: "aging.past_61 > 0"
+  default?: boolean;  // true = fallback if no other rule matches
+  text: string;
+  style?: string;     // "bold" | "italic"
+}
+
 export type PrintLayoutSection =
   | CompanyHeaderSection
   | AddressBlocksSection
@@ -113,7 +129,8 @@ export type PrintLayoutSection =
   | ConditionsSection
   | SignatureSection
   | FooterSection
-  | DataTableSection;
+  | DataTableSection
+  | ConditionalTextSection;
 
 // ---------------------------------------------------------------------------
 // Top-level layout

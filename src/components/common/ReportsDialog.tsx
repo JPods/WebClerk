@@ -306,17 +306,19 @@ const ReportsDialog: React.FC<Props> = ({
         const layout = form || await fetchPrintLayout(model);
         const hasDataTable = layout?.sections?.some((s: any) => s.type === 'data_table');
 
+        const printOpts = { reportConfig: report.config || {} };
+
         if (hasDataTable && listRecords?.length) {
           // List report — pass current list records as rows
-          await openUniversalPrint({ rows: listRecords }, companyInfo, layout);
+          await openUniversalPrint({ rows: listRecords }, companyInfo, layout, printOpts);
         } else if (context === 'detail' && selectedId) {
           // Single-record form
           const recordRes = await getRecord(model, selectedId);
           const record = (recordRes as any)?.record || recordRes;
-          await openUniversalPrint(record, companyInfo, layout);
+          await openUniversalPrint(record, companyInfo, layout, printOpts);
         } else if (listRecords?.length) {
           // List context, no data_table section — still pass rows
-          await openUniversalPrint({ rows: listRecords }, companyInfo, layout);
+          await openUniversalPrint({ rows: listRecords }, companyInfo, layout, printOpts);
         }
       } catch (e) {
         console.error('[ReportsDialog] Print failed:', e);

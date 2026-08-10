@@ -13,7 +13,7 @@ import type {
   DetailFieldsSection,
   CommentsSection, LineItemsSection, TotalsSection,
   ConditionsSection, SignatureSection, FooterSection,
-  DataTableSection,
+  DataTableSection, ConditionalTextSection, ConditionalTextRule,
 } from './printLayoutTypes';
 
 // ---------------------------------------------------------------------------
@@ -303,6 +303,46 @@ function renderDataTable(section: DataTableSection, data: any): string {
   return `<table class="up-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody>${tfoot}</table>`;
 }
 
+// Conditional text — evaluate rules against record data, first match wins
+function evaluateCondition(expr: string, data: any): boolean {
+  // Simple expression parser: "field.path > 0", "field.path == value"
+  const match = expr.match(/^([a-zA-Z0-9_.]+)\s*(>|>=|<|<=|==|!=)\s*(.+)$/);
+  if (!match) return false;
+  const [, path, op, rawVal] = match;
+  const left = Number(resolve(data, path) ?? 0);
+  const right = Number(rawVal.trim());
+  if (isNaN(left) || isNaN(right)) return false;
+  switch (op) {
+    case '>':  return left > right;
+    case '>=': return left >= right;
+    case '<':  return left < right;
+    case '<=': return left <= right;
+    case '==': return left === right;
+    case '!=': return left !== right;
+    default:   return false;
+  }
+}
+
+function renderConditionalText(section: ConditionalTextSection, data: any): string {
+  // Rules live in the report config at the source path (e.g. config.statement.comments)
+  // The layout's _layout ref carries the full report config
+  const reportConfig = (data as any)?._reportConfig || {};
+  const rules: ConditionalTextRule[] = resolve(reportConfig, section.source) as any || [];
+  if (!Array.isArray(rules) || rules.length === 0) return '';
+
+  for (const rule of rules) {
+    if (rule.default) {
+      const s = rule.style === 'bold' ? 'font-weight:700;' : '';
+      return `<div class="up-conditional-text" style="padding:8px 0;${s}">${esc(rule.text)}</div>`;
+    }
+    if (rule.when && evaluateCondition(rule.when, data)) {
+      const s = rule.style === 'bold' ? 'font-weight:700;' : '';
+      return `<div class="up-conditional-text" style="padding:8px 0;${s}">${esc(rule.text)}</div>`;
+    }
+  }
+  return '';
+}
+
 // Renderer map
 const RENDERERS: Record<string, (s: any, data: any, company: any) => string> = {
   company_header: renderCompanyHeader,
@@ -316,6 +356,7 @@ const RENDERERS: Record<string, (s: any, data: any, company: any) => string> = {
   signature: renderSignature,
   footer: renderFooter,
   data_table: renderDataTable,
+  conditional_text: renderConditionalText,
 };
 
 // ---------------------------------------------------------------------------
@@ -391,6 +432,7 @@ export function generatePrintHtml(
   data: any,
   companyInfo: any,
   layout: PrintLayout,
+  reportConfig?: Record<string, unknown>,
 ): string {
   const title = layout.title || layout.model || 'Document';
   const isList = layout.sections.some(s => s.type === 'data_table');
@@ -403,7 +445,7 @@ export function generatePrintHtml(
   const idLine = isList ? `${recordCount} records` : String(ida);
   const docInfo = `<div class="up-doc-info"><div class="up-doc-title">${esc(title.toUpperCase())}</div><div class="up-doc-id">${esc(idLine)}</div><div style="font-size:11px;color:#64748b">${esc(data?.status || '')}</div></div>`;
 
-  const renderData = { ...data, _layout: layout };
+  const renderData = { ...data, _layout: layout, _reportConfig: reportConfig || {} };
 
   const sectionsHtml = layout.sections.map(section => {
     const renderer = RENDERERS[section.type];
@@ -435,12 +477,12 @@ export async function openUniversalPrint(
   data: any,
   companyInfo: any,
   layout: PrintLayout,
-  options?: { autoprint?: boolean },
+  options?: { autoprint?: boolean; reportConfig?: Record<string, unknown> },
 ): Promise<void> {
   const w = window.open('', '_blank', 'width=850,height=1000');
   if (!w) return;
 
-  const html = generatePrintHtml(data, companyInfo, layout);
+  const html = generatePrintHtml(data, companyInfo, layout, options?.reportConfig);
 
   w.document.open();
   w.document.write(html);

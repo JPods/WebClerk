@@ -76,6 +76,7 @@ const SECTION_META: Record<string, { label: string; color: string; icon: string;
   conditions:      { label: 'Conditions',       color: '#6b7280', icon: 'K', hasFields: false },
   signature:       { label: 'Signature',        color: '#555',    icon: 'S', hasFields: false },
   footer:          { label: 'Footer',           color: '#555',    icon: 'F', hasFields: true },
+  conditional_text:{ label: 'Conditional Text', color: '#b45309', icon: '?', hasFields: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -227,6 +228,7 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
       { field: 'customer_id', label: 'Customer #' },
     ],
   }),
+  conditional_text: () => ({ type: 'conditional_text', source: 'statement.comments' } as any),
 };
 
 // ---------------------------------------------------------------------------
