@@ -16,6 +16,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import type { PrintLayout, PrintLayoutSection, PrintField } from './printLayoutTypes';
 import { generatePrintHtml } from './UniversalPrint';
 import type { ReportRecord } from '../common/ReportsDialog';
+import { getModelNames } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -244,7 +245,6 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [previewHtml, setPreviewHtml] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<number>(0);
   const [insertMenuOpen, setInsertMenuOpen] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -268,36 +268,50 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     return () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp); };
   }, []);
 
-  // Fetch fields from /wcapi/report-fields/ registry
+  // Fetch all model names for the model list
+  const [allModelNames, setAllModelNames] = useState<string[]>([]);
+  useEffect(() => {
+    getModelNames().then((res: any) => {
+      const names = res?.model_names || res?.data?.model_names || [];
+      setAllModelNames(names.sort());
+    }).catch(() => {});
+  }, []);
+
+  // Fetch fields for a model — cache results
+  const registryCache = useRef<Record<string, ReportFieldsResponse>>({});
+  const [activeModel, setActiveModel] = useState(model); // which model's fields are shown
   const [registry, setRegistry] = useState<ReportFieldsResponse | null>(null);
-  useEffect(() => {
-    if (!model) return;
-    fetch(`/wcapi/report-fields/?model=${encodeURIComponent(model)}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => { if (data && !data.error) setRegistry(data); })
-      .catch(() => {});
-  }, [model]);
 
-  // Build field groups from registry
-  const { groups, groupNames } = useMemo(() => {
-    if (!registry) return { groups: {} as Record<string, RegistryField[]>, groupNames: [] as string[] };
-    const grp: Record<string, RegistryField[]> = {};
-    grp[model] = registry.direct || [];
-    for (const [relName, relFields] of Object.entries(registry.related || {})) grp[relName] = relFields;
-    for (const f of registry.json_paths || []) {
-      const g = f.group || 'json';
-      if (!grp[g]) grp[g] = [];
-      grp[g].push(f);
+  const fetchModelFields = useCallback((m: string) => {
+    if (registryCache.current[m]) {
+      setRegistry(registryCache.current[m]);
+      setActiveModel(m);
+      return;
     }
-    if ((registry.lines || []).length > 0) grp[registry.line_model || 'lines'] = registry.lines;
-    const names = Object.keys(grp).sort((a, b) => a === model ? -1 : b === model ? 1 : a.localeCompare(b));
-    return { groups: grp, groupNames: names };
-  }, [registry, model]);
+    fetch(`/wcapi/report-fields/?model=${encodeURIComponent(m)}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.error) {
+          registryCache.current[m] = data;
+          setRegistry(data);
+          setActiveModel(m);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  // Auto-select first group
-  useEffect(() => {
-    if (!selectedGroup && groupNames.length > 0) setSelectedGroup(groupNames[0]);
-  }, [groupNames, selectedGroup]);
+  // Fetch base model on mount
+  useEffect(() => { if (model) fetchModelFields(model); }, [model, fetchModelFields]);
+
+  // Build field groups from current registry
+  const fieldGroups = useMemo(() => {
+    if (!registry) return [] as RegistryField[];
+    const all: RegistryField[] = [...(registry.direct || [])];
+    for (const relFields of Object.values(registry.related || {})) all.push(...relFields);
+    for (const f of registry.json_paths || []) all.push(f);
+    if ((registry.lines || []).length > 0) all.push(...registry.lines);
+    return all;
+  }, [registry]);
 
   // Collect all used field paths across all sections
   const usedFieldPaths = useMemo(() => {
@@ -308,9 +322,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     return paths;
   }, [sections]);
 
-  const visibleFields: RegistryField[] = selectedGroup
-    ? (groups[selectedGroup] || []).filter(f => !usedFieldPaths.has(f.field))
-    : [];
+  const visibleFields: RegistryField[] = fieldGroups.filter(f => !usedFieldPaths.has(f.field));
 
   // --- Section operations ---
   const addSection = useCallback((type: string) => {
@@ -484,42 +496,55 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           flex: `0 0 ${leftWidth}px`, display: 'flex', flexDirection: 'column',
           background: t.bg,
         }}>
-          {/* Model group selector */}
+          {/* Model selector */}
           <div style={{ flex: '0 0 auto', borderBottom: `2px solid ${t.border}` }}>
-            <div style={panelHeader('Groups')}>
+            <div style={panelHeader('Models')}>
               <span>Models</span>
-              <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
-                {groupNames.length}
-              </span>
             </div>
-            <div style={{ maxHeight: 160, overflowY: 'auto' }}>
-              {groupNames.map(g => (
-                <div key={g}
-                  onClick={() => setSelectedGroup(g)}
+            <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+              {/* Base model always first */}
+              <div
+                onClick={() => fetchModelFields(model)}
+                style={{
+                  padding: '5px 10px', cursor: 'pointer', fontSize: fontSize - 1,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: activeModel === model ? t.surfaceAlt : 'transparent',
+                  borderLeft: activeModel === model ? `3px solid ${t.accent}` : '3px solid transparent',
+                  color: t.text, fontWeight: 700,
+                }}
+                onMouseEnter={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                onMouseLeave={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                <span>{model}</span>
+                <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400 }}>base</span>
+              </div>
+              {/* Separator */}
+              <div style={{ height: 1, background: t.border, margin: '2px 0' }} />
+              {/* All other models */}
+              {allModelNames.filter(m => m !== model).map(m => (
+                <div key={m}
+                  onClick={() => fetchModelFields(m)}
                   style={{
                     padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    background: selectedGroup === g ? t.surfaceAlt : 'transparent',
-                    borderLeft: selectedGroup === g ? `3px solid ${t.accent}` : '3px solid transparent',
-                    color: selectedGroup === g ? t.text : t.textMuted,
-                    fontWeight: selectedGroup === g ? 600 : 400,
+                    display: 'flex', alignItems: 'center',
+                    background: activeModel === m ? t.surfaceAlt : 'transparent',
+                    borderLeft: activeModel === m ? `3px solid ${t.accent}` : '3px solid transparent',
+                    color: activeModel === m ? t.text : t.textMuted,
+                    fontWeight: activeModel === m ? 600 : 400,
                   }}
-                  onMouseEnter={(e) => { if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  onMouseEnter={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
-                  <span>{g}</span>
-                  <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
-                    {(groups[g] || []).length}
-                  </span>
+                  <span>{m}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Available fields */}
+          {/* Fields for selected model */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={panelHeader('Fields')}>
-              <span>Fields</span>
+              <span>{activeModel} fields</span>
               <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
                 dbl-click to add
               </span>
@@ -549,7 +574,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               ))}
               {visibleFields.length === 0 && (
                 <div style={{ padding: '12px 10px', fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
-                  {selectedGroup ? 'All fields in use' : 'Select a model'}
+                  {fieldGroups.length === 0 ? 'Loading...' : 'All fields in use'}
                 </div>
               )}
             </div>
