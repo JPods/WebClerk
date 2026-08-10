@@ -493,16 +493,33 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
   // Filtered projects for the dropdown
   const filteredDropdownProjects = useMemo(() => {
-    let list = projects.filter((p) => p.id_parent == null); // top-level only
-    if (!projectSearchTerm.trim()) return list;
-    const lower = projectSearchTerm.toLowerCase();
-    return list.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(lower) ||
-        p.slug?.toLowerCase().includes(lower) ||
-        p.intent?.toLowerCase().includes(lower) ||
-        p.id.includes(lower)
-    );
+    // Filter: gantt weight > 0 (or no weight = show). Search overrides weight filter.
+    const getWeight = (p: typeof projects[number]) =>
+      (p.prefs as any)?.gantt?.weight ?? (p.id_parent == null ? 3 : 0);
+
+    let list: typeof projects;
+    if (projectSearchTerm.trim()) {
+      // Search shows all projects regardless of weight
+      const lower = projectSearchTerm.toLowerCase();
+      list = projects.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(lower) ||
+          p.slug?.toLowerCase().includes(lower) ||
+          p.intent?.toLowerCase().includes(lower) ||
+          p.id.includes(lower)
+      );
+    } else {
+      // Default: only weight > 0
+      list = projects.filter((p) => getWeight(p) > 0);
+    }
+
+    // Sort by weight descending (pinned first), then alphabetical
+    return [...list].sort((a, b) => {
+      const wa = getWeight(a);
+      const wb = getWeight(b);
+      if (wa !== wb) return wb - wa;
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [projects, projectSearchTerm]);
 
   // Get all descendant project ids (children, grandchildren, etc.)

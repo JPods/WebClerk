@@ -10,6 +10,9 @@ export interface ProjectPrefs {
   action?: {
     color?: string;  // Hex color for project tasks, e.g., "#3b82f6"
   };
+  gantt?: {
+    weight?: number; // 0=hidden, 1-2=low, 3=normal, 4-5=pinned
+  };
 }
 
 export interface ProjectOption {

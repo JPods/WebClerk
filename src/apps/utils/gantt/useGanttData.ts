@@ -124,16 +124,24 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   const intent = typeof record.intent === "string" ? record.intent : undefined;
   const ida = typeof record.ida === "string" ? record.ida : undefined;
   
-  // Parse prefs.action.color for project-specific task colors
+  // Parse prefs.action.color and prefs.gantt.weight
   let prefs: ProjectPrefs | undefined;
   if (record.prefs && typeof record.prefs === "object") {
     const prefsObj = record.prefs as Record<string, unknown>;
+    const parsed: ProjectPrefs = {};
     if (prefsObj.action && typeof prefsObj.action === "object") {
       const actionPrefs = prefsObj.action as Record<string, unknown>;
       if (typeof actionPrefs.color === "string") {
-        prefs = { action: { color: actionPrefs.color } };
+        parsed.action = { color: actionPrefs.color };
       }
     }
+    if (prefsObj.gantt && typeof prefsObj.gantt === "object") {
+      const ganttPrefs = prefsObj.gantt as Record<string, unknown>;
+      if (typeof ganttPrefs.weight === "number") {
+        parsed.gantt = { weight: ganttPrefs.weight };
+      }
+    }
+    if (parsed.action || parsed.gantt) prefs = parsed;
   }
   
   // Since we already filter by is_active in the API call, accept all returned projects
