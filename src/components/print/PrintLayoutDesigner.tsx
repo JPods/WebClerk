@@ -605,7 +605,53 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
         />
 
-        {/* === MIDDLE PANEL: Sections as panels === */}
+        {/* === CENTER PANEL: Live preview — fixed to paper size === */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{
+            padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
+            fontSize: fontSize - 2, color: t.textMuted,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>Preview</span>
+            <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
+              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
+            </span>
+          </div>
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 16, overflow: 'auto', background: t.bg,
+          }}>
+            <iframe
+              srcDoc={previewHtml}
+              style={{
+                border: `1px solid ${t.border}`, background: '#fff',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                width: paper === 'a4' ? 595 : 612,  /* 72dpi: A4=595, Letter/Legal=612 */
+                height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792, /* Legal=1008, A4=842, Letter=792 */
+                flexShrink: 0,
+              }}
+              title="PrintLayout Preview"
+            />
+          </div>
+        </div>
+
+        {/* Drag handle: preview ↔ panels */}
+        <div
+          onMouseDown={(e) => {
+            dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{
+            flex: '0 0 5px', cursor: 'col-resize',
+            background: t.border,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
+          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+        />
+
+        {/* === RIGHT PANEL: Sections as panels === */}
         <div style={{
           flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
           background: t.bg, overflow: 'hidden',
@@ -673,7 +719,6 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                     const fieldName = e.dataTransfer.getData('text/plain');
                     if (fieldName && !usedFieldPaths.has(fieldName) && meta.hasFields) {
                       setSelectedSection(sIdx);
-                      // Need to add directly since selectedSection update is async
                       const pf = makePrintField(fieldName);
                       setSections(prev => prev.map((s, i) => {
                         if (i !== sIdx) return s;
@@ -706,14 +751,12 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                     {fields.length > 0 && (
                       <span style={{ fontSize: fontSize - 3, color: t.textDim }}>{fields.length}</span>
                     )}
-                    {/* Move up/down */}
                     <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, -1); }}
                       style={{ cursor: sIdx > 0 ? 'pointer' : 'default', color: sIdx > 0 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
                     >▲</span>
                     <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, 1); }}
                       style={{ cursor: sIdx < sections.length - 1 ? 'pointer' : 'default', color: sIdx < sections.length - 1 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
                     >▼</span>
-                    {/* Remove */}
                     <span onClick={(e) => { e.stopPropagation(); removeSection(sIdx); }}
                       style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none' }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
@@ -766,52 +809,6 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                 Click <strong>+ Insert</strong> to add panels
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Drag handle: middle ↔ preview */}
-        <div
-          onMouseDown={(e) => {
-            dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-          }}
-          style={{
-            flex: '0 0 5px', cursor: 'col-resize',
-            background: t.border,
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
-          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
-        />
-
-        {/* === RIGHT PANEL: Live preview — fixed to paper size === */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{
-            padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
-            fontSize: fontSize - 2, color: t.textMuted,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span>Preview</span>
-            <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
-              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
-            </span>
-          </div>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            padding: 16, overflow: 'auto', background: t.bg,
-          }}>
-            <iframe
-              srcDoc={previewHtml}
-              style={{
-                border: `1px solid ${t.border}`, background: '#fff',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-                width: paper === 'a4' ? 595 : 612,  /* 72dpi: A4=595, Letter/Legal=612 */
-                height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792, /* Legal=1008, A4=842, Letter=792 */
-                flexShrink: 0,
-              }}
-              title="PrintLayout Preview"
-            />
           </div>
         </div>
       </div>
