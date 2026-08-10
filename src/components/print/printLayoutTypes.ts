@@ -122,7 +122,7 @@ export type PrintLayoutSection =
 export interface PrintLayout {
   model: string;
   family?: 'sell' | 'exec';
-  paper?: 'letter' | 'a4';
+  paper?: 'letter' | 'legal' | 'a4';
   title?: string;        // "Order", "Invoice", "Purchase Order"
   version?: number;
   sections: PrintLayoutSection[];

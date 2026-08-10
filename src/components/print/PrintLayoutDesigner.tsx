@@ -457,10 +457,18 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`,
                 borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 140 }} />
           </label>
-          <span onClick={() => { setPaper(paper === 'a4' ? 'letter' : 'a4'); setDirty(true); }}
-            style={{ cursor: 'pointer', fontWeight: 700, color: t.accent, fontSize: fontSize - 2, userSelect: 'none' }}>
-            {paper}
-          </span>
+          <select value={paper}
+            onChange={(e) => { setPaper(e.target.value); setDirty(true); }}
+            style={{
+              background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`,
+              borderRadius: 3, padding: '2px 6px', fontSize: fontSize - 2, fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="letter">US Letter</option>
+            <option value="legal">US Legal</option>
+            <option value="a4">A4</option>
+          </select>
           {dirty && <span style={{ fontSize: fontSize - 3, color: t.accentGold, fontWeight: 700 }}>UNSAVED</span>}
           {statusMsg && <span style={{ fontSize: fontSize - 2, color: t.accentGreen }}>{statusMsg}</span>}
         </div>
@@ -600,7 +608,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
         {/* === MIDDLE PANEL: Sections as panels === */}
         <div style={{
           flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
-          background: t.bg,
+          background: t.bg, overflow: 'hidden',
         }}>
           <div style={{
             ...panelHeader('Panels'),
@@ -777,8 +785,8 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
         />
 
-        {/* === RIGHT PANEL: Live preview === */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* === RIGHT PANEL: Live preview — fixed to paper size === */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{
             padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
             fontSize: fontSize - 2, color: t.textMuted,
@@ -789,11 +797,22 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
             </span>
           </div>
-          <iframe
-            srcDoc={previewHtml}
-            style={{ flex: 1, border: 'none', background: '#fff', minHeight: 300 }}
-            title="PrintLayout Preview"
-          />
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 16, overflow: 'auto', background: t.bg,
+          }}>
+            <iframe
+              srcDoc={previewHtml}
+              style={{
+                border: `1px solid ${t.border}`, background: '#fff',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                width: paper === 'a4' ? 595 : 612,  /* 72dpi: A4=595, Letter/Legal=612 */
+                height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792, /* Legal=1008, A4=842, Letter=792 */
+                flexShrink: 0,
+              }}
+              title="PrintLayout Preview"
+            />
+          </div>
         </div>
       </div>
     </div>
