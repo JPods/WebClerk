@@ -425,6 +425,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Bottom list panel
   const [listPanelVisible, setListPanelVisible] = useState(true);
   const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
+  const [ganttSplitVh, setGanttSplitVh] = useState(45);
   
   // Sorting state - auto-sort by start date toggle
   const [autoSortByDate, setAutoSortByDate] = useState(true);
@@ -3008,10 +3009,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               </div>
             ) : (
               <div ref={ganttContainerRef} className="h-full w-full flex flex-col" style={{ fontSize: `${12 + ganttFontScale}px` }}>
-                {/* Timeline — 40% of viewport when list is visible, scrollable */}
+                {/* Timeline — 45% of viewport when list is visible, scrollable */}
                 <div
                   className={listPanelVisible ? "shrink-0 overflow-auto" : "flex-1"}
-                  style={listPanelVisible ? { height: '40vh' } : undefined}
+                  style={listPanelVisible ? { height: `${ganttSplitVh}vh` } : undefined}
                 >
                   <GanttTimeline
                     key={`${ganttKey}-fs${ganttFontScale}`}
@@ -3042,6 +3043,28 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
                 {/* Bottom action list — fills remaining space */}
                 {listPanelVisible && ganttData.tasks.length > 0 && (
+                  <>
+                  {/* Drag handle */}
+                  <div
+                    className="h-1.5 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0 transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const startY = e.clientY;
+                      const startVh = ganttSplitVh;
+                      const vh = window.innerHeight / 100;
+                      const onMove = (ev: MouseEvent) => {
+                        const delta = ev.clientY - startY;
+                        setGanttSplitVh(Math.max(15, Math.min(75, startVh + delta / vh)));
+                      };
+                      const onUp = () => {
+                        window.removeEventListener('mousemove', onMove);
+                        window.removeEventListener('mouseup', onUp);
+                      };
+                      window.addEventListener('mousemove', onMove);
+                      window.addEventListener('mouseup', onUp);
+                    }}
+                    title="Drag to resize"
+                  />
                   <div className="flex-1 min-h-0 overflow-auto border-t border-gray-200 dark:border-gray-700">
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
@@ -3065,6 +3088,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                       fontSize={11}
                     />
                   </div>
+                  </>
                 )}
               </div>
             )}
