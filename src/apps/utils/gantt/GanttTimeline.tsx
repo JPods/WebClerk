@@ -48,6 +48,7 @@ export interface GanttTimelineProps {
   taskTemplate: FC<{ data: GanttMappedTask }>;
   sprintEndDates?: Set<string>;
   onUpdateTask?: (id: string | number, updates: { start?: Date; end?: Date }) => void;
+  onTaskClick?: (task: GanttMappedTask) => void;
   onTaskDoubleClick?: (task: GanttMappedTask) => void;
   scrollYRef?: RefObject<{ value: number }>;
   onScrollY?: (top: number) => void;
@@ -125,6 +126,7 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
   taskTemplate: TaskTemplate,
   sprintEndDates,
   onUpdateTask,
+  onTaskClick,
   onTaskDoubleClick,
   scrollYRef,
   onScrollY,
@@ -379,6 +381,7 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
                 minWidth: 4,
               }}
               onMouseDown={(e) => handleBarMouseDown(e, task)}
+              onClick={() => onTaskClick?.(task)}
               onDoubleClick={() => onTaskDoubleClick?.(task)}
             >
               <TaskTemplate data={task} />

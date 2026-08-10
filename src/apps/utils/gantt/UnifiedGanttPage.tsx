@@ -11,7 +11,7 @@
  * - /gantt?projects=123,456   - Pre-select multiple projects
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Link } from "react-router-dom";
 import { UnifiedGantt } from "./UnifiedGantt";
@@ -43,8 +43,33 @@ const UnifiedGanttPage: React.FC = () => {
     ? "Project Gantt Chart" 
     : "Multi-Project Gantt";
 
+  // Read font size from global prefs (same source as DataBrowser)
+  const [baseFontSize] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wc3_wcui_prefs');
+      if (stored) { const p = JSON.parse(stored); if (p.font_size) return p.font_size; }
+    } catch {}
+    return 12;
+  });
+
+  // Listen for font size changes from the header dropdown
+  // The header dispatches a storage event when prefs change
+  const [fontSize, setFontSize] = useState(baseFontSize);
+  useState(() => {
+    const handler = () => {
+      try {
+        const stored = localStorage.getItem('wc3_wcui_prefs');
+        if (stored) { const p = JSON.parse(stored); if (p.font_size) setFontSize(p.font_size); }
+      } catch {}
+    };
+    window.addEventListener('storage', handler);
+    // Also listen for custom wcui-prefs-changed event
+    window.addEventListener('wcui-prefs-changed', handler);
+    return () => { window.removeEventListener('storage', handler); window.removeEventListener('wcui-prefs-changed', handler); };
+  });
+
   return (
-    <div className="space-y-1 px-2 py-1">
+    <div className="space-y-1 px-2 py-1" style={{ fontSize }}>
       <UnifiedGantt
         projectId={projectId}
         initialProjectIds={initialProjectIds}

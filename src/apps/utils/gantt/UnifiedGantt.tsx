@@ -18,8 +18,8 @@ import type { RootState } from "@/store";
 import { format as dateFnsFormat } from "date-fns";
 import type { GanttColumn } from "./gantt.types";
 import { GanttTimeline } from "./GanttTimeline";
-import { GanttGrid } from "./GanttGrid";
 import { GanttLinks } from "./GanttLinks";
+import DataGrid from "../../../components/common/DataGrid";
 import KanbanTaskModal from "../kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
@@ -422,18 +422,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState("");
 
-  // Task list (grid) collapsed state - shows only minimal columns when collapsed
-  // Default collapsed: the bars carry the value; grid expands on demand
-  const [taskListCollapsed, setTaskListCollapsed] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (typeof prefs.gantt_list_collapsed === 'boolean') return prefs.gantt_list_collapsed;
-      }
-    } catch {}
-    return true;
-  });
+  // Bottom list panel height (resizable)
+  const [listPanelHeight, setListPanelHeight] = useState(200);
+  const [listPanelVisible, setListPanelVisible] = useState(true);
+  const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
   
   // Sorting state - auto-sort by start date toggle
   const [autoSortByDate, setAutoSortByDate] = useState(true);
@@ -752,7 +744,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     if (typeof ps.cp_highlight === 'boolean') setCriticalPathHighlight(ps.cp_highlight);
     if (ps.period) setScalePreset(ps.period as ScalePresetKey);
     if (typeof ps.text_overflow === 'boolean') setTextOverflow(ps.text_overflow);
-    if (typeof ps.list_collapsed === 'boolean') setTaskListCollapsed(ps.list_collapsed);
     if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
   }, [projectMetadata]);
 
@@ -768,12 +759,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         cp_highlight: criticalPathHighlight,
         period: scalePreset,
         text_overflow: textOverflow,
-        list_collapsed: taskListCollapsed,
+        list_collapsed: false,
         assignee_filter: assigneeFilter,
       }, projectMetadata);
     }, 2000);
     return () => { if (saveSettingsTimeoutRef.current) clearTimeout(saveSettingsTimeoutRef.current); };
-  }, [projectId, colorMode, ganttFontScale, criticalPathHighlight, scalePreset, textOverflow, taskListCollapsed, assigneeFilter, projectMetadata]);
+  }, [projectId, colorMode, ganttFontScale, criticalPathHighlight, scalePreset, textOverflow, assigneeFilter, projectMetadata]);
 
   // Sync module-level flags for task template and force SVAR re-render
   useEffect(() => {
@@ -2464,17 +2455,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     },
   ], []);
   
-  // Choose columns based on mode - create dynamically with task lookup
-  // Include reorder column when auto-sort is disabled
-  const activeColumns = useMemo(() => {
-    const includeReorder = !autoSortByDate;
-    if (taskListCollapsed) {
-      return collapsedColumns;
-    }
-    return isSingleProjectMode 
-      ? createGanttColumnsSingleProject(taskLookup, includeReorder) 
-      : createGanttColumns(taskLookup, includeReorder);
-  }, [isSingleProjectMode, taskLookup, taskListCollapsed, collapsedColumns, autoSortByDate]);
+  // Bottom list columns — use the action model's standard fields
+  const actionListColumns = useMemo(() => {
+    return ['ida', 'action_en', 'status', 'kanban_column', 'priority', 'percent_complete', 'dt_start', 'dt_deadline', 'assigned_to_name', 'project_name'];
+  }, []);
 
   // Get the project name for single-project mode header
   const singleProjectName = useMemo(() => {
@@ -2662,7 +2646,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     if (typeof ps.cp_highlight === 'boolean') setCriticalPathHighlight(ps.cp_highlight);
                     if (ps.period) setScalePreset(ps.period as ScalePresetKey);
                     if (typeof ps.text_overflow === 'boolean') setTextOverflow(ps.text_overflow);
-                    if (typeof ps.list_collapsed === 'boolean') setTaskListCollapsed(ps.list_collapsed);
                     if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
                   }}
                   className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
@@ -2753,29 +2736,18 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </select>
               )}
               
-              {/* Task list collapse toggle */}
+              {/* Bottom list toggle */}
               <button
                 type="button"
-                onClick={() => {
-                  const next = !taskListCollapsed;
-                  setTaskListCollapsed(next);
-                  import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_list_collapsed', next));
-                }}
+                onClick={() => setListPanelVisible(!listPanelVisible)}
                 className={combineClassNames(
                   "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition",
-                  taskListCollapsed
+                  listPanelVisible
                     ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:bg-indigo-900/50"
                     : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 )}
-                title={taskListCollapsed ? "Expand task list columns" : "Collapse task list columns"}
+                title={listPanelVisible ? "Hide action list" : "Show action list"}
               >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {taskListCollapsed ? (
-                    <path d="M9 4h11M9 8h7M9 12h4M9 16h7M9 20h11M4 12l3-3v6l-3-3z" strokeLinecap="round" strokeLinejoin="round"/>
-                  ) : (
-                    <path d="M4 4h11M4 8h7M4 12h4M4 16h7M4 20h11M21 12l-3-3v6l3-3z" strokeLinecap="round" strokeLinejoin="round"/>
-                  )}
-                </svg>
                 List
               </button>
               
@@ -2902,7 +2874,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           cp_highlight: criticalPathHighlight,
                           period: scalePreset,
                           text_overflow: textOverflow,
-                          list_collapsed: taskListCollapsed,
+                          list_collapsed: false,
                           assignee_filter: assigneeFilter,
                         };
                         const meta = { ...(projectMetadata || {}) };
@@ -3036,44 +3008,84 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </p>
               </div>
             ) : (
-              <div ref={ganttContainerRef} className="h-full w-full flex" style={{ fontSize: `${12 + ganttFontScale}px` }}>
-                {/* Left-side task grid */}
-                {!taskListCollapsed && (
-                  <GanttGrid
-                    columns={activeColumns}
-                    tasks={ganttData.tasks}
-                    cellHeight={38 + ganttFontScale}
-                    scaleHeaderHeight={activeScales.length * 28}
-                    scrollYRef={scrollYRef}
-                    onTaskDoubleClick={(task) => handleOpenDetailPanel({ id: task.id })}
-                    onMoveTask={!autoSortByDate ? handleMoveTask : undefined}
-                  />
-                )}
+              <div ref={ganttContainerRef} className="h-full w-full flex flex-col" style={{ fontSize: `${12 + ganttFontScale}px` }}>
                 {/* Timeline with bars and dependency arrows */}
-                <GanttTimeline
-                  key={`${ganttKey}-fs${ganttFontScale}`}
-                  tasks={ganttData.tasks}
-                  scales={activeScales}
-                  start={dateRange.start}
-                  end={dateRange.end}
-                  cellHeight={38 + ganttFontScale}
-                  taskTemplate={GanttTaskTemplate}
-                  sprintEndDates={sprintEndDates}
-                  onUpdateTask={handleUpdateTaskDrag}
-                  onTaskDoubleClick={(task) => handleOpenDetailPanel({ id: task.id })}
-                  scrollYRef={scrollYRef}
-                  colorMap={taskColorMap}
-                >
-                  <GanttLinks
-                    links={ganttData.links}
+                <div className={listPanelVisible ? "flex-1 min-h-0" : "flex-1"}>
+                  <GanttTimeline
+                    key={`${ganttKey}-fs${ganttFontScale}`}
                     tasks={ganttData.tasks}
+                    scales={activeScales}
+                    start={dateRange.start}
+                    end={dateRange.end}
                     cellHeight={38 + ganttFontScale}
-                    onDeleteLink={(linkId) => handleDeleteLink({ id: linkId })}
-                    criticalTaskIds={criticalPathHighlight
-                      ? new Set(ganttData.tasks.filter(t => (t as GanttMappedTask).isCritical).map(t => String(t.id)))
-                      : undefined}
-                  />
-                </GanttTimeline>
+                    taskTemplate={GanttTaskTemplate}
+                    sprintEndDates={sprintEndDates}
+                    onUpdateTask={handleUpdateTaskDrag}
+                    onTaskDoubleClick={(task) => handleOpenDetailPanel({ id: task.id })}
+                    onTaskClick={(task) => setHighlightedTaskId(typeof task.id === 'number' ? task.id : Number(task.id))}
+                    scrollYRef={scrollYRef}
+                    colorMap={taskColorMap}
+                  >
+                    <GanttLinks
+                      links={ganttData.links}
+                      tasks={ganttData.tasks}
+                      cellHeight={38 + ganttFontScale}
+                      onDeleteLink={(linkId) => handleDeleteLink({ id: linkId })}
+                      criticalTaskIds={criticalPathHighlight
+                        ? new Set(ganttData.tasks.filter(t => (t as GanttMappedTask).isCritical).map(t => String(t.id)))
+                        : undefined}
+                    />
+                  </GanttTimeline>
+                </div>
+
+                {/* Bottom action list */}
+                {listPanelVisible && ganttData.tasks.length > 0 && (
+                  <>
+                    {/* Resize handle */}
+                    <div
+                      className="h-1 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        const startY = e.clientY;
+                        const startH = listPanelHeight;
+                        const onMove = (ev: MouseEvent) => {
+                          const delta = startY - ev.clientY;
+                          setListPanelHeight(Math.max(100, Math.min(500, startH + delta)));
+                        };
+                        const onUp = () => {
+                          window.removeEventListener('mousemove', onMove);
+                          window.removeEventListener('mouseup', onUp);
+                        };
+                        window.addEventListener('mousemove', onMove);
+                        window.addEventListener('mouseup', onUp);
+                      }}
+                      title="Drag to resize"
+                    />
+                    <div style={{ height: listPanelHeight, flexShrink: 0 }} className="overflow-auto border-t border-gray-200 dark:border-gray-700">
+                      <DataGrid
+                        records={ganttData.tasks.map(t => ({
+                          ...t,
+                          assigned_to_name: (t as GanttMappedTask).assignee || '',
+                          project_name: (t as GanttMappedTask).projectName || '',
+                          action_en: t.text || '',
+                          status: (t as GanttMappedTask).columnId || '',
+                          dt_start: t.start instanceof Date ? t.start.toLocaleDateString() : '',
+                          dt_deadline: t.end instanceof Date ? t.end.toLocaleDateString() : '',
+                        }))}
+                        columns={actionListColumns}
+                        selectedId={highlightedTaskId}
+                        onSelectRecord={(id) => {
+                          setHighlightedTaskId(id);
+                        }}
+                        onRowDoubleClicked={(row) => {
+                          if (row?.id) handleOpenDetailPanel({ id: row.id });
+                        }}
+                        hideToolbar
+                        fontSize={11}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </DualScrollbar>
