@@ -422,8 +422,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState("");
 
-  // Bottom list panel height (resizable)
-  const [listPanelHeight, setListPanelHeight] = useState(200);
+  // Bottom list panel
   const [listPanelVisible, setListPanelVisible] = useState(true);
   const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
   
@@ -3009,8 +3008,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               </div>
             ) : (
               <div ref={ganttContainerRef} className="h-full w-full flex flex-col" style={{ fontSize: `${12 + ganttFontScale}px` }}>
-                {/* Timeline with bars and dependency arrows */}
-                <div className={listPanelVisible ? "flex-1 min-h-0" : "flex-1"}>
+                {/* Timeline — 40% of viewport when list is visible, scrollable */}
+                <div
+                  className={listPanelVisible ? "shrink-0 overflow-auto" : "flex-1"}
+                  style={listPanelVisible ? { height: '40vh' } : undefined}
+                >
                   <GanttTimeline
                     key={`${ganttKey}-fs${ganttFontScale}`}
                     tasks={ganttData.tasks}
@@ -3038,53 +3040,31 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   </GanttTimeline>
                 </div>
 
-                {/* Bottom action list */}
+                {/* Bottom action list — fills remaining space */}
                 {listPanelVisible && ganttData.tasks.length > 0 && (
-                  <>
-                    {/* Resize handle */}
-                    <div
-                      className="h-1 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        const startY = e.clientY;
-                        const startH = listPanelHeight;
-                        const onMove = (ev: MouseEvent) => {
-                          const delta = startY - ev.clientY;
-                          setListPanelHeight(Math.max(100, Math.min(500, startH + delta)));
-                        };
-                        const onUp = () => {
-                          window.removeEventListener('mousemove', onMove);
-                          window.removeEventListener('mouseup', onUp);
-                        };
-                        window.addEventListener('mousemove', onMove);
-                        window.addEventListener('mouseup', onUp);
+                  <div className="flex-1 min-h-0 overflow-auto border-t border-gray-200 dark:border-gray-700">
+                    <DataGrid
+                      records={ganttData.tasks.map(t => ({
+                        ...t,
+                        assigned_to_name: (t as GanttMappedTask).assignee || '',
+                        project_name: (t as GanttMappedTask).projectName || '',
+                        action_en: t.text || '',
+                        status: (t as GanttMappedTask).columnId || '',
+                        dt_start: t.start instanceof Date ? t.start.toLocaleDateString() : '',
+                        dt_deadline: t.end instanceof Date ? t.end.toLocaleDateString() : '',
+                      }))}
+                      columns={actionListColumns}
+                      selectedId={highlightedTaskId}
+                      onSelectRecord={(id) => {
+                        setHighlightedTaskId(id);
                       }}
-                      title="Drag to resize"
+                      onRowDoubleClicked={(row) => {
+                        if (row?.id) handleOpenDetailPanel({ id: row.id });
+                      }}
+                      hideToolbar
+                      fontSize={11}
                     />
-                    <div style={{ height: listPanelHeight, flexShrink: 0 }} className="overflow-auto border-t border-gray-200 dark:border-gray-700">
-                      <DataGrid
-                        records={ganttData.tasks.map(t => ({
-                          ...t,
-                          assigned_to_name: (t as GanttMappedTask).assignee || '',
-                          project_name: (t as GanttMappedTask).projectName || '',
-                          action_en: t.text || '',
-                          status: (t as GanttMappedTask).columnId || '',
-                          dt_start: t.start instanceof Date ? t.start.toLocaleDateString() : '',
-                          dt_deadline: t.end instanceof Date ? t.end.toLocaleDateString() : '',
-                        }))}
-                        columns={actionListColumns}
-                        selectedId={highlightedTaskId}
-                        onSelectRecord={(id) => {
-                          setHighlightedTaskId(id);
-                        }}
-                        onRowDoubleClicked={(row) => {
-                          if (row?.id) handleOpenDetailPanel({ id: row.id });
-                        }}
-                        hideToolbar
-                        fontSize={11}
-                      />
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
