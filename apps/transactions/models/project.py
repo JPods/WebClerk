@@ -185,13 +185,32 @@ class Project(BaseModel):
         
         self.prefs = prefs
 
+    def _ensure_gantt_weight(self):
+        """Auto-assign prefs.gantt.weight if not already set.
+
+        0 = hidden, 1-2 = low, 3 = normal (default), 4-5 = pinned to top.
+        Child projects default to 0 (hidden). Top-level default to 3.
+        """
+        prefs = getattr(self, 'prefs', None) or {}
+        if not isinstance(prefs, dict):
+            prefs = {}
+        gantt = prefs.get('gantt', {})
+        if not isinstance(gantt, dict):
+            gantt = {}
+        if 'weight' in gantt:
+            return
+        gantt['weight'] = 0 if self.id_parent else 3
+        prefs['gantt'] = gantt
+        self.prefs = prefs
+
     def save(self, *args, **kwargs):
         # derive counters & validate
         if not self.slug and self.intent:
             self.slug = slugify(self.intent)[:180]
-        
+
         # Auto-assign action color if not set
         self._ensure_action_color()
+        self._ensure_gantt_weight()
         
         self._recompute_task_counters()
         self.full_clean(exclude=None)
