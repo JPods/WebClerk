@@ -426,6 +426,16 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [listPanelVisible, setListPanelVisible] = useState(true);
   const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
   const [ganttSplitVh, setGanttSplitVh] = useState(45);
+  const listPanelRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll list to highlighted row when a bar is clicked
+  useEffect(() => {
+    if (highlightedTaskId == null || !listPanelRef.current) return;
+    const row = listPanelRef.current.querySelector(`[data-rid="${highlightedTaskId}"]`) as HTMLElement;
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [highlightedTaskId]);
   
   // Sorting state - auto-sort by start date toggle
   const [autoSortByDate, setAutoSortByDate] = useState(true);
@@ -3082,7 +3092,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     }}
                     title="Drag to resize"
                   />
-                  <div className="flex-1 min-h-0 overflow-auto border-t border-gray-200 dark:border-gray-700">
+                  <div ref={listPanelRef} className="flex-1 min-h-0 overflow-auto border-t border-gray-200 dark:border-gray-700">
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
                         ...t,
