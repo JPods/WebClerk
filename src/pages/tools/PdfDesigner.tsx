@@ -1,7 +1,14 @@
-/* LastChecked: 2026-07-04 | WhereUsed: /pdf-designer | WhoCreated: Claude */
+/* LastChecked: 2026-08-10 | WhereUsed: /pdf-designer, ReportsDialog | WhoCreated: Claude */
 import { useEffect, useRef, useState } from "react";
 import { useAppSelector } from "../../store/hooks";
 import apiClient from "../../api/axios";
+
+interface PdfDesignerProps {
+  /** Report record — if provided, loads its pdfme_template from config */
+  report?: { id: number; name: string; config?: Record<string, unknown> };
+  /** Model name — if provided, fetches fields from /wcapi/report-fields/ */
+  model?: string;
+}
 
 const DEFAULT_TEMPLATE = {
   basePdf: { width: 210, height: 297, padding: [20, 20, 20, 20] },
@@ -29,7 +36,7 @@ const DEFAULT_TEMPLATE = {
   sampledata: [{ title: "Document Title", body: "Body content goes here." }],
 };
 
-const PdfDesigner: React.FC = () => {
+const PdfDesigner: React.FC<PdfDesignerProps> = ({ report, model } = {}) => {
   const designerRef = useRef<HTMLDivElement>(null);
   const designerInstance = useRef<any>(null);
   const { user } = useAppSelector((state) => state.auth);
@@ -37,15 +44,50 @@ const PdfDesigner: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Fetch model fields and build template
   useEffect(() => {
     if (!designerRef.current || designerInstance.current) return;
 
-    import("@pdfme/ui").then(({ Designer }) => {
+    const init = async () => {
+      // Start with report's existing pdfme_template or default
+      let template: any = DEFAULT_TEMPLATE;
+      if (report?.config?.pdfme_template) {
+        template = report.config.pdfme_template;
+      }
+
+      // Fetch model fields to populate columns (available field names)
+      if (model) {
+        try {
+          const res = await fetch(`/wcapi/report-fields/?model=${encodeURIComponent(model)}`, { credentials: 'include' });
+          const data = await res.json();
+          if (data && !data.error) {
+            const fields: string[] = [];
+            // Direct fields
+            for (const f of data.direct || []) fields.push(f.field);
+            // Related model fields
+            for (const relFields of Object.values(data.related || {})) {
+              for (const f of relFields as any[]) fields.push(f.field);
+            }
+            // JSON paths
+            for (const f of data.json_paths || []) fields.push(f.field);
+            // Line fields
+            for (const f of data.lines || []) fields.push(f.field);
+
+            if (fields.length > 0) {
+              template = { ...template, columns: fields };
+            }
+          }
+        } catch { /* proceed with existing columns */ }
+      }
+
+      const { Designer } = await import("@pdfme/ui");
       designerInstance.current = new Designer({
         domContainer: designerRef.current!,
-        template: DEFAULT_TEMPLATE as any,
+        template: template as any,
       });
-    });
+    };
+
+    init();
 
     return () => {
       if (designerInstance.current) {
@@ -53,7 +95,7 @@ const PdfDesigner: React.FC = () => {
         designerInstance.current = null;
       }
     };
-  }, []);
+  }, [report, model]);
 
   const handleSubmit = async () => {
     if (!designerInstance.current) return;

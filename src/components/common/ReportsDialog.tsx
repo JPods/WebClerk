@@ -12,8 +12,7 @@
  *
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
-import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
-const PdfDesigner = React.lazy(() => import('@/pages/tools/PdfDesigner'));
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getRecords, getRecord, saveRecord, getFormLibrary, checkoutForm, submitFormToLibrary, restoreFormFromLibrary } from '@/api/wcapi';
 import type { FormLibraryEntry } from '@/api/wcapi';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
@@ -133,9 +132,6 @@ const ReportsDialog: React.FC<Props> = ({
   const [designLayout, setDesignLayout] = useState<PrintLayout | null>(null);
   const [designSampleData, setDesignSampleData] = useState<any>(null);
 
-  // --- pdfme DesignMode ---
-  const [pdfmeMode, setPdfmeMode] = useState(false);
-  const [pdfmeReport, setPdfmeReport] = useState<ReportRecord | null>(null);
 
   // --- Library ---
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -356,49 +352,62 @@ const ReportsDialog: React.FC<Props> = ({
     onClose();
   }, [onExecuteReport, model, context, selectedId, onClose]);
 
-  // ---- Report Setup: open report record in DataBrowser ----
-  const handleSetup = useCallback((report: ReportRecord) => {
-    window.open(`/report?search=${encodeURIComponent(report.name)}`, '_blank');
-  }, []);
-
-  // ---- New Report — open DataBrowser to create a new Report record ----
-  const handleNewReport = useCallback(() => {
-    window.open(`/report`, '_blank');
-  }, []);
-
-  // ---- Preview URL for selected report ----
-  const selectedReport = selectedIndex >= 0 && selectedIndex < filteredReports.length
-    ? filteredReports[selectedIndex] : null;
-  const previewUrl = selectedReport?.output_type === 'print' && selectedReport?.id
-    ? `/wcapi/parade-preview/?report_id=${selectedReport.id}`
-    : null;
 
   if (!open) return null;
 
   const isPrimary = (r: ReportRecord) => (r.sort_order ?? 999) === 0;
-  const showPreview = !!previewUrl;
 
   return (
     // Backdrop
     <div data-wc="reports-dialog-backdrop"
-      onClick={(e) => { if (!designMode && e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: designMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
+        background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-      {/* Dialog — near full width in design mode, hard modal */}
+
+      {/* Full-screen editor overlay — separate from ReportsDialog */}
+      {designMode && (
+        <div data-wc="reports-editor-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9500,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+          <div style={{
+            width: '96vw', height: '94vh', maxWidth: 1900,
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: 8, display: 'flex', flexDirection: 'column',
+            boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
+            overflow: 'hidden',
+          }}>
+            {designMode && designReport && designLayout && (
+              <PrintLayoutDesigner
+                report={designReport}
+                model={model}
+                layout={designLayout}
+                theme={t}
+                fontSize={fontSize}
+                companyInfo={companyInfo}
+                sampleData={designSampleData}
+                onSave={handleDesignSave}
+                onClose={exitDesignMode}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reports list dialog */}
       <div data-wc="reports-dialog"
         style={{
           background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: 8,
-          width: (designMode || pdfmeMode) ? '95vw' : showPreview ? 1100 : 620,
-          maxWidth: (designMode || pdfmeMode) ? 1800 : undefined,
-          height: (designMode || pdfmeMode) ? '92vh' : undefined,
-          maxHeight: (designMode || pdfmeMode) ? '92vh' : '85vh',
+          width: 620,
+          maxHeight: '85vh',
           display: 'flex', flexDirection: 'column',
-          boxShadow: designMode ? '0 12px 48px rgba(0,0,0,0.6)' : '0 8px 32px rgba(0,0,0,0.4)',
-          transition: 'width 0.2s ease, height 0.2s ease',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         }}>
 
         {/* Header */}
@@ -420,10 +429,9 @@ const ReportsDialog: React.FC<Props> = ({
           }}>&times;</button>
         </div>
 
-        {/* Column headers — hidden in design mode */}
-        {!designMode && (
+        {/* Column headers */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '70px 1fr 72px 28px',
+          display: 'grid', gridTemplateColumns: '70px 1fr 72px',
           gap: 8, padding: '6px 16px',
           borderBottom: `1px solid ${t.borderLight}`,
           fontSize: fontSize - 2, fontWeight: 700, color: t.textMuted,
@@ -432,20 +440,13 @@ const ReportsDialog: React.FC<Props> = ({
           <span>Type</span>
           <span>Report Name</span>
           <span style={{ textAlign: 'center' }}>Output</span>
-          <span></span>
         </div>
-        )}
 
-        {/* Body — list + preview */}
+        {/* Body — report list */}
         <div style={{ flex: 1, display: 'flex', minHeight: 120, overflow: 'hidden' }}>
 
-        {/* Report list — collapsed to narrow strip in design mode */}
         <div ref={listRef} style={{
-          flex: (designMode || pdfmeMode) ? '0 0 0px' : showPreview ? '0 0 480px' : 1,
-          overflowY: 'auto', padding: designMode ? 0 : '4px 0',
-          width: (designMode || pdfmeMode) ? 0 : undefined,
-          overflow: designMode ? 'hidden' : undefined,
-          transition: 'flex 0.2s ease, width 0.2s ease',
+          flex: 1, overflowY: 'auto', padding: '4px 0',
         }}>
           {loading && (
             <div style={{ padding: '16px', color: t.textMuted, textAlign: 'center' }}>
@@ -460,10 +461,8 @@ const ReportsDialog: React.FC<Props> = ({
           {!loading && filteredReports.map((report, i) => {
             const isSelected = i === selectedIndex;
             const primary = isPrimary(report);
-            // Derive editor type from config — pdfme, .tsx, .md, or generic print
-            const hasPdfme = !!(report.config as any)?.pdfme_template;
             const hasForm = !!(report.config as any)?.form;
-            const editorTag = hasPdfme ? 'pdfme' : hasForm ? 'layout' : null;
+            const editorTag = hasForm ? 'layout' : null;
             const ot = OUTPUT_TYPE_LABELS[report.output_type || 'print'] || OUTPUT_TYPE_LABELS.print;
 
             return (
@@ -475,7 +474,7 @@ const ReportsDialog: React.FC<Props> = ({
                 }}
                 onDoubleClick={() => executeReport(report)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '70px 1fr 72px 28px',
+                  display: 'grid', gridTemplateColumns: '70px 1fr 72px',
                   gap: 8, alignItems: 'center',
                   padding: '8px 16px', cursor: 'pointer',
                   borderBottom: i < filteredReports.length - 1 ? `1px solid ${t.borderLight}` : 'none',
@@ -531,72 +530,19 @@ const ReportsDialog: React.FC<Props> = ({
                   {editorTag && (
                     <span style={{
                       fontSize: fontSize - 4, padding: '0px 4px', borderRadius: 3,
-                      background: editorTag === 'pdfme' ? '#4f46e5' : '#059669',
+                      background: '#059669',
                       color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
                     }}>{editorTag}</span>
                   )}
                 </span>
 
-                {/* Per-row edit button */}
-                {canEditReports ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSetup(report); }}
-                    title="Report Setup"
-                    style={{
-                      background: 'none', border: `1px solid ${t.borderLight}`,
-                      borderRadius: 3, padding: '1px 4px', cursor: 'pointer',
-                      fontSize: fontSize - 2, color: t.textMuted, lineHeight: 1,
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor = t.accent;
-                      (e.currentTarget as HTMLElement).style.color = t.accent;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor = t.borderLight;
-                      (e.currentTarget as HTMLElement).style.color = t.textMuted;
-                    }}
-                  >&#9998;</button>
-                ) : <span />}
               </div>
             );
           })}
         </div>
 
-        {/* DesignMode pane — visual PrintLayout editor */}
-        {designMode && designReport && designLayout && (
-          <PrintLayoutDesigner
-            report={designReport}
-            model={model}
-            layout={designLayout}
-            theme={t}
-            fontSize={fontSize}
-            companyInfo={companyInfo}
-            sampleData={designSampleData}
-            onSave={handleDesignSave}
-            onClose={exitDesignMode}
-          />
-        )}
-
-        {/* pdfme DesignMode pane */}
-        {pdfmeMode && pdfmeReport && (
-          <div style={{ flex: 1, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${t.border}` }}>
-              <span style={{ fontWeight: 600, fontSize, color: t.text }}>PDF Designer — {pdfmeReport.name}</span>
-              <button
-                onClick={() => { setPdfmeMode(false); setPdfmeReport(null); }}
-                style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1, color: t.text }}
-              >Close</button>
-            </div>
-            <div style={{ flex: 1, overflow: 'auto' }}>
-              <Suspense fallback={<div style={{ padding: 16, color: t.textMuted }}>Loading PDF Designer...</div>}>
-                <PdfDesigner />
-              </Suspense>
-            </div>
-          </div>
-        )}
-
         {/* Library pane — shows available forms from Andi/Alice */}
-        {libraryOpen && !designMode && (
+        {libraryOpen && (
           <div style={{
             flex: 1, borderLeft: `1px solid ${t.border}`,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -656,194 +602,116 @@ const ReportsDialog: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Preview pane — shows sample data render for selected print report */}
-        {!designMode && !libraryOpen && showPreview && (
-          <div style={{
-            flex: 1, borderLeft: `1px solid ${t.border}`,
-            display: 'flex', flexDirection: 'column',
-          }}>
-            <div style={{
-              padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
-              fontSize: fontSize - 1, color: t.textMuted,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <span>Preview: {selectedReport?.name}</span>
-              <span style={{ fontSize: fontSize - 2, color: t.textDim }}>
-                Double-click to print
-              </span>
-            </div>
-            <iframe
-              src={previewUrl!}
-              style={{
-                flex: 1, border: 'none', background: '#fff',
-                minHeight: 300,
-              }}
-              title={`Preview: ${selectedReport?.name || ''}`}
-            />
-          </div>
-        )}
 
         </div>{/* end body flex row */}
 
-        {/* Footer — WC2: Report Setup + New Setup buttons */}
+        {/* Footer — Library select, Edit button, New Report select */}
         <div style={{
           padding: '10px 16px', borderTop: `1px solid ${t.border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ fontSize: fontSize - 2, color: t.textMuted }}>
-            {designMode
-              ? 'DesignMode — editing layout'
-              : <>
-                  {context === 'detail' && selectedId ? `Record #${selectedId}` : 'List reports'}
-                  {' · Double-click to print · Shift-click to design · '}
-                  <span style={{ color: t.textDim }}>
-                    {navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'} = Primary
-                  </span>
-                </>
-            }
+            {context === 'detail' && selectedId ? `Record #${selectedId}` : 'List reports'}
+            {' · Double-click to print · '}
+            <span style={{ color: t.textDim }}>
+              {navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'} = Primary
+            </span>
+            {libraryStatus && (
+              <span style={{ marginLeft: 8, color: t.accent }}>{libraryStatus}</span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {libraryStatus && (
-              <span style={{ fontSize: fontSize - 2, color: t.textMuted, marginRight: 4 }}>
-                {libraryStatus}
-              </span>
-            )}
-            {!designMode && !libraryOpen && (
+            {/* Library select */}
+            <select
+              data-wc="reports-library-select"
+              value=""
+              onChange={(e) => {
+                const action = e.target.value;
+                e.target.value = '';
+                if (action === 'browse') openLibrary();
+                else if (action === 'submit' && selectedIndex >= 0 && selectedIndex < filteredReports.length) {
+                  handleSubmitToLibrary(filteredReports[selectedIndex]);
+                }
+                else if (action === 'restore' && selectedIndex >= 0 && selectedIndex < filteredReports.length) {
+                  handleRestore(filteredReports[selectedIndex]);
+                }
+              }}
+              style={{
+                padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+                fontSize: fontSize - 1, fontWeight: 600,
+                background: t.surface, border: `1px solid ${t.border}`,
+                color: t.text, appearance: 'auto',
+              }}
+            >
+              <option value="" disabled>Library</option>
+              <option value="browse">Browse</option>
+              {selectedIndex >= 0 && selectedIndex < filteredReports.length && (
+                <option value="submit">Submit</option>
+              )}
+              {selectedIndex >= 0 && selectedIndex < filteredReports.length &&
+                (filteredReports[selectedIndex]?.config as any)?.library_original && (
+                <option value="restore">Restore</option>
+              )}
+            </select>
+
+            {/* Edit — smart button, routes to correct editor */}
+            {canEditReports && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <button
-                onClick={openLibrary}
-                title="Browse form library from Andi/Alice"
+                data-wc="reports-edit-button"
+                onClick={() => enterDesignMode(filteredReports[selectedIndex])}
+                title="Edit report layout"
                 style={{
                   padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
                   fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.accentGreen || t.accent}`,
-                  color: t.accentGreen || t.accent,
+                  background: 'none', border: `1px solid ${t.accent}`,
+                  color: t.accent,
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
               >
-                Library
+                Edit
               </button>
             )}
-            {libraryOpen && (
-              <button
-                onClick={() => { setLibraryOpen(false); setLibraryStatus(''); }}
-                style={{
-                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                  fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.border}`,
-                  color: t.textMuted,
-                }}
-              >
-                Close Library
-              </button>
-            )}
-            {canEditReports && !designMode && !libraryOpen && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
-              <>
-                <button
-                  onClick={() => {
-                    const rpt = filteredReports[selectedIndex];
-                    const hasPdfme = !!(rpt.config as any)?.pdfme_template;
-                    if (hasPdfme) {
-                      setPdfmeReport(rpt);
-                      setPdfmeMode(true);
-                    } else {
-                      enterDesignMode(rpt);
+
+            {/* New Report select */}
+            {canCreateReports && (
+              <select
+                data-wc="reports-new-select"
+                value=""
+                onChange={(e) => {
+                  const outputType = e.target.value;
+                  e.target.value = '';
+                  if (!outputType) return;
+                  saveRecord('report', {
+                    name: `New ${outputType.charAt(0).toUpperCase() + outputType.slice(1)} Report`,
+                    model_name: model,
+                    output_type: outputType,
+                    category: 'report',
+                    sort_order: 99,
+                    config: {},
+                  }).then((res: any) => {
+                    const newId = res?.record?.id || res?.id;
+                    setLoadedModel(''); // refresh list
+                    if (newId) {
+                      window.open(`/report?search=${newId}`, '_blank');
                     }
-                  }}
-                  title={!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template
-                    ? "Open in pdfme PDF Designer"
-                    : "Visual layout designer (or Shift-click a report)"}
-                  style={{
-                    padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                    fontSize: fontSize - 1, fontWeight: 600,
-                    background: 'none',
-                    border: `1px solid ${!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? '#4f46e5' : t.accent}`,
-                    color: !!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? '#4f46e5' : t.accent,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
-                >
-                  {!!(filteredReports[selectedIndex]?.config as any)?.pdfme_template ? 'PDF Design' : 'Design'}
-                </button>
-                {/* Submit selected form to library */}
-                <button
-                  onClick={() => handleSubmitToLibrary(filteredReports[selectedIndex])}
-                  title="Submit this form improvement to the library"
-                  style={{
-                    padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                    fontSize: fontSize - 1, fontWeight: 600,
-                    background: 'none', border: `1px solid ${t.border}`,
-                    color: t.text,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
-                >
-                  Submit
-                </button>
-                {/* Restore to library original */}
-                {(filteredReports[selectedIndex]?.config as any)?.library_original && (
-                  <button
-                    onClick={() => handleRestore(filteredReports[selectedIndex])}
-                    title="Restore to library original"
-                    style={{
-                      padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                      fontSize: fontSize - 1, fontWeight: 600,
-                      background: 'none', border: `1px solid ${t.accentGold || t.border}`,
-                      color: t.accentGold || t.text,
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
-                  >
-                    Restore
-                  </button>
-                )}
-              </>
-            )}
-            {canEditReports && !designMode && !libraryOpen && (
-              <button
-                onClick={() => {
-                  onClose();
-                  window.open(`/setting?search=print_layout+${encodeURIComponent(model)}`, '_blank');
+                  });
                 }}
-                title="Edit the print layout JSON for this model"
                 style={{
                   padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
                   fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.border}`,
-                  color: t.text,
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
-              >
-                Edit Layout
-              </button>
-            )}
-            {canEditReports && !designMode && !libraryOpen && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
-              <button
-                onClick={() => handleSetup(filteredReports[selectedIndex])}
-                style={{
-                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                  fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.border}`,
-                  color: t.text,
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
-              >
-                Report Setup
-              </button>
-            )}
-            {canCreateReports && !designMode && !libraryOpen && (
-              <button
-                onClick={handleNewReport}
-                style={{
-                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                  fontSize: fontSize - 1, fontWeight: 600,
-                  background: t.accent, border: 'none', color: '#fff',
+                  background: t.accent, border: 'none',
+                  color: '#fff', appearance: 'auto',
                 }}
               >
-                New Report
-              </button>
+                <option value="" disabled style={{ color: '#000' }}>New Report</option>
+                <option value="print" style={{ color: '#000' }}>Print</option>
+                <option value="email" style={{ color: '#000' }}>Email</option>
+                <option value="export" style={{ color: '#000' }}>Export</option>
+                <option value="label" style={{ color: '#000' }}>Label</option>
+                <option value="screen" style={{ color: '#000' }}>Screen</option>
+                <option value="api" style={{ color: '#000' }}>API</option>
+              </select>
             )}
           </div>
         </div>

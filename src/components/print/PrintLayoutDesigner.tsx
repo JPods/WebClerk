@@ -1,24 +1,19 @@
 /**
- * PrintLayoutDesigner — visual report layout editor (WC2 pattern).
+ * PrintLayoutDesigner — panel-based visual report layout editor.
  *
  * Three-panel design:
  *   Left:   Model/group selector (top) + Available fields (bottom)
- *   Middle: Used fields grouped by zone (Header / Body-List / Footer)
- *   Right:  Live preview — auto-arranged by Claude/Alice
+ *   Middle: Sections as panels — drag to reorder, drop fields onto panels
+ *   Right:  Live preview via UniversalPrint
  *
- * Interactions:
- *   - Double-click available field → add to default zone (Body/List)
- *   - Drag from available → drop on a zone in middle panel
- *   - Drag within middle panel to reorder
- *   - × to remove a field
- *   - Click zone badge to cycle H → L → F
+ * Panels are PrintLayout section types: company_header, address_blocks,
+ * meta_row, line_items, totals, detail_fields, comments, signature, footer.
+ * Insert pre-built panels from the + menu. Drag fields from left onto panels.
  *
- * Entry: shift-click a report row in ReportsDialog, or Design button.
- *
- * LastChecked: 2026-08-07 | WhereUsed: ReportsDialog | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-10 | WhereUsed: ReportsDialog | WhoCreated: Bill+Claude
  */
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import type { PrintLayout, PrintField } from './printLayoutTypes';
+import type { PrintLayout, PrintLayoutSection, PrintField } from './printLayoutTypes';
 import { generatePrintHtml } from './UniversalPrint';
 import type { ReportRecord } from '../common/ReportsDialog';
 
@@ -46,28 +41,47 @@ interface PrintLayoutDesignerProps {
   onClose: () => void;
 }
 
-type Zone = 'header' | 'body' | 'list' | 'total' | 'footer';
-
-interface UsedField {
+// Report field registry response shape (from /wcapi/report-fields/)
+interface RegistryField {
   field: string;
   label: string;
-  zone: Zone;
-  format?: string;
+  type: string;
+  source: string;
+  group?: string;
 }
 
-const ZONE_LABELS: Record<Zone, string> = {
-  header: 'Header', body: 'Body', list: 'List', total: 'Total', footer: 'Footer',
-};
-const ZONE_COLORS: Record<Zone, string> = {
-  header: '#0e639c', body: '#2e7d32', list: '#c05621', total: '#7b1fa2', footer: '#555',
-};
-const ZONES: Zone[] = ['header', 'body', 'list', 'total', 'footer'];
+interface ReportFieldsResponse {
+  model: string;
+  direct: RegistryField[];
+  related: Record<string, RegistryField[]>;
+  json_paths: RegistryField[];
+  lines: RegistryField[];
+  line_model?: string;
+}
 
 // ---------------------------------------------------------------------------
-// Auto-arrange: convert UsedField[] → PrintLayout
+// Section type metadata
 // ---------------------------------------------------------------------------
 
-function guessFormat(field: string): string {
+const SECTION_META: Record<string, { label: string; color: string; icon: string; hasFields: boolean }> = {
+  company_header:  { label: 'Company Header',  color: '#0e639c', icon: 'H', hasFields: false },
+  address_blocks:  { label: 'Address Blocks',  color: '#0e639c', icon: 'A', hasFields: true },
+  meta_row:        { label: 'Info Row',         color: '#2563eb', icon: 'I', hasFields: true },
+  detail_fields:   { label: 'Detail Fields',    color: '#2e7d32', icon: 'D', hasFields: true },
+  comments:        { label: 'Comments',         color: '#6b7280', icon: 'C', hasFields: false },
+  line_items:      { label: 'Line Items',       color: '#c05621', icon: 'L', hasFields: true },
+  data_table:      { label: 'Data Table',       color: '#c05621', icon: 'T', hasFields: true },
+  totals:          { label: 'Totals',           color: '#7b1fa2', icon: '$', hasFields: true },
+  conditions:      { label: 'Conditions',       color: '#6b7280', icon: 'K', hasFields: false },
+  signature:       { label: 'Signature',        color: '#555',    icon: 'S', hasFields: false },
+  footer:          { label: 'Footer',           color: '#555',    icon: 'F', hasFields: true },
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function guessFormat(field: string): PrintField['format'] {
   if (/price|cost|total|amount|balance|tax|commission|subtotal|shipping|discount/.test(field)) return 'currency';
   if (/dt_|date|created|modified|deadline|completed/.test(field)) return 'date';
   if (/qty|quantity|count|weight|pieces/.test(field)) return 'number';
@@ -97,185 +111,122 @@ function autoLabel(field: string): string {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatTypeLabel(field: string): string {
+function makePrintField(field: string): PrintField {
   const fmt = guessFormat(field);
-  return fmt === 'text' ? 'string' : fmt;
-}
-
-function arrangeLayout(used: UsedField[], model: string, title: string, paper: string): PrintLayout {
-  const headerFields = used.filter(f => f.zone === 'header');
-  const bodyFields = used.filter(f => f.zone === 'body');
-  const listFields = used.filter(f => f.zone === 'list');
-  const totalFields = used.filter(f => f.zone === 'total');
-  const footerFields = used.filter(f => f.zone === 'footer');
-
-  const sections: any[] = [];
-
-  // Company header (always present)
-  sections.push({ type: 'company_header', logo: true, show_address: true, show_contact: true });
-
-  // Header — meta fields (invoice #, date, terms, etc.)
-  if (headerFields.length > 0) {
-    sections.push({
-      type: 'meta_row',
-      fields: headerFields.map(f => ({
-        field: f.field, label: f.label,
-        format: f.format || guessFormat(f.field),
-        align: guessAlign(f.format || guessFormat(f.field)),
-      })),
-    });
-  }
-
-  // Body — detail fields (attention, company, address, phone — non-repeating)
-  if (bodyFields.length > 0) {
-    sections.push({
-      type: 'detail_fields',
-      fields: bodyFields.map(f => ({
-        field: f.field, label: f.label,
-        format: f.format || guessFormat(f.field),
-      })),
-    });
-  }
-
-  // List — repeating line items or data table rows
-  if (listFields.length > 0) {
-    const hasLineItemFields = listFields.some(f =>
-      /^item\.|^quantity\.|^price\.|^cost\./.test(f.field)
-    );
-
-    sections.push({
-      type: hasLineItemFields ? 'line_items' : 'data_table',
-      columns: listFields.map(f => {
-        const fmt = f.format || guessFormat(f.field);
-        return {
-          field: f.field, label: f.label, format: fmt,
-          align: guessAlign(fmt), width: guessWidth(f.field, fmt),
-        };
-      }),
-      ...(hasLineItemFields
-        ? { show_footer_totals: listFields.some(f => guessFormat(f.field) === 'currency') }
-        : { grand_totals: listFields.some(f => guessFormat(f.field) === 'currency') }
-      ),
-    });
-  }
-
-  // Total — grand totals (subtotal, tax, shipping, total, balance)
-  if (totalFields.length > 0) {
-    sections.push({
-      type: 'totals',
-      rows: totalFields.map(f => ({
-        field: f.field, label: f.label,
-        format: f.format || guessFormat(f.field),
-        bold: /total$|balance/.test(f.field),
-      })),
-    });
-  }
-
-  // Footer — page footer
-  if (footerFields.length > 0) {
-    sections.push({
-      type: 'footer',
-      fields: footerFields.map(f => ({
-        field: f.field, label: f.label,
-        format: f.format || guessFormat(f.field),
-      })),
-    });
-  }
-
   return {
-    model,
-    title: title || model.charAt(0).toUpperCase() + model.slice(1),
-    paper: (paper as any) || 'letter',
-    sections,
+    field, label: autoLabel(field), format: fmt,
+    align: guessAlign(fmt), width: guessWidth(field, fmt),
   };
 }
 
-// ---------------------------------------------------------------------------
-// Extract used fields from existing PrintLayout
-// ---------------------------------------------------------------------------
+/** Get field array from a section (fields, columns, or rows depending on type) */
+function getSectionFields(section: PrintLayoutSection): PrintField[] {
+  if ('fields' in section && Array.isArray((section as any).fields)) return (section as any).fields;
+  if ('columns' in section && Array.isArray((section as any).columns)) {
+    // address_blocks has columns[].fields — flatten
+    if (section.type === 'address_blocks') {
+      return (section as any).columns.flatMap((col: any) => col.fields || []);
+    }
+    return (section as any).columns;
+  }
+  if ('rows' in section && Array.isArray((section as any).rows)) return (section as any).rows;
+  return [];
+}
 
-function extractUsedFields(layout: PrintLayout): UsedField[] {
-  const used: UsedField[] = [];
-  for (const section of layout.sections) {
-    if (section.type === 'meta_row' && 'fields' in section) {
-      for (const f of (section as any).fields || []) {
-        used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'header', format: f.format });
-      }
-    }
-    if ((section.type === 'line_items' || section.type === 'data_table') && 'columns' in section) {
-      for (const f of (section as any).columns || []) {
-        used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'list', format: f.format });
-      }
-    }
-    if (section.type === 'detail_fields' && 'fields' in section) {
-      for (const f of (section as any).fields || []) {
-        used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'body', format: f.format });
-      }
-    }
-    if (section.type === 'totals' && 'rows' in section) {
-      for (const f of (section as any).rows || []) {
-        used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'total', format: f.format });
-      }
-    }
-    if (section.type === 'footer' && 'fields' in section) {
-      for (const f of (section as any).fields || []) {
-        used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'footer', format: f.format });
-      }
-    }
-    if (section.type === 'address_blocks' && 'columns' in section) {
-      for (const col of (section as any).columns || []) {
-        for (const f of col.fields || []) {
-          used.push({ field: f.field, label: f.label || autoLabel(f.field), zone: 'header', format: f.format });
-        }
-      }
+/** Set field array back into a section */
+function setSectionFields(section: PrintLayoutSection, fields: PrintField[]): PrintLayoutSection {
+  const s = { ...section } as any;
+  if (section.type === 'meta_row' || section.type === 'detail_fields' || section.type === 'footer') {
+    s.fields = fields;
+  } else if (section.type === 'line_items' || section.type === 'data_table') {
+    s.columns = fields;
+  } else if (section.type === 'totals') {
+    s.rows = fields;
+  } else if (section.type === 'address_blocks') {
+    // For address_blocks, add to last column or create one
+    if (!s.columns?.length) s.columns = [{ title: 'Info', fields }];
+    else {
+      const last = { ...s.columns[s.columns.length - 1] };
+      last.fields = [...(last.fields || []), ...fields];
+      s.columns = [...s.columns.slice(0, -1), last];
     }
   }
-  return used;
+  return s;
 }
 
 // ---------------------------------------------------------------------------
-// Extract available fields from sample data (flatten nested objects)
+// Pre-built panel templates
 // ---------------------------------------------------------------------------
 
-function flattenKeys(obj: any, prefix = ''): string[] {
-  if (!obj || typeof obj !== 'object') return [];
-  const keys: string[] = [];
-  for (const [k, v] of Object.entries(obj)) {
-    if (k.startsWith('_') || k === 'lines') continue;
-    const path = prefix ? `${prefix}.${k}` : k;
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      keys.push(...flattenKeys(v, path));
-    } else {
-      keys.push(path);
-    }
-  }
-  return keys;
-}
-
-const COMMON_FIELDS = [
-  'ida', 'status', 'company', 'attention', 'phone', 'email',
-  'dt_created', 'dt_modified', 'terms', 'price_level',
-  'totals.subtotal', 'totals.tax', 'totals.shipping', 'totals.total',
-  'totals.balance', 'totals.commission',
-  'item.ida_item', 'item.description', 'quantity.active',
-  'price.unit', 'price.extended', 'cost.unit', 'cost.extended',
-  'customer_id', 'rep', 'po_number', 'ship_via',
-];
-
-// ---------------------------------------------------------------------------
-// Group fields by prefix for the model/group selector
-// ---------------------------------------------------------------------------
-
-function groupFields(fields: string[]): Record<string, string[]> {
-  const groups: Record<string, string[]> = {};
-  for (const f of fields) {
-    const dot = f.indexOf('.');
-    const group = dot > 0 ? f.substring(0, dot) : '(record)';
-    if (!groups[group]) groups[group] = [];
-    groups[group].push(f);
-  }
-  return groups;
-}
+const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
+  company_header: () => ({ type: 'company_header', logo: true, show_address: true, show_contact: true }),
+  address_blocks: () => ({
+    type: 'address_blocks',
+    columns: [
+      { title: 'Bill To', fields: [
+        { field: 'attention', label: 'Attn' },
+        { field: 'company', label: 'Company' },
+        { field: 'address_full', label: 'Address' },
+      ]},
+      { title: 'Ship To', fields: [
+        { field: 'config.ship_to.company', label: 'Company' },
+        { field: 'config.ship_to.attention', label: 'Attn' },
+        { field: 'config.ship_to.address1', label: 'Address' },
+      ]},
+      { title: 'Info', fields: [
+        { field: 'ida', label: 'Order #' },
+        { field: 'status', label: 'Status' },
+        { field: 'dt_created', label: 'Date', format: 'date' as const },
+        { field: 'terms', label: 'Terms' },
+      ]},
+    ],
+  }),
+  meta_row: () => ({
+    type: 'meta_row',
+    fields: [
+      { field: 'ida', label: 'ID' },
+      { field: 'status', label: 'Status' },
+      { field: 'dt_created', label: 'Date', format: 'date' as const },
+    ],
+  }),
+  detail_fields: () => ({ type: 'detail_fields', fields: [] }),
+  comments: () => ({ type: 'comments', source: 'comments.public', label: 'Comments' }),
+  line_items: () => ({
+    type: 'line_items',
+    columns: [
+      { field: 'item.ida_item', label: 'Item', align: 'left' as const },
+      { field: 'item.description', label: 'Description', align: 'left' as const, width: '40%' },
+      { field: 'quantity.active', label: 'Qty', align: 'right' as const },
+      { field: 'price.unit', label: 'Unit Price', align: 'right' as const, format: 'currency' as const },
+      { field: 'price.extended', label: 'Extended', align: 'right' as const, format: 'currency' as const },
+    ],
+    show_footer_totals: true,
+  }),
+  data_table: () => ({ type: 'data_table', columns: [], grand_totals: true }),
+  totals: () => ({
+    type: 'totals',
+    rows: [
+      { field: 'totals.subtotal', label: 'Subtotal', format: 'currency' as const },
+      { field: 'totals.tax', label: 'Tax', format: 'currency' as const },
+      { field: 'totals.shipping', label: 'Shipping', format: 'currency' as const },
+      { field: 'totals.total', label: 'Total', format: 'currency' as const, bold: true },
+    ],
+    left_text: 'Thank you for your business.',
+  }),
+  conditions: () => ({ type: 'conditions', source: 'conditions_description' }),
+  signature: () => ({
+    type: 'signature',
+    preamble: 'Authorized by:',
+    blocks: [{ label: 'Signature', lines: ['Signature', 'Date'] }],
+  }),
+  footer: () => ({
+    type: 'footer',
+    fields: [
+      { field: 'ida', label: 'Order #' },
+      { field: 'customer_id', label: 'Customer #' },
+    ],
+  }),
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -286,7 +237,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   theme: t, fontSize, companyInfo, sampleData,
   onSave, onClose,
 }) => {
-  const [used, setUsed] = useState<UsedField[]>(() => extractUsedFields(initialLayout));
+  const [sections, setSections] = useState<PrintLayoutSection[]>(initialLayout.sections || []);
   const [title, setTitle] = useState(initialLayout.title || report.name || '');
   const [paper, setPaper] = useState(initialLayout.paper || 'letter');
   const [dirty, setDirty] = useState(false);
@@ -294,114 +245,132 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   const [statusMsg, setStatusMsg] = useState('');
   const [previewHtml, setPreviewHtml] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ zone: Zone; idx: number } | null>(null);
+  const [selectedSection, setSelectedSection] = useState<number>(0);
+  const [insertMenuOpen, setInsertMenuOpen] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Build available fields from sample data + common fields
-  const allFields = useMemo(() => {
-    const fromData = sampleData ? flattenKeys(sampleData) : [];
-    const combined = new Set([...COMMON_FIELDS, ...fromData]);
-    return [...combined].sort();
-  }, [sampleData]);
+  // Fetch fields from /wcapi/report-fields/ registry
+  const [registry, setRegistry] = useState<ReportFieldsResponse | null>(null);
+  useEffect(() => {
+    if (!model) return;
+    fetch(`/wcapi/report-fields/?model=${encodeURIComponent(model)}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => { if (data && !data.error) setRegistry(data); })
+      .catch(() => {});
+  }, [model]);
 
-  const groups = useMemo(() => groupFields(allFields), [allFields]);
-  const groupNames = useMemo(() => Object.keys(groups).sort((a, b) => {
-    if (a === '(record)') return -1;
-    if (b === '(record)') return 1;
-    return a.localeCompare(b);
-  }), [groups]);
+  // Build field groups from registry
+  const { groups, groupNames } = useMemo(() => {
+    if (!registry) return { groups: {} as Record<string, RegistryField[]>, groupNames: [] as string[] };
+    const grp: Record<string, RegistryField[]> = {};
+    grp[model] = registry.direct;
+    for (const [relName, relFields] of Object.entries(registry.related)) grp[relName] = relFields;
+    for (const f of registry.json_paths) {
+      const g = f.group || 'json';
+      if (!grp[g]) grp[g] = [];
+      grp[g].push(f);
+    }
+    if (registry.lines.length > 0) grp[registry.line_model || 'lines'] = registry.lines;
+    const names = Object.keys(grp).sort((a, b) => a === model ? -1 : b === model ? 1 : a.localeCompare(b));
+    return { groups: grp, groupNames: names };
+  }, [registry, model]);
 
   // Auto-select first group
   useEffect(() => {
     if (!selectedGroup && groupNames.length > 0) setSelectedGroup(groupNames[0]);
   }, [groupNames, selectedGroup]);
 
-  const usedFieldPaths = new Set(used.map(f => f.field));
-  const visibleFields = selectedGroup
-    ? (groups[selectedGroup] || []).filter(f => !usedFieldPaths.has(f))
-    : allFields.filter(f => !usedFieldPaths.has(f));
+  // Collect all used field paths across all sections
+  const usedFieldPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const s of sections) {
+      for (const f of getSectionFields(s)) paths.add(f.field);
+    }
+    return paths;
+  }, [sections]);
 
-  // --- Add field to a zone ---
-  const addField = useCallback((field: string, zone: Zone) => {
-    if (usedFieldPaths.has(field)) return;
-    const fmt = guessFormat(field);
-    setUsed(prev => [...prev, { field, label: autoLabel(field), zone, format: fmt }]);
+  const visibleFields: RegistryField[] = selectedGroup
+    ? (groups[selectedGroup] || []).filter(f => !usedFieldPaths.has(f.field))
+    : [];
+
+  // --- Section operations ---
+  const addSection = useCallback((type: string) => {
+    const template = PANEL_TEMPLATES[type];
+    if (!template) return;
+    setSections(prev => [...prev, template()]);
     setDirty(true);
-  }, [usedFieldPaths]);
+    setInsertMenuOpen(false);
+    setSelectedSection(sections.length); // select newly added
+  }, [sections.length]);
 
-  // --- Remove field ---
-  const removeField = useCallback((idx: number) => {
-    setUsed(prev => prev.filter((_, i) => i !== idx));
+  const removeSection = useCallback((idx: number) => {
+    setSections(prev => prev.filter((_, i) => i !== idx));
     setDirty(true);
-  }, []);
+    if (selectedSection >= idx && selectedSection > 0) setSelectedSection(selectedSection - 1);
+  }, [selectedSection]);
 
-  // --- Change zone ---
-  const changeZone = useCallback((idx: number, zone: Zone) => {
-    setUsed(prev => prev.map((f, i) => i === idx ? { ...f, zone } : f));
-    setDirty(true);
-  }, []);
-
-  // --- Edit label ---
-  const editLabel = useCallback((idx: number, label: string) => {
-    setUsed(prev => prev.map((f, i) => i === idx ? { ...f, label } : f));
-    setDirty(true);
-  }, []);
-
-  // --- Drag reorder within used fields ---
-  const handleDragStart = useCallback((idx: number) => {
-    setDragIdx(idx);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, zone: Zone, zoneIdx: number) => {
-    e.preventDefault();
-    setDropTarget({ zone, idx: zoneIdx });
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent, targetZone: Zone, targetZoneIdx: number) => {
-    e.preventDefault();
-    if (dragIdx === null) return;
-
-    setUsed(prev => {
-      const item = prev[dragIdx];
-      if (!item) return prev;
-
-      // Remove from old position
-      const without = prev.filter((_, i) => i !== dragIdx);
-
-      // Change zone if needed
-      const updated = { ...item, zone: targetZone };
-
-      // Find insertion point: get items in target zone, insert at targetZoneIdx
-      const zoneItems = without.filter(f => f.zone === targetZone);
-      const otherItems = without.filter(f => f.zone !== targetZone);
-      const insertAt = Math.min(targetZoneIdx, zoneItems.length);
-      zoneItems.splice(insertAt, 0, updated);
-
-      // Reconstruct in zone order
-      const result: UsedField[] = [];
-      for (const z of ZONES) {
-        if (z === targetZone) result.push(...zoneItems);
-        else result.push(...otherItems.filter(f => f.zone === z));
-      }
-      return result;
+  const moveSection = useCallback((idx: number, dir: -1 | 1) => {
+    setSections(prev => {
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const arr = [...prev];
+      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+      return arr;
     });
+    setSelectedSection(idx + dir);
     setDirty(true);
-    setDragIdx(null);
-    setDropTarget(null);
-  }, [dragIdx]);
-
-  const handleDragEnd = useCallback(() => {
-    setDragIdx(null);
-    setDropTarget(null);
   }, []);
+
+  // Add field to selected section
+  const addFieldToSection = useCallback((fieldPath: string) => {
+    if (selectedSection < 0 || selectedSection >= sections.length) return;
+    const section = sections[selectedSection];
+    const meta = SECTION_META[section.type];
+    if (!meta?.hasFields) return;
+
+    const pf = makePrintField(fieldPath);
+    setSections(prev => prev.map((s, i) => {
+      if (i !== selectedSection) return s;
+      const existing = getSectionFields(s);
+      return setSectionFields(s, [...existing, pf]);
+    }));
+    setDirty(true);
+  }, [selectedSection, sections]);
+
+  // Remove field from a section
+  const removeFieldFromSection = useCallback((sectionIdx: number, fieldIdx: number) => {
+    setSections(prev => prev.map((s, i) => {
+      if (i !== sectionIdx) return s;
+      const fields = getSectionFields(s).filter((_, fi) => fi !== fieldIdx);
+      return setSectionFields({ ...s } as any, fields);
+    }));
+    setDirty(true);
+  }, []);
+
+  // Edit field label in a section
+  const editFieldLabel = useCallback((sectionIdx: number, fieldIdx: number, label: string) => {
+    setSections(prev => prev.map((s, i) => {
+      if (i !== sectionIdx) return s;
+      const fields = getSectionFields(s).map((f, fi) => fi === fieldIdx ? { ...f, label } : f);
+      return setSectionFields({ ...s } as any, fields);
+    }));
+    setDirty(true);
+  }, []);
+
+  // --- Build layout from sections ---
+  const buildLayout = useCallback((): PrintLayout => ({
+    model,
+    title: title || model.charAt(0).toUpperCase() + model.slice(1),
+    paper: (paper as any) || 'letter',
+    sections,
+  }), [model, title, paper, sections]);
 
   // --- Debounced preview ---
   useEffect(() => {
     if (previewTimer.current) clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(() => {
       try {
-        const layout = arrangeLayout(used, model, title, paper);
+        const layout = buildLayout();
         const data = sampleData || { ida: 'SAMPLE-001', status: 'draft', company: 'Sample Co.' };
         const html = generatePrintHtml(data, companyInfo, layout);
         setPreviewHtml(html);
@@ -410,14 +379,13 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
       }
     }, 300);
     return () => { if (previewTimer.current) clearTimeout(previewTimer.current); };
-  }, [used, title, paper, model, sampleData, companyInfo]);
+  }, [sections, title, paper, model, sampleData, companyInfo, buildLayout]);
 
   // --- Save ---
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const layout = arrangeLayout(used, model, title, paper);
-      onSave(layout);
+      onSave(buildLayout());
       setDirty(false);
       setStatusMsg('Saved');
       setTimeout(() => setStatusMsg(''), 2000);
@@ -426,10 +394,10 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [used, model, title, paper, onSave]);
+  }, [buildLayout, onSave]);
 
-  // --- Styles ---
-  const panelHeader = (label: string, count?: number): React.CSSProperties => ({
+  // --- Style helper ---
+  const panelHeader = (label: string): React.CSSProperties => ({
     padding: '6px 10px', fontSize: fontSize - 2, fontWeight: 700, color: t.textMuted,
     textTransform: 'uppercase', letterSpacing: '0.04em',
     background: t.surface, borderBottom: `1px solid ${t.borderLight}`,
@@ -440,7 +408,6 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-
   return (
     <div data-wc="print-layout-designer" style={{
       display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0,
@@ -451,7 +418,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
         padding: '6px 12px', borderBottom: `1px solid ${t.border}`, background: t.surface,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize, color: t.accent }}>Design</span>
+          <span style={{ fontWeight: 700, fontSize, color: t.accent }}>Edit</span>
           <span style={{ fontSize: fontSize - 2, color: t.textMuted }}>{report.name}</span>
           <span style={{ fontSize: fontSize - 3, color: t.textDim }}>|</span>
           <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
@@ -493,20 +460,20 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
       {/* Body: three panels */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* === LEFT PANEL: Groups + Available Fields === */}
+        {/* === LEFT PANEL: Models + Fields === */}
         <div style={{
-          flex: '0 0 220px', display: 'flex', flexDirection: 'column',
+          flex: '0 0 240px', display: 'flex', flexDirection: 'column',
           background: t.bg, borderRight: `1px solid ${t.border}`,
         }}>
-          {/* Group / model selector */}
+          {/* Model group selector */}
           <div style={{ flex: '0 0 auto', borderBottom: `2px solid ${t.border}` }}>
-            <div style={panelHeader(`Groups`)}>
+            <div style={panelHeader('Groups')}>
               <span>Models</span>
               <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
                 {groupNames.length}
               </span>
             </div>
-            <div style={{ maxHeight: 140, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 160, overflowY: 'auto' }}>
               {groupNames.map(g => (
                 <div key={g}
                   onClick={() => setSelectedGroup(g)}
@@ -517,14 +484,9 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                     borderLeft: selectedGroup === g ? `3px solid ${t.accent}` : '3px solid transparent',
                     color: selectedGroup === g ? t.text : t.textMuted,
                     fontWeight: selectedGroup === g ? 600 : 400,
-                    transition: 'background 0.1s',
                   }}
-                  onMouseEnter={(e) => {
-                    if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt;
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  }}
+                  onMouseEnter={(e) => { if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { if (selectedGroup !== g) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
                   <span>{g}</span>
                   <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
@@ -535,7 +497,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
             </div>
           </div>
 
-          {/* Available fields from selected group */}
+          {/* Available fields */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={panelHeader('Fields')}>
               <span>Fields</span>
@@ -544,197 +506,198 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               </span>
             </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {visibleFields.map(field => {
-                const shortName = field.includes('.') ? field.split('.').pop()! : field;
-                const typeLabel = formatTypeLabel(field);
-                return (
-                  <div key={field}
-                    onDoubleClick={() => addField(field, 'body')}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', field);
-                      e.dataTransfer.effectAllowed = 'copy';
-                    }}
-                    style={{
-                      padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      borderBottom: `1px solid ${t.borderLight}`,
-                      background: 'transparent',
-                      transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  >
-                    <span style={{ flex: 1, color: t.text }}>{shortName}</span>
-                    <span style={{
-                      fontSize: fontSize - 3, color: t.textDim, fontStyle: 'italic',
-                      minWidth: 44, textAlign: 'right',
-                    }}>{typeLabel}</span>
-                  </div>
-                );
-              })}
+              {visibleFields.map(rf => (
+                <div key={rf.field}
+                  onDoubleClick={() => addFieldToSection(rf.field)}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', rf.field);
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
+                  style={{
+                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    borderBottom: `1px solid ${t.borderLight}`,
+                    background: 'transparent',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <span style={{ flex: 1, color: t.text }}>{rf.label}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: fontSize - 4, color: t.textDim }}>{rf.field}</span>
+                  <span style={{ fontSize: fontSize - 4, color: t.textDim, fontStyle: 'italic' }}>{rf.type}</span>
+                </div>
+              ))}
               {visibleFields.length === 0 && (
                 <div style={{ padding: '12px 10px', fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
-                  {selectedGroup ? 'All fields in use' : 'Select a group'}
+                  {selectedGroup ? 'All fields in use' : 'Select a model'}
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* === MIDDLE PANEL: Used fields by zone === */}
+        {/* === MIDDLE PANEL: Sections as panels === */}
         <div style={{
-          flex: '0 0 280px', display: 'flex', flexDirection: 'column',
+          flex: '0 0 340px', display: 'flex', flexDirection: 'column',
           background: t.bg, borderRight: `1px solid ${t.border}`,
         }}>
-          <div style={panelHeader('Used')}>
-            <span>Used ({used.length})</span>
+          <div style={{
+            ...panelHeader('Panels'),
+            gap: 6,
+          }}>
+            <span>Panels ({sections.length})</span>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setInsertMenuOpen(!insertMenuOpen)}
+                style={{
+                  padding: '2px 8px', borderRadius: 3, cursor: 'pointer',
+                  fontSize: fontSize - 2, fontWeight: 700,
+                  background: t.accent, border: 'none', color: '#fff',
+                }}
+              >+ Insert</button>
+              {insertMenuOpen && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, zIndex: 100,
+                  background: t.surface, border: `1px solid ${t.border}`,
+                  borderRadius: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                  minWidth: 180, maxHeight: 300, overflowY: 'auto',
+                }}>
+                  {Object.entries(SECTION_META).map(([type, meta]) => (
+                    <div key={type}
+                      onClick={() => addSection(type)}
+                      style={{
+                        padding: '6px 12px', cursor: 'pointer', fontSize: fontSize - 1,
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        borderBottom: `1px solid ${t.borderLight}`,
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <span style={{
+                        width: 20, height: 20, borderRadius: 3,
+                        background: meta.color, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: fontSize - 3, fontWeight: 700,
+                      }}>{meta.icon}</span>
+                      <span style={{ color: t.text }}>{meta.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {ZONES.map(zone => {
-              const zoneFields = used.map((f, i) => ({ ...f, globalIdx: i })).filter(f => f.zone === zone);
-              const zoneColor = ZONE_COLORS[zone];
+            {sections.map((section, sIdx) => {
+              const meta = SECTION_META[section.type] || { label: section.type, color: '#555', icon: '?', hasFields: false };
+              const isSelected = sIdx === selectedSection;
+              const fields = getSectionFields(section);
+
               return (
-                <div key={zone}
+                <div key={sIdx}
+                  onClick={() => setSelectedSection(sIdx)}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    // Allow drop from available fields
-                    if (dragIdx === null) setDropTarget({ zone, idx: zoneFields.length });
+                    if (meta.hasFields) setSelectedSection(sIdx);
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
                     const fieldName = e.dataTransfer.getData('text/plain');
-                    if (fieldName && !usedFieldPaths.has(fieldName) && dragIdx === null) {
-                      addField(fieldName, zone);
+                    if (fieldName && !usedFieldPaths.has(fieldName) && meta.hasFields) {
+                      setSelectedSection(sIdx);
+                      // Need to add directly since selectedSection update is async
+                      const pf = makePrintField(fieldName);
+                      setSections(prev => prev.map((s, i) => {
+                        if (i !== sIdx) return s;
+                        return setSectionFields(s, [...getSectionFields(s), pf]);
+                      }));
+                      setDirty(true);
                     }
                   }}
+                  style={{
+                    borderBottom: `1px solid ${t.borderLight}`,
+                    borderLeft: isSelected ? `3px solid ${meta.color}` : '3px solid transparent',
+                    background: isSelected ? t.surfaceAlt : 'transparent',
+                    cursor: 'pointer',
+                  }}
                 >
-                  {/* Zone header */}
+                  {/* Panel header */}
                   <div style={{
-                    padding: '5px 10px', fontSize: fontSize - 2, fontWeight: 700,
-                    color: zoneColor, textTransform: 'uppercase',
-                    background: t.surfaceAlt, borderBottom: `1px solid ${t.borderLight}`,
-                    borderTop: `2px solid ${zoneColor}`,
-                    letterSpacing: '0.06em',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6,
+                    borderTop: `2px solid ${meta.color}`,
                   }}>
-                    <span>{ZONE_LABELS[zone]}</span>
-                    <span style={{ fontWeight: 400, fontSize: fontSize - 3 }}>{zoneFields.length}</span>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: 3,
+                      background: meta.color, color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: fontSize - 3, fontWeight: 700, flexShrink: 0,
+                    }}>{meta.icon}</span>
+                    <span style={{ flex: 1, fontSize: fontSize - 1, fontWeight: 600, color: t.text }}>
+                      {meta.label}
+                    </span>
+                    {fields.length > 0 && (
+                      <span style={{ fontSize: fontSize - 3, color: t.textDim }}>{fields.length}</span>
+                    )}
+                    {/* Move up/down */}
+                    <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, -1); }}
+                      style={{ cursor: sIdx > 0 ? 'pointer' : 'default', color: sIdx > 0 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
+                    >▲</span>
+                    <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, 1); }}
+                      style={{ cursor: sIdx < sections.length - 1 ? 'pointer' : 'default', color: sIdx < sections.length - 1 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
+                    >▼</span>
+                    {/* Remove */}
+                    <span onClick={(e) => { e.stopPropagation(); removeSection(sIdx); }}
+                      style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+                    >&times;</span>
                   </div>
 
-                  {/* Zone fields */}
-                  {zoneFields.map((f, zoneIdx) => {
-                    const isDropHere = dropTarget?.zone === zone && dropTarget?.idx === zoneIdx;
-                    return (
-                      <div key={f.field + f.globalIdx}
-                        draggable
-                        onDragStart={() => handleDragStart(f.globalIdx)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={(e) => handleDragOver(e, zone, zoneIdx)}
-                        onDrop={(e) => handleDrop(e, zone, zoneIdx)}
-                        style={{
-                          padding: '3px 6px', cursor: 'grab', fontSize: fontSize - 2,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          borderBottom: `1px solid ${t.borderLight}`,
-                          borderLeft: `3px solid ${zoneColor}`,
-                          borderTop: isDropHere ? `2px solid ${t.accent}` : '2px solid transparent',
-                          background: dragIdx === f.globalIdx ? t.surfaceAlt : 'transparent',
-                          opacity: dragIdx === f.globalIdx ? 0.5 : 1,
-                          transition: 'background 0.1s',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (dragIdx !== f.globalIdx)
-                            (e.currentTarget as HTMLElement).style.background = t.surfaceAlt;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (dragIdx !== f.globalIdx)
-                            (e.currentTarget as HTMLElement).style.background = 'transparent';
-                        }}
-                      >
-                        {/* Drag grip */}
-                        <span style={{ color: t.textDim, fontSize: fontSize - 2, userSelect: 'none', cursor: 'grab' }}>⋮⋮</span>
-
-                        {/* Editable label */}
-                        <input value={f.label}
-                          onChange={(e) => editLabel(f.globalIdx, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
+                  {/* Panel fields — shown when selected */}
+                  {isSelected && meta.hasFields && (
+                    <div style={{ padding: '0 0 4px 0' }}>
+                      {fields.map((f, fIdx) => (
+                        <div key={f.field + fIdx}
                           style={{
-                            flex: 1, background: 'transparent', color: t.text,
-                            border: 'none', borderBottom: `1px solid ${t.borderLight}`,
-                            fontSize: fontSize - 2, padding: '1px 2px', outline: 'none',
-                            minWidth: 40,
-                          }} />
-
-                        {/* Field path (dim) */}
-                        <span style={{ fontFamily: 'monospace', color: t.textDim, fontSize: fontSize - 4 }}>
-                          {f.field}
-                        </span>
-
-                        {/* Zone cycle badge */}
-                        <span onClick={(e) => {
-                          e.stopPropagation();
-                          const nextZone = ZONES[(ZONES.indexOf(zone) + 1) % ZONES.length];
-                          changeZone(f.globalIdx, nextZone);
-                        }} style={{
-                          padding: '1px 4px', borderRadius: 3, fontSize: fontSize - 4,
-                          fontWeight: 700, background: zoneColor, color: '#fff',
-                          cursor: 'pointer', userSelect: 'none',
-                        }} title={`Move to ${ZONE_LABELS[ZONES[(ZONES.indexOf(zone) + 1) % ZONES.length]]}`}>
-                          {zone.charAt(0).toUpperCase()}
-                        </span>
-
-                        {/* Remove */}
-                        <span onClick={(e) => { e.stopPropagation(); removeField(f.globalIdx); }}
-                          style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none', lineHeight: 1 }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
-                        >&times;</span>
-                      </div>
-                    );
-                  })}
-
-                  {/* Empty zone drop target */}
-                  {zoneFields.length === 0 && (
-                    <div
-                      onDragOver={(e) => { e.preventDefault(); setDropTarget({ zone, idx: 0 }); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const fieldName = e.dataTransfer.getData('text/plain');
-                        if (fieldName && !usedFieldPaths.has(fieldName) && dragIdx === null) {
-                          addField(fieldName, zone);
-                        } else if (dragIdx !== null) {
-                          handleDrop(e, zone, 0);
-                        }
-                      }}
-                      style={{
-                        padding: '10px', fontSize: fontSize - 3, color: t.textDim,
-                        textAlign: 'center', fontStyle: 'italic',
-                        borderBottom: `1px solid ${t.borderLight}`,
-                        borderLeft: `3px solid ${zoneColor}`,
-                        background: dropTarget?.zone === zone ? `${zoneColor}11` : 'transparent',
-                        transition: 'background 0.15s',
-                      }}
-                    >
-                      Double-click or drag fields here
+                            padding: '2px 8px 2px 28px', fontSize: fontSize - 2,
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            borderBottom: `1px solid ${t.borderLight}`,
+                          }}
+                        >
+                          <input value={f.label || ''}
+                            onChange={(e) => editFieldLabel(sIdx, fIdx, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              flex: 1, background: 'transparent', color: t.text,
+                              border: 'none', borderBottom: `1px solid ${t.borderLight}`,
+                              fontSize: fontSize - 2, padding: '1px 2px', outline: 'none',
+                              minWidth: 40,
+                            }} />
+                          <span style={{ fontFamily: 'monospace', color: t.textDim, fontSize: fontSize - 4 }}>
+                            {f.field}
+                          </span>
+                          <span onClick={(e) => { e.stopPropagation(); removeFieldFromSection(sIdx, fIdx); }}
+                            style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none' }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+                          >&times;</span>
+                        </div>
+                      ))}
+                      {fields.length === 0 && (
+                        <div style={{ padding: '6px 28px', fontSize: fontSize - 3, color: t.textDim, fontStyle: 'italic' }}>
+                          Double-click or drag fields here
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Bottom drop target for zone */}
-                  {zoneFields.length > 0 && (
-                    <div
-                      onDragOver={(e) => handleDragOver(e, zone, zoneFields.length)}
-                      onDrop={(e) => handleDrop(e, zone, zoneFields.length)}
-                      style={{
-                        height: dropTarget?.zone === zone && dropTarget?.idx === zoneFields.length ? 4 : 2,
-                        background: dropTarget?.zone === zone && dropTarget?.idx === zoneFields.length
-                          ? t.accent : 'transparent',
-                        transition: 'height 0.1s, background 0.1s',
-                      }}
-                    />
                   )}
                 </div>
               );
             })}
+            {sections.length === 0 && (
+              <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center', fontSize: fontSize - 1 }}>
+                Click <strong>+ Insert</strong> to add panels
+              </div>
+            )}
           </div>
         </div>
 
@@ -747,7 +710,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           }}>
             <span>Preview</span>
             <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
-              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'} · Auto-arranged
+              {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
             </span>
           </div>
           <iframe
