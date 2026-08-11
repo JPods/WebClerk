@@ -65,6 +65,7 @@ def default_financial():
 				"tax_exempt": False,
 				"tax_exempt_id": "",
 				"terms_id": None,
+				"statement_interval_days": 30,  # min days between statement sends
 				"notes": "",
 			},
 		},
@@ -118,6 +119,10 @@ def default_financial():
 				"cost_mtd": 0,
 				"cost_ytd": 0,
 				"cost_alltime": 0,
+				"dt_last_statement": None,      # when last statement was sent
+				"dt_last_contact": None,         # when last collection call/email
+				"health_score": "green",         # green/yellow/red
+				"velocity_trend": "stable",      # improving/stable/deteriorating
 			},
 			"minimums": {
 				"order": 0,
