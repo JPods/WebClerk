@@ -86,7 +86,6 @@ MODEL_NAME_MAP: Dict[str, str] = {
     # Accounts
     'audit': 'audit',
     'currency': 'currency',
-    'exchangerate': 'exchange_rate',
     'glaccount': 'gl_account',
     'gljournal': 'gl_journal',
     'ledger': 'ledger',
@@ -146,7 +145,6 @@ URL_MAP: Dict[str, str] = {
     'work_order_line': 'work-order-line',
     'invoice_line': 'invoice-line',
     'proposal_line': 'proposal-line',
-    'exchange_rate': 'exchange-rate',
     'gl_account': 'gl-account',
     'gl_journal': 'gl-journal',
     'tax_jurisdiction': 'tax-jurisdiction',

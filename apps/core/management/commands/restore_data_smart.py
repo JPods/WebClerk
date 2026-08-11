@@ -35,7 +35,6 @@ class Command(BaseCommand):
     LOAD_ORDER = [
         # Model: (app_label, model_name, json_filename)
         ('accounts', 'Currency', 'currency.json'),
-        ('accounts', 'ExchangeRate', 'exchangerate.json'),
         ('core', 'PaymentTerm', 'paymentterm.json'),
         ('core', 'PaymentMethod', 'paymentmethod.json'),
         ('products', 'Warehouse', 'warehouse.json'),
@@ -78,7 +77,6 @@ class Command(BaseCommand):
         
         # Cross-references
         ('core', 'Pending', 'pending.json'),
-        ('accounts', 'ExchangeTransaction', 'exchangetransaction.json'),
     ]
 
     def add_arguments(self, parser):

@@ -380,13 +380,15 @@ class BaseLineCore(BaseModel):
     line_number = models.IntegerField(default=0, db_index=True)
 
     # Line type — controls how this line's extended amount routes in totals.
-    #   product  (default) → adds to subtotal, taxed at header rate
-    #   tax      → adds to tax total (environmental fee, recycling, bottle deposit)
-    #   shipping → adds to shipping total (freight line, handling charge)
-    #   discount → subtracts from subtotal
+    #   product    (default) → adds to subtotal, taxed at header rate
+    #   commission → rep line — invoiced to manufacturer for commission, not to customer
+    #   tax        → adds to tax total (environmental fee, recycling, bottle deposit)
+    #   shipping   → adds to shipping total (freight line, handling charge)
+    #   discount   → subtracts from subtotal
     # No VAT mechanism at this time — US sales tax model only.
     LINE_TYPE_CHOICES = [
         ('product', 'Product'),
+        ('commission', 'Commission'),
         ('tax', 'Tax'),
         ('shipping', 'Shipping'),
         ('discount', 'Discount'),

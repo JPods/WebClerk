@@ -609,3 +609,73 @@ def get_commission_report(
         'total_commission': float(total_commission),
         'total_invoices': total_invoices,
     }
+
+
+# ---------------------------------------------------------------------------
+# Partial-Payment Commission Scaling (wc2 pattern)
+# ---------------------------------------------------------------------------
+
+def scale_commission_on_payment(invoice_id: int) -> dict:
+    """Scale commission proportionally when partial payment is received.
+
+    WC2 insight: if a customer pays 90% of an invoice, the rep earns 90%
+    of the accrued commission. This prevents overpaying reps on invoices
+    that are never fully collected.
+
+    Call this after a payment is applied to an invoice.
+
+    Returns: {invoice_id, payment_fraction, reps: [{rep_id, original, scaled}]}
+    """
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+
+    try:
+        invoice = Invoice.objects.get(pk=invoice_id)
+    except Invoice.DoesNotExist:
+        return {'error': f'Invoice {invoice_id} not found'}
+
+    comm = invoice.commission or {}
+    if not comm.get('reps'):
+        return {'invoice_id': invoice_id, 'payment_fraction': 0, 'reps': []}
+
+    # Calculate payment fraction from ledger
+    ledgers = Ledger.objects.filter(invoice_id=invoice_id)
+    total_original = sum(
+        abs(Decimal(str(l.value_original)))
+        for l in ledgers if l.model_name == 'invoice'
+    )
+    total_paid = sum(
+        abs(Decimal(str(l.value_original)))
+        for l in ledgers if l.model_name == 'payment'
+    )
+
+    if total_original <= 0:
+        return {'invoice_id': invoice_id, 'payment_fraction': 0, 'reps': []}
+
+    payment_fraction = float(min(total_paid / total_original, Decimal('1')))
+
+    # Scale each rep's commission
+    scaled_reps = []
+    for rep in comm.get('reps', []):
+        original = rep.get('amount', 0)
+        scaled = round(original * payment_fraction, 2)
+        rep['amount_scaled'] = scaled
+        rep['payment_fraction'] = payment_fraction
+        scaled_reps.append({
+            'rep_id': rep.get('rep_id'),
+            'name': rep.get('name', ''),
+            'original': original,
+            'scaled': scaled,
+        })
+
+    comm['payment_fraction'] = payment_fraction
+    invoice.commission = comm
+    Invoice.objects.filter(pk=invoice_id).update(
+        commission=comm, dt_modified=_now_ms()
+    )
+
+    return {
+        'invoice_id': invoice_id,
+        'payment_fraction': payment_fraction,
+        'reps': scaled_reps,
+    }

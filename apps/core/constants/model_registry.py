@@ -42,10 +42,9 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # --- accounts --- (A->Z by key)
     'audit': ModelMeta('audit', 'apps.accounts.models.audit.Audit', 'Audit', 'Audits', 'audits', kind='support', aliases=['audits']),
     'currency': ModelMeta('currency', 'apps.accounts.models.currency.Currency', 'Currency', 'Currencies', 'currencies', kind='support', aliases=['currencies']),
-    'exchange_rate': ModelMeta('exchange_rate', 'apps.accounts.models.exchange_rate.ExchangeRate', 'Exchange Rate', 'Exchange Rates', 'exchange-rates', kind='support', aliases=['exchange_rates']),
-    'exchange_transaction': ModelMeta('exchange_transaction', 'apps.accounts.models.exchange_transaction.ExchangeTransaction', 'Exchange Transaction', 'Exchange Transactions', 'exchange-transactions', kind='support', aliases=['exchange_transactions']),
     'gl_account': ModelMeta('gl_account', 'apps.accounts.models.gl_account.GlAccount', 'GL Account', 'GL Accounts', 'gl-accounts', kind='support', aliases=['gl_accounts']),
     'gl_journal': ModelMeta('gl_journal', 'apps.accounts.models.gl_journal.GlJournal', 'GL Journal', 'GL Journals', 'gl-journals', kind='support', aliases=['gl_journals']),
+    'journal_batch': ModelMeta('journal_batch', 'apps.accounts.models.journal_batch.JournalBatch', 'Journal Batch', 'Journal Batches', 'journal-batches', kind='support', aliases=['journal_batches']),
     'ledger': ModelMeta('ledger', 'apps.accounts.models.ledger.Ledger', 'Ledger', 'Ledgers', 'ledgers', kind='support', aliases=['ledgers']),
     'tax_jurisdiction': ModelMeta('tax_jurisdiction', 'apps.accounts.models.tax_jurisdiction.TaxJurisdiction', 'Tax Jurisdiction', 'Tax Jurisdictions', 'tax-jurisdictions', kind='support', aliases=['tax_jurisdictions']),
     'term': ModelMeta('term', 'apps.accounts.models.term.Term', 'Term', 'Terms', 'terms', kind='support', aliases=['terms']),

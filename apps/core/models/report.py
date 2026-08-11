@@ -24,6 +24,7 @@ REPORT_CATEGORY_CHOICES = (
     ("letter", "Letter / Email"),
     ("label", "Label"),
     ("export", "Export"),
+    ("function", "Function"),
     ("utility", "Utility"),
     ("tally", "Tally / Calculation"),
     ("dashboard", "Dashboard widget"),

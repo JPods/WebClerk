@@ -75,6 +75,13 @@ SCHEDULED_TASK_DEFINITIONS: dict[str, dict[str, Any]] = {
         "run_at_hour": 1,
         "run_at_minute": 30,
     },
+    "reconcile_aging": {
+        "task_path": f"{TASK_MODULE_PATH}.task_reconcile_aging",
+        "description": "Recalculate AR aging buckets for all active orgs",
+        "frequency": "daily",
+        "run_at_hour": 2,
+        "run_at_minute": 40,
+    },
 }
 
 
@@ -123,5 +130,13 @@ def build_celery_beat_schedule() -> dict[str, dict[str, Any]]:
             "task": f"{TASK_MODULE_PATH}.task_recompute_basic_stats",
             "schedule": crontab(hour=4, minute=0, day_of_week="sunday"),
             "kwargs": {"limit": 50000, "batch_size": 500},
+        },
+        "reconcile-aging-nightly": {
+            "task": f"{TASK_MODULE_PATH}.task_reconcile_aging",
+            "schedule": crontab(hour=2, minute=40),
+        },
+        "alice-dedup-scan-weekly": {
+            "task": "apps.ai_assistant.tasks.dedup_scan_task",
+            "schedule": crontab(hour=3, minute=30, day_of_week="wednesday"),
         },
     }

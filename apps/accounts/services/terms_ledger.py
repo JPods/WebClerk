@@ -157,11 +157,36 @@ def compute_schedule(invoice_dt: datetime, total: Decimal, term) -> List[Schedul
     days_in_period = getattr(term, 'days_in_period', None) or days_due or 30
     days_discount = getattr(term, 'days_discount', None)
     discount_rate = getattr(term, 'discount_rate', None)
+    day_cut_off_invoice = getattr(term, 'day_cut_off_invoice', None)
+    day_cut_off_due = getattr(term, 'day_cut_off_due', None)
 
     entries: List[ScheduleEntry] = []
 
     if period_count <= 1:
-        due = base_dt + timedelta(days=days_due)
+        if day_cut_off_invoice and day_cut_off_due:
+            # Cut-off day logic (wc2 pattern):
+            # If invoice date is on or before the cut-off day, due on the
+            # cut-off due day of the same month. If after, due on the
+            # cut-off due day of the following month. No grace period.
+            inv_day = base_dt.day
+            inv_year = base_dt.year
+            inv_month = base_dt.month
+            if inv_day <= day_cut_off_invoice:
+                due_month = inv_month
+                due_year = inv_year
+            else:
+                due_month = inv_month + 1
+                due_year = inv_year
+                if due_month > 12:
+                    due_month = 1
+                    due_year += 1
+            # Clamp due day to last day of target month
+            import calendar
+            last_day = calendar.monthrange(due_year, due_month)[1]
+            due_day = min(day_cut_off_due, last_day)
+            due = datetime(due_year, due_month, due_day, tzinfo=base_dt.tzinfo)
+        else:
+            due = base_dt + timedelta(days=days_due)
         disc_due = None
         disc_rate = None
         if days_discount and discount_rate:

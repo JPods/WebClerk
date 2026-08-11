@@ -74,8 +74,6 @@ LAYOUTS = {
     'ledger':           {'list': ['id', 'value_original', 'value_available', 'dt_due', 'is_settled', 'source', 'model_name'], 'detail': ['id', 'value_original', 'value_available', 'source', 'model_name', 'parent_id', 'dt_due', 'dt_discount_due', 'dt_posted', 'dt_settled', 'is_settled', 'is_cleared', 'is_void', 'discount_potential', 'dt_created']},
     'audit':            {'list': ['id', 'name', 'purpose', 'priority', 'rating', 'is_completed', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'priority', 'rating', 'is_completed', 'conflicts', 'changes', 'actions', 'recommendations', 'dt_created', 'dt_modified']},
     'currency':         {'list': ['id', 'code', 'name', 'symbol', 'precision', 'is_active'], 'detail': ['id', 'code', 'name', 'symbol', 'precision', 'is_active', 'dt_created', 'dt_modified']},
-    'exchange_rate':    {'list': ['id', 'ida', 'is_active', 'dt_created'], 'detail': ['id', 'ida', 'is_active', 'dt_created', 'dt_modified']},
-    'exchange_transaction': {'list': ['id', 'ida', 'is_active', 'dt_created'], 'detail': ['id', 'ida', 'is_active', 'dt_created', 'dt_modified']},
     'term':             {'list': ['id', 'name', 'description', 'days_due', 'discount_rate', 'period_count'], 'detail': ['id', 'name', 'description', 'days_due', 'discount_rate', 'days_discount', 'period_count', 'days_in_period', 'day_cut_off_invoice', 'day_cut_off_due', 'approved_by', 'dt_begin', 'dt_created']},
     'tax_jurisdiction': {'list': ['id', 'tax_jurisdiction', 'service_provider', 'tax_rate_sales', 'tax_rate_cost', 'is_active'], 'detail': ['id', 'tax_jurisdiction', 'tax_name', 'service_provider', 'service_id', 'tax_rate_sales', 'tax_rate_cost', 'tax_rate_on_shipping', 'gl_account_payable', 'is_active', 'scripts', 'dt_created']},
 

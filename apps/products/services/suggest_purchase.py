@@ -123,6 +123,83 @@ def get_preferred_vendor(item_id: int) -> Dict[str, Any]:
     return {}
 
 
+def compute_velocity_reorder_point(item_id: int, months: int = 3) -> Optional[Decimal]:
+    """Compute reorder point from lead time × monthly velocity (wc2 pattern).
+
+    Formula: qtyMin = (lead_time_days / 30) × avg_monthly_usage
+
+    Uses the most recent N months of ItemUsage data. Returns None if
+    insufficient data (item needs a static reorder point instead).
+
+    Args:
+        item_id: Item PK
+        months: number of months to average over (default 3)
+
+    Returns:
+        Computed reorder point as Decimal, or None if no usage data.
+    """
+    from django.apps import apps as dj_apps
+    from datetime import datetime, timezone as tz
+
+    Item = dj_apps.get_model('products', 'Item')
+    try:
+        item = Item.objects.get(pk=item_id)
+    except Item.DoesNotExist:
+        return None
+
+    # Get lead time from item record
+    record = item.record if isinstance(item.record, dict) else {}
+    lead_time_days = _safe_decimal(
+        record.get('lead_time_days')
+        or (item.cost or {}).get('lead_time_days')
+        or 30
+    )
+
+    # Get monthly usage from ItemUsage model
+    try:
+        ItemUsage = dj_apps.get_model('products', 'ItemUsage')
+    except LookupError:
+        return None
+
+    now = datetime.now(tz.utc)
+    # Look back N months
+    import calendar
+    cutoff_month = now.month - months
+    cutoff_year = now.year
+    while cutoff_month < 1:
+        cutoff_month += 12
+        cutoff_year -= 1
+
+    usages = ItemUsage.objects.filter(
+        item_id=item_id,
+        is_active=True,
+    ).order_by('-dt_created')[:months]
+
+    if not usages.exists():
+        return None
+
+    # Sum usage quantities
+    total_qty = Decimal('0')
+    count = 0
+    for usage in usages:
+        usage_data = usage.data if isinstance(usage.data, dict) else {}
+        qty = _safe_decimal(
+            usage_data.get('sales_qty')
+            or usage_data.get('quantity_sold')
+            or usage_data.get('qty')
+        )
+        total_qty += qty
+        count += 1
+
+    if count == 0 or total_qty <= 0:
+        return None
+
+    avg_monthly = total_qty / Decimal(str(count))
+    reorder_point = (lead_time_days / Decimal('30')) * avg_monthly
+
+    return reorder_point.quantize(Decimal('1'))
+
+
 def get_items_below_reorder(warehouse_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """Find items where on_hand or available is below the reorder point.
 

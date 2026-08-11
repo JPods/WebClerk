@@ -779,10 +779,10 @@ def task_audit_refs_fk(self, batch_size=200):
 
 
 @shared_task(bind=True, max_retries=1, default_retry_delay=300)
-def task_reconcile_aging(self, batch_size=100):
-    """Nightly aging reconciliation — recalculates aging buckets for all orgs.
+def task_reconcile_aging(self, batch_size=200):
+    """Nightly aging reconciliation — recalculates aging buckets for all active orgs.
 
-    Calls reconcile_financials management command logic.
+    Walks ALL active orgs in batches via pk-cursor pagination.
     Runs at 2:40 AM UTC via Celery beat.
     """
     from apps.accounts.services.ledger_balance import update_org_balances
@@ -790,16 +790,25 @@ def task_reconcile_aging(self, batch_size=100):
     import logging
     logger = logging.getLogger(__name__)
 
-    orgs = OrgBase.objects.filter(is_active=True, is_deleted=False)[:batch_size]
     updated = 0
     errors = 0
-    for org in orgs:
-        try:
-            update_org_balances(org)
-            updated += 1
-        except Exception as e:
-            errors += 1
-            logger.warning("Aging update failed for org #%s: %s", org.pk, e)
+    last_pk = 0
+    while True:
+        batch = list(
+            OrgBase.objects.filter(
+                is_active=True, is_deleted=False, pk__gt=last_pk
+            ).order_by('pk')[:batch_size]
+        )
+        if not batch:
+            break
+        for org in batch:
+            try:
+                update_org_balances(org)
+                updated += 1
+            except Exception as e:
+                errors += 1
+                logger.warning("Aging update failed for org #%s: %s", org.pk, e)
+        last_pk = batch[-1].pk
 
     logger.info("Aging reconciliation: %d orgs updated, %d errors", updated, errors)
     return {'updated': updated, 'errors': errors}

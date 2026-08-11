@@ -130,6 +130,16 @@ Full documentation: `~/Allie/readmes/46-chrome-devtools-mcp.md`
 
 ---
 
+## Alice Services — Business Logic
+
+| Service | Readme | What it does |
+|---------|--------|-------------|
+| **Dedup** | `topics/ai/alice-dedup.md` | Duplicate detection and extraction. Scans orgbase/contact/item, hard deletes dups, bundle files for operator review (indented BOM pattern), Claude escalation for complex cases. Connection: `conn-alice-dedup` (id=52). |
+| **Exchange Rates** | `topics/architecture/exchange-rates.md` | Setting-based currency conversion. All amounts in base currency, rate captured at transaction time, FX gain/loss at settlement. Flowchart: `~/Allie/readmes/flowcharts/wc3-exchange-rates.dot`. |
+| **Commission Invoices** | — | Tradeshow pattern: split order by vendor, manufacturer fulfills, commission invoice after fulfillment. Reports: "Split by Vendor" (id=439), "Commission Invoice" (id=440). Service: `transactions/services/split_by_vendor.py`. |
+
+---
+
 ## All Tool Document Records
 
 Every tool above has a Document record in WC3 with `model_name="tool_reference"`. Search in databrowser:

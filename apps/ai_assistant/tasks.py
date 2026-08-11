@@ -428,9 +428,59 @@ def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool
     results["velocity"] = velocity_task(limit=limit, use_llm=use_llm)
     results["layout_drift"] = layout_drift_task(use_llm=use_llm)
     results["relationships"] = relationship_scan_task()
+    results["dedup"] = dedup_scan_task()
 
     total_duration = (timezone.now() - started).total_seconds()
     results["total_duration_seconds"] = total_duration
     logger.info("Full intelligence run complete in %.1fs", total_duration)
 
     return results
+
+
+# ─── Duplicate Detection ────────────────────────────────────────────────
+
+@shared_task
+def dedup_scan_task(limit_per_model: int = 500, auto_extract: bool = False) -> dict:
+    """Nightly task: scan all models for duplicate records.
+
+    Alice identifies duplicates, serializes them to sync/dedup/pending/,
+    creates Bundle records referencing the retained record, and deactivates
+    duplicates in the database.
+
+    Set auto_extract=True to automatically extract found duplicates.
+    Default is scan-only (creates AliceObservation records for review).
+
+    Args:
+        limit_per_model: max records to scan per model
+        auto_extract: if True, extract high-confidence duplicates automatically
+    """
+    logger.info("Starting dedup scan (limit=%d, auto_extract=%s)", limit_per_model, auto_extract)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.dedup_service import DedupService
+
+    svc = DedupService()
+    scan_results = svc.scan_all(limit_per_model=limit_per_model)
+
+    extracted = 0
+    if auto_extract:
+        for model_name in scan_results:
+            groups = svc.scan_model(model_name, limit=limit_per_model)
+            for group in groups:
+                if group['confidence'] == 'high':
+                    result = svc.extract_duplicates(group)
+                    if not result.get('error'):
+                        extracted += 1
+
+    scan_results['auto_extracted'] = extracted
+
+    duration = (timezone.now() - started).total_seconds()
+    scan_results['duration_seconds'] = duration
+
+    total_groups = sum(v.get('groups_found', 0) for v in scan_results.values() if isinstance(v, dict))
+    total_dups = sum(v.get('total_duplicates', 0) for v in scan_results.values() if isinstance(v, dict))
+    logger.info(
+        "Dedup scan complete: %d groups, %d duplicates, %d auto-extracted in %.1fs",
+        total_groups, total_dups, extracted, duration,
+    )
+    return scan_results

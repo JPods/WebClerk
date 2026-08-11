@@ -171,8 +171,6 @@ LIST_PRIORITIES = {
 
     # Other
     'currency':  ['ida', 'name', 'code', 'is_active'],
-    'exchange_rate': ['ida', 'currency', 'rate', 'dt_created'],
-    'exchange_transaction': ['ida', 'type', 'amount', 'dt_created'],
     'service':   ['ida', 'name', 'type', 'status', 'is_active'],
     'tax_jurisdiction': ['ida', 'name', 'type', 'rate', 'is_active'],
     'template':  ['ida', 'name', 'type', 'is_active'],

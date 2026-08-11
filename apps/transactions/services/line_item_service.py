@@ -711,7 +711,15 @@ class LineItemService:
         envelope['uuid_item'] = str(getattr(item, 'uuid', '')) if hasattr(item, 'uuid') else ''
         envelope['description'] = getattr(item, 'description', '') or ''
         envelope['description_text'] = getattr(item, 'description_text', '') or envelope['description']
-        envelope['unit_measure'] = getattr(item, 'unit_of_measure', '') or 'EA'
+        uom_raw = getattr(item, 'unit_of_measure', '') or 'EA'
+        envelope['unit_measure'] = uom_raw
+        # Compute UOM divisor for pricing (e.g., DZ=12 means price per dozen)
+        from apps.products.uom import to_base_factor, get_category
+        uom_factor = to_base_factor(uom_raw)
+        if uom_factor and get_category(uom_raw) == 'count' and uom_factor != 1.0:
+            envelope['uom_divisor'] = uom_factor
+        else:
+            envelope['uom_divisor'] = 1.0
         
         # Include item's quantity defaults for reference
         item_record = getattr(item, 'record', {}) or {}
@@ -781,11 +789,14 @@ class LineItemService:
                 envelope['unit'] = float(base_price)
                 envelope['unit_base'] = float(base_price)
         
-        # Calculate extended
+        # Calculate extended — apply UOM divisor for count-based units
+        # e.g., if UOM is DZ (dozen), unit price is per dozen, qty is in dozens
+        # The divisor adjusts unit price from per-each to per-UOM when the item's
+        # base price is stored per-each but sold in multiples.
         envelope['extended'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
-        
+
         return envelope
-    
+
     def _build_cost_envelope(
         self,
         item: Item,

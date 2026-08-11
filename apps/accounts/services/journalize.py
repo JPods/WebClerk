@@ -21,11 +21,165 @@ from typing import Optional
 import time
 
 from django.apps import apps as dj_apps
-from django.db import transaction
+from django.db import models, transaction
 
 
 def _now_ms():
     return int(time.time() * 1000)
+
+
+# ---------------------------------------------------------------------------
+# GL Balance Check + ForceToBalance
+# ---------------------------------------------------------------------------
+
+# FX rounding absorption threshold (WC2 GL2 rule: < $2 auto-absorbed)
+FX_ABSORPTION_LIMIT = Decimal('2.00')
+FX_ABSORPTION_ACCOUNT = 'MISC-FXROUNDING-000'
+
+
+def _check_balance(postings: dict, has_exchange_rate: bool = False) -> dict:
+    """Verify journal postings balance to zero.
+
+    Returns:
+        {balanced: bool, residual: Decimal, absorbed: bool, absorption_account: str}
+
+    If the document has a foreign exchange rate and the residual is under
+    FX_ABSORPTION_LIMIT, we auto-absorb the difference into the FX rounding
+    account (WC2 GL2 rule). Otherwise, the journal is flagged as out-of-balance.
+    """
+    total_debit = sum(p['debit'] for p in postings.values())
+    total_credit = sum(p['credit'] for p in postings.values())
+    residual = total_debit - total_credit
+
+    if residual == 0:
+        return {'balanced': True, 'residual': Decimal('0'), 'absorbed': False}
+
+    # FX rounding absorption — only for foreign currency documents
+    if has_exchange_rate and abs(residual) < FX_ABSORPTION_LIMIT:
+        # Add an absorbing line to the postings dict
+        side = 'credit' if residual > 0 else 'debit'
+        if FX_ABSORPTION_ACCOUNT not in postings:
+            postings[FX_ABSORPTION_ACCOUNT] = {
+                'debit': Decimal('0'), 'credit': Decimal('0'),
+                'purpose': 'fx_rounding_absorption',
+            }
+        postings[FX_ABSORPTION_ACCOUNT][side] += abs(residual)
+        return {
+            'balanced': True,
+            'residual': residual,
+            'absorbed': True,
+            'absorption_account': FX_ABSORPTION_ACCOUNT,
+            'absorption_amount': float(abs(residual)),
+        }
+
+    return {'balanced': False, 'residual': residual, 'absorbed': False}
+
+
+def force_to_balance(
+    source_id: int,
+    source_model: str,
+    user_statement: str,
+    forced_by: int = None,
+    adjustment_account: str = '',
+) -> dict:
+    """Force an out-of-balance journal to balance by adding an adjusting line.
+
+    Requires a user statement explaining why (e.g., "rounding error on very
+    low cost item"). The statement is stored in three places:
+      1. GlJournal.note on the adjusting line
+      2. GlJournal.metadata on the adjusting line (full audit record)
+      3. Source transaction metadata.gl_accounts.force_balance[]
+
+    Args:
+        source_id: PK of the source transaction
+        source_model: 'invoice', 'payment', or 'purchase'
+        user_statement: required explanation from user
+        forced_by: contact_id of the user approving the force
+        adjustment_account: GL account for the adjustment (defaults to FX_ABSORPTION_ACCOUNT)
+
+    Returns:
+        {forced: bool, adjustment: {account, amount, side}, error: str}
+    """
+    if not user_statement or len(user_statement.strip()) < 10:
+        return {'forced': False, 'error': 'User statement required (minimum 10 characters)'}
+
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    adj_account = adjustment_account or FX_ABSORPTION_ACCOUNT
+
+    # Get existing journal lines for this source
+    existing = GlJournal.objects.filter(
+        source_id=source_id, source_model=source_model,
+    )
+    if not existing.exists():
+        return {'forced': False, 'error': 'No journal entries found for this source'}
+
+    total_debit = sum(Decimal(str(e.debit or 0)) for e in existing)
+    total_credit = sum(Decimal(str(e.credit or 0)) for e in existing)
+    residual = total_debit - total_credit
+
+    if residual == 0:
+        return {'forced': False, 'error': 'Journal is already balanced'}
+
+    side = 'credit' if residual > 0 else 'debit'
+    amount = abs(residual)
+
+    # Derive batch_id and ida from existing entries
+    first = existing.first()
+    batch_id = first.batch_id or ''
+    ida_base = first.ida.rsplit('-', 1)[0] if first.ida else f'FTB-{source_model}'
+
+    audit_record = {
+        'event': 'force_to_balance',
+        'user_statement': user_statement.strip(),
+        'forced_by': forced_by,
+        'dt': _now_ms(),
+        'residual': float(residual),
+        'adjustment_account': adj_account,
+        'adjustment_amount': float(amount),
+        'adjustment_side': side,
+    }
+
+    with transaction.atomic():
+        GlJournal.objects.create(
+            ida=f'{ida_base}-FTB-{adj_account}',
+            account=adj_account,
+            debit=float(amount) if side == 'debit' else None,
+            credit=float(amount) if side == 'credit' else None,
+            source='manual',
+            type=first.type or 'general',
+            source_id=source_id,
+            source_model=source_model,
+            batch_id=batch_id,
+            note=f'Force-to-balance: {user_statement.strip()[:200]}',
+            metadata=audit_record,
+        )
+
+        # Write audit trail to source transaction
+        model_map = {
+            'invoice': ('transactions', 'Invoice'),
+            'payment': ('transactions', 'Payment'),
+            'purchase': ('transactions', 'Purchase'),
+        }
+        app_model = model_map.get(source_model)
+        if app_model:
+            try:
+                Model = dj_apps.get_model(*app_model)
+                instance = Model.objects.get(pk=source_id)
+                meta = instance.metadata or {}
+                gl_info = meta.setdefault('gl_accounts', {})
+                force_log = gl_info.setdefault('force_balance', [])
+                force_log.append(audit_record)
+                Model.objects.filter(pk=source_id).update(
+                    metadata=meta, dt_modified=_now_ms(),
+                )
+            except Exception:
+                pass  # audit trail failure should not block the adjustment
+
+    return {
+        'forced': True,
+        'adjustment': {'account': adj_account, 'amount': float(amount), 'side': side},
+        'audit': audit_record,
+    }
 
 
 def _get_item_gls(item_id: int) -> dict:
@@ -112,6 +266,14 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     except Invoice.DoesNotExist:
         return {'created': 0, 'error': f'Invoice {invoice_id} not found'}
 
+    # Skip consignment invoices — revenue not yet earned (wc2 pattern).
+    # Any invoice with status 'consigned' is skipped until status changes.
+    # User can compile a list of consigned items and values for tracking.
+    inv_status = getattr(invoice, 'status', '') or ''
+    if inv_status.lower() == 'consigned':
+        return {'created': 0, 'status': 'skipped_consigned',
+                'error': 'Consigned invoice — revenue deferred until status changes'}
+
     # Guard against double-posting
     if GlJournal.objects.filter(source_id=invoice_id, source_model='invoice').exists():
         return {'created': 0, 'error': 'Already journalized'}
@@ -189,11 +351,19 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     if not postings:
         return {'created': 0, 'error': 'No amounts to post'}
 
-    # Verify balance (debits = credits)
-    total_debit = sum(p['debit'] for p in postings.values())
-    total_credit = sum(p['credit'] for p in postings.values())
-    if total_debit != total_credit:
-        return {'created': 0, 'error': f'Out of balance: debit={total_debit} credit={total_credit}', 'postings': []}
+    # Verify balance — with FX rounding absorption for foreign currency
+    pricing = invoice.pricing if isinstance(getattr(invoice, 'pricing', None), dict) else {}
+    has_fx = bool(pricing.get('exchange_rate') and pricing.get('exchange_rate') != 1)
+    balance_check = _check_balance(postings, has_exchange_rate=has_fx)
+    if not balance_check['balanced']:
+        return {
+            'created': 0,
+            'status': 'exception',
+            'error': f'Out of balance: residual={balance_check["residual"]}',
+            'source_id': invoice_id,
+            'source_model': 'invoice',
+            'postings': [],
+        }
 
     # Write GlJournal records
     created = 0
@@ -285,9 +455,27 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
     if GlJournal.objects.filter(source_id=payment_id, source_model='payment').exists():
         return {'created': 0, 'error': 'Already journalized'}
 
+    # H11: Payments on Hold skip GL (WC2 GL_JrnlCash rule)
+    pay_status = (getattr(payment, 'status', '') or '').lower()
+    if pay_status.startswith('hold'):
+        return {'created': 0, 'status': 'skipped_hold', 'error': f'Payment on hold (status={payment.status})'}
+
+    # H10: Zero-amount payments auto-complete without GL (WC2 GL_JrnlCash rule)
+    # Adjusting entries, memo credits — mark as journalized immediately.
     amount = Decimal(str(getattr(payment, 'amount', 0) or 0))
     if amount == 0:
-        return {'created': 0, 'error': 'Zero amount'}
+        meta = payment.metadata or {}
+        meta['gl_accounts'] = {
+            'event': 'payment_journalized',
+            'posted': True,
+            'dt_posted': _now_ms(),
+            'zero_amount': True,
+        }
+        Payment.objects.filter(pk=payment_id).update(
+            metadata=meta, is_locked=True, dt_modified=_now_ms(),
+        )
+        return {'created': 0, 'status': 'auto_completed', 'payment_ida': payment.ida,
+                'message': 'Zero-amount payment auto-completed without GL entry'}
 
     abs_amount = abs(amount)
     is_received = amount > 0  # positive = money in, negative = money out
@@ -439,10 +627,18 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
     if not postings:
         return {'created': 0, 'error': 'No amounts to post'}
 
-    total_debit = sum(p['debit'] for p in postings.values())
-    total_credit = sum(p['credit'] for p in postings.values())
-    if total_debit != total_credit:
-        return {'created': 0, 'error': f'Out of balance: debit={total_debit} credit={total_credit}'}
+    # Verify balance — purchases can have FX too
+    pricing = purchase.pricing if isinstance(getattr(purchase, 'pricing', None), dict) else {}
+    has_fx = bool(pricing.get('exchange_rate') and pricing.get('exchange_rate') != 1)
+    balance_check = _check_balance(postings, has_exchange_rate=has_fx)
+    if not balance_check['balanced']:
+        return {
+            'created': 0,
+            'status': 'exception',
+            'error': f'Out of balance: residual={balance_check["residual"]}',
+            'source_id': purchase_id,
+            'source_model': 'purchase',
+        }
 
     created = 0
     posting_list = []
@@ -491,63 +687,130 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
     return {'created': created, 'postings': posting_list, 'purchase_ida': purchase.ida}
 
 
-def batch_journalize(ida_prefix: str = 'zzz-') -> dict:
+def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     """Journalize all un-journalized invoices, payments, and purchases.
 
     Like wc2's batch journalize — finds all documents without gl_accounts.posted
-    and journals them.
+    and journals them. Creates a JournalBatch header that stores totals,
+    exception count, and processing status (like Order→OrderLine).
 
     Args:
         ida_prefix: prefix for all journal idas (default 'zzz-' for test)
+        run_by_id: contact_id of the user running the batch
 
     Returns:
-        {invoices: [...], payments: [...], purchases: [...], total_created: int}
+        {batch_id: int, batch_ida: str, invoices: [...], payments: [...],
+         purchases: [...], total_created: int, exceptions: [...], skipped: [...]}
     """
     GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    JournalBatch = dj_apps.get_model('accounts', 'JournalBatch')
     Invoice = dj_apps.get_model('transactions', 'Invoice')
     Payment = dj_apps.get_model('transactions', 'Payment')
     Purchase = dj_apps.get_model('transactions', 'Purchase')
 
+    # Create the batch header
+    batch = JournalBatch.objects.create(
+        status=JournalBatch.STATUS_PROCESSING,
+        batch_type='full',
+        dt_started=_now_ms(),
+        run_by_id=run_by_id,
+    )
+    batch_ida = batch.ida
+
     results = {
+        'batch_id': batch.pk,
+        'batch_ida': batch_ida,
         'invoices': [],
         'payments': [],
         'purchases': [],
         'total_created': 0,
-        'errors': [],
+        'exceptions': [],   # out-of-balance — require user action
+        'skipped': [],       # hold, consigned, zero-amount — informational
+        'absorbed': 0,       # FX rounding auto-absorbed
     }
+
+    def _classify(result, doc_type, doc_ida):
+        """Route a journalize result to the right bucket."""
+        status = result.get('status', '')
+        if result.get('created', 0) > 0:
+            results[doc_type].append(result)
+            results['total_created'] += result['created']
+        elif status == 'exception':
+            result['doc_type'] = doc_type
+            result['doc_ida'] = doc_ida
+            results['exceptions'].append(result)
+        elif status in ('skipped_hold', 'skipped_consigned', 'auto_completed'):
+            result['doc_type'] = doc_type
+            result['doc_ida'] = doc_ida
+            results['skipped'].append(result)
+        elif result.get('error') and result['error'] not in (
+            'No lines to journalize', 'Already journalized',
+        ):
+            result['doc_type'] = doc_type
+            result['doc_ida'] = doc_ida
+            results['exceptions'].append(result)
 
     # Find un-journalized invoices (have lines, not yet posted)
     posted_inv_ids = set(GlJournal.objects.filter(source_model='invoice').values_list('source_id', flat=True))
     invoices = Invoice.objects.exclude(pk__in=posted_inv_ids).filter(is_active=True)
     for inv in invoices:
-        result = journalize_invoice(inv.pk, ida_prefix=ida_prefix)
-        if result.get('created', 0) > 0:
-            results['invoices'].append(result)
-            results['total_created'] += result['created']
-        elif result.get('error') and result['error'] != 'No lines to journalize':
-            results['errors'].append(f'Invoice {inv.ida}: {result["error"]}')
+        _classify(journalize_invoice(inv.pk, ida_prefix=ida_prefix), 'invoices', inv.ida)
 
     # Find un-journalized payments
     posted_pay_ids = set(GlJournal.objects.filter(source_model='payment').values_list('source_id', flat=True))
     payments = Payment.objects.exclude(pk__in=posted_pay_ids).filter(is_active=True)
     for pay in payments:
-        result = journalize_payment(pay.pk, ida_prefix=ida_prefix)
-        if result.get('created', 0) > 0:
-            results['payments'].append(result)
-            results['total_created'] += result['created']
-        elif result.get('error') and result['error'] != 'Zero amount':
-            results['errors'].append(f'Payment {pay.ida}: {result["error"]}')
+        _classify(journalize_payment(pay.pk, ida_prefix=ida_prefix), 'payments', pay.ida)
 
     # Find un-journalized purchases
     posted_po_ids = set(GlJournal.objects.filter(source_model='purchase').values_list('source_id', flat=True))
     purchases = Purchase.objects.exclude(pk__in=posted_po_ids).filter(is_active=True)
     for po in purchases:
-        result = journalize_purchase(po.pk, ida_prefix=ida_prefix)
-        if result.get('created', 0) > 0:
-            results['purchases'].append(result)
-            results['total_created'] += result['created']
-        elif result.get('error') and result['error'] != 'No lines to journalize':
-            results['errors'].append(f'Purchase {po.ida}: {result["error"]}')
+        _classify(journalize_purchase(po.pk, ida_prefix=ida_prefix), 'purchases', po.ida)
+
+    # Stamp the GlJournal lines created in this run with the batch ida
+    GlJournal.objects.filter(
+        batch_id='', dt_created__gte=batch.dt_started,
+    ).update(batch_id=batch_ida)
+
+    # Count FX absorptions in this batch
+    absorbed = GlJournal.objects.filter(
+        batch_id=batch_ida, note__startswith='Force-to-balance:',
+    ).count()
+    # Also count auto-absorbed FX lines (purpose = fx_rounding_absorption)
+    # These don't have the Force-to-balance note — they're auto-absorbed
+    absorbed += GlJournal.objects.filter(
+        batch_id=batch_ida, account=FX_ABSORPTION_ACCOUNT,
+    ).count()
+    results['absorbed'] = absorbed
+
+    # Finalize the batch header
+    total_debit = GlJournal.objects.filter(
+        batch_id=batch_ida,
+    ).aggregate(s=models.Sum('debit'))['s'] or 0
+    total_credit = GlJournal.objects.filter(
+        batch_id=batch_ida,
+    ).aggregate(s=models.Sum('credit'))['s'] or 0
+
+    final_status = (
+        JournalBatch.STATUS_HAS_EXCEPTIONS if results['exceptions']
+        else JournalBatch.STATUS_COMPLETE
+    )
+
+    JournalBatch.objects.filter(pk=batch.pk).update(
+        status=final_status,
+        total_debit=total_debit,
+        total_credit=total_credit,
+        count_posted=results['total_created'],
+        count_exceptions=len(results['exceptions']),
+        count_skipped=len(results['skipped']),
+        count_absorbed=absorbed,
+        dt_completed=_now_ms(),
+        metadata={
+            'exceptions': results['exceptions'],
+            'skipped': results['skipped'],
+        },
+    )
 
     return results
 

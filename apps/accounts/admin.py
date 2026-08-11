@@ -1,7 +1,7 @@
 from django.contrib import admin
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
-from .models import Currency, ExchangeRate, ExchangeTransaction, Term, GlAccount
+from .models import Currency, Term, GlAccount
 from .models.ledger import Ledger
 from .models.tax_jurisdiction import TaxJurisdiction
 from .models.gl_journal import GlJournal
@@ -26,21 +26,6 @@ class CurrencyAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Mode
 	list_filter = ("is_active",)
 	search_fields = ("code", "name")
 
-
-@admin.register(ExchangeRate)
-class ExchangeRateAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: currency_base, currency_target, dt_created, dt_end, dt_modified, dt_start, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, precision_convert, precision_display, rate, security_level, uuid, version
-	list_display = ("ida", "name", "currency_base", "currency_target", "dt_end", "dt_start", "is_active", "dt_created")
-	list_filter = ("is_active", "currency_base", "currency_target")
-	search_fields = ("currency_base", "currency_target")
-
-
-@admin.register(ExchangeTransaction)
-class ExchangeTransactionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: currency_base, currency_target, dt_created, dt_end, dt_modified, dt_start, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, precision_convert, precision_display, rate, security_level, uuid, version
-	list_display = ("ida", "name", "currency_base", "currency_target", "dt_end", "dt_start", "is_active", "dt_created")
-	list_filter = ("is_active", "currency_base", "currency_target")
-	search_fields = ("name", "currency_base", "currency_target")
 
 
 @admin.register(Term)
