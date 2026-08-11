@@ -21,6 +21,7 @@ import ReportMenu from '@/components/common/ReportMenu';
 import { useListFieldConfig } from '@/hooks/useListFieldConfig';
 import { getOrgConfig, type OrgTypeConfig, type OrgFieldDef } from '../orgConfig';
 import CommunicationsPanel from './CommunicationsPanel';
+import CustomerHealthCard from '@/components/collections/CustomerHealthCard';
 
 interface OrgPageProps {
   orgType: string;
@@ -390,6 +391,10 @@ export default function OrgPage({ orgType }: OrgPageProps) {
 
               {/* Tab content */}
               {activeTab === 'details' && (
+                <div className="space-y-3">
+                  {orgType === 'customer' && editData.id && (
+                    <CustomerHealthCard customerId={editData.id} />
+                  )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {config.formFields.map((f) => (
                     <div key={f.name}>
@@ -414,6 +419,7 @@ export default function OrgPage({ orgType }: OrgPageProps) {
                       )}
                     </div>
                   ))}
+                </div>
                 </div>
               )}
 

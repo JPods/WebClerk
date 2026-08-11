@@ -14,6 +14,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import apiClient from "../../api/axios";
 import { FaSync, FaExclamationTriangle, FaCheckCircle, FaLock, FaUnlock, FaClock, FaExternalLinkAlt } from "react-icons/fa";
+import CollectionsQueue from "@/components/collections/CollectionsQueue";
 
 type DashboardData = {
   journal_status: {
@@ -212,6 +213,12 @@ export default function AccountingDashboard() {
             )}
           </Card>
         )}
+      </div>
+
+      {/* Collections Queue */}
+      <div className="mt-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-3">Collections</h2>
+        <CollectionsQueue />
       </div>
     </div>
   );
