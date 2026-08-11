@@ -114,7 +114,7 @@ const CollectionsQueue: React.FC = () => {
                       model_name: 'action',
                       data: {
                         name: `Collection: ${c.company} — $${fmt(c.balance_due)} past due`,
-                        category: 'collection',
+                        project_name: 'collection',
                         status: 'open',
                         parent_model: 'customer',
                         parent_id: c.id,
