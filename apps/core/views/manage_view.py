@@ -793,6 +793,14 @@ _ACTION_DISPATCH = {
         'apps.accounts.services.accounting_dashboard',
         fromlist=['get_accounting_dashboard']
     ).get_accounting_dashboard(),
+    "get_collections_dashboard": lambda params: __import__(
+        'apps.accounts.services.collections_dashboard',
+        fromlist=['get_collections_dashboard']
+    ).get_collections_dashboard(),
+    "get_customer_health": lambda params: __import__(
+        'apps.accounts.services.collections_dashboard',
+        fromlist=['get_customer_health']
+    ).get_customer_health(params.get('customer_id')),
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
     "get_tally_summary_by_period": _get_tally_summary_by_period,
