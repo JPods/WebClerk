@@ -20,7 +20,6 @@ import type { AppDispatch } from "@/store";
 const titleMap: Array<{ prefix: string; title: string }> = [
   { prefix: PageRoutes.dashboard, title: 'Dashboard' },
   { prefix: '/kanban', title: 'Kanban Board' },
-  { prefix: '/svar-gantt', title: 'SVAR Gantt' },
   { prefix: '/core/contact', title: 'Contacts' },
   { prefix: '/core/report', title: 'Reports' },
   { prefix: '/core/setting', title: 'Settings' },

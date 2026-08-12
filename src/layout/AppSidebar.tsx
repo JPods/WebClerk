@@ -163,7 +163,6 @@ const AppSidebar: React.FC = () => {
 
   const modelItems = buildItems(modelNames);
   const dashboardItems = buildItems(dashboardNames);
-  console.log('[AppSidebar] dashboardNames:', dashboardNames, 'from prefs:', !!navPrefs?.dashboards);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: string;

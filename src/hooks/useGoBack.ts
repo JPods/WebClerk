@@ -8,7 +8,7 @@ const useGoBack = () => {
     if (window.history.state && window.history.state.idx > 0) {
       navigate(-1); // Go back to the previous page
     } else {
-      navigate("/"); // Redirect to home if no history exists
+      navigate("/dashboard"); // Redirect to dashboard if no history exists
     }
   };
 
