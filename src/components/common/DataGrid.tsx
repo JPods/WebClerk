@@ -18,6 +18,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
+import { formatPhone } from '@/utils/fieldFormatters';
+
+// ---------------------------------------------------------------------------
+// Universal dt formatter — stored GMT epoch ms, displayed local
+// Rule: date-only fields → local date, time fields → local time, default → ISO local
+// Field naming convention: dt_ prefix = datetime, date_ = date-only
+// ---------------------------------------------------------------------------
+
+// Date formatting — uses the single canonical formatter from fieldFormatters
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -692,15 +702,20 @@ export default function DataGrid(props: DataGridProps) {
       return (v >= 1 ? v : v * 100).toFixed(1) + '%';
     }
     if (spec?.format === 'date' && v) {
-      try { return new Date(v).toLocaleDateString(); } catch { return String(v); }
+      return formatDt(v, 'date', field);
+    }
+    if (beh?.type === 'timestamp' || beh?.type === 'datetime' || spec?.format === 'datetime') {
+      return formatDt(v, 'date', field);
+    }
+    if (typeof v === 'number' && /^dt_/.test(field) && v > 1e12) {
+      return formatDt(v, 'date', field);
     }
     if ((spec?.format === 'number' || beh?.type === 'number') && typeof v === 'number') {
       const ndp = beh?.precision ?? 0;
       return v.toLocaleString('en-US', { minimumFractionDigits: ndp, maximumFractionDigits: ndp });
     }
-    if (spec?.format === 'phone' && typeof v === 'string' && v.replace(/\D/g, '').length >= 10) {
-      const d = v.replace(/\D/g, '');
-      return `(${d.slice(-10, -7)}) ${d.slice(-7, -4)}-${d.slice(-4)}`;
+    if ((spec?.format === 'phone' || beh?.type === 'phone' || /^phone/.test(field)) && typeof v === 'string' && v.replace(/\D/g, '').length >= 7) {
+      return formatPhone(v);
     }
     return String(v);
   };

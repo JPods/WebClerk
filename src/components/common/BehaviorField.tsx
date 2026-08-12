@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { openFieldHelp } from './HelpMenu';
 import { getRecords } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 import { JsonTree } from '@/components/widgets/JsonTreeWidget';
 
 // ── Floating JSON editor (split-pane: code left, tree right) ────────
@@ -190,7 +191,7 @@ export default function BehaviorField({
 
   // ── Readonly ──
   if (behType === 'readonly') {
-    const display = (f_startsDt(name) && typeof v === 'number') ? new Date(v).toLocaleString() : String(v ?? '--');
+    const display = (f_startsDt(name) && typeof v === 'number') ? formatDt(v, 'datetime', name) : String(v ?? '--');
     return <div style={wrapStyle} {...wcAttrs}><span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
       <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>{display}</div>
     </div>;
@@ -288,7 +289,7 @@ export default function BehaviorField({
   if (behType === 'timestamp') return <div style={wrapStyle} {...wcAttrs}>
     <span style={labelStyle} title={labelTitle} onClick={handleLabelClick}>{name}</span>
     <div style={{ background: th.surfaceAlt, border: `1px solid ${th.border}`, borderRadius: 4, padding: '4px 8px', fontSize, color: th.textMuted, fontFamily: 'monospace' }}>
-      {v ? new Date(v as number).toLocaleString() : '--'}
+      {formatDt(v, 'datetime', name)}
     </div>
   </div>;
 
