@@ -25,6 +25,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  /** ISO-8601 UTC expiration of the refresh token (from backend) */
+  refreshExpires: string | null;
 }
 
 const readStoredUser = (): User | null => {
@@ -49,6 +51,7 @@ const initialState: AuthState = {
   // Always start loading so AuthInitializer has time to call bootstrapAuth.
   isLoading: true,
   error: null,
+  refreshExpires: null,
 };
 
 const authSlice = createSlice({
@@ -62,6 +65,10 @@ const authSlice = createSlice({
     clearUser(state) {
       state.user = null;
       state.isAuthenticated = false;
+      state.refreshExpires = null;
+    },
+    setRefreshExpires(state, action: PayloadAction<string | null>) {
+      state.refreshExpires = action.payload;
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
@@ -72,5 +79,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, clearUser, setLoading, setAuthError } = authSlice.actions;
+export const { setUser, clearUser, setLoading, setAuthError, setRefreshExpires } = authSlice.actions;
 export default authSlice.reducer;

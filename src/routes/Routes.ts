@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
   export class PageRoutes {
     static readonly productsItemDetail: string = "/products/item/detail/:id";
-  static readonly login: string = "/";
+  static readonly login: string = "/login";
   static readonly register: string = "/register";
   static readonly dashboard: string = "/dashboard";
   static readonly profile: string = "/profile";

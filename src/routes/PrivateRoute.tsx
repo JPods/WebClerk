@@ -71,7 +71,7 @@ const AppLayout: React.FC = () => {
   }
 
   // Redirect if not authenticated (rely on Redux state, not localStorage directly)
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const sidebarWidth = isVisible
     ? (isExpanded || isHovered || isMobileOpen ? 200 : 52)
@@ -133,7 +133,7 @@ const PrivateRoute: React.FC = () => {
   
   // Once loading is done, check authentication
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   return (

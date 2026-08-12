@@ -113,32 +113,92 @@ const SPAWN_CONFIG: Record<string, Array<{ label: string; target: string; filter
     { label: 'Payments', target: 'payment', filterKey: 'invoice__customer_id' },
     { label: 'Serials', target: 'serial', filterKey: 'refs__links__customer_id' },
     { label: 'Actions', target: 'action', filterKey: 'refs__links__contact_id' },
+    { label: 'Touches', target: 'touch', filterKey: 'contact_id' },
     { label: 'Documents', target: 'document', filterKey: 'refs__links__contact_id' },
+  ],
+  action: [
+    { label: 'Touches', target: 'touch', filterKey: 'action_id' },
+    { label: 'Documents', target: 'document', filterKey: 'refs__links__action_id' },
+  ],
+  customer: [
+    { label: 'Contacts', target: 'contact', filterKey: 'customer_id' },
+    { label: 'Orders', target: 'order', filterKey: 'customer_id' },
+    { label: 'Invoices', target: 'invoice', filterKey: 'customer_id' },
+    { label: 'Touches', target: 'touch', filterKey: 'org_id' },
+  ],
+  vendor: [
+    { label: 'Contacts', target: 'contact', filterKey: 'vendor_id' },
+    { label: 'Purchases', target: 'purchase', filterKey: 'vendor_id' },
+    { label: 'Touches', target: 'touch', filterKey: 'org_id' },
   ],
 };
 
 // ── RelatedPanel — embedded list of FK-connected records in detail view ──
 
 // Common FK patterns: model_id, contact_id, or refs__links__model_id
+// FK_PATTERNS: parent_model → { child_model: django_fk_field_name }
+// Audited 2026-08-11 against Django model ForeignKey definitions.
+// The fallback in getFilterKey is `${parentModel}_id` — only entries
+// where the FK field name differs from that convention need to be here.
 const FK_PATTERNS: Record<string, Record<string, string>> = {
   contact: {
     email: 'contact_id', phone: 'contact_id', address: 'contact_id', domain: 'contact_id',
     action: 'refs__links__contact_id', document: 'refs__links__contact_id',
     question_answer: 'refs__links__contact_id',
-    order: 'customer_id', invoice: 'customer_id', payment: 'invoice__customer_id',
+    order: 'contact_id', invoice: 'contact_id', proposal: 'contact_id',
+    purchase: 'contact_id', workorder: 'contact_id', payment: 'contact_id',
   },
-  customer: { order: 'customer_id', invoice: 'customer_id', contact: 'customer_id' },
-  vendor: { purchase: 'vendor_id', contact: 'vendor_id' },
+  // OrgBase proxies — customer/vendor/manufacturer/rep all use orgbase FKs
+  customer: {
+    order: 'customer_id', invoice: 'customer_id', proposal: 'customer_id',
+    purchase: 'customer_id', workorder: 'customer_id', payment: 'customer_id',
+    contact: 'customer_id',
+  },
+  vendor: {
+    purchase: 'vendor_id', invoice: 'vendor_id', order: 'vendor_id',
+    item: 'vendor_id', payment: 'vendor_id', contact: 'vendor_id',
+  },
+  manufacturer: {
+    item: 'manufacturer_id', invoice: 'manufacturer_id', order: 'manufacturer_id',
+    proposal: 'manufacturer_id', purchase: 'manufacturer_id', contact: 'manufacturer_id',
+  },
+  // Transaction parents
   order: { order_line: 'order_id', document: 'refs__links__order_id', action: 'refs__links__order_id' },
-  invoice: { invoice_line: 'invoice_id', payment: 'invoice_id', document: 'refs__links__invoice_id' },
-  purchase: { purchase_line: 'purchase_id', document: 'refs__links__purchase_id' },
-  item: { serial: 'item_id', item_xref: 'item_id', org_item: 'item_id' },
+  invoice: { invoice_line: 'invoice_id', payment: 'invoice_id', ledger: 'invoice_id', document: 'refs__links__invoice_id' },
+  proposal: { proposal_line: 'proposal_id', document: 'refs__links__proposal_id' },
+  purchase: { purchase_line: 'purchase_id', receipt: 'purchase_id', payment: 'purchase_id', document: 'refs__links__purchase_id' },
+  workorder: { workorder_line: 'workorder_id', receipt: 'workorder_id' },
+  receipt: { receipt_line: 'receipt_id' },
+  // Products
+  item: {
+    serial: 'item_id', item_xref: 'item_id', org_item: 'item_id',
+    bill_of_material: 'parent_item', variant: 'item_id', service: 'item_id',
+    specification: 'item_id', catalog_line: 'item_id',
+  },
+  serial: { serial_log: 'serial_id' },
+  catalog: { catalog_line: 'catalog_id', org_item: 'catalog_id' },
+  // Inventory
+  warehouse: { inventory_layer: 'warehouse_id' },
+  payment: { payment_application: 'payment_id' },
 };
 
 function getFilterKey(parentModel: string, relatedModel: string): string {
   return FK_PATTERNS[parentModel]?.[relatedModel] || `${parentModel}_id`;
 }
 
+/**
+ * RelatedPanel — shows FK-linked or refs.links-linked child records.
+ *
+ * Resolution order:
+ *   1. FK_PATTERNS explicit entry → use that field name as filter key
+ *   2. Fallback `${parentModel}_id` → try as FK filter
+ *   3. If FK query returns 0 results → retry with refs.links soft-link
+ *      filter: `refs__links__${parentModel}__contains=[{"id": parentId}]`
+ *
+ * This means any record soft-linked via refs.links will show up even
+ * without a hard FK — e.g., a document linked to a GL entry, an action
+ * linked to an item, a contact linked to an odd event.
+ */
 function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
   modelName: string; parentModel: string; parentId: number;
   fontSize: number; theme: any;
@@ -147,17 +207,40 @@ function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
   const [loading, setLoading] = React.useState(true);
   const [collapsed, setCollapsed] = React.useState(false);
   const [columns, setColumns] = React.useState<string[]>([]);
+  const [linkType, setLinkType] = React.useState<'fk' | 'refs'>('fk');
 
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
+        // 1. Try FK filter first
         const filterKey = getFilterKey(parentModel, modelName);
+        const isRefsFilter = filterKey.startsWith('refs__');
         const params: Record<string, any> = { [filterKey]: parentId, limit: 50 };
         const res = await getRecords(modelName, params) as any;
         if (cancelled) return;
-        const list = res?.results || [];
+        let list = res?.results || [];
+
+        // 2. If FK returned nothing and it wasn't already a refs filter,
+        //    try refs.links soft-link as fallback
+        if (list.length === 0 && !isRefsFilter) {
+          const refsKey = `refs__links__${parentModel}`;
+          const refsParams: Record<string, any> = {
+            [refsKey]: JSON.stringify([{ id: parentId }]),
+            limit: 50,
+          };
+          const refsRes = await getRecords(modelName, refsParams) as any;
+          if (cancelled) return;
+          const refsList = refsRes?.results || [];
+          if (refsList.length > 0) {
+            list = refsList;
+            setLinkType('refs');
+          }
+        } else {
+          setLinkType(isRefsFilter ? 'refs' : 'fk');
+        }
+
         setRecords(list);
         // Auto-detect columns from first record
         if (list.length > 0) {
@@ -188,6 +271,9 @@ function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
           {modelName.replace(/_/g, ' ')}
         </span>
         <span style={{ fontSize: fontSize - 2, color: theme.textMuted }}>({records.length})</span>
+        {linkType === 'refs' && records.length > 0 && (
+          <span style={{ fontSize: fontSize - 3, color: theme.textDim, fontStyle: 'italic' }} title="Linked via refs.links (soft link)">refs</span>
+        )}
         {loading && <span style={{ fontSize: fontSize - 2, color: theme.textDim }}>loading...</span>}
       </div>
       {!collapsed && records.length > 0 && (
@@ -315,6 +401,212 @@ const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = (
         </button>
       ))}
     </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// TouchBar — phone/email/sms action icons for contact-linked records
+// ---------------------------------------------------------------------------
+
+const TOUCH_MODELS = new Set(['action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org']);
+
+const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: any; fontSize: number }> = ({ model, record, recordId, theme: t, fontSize }) => {
+  const [showTouchForm, setShowTouchForm] = useState(false);
+  const [touchChannel, setTouchChannel] = useState<'call' | 'email' | 'text'>('call');
+  const [touchSummary, setTouchSummary] = useState('');
+  const [touchSubject, setTouchSubject] = useState('');
+  const [touchDuration, setTouchDuration] = useState('');
+  const [touchEmailId, setTouchEmailId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const isContact = model === 'contact';
+  const isOrg = ['customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org'].includes(model);
+
+  const contactId = isContact ? recordId : (record.contact_id || 0);
+  const contactPhone = record.phone || '';
+  const contactEmail = record.email || '';
+  const contactName = record.attention || record.display_name || record.name || record.company || record.contact_name || '';
+
+  const orgId = isOrg ? recordId
+    : record.customer_id || record.vendor_id || record.manufacturer_id || 0;
+  const orgModel = isOrg ? model
+    : record.customer_id ? 'customer'
+    : record.vendor_id ? 'vendor'
+    : record.manufacturer_id ? 'manufacturer'
+    : '';
+
+  const handleTouch = (channel: 'call' | 'email' | 'text') => {
+    if (channel === 'call' && contactPhone) {
+      window.open(`tel:${contactPhone}`, '_self');
+    } else if (channel === 'email' && contactEmail) {
+      const subject = encodeURIComponent(
+        typeof record.action === 'object' ? (record.action?.en || '') :
+        String(record.action || record.subject || record.company || '')
+      );
+      window.open(`mailto:${contactEmail}?subject=${subject}`, '_self');
+    } else if (channel === 'text' && contactPhone) {
+      window.open(`sms:${contactPhone}`, '_self');
+    }
+    setTouchChannel(channel);
+    setTouchSubject(
+      typeof record.action === 'object' ? (record.action?.en || '') :
+      String(record.action || record.subject || '')
+    );
+    setTouchSummary('');
+    setTouchDuration('');
+    setTouchEmailId('');
+    setShowTouchForm(true);
+  };
+
+  const handleSaveTouch = async () => {
+    setSaving(true);
+    try {
+      const { saveRecord } = await import('@/api/wcapi');
+      await saveRecord('touch', {
+        contact_id: contactId || null,
+        channel: touchChannel,
+        direction: 'out',
+        subject: touchSubject,
+        summary: touchSummary,
+        duration: touchDuration ? parseInt(touchDuration, 10) : null,
+        email_message_id: touchEmailId,
+        action_id: model === 'action' ? recordId : null,
+        org_id: orgId,
+        org_model: orgModel,
+        project_id: record.project_id || null,
+        logged_by: 0,
+      });
+      setShowTouchForm(false);
+    } catch (err) {
+      console.error('Failed to save touch:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasPhone = !!contactPhone;
+  const hasEmail = !!contactEmail;
+
+  const iconStyle = (color: string): React.CSSProperties => ({
+    cursor: 'pointer', fontSize: fontSize + 4, padding: '4px 8px',
+    borderRadius: 4, border: `1px solid ${t.border}`, background: t.surfaceAlt,
+    color, transition: 'background 0.15s',
+  });
+
+  const openLogTouch = () => {
+    setTouchChannel('call');
+    setTouchSubject(
+      typeof record.action === 'object' ? (record.action?.en || '') :
+      String(record.action || record.subject || '')
+    );
+    setTouchSummary('');
+    setTouchDuration('');
+    setTouchEmailId('');
+    setShowTouchForm(true);
+  };
+
+  return (
+    <>
+      <div className="db-spawn-bar" style={{ gap: 8 }}>
+        <span className="db-spawn-label">Touch:</span>
+        {hasPhone && (
+          <button style={iconStyle(t.accentGreen)} onClick={() => handleTouch('call')}
+            title={`Call ${contactName || contactPhone}`}>
+            &#9742; Call
+          </button>
+        )}
+        {hasEmail && (
+          <button style={iconStyle(t.accent)} onClick={() => handleTouch('email')}
+            title={`Email ${contactName || contactEmail}`}>
+            &#9993; Email
+          </button>
+        )}
+        {hasPhone && (
+          <button style={iconStyle(t.accentGold)} onClick={() => handleTouch('text')}
+            title={`Text ${contactName || contactPhone}`}>
+            &#128172; Text
+          </button>
+        )}
+        <button style={iconStyle(t.textMuted)} onClick={openLogTouch}
+          title="Log a touch (call, email, visit, text, meeting)">
+          &#128221; Log
+        </button>
+      </div>
+
+      {showTouchForm && (
+        <div data-wc="touch-dialog-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowTouchForm(false); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9000,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+          <div data-wc="touch-dialog"
+            style={{
+              background: t.surface, border: `1px solid ${t.border}`,
+              borderRadius: 8, width: 480, maxHeight: '80vh',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+            <div style={{
+              padding: '12px 16px', borderBottom: `1px solid ${t.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: t.accent }}>
+                Log Touch — {touchChannel === 'call' ? '☎ Call' : touchChannel === 'email' ? '✉ Email' : '💬 Text'}
+              </span>
+              <button onClick={() => setShowTouchForm(false)} style={{
+                background: 'none', border: 'none', color: t.textMuted,
+                fontSize: 18, cursor: 'pointer', padding: '0 4px',
+              }}>&times;</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Contact</label>
+                <div style={{ color: t.text, fontSize }}>{contactName || `#${contactId}`} — {touchChannel === 'email' ? contactEmail : contactPhone}</div>
+              </div>
+              <div>
+                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Subject</label>
+                <input className="db-input" value={touchSubject} onChange={(e) => setTouchSubject(e.target.value)}
+                  style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Summary</label>
+                <textarea value={touchSummary} onChange={(e) => setTouchSummary(e.target.value)}
+                  rows={4} placeholder="What happened, what was discussed, next steps..."
+                  style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4, resize: 'vertical' }} />
+              </div>
+              {touchChannel === 'call' && (
+                <div>
+                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Duration (minutes)</label>
+                  <input className="db-input" type="number" value={touchDuration} onChange={(e) => setTouchDuration(e.target.value)}
+                    style={{ width: 100, background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
+                </div>
+              )}
+              {touchChannel === 'email' && (
+                <div>
+                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Email Message ID (paste from email program)</label>
+                  <input className="db-input" value={touchEmailId} onChange={(e) => setTouchEmailId(e.target.value)}
+                    placeholder="<abc123@mail.example.com>"
+                    style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              padding: '12px 16px', borderTop: `1px solid ${t.border}`,
+              display: 'flex', justifyContent: 'flex-end', gap: 8,
+            }}>
+              <button className="db-btn db-btn--small" onClick={() => setShowTouchForm(false)}>Cancel</button>
+              <button className="db-btn db-btn--small db-btn--save" onClick={handleSaveTouch} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Touch'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -693,10 +985,10 @@ function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onTog
 // Component
 // ---------------------------------------------------------------------------
 
-const DataBrowser: React.FC = () => {
+const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
-  const db = useDataBrowser(isAuthenticated);
+  const db = useDataBrowser(isAuthenticated, defaultModel);
 
   // --- Cmd+P print shortcut ---
   useReportShortcuts({
@@ -1416,6 +1708,14 @@ const DataBrowser: React.FC = () => {
         <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
+            {/* Touch bar + spawn links — pinned at top of detail */}
+            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
+              <TouchBar model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} theme={tDetail} fontSize={baseFontSize} />
+            )}
+            {db.selectedRecord && db.selectedId && (
+              <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
+            )}
+
             {/* App mode: render the model's Detail.tsx component inline */}
             {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
               <React.Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Loading...</div>}>
@@ -1512,10 +1812,7 @@ const DataBrowser: React.FC = () => {
               }}
             />
 
-            {/* Spawn links — show related windows for complex records */}
-            {db.selectedRecord && db.selectedId && (
-              <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
-            )}
+            {/* Touch bar + spawn links moved to top of detail body */}
           </div>
         </div>
           );

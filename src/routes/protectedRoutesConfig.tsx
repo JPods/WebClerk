@@ -7,7 +7,6 @@ import {
   CustomerDetailPage,
   CustomerAddPage,
   CustomerEditPage,
-  Home,
   KanbanBoardDataPage,
   KanbanBoardPage,
   NotionTrackerPage,
@@ -24,10 +23,7 @@ import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
-import ProductsDashboard from "../apps/products/pages/ProductsDashboard";
-import TransactionsDashboard from "../apps/transactions/pages/TransactionsDashboard";
-import OrgsDashboard from "../apps/orgs/pages/OrgsDashboard";
-import OperationsDashboard from "../pages/admin/OperationsDashboard";
+import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 // All model-specific detail pages replaced by TransactionDetail / OrgDetailJson / ItemDetailJson
 // Old imports archived to src/archive/replaced-2026-08-03/
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
@@ -43,7 +39,7 @@ import TransactionDetail from "../apps/transactions/components/TransactionDetail
 import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
 
 export const protectedRoutesConfig = [
-  { path: PageRoutes.dashboard, element: <Home /> },
+  { path: PageRoutes.dashboard, element: <DDCardDashboard dashboardName="sales" /> },
   { path: PageRoutes.profile, element: <UserProfiles /> },
 
   // User-facing: Contact
@@ -69,24 +65,24 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
 
   // User-facing: Products — app dashboard, lists via DataBrowser, detail via custom page
-  { path: "/products", element: <ProductsDashboard /> },
+  { path: "/products", element: <DDCardDashboard dashboardName="products" /> },
   { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
   { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
   { path: PageRoutes.productsItemDetail, element: <ItemDetailJson /> },
   { path: "/item/:id", element: <ItemDetailJson /> },
 
   // User-facing: Transactions — app dashboard
-  { path: "/transactions", element: <TransactionsDashboard /> },
+  { path: "/transactions", element: <DDCardDashboard dashboardName="transactions" /> },
 
   // User-facing: Orgs — app dashboard
-  { path: "/orgs", element: <OrgsDashboard /> },
+  { path: "/orgs", element: <DDCardDashboard dashboardName="orgs" /> },
 
   // User-facing: Operations — unified Accounting + Support + Sync
-  { path: "/operations", element: <OperationsDashboard /> },
-  { path: "/administration", element: <OperationsDashboard /> },
+  { path: "/operations", element: <DDCardDashboard dashboardName="operations" /> },
+  { path: "/administration", element: <DDCardDashboard dashboardName="operations" /> },
   { path: "/sync", element: <Navigate to="/operations?tab=sync" replace /> },
   { path: "/support", element: <Navigate to="/operations?tab=support" replace /> },
-  { path: "/accounting", element: <Navigate to="/operations?tab=accounting" replace /> },
+  { path: "/accounting", element: <DDCardDashboard dashboardName="accounting" /> },
 
   // User-facing: Transactions — lists via DataBrowser, details via custom pages
   { path: PageRoutes.transactionsProposalList, element: <Navigate to="/proposal" replace /> },

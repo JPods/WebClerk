@@ -4,27 +4,23 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import PrivateRoute from "./PrivateRoute";
 import { ScrollToTop, Toster } from "../components/wrapper";
-import { SignIn, SignUp, Home, UserProfiles } from "../pages/wrapperPage";
+import { SignIn, SignUp, UserProfiles } from "../pages/wrapperPage";
 import DataBrowser from "../pages/admin/DataBrowser";
 import NotFoundPage from "../pages/NotFoundPage";
+import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 
 const TransactionDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
 const ShoppingCart = React.lazy(() => import("../apps/transactions/components/ShoppingCart"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
-const AccountingDashboard = React.lazy(() => import("../pages/admin/AccountingDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
 const OrgDetailJson = React.lazy(() => import("../apps/orgs/components/OrgDetail.json"));
-const OrgsDashboard = React.lazy(() => import("../apps/orgs/pages/OrgsDashboard"));
-const TransactionsDashboard = React.lazy(() => import("../apps/transactions/pages/TransactionsDashboard"));
 const ItemDetailJson = React.lazy(() => import("../apps/products/pages/ItemDetailJson"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
 const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
 const InventoryAdjust = React.lazy(() => import("../apps/products/pages/InventoryAdjust"));
-const ProductsDashboard = React.lazy(() => import("../apps/products/pages/ProductsDashboard"));
-const OperationsDashboard = React.lazy(() => import("../pages/admin/OperationsDashboard"));
 const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCountMobile"));
 
 // Print pages archived 2026-08-06 — all printing now via pdfme report templates
@@ -56,17 +52,17 @@ const Router: React.FC = () => {
         {/* Protected */}
         <Route element={<PrivateRoute />}>
           <Route index element={<Navigate to="/browser" replace />} />
-          <Route path="dashboard" element={<Home />} />
+          <Route path="dashboard" element={<DDCardDashboard dashboardName="sales" />} />
           <Route path="browser" element={<DataBrowser />} />
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />
           <Route path="help" element={<S><HelpDashboard /></S>} />
-          <Route path="products" element={<S><ProductsDashboard /></S>} />
-          <Route path="orgs" element={<S><OrgsDashboard /></S>} />
-          <Route path="transactions" element={<S><TransactionsDashboard /></S>} />
-          <Route path="operations" element={<S><OperationsDashboard /></S>} />
-          <Route path="administration" element={<S><OperationsDashboard /></S>} />
-          <Route path="accounting" element={<S><AccountingDashboard /></S>} />
+          <Route path="products" element={<DDCardDashboard dashboardName="products" />} />
+          <Route path="orgs" element={<DDCardDashboard dashboardName="orgs" />} />
+          <Route path="transactions" element={<DDCardDashboard dashboardName="transactions" />} />
+          <Route path="operations" element={<DDCardDashboard dashboardName="operations" />} />
+          <Route path="administration" element={<DDCardDashboard dashboardName="operations" />} />
+          <Route path="accounting" element={<DDCardDashboard dashboardName="accounting" />} />
           <Route path="inventory-dashboard" element={<S><InventoryDashboard /></S>} />
           <Route path="inventory-adjust" element={<S><InventoryAdjust /></S>} />
           <Route path="cycle-count" element={<S><CycleCountMobile /></S>} />

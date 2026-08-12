@@ -1,5 +1,5 @@
 /* LastChecked: 2026-08-04 | WhereUsed: Main layout top bar | WhoCreated: Unknown */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 
 /** Detail view preference — "app" = .tsx pages, "admin" = DataBrowser detail */
 export function getDetailViewPref(): 'app' | 'admin' {
@@ -34,6 +34,23 @@ export default function MacTopBar({ activePath }: Props) {
   const [detailView, setDetailView] = useState<'app' | 'admin'>(() => getDetailViewPref());
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
+  const refreshExpires = useAppSelector((state) => state.auth.refreshExpires);
+
+  const sessionWarning = useMemo(() => {
+    if (!refreshExpires) return null;
+    const exp = new Date(refreshExpires).getTime();
+    const now = Date.now();
+    const daysLeft = (exp - now) / (1000 * 60 * 60 * 24);
+    if (daysLeft > 3 || daysLeft < 0) return null;
+    const label = daysLeft < 1
+      ? `${Math.max(0, Math.round(daysLeft * 24))}h`
+      : `${Math.round(daysLeft)}d`;
+    return label;
+  }, [refreshExpires]);
+
+  const handleReauth = useCallback(() => {
+    navigate("/login");
+  }, [navigate]);
 
   return (
     <div className="sticky top-0 z-200 flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 text-sm text-slate-900 backdrop-blur" style={{ height: 40 }} data-zone="TopBar | .sticky.top-0 | MacTopBar.tsx">
@@ -52,6 +69,16 @@ export default function MacTopBar({ activePath }: Props) {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
             Syncing
           </span>
+        )}
+        {sessionWarning && (
+          <button
+            onClick={handleReauth}
+            className="flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-medium text-amber-800 hover:bg-amber-200 transition"
+            title="Your session expires soon. Click to sign in again."
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Session expires in {sessionWarning}
+          </button>
         )}
       </div>
 
@@ -177,7 +204,7 @@ export default function MacTopBar({ activePath }: Props) {
               try { await logoutRequest(); } catch {}
               clearTokens();
               dispatch(clearUser());
-              navigate("/");
+              navigate("/login");
               setLoggingOut(false);
             }}
             title="Sign out"

@@ -212,7 +212,7 @@ export const PAGE_SIZE = 50;
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useDataBrowser(isAuthenticated: boolean) {
+export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ model?: string }>();
   const navigate = useNavigate();
@@ -326,7 +326,7 @@ export function useDataBrowser(isAuthenticated: boolean) {
   const ROUTE_PATHS = new Set(['databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'report-designer', 'model-workbench']);
   const rawPathname = window.location.pathname.split('/').filter(Boolean)[0] || '';
   const pathnameModel = ROUTE_PATHS.has(rawPathname) ? '' : rawPathname;
-  const modelParam = routeParams.model || searchParams.get('model') || pathnameModel;
+  const modelParam = routeParams.model || searchParams.get('model') || pathnameModel || defaultModel || '';
 
   const modelLabel = useMemo(() => {
     if (!selectedModel) return 'Select model';

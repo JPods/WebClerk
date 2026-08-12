@@ -3,7 +3,6 @@
 import NotFound from "./NotFoundPage";
 import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
-import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 
 // Orgs — now use OrgDetailJson (lists via DataBrowser)
@@ -27,7 +26,6 @@ export {
   SignIn,
   SignUp,
   NotFound,
-  Home,
   UserProfiles,
   CustomerDetailPage,
   CustomerAddPage,

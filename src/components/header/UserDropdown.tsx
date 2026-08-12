@@ -28,7 +28,7 @@ export default function UserDropdown() {
     clearTokens();
     if (typeof localStorage !== "undefined") localStorage.removeItem("userProfile");
     dispatch(clearUser());
-    navigate("/");
+    navigate("/login");
   };
 
   const displayName = user ? `${user.name_first}${user.name_last}` : "User";

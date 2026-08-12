@@ -2,7 +2,7 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
-import { clearUser } from "../store/slices/authSlice";
+import { clearUser, setRefreshExpires } from "../store/slices/authSlice";
 import { convertRestToWcapi, isWcapiPath } from "./restToWcapi";
 import {
   onRequestStart,
@@ -357,6 +357,11 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
             throw new Error("Invalid refresh response: missing access token");
 
           accessToken = newToken;
+          // Store refresh token expiration for frontend warning banner
+          const refreshExp = body?.data?.refresh_expires ?? body?.refresh_expires ?? null;
+          if (refreshExp) {
+            try { store.dispatch(setRefreshExpires(refreshExp)); } catch {}
+          }
           processQueue(newToken);
           originalRequest.headers = originalRequest.headers ?? {};
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -476,6 +481,11 @@ export const bootstrapAuth = async (): Promise<string | null> => {
       : null;
     if (token) {
       accessToken = token;
+      // Store refresh expiration for warning banner
+      const refreshExp = body?.data?.refresh_expires ?? body?.refresh_expires ?? null;
+      if (refreshExp) {
+        try { store.dispatch(setRefreshExpires(refreshExp)); } catch {}
+      }
     }
     return token;
   } catch {
