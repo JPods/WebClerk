@@ -2,7 +2,8 @@
 import React from "react";
 import { useAppSelector } from '@/store/hooks';
 import FieldLabel from "../components/FieldLabel";
-import { Input, DropDown } from "../../../components/wrapper";
+import { Input } from "../../../components/wrapper";
+import Select from "@/components/form/Select";
 import CustomerSalesPanel, { type CustomerSelectionData, type OrgLinkSnapshot } from "./CustomerSalesPanel";
 import InternationalPhoneInput from "@/components/form/input/InternationalPhoneInput";
 
@@ -32,6 +33,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
 };
 import { FaLock, FaShoppingCart, FaMoneyBillWave, FaUser } from "react-icons/fa";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface SummaryCardProps {
   data: any;
@@ -185,7 +187,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
-                  {data.dt ? new Date(data.dt).toLocaleDateString() : "--"}
+                  {data.dt ? formatDt(data.dt, 'date', 'dt') : "--"}
                 </dd>
               )}
             </div>
@@ -209,7 +211,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               ) : (
                 <dd className="text-slate-900 dark:text-white">
                   {data.due_date
-                    ? new Date(data.due_date).toLocaleDateString()
+                    ? formatDt(data.due_date, 'date', 'due_date')
                     : "--"}
                 </dd>
               )}
@@ -278,14 +280,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <DropDown
-                  id="purpose"
+                <Select
                   options={priceLable}
                   placeholder="Select Price Level"
                   value={data.price_level ?? ""}
                   onChange={(value: string) => onChange("price_level", value)}
                   className="dark:bg-dark-900"
-                  disabled={!isEditing}
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -381,14 +381,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <DropDown
-                  id="status"
+                <Select
                   options={statusOptions}
                   placeholder="Select Status"
                   value={data.status ?? "planned"}
                   onChange={(value: string) => onChange("status", value)}
                   className="dark:bg-dark-900"
-                  disabled={!isEditing}
                 />
               ) : (
                 <dd>
