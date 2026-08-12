@@ -7,7 +7,6 @@ import TextArea from "./form/input/TextArea";
 import CustTextArea from "./form/input/CustTextArea";
 import Select from "./form/Select";
 import DropDown from "./form/input/DropDown";
-import PhoneInput from "./form/group-input/PhoneInput";
 import InternationalPhoneInput from "./form/input/InternationalPhoneInput";
 
 export {
@@ -16,7 +15,6 @@ export {
   ModalForm,
   Input,
   Select,
-  PhoneInput,
   InternationalPhoneInput,
   TextArea,
   CustTextArea,

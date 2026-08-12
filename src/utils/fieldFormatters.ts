@@ -1,13 +1,67 @@
 /**
- * fieldFormatters.ts — Client-side normalize + format for phone, zip, email.
+ * fieldFormatters.ts — Single source of truth for all field display formatting.
  *
- * Storage: canonical form (digits only for phone/zip, lowercase for email).
- * Display: formatted per locale/nation.
+ * Master function: formatField(value, type, field?) → string
+ * Individual formatters: formatDt, formatPhone, formatAddress, etc.
+ *
+ * Storage: canonical form (epoch ms for dates, digits for phone/zip, lowercase email).
+ * Display: user's local timezone for dates, national format for phone/address.
  * Input: accept anything, normalize on blur, show formatted result.
  *
- * These mirror the server-side normalizers in core/services/phone_normalizer.py.
- * The server is authoritative; the client provides instant feedback.
+ * The server-side normalizers are authoritative; client provides instant feedback.
  */
+
+// ── Master formatter — single entry point for all field display ──────
+// Users call formatField(value, type) and get the right format back.
+// No need to know which individual formatter to use.
+
+export type FieldType =
+  | 'text' | 'number' | 'currency' | 'percent'
+  | 'date' | 'datetime' | 'timestamp'
+  | 'phone' | 'email' | 'zip' | 'address'
+  | 'boolean' | 'json';
+
+export function formatField(value: unknown, type: FieldType, field?: string): string {
+  if (value == null || value === '') return '—';
+
+  switch (type) {
+    case 'date':
+      return formatDt(value, 'date', field);
+    case 'datetime':
+    case 'timestamp':
+      return formatDt(value, 'datetime', field);
+    case 'phone':
+      return formatPhone(String(value));
+    case 'email':
+      return formatEmail(String(value));
+    case 'zip':
+      return formatZip(String(value));
+    case 'currency': {
+      const n = Number(value);
+      if (isNaN(n)) return String(value);
+      return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    case 'percent': {
+      const n = Number(value);
+      if (isNaN(n)) return String(value);
+      return (n >= 1 ? n : n * 100).toFixed(1) + '%';
+    }
+    case 'number': {
+      const n = Number(value);
+      if (isNaN(n)) return String(value);
+      return n.toLocaleString();
+    }
+    case 'boolean':
+      return value ? 'Yes' : 'No';
+    case 'json':
+      return typeof value === 'string' ? value : JSON.stringify(value).slice(0, 100);
+    case 'address':
+      return typeof value === 'object' ? formatAddress(value as AddressComponents) : String(value);
+    case 'text':
+    default:
+      return String(value);
+  }
+}
 
 // ── Home country — user preference for phone/zip display ─────────────
 // Set once at app startup from bootstrap or user prefs.
