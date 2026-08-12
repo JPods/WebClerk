@@ -106,7 +106,17 @@ class CookieTokenRefreshView(APIView):
                 clear_refresh_cookie(resp)
                 return resp
 
-            resp = api_response(data={"access": access_token}, message="token refreshed")
+            # Include refresh token expiration so the frontend can warn
+            # the user before they lose their session unexpectedly.
+            import datetime
+            refresh_exp = datetime.datetime.fromtimestamp(
+                new_refresh.payload["exp"], tz=datetime.timezone.utc
+            ).isoformat()
+
+            resp = api_response(
+                data={"access": access_token, "refresh_expires": refresh_exp},
+                message="token refreshed",
+            )
             set_refresh_cookie(resp, str(new_refresh))
             return resp
 
