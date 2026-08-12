@@ -793,6 +793,57 @@ _ACTION_DISPATCH = {
         'apps.accounts.services.accounting_dashboard',
         fromlist=['get_accounting_dashboard']
     ).get_accounting_dashboard(),
+    "get_journal_exceptions": lambda params: __import__(
+        'apps.accounts.services.accounting_dashboard',
+        fromlist=['get_journal_exceptions']
+    ).get_journal_exceptions(
+        year=int(params['year']) if params.get('year') else None,
+        month=int(params['month']) if params.get('month') else None,
+    ),
+    "force_to_balance": lambda params: __import__(
+        'apps.accounts.services.journalize',
+        fromlist=['force_to_balance']
+    ).force_to_balance(
+        source_id=int(params['source_id']),
+        source_model=params['source_model'],
+        user_statement=params['user_statement'],
+        forced_by=int(params['forced_by']) if params.get('forced_by') else None,
+        adjustment_account=params.get('adjustment_account', ''),
+    ),
+    "get_sales_pipeline": lambda params: __import__(
+        'apps.transactions.services.sales_pipeline',
+        fromlist=['get_sales_pipeline']
+    ).get_sales_pipeline(
+        year=int(params['year']) if params.get('year') else None,
+        month=int(params['month']) if params.get('month') else None,
+        months=int(params.get('months', 1)),
+        customer_id=int(params['customer_id']) if params.get('customer_id') else None,
+    ),
+    "get_cash_conversion": lambda params: __import__(
+        'apps.accounts.services.cash_conversion',
+        fromlist=['get_cash_conversion']
+    ).get_cash_conversion(
+        year=int(params['year']) if params.get('year') else None,
+        month=int(params['month']) if params.get('month') else None,
+    ),
+    "get_inventory_velocity": lambda params: __import__(
+        'apps.products.services.inventory_velocity',
+        fromlist=['get_inventory_velocity']
+    ).get_inventory_velocity(
+        year=int(params['year']) if params.get('year') else None,
+        month=int(params['month']) if params.get('month') else None,
+        category=params.get('category'),
+    ),
+    "get_item_flight_state": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_item_flight_state']
+    ).get_item_flight_state(
+        item_id=int(params['item_id']),
+    ),
+    "get_flight_scenario": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_flight_scenario']
+    ).get_flight_scenario(),
     "get_collections_dashboard": lambda params: __import__(
         'apps.accounts.services.collections_dashboard',
         fromlist=['get_collections_dashboard']
@@ -951,6 +1002,20 @@ _ACTION_DISPATCH = {
     # ── Report Parade (Alice onboarding) ──
     "start_parade": lambda p: __import__('apps.core.services.parade_of_reports', fromlist=['build_parade_manifest']).build_parade_manifest(p.get('report_ids'), p.get('base_url', 'http://localhost:8000')),
     "save_parade_feedback": lambda p: __import__('apps.core.services.parade_of_reports', fromlist=['save_parade_feedback']).save_parade_feedback(p['report_id'], p['feedback'], p.get('notes', ''), p.get('user_id')),
+    # ── CodeMap Architecture API ──
+    "get_architecture_node": lambda p: __import__('apps.core.services.architecture', fromlist=['get_architecture_node']).get_architecture_node(p),
+    "get_architecture_map": lambda p: __import__('apps.core.services.architecture', fromlist=['get_architecture_map']).get_architecture_map(p),
+    "get_architecture_svg": lambda p: __import__('apps.core.services.architecture', fromlist=['get_architecture_svg']).get_architecture_svg(p),
+    "list_architecture_flowcharts": lambda p: __import__('apps.core.services.architecture', fromlist=['list_architecture_flowcharts']).list_architecture_flowcharts(p),
+    # ── Address formatting/validation ──
+    "format_address": lambda p: __import__('apps.core.services.address_formatter', fromlist=['format_address_full']).format_address_full(**p),
+    "validate_address": lambda p: __import__('apps.core.services.address_formatter', fromlist=['validate_and_format']).validate_and_format(type('Addr', (), p)()),
+    # ── Commerce Dashboard ──
+    "get_sales_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_sales_dashboard']).get_sales_dashboard(p),
+    "get_purchasing_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_purchasing_dashboard']).get_purchasing_dashboard(p),
+    "get_inventory_summary": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_inventory_summary']).get_inventory_summary(p),
+    "get_velocity_report": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_velocity_report']).get_velocity_report(p),
+    "get_accounting_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_accounting_dashboard']).get_accounting_dashboard(p),
 }
 
 # Actions that require staff/superuser — commission data is internal-only

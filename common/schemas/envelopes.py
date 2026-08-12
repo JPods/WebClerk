@@ -346,12 +346,36 @@ class ActionsBase(BaseModel):
 # ConfigBase — model-specific structural data
 # ═══════════════════════════════════════════════════════════════════════
 
+class ImagePaths(BaseModel):
+    """Standardized image paths for any record.
+
+    Alice writes config.images once after first resolution — no re-probing.
+    source = 'local' | 'remote:SupplierName' | 'placeholder'
+
+    Standard sizes (all PNG, width adapts to height):
+      tn.png      — 90x90 max (most 48x48), lists/cards
+      display.png — 800x600 max, detail pages
+      hires.png   — original resolution, print/zoom
+
+    Naming: {ida}/tn.png, {ida}/display.png, {ida}/hires.png
+    """
+    source: str = ''                          # local, remote:Name, placeholder
+    tn: bool = False                          # thumbnail exists
+    display: bool = False                     # display size exists
+    hires: bool = False                       # high-res exists
+
+    class Config:
+        extra = 'forbid'
+
+
 class ConfigBase(BaseModel):
     """Base config — models with no specific config fields inherit this.
 
     Default: extra = 'forbid'. Models that need flexibility override
     with their own Config class. This forces deliberate schema decisions.
     """
+    images: Optional[ImagePaths] = None
+
     class Config:
         extra = 'forbid'
 

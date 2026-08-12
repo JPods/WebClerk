@@ -26,6 +26,7 @@ from apps.core.views.bootstrap_view import BootstrapView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
 from apps.core.views.refs_mismatch_view import RefsMismatchView
 from apps.core.views.permissions import UserPermissionsView, ModelPermissionsView
+from apps.core.views.image_view import ImageView
 from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsView
 from apps.core.views.sample_data_view import SampleDataView
 from apps.core.views.parade_preview_view import ParadePreviewView
@@ -86,4 +87,6 @@ urlpatterns = [
     # RBAC Permissions
     path("wcapi/permissions/", UserPermissionsView.as_view(), name="wcapi-permissions"),
     path("wcapi/permissions/<str:model_name>/", ModelPermissionsView.as_view(), name="wcapi-permissions-model"),
+    # Image library — Alice's resolution pipeline
+    path("wcapi/image/<str:model_name>/<str:ida>/<str:size>", ImageView.as_view(), name="wcapi-image"),
 ]
