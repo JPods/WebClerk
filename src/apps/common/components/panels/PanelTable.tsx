@@ -2,7 +2,7 @@
 /**
  * PanelTable — shared tabular layout for panels with column headers,
  * visibility / order persistence, and a "Columns" badge that opens
- * ColumnSetupDialog.
+ * FieldOrderDialog via useListFieldConfig.
  *
  * Usage:
  *   <PanelTable
@@ -13,11 +13,10 @@
  *     onRowAction={(r) => handleOpen(r)}
  *   />
  */
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { FaSlidersH } from "react-icons/fa";
-import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
-import { useColumnSetups } from "@/hooks/useColumnSetups";
-import type { ColumnSetupEntry } from "@/hooks/useColumnSetups";
+import FieldOrderDialog from "@/components/common/FieldOrderDialog";
+import { useListFieldConfig } from "@/hooks/useListFieldConfig";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,6 +48,10 @@ export interface PanelTableProps<T = Record<string, unknown>> {
   onRowAction?: (record: T) => void;
   /** Compact padding */
   compact?: boolean;
+  /** Currently selected row key */
+  selectedKey?: string | number | null;
+  /** Called when a row is clicked */
+  onSelectRow?: (record: T) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -60,57 +63,24 @@ export function PanelTable<T extends Record<string, unknown>>({
   rowKey,
   onRowAction,
   compact = false,
+  selectedKey = null,
+  onSelectRow,
 }: PanelTableProps<T>) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const columnSetups = useColumnSetups(storageKey);
-
-  // Build default config from column definitions
-  const defaultConfig = useMemo<ColumnSetupEntry>(() => {
-    const order = columns.map((c) => c.key);
-    const visibility: Record<string, boolean> = {};
-    columns.forEach((c) => {
-      visibility[c.key] = c.defaultVisible !== false;
-    });
-    return { order, visibility, widths: {}, sort: null };
-  }, [columns]);
-
-  // Apply active setup (if any) over default
-  const activeConfig = useMemo<ColumnSetupEntry>(() => {
-    if (!columnSetups.activeSetupName) return defaultConfig;
-    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
-    if (!applied) return defaultConfig;
-    // Merge: use applied order/visibility but ensure new columns aren't dropped
-    const knownKeys = new Set(columns.map((c) => c.key));
-    const order = [
-      ...applied.order.filter((k) => knownKeys.has(k)),
-      ...columns.map((c) => c.key).filter((k) => !applied.order.includes(k)),
-    ];
-    const visibility = { ...defaultConfig.visibility, ...applied.visibility };
-    return { ...applied, order, visibility };
-  }, [columnSetups, defaultConfig, columns]);
-
-  // Visible columns in configured order
-  const visibleColumns = useMemo(
-    () =>
-      activeConfig.order
-        .map((key) => columns.find((c) => c.key === key))
-        .filter(
-          (c): c is PanelColumnDef<T> =>
-            !!c && activeConfig.visibility[c.key] !== false,
-        ),
-    [activeConfig, columns],
-  );
-
-  const columnMetas = useMemo(
-    () => columns.map((c) => ({ key: c.key, label: c.label })),
+  // Column definitions as TableColumn shape for useListFieldConfig
+  const tableColumns = useMemo(
+    () => columns.map((c) => ({ id: c.key, name: c.label })),
     [columns],
   );
 
-  const handleSave = (config: ColumnSetupEntry) => {
-    columnSetups.saveSetup("current", config);
-    setDialogOpen(false);
-  };
+  const fc = useListFieldConfig(storageKey, tableColumns);
+
+  // Visible columns in configured order
+  const visibleColumns = useMemo(() => {
+    const colMap = new Map(columns.map((c) => [c.key, c]));
+    return fc.effectiveKeys
+      .map((k) => colMap.get(k))
+      .filter((c): c is PanelColumnDef<T> => !!c);
+  }, [fc.effectiveKeys, columns]);
 
   const py = compact ? "py-1" : "py-1.5";
 
@@ -138,7 +108,7 @@ export function PanelTable<T extends Record<string, unknown>>({
             className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              setDialogOpen(true);
+              fc.toggleDialog();
             }}
           >
             <FaSlidersH size={10} />
@@ -148,52 +118,51 @@ export function PanelTable<T extends Record<string, unknown>>({
 
       {/* Data rows */}
       <div className="divide-y divide-slate-100 dark:divide-slate-700">
-        {data.map((record) => (
-          <div
-            key={rowKey(record)}
-            className={`flex items-center gap-3 px-3 ${py} hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs`}
-          >
-            {visibleColumns.map((col) => (
-              <span
-                key={col.key}
-                className={`truncate ${col.cellClassName ?? ""}`}
-              >
-                {col.render(record)}
-              </span>
-            ))}
-            {onRowAction && (
-              <span className="ml-auto shrink-0">
-                <button
-                  type="button"
-                  title="Open in floating window"
-                  className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRowAction(record);
-                  }}
+        {data.map((record) => {
+          const rk = rowKey(record);
+          const isSelected = selectedKey != null && rk === selectedKey;
+          return (
+            <div
+              key={rk}
+              className={`flex items-center gap-3 text-xs cursor-pointer ${py} ${
+                isSelected
+                  ? 'bg-[#fff3cd] dark:bg-yellow-900/30'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+              }`}
+              onClick={() => onSelectRow?.(record)}
+            >
+              {/* Selection indicator bar */}
+              <div className={`w-1 self-stretch rounded-sm shrink-0 ${isSelected ? 'bg-blue-500' : ''}`} />
+              {visibleColumns.map((col) => (
+                <span
+                  key={col.key}
+                  className={`truncate ${col.cellClassName ?? ""}`}
                 >
-                  &#8599;
-                </button>
-              </span>
-            )}
-          </div>
-        ))}
+                  {col.render(record)}
+                </span>
+              ))}
+              {onRowAction && (
+                <span className="ml-auto shrink-0">
+                  <button
+                    type="button"
+                    title="Open in floating window"
+                    className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRowAction(record);
+                    }}
+                  >
+                    &#8599;
+                  </button>
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Column setup dialog */}
-      <ColumnSetupDialog
-        open={dialogOpen}
-        title={`${storageKey} — Column Setup`}
-        columnMetas={columnMetas}
-        config={activeConfig}
-        existingSetupNames={columnSetups.setups.map((s) => s.name)}
-        namedSetups={columnSetups.setups}
-        initialSetupName={columnSetups.activeSetupName}
-        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
-        onClose={() => setDialogOpen(false)}
-        onSave={handleSave}
-        columnSetupsApi={columnSetups}
-      />
+      <FieldOrderDialog {...fc.fieldOrderDialogProps} />
     </>
   );
 }

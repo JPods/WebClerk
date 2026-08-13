@@ -30,7 +30,7 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
 import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
-import DataGrid from '@/components/common/DataGrid';
+import { PanelTable, type PanelColumnDef } from '@/apps/common/components/panels/PanelTable';
 import ProjectKanbanPanel from '@/apps/common/components/panels/ProjectKanbanPanel';
 import ProjectGanttPanel from '@/apps/common/components/panels/ProjectGanttPanel';
 
@@ -48,6 +48,16 @@ interface ContactDetailJsonProps {
   onCancelInline?: () => void;
   [key: string]: any;
 }
+
+// ---------------------------------------------------------------------------
+// Panel column definitions
+// ---------------------------------------------------------------------------
+
+const ORG_PANEL_COLUMNS: PanelColumnDef<Record<string, unknown>>[] = [
+  { key: 'type', label: 'type', cellClassName: 'w-[80px] font-semibold text-slate-600 dark:text-slate-300', render: (r) => String(r.type ?? '—') },
+  { key: 'company', label: 'company', cellClassName: 'min-w-[120px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.company ?? r.name ?? '—') },
+  { key: 'ida', label: 'ida', cellClassName: 'w-[70px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
+];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -264,17 +274,16 @@ const ContactDetailJson: React.FC<ContactDetailJsonProps> = ({ contactId, record
               />
             )}
             {activeTab === 'organizations' && (
-              <div className="p-4 text-xs text-slate-400">
-                <DataGrid
-                  records={[
+              <div className="p-2">
+                <PanelTable
+                  storageKey="panel:contact:organizations"
+                  columns={ORG_PANEL_COLUMNS}
+                  data={[
                     ...(data.refs?.links?.customer ? [{ type: 'Customer', ...data.refs.links.customer }] : []),
                     ...(data.refs?.links?.vendor ? [{ type: 'Vendor', ...data.refs.links.vendor }] : []),
                   ]}
-                  columns={['type', 'company', 'ida']}
-                  onSelectRecord={(id) => {}}
-                  sort={null}
-                  onSort={() => {}}
-                  fontSize={11}
+                  rowKey={(r: any) => `${r.type}-${r.id ?? r.ida}`}
+                  compact
                 />
               </div>
             )}

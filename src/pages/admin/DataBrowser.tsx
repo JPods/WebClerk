@@ -22,6 +22,8 @@ import DedupPanel from '../../components/common/DedupPanel';
 import { useReportShortcuts } from '../../hooks/useReportShortcuts';
 import { openUniversalPrint } from '../../components/print/UniversalPrint';
 import { fetchPrintLayout } from '../../hooks/usePrintLayout';
+import { PanelTable } from '../../apps/common/components/panels/PanelTable';
+import { buildColumnsFromSpecs, buildColumnsFromRecord } from '../../apps/common/components/panels/panelColumnUtils';
 import './DataBrowser.css';
 
 /** Maps DataBrowser model name → .tsx detail route (used for double-click new-tab). */
@@ -142,7 +144,7 @@ const SPAWN_CONFIG: Record<string, Array<{ label: string; target: string; filter
 // where the FK field name differs from that convention need to be here.
 const FK_PATTERNS: Record<string, Record<string, string>> = {
   contact: {
-    email: 'contact_id', phone: 'contact_id', address: 'contact_id', domain: 'contact_id',
+    email: 'contact', phone: 'contact', address: 'contact', domain: 'contact',
     action: 'refs__links__contact_id', document: 'refs__links__contact_id',
     question_answer: 'refs__links__contact_id',
     order: 'contact_id', invoice: 'contact_id', proposal: 'contact_id',
@@ -192,12 +194,10 @@ function getFilterKey(parentModel: string, relatedModel: string): string {
  * Resolution order:
  *   1. FK_PATTERNS explicit entry → use that field name as filter key
  *   2. Fallback `${parentModel}_id` → try as FK filter
- *   3. If FK query returns 0 results → retry with refs.links soft-link
- *      filter: `refs__links__${parentModel}__contains=[{"id": parentId}]`
  *
- * This means any record soft-linked via refs.links will show up even
- * without a hard FK — e.g., a document linked to a GL entry, an action
- * linked to an item, a contact linked to an odd event.
+ * Columns come from the child model's workbench_fields Setting (db.panel),
+ * falling back to auto-detection from the first record's keys.
+ * Renders via PanelTable for unified column config and styling.
  */
 function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
   modelName: string; parentModel: string; parentId: number;
@@ -206,51 +206,33 @@ function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
   const [records, setRecords] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [collapsed, setCollapsed] = React.useState(false);
-  const [columns, setColumns] = React.useState<string[]>([]);
   const [linkType, setLinkType] = React.useState<'fk' | 'refs'>('fk');
+  const [panelSpecs, setPanelSpecs] = React.useState<any[] | null>(null);
 
+  // Fetch records + child model's db.panel column specs
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        // 1. Try FK filter first
+        // 1. Fetch records via FK filter
         const filterKey = getFilterKey(parentModel, modelName);
         const isRefsFilter = filterKey.startsWith('refs__');
         const params: Record<string, any> = { [filterKey]: parentId, limit: 50 };
         const res = await getRecords(modelName, params) as any;
         if (cancelled) return;
-        let list = res?.results || [];
-
-        // 2. If FK returned nothing and it wasn't already a refs filter,
-        //    try refs.links soft-link as fallback
-        if (list.length === 0 && !isRefsFilter) {
-          const refsKey = `refs__links__${parentModel}`;
-          const refsParams: Record<string, any> = {
-            [refsKey]: JSON.stringify([{ id: parentId }]),
-            limit: 50,
-          };
-          const refsRes = await getRecords(modelName, refsParams) as any;
-          if (cancelled) return;
-          const refsList = refsRes?.results || [];
-          if (refsList.length > 0) {
-            list = refsList;
-            setLinkType('refs');
-          }
-        } else {
-          setLinkType(isRefsFilter ? 'refs' : 'fk');
-        }
-
+        const list = res?.results || [];
+        setLinkType(isRefsFilter ? 'refs' : 'fk');
         setRecords(list);
-        // Auto-detect columns from first record
-        if (list.length > 0) {
-          const keys = Object.keys(list[0]).filter(k =>
-            k !== 'id' && k !== 'uuid' && k !== 'version' && k !== 'is_deleted' &&
-            k !== 'is_archived' && k !== 'is_locked' && k !== 'search_vector' &&
-            k !== 'security_level' && k !== 'health_rating'
-          ).slice(0, 6);
-          setColumns(keys);
-        }
+
+        // 2. Fetch child model's workbench_fields Setting for db.panel
+        try {
+          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'workbench_fields', limit: 1 }) as any;
+          if (cancelled) return;
+          const wsRec = (wsRes?.results || [])[0];
+          const dbLayout = wsRec?.config?.db || wsRec?.config;
+          if (dbLayout?.panel?.length) setPanelSpecs(dbLayout.panel);
+        } catch { /* no setting — auto-detect will handle it */ }
       } catch (e) {
         console.error(`[RelatedPanel] ${modelName}:`, e);
       } finally {
@@ -260,36 +242,42 @@ function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
     return () => { cancelled = true; };
   }, [modelName, parentModel, parentId]);
 
+  // Build PanelColumnDef from db.panel specs or auto-detect from data
+  const panelColumns = React.useMemo(() => {
+    if (panelSpecs?.length) return buildColumnsFromSpecs(panelSpecs);
+    if (records.length > 0) return buildColumnsFromRecord(records[0]);
+    return [];
+  }, [panelSpecs, records]);
+
   return (
-    <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 4 }}>
+    <div className="border-t border-slate-200 dark:border-slate-700 mt-1">
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', cursor: 'pointer', userSelect: 'none' }}
+        className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer select-none"
         onClick={() => setCollapsed(!collapsed)}
       >
-        <span style={{ fontSize: fontSize - 2, color: theme.textMuted }}>{collapsed ? '▶' : '▼'}</span>
-        <span style={{ fontSize: fontSize - 1, fontWeight: 600, color: theme.accent, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">{collapsed ? '▶' : '▼'}</span>
+        <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
           {modelName.replace(/_/g, ' ')}
         </span>
-        <span style={{ fontSize: fontSize - 2, color: theme.textMuted }}>({records.length})</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">({records.length})</span>
         {linkType === 'refs' && records.length > 0 && (
-          <span style={{ fontSize: fontSize - 3, color: theme.textDim, fontStyle: 'italic' }} title="Linked via refs.links (soft link)">refs</span>
+          <span className="text-[9px] text-slate-400 italic" title="Linked via refs.links (soft link)">refs</span>
         )}
-        {loading && <span style={{ fontSize: fontSize - 2, color: theme.textDim }}>loading...</span>}
+        {loading && <span className="text-[10px] text-slate-400">loading...</span>}
       </div>
-      {!collapsed && records.length > 0 && (
-        <div style={{ padding: '0 4px 8px' }}>
-          <DataGrid
-            records={records}
-            columns={columns}
-            fontSize={fontSize - 1}
-            theme={theme}
-            hideToolbar
-            noDataMessage={`No ${modelName} records`}
+      {!collapsed && records.length > 0 && panelColumns.length > 0 && (
+        <div className="px-1 pb-2">
+          <PanelTable
+            storageKey={`panel:${parentModel}:${modelName}`}
+            columns={panelColumns}
+            data={records}
+            rowKey={(r: any) => r.id ?? r.uuid ?? Math.random()}
+            compact
           />
         </div>
       )}
       {!collapsed && !loading && records.length === 0 && (
-        <div style={{ padding: '4px 8px 8px', fontSize: fontSize - 2, color: theme.textMuted }}>
+        <div className="px-2 pb-2 text-[10px] text-slate-400 dark:text-slate-500">
           No {modelName.replace(/_/g, ' ')} records
         </div>
       )}
@@ -410,9 +398,19 @@ const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = (
 
 const TOUCH_MODELS = new Set(['action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org']);
 
-const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: any; fontSize: number }> = ({ model, record, recordId, theme: t, fontSize }) => {
+interface TouchPrefs {
+  default_channel?: 'call' | 'email' | 'text' | 'visit' | 'meeting';
+  default_direction?: 'out' | 'in';
+  phone_action?: 'tel' | 'facetime' | 'facetime-audio' | 'log_only';
+  email_action?: 'mailto' | 'log_only';
+  text_action?: 'sms' | 'log_only';
+  auto_log?: boolean;
+}
+
+const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: any; fontSize: number; touchPrefs?: TouchPrefs }> = ({ model, record, recordId, theme: t, fontSize, touchPrefs }) => {
+  const tp: TouchPrefs = touchPrefs || {};
   const [showTouchForm, setShowTouchForm] = useState(false);
-  const [touchChannel, setTouchChannel] = useState<'call' | 'email' | 'text'>('call');
+  const [touchChannel, setTouchChannel] = useState<'call' | 'email' | 'text' | 'visit' | 'meeting'>(tp.default_channel || 'call');
   const [touchSummary, setTouchSummary] = useState('');
   const [touchSubject, setTouchSubject] = useState('');
   const [touchDuration, setTouchDuration] = useState('');
@@ -436,16 +434,18 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
     : '';
 
   const handleTouch = (channel: 'call' | 'email' | 'text') => {
-    if (channel === 'call' && contactPhone) {
-      window.open(`tel:${contactPhone}`, '_self');
-    } else if (channel === 'email' && contactEmail) {
+    // Fire URI based on user's touch preferences
+    if (channel === 'call' && contactPhone && tp.phone_action !== 'log_only') {
+      const scheme = tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel';
+      const a = document.createElement('a'); a.href = `${scheme}:${contactPhone}`; a.click();
+    } else if (channel === 'email' && contactEmail && tp.email_action !== 'log_only') {
       const subject = encodeURIComponent(
         typeof record.action === 'object' ? (record.action?.en || '') :
         String(record.action || record.subject || record.company || '')
       );
-      window.open(`mailto:${contactEmail}?subject=${subject}`, '_self');
-    } else if (channel === 'text' && contactPhone) {
-      window.open(`sms:${contactPhone}`, '_self');
+      const a = document.createElement('a'); a.href = `mailto:${contactEmail}?subject=${subject}`; a.click();
+    } else if (channel === 'text' && contactPhone && tp.text_action !== 'log_only') {
+      const a = document.createElement('a'); a.href = `sms:${contactPhone}`; a.click();
     }
     setTouchChannel(channel);
     setTouchSubject(
@@ -465,7 +465,7 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
       await saveRecord('touch', {
         contact_id: contactId || null,
         channel: touchChannel,
-        direction: 'out',
+        direction: (document.querySelector<HTMLInputElement>('input[name="touch-dir"]:checked')?.value || 'out'),
         subject: touchSubject,
         summary: touchSummary,
         duration: touchDuration ? parseInt(touchDuration, 10) : null,
@@ -509,23 +509,29 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
     <>
       <div className="db-spawn-bar" style={{ gap: 8 }}>
         <span className="db-spawn-label">Touch:</span>
-        {hasPhone && (
-          <button style={iconStyle(t.accentGreen)} onClick={() => handleTouch('call')}
+        {hasPhone && tp.phone_action !== 'log_only' && (
+          <a href={`${tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel'}:${contactPhone}`}
+            style={{ ...iconStyle(t.accentGreen), textDecoration: 'none', display: 'inline-block' }}
+            onClick={(e) => { /* don't prevent default — let the <a> fire the URI */ handleTouch('call'); }}
             title={`Call ${contactName || contactPhone}`}>
             &#9742; Call
-          </button>
+          </a>
         )}
-        {hasEmail && (
-          <button style={iconStyle(t.accent)} onClick={() => handleTouch('email')}
+        {hasEmail && tp.email_action !== 'log_only' && (
+          <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(typeof record.action === 'object' ? (record.action?.en || '') : String(record.action || record.subject || record.company || ''))}`}
+            style={{ ...iconStyle(t.accent), textDecoration: 'none', display: 'inline-block' }}
+            onClick={() => { handleTouch('email'); }}
             title={`Email ${contactName || contactEmail}`}>
             &#9993; Email
-          </button>
+          </a>
         )}
-        {hasPhone && (
-          <button style={iconStyle(t.accentGold)} onClick={() => handleTouch('text')}
+        {hasPhone && tp.text_action !== 'log_only' && (
+          <a href={`sms:${contactPhone}`}
+            style={{ ...iconStyle(t.accentGold), textDecoration: 'none', display: 'inline-block' }}
+            onClick={() => { handleTouch('text'); }}
             title={`Text ${contactName || contactPhone}`}>
             &#128172; Text
-          </button>
+          </a>
         )}
         <button style={iconStyle(t.textMuted)} onClick={openLogTouch}
           title="Log a touch (call, email, visit, text, meeting)">
@@ -544,28 +550,65 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
           <div data-wc="touch-dialog"
             style={{
               background: t.surface, border: `1px solid ${t.border}`,
-              borderRadius: 8, width: 480, maxHeight: '80vh',
+              borderRadius: 8, width: 520, maxHeight: '80vh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             }}>
+            {/* Header */}
             <div style={{
               padding: '12px 16px', borderBottom: `1px solid ${t.border}`,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-              <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: t.accent }}>
-                Log Touch — {touchChannel === 'call' ? '☎ Call' : touchChannel === 'email' ? '✉ Email' : '💬 Text'}
-              </span>
+              <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: t.accent }}>Log Touch</span>
               <button onClick={() => setShowTouchForm(false)} style={{
                 background: 'none', border: 'none', color: t.textMuted,
                 fontSize: 18, cursor: 'pointer', padding: '0 4px',
               }}>&times;</button>
             </div>
 
+            {/* Channel selector */}
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${t.border}`, display: 'flex', gap: 6 }}>
+              {([['call', '☎ Call'], ['email', '✉ Email'], ['visit', '📋 Visit'], ['text', '💬 Text'], ['meeting', '🤝 Meeting']] as const).map(([ch, label]) => (
+                <button key={ch}
+                  onClick={() => setTouchChannel(ch as any)}
+                  style={{
+                    padding: '5px 10px', borderRadius: 4, fontSize, cursor: 'pointer',
+                    border: `1px solid ${touchChannel === ch ? t.accent : t.border}`,
+                    background: touchChannel === ch ? t.accent + '22' : t.surfaceAlt,
+                    color: touchChannel === ch ? t.accent : t.text,
+                    fontWeight: touchChannel === ch ? 700 : 400,
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Contact</label>
-                <div style={{ color: t.text, fontSize }}>{contactName || `#${contactId}`} — {touchChannel === 'email' ? contactEmail : contactPhone}</div>
+              {/* Direction */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <label style={{ fontSize: fontSize - 1, color: t.textMuted }}>Direction</label>
+                <label style={{ cursor: 'pointer', color: t.text }}>
+                  <input type="radio" name="touch-dir" value="out" defaultChecked={tp.default_direction !== 'in'} style={{ marginRight: 4 }} /> Outbound
+                </label>
+                <label style={{ cursor: 'pointer', color: t.text }}>
+                  <input type="radio" name="touch-dir" value="in" defaultChecked={tp.default_direction === 'in'} style={{ marginRight: 4 }} /> Inbound
+                </label>
               </div>
+
+              {/* Contact line */}
+              {(contactName || contactId > 0) && (
+                <div>
+                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Contact</label>
+                  <div style={{ color: t.text, fontSize }}>
+                    {contactName || `#${contactId}`}
+                    {touchChannel === 'email' && contactEmail ? ` — ${contactEmail}` : ''}
+                    {touchChannel === 'call' && contactPhone ? ` — ${contactPhone}` : ''}
+                    {touchChannel === 'text' && contactPhone ? ` — ${contactPhone}` : ''}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Subject</label>
                 <input className="db-input" value={touchSubject} onChange={(e) => setTouchSubject(e.target.value)}
@@ -577,7 +620,7 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
                   rows={4} placeholder="What happened, what was discussed, next steps..."
                   style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4, resize: 'vertical' }} />
               </div>
-              {touchChannel === 'call' && (
+              {(touchChannel === 'call' || touchChannel === 'meeting') && (
                 <div>
                   <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Duration (minutes)</label>
                   <input className="db-input" type="number" value={touchDuration} onChange={(e) => setTouchDuration(e.target.value)}
@@ -594,6 +637,7 @@ const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: 
               )}
             </div>
 
+            {/* Footer */}
             <div style={{
               padding: '12px 16px', borderTop: `1px solid ${t.border}`,
               display: 'flex', justifyContent: 'flex-end', gap: 8,
@@ -1708,14 +1752,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
-            {/* Touch bar + spawn links — pinned at top of detail */}
-            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
-              <TouchBar model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} theme={tDetail} fontSize={baseFontSize} />
-            )}
-            {db.selectedRecord && db.selectedId && (
-              <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
-            )}
-
             {/* App mode: render the model's Detail.tsx component inline */}
             {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
               <React.Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Loading...</div>}>
@@ -1755,6 +1791,14 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 theme={tDetail}
               />
             ) : null}
+
+            {/* Touch bar + spawn links — below primary contact info */}
+            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
+              <TouchBar model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} theme={tDetail} fontSize={baseFontSize} touchPrefs={user?.config?.touch} />
+            )}
+            {db.selectedRecord && db.selectedId && (
+              <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
+            )}
 
             {/* Related panels — FK models listed in config.db.related[] */}
             {db.selectedId && db.relatedModels.length > 0 && db.relatedModels.map((relModel) => (

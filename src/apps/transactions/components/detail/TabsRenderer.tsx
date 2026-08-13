@@ -1,10 +1,11 @@
 /* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
 import React from 'react';
 import { useAppSelector } from '@/store/hooks';
-import { getRecord, getRecords } from '@/api/wcapi';
-import DataGrid from '@/components/common/DataGrid';
+import { getRecords } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
+import { PanelTable, type PanelColumnDef } from '@/apps/common/components/panels/PanelTable';
 import type { TabsSection } from '@/hooks/useDetailLayout';
 
 // ---------------------------------------------------------------------------
@@ -101,7 +102,6 @@ export const TabContent: React.FC<{
       );
 
     case 'contacts': {
-      // Extract contact IDs from refs.links.contact and render as db.list
       const rawContacts = data?.refs?.links?.contact ?? [];
       const contactRows = Array.isArray(rawContacts) ? rawContacts.map((c: any) => {
         const ct = c.contact || c;
@@ -120,29 +120,21 @@ export const TabContent: React.FC<{
         return <div className="text-center py-8 text-slate-400 text-sm">No contacts linked</div>;
       }
 
+      const contactCols: PanelColumnDef<Record<string, unknown>>[] = [
+        { key: 'role', label: 'role', cellClassName: 'w-[70px] text-slate-600 dark:text-slate-300', render: (r) => String(r.role ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'w-[150px] text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
+        { key: 'email', label: 'email', cellClassName: 'w-[200px] text-slate-600 dark:text-slate-300', render: (r) => String(r.email ?? '—') },
+        { key: 'phone', label: 'phone', cellClassName: 'w-[140px] text-slate-600 dark:text-slate-300', render: (r) => String(r.phone ?? '—') },
+        { key: 'address', label: 'address', cellClassName: 'min-w-[200px] flex-1 text-slate-600 dark:text-slate-300', render: (r) => String(r.address ?? '—') },
+      ];
+
       return (
-        <DataGrid
-          hideToolbar
-          records={contactRows}
-          columns={['role', 'name', 'email', 'phone', 'address']}
-          richColumns={[
-            { name: 'role', field: 'role', width: '70px', sortable: true },
-            { name: 'name', field: 'name', width: '150px', sortable: true },
-            { name: 'email', field: 'email', width: '200px', sortable: true },
-            { name: 'phone', field: 'phone', width: '140px', sortable: true },
-            { name: 'address', field: 'address', width: '250px', sortable: true },
-          ]}
-          colWidths={{ role: 70, name: 150, email: 200, phone: 140, address: 250 }}
-          fieldBehaviors={{ role: { type: 'readonly' }, name: { type: 'readonly' }, email: { type: 'readonly' }, phone: { type: 'readonly' }, address: { type: 'readonly' } }}
-          selectedId={null}
-          selectedRowIds={new Set()}
-          sort={null}
-          onSelectRecord={() => {}}
-          onSort={() => {}}
-          onColumnDrop={() => {}}
-          onResizeStart={() => {}}
-          numId={(v: unknown) => typeof v === 'number' ? v : null}
-          fontSize={12}
+        <PanelTable
+          storageKey={`panel:${modelName}:contacts`}
+          columns={contactCols}
+          data={contactRows}
+          rowKey={(r: any) => r.id}
+          compact
         />
       );
     }
@@ -157,34 +149,26 @@ export const TabContent: React.FC<{
       );
 
     case 'documents': {
-      // Fetch documents linked via refs
       const docs = data?.refs?.links?.document ?? [];
       const docRows = Array.isArray(docs) ? docs.map((d: any) => {
         const doc = d.document || d;
         return { id: doc.id || 0, ida: doc.ida || '', name: doc.name || doc.display_name || '', status: doc.status || d.purpose || '' };
       }) : [];
       if (!docRows.length) return <div className="text-center py-8 text-slate-400 text-sm">No documents attached</div>;
+
+      const docCols: PanelColumnDef<Record<string, unknown>>[] = [
+        { key: 'ida', label: 'ida', cellClassName: 'w-[100px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
+        { key: 'status', label: 'status', cellClassName: 'w-[80px] text-slate-600 dark:text-slate-300', render: (r) => String(r.status ?? '—') },
+      ];
+
       return (
-        <DataGrid
-          hideToolbar
-          records={docRows}
-          columns={['ida', 'name', 'status']}
-          richColumns={[
-            { name: 'ida', field: 'ida', width: '120px', sortable: true },
-            { name: 'name', field: 'name', width: '350px', sortable: true },
-            { name: 'status', field: 'status', width: '100px', sortable: true },
-          ]}
-          colWidths={{ ida: 120, name: 350, status: 100 }}
-          fieldBehaviors={{ ida: { type: 'readonly' }, name: { type: 'readonly' }, status: { type: 'readonly' } }}
-          selectedId={null}
-          selectedRowIds={new Set()}
-          sort={null}
-          onSelectRecord={() => {}}
-          onSort={() => {}}
-          onColumnDrop={() => {}}
-          onResizeStart={() => {}}
-          numId={(v: unknown) => typeof v === 'number' ? v : null}
-          fontSize={12}
+        <PanelTable
+          storageKey={`panel:${modelName}:documents`}
+          columns={docCols}
+          data={docRows}
+          rowKey={(r: any) => r.id}
+          compact
         />
       );
     }
@@ -192,32 +176,31 @@ export const TabContent: React.FC<{
     case 'actions': {
       const actionItems = (data?.actions?.items ?? []) as any[];
       if (!actionItems.length) return <div className="text-center py-8 text-slate-400 text-sm">No actions on this {modelName}</div>;
+
+      const actionCols: PanelColumnDef<Record<string, unknown>>[] = [
+        { key: 'action', label: 'action', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => {
+          const v = r.action;
+          return String(typeof v === 'object' && v !== null ? (v as any).en ?? JSON.stringify(v) : v ?? '—');
+        }},
+        { key: 'status', label: 'status', cellClassName: 'w-[90px]', render: (r) => {
+          const s = String(r.status ?? 'pending');
+          const done = s === 'done' || s === 'completed';
+          return <span className={`px-1.5 py-0.5 rounded text-xs ${done ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-600 dark:text-slate-300'}`}>{s}</span>;
+        }},
+      ];
+
       return (
-        <DataGrid
-          hideToolbar
-          records={actionItems}
-          columns={['action', 'status']}
-          richColumns={[
-            { name: 'action', field: 'action', width: '400px', sortable: true },
-            { name: 'status', field: 'status', width: '100px', sortable: true },
-          ]}
-          colWidths={{ action: 400, status: 100 }}
-          fieldBehaviors={{ action: { type: 'readonly' }, status: { type: 'readonly' } }}
-          selectedId={null}
-          selectedRowIds={new Set()}
-          sort={null}
-          onSelectRecord={() => {}}
-          onSort={() => {}}
-          onColumnDrop={() => {}}
-          onResizeStart={() => {}}
-          numId={(v: unknown) => typeof v === 'number' ? v : null}
-          fontSize={12}
+        <PanelTable
+          storageKey={`panel:${modelName}:actions`}
+          columns={actionCols}
+          data={actionItems}
+          rowKey={(r: any) => r.id ?? Math.random()}
+          compact
         />
       );
     }
 
     case 'related_transactions': {
-      // Build rows from all refs.links entries
       const links = data?.refs?.links || {};
       const relatedRows: any[] = [];
       for (const [linkType, items] of Object.entries(links)) {
@@ -233,27 +216,20 @@ export const TabContent: React.FC<{
         }
       }
       if (!relatedRows.length) return <div className="text-center py-8 text-slate-400 text-sm">No related records</div>;
+
+      const relCols: PanelColumnDef<Record<string, unknown>>[] = [
+        { key: 'type', label: 'type', cellClassName: 'w-[90px] font-semibold text-slate-600 dark:text-slate-300', render: (r) => String(r.type ?? '—') },
+        { key: 'ida', label: 'ida', cellClassName: 'w-[120px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
+      ];
+
       return (
-        <DataGrid
-          hideToolbar
-          records={relatedRows}
-          columns={['type', 'ida', 'name']}
-          richColumns={[
-            { name: 'type', field: 'type', width: '100px', sortable: true },
-            { name: 'ida', field: 'ida', width: '150px', sortable: true },
-            { name: 'name', field: 'name', width: '300px', sortable: true },
-          ]}
-          colWidths={{ type: 100, ida: 150, name: 300 }}
-          fieldBehaviors={{ type: { type: 'readonly' }, ida: { type: 'readonly' }, name: { type: 'readonly' } }}
-          selectedId={null}
-          selectedRowIds={new Set()}
-          sort={null}
-          onSelectRecord={() => {}}
-          onSort={() => {}}
-          onColumnDrop={() => {}}
-          onResizeStart={() => {}}
-          numId={(v: unknown) => typeof v === 'number' ? v : null}
-          fontSize={12}
+        <PanelTable
+          storageKey={`panel:${modelName}:related`}
+          columns={relCols}
+          data={relatedRows}
+          rowKey={(r: any) => `${r.type}-${r.id}`}
+          compact
         />
       );
     }
@@ -263,39 +239,28 @@ export const TabContent: React.FC<{
       React.useEffect(() => {
         if (!data?.id) return;
         getRecords('qa', { parent_id: data.id, parent_model: modelName, limit: 50 })
-          .then(res => setQaRecords(res?.results || []))
+          .then(res => setQaRecords((res?.results || []).map((q: any) => ({
+            id: q.id, ida: q.ida || '', question: q.question || '', answer: q.answer || '', status: q.status || '',
+          }))))
           .catch(() => setQaRecords([]));
       }, [data?.id, modelName]);
 
       if (!qaRecords.length) return <div className="text-center py-8 text-slate-400 text-sm">No QA records</div>;
+
+      const qaCols: PanelColumnDef<Record<string, unknown>>[] = [
+        { key: 'ida', label: 'ida', cellClassName: 'w-[80px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
+        { key: 'question', label: 'question', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.question ?? '—') },
+        { key: 'answer', label: 'answer', cellClassName: 'min-w-[150px] flex-1 text-slate-600 dark:text-slate-300', render: (r) => String(r.answer ?? '—') },
+        { key: 'status', label: 'status', cellClassName: 'w-[70px] text-slate-600 dark:text-slate-300', render: (r) => String(r.status ?? '—') },
+      ];
+
       return (
-        <DataGrid
-          hideToolbar
-          records={qaRecords.map((q: any) => ({
-            id: q.id,
-            ida: q.ida || '',
-            question: q.question || '',
-            answer: q.answer || '',
-            status: q.status || '',
-          }))}
-          columns={['ida', 'question', 'answer', 'status']}
-          richColumns={[
-            { name: 'ida', field: 'ida', width: '100px', sortable: true },
-            { name: 'question', field: 'question', width: '300px', sortable: true },
-            { name: 'answer', field: 'answer', width: '250px', sortable: true },
-            { name: 'status', field: 'status', width: '80px', sortable: true },
-          ]}
-          colWidths={{ ida: 100, question: 300, answer: 250, status: 80 }}
-          fieldBehaviors={{ ida: { type: 'readonly' }, question: { type: 'readonly' }, answer: { type: 'readonly' }, status: { type: 'readonly' } }}
-          selectedId={null}
-          selectedRowIds={new Set()}
-          sort={null}
-          onSelectRecord={() => {}}
-          onSort={() => {}}
-          onColumnDrop={() => {}}
-          onResizeStart={() => {}}
-          numId={(v: unknown) => typeof v === 'number' ? v : null}
-          fontSize={12}
+        <PanelTable
+          storageKey={`panel:${modelName}:qa`}
+          columns={qaCols}
+          data={qaRecords}
+          rowKey={(r: any) => r.id}
+          compact
         />
       );
     }
@@ -579,9 +544,7 @@ export const NotesTabContent: React.FC<{
   const handleLabelClick = (key: string) => {
     // Click on label inserts timestamp + username, then focuses textarea with cursor at end of header
     const existing = notes[key] || '';
-    const now = new Date();
-    const ts = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      + ' ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const ts = formatDt(new Date(), 'datetime');
     const header = `${ts} — ${currentUser}\n`;
     const newVal = header + (existing ? '\n' + existing : '');
     onChange('comments', { ...notes, [key]: newVal });
