@@ -7,6 +7,7 @@ Settings with purpose='workbench_fields' use config.db to store
 DataBrowser layouts:
   config.db.list[]   — columns visible in the list view
   config.db.detail[] — fields visible in the detail view
+  config.db.panel[]  — columns shown in embedded panels (related records, line items)
   config.db.views[]  — named layout snapshots
 """
 from __future__ import annotations
@@ -59,7 +60,7 @@ class DbLayout(BaseModel):
     Four layout types:
       list   — columns in the list/grid view
       detail — fields in the record detail view
-      panel  — fields shown in embedded panels (line items, related records)
+      panel  — columns shown in embedded panels (related records, line items)
       card   — fields shown in card/tile view
     """
     list: List[DbFieldSpec] = Field(default_factory=list)
