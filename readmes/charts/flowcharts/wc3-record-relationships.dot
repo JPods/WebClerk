@@ -1,0 +1,100 @@
+// WC3 Record Relationships — FK (hard) vs refs.links (soft)
+// Two tiers: ForeignKey columns for structural relationships,
+// refs.links JSON for ad-hoc cross-model connections.
+// Render: dot -Tsvg wc3-record-relationships.dot -o wc3-record-relationships.svg
+
+digraph wc3_relationships {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 penwidth=0.8]
+    label="WC3 — Record Relationships\nTwo tiers: ForeignKey (structural) + refs.links (ad-hoc)"
+    labelloc=t
+    fontsize=14
+    pad=0.6
+    nodesep=0.5
+    ranksep=0.8
+
+    // ═══════════════════════════════════════════
+    // TIER 1: ForeignKey (hard links)
+    // ═══════════════════════════════════════════
+
+    subgraph cluster_fk {
+        label="Tier 1: ForeignKey (Hard Links)\nDB-enforced, indexed, cascading delete/protect\nResolved via FK_PATTERNS in DataBrowser"
+        style="filled,rounded"
+        fillcolor="#E8F5E9"
+        color="#66BB6A"
+        fontsize=9
+        fontcolor="#2E7D32"
+
+        contact_fk [label="Contact\n(parent)" fillcolor="#C8E6C9" color="#66BB6A"]
+        order_fk [label="Order\ncontact_id → Contact\ncustomer_id → OrgBase" fillcolor="#C8E6C9" color="#66BB6A"]
+        order_line_fk [label="OrderLine\norder_id → Order\nitem_id_fk → Item" fillcolor="#C8E6C9" color="#66BB6A"]
+        item_fk [label="Item\nvendor_id → OrgBase" fillcolor="#C8E6C9" color="#66BB6A"]
+        bom_fk [label="BillOfMaterial\nparent_item → Item\nchild_item → Item" fillcolor="#C8E6C9" color="#66BB6A"]
+        invoice_fk [label="Invoice\ncontact_id → Contact\ncustomer_id → OrgBase" fillcolor="#C8E6C9" color="#66BB6A"]
+        payment_fk [label="Payment\ninvoice_id → Invoice" fillcolor="#C8E6C9" color="#66BB6A"]
+
+        contact_fk -> order_fk [label="contact_id" color="#2E7D32" style=bold]
+        order_fk -> order_line_fk [label="order_id" color="#2E7D32" style=bold]
+        order_line_fk -> item_fk [label="item_id_fk" color="#2E7D32" style=bold dir=back]
+        item_fk -> bom_fk [label="parent_item" color="#2E7D32" style=bold]
+        order_fk -> invoice_fk [label="promote" color="#2E7D32" style=dashed]
+        invoice_fk -> payment_fk [label="invoice_id" color="#2E7D32" style=bold]
+    }
+
+    // ═══════════════════════════════════════════
+    // TIER 2: refs.links (soft links)
+    // ═══════════════════════════════════════════
+
+    subgraph cluster_refs {
+        label="Tier 2: refs.links (Soft Links)\nJSON-based, no schema change needed, any-to-any\nStored in record.refs.links.{model_name}: [{id, ...snapshot}]\nUI shows 'refs' badge when records found via soft link"
+        style="filled,rounded"
+        fillcolor="#E3F2FD"
+        color="#64B5F6"
+        fontsize=9
+        fontcolor="#1565C0"
+
+        gl_entry [label="GL Journal Entry\n(ledger)" fillcolor="#BBDEFB" color="#64B5F6"]
+        document [label="Document\n(certificate, drawing)" fillcolor="#BBDEFB" color="#64B5F6"]
+        action [label="Action\n(task, follow-up)" fillcolor="#BBDEFB" color="#64B5F6"]
+        qa [label="QA Answer\n(inspection result)" fillcolor="#BBDEFB" color="#64B5F6"]
+        contact_ref [label="Contact\n(inspector, approver)" fillcolor="#BBDEFB" color="#64B5F6"]
+        item_ref [label="Item\n(affected product)" fillcolor="#BBDEFB" color="#64B5F6"]
+    }
+
+    // ═══ Soft link edges ═══
+    gl_entry -> document [label="refs.links.document\n[{id:42}]" color="#1565C0" style=dashed]
+    gl_entry -> action [label="refs.links.action\n[{id:7}]" color="#1565C0" style=dashed]
+    gl_entry -> contact_ref [label="refs.links.contact\n[{id:8, name:'Joe'}]" color="#1565C0" style=dashed]
+    gl_entry -> item_ref [label="refs.links.item\n[{id:416, name:'Kit'}]" color="#1565C0" style=dashed]
+    action -> document [label="refs.links.document" color="#1565C0" style=dashed]
+    action -> qa [label="refs.links.question_answer" color="#1565C0" style=dashed]
+
+    // ═══════════════════════════════════════════
+    // Resolution flow
+    // ═══════════════════════════════════════════
+
+    subgraph cluster_resolution {
+        label="RelatedPanel Resolution Order"
+        style="filled,rounded"
+        fillcolor="#FFF3E0"
+        color="#FFB74D"
+        fontsize=9
+        fontcolor="#E65100"
+
+        step1 [label="1. Check FK_PATTERNS\nexplicit FK field name" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+        step2 [label="2. Fallback: parent_id\ntry {parentModel}_id" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+        step3 [label="3. FK returns 0?\ntry refs.links.{parent}\nsoft-link query" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+        result [label="Display records\nFK = no badge\nrefs = 'refs' badge" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+
+        step1 -> step2 [label="no match" color="#E65100"]
+        step2 -> step3 [label="0 results" color="#E65100"]
+        step1 -> result [label="found" color="#43A047"]
+        step2 -> result [label="found" color="#43A047"]
+        step3 -> result [label="found" color="#43A047"]
+    }
+}

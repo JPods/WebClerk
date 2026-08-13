@@ -489,6 +489,7 @@ WCAPI_BLESSED_MODELS = {
     "email": "communications.Email",
     "address": "communications.Address",
     "phone": "communications.Phone",
+    "touch": "communications.Touch",
 
     # Docs models
     "document": "docs.Document",
@@ -530,6 +531,7 @@ WCAPI_BLESSED_MODELS = {
     "rep": "orgs.Rep",
     "employee": "orgs.Employee",
     "manufacturer": "orgs.Manufacturer",
+    "other_org": "orgs.Other",
 
     # Transaction models
     "payment": "transactions.Payment",

@@ -41,18 +41,19 @@ class ContactManager(BaseUserManager):
         Enforces explicit name_first/name_last; rejects legacy first_name/last_name.
         Accepts an optional username param (ignored) so existing code paths that still
         supply username= don't break or trigger static analysis warnings.
+        Email is required for login-capable users but optional for record-only contacts.
         """
-        if not email:
-            raise ValueError('The Email field must be set')
-        email = self.normalize_email(email)
+        if email:
+            email = self.normalize_email(email)
         if 'first_name' in extra_fields or 'last_name' in extra_fields:
             raise TypeError('Use name_first / name_last fields (legacy first_name/last_name no longer accepted)')
-        # Drop any provided username silently (no legacy username field in model)
-        user = self.model(email=email, **extra_fields)
-        # Some databases enforce NOT NULL on uuid; ensure it's populated on create
+        user = self.model(email=email or None, **extra_fields)
         if not getattr(user, 'uuid', None):
             user.uuid = uuid.uuid4()
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
@@ -96,7 +97,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     name_suffix = models.CharField(max_length=20, blank=True, help_text="Suffix (Jr., Sr., III)")
     attention = models.CharField(max_length=201, blank=True, help_text="Auto-filled attention line from first and last name")
 
-    email = models.EmailField(unique=True, help_text="Primary email address for login")
+    email = models.EmailField(unique=True, null=True, blank=True, help_text="Primary email address — required for login, null for record-only contacts")
     email_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary email record if needed")
     address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
     address_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary address record if needed")

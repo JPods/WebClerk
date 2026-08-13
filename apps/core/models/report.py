@@ -14,6 +14,13 @@ REPORT_OUTPUT_CHOICES = (
     ("merge", "Word / spreadsheet merge"),
 )
 
+# Editor type choices — which content editor the frontend renders
+REPORT_EDITOR_CHOICES = (
+    ("plain", "Plain text"),
+    ("markdown", "Markdown"),
+    ("html", "HTML (rich text)"),
+)
+
 # Category choices — grouping for the report/form menu
 REPORT_CATEGORY_CHOICES = (
     ("form", "Form"),
@@ -73,6 +80,15 @@ class Report(BaseModel):
     config = models.JSONField(
         default=dict,
         help_text="Extended config: endpoint_url, template, parameters, etc.",
+    )
+    editor_type = models.CharField(
+        max_length=20, blank=True, null=True,
+        choices=REPORT_EDITOR_CHOICES, default="plain",
+        help_text="Which editor the frontend renders for the content field",
+    )
+    content = models.TextField(
+        blank=True, default="",
+        help_text="Report body content — interpreted according to editor_type (plain, markdown, or HTML)",
     )
     script_before = models.TextField(
         blank=True, default="",

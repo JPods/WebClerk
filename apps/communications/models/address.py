@@ -17,9 +17,12 @@ class Address(BaseModel):
     
     address1 = models.CharField(max_length=255, blank=True)
     address2 = models.CharField(max_length=255, blank=True)
+    address3 = models.CharField(max_length=255, blank=True, help_text="Third address line (international addresses, c/o, building wing)")
     address_type = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=255, blank=True)
-    country = models.CharField(max_length=255, blank=True)
+    district = models.CharField(max_length=100, blank=True, help_text="County, district, borough, arrondissement — sub-region within state/province")
+    country = models.CharField(max_length=2, blank=True, help_text="ISO 3166-1 alpha-2 country code (US, GB, DE, JP, etc.)")
+    postal_name = models.CharField(max_length=255, blank=True, help_text="Neighborhood, ward, post office name — used in JP, KR, IN, BR addressing")
     instructions = models.TextField(blank=True)
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
@@ -140,6 +143,25 @@ class Address(BaseModel):
             pass
 
     def save(self, *args, **kwargs):  # type: ignore[override]
+        # Normalize country to ISO 3166-1 alpha-2
+        raw_country = (getattr(self, 'country', '') or '').strip().upper()
+        if raw_country and len(raw_country) > 2:
+            code, _ = self._country_norm()
+            self.country = code
+        elif raw_country:
+            self.country = raw_country
+
+        # Rebuild full from components using country-specific template
+        try:
+            from apps.core.services.address_formatter import format_address_full
+            self.full = format_address_full(
+                address1=self.address1, address2=self.address2,
+                city=self.city, state=self.state, zip_code=self.zip,
+                country=self.country or 'US',
+            )
+        except Exception:
+            pass  # never block save for formatting
+
         # Persist computed display bits prior to saving
         self._refresh_display_metadata()
         return super().save(*args, **kwargs)
@@ -170,10 +192,13 @@ class Address(BaseModel):
         return {
             'address1': self._norm_str(getattr(self, 'address1', '')),
             'address2': self._norm_str(getattr(self, 'address2', '')),
+            'address3': self._norm_str(getattr(self, 'address3', '')),
             'city': self._norm_str(getattr(self, 'city', '')),
+            'district': self._norm_str(getattr(self, 'district', '')),
             'state': self._norm_str(getattr(self, 'state', '')),
             'zip': self._norm_str(getattr(self, 'zip', '')),
             'country': self._norm_str(getattr(self, 'country', '')),
+            'postal_name': self._norm_str(getattr(self, 'postal_name', '')),
         }
 
     # Generic EU-ish single-line (postal code before city), minimal heuristic

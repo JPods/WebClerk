@@ -1010,12 +1010,23 @@ _ACTION_DISPATCH = {
     # ── Address formatting/validation ──
     "format_address": lambda p: __import__('apps.core.services.address_formatter', fromlist=['format_address_full']).format_address_full(**p),
     "validate_address": lambda p: __import__('apps.core.services.address_formatter', fromlist=['validate_and_format']).validate_and_format(type('Addr', (), p)()),
+    # ── Contact Health ──
+    "get_contact_health": lambda p: __import__('apps.core.services.contact_health', fromlist=['get_contact_health']).get_contact_health(p),
+    # ── Action Horizon ──
+    "get_action_horizon": lambda p: __import__('apps.core.services.action_horizon', fromlist=['get_action_horizon']).get_action_horizon(p),
     # ── Commerce Dashboard ──
     "get_sales_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_sales_dashboard']).get_sales_dashboard(p),
     "get_purchasing_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_purchasing_dashboard']).get_purchasing_dashboard(p),
     "get_inventory_summary": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_inventory_summary']).get_inventory_summary(p),
     "get_velocity_report": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_velocity_report']).get_velocity_report(p),
     "get_accounting_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_accounting_dashboard']).get_accounting_dashboard(p),
+    # ── Support Q&A (search → ask → answer → score → escalate) ──
+    "search_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['search_qa']).search_qa(p),
+    "ask_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['ask_qa']).ask_qa(p),
+    "answer_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['answer_qa']).answer_qa(p),
+    "score_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['score_qa']).score_qa(p),
+    "escalate_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['escalate_qa']).escalate_qa(p),
+    "post_qa_to_wchq": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['post_qa_to_wchq']).post_qa_to_wchq(p),
 }
 
 # Actions that require staff/superuser — commission data is internal-only

@@ -22,7 +22,7 @@ from apps.transactions.models import Project
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import (
-    Contact, Action, Setting, Template, Pending, SoftDeleteLedger, Notification, Report,
+    Contact, Action, Setting, Pending, SoftDeleteLedger, Notification, Report,
     RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile,
 )
 
@@ -300,15 +300,6 @@ class SettingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
     search_fields = ('name', 'purpose', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
-
-@admin.register(Template)
-class TemplateAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for Template model."""
-    # Scalar fields: dt_created, dt_modified, dt_processed, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, purpose, security_level, uuid, version
-    list_display = ("ida", "name", "dt_processed", "health_rating", "is_locked", "purpose", "is_active", "dt_created")
-    list_filter = ('purpose',)
-    search_fields = ('name', 'purpose')
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 
 @admin.register(Pending)

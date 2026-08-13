@@ -557,8 +557,15 @@ class WCAPIGetView(APIView):
                     filters[key] = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
                     continue
 
-            filters[key] = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
-        
+            coerced = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
+
+            # User searching for "" on a nullable field means "find nulls"
+            if coerced == '' and lookup_type == 'exact':
+                filter_key = field_base + '__isnull'
+                filters[filter_key] = True
+            else:
+                filters[key] = coerced
+
         logger.info(f"[_parse_filters] Parsed filters: {filters}")
         return filters
 
@@ -1719,20 +1726,11 @@ class WCAPIGetViewWithModel(APIView):
             except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
                 pass
 
-        # Create a mock request with the model_name in query params
-        from django.http import HttpRequest
-        modified_request = HttpRequest()
-        modified_request.method = request.method
-        modified_request.META = request.META.copy()
-        modified_request.GET = request.GET.copy()
-        modified_request.GET['model_name'] = model_name
-        modified_request.POST = request.POST.copy()
-        modified_request.COOKIES = request.COOKIES.copy()
-        modified_request.session = request.session
-        modified_request.user = request.user
-        # Preserve the body for id extraction
-        modified_request._body = request._body
+        # Inject model_name into the existing request's query params
+        request.query_params._mutable = True
+        request.query_params['model_name'] = model_name
+        request.query_params._mutable = False
 
         # Delegate to the main WCAPIGetView
         view_instance = WCAPIGetView()
-        return view_instance.get(modified_request, *args, **kwargs)
+        return view_instance.get(request, *args, **kwargs)

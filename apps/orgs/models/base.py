@@ -44,6 +44,10 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	}
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
+	type = models.CharField(
+		max_length=50, blank=True, db_index=True,
+		help_text="Org classification: distributor, end_user, regulator, government, utility, association"
+	)
 	display_name = models.CharField(max_length=255, db_index=True)
 	# FK-first: proper ForeignKey to Contact for primary contact reference.
 	contact = models.ForeignKey(

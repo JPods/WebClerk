@@ -208,7 +208,11 @@ class NavPrefs(BaseModel):
         "contact", "customer", "proposal", "order", "invoice", "purchase"
     ])
     dashboards: list[str] = Field(default_factory=lambda: [
-        "dashboard", "kanban", "gantt", "item", "accounting", "alice", "databrowser"
+        "dashboard", "products", "transactions", "orgs", "administration",
+        "kanban", "gantt", "alice", "databrowser"
+    ])
+    cards: list[str] = Field(default_factory=lambda: [
+        "order", "invoice", "proposal", "customer", "contact", "purchase"
     ])
 
 
@@ -234,14 +238,23 @@ class ColorModePrefs(BaseModel):
     detail: str = "dark"
 
 
+class LayoutPrefs(BaseModel):
+    """Per-model detail view preferences."""
+    detail_view: str = "app"           # "app" or "db" — which detail renderer
+    active_view: dict[str, str] = Field(default_factory=dict)  # model → named view
+
+    class Config:
+        extra = "allow"
+
+
 class StaffPrefsMixin(BaseModel):
     """Mixed into contact.prefs.staff for internal users only."""
     nav: NavPrefs = Field(default_factory=NavPrefs)
     wcui: WcuiPrefs = Field(default_factory=WcuiPrefs)
     databrowser: DatabrowserPrefs = Field(default_factory=DatabrowserPrefs)
     color_mode: ColorModePrefs = Field(default_factory=ColorModePrefs)
+    layout: LayoutPrefs = Field(default_factory=LayoutPrefs)
     gantt: dict = Field(default_factory=dict)
-    layout: dict = Field(default_factory=dict)
     training: bool = False
 
 

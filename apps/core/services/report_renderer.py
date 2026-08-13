@@ -1270,6 +1270,45 @@ def _normalize_sample_data(raw: Dict) -> Dict:
 
 
 # ---------------------------------------------------------------------------
+# Content report rendering (user-authored content via editor_type)
+# ---------------------------------------------------------------------------
+
+def _render_content_report(content: str, editor_type: str, company: Dict,
+                            report_name: str, data: Dict) -> str:
+    """Render user-authored report content according to editor_type."""
+    header = _render_header(company, report_name,
+                            data.get("ida", ""), data.get("dt_created", ""))
+
+    if editor_type == 'markdown':
+        try:
+            import markdown
+            body_html = markdown.markdown(content, extensions=['tables', 'fenced_code'])
+        except ImportError:
+            # Fallback: wrap in <pre> if markdown library not installed
+            body_html = f'<pre>{content}</pre>'
+    elif editor_type == 'html':
+        body_html = content
+    else:
+        # Plain text — preserve whitespace
+        body_html = f'<pre style="white-space: pre-wrap; font-family: inherit;">{content}</pre>'
+
+    return f"""<!DOCTYPE html><html><head><style>{_BASE_CSS}
+    .content-body {{ margin-top: 12pt; }}
+    .content-body h1 {{ font-size: 14pt; margin: 12pt 0 6pt; }}
+    .content-body h2 {{ font-size: 12pt; margin: 10pt 0 4pt; }}
+    .content-body h3 {{ font-size: 11pt; margin: 8pt 0 4pt; }}
+    .content-body table {{ border-collapse: collapse; width: 100%; margin: 8pt 0; }}
+    .content-body th, .content-body td {{ border: 1px solid #ddd; padding: 4pt 6pt; font-size: 9pt; }}
+    .content-body th {{ background: #f0f0f0; }}
+    .content-body code {{ font-family: monospace; background: #f5f5f5; padding: 1pt 3pt; font-size: 9pt; }}
+    .content-body pre {{ background: #f5f5f5; padding: 8pt; font-size: 9pt; overflow-x: auto; }}
+    </style></head><body>
+    {header}
+    <div class="content-body">{body_html}</div>
+    </body></html>"""
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -1340,7 +1379,14 @@ def render_report(
         }
 
     # 3) Render HTML
-    if template_key and template_key in _TEMPLATE_MAP:
+    #    If the report has user-authored content, render it according to editor_type
+    editor_type = getattr(report_def, 'editor_type', 'plain') or 'plain'
+    content_body = getattr(report_def, 'content', '') or ''
+
+    if content_body:
+        html = _render_content_report(content_body, editor_type, company,
+                                       report_name, data)
+    elif template_key and template_key in _TEMPLATE_MAP:
         html = _TEMPLATE_MAP[template_key](data, company)
     else:
         html = _template_generic(data, company, report_name)

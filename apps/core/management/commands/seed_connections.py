@@ -109,6 +109,7 @@ CONNECTIONS = [
                 'schema_feedback',
                 'layout_submission',
                 'alice_observation',
+                'support_qa',
             ],
             'review_required': True,
             'reviewer': 'alice',

@@ -54,12 +54,14 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'email': ModelMeta('email', 'apps.communications.models.email.Email', 'Email', 'Emails', 'emails', kind='support', aliases=['emails']),
     'address': ModelMeta('address', 'apps.communications.models.address.Address', 'Address', 'Addresses', 'addresses', kind='support', aliases=['addresses']),
     'phone': ModelMeta('phone', 'apps.communications.models.phone.Phone', 'Phone', 'Phones', 'phones', kind='support', aliases=['phones']),
+    'touch': ModelMeta('touch', 'apps.communications.models.touch.Touch', 'Touch', 'Touches', 'touches', kind='support', aliases=['touches']),
 
     # --- orgs --- (A->Z by key)
     'customer': ModelMeta('customer', 'apps.orgs.models.Customer', 'Customer', 'Customers', 'customers', kind='support', aliases=['customers']),
     'employee': ModelMeta('employee', 'apps.orgs.models.Employee', 'Employee', 'Employees', 'employees', kind='support', aliases=['employees']),
     'manufacturer': ModelMeta('manufacturer', 'apps.orgs.models.Manufacturer', 'Manufacturer', 'Manufacturers', 'manufacturers', kind='support', aliases=['manufacturers']),
     'rep': ModelMeta('rep', 'apps.orgs.models.Rep', 'Rep', 'Reps', 'reps', kind='support', aliases=['reps']),
+    'other_org': ModelMeta('other_org', 'apps.orgs.models.Other', 'Other Org', 'Other Orgs', 'other-orgs', kind='support', aliases=['other_orgs', 'other']),
     'vendor': ModelMeta('vendor', 'apps.orgs.models.Vendor', 'Vendor', 'Vendors', 'vendors', kind='support', aliases=['vendors']),
 
     # --- core --- (A->Z by key)

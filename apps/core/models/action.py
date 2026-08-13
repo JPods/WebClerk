@@ -2,7 +2,7 @@ from django.db import models
 import logging
 
 from common.models import BaseModel
-from apps.core.choices import ACTION_DIFFICULTY_LEVELS, ACTION_KANBAN_COLUMNS
+from apps.core.choices import ACTION_DIFFICULTY_LEVELS, ACTION_KANBAN_COLUMNS, ACTION_TYPE_CHOICES
 from apps.core.services.keywords import build_keywords_for_record
 
 console_logger = logging.getLogger('console')
@@ -32,6 +32,18 @@ class Action(BaseModel):
     # Kanban board and workflow management
     sequence = models.PositiveIntegerField(default=0)
     kanban_column = models.CharField(max_length=50, choices=ACTION_KANBAN_COLUMNS, default='Backlog')
+    action_type = models.CharField(max_length=50, choices=ACTION_TYPE_CHOICES, default='', blank=True,
+        db_index=True, help_text="Type of selling action: call, email, visit, demo, etc.")
+    impact = models.JSONField(default=dict, blank=True, null=True,
+        help_text=(
+            "Impact — not precision, but retrospection. "
+            "predicted: waffly 1-5 gut feel at time of action. "
+            "actual: waffly 1-5 looking back at what happened. "
+            "The gap between them is the learning signal. "
+            "refs: {transactions: [{model, id, ida, value}], "
+            "explanation: why the gap exists}. "
+            "Alice and users both contribute to defining actual."
+        ))
     priority = models.PositiveIntegerField(default=1)
     difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=4)
     status = models.CharField(max_length=100, blank=True, null=True)

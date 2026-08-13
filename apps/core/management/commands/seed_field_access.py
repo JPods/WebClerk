@@ -240,6 +240,16 @@ def _build_field_behaviors(model_key, field_map):
                 {'value': 'json', 'label': 'JSON'}, {'value': 'api', 'label': 'API POST'},
             ]}
             continue
+        if name == 'editor_type' and model_key == 'report':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
+                {'value': 'plain', 'label': 'Plain text'},
+                {'value': 'markdown', 'label': 'Markdown'},
+                {'value': 'html', 'label': 'HTML (rich text)'},
+            ]}
+            continue
+        if name == 'content' and model_key == 'report':
+            behaviors[name] = {'type': 'editor'}
+            continue
         if name == 'category' and model_key in ('gl_account',):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
                 {'value': 'cash', 'label': 'Cash'}, {'value': 'receivables', 'label': 'Receivables'},

@@ -23,18 +23,27 @@ def push_to_stack(model_name: str, record_id) -> None:
 
     Called from the post_save signal. Deduplicates — if the same
     model/id is already on the stack, skip it.
+
+    On failure, increments attempts and records a short reason in
+    config.last_error so the pending record self-documents why it
+    can't clear.
     """
     from apps.core.models.pending import Pending
+    from django.utils import timezone
 
     entry = {'model': model_name, 'id': record_id}
 
     # Get or create the permanent stack record
-    stack, created = Pending.objects.get_or_create(
-        purpose='alice.denormalize',
-        name=STACK_NAME,
-        dt_processed=0,
-        defaults={'changes': [entry], 'model_name': 'alice'},
-    )
+    try:
+        stack, created = Pending.objects.get_or_create(
+            purpose='alice.denormalize',
+            name=STACK_NAME,
+            dt_processed=0,
+            defaults={'changes': [entry], 'model_name': 'alice'},
+        )
+    except Exception as exc:
+        logger.debug('push_to_stack: get_or_create failed: %s', str(exc)[:120])
+        return
 
     if created:
         return  # just created with our entry
@@ -43,7 +52,21 @@ def push_to_stack(model_name: str, record_id) -> None:
     changes = stack.changes if isinstance(stack.changes, list) else []
     if entry not in changes:
         changes.append(entry)
-        Pending.objects.filter(pk=stack.pk).update(changes=changes)
+        try:
+            Pending.objects.filter(pk=stack.pk).update(changes=changes)
+        except Exception as exc:
+            reason = str(exc)[:120]
+            logger.debug('push_to_stack: update failed for %s:%s — %s', model_name, record_id, reason)
+            # Record why we failed so the pending record self-documents
+            try:
+                now_iso = timezone.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+                Pending.objects.filter(pk=stack.pk).update(
+                    attempts=stack.attempts + 1,
+                    config={'last_error': reason, 'last_attempt': now_iso,
+                            'failed_entry': entry},
+                )
+            except Exception:
+                pass  # already in error state — don't make it worse
 
 
 def denormalize_record(pending) -> bool:

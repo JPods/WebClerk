@@ -72,9 +72,8 @@ DD_CARD_CONFIG = {
         "contact": {
             "label": "Contacts",
             "link": "/contact",
-            "metrics": [
-                {"field": "id", "agg": "count", "label": "Count"},
-            ],
+            "server_action": "get_contact_health",
+            "metrics": [],
         },
         "customer": {
             "label": "Customers",
@@ -124,6 +123,12 @@ DD_CARD_CONFIG = {
                 "type": "category",
                 "labels": ["open", "in_progress", "complete", "review"],
             },
+        },
+        "action_horizon": {
+            "label": "Action Horizon",
+            "link": "/action",
+            "server_action": "get_action_horizon",
+            "metrics": [],
         },
         "gl_journal": {
             "label": "GL Journal",

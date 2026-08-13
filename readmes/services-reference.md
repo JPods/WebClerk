@@ -13,12 +13,28 @@ All backend services follow the same pattern: single-purpose functions, called f
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `journalize_invoice` | `(invoice_id: int, ida_prefix: str = '') -> dict` | Walk each invoice line, post AR/Revenue/COGS/Inventory entries. Consolidates by GL account. Auto-accrues commission if present. Marks invoice `is_locked=True`. |
-| `journalize_payment` | `(payment_id: int, ida_prefix: str = '') -> dict` | Cash debit, AR credit for a payment. Resolves customer GL overrides. |
-| `journalize_purchase` | `(purchase_id: int, ida_prefix: str = '') -> dict` | Inventory debit, AP credit per purchase line. Uses item.gls for account resolution. |
-| `batch_journalize` | `(ida_prefix: str = 'zzz-') -> dict` | Find all un-journalized invoices, payments, purchases and journal them. |
+| `journalize_invoice` | `(invoice_id: int, ida_prefix: str = '') -> dict` | Walk each invoice line, post AR/Revenue/COGS/Inventory entries. Consolidates by GL account. FX rounding auto-absorbed < $2. Auto-accrues commission if present. Marks invoice `is_locked=True`. |
+| `journalize_payment` | `(payment_id: int, ida_prefix: str = '') -> dict` | Cash debit, AR credit. Resolves customer GL overrides. Zero-amount payments auto-complete without GL (H10). Hold payments skipped (H11). |
+| `journalize_purchase` | `(purchase_id: int, ida_prefix: str = '') -> dict` | Inventory debit, AP credit per purchase line. Uses item.gls for account resolution. FX rounding auto-absorbed < $2. |
+| `batch_journalize` | `(ida_prefix: str = 'zzz-') -> dict` | Find all un-journalized documents and journal them. Returns `exceptions[]` (out-of-balance, require user action) and `skipped[]` (hold, zero-amount) separately from successful postings. |
+| `force_to_balance` | `(source_id, source_model, user_statement, forced_by, adjustment_account) -> dict` | Force an out-of-balance journal to balance by adding an adjusting line. **Requires user statement** (min 10 chars) explaining why. |
 
-**Manage actions:** `journalize_invoice`, `journalize_payment`, `journalize_purchase`, `batch_journalize`
+**Balance check (WC2 GL1 + GL2 rules):**
+Every journal is balance-checked before posting. If debits != credits:
+1. **FX auto-absorption** — if the document has a foreign exchange rate and residual < $2, the difference is absorbed into `MISC-FXROUNDING-000` automatically (WC2 GL2 rule).
+2. **Exception** — if residual >= $2 or no exchange rate, the journal is flagged as an exception with `status='exception'` and returned to the dashboard for user action.
+3. **ForceToBalance** — user reviews the exception, provides a statement (e.g., "rounding error on very low cost item"), and calls `force_to_balance()`. The adjusting line is posted with the user's statement as audit trail.
+
+**ForceToBalance audit trail (stored in three places):**
+1. `GlJournal.note` on the adjusting line — the user's statement
+2. `GlJournal.metadata` on the adjusting line — full audit record (who, when, residual amount, adjustment account)
+3. Source transaction `metadata.gl_accounts.force_balance[]` — array of all force-balance events for this document
+
+**Payment special cases (WC2 GL_JrnlCash rules):**
+- **Zero-amount** (H10): Adjusting entries and memo credits are marked `is_locked=True` and `metadata.gl_accounts.posted=True` immediately with no GL lines. Prevents unbalanced $0 journals from blocking the batch.
+- **Hold status** (H11): Payments with status starting with "hold" are skipped entirely. Disputed payments do not post until status changes.
+
+**Manage actions:** `journalize_invoice`, `journalize_payment`, `journalize_purchase`, `batch_journalize`, `force_to_balance`
 
 **GL accounts written:**
 
@@ -28,12 +44,14 @@ All backend services follow the same pattern: single-purpose functions, called f
 | Sales (COGS) | COGS (item.gls.cogs or `COGS-PRODUCTS-000`) | Inventory (item.gls.inventory or `ASSET-INVENTORY-000`) |
 | Cash (payment) | Cash (customer override or `ASSET-CASH-000`) | AR (customer override or `ASSET-AR-000`) |
 | Purchase | Inventory (item.gls.inventory or `ASSET-INVENTORY-000`) | AP (item.gls.purchase or `LIAB-ACCTSPAY-000`) |
+| FX Absorption | — | `MISC-FXROUNDING-000` (or debit, depending on residual sign) |
+| ForceToBalance | — | User-specified or `MISC-FXROUNDING-000` default |
 
-**Settings/Config:** Default GL accounts hardcoded in `DEFAULTS` dict. Customer overrides via `OrgBase.gl_accounts`. Item-level overrides via `Item.gls`.
+**Settings/Config:** Default GL accounts hardcoded in `DEFAULTS` dict. FX absorption threshold in `FX_ABSORPTION_LIMIT` ($2.00). Customer overrides via `OrgBase.gl_accounts`. Item-level overrides via `Item.gls`.
 
 **Dependencies:** Calls `accrue_commission()` from commission service after invoice journalization (non-blocking -- commission failure does not block invoice posting).
 
-**Guards:** Double-posting prevented by checking `GlJournal.objects.filter(source_id, source_model).exists()`. Balance verification (debits must equal credits) before writing.
+**Guards:** Double-posting prevented by `GlJournal.objects.filter(source_id, source_model).exists()`. Balance verification via `_check_balance()` with FX absorption before writing. ForceToBalance requires minimum 10-character user statement.
 
 ---
 
@@ -81,10 +99,20 @@ All backend services follow the same pattern: single-purpose functions, called f
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `check_credit_limit` | `(customer_id: int, new_amount: float = 0) -> dict` | Check exposure (balance_due + new_amount) against limit. Returns warning flag, amounts, message. Never blocks. |
+| `check_credit_limit` | `(customer_id: int, new_amount: float = 0, exclude_order_id: int = None) -> dict` | Check exposure (balance_due + open_orders + new_amount) against limit. Returns warning flag, amounts, message. Never blocks. |
 | `acknowledge_credit_override` | `(transaction_id: int, model_name: str, contact_id: int, reason: str) -> dict` | Store override acknowledgement in `transaction.metadata.credit_warnings[]`. Audit trail. |
 | `check_bad_check_history` | `(customer_id: int) -> dict` | Check for bounced/returned payments in financial.customer.complaints and Payment records. |
 | `get_credit_warnings_for_transaction` | `(transaction_id: int, model_name: str) -> list[dict]` | Read credit warning audit trail from transaction metadata. |
+
+**Exposure formula (WC2 RunningBalance rule):**
+```
+total_exposure = AR balance_due + open_order_backlog + current_document_amount
+```
+Open order backlog = sum of `Order.total` where status is not `complete` or `canceled`. Without including open orders, a customer with $50K in open orders could place another $50K against a $60K credit limit. The `exclude_order_id` parameter prevents double-counting when the current order is being edited (its total is already represented by `new_amount`).
+
+**Warning message breakdown:** When triggered, the message shows the components: `AR $X + open orders $Y + this document $Z exceeds limit $L by $O`.
+
+**Return dict:** `{warning, limit, balance_due, open_orders, new_amount, total_exposure, amount_over, message}`
 
 **Manage actions:** `check_credit_limit`, `acknowledge_credit_override`
 
@@ -108,6 +136,95 @@ All backend services follow the same pattern: single-purpose functions, called f
 **Manage actions:** `apply_payment_to_invoice`, `apply_pending_payments`
 
 **GL accounts:** None directly -- journalization handles GL posting separately.
+
+---
+
+### sales_pipeline.py
+
+**File:** `apps/transactions/services/sales_pipeline.py`
+**Purpose:** Connect selling actions to future outcomes. Funnel: Actions → Proposals → Orders → Revenue.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `get_sales_pipeline` | `(year, month, months, customer_id) -> dict` | Full funnel with conversion rates, impact analysis, breakdown by action type and rep. |
+
+**Funnel stages:** Actions (with `action_type` + `predicted_impact`) → Proposals → Orders (via `parent_model='proposal'`) → Invoices (via `parent_model='order'`).
+
+**Impact analysis:** Groups actions by `predicted_impact` level (1-5), traces forward to see which contacts produced proposals/orders. Compares prediction accuracy: high-impact predictions that produce orders = good calibration; high-impact predictions with no outcome = over-optimism.
+
+**Action model fields (added 2026-08-11):**
+- `action_type` — CharField, choices: call, email, visit, meeting, demo, marketing, referral, social, event, follow_up, other
+- `impact` — JSONField. Not precision, but retrospection. Schema:
+  ```json
+  {
+    "predicted": 4,     // waffly 1-5 gut feel at time of action
+    "actual": 2,        // waffly 1-5 looking back at what happened
+    "refs": {
+      "transactions": [{"model": "order", "id": 1234, "ida": "SO-1234", "value": 450.00}],
+      "explanation": "Customer was comparison shopping — enthusiasm ≠ commitment"
+    }
+  }
+  ```
+  The gap between predicted and actual is the learning signal. Alice and users both contribute to defining actual.
+
+**Manage action:** `get_sales_pipeline`
+
+**Dashboard:** `/sales-pipeline` — funnel bars, conversion rates, action type breakdown, predicted vs. actual calibration card.
+
+---
+
+### cash_conversion.py
+
+**File:** `apps/accounts/services/cash_conversion.py`
+**Purpose:** Measure the cash conversion cycle — where money stalls. Dashboard: `/cash-conversion`.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `get_cash_conversion` | `(year, month) -> dict` | Four-stage pipeline: Order→Invoice (fulfillment), Invoice→Payment (collection), Payment→GL (posting), GL→Period Close (reconciliation). Returns avg/median days per stage, stalled records with dollar values, alerts for >30 day stalls. |
+
+**Manage action:** `get_cash_conversion`
+
+---
+
+### inventory_velocity.py
+
+**File:** `apps/products/services/inventory_velocity.py`
+**Purpose:** Where capital is working vs parked. Dashboard: `/inventory-velocity`.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `get_inventory_velocity` | `(year, month, category) -> dict` | Five views: PO exposure by vendor, receipt performance (avg days + on-time %), on-hand ABC analysis with margin velocity, sales turns by category, reorder alerts with days-of-supply. |
+
+**Manage action:** `get_inventory_velocity`
+
+---
+
+### inventory_flight_sim.py
+
+**File:** `apps/products/services/inventory_flight_sim.py`
+**Purpose:** Flight Simulator: Inventory — interactive training for inventory and GL flows. Dashboard: `/flight-sim-inventory`.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `get_item_flight_state` | `(item_id: int) -> dict` | Live state of an item: all transaction lines, pending records, GL impact per line (including 5% tax, 5% commission). |
+| `get_flight_scenario` | `() -> dict` | Scripted 9-step training scenario with expected values at each step. |
+
+**Training scenario (9 steps):**
+1. Starting inventory (on_hand=100)
+2. Proposal for 15 → on_p changes, no GL
+3. Convert 9 to Order → on_so changes, pending created, no GL
+4. Invoice 4 → on_hand decreases, GL: AR/Revenue/Tax/COGS/Inventory/Commission
+5. Purchase 14 → on_po increases, no GL
+6. Receive 11 → on_hand increases, GL: Inventory/AP
+7. Partial payment $30 of $42 → GL: Cash/AR
+8. Discount $10 → GL: Discount Expense/AR
+9. Write-off $2 → GL: Bad Debt/AR
+
+**Invoice settlement summary:** $42 = $30 cash + $10 discount + $2 write-off. Margin waterfall: Revenue $40 → COGS $24 = Gross $16 → Commission $2 → Discount $10 → Bad Debt $2 = Net $2 (5%).
+
+**Config:** Tax 5%, Commission 5% (easy mental math for learners).
+
+**Manage actions:** `get_item_flight_state`, `get_flight_scenario`
 
 ---
 

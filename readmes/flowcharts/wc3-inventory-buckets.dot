@@ -1,5 +1,6 @@
 // WC3 Inventory Bucket Flow — how quantities move through the system
 // Render: dot -Tpdf wc3-inventory-buckets.dot -o wc3-inventory-buckets.pdf
+// Source: Bill's Miro diagram (readmes/wc3_inventory_flow.png)
 
 digraph wc3_inventory_buckets {
     rankdir=LR
@@ -7,50 +8,102 @@ digraph wc3_inventory_buckets {
     fontsize=11
     node [fontname="Helvetica" fontsize=10 style=filled]
     edge [fontname="Helvetica" fontsize=9]
-    label="WC3 — Inventory Bucket Flow\navailable = on_hand - on_so + on_po + on_wo"
+    label="WC3 — Inventory Bucket Flow\navailable = on_hand - allocated"
     labelloc=t
     fontsize=14
     pad=0.5
+    compound=true
 
-    // Transactions
-    proposal [label="Proposal\n(forecast)" shape=box fillcolor="#E8DAEF"]
-    order [label="Order\n(commitment)" shape=box fillcolor="#FCF3CF"]
-    invoice [label="Invoice\n(shipment)" shape=box fillcolor="#ABEBC6"]
-    purchase [label="Purchase\nOrder" shape=box fillcolor="#D4E6F1"]
-    receipt [label="Receipt\n(inship)" shape=box fillcolor="#AED6F1"]
-    workorder [label="Work Order\n(production)" shape=box fillcolor="#FADBD8"]
-    wo_complete [label="WO\nCompletion" shape=box fillcolor="#F5B7B1"]
+    // ---- Contacts / Orgs ----
+    contacts [label="contacts" shape=box fillcolor="#D5E8D4"]
+    customers [label="customers" shape=box fillcolor="#FFF2CC"]
+    vendors [label="vendors" shape=box fillcolor="#FFF2CC"]
 
-    // Buckets
-    on_p [label="on_p\n(forecast)" shape=ellipse fillcolor="#D7BDE2"]
-    on_so [label="on_so\n(committed)" shape=ellipse fillcolor="#F9E79F"]
-    on_hand [label="on_hand\n(physical)" shape=ellipse fillcolor="#82E0AA" fontsize=12]
-    on_po [label="on_po\n(expected)" shape=ellipse fillcolor="#85C1E9"]
-    on_wo [label="on_wo\n(in production)" shape=ellipse fillcolor="#F1948A"]
-    on_in [label="on_in\n(invoiced)" shape=ellipse fillcolor="#ABEBC6"]
+    // ---- Transaction Headers ----
+    proposals [label="proposals" shape=box fillcolor="#D5E8D4"]
+    orders [label="orders" shape=box fillcolor="#D5E8D4"]
+    purchases [label="purchases" shape=box fillcolor="#D4E6F1"]
+    invoices [label="invoices" shape=box fillcolor="#F8CECC"]
 
-    available [label="AVAILABLE\non_hand - on_so\n+ on_po + on_wo" shape=doublecircle fillcolor="#58D68D" fontsize=11]
+    // ---- Linkages ----
+    linkages [label="linkages\nshared by lines\nrelated data\nspecs\ndata at time of action" shape=box fillcolor="#B9E0A5"]
 
-    // Flows
-    proposal -> on_p [label="+qty×prob" color="#8E44AD"]
-    order -> on_so [label="+qty" color="#F39C12"]
-    order -> on_p [label="-qty (partial)" style=dashed color="#8E44AD"]
+    // ---- Lines (each transaction type) ----
+    subgraph cluster_proposal_lines {
+        label=""
+        style=invis
+        prop_lines [label="{proposal lines|id\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nitem_id}" shape=record fillcolor="#E2EFDA"]
+    }
 
-    invoice -> on_hand [label="-qty" color="#E74C3C"]
-    invoice -> on_so [label="-qty" color="#E74C3C"]
-    invoice -> on_in [label="+qty" color="#27AE60"]
+    subgraph cluster_order_lines {
+        label=""
+        style=invis
+        order_lines [label="{order lines|id\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nitem_id}" shape=record fillcolor="#E2EFDA"]
+    }
 
-    purchase -> on_po [label="+qty" color="#2980B9"]
-    receipt -> on_hand [label="+qty" color="#27AE60"]
-    receipt -> on_po [label="-qty" color="#E74C3C"]
+    subgraph cluster_purchase_lines {
+        label=""
+        style=invis
+        purchase_lines [label="{purchase lines|id\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nquantity.received\nitem_id}" shape=record fillcolor="#D4E6F1"]
+    }
 
-    workorder -> on_wo [label="+qty" color="#C0392B"]
-    wo_complete -> on_hand [label="+qty" color="#27AE60"]
-    wo_complete -> on_wo [label="-qty" color="#E74C3C"]
+    subgraph cluster_invoice_lines {
+        label=""
+        style=invis
+        invoice_lines [label="{invoice lines|id\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nquantity.parent\nitem_id}" shape=record fillcolor="#F8CECC"]
+    }
 
-    // Available computation
-    on_hand -> available [style=bold color="#27AE60"]
-    on_so -> available [label="-" style=bold color="#E74C3C"]
-    on_po -> available [label="+" style=bold color="#2980B9"]
-    on_wo -> available [label="+" style=bold color="#C0392B"]
+    // ---- Pending (the hub) ----
+    pending [label="pending" shape=box fillcolor="#C00000" fontcolor=white fontsize=12 penwidth=2]
+
+    // ---- Items (the destination) ----
+    items [label="{items|quantity.on_hand\nquantity.allocated\nquantity.available\nquantity.on_p\nquantity.on_so\nquantity.on_in\nquantity.on_po\nquantity.on_wo\nquantity.on_r}" shape=record fillcolor="#351C75" fontcolor=white fontsize=10]
+
+    // ---- Receipts ----
+    receipts [label="receipts\nvendor shipping\ndocument" shape=box fillcolor="#CFD8DC"]
+
+    // ---- Inventory Layer ----
+    inv_layer [label="{inventory_layer\n(consolidate with)|receipt_line\nquantity.on_hand\nby cost}" shape=record fillcolor="#351C75" fontcolor=white]
+
+    // ---- Notes ----
+    notes [label="quantity.placed = input by the user\nquantity.canceled changes affects quantity_ordered\nquantity.remaining is quantity_ordered - all child actions\n  \x{2022} orders from proposals\n  \x{2022} invoiced from orders\n  \x{2022} invoices not packed\n  \x{2022} purchases not received\nquantity.parent is the quantity_remaining on the parent\nwhen the child transaction is created.\n  \x{2022} purchases to show quantity the vendor reports as shipped" shape=note fillcolor="#FFFDE7" fontsize=9]
+
+    // ---- Header relationships ----
+    contacts -> customers [style=dashed color=gray]
+    contacts -> vendors [style=dashed color=gray]
+    customers -> orders
+    customers -> proposals
+    vendors -> purchases
+
+    // ---- Headers to lines ----
+    proposals -> prop_lines
+    orders -> order_lines
+    purchases -> purchase_lines
+    invoices -> invoice_lines
+
+    // ---- Lines to linkages ----
+    order_lines -> linkages [dir=both color="#27AE60"]
+    purchase_lines -> linkages [dir=both color="#27AE60"]
+    invoice_lines -> linkages [dir=both color="#27AE60"]
+
+    // ---- Lines to lines (parent-child conversion) ----
+    prop_lines -> order_lines [color="#27AE60" penwidth=1.5]
+    order_lines -> invoice_lines [color="#27AE60" penwidth=1.5]
+    order_lines -> purchase_lines [color="#27AE60" penwidth=1.5]
+
+    // ---- Lines to pending (quantity deltas) ----
+    order_lines -> pending [label="+on_so" color="#C00000" fontcolor="#C00000"]
+    purchase_lines -> pending [label="+on_po" color="#C00000" fontcolor="#C00000"]
+    invoice_lines -> pending [label="-on_hand\n-on_so" color="#C00000" fontcolor="#C00000"]
+
+    // ---- Pending to items ----
+    pending -> items [color="#C00000" penwidth=2]
+
+    // ---- Receipts flow ----
+    purchases -> receipts [style=dashed]
+    receipts -> pending [label="+on_hand\n-on_po" color="#C00000" fontcolor="#C00000"]
+    receipts -> inv_layer [color="#351C75"]
+
+    // ---- Inventory layer ----
+    inv_layer -> items [label="-on_po\n+on_hand" style=dashed color="#351C75"]
 }

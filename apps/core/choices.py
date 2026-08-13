@@ -27,6 +27,30 @@ ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
     ("Complete", "Complete"),
 )
 
+ACTION_TYPE_CHOICES: Final[ChoiceList] = (
+    ("", ""),
+    ("call", "Call"),
+    ("email", "Email"),
+    ("visit", "Visit"),
+    ("meeting", "Meeting"),
+    ("demo", "Demo"),
+    ("marketing", "Marketing"),
+    ("referral", "Referral"),
+    ("social", "Social Media"),
+    ("event", "Event"),
+    ("follow_up", "Follow-up"),
+    ("other", "Other"),
+)
+
+ACTION_IMPACT_CHOICES: Final[ChoiceList] = (
+    (0, "Not rated"),
+    (1, "Minimal (1)"),
+    (2, "Low (2)"),
+    (3, "Moderate (3)"),
+    (4, "High (4)"),
+    (5, "Critical (5)"),
+)
+
 ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
     (None, ""),
     (1, "Easy (1)"),

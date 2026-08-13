@@ -99,9 +99,45 @@ This onboarding readme should be chunked into Alice's vector store so she can:
 - Guide a new admin through initial setup
 - Recognize when a user is struggling (repeated cancels, empty saves, wrong entry point)
 
+## Flight Simulators — Hands-On Training
+
+After basic setup, Alice assigns flight simulator training as Action records
+in the user's weekly project. Flight simulators are interactive step-by-step
+windows where the user performs real actions and watches data change.
+
+**Alice's onboarding checklist (new user Actions):**
+
+1. **Complete Flight Simulator: Inventory** (`/flight-sim-inventory`)
+   - 9 steps: proposal → order → invoice → purchase → receipt → payment → discount → write-off
+   - Teaches: which transactions move inventory, when GL entries are created, why pending exists
+   - Shows margin erosion: 40% gross → 5% net (and why Alice tracks it)
+
+2. **Set impact.predicted on first 5 selling actions**
+   - Teaches: the impact assessment loop (predict → act → retrospect → learn)
+   - Not precision — retrospection. The gap is the learning signal.
+
+3. **Review Alice's auto-filled impact.actual on 3+ actions**
+   - Teaches: how Alice contributes (she guesses, user corrects, she learns)
+   - Each 2-second correction saves hours of admin over time
+
+4. **View Sales Pipeline** (`/sales-pipeline`) — find your conversion rate
+5. **View Cash Conversion** (`/cash-conversion`) — find stalled invoices
+6. **View Inventory Velocity** (`/inventory-velocity`) — find dead capital
+
+Alice records completion of each step as an observation. She does not hard-gate
+features behind training, but she prompts: "Have you completed the inventory
+flight simulator? It takes 10 minutes and shows how these quantities work."
+
+**Full documentation:** `readmes/topics/training/flight-simulators.md`
+**Flowcharts:** `readmes/flowcharts/wc3-flight-sim-inventory.pdf`,
+`readmes/flowcharts/wc3-impact-assessment-loop.pdf`
+
 ## The Principle
 
 Onboarding is not a one-time event. It is Alice's permanent awareness that
 some users know less than others, and every interaction is an opportunity to
 teach without condescending. The admin sets the defaults. Alice explains them.
 The user overrides when needed. Alice learns from the overrides.
+
+The trail must be packed before it's open. A feature not trained is a feature
+not used. Flight simulators are how we pack the trail.

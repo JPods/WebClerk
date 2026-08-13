@@ -18,10 +18,26 @@ from .images import ContactImages
 
 # ── .config ────────────────────────────────────────────────────────────
 
+class TouchConfig(BaseModel):
+    """Touch preferences — how this contact initiates calls, emails, texts.
+    Set by admins in the contact's config.touch JSON.
+    tel: uses Apple Continuity (Mac → iPhone on same network).
+    facetime / facetime-audio: FaceTime video or audio.
+    log_only: open touch form without initiating communication.
+    """
+    default_channel: str = "call"        # call | email | visit | text | meeting
+    default_direction: str = "out"       # out | in
+    phone_action: str = "tel"            # tel | facetime | facetime-audio | log_only
+    email_action: str = "mailto"         # mailto | log_only
+    text_action: str = "sms"             # sms | log_only
+    auto_log: bool = True                # auto-open touch form after URI launch
+
+
 class ContactConfig(ConfigBase):
-    """Structural data — import originals."""
+    """Structural data — import originals, touch preferences."""
     original_mac: Optional[dict] = None
     phone_original: Optional[str] = None
+    touch: TouchConfig = Field(default_factory=TouchConfig)
 
     class Config:
         extra = "allow"

@@ -116,14 +116,16 @@ class AuthLoginView(APIView):
         # Add role to token claims
         access["role"] = getattr(user, "role", "user")
         refresh["role"] = getattr(user, "role", "user")
-        # Look up Contact record for this user's email to get prefs
+        # Look up Contact record for this user's email to get prefs + config
         contact_prefs = {}
+        contact_config = {}
         contact_id = user.pk
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
             if contact:
                 contact_prefs = contact.prefs or {}
+                contact_config = contact.config or {}
                 contact_id = contact.pk
         except Exception:
             pass
@@ -139,6 +141,7 @@ class AuthLoginView(APIView):
                 "is_staff": getattr(user, "is_staff", False),
                 "is_superuser": getattr(user, "is_superuser", False),
                 "prefs": contact_prefs,
+                "config": contact_config,
             },
             "access": str(access),
         }
@@ -187,15 +190,17 @@ class AuthMeView(APIView):
         if not request.user.is_authenticated:
             return api_response(data=None, message="unauthenticated", status_code=401)
         
-        # Get user data — look up Contact for prefs
+        # Get user data — look up Contact for prefs + config
         user = request.user
         contact_prefs = {}
+        contact_config = {}
         contact_id = user.pk
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
             if contact:
                 contact_prefs = contact.prefs or {}
+                contact_config = contact.config or {}
                 contact_id = contact.pk
         except Exception:
             pass
@@ -213,6 +218,7 @@ class AuthMeView(APIView):
             "is_active": getattr(user, "is_active", False),
             "date_joined": getattr(user, "date_joined", None),
             "prefs": contact_prefs,
+            "config": contact_config,
         }
         return api_response(data={"user": data}, message="authenticated")
 

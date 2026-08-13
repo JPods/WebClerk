@@ -9,6 +9,7 @@ Never blocks a transaction. Only warns.
 from __future__ import annotations
 from typing import Dict, List, Optional
 from django.apps import apps as dj_apps
+from django.db import models
 import time
 
 
@@ -27,14 +28,42 @@ def _get_nested(d: dict, *keys, default=None):
     return d
 
 
-def check_credit_limit(customer_id: int, new_amount: float = 0) -> Dict:
-    """Check customer credit limit vs balance due + new_amount.
+def _open_order_backlog(customer_id: int, exclude_order_id: int = None) -> float:
+    """Sum of totals on open orders (not complete, not canceled) for a customer."""
+    Order = dj_apps.get_model('transactions', 'Order')
+    qs = Order.objects.filter(
+        customer_id=customer_id,
+        total__isnull=False,
+    ).exclude(
+        status__in=['complete', 'canceled'],
+    )
+    if exclude_order_id:
+        qs = qs.exclude(pk=exclude_order_id)
+    agg = qs.aggregate(backlog=models.Sum('total'))
+    return float(agg['backlog'] or 0)
+
+
+def check_credit_limit(
+    customer_id: int,
+    new_amount: float = 0,
+    exclude_order_id: int = None,
+) -> Dict:
+    """Check customer credit limit vs balance due + open orders + new_amount.
 
     Never blocks — only warns.
 
+    WC2 rule (RunningBalance): available credit = limit - AR balance -
+    current document amount - open order backlog. Without including open
+    orders, a customer with $50K in open orders could place another $50K
+    against a $60K limit.
+
+    Args:
+        exclude_order_id: exclude this order from the backlog sum (the
+            order being edited is already counted via new_amount).
+
     Returns:
-        {warning, limit, balance_due, new_amount, total_exposure,
-         amount_over, message}
+        {warning, limit, balance_due, open_orders, new_amount,
+         total_exposure, amount_over, message}
     """
     OrgBase = dj_apps.get_model('orgs', 'OrgBase')
     try:
@@ -44,6 +73,7 @@ def check_credit_limit(customer_id: int, new_amount: float = 0) -> Dict:
             'warning': False,
             'limit': 0,
             'balance_due': 0,
+            'open_orders': 0,
             'new_amount': float(new_amount),
             'total_exposure': float(new_amount),
             'amount_over': 0,
@@ -53,15 +83,22 @@ def check_credit_limit(customer_id: int, new_amount: float = 0) -> Dict:
     financial = org.financial if isinstance(org.financial, dict) else {}
     limit = float(_get_nested(financial, 'customer', 'credit', 'limit', default=0) or 0)
     balance_due = float(_get_nested(financial, 'customer', 'balances', 'due', default=0) or 0)
+    open_orders = _open_order_backlog(customer_id, exclude_order_id=exclude_order_id)
 
-    total_exposure = balance_due + float(new_amount)
+    total_exposure = balance_due + open_orders + float(new_amount)
     amount_over = max(0, total_exposure - limit) if limit > 0 else 0
     warning = limit > 0 and total_exposure > limit
 
     if warning:
+        parts = [f'AR ${balance_due:,.2f}']
+        if open_orders > 0:
+            parts.append(f'open orders ${open_orders:,.2f}')
+        if new_amount:
+            parts.append(f'this document ${float(new_amount):,.2f}')
+        breakdown = ' + '.join(parts)
         message = (
             f'Credit limit warning: exposure ${total_exposure:,.2f} '
-            f'exceeds limit ${limit:,.2f} by ${amount_over:,.2f}'
+            f'({breakdown}) exceeds limit ${limit:,.2f} by ${amount_over:,.2f}'
         )
     else:
         message = 'Within credit limit' if limit > 0 else 'No credit limit set'
@@ -70,6 +107,7 @@ def check_credit_limit(customer_id: int, new_amount: float = 0) -> Dict:
         'warning': warning,
         'limit': limit,
         'balance_due': balance_due,
+        'open_orders': open_orders,
         'new_amount': float(new_amount),
         'total_exposure': total_exposure,
         'amount_over': amount_over,
